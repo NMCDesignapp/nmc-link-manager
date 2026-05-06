@@ -426,7 +426,11 @@ export default function Home() {
       </div>
 
       {/* Modals */}
-      <IframeModal link={selectedLink} onClose={() => setSelectedLink(null)} />
+      <AnimatePresence mode="wait">
+        {selectedLink && (
+          <IframeModal key={selectedLink.id} link={selectedLink} onClose={() => setSelectedLink(null)} />
+        )}
+      </AnimatePresence>
 
       <AddLinkModal
         isOpen={isAddModalOpen}
