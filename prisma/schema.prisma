@@ -82,6 +82,7 @@ model Contest {
   conditionType   String   @default("per_contract")
   targetType      String   @default("tvv")
   bonusTiers      String
+  posterUrl       String   @default("")
   participants    String   @default("[]")
   usePhase2       Boolean  @default(false)
   phase2StartDate DateTime?

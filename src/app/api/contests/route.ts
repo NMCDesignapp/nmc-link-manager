@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, startDate, endDate, issueDate, conditionType, targetType, bonusTiers } = body as {
+    const { title, startDate, endDate, issueDate, conditionType, targetType, bonusTiers, posterUrl, participants } = body as {
       title: string;
       startDate: string;
       endDate: string;
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
       conditionType: string;
       targetType: string;
       bonusTiers: string;
+      posterUrl?: string;
+      participants?: string;
     };
 
     if (!title || !startDate || !endDate) {
@@ -45,6 +47,8 @@ export async function POST(request: NextRequest) {
           conditionType,
           targetType: targetType || 'tvv',
           bonusTiers,
+          posterUrl: posterUrl || '',
+          participants: participants || '[]',
         },
       });
       return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: updated });
@@ -59,6 +63,8 @@ export async function POST(request: NextRequest) {
         conditionType,
         targetType: targetType || 'tvv',
         bonusTiers,
+        posterUrl: posterUrl || '',
+        participants: participants || '[]',
       },
     });
 
