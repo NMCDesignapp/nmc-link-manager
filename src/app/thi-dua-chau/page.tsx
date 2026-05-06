@@ -941,7 +941,7 @@ export default function ThiDuaPage() {
           <CardContent className="px-4 pb-4 space-y-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-white/70">Tên chương trình thi đua</Label>
-              <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm" />
+              <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm w-full" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực từ</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
@@ -1116,6 +1116,35 @@ export default function ThiDuaPage() {
           </Button>
         </div>
 
+        {/* Summary Cards - below buttons, visible when results exist */}
+        {(displayContracts.length > 0 || nydData.length > 0) && (
+          <div className="space-y-2">
+            <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />
+
+            {usePhase2 && phase2Results && (
+              <div className="rounded-lg bg-gradient-to-r from-sky-900/40 to-cyan-900/40 border border-sky-500/20 p-3">
+                <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-sky-400" /><div className="flex-1"><p className="text-xs font-bold text-sky-300">Chia 2 giai đoạn</p><p className="text-[10px] text-sky-400/60">GĐ1: {phase2Results.phase1Count} HĐ | GĐ2: {phase2Results.phase2Count} HĐ</p></div><div className="text-right"><p className="text-[10px] text-sky-400/60">GĐ1: {formatCurrency(phase2Results.phase1Bonus)}</p><p className="text-[10px] text-sky-400/60">GĐ2: {formatCurrency(phase2Results.phase2Bonus)}</p><p className="text-sm font-extrabold text-sky-300">Tổng: {formatCurrency(phase2Results.totalBonus)}</p></div></div>
+              </div>
+            )}
+
+            {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
+              <div className="rounded-lg bg-gradient-to-r from-orange-900/40 to-amber-900/40 border border-orange-500/20 p-3">
+                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : 'Lượt HĐ Chuẩn'}: IP ≥ {conditionType === 'activity_round' ? '3' : '12'} triệu = 1 lượt</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
+              </div>
+            )}
+            {conditionType === 'total_fyp' && matchedTotalTier && (
+              <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/20 p-3">
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">Tổng IP: {formatCurrency(totalFYPValue)}</p></div><div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonus(matchedTotalTier, totalFYPValue)}</p></div>{totalRemaining !== null && <div className="text-right border-l border-white/10 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+              </div>
+            )}
+            {isNYDMode(conditionType) && nydData.length > 0 && (
+              <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'} (NYD)</p><p className="text-[10px] text-violet-400/60">{conditionType === 'nyd_activity' ? 'TVVm có IP ≥ 3tr = 1 lượt' : `Tổng FYP TVVm${includeOwnNYD ? ' + IP NYD' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Source Data - collapsible */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
@@ -1142,62 +1171,31 @@ export default function ThiDuaPage() {
         </Card>
       </main>
 
-      {/* Result Dialog Popup - White theme */}
+      {/* Result Dialog Popup - White theme, only poster + detail table */}
       <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
-        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-y-auto bg-white border-emerald-200">
-          <DialogHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-emerald-700 text-lg font-bold flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-emerald-600" />
-                Kết quả thi đua
-              </DialogTitle>
-              <div className="flex items-center gap-1.5">
-                <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyText} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Copy className="w-3 h-3 mr-1" />Copy</Button>
-                <Button variant="outline" size="sm" onClick={handlePrint} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Printer className="w-3 h-3 mr-1" />In</Button>
-                <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-200 text-gray-600 h-7 text-xs hover:bg-gray-50"><Download className="w-3 h-3 mr-1" />CSV</Button>
-              </div>
+        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-y-auto bg-white border-emerald-200 p-0">
+          {/* Action bar */}
+          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-emerald-100 px-4 py-2 flex items-center justify-between">
+            <DialogTitle className="text-emerald-700 text-sm font-bold flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-emerald-600" />
+              Kết quả chi tiết
+            </DialogTitle>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
+                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopyText} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Copy className="w-3 h-3 mr-1" />Copy</Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Printer className="w-3 h-3 mr-1" />In</Button>
+              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-200 text-gray-600 h-7 text-xs hover:bg-gray-50"><Download className="w-3 h-3 mr-1" />CSV</Button>
             </div>
-            {subjectCodes.length > 0 && (
-              <div className="mt-1 flex items-center gap-1 text-xs text-sky-600">
-                <Users className="w-3 h-3" />
-                <span>Lọc theo {subjectCodes.length} đối tượng thi đua</span>
-              </div>
-            )}
-          </DialogHeader>
+          </div>
 
-          <div ref={resultContentRef} className="space-y-4">
+          <div ref={resultContentRef} className="px-4 pb-4">
             <div ref={printRef}>
-              {/* White Poster */}
-              <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
-
-              {posterUrl && <div className="flex justify-center mt-3"><img src={posterUrl} alt="Poster" className="max-h-56 rounded-xl shadow-md" /></div>}
-
-              {/* Phase 2 info */}
-              {usePhase2 && phase2Results && (
-                <div className="mt-3 rounded-lg bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 p-3">
-                  <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-sky-500" /><div className="flex-1"><p className="text-xs font-bold text-sky-700">Chia 2 giai đoạn</p><p className="text-[10px] text-sky-500">GĐ1: {phase2Results.phase1Count} HĐ | GĐ2: {phase2Results.phase2Count} HĐ</p></div><div className="text-right"><p className="text-[10px] text-sky-500">GĐ1: {formatCurrency(phase2Results.phase1Bonus)}</p><p className="text-[10px] text-sky-500">GĐ2: {formatCurrency(phase2Results.phase2Bonus)}</p><p className="text-sm font-extrabold text-sky-700">Tổng: {formatCurrency(phase2Results.totalBonus)}</p></div></div>
-                </div>
-              )}
-
-              {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
-                <div className="mt-3 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 p-3">
-                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /><div className="flex-1"><p className="text-xs font-bold text-orange-700">{conditionType === 'activity_round' ? 'Lượt HĐ' : 'Lượt HĐ Chuẩn'}: IP ≥ {conditionType === 'activity_round' ? '3' : '12'} triệu = 1 lượt</p></div><div className="text-right"><p className="text-[10px] text-orange-500">Tổng thưởng</p><p className="text-base font-extrabold text-orange-600">{formatCurrency(arTotalBonus)}</p></div></div>
-                </div>
-              )}
-              {conditionType === 'total_fyp' && matchedTotalTier && (
-                <div className="mt-3 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3">
-                  <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-500" /><div className="flex-1"><p className="text-xs font-bold text-amber-700">Tổng IP: {formatCurrency(totalFYPValue)}</p></div><div className="text-right"><p className="text-base font-extrabold text-amber-600">{formatBonus(matchedTotalTier, totalFYPValue)}</p></div>{totalRemaining !== null && <div className="text-right border-l border-gray-200 pl-2"><p className="text-[10px] text-orange-500">Cần thêm</p><p className="text-sm font-bold text-orange-600">{formatCurrency(totalRemaining)}</p></div>}</div>
-                </div>
-              )}
-
-              {/* NYD info */}
-              {isNYDMode(conditionType) && nydData.length > 0 && (
-                <div className="mt-3 rounded-lg bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 p-3">
-                  <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-500" /><div className="flex-1"><p className="text-xs font-bold text-violet-700">{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'} (NYD)</p><p className="text-[10px] text-violet-500">{conditionType === 'nyd_activity' ? 'TVVm có IP ≥ 3tr = 1 lượt' : `Tổng FYP TVVm${includeOwnNYD ? ' + IP NYD' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-500">Tổng thưởng</p><p className="text-base font-extrabold text-violet-600">{formatCurrency(nydTotalBonus)}</p></div></div>
-                </div>
+              {/* Poster image - full width, no gaps */}
+              {posterUrl && <div className="mb-3"><img src={posterUrl} alt="Poster" className="w-full rounded-lg shadow-md" /></div>}
+              {!posterUrl && (
+                <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}
 
               {/* Result Table */}
