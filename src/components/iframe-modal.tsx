@@ -1,7 +1,7 @@
 'use client'
 
 import { Link } from '@/lib/types'
-import { ArrowLeft, ExternalLink, RefreshCw, X, Download, FileText, File } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Download, FileText, File } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from '@/lib/animations'
@@ -15,12 +15,22 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [iframeError, setIframeError] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [showControls, setShowControls] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const onCloseRef = useRef(onClose)
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  const startHideTimer = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    setShowControls(true)
+    hideTimerRef.current = setTimeout(() => {
+      setShowControls(false)
+    }, 3000)
+  }, [])
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
@@ -36,6 +46,8 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
       setIsLoading(true)
       setIframeError(false)
       setIsVisible(true)
+      setShowControls(true)
+      startHideTimer()
       window.history.pushState({ modal: true }, '')
     }
   }, [link])
@@ -50,13 +62,12 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleRefresh = () => {
-    if (iframeRef.current) {
-      setIsLoading(true)
-      setIframeError(false)
-      iframeRef.current.src = iframeRef.current.src
+  // Cleanup timer
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
     }
-  }
+  }, [])
 
   const handleOpenExternal = () => {
     if (link?.url) {
@@ -84,92 +95,72 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         >
-          {/* Top Toolbar - always visible */}
-          <div
-            className="flex items-center gap-2 px-3 py-2 flex-shrink-0 safe-area-top"
-            style={{
-              background: 'rgba(10, 10, 15, 0.95)',
-              borderBottom: '1px solid rgba(0, 255, 136, 0.15)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
-            {/* Back button */}
-            <motion.button
-              onClick={handleClose}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium smooth-transition"
-              style={{
-                background: 'rgba(0, 255, 136, 0.1)',
-                border: '1px solid rgba(0, 255, 136, 0.3)',
-                color: '#00ff88',
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Quay lai</span>
-            </motion.button>
-
-            {/* Title & URL */}
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium truncate">{link.title}</h3>
-              <p className="text-[10px] text-muted-foreground truncate">
-                {isWebLink ? link.url : link.file_name || link.link_type}
-              </p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Refresh (web only) */}
-              {isWebLink && (
-                <motion.button
-                  onClick={handleRefresh}
-                  className="p-2 rounded-lg hover:bg-white/10 smooth-transition"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  title="Tai lai"
-                >
-                  <RefreshCw className="w-4 h-4 text-muted-foreground" />
-                </motion.button>
-              )}
-
-              {/* Open in new tab */}
-              <motion.button
-                onClick={handleOpenExternal}
-                className="p-2 rounded-lg hover:bg-white/10 smooth-transition"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                title="Mo tab moi"
-              >
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
-
-              {/* Close */}
-              <motion.button
-                onClick={handleClose}
-                className="p-2 rounded-lg hover:bg-white/10 smooth-transition"
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                title="Dong"
-              >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Loading bar */}
-          {isLoading && isWebLink && (
-            <div className="h-1 overflow-hidden" style={{ background: '#1a1a2e' }}>
-              <motion.div
-                className="h-full"
-                style={{ background: 'linear-gradient(90deg, #00ff88, #00cc6a)', width: '30%' }}
-                animate={{ x: ['-100%', '400%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-          )}
-
-          {/* Content Area */}
+          {/* Content Area - full screen */}
           <div className="flex-1 relative overflow-hidden">
+            {/* Floating Controls - compact, auto-hide */}
+            <AnimatePresence>
+              {showControls && (
+                <motion.div
+                  className="absolute top-3 left-3 z-[60] flex items-center gap-1.5"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Back button */}
+                  <motion.button
+                    onClick={handleClose}
+                    className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.7)',
+                      border: '1px solid rgba(0, 255, 136, 0.3)',
+                      color: '#00ff88',
+                      backdropFilter: 'blur(8px)',
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </motion.button>
+
+                  {/* Open in new tab button */}
+                  <motion.button
+                    onClick={handleOpenExternal}
+                    className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.7)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(8px)',
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Tap zone to show/hide controls */}
+            <div
+              className="absolute top-0 left-0 right-0 h-16 z-[55]"
+              onClick={startHideTimer}
+              style={{ cursor: 'pointer' }}
+            />
+
+            {/* Loading bar */}
+            {isLoading && isWebLink && (
+              <div className="absolute top-0 left-0 right-0 h-0.5 z-[60] overflow-hidden" style={{ background: 'transparent' }}>
+                <motion.div
+                  className="h-full"
+                  style={{ background: 'linear-gradient(90deg, #00ff88, #00cc6a)', width: '30%' }}
+                  animate={{ x: ['-100%', '400%'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </div>
+            )}
+
             {/* Web link - iframe */}
             {isWebLink && link.url && (
               <>
