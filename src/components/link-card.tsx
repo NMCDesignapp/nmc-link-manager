@@ -25,6 +25,7 @@ import {
   Image,
   Video,
   Star,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from '@/lib/animations'
@@ -65,10 +66,18 @@ export function LinkCard({ link, index = 0, onOpen, onEdit, onDelete, onToggleFa
   const IconComponent = iconMap[link.icon || 'globe'] || Globe
 
   const handleClick = async () => {
+    // Increment click count
     try {
       await fetch(`/api/links/${link.id}/click`, { method: 'POST' })
     } catch {}
-    onOpen(link)
+
+    // Web links: open directly in new tab (no iframe)
+    if (link.link_type === 'web' && link.url) {
+      window.open(link.url, '_blank', 'noopener,noreferrer')
+    } else {
+      // Files/images/videos: open in modal
+      onOpen(link)
+    }
   }
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -131,6 +140,15 @@ export function LinkCard({ link, index = 0, onOpen, onEdit, onDelete, onToggleFa
       </div>
 
       <div className="flex gap-0.5 flex-shrink-0 items-center">
+        {/* External link icon for web links */}
+        {link.link_type === 'web' && (
+          <motion.div
+            className="p-1.5 rounded-lg opacity-30"
+            whileHover={{ opacity: 1, scale: 1.1 }}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </motion.div>
+        )}
         <motion.button
           onClick={handleFavorite}
           className="p-1.5 rounded-lg opacity-40 hover:opacity-100 smooth-transition"
