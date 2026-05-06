@@ -7,20 +7,19 @@ import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from '@/lib/animations'
 
 interface IframeModalProps {
-  link: Link | null
+  link: Link
   onClose: () => void
 }
 
 export function IframeModal({ link, onClose }: IframeModalProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [iframeError, setIframeError] = useState(false)
-  const [activeLink, setActiveLink] = useState<Link | null>(null)
   const [showControls, setShowControls] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const onCloseRef = useRef(onClose)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const isOpenRef = useRef(false)
 
+  // Keep onClose ref updated
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
@@ -33,25 +32,18 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     }, 3000)
   }, [])
 
-  // When link prop changes, open the modal
+  // Reset state when link changes + push history
   useEffect(() => {
-    if (link && link !== activeLink) {
-      setIsLoading(true)
-      setIframeError(false)
-      setActiveLink(link)
-      setShowControls(true)
-      isOpenRef.current = true
-      startHideTimer()
-      // Push state for back button
-      window.history.pushState({ modal: true }, '')
-    }
-  }, [link])
+    setIsLoading(true)
+    setIframeError(false)
+    setShowControls(true)
+    startHideTimer()
+    // Push state for back button
+    window.history.pushState({ modal: true }, '')
+  }, [link.id])
 
   // Handle close - only called from UI buttons
   const handleClose = useCallback(() => {
-    if (!isOpenRef.current) return
-    isOpenRef.current = false
-    setActiveLink(null)
     // Pop the history state we pushed
     if (window.history.state?.modal) {
       window.history.back()
@@ -59,12 +51,10 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     onCloseRef.current()
   }, [])
 
-  // Handle browser back button - separate from UI close
+  // Handle browser back button
   useEffect(() => {
-    const handlePopState = () => {
-      if (!isOpenRef.current) return
-      isOpenRef.current = false
-      setActiveLink(null)
+    const handlePopState = (e: PopStateEvent) => {
+      // If we're still mounted and a popstate happens, close the modal
       onCloseRef.current()
     }
     window.addEventListener('popstate', handlePopState)
@@ -79,15 +69,13 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
   }, [])
 
   const handleOpenExternal = () => {
-    const url = activeLink?.url || activeLink?.file_url
+    const url = link.url || link.file_url
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
   }
 
-  const currentLink = activeLink
-  if (!currentLink) return null
-
+  const currentLink = link
   const isWebLink = currentLink.link_type === 'web'
   const isImage = currentLink.link_type === 'image' || currentLink.file_type?.startsWith('image/')
   const isVideo = currentLink.link_type === 'video' || currentLink.file_type?.startsWith('video/')
@@ -95,7 +83,6 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
 
   return (
     <motion.div
-      key={currentLink.id}
       className="fixed inset-0 z-50 flex flex-col"
       style={{ background: '#0a0a0f' }}
       initial={{ x: '100%' }}
@@ -173,6 +160,7 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
         {isWebLink && currentLink.url && (
           <>
             <iframe
+              key={currentLink.id}
               ref={iframeRef}
               src={currentLink.url}
               className="w-full h-full border-0"
@@ -247,6 +235,7 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
         {/* PDF preview */}
         {isPdf && currentLink.file_url && (
           <iframe
+            key={`pdf-${currentLink.id}`}
             src={currentLink.file_url}
             className="w-full h-full border-0"
             onLoad={() => setIsLoading(false)}

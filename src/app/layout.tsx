@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -50,6 +51,7 @@ export default function RootLayout({
       <body className="h-full overflow-auto grid-bg">
         <ErrorBoundary>
           {children}
+          <PwaInstallPrompt />
         </ErrorBoundary>
         {process.env.NODE_ENV === 'production' && <Analytics />}
         <script

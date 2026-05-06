@@ -1,7 +1,7 @@
 {
-  "name": "N.M.C - Trung tâm quản lý liên kết",
+  "name": "N.M.C - Trung tam quan ly lien ket",
   "short_name": "NMC Links",
-  "description": "Ứng dụng quản lý và tổng hợp tất cả liên kết web của bạn",
+  "description": "Ung dung quan ly va tong hop tat ca lien ket web cua ban",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",
@@ -10,6 +10,21 @@
   "scope": "/",
   "lang": "vi",
   "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Them lien ket moi",
+      "short_name": "Them link",
+      "description": "Them lien ket web moi vao danh sach",
+      "url": "/?action=add",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
