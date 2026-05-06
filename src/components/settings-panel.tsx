@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save } from 'lucide-react'
+import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSettings, AppSettings, defaultSettings } from '@/hooks/use-settings'
 import { motion, AnimatePresence, overlayVariants, modalVariants, popVariants, staggerContainer, staggerItem } from '@/lib/animations'
@@ -9,6 +9,8 @@ import { motion, AnimatePresence, overlayVariants, modalVariants, popVariants, s
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
+  onAddLink: () => void
+  onOpenStats: () => void
 }
 
 const NEON_COLORS = [
@@ -26,7 +28,7 @@ const ANIMATION_SPEEDS = [
   { name: 'Nhanh', value: 'fast' },
 ]
 
-export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: SettingsPanelProps) {
   const { settings, updateSettings, isLoading } = useSettings()
   const [localSettings, setLocalSettings] = useState<AppSettings>(defaultSettings)
   const [isSaving, setIsSaving] = useState(false)
@@ -134,6 +136,47 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               </div>
             ) : (
               <div className="space-y-5">
+                {/* Quick Actions */}
+                <motion.div
+                  className="space-y-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Thao tac nhanh</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <motion.button
+                      onClick={() => {
+                        onClose()
+                        onAddLink()
+                      }}
+                      className="py-2.5 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 neon-btn neon-press text-primary"
+                      style={{ background: 'rgba(0, 255, 136, 0.1)', border: '1px solid rgba(0, 255, 136, 0.3)' }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Them link
+                    </motion.button>
+                    <motion.button
+                      onClick={() => {
+                        onClose()
+                        onOpenStats()
+                      }}
+                      className="py-2.5 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 smooth-transition"
+                      style={{ background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', color: '#00d4ff' }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Thong ke
+                    </motion.button>
+                  </div>
+                </motion.div>
+
                 {/* Profile Section */}
                 <motion.div
                   className="space-y-3"

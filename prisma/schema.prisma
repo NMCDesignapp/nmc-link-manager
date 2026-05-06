@@ -42,3 +42,12 @@ model Setting {
   value      String?
   updated_at DateTime @updatedAt
 }
+
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        String   // format: YYYY-MM-DD
+  color       String   @default("#00ff88")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
