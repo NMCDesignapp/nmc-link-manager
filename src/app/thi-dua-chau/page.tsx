@@ -761,12 +761,16 @@ export default function ThiDuaPage() {
         const displayVal = conditionType === 'nyd_activity' ? `${n.recruitCount} TVVm HĐ` : formatNumber(value);
         text += `${idx + 1}. ${n.nydCode} | ${n.nydName} | ${displayVal} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
-    } else if (targetType === 'nhom' && isActivityRoundMode(conditionType)) {
-      [...groupedData].map((g) => ({ group: g, tier: calculateActivityRoundBonus(g.activityRounds).tier })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ group: g, tier }, idx) => { text += `${idx + 1}. ${g.maNhom} | ${g.leaderName || g.maNhom} | ${g.activityRounds} lượt | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`; });
     } else if (targetType === 'nhom') {
-      [...groupedData].map((g) => ({ group: g, tier: calculateBonus(g.totalFYP).tier })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ group: g, tier }, idx) => { text += `${idx + 1}. ${g.maNhom} | ${g.leaderName || g.maNhom} | IP: ${formatNumber(g.totalFYP)} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP)}` : 'Chưa đạt'}\n`; });
+      [...groupedData].map((g) => ({ group: g, tier: isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ group: g, tier }, idx) => {
+        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
+        text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+      });
     } else {
-      [...displayContracts].map((c) => ({ contract: c, tier: conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ contract: c, tier }, idx) => { text += `${idx + 1}. ${c.maNhom} | ${c.agentName} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`; });
+      [...displayContracts].map((c) => ({ contract: c, tier: conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ contract: c, tier }, idx) => {
+        const contractInfo = conditionType === 'per_contract' ? ` | ${formatDate(c.effectiveDate)} | ${c.contractNumber || ''}` : '';
+        text += `${idx + 1}. ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
+      });
     }
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
   };
@@ -783,9 +787,18 @@ export default function ThiDuaPage() {
         const { tier } = calculateBonus(value);
         return [n.nydCode, n.nydName, conditionType === 'nyd_activity' ? n.recruitCount : value, tier ? formatBonus(tier, value, n.recruitCount) : '', tier ? '' : 'Chưa đạt mức'];
       }).map((r, idx) => [idx + 1, ...r]);
+    } else if (targetType === 'nhom') {
+      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP', 'Thưởng', 'Ghi chú'];
+      rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
     } else {
-      headers = ['STT', 'Nhóm', targetType === 'nhom' ? 'Trưởng nhóm' : 'Mã số', targetType === 'nhom' ? 'Số HĐ' : 'Họ tên', isActivityRoundMode(conditionType) && targetType === 'nhom' ? 'Lượt HĐ' : 'IP / Tổng', 'Thưởng', 'Ghi chú'];
-      rows = (targetType === 'nhom' ? [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.maNhom, g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.contractCount, g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']) : [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.maNhom, c.agentCode, c.agentName, c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']));
+      // TVV/NYD per-contract or total_fyp
+      if (conditionType === 'per_contract') {
+        headers = ['STT', 'Mã số', 'Họ tên', 'Ngày HL', 'Số HĐ', 'IP', 'Thưởng', 'Ghi chú'];
+        rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.contractNumber || '', c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
+      } else {
+        headers = ['STT', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng', 'Ghi chú'];
+        rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.agentCode, c.agentName, c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
+      }
     }
     const csvContent = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a');
@@ -1219,25 +1232,38 @@ export default function ThiDuaPage() {
                         </>
                       ) : (
                         <>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">
-                            <div>Nhóm</div>
-                            {targetType === 'nhom' && <div className="text-[9px] font-normal text-white/60 italic">(MC NHÓM)</div>}
-                          </TableHead>
                           {targetType === 'nhom' ? (
                             <>
-                              <TableHead className="text-white min-w-[160px] font-bold text-center">Trưởng nhóm</TableHead>
-                              <TableHead className="text-white text-center w-[60px] font-bold">HĐ</TableHead>
+                              <TableHead className="text-white min-w-[100px] font-bold text-center">Nhóm</TableHead>
+                              <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
+                              <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên TN</TableHead>
                             </>
                           ) : (
                             <>
-                              <TableHead className="text-white min-w-[75px] font-bold text-center">Mã số</TableHead>
+                              <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
                               <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
+                            </>
+                          )}
+                          {conditionType === 'per_contract' && targetType !== 'nhom' && (
+                            <>
                               <TableHead className="text-white text-center w-[85px] font-bold">Ngày HL</TableHead>
+                              <TableHead className="text-white text-center min-w-[90px] font-bold">Số HĐ</TableHead>
                             </>
                           )}
                           <TableHead className="text-white text-right min-w-[100px] font-bold text-center">
-                            <div>{isActivityRoundMode(conditionType) && targetType === 'nhom' ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : conditionType === 'per_contract' ? 'IP' : 'Tổng IP'}</div>
-                            {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                            {(() => {
+                              if (isActivityRoundMode(conditionType) && targetType === 'nhom') {
+                                return <div>{conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ'}</div>;
+                              }
+                              if (conditionType === 'per_contract') {
+                                return <div>IP</div>;
+                              }
+                              return (
+                                <div>Tổng IP
+                                  {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                                </div>
+                              );
+                            })()}
                           </TableHead>
                           <TableHead className="text-white text-right min-w-[120px] font-bold text-center bg-emerald-600/30">
                             <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
@@ -1267,15 +1293,9 @@ export default function ThiDuaPage() {
                       return (
                         <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">
-                            <span className="font-semibold text-emerald-700">{group.maNhom}</span>
-                            {group.nhom && <span className="text-gray-400 text-[10px] block">{group.nhom}</span>}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-700">
-                            {group.leaderCode && <span className="font-mono text-[10px] text-gray-500">{group.leaderCode} - </span>}
-                            <span className="font-medium">{group.leaderName || group.maNhom}</span>
-                          </TableCell>
-                          <TableCell className="text-center"><Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600">{group.contractCount}</Badge></TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || group.maNhom}</span></TableCell>
                           <TableCell className="text-right text-xs text-orange-600">{group.activityRounds} lượt</TableCell>
                           <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {remaining} lượt</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
@@ -1286,15 +1306,9 @@ export default function ThiDuaPage() {
                       return (
                         <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">
-                            <span className="font-semibold text-emerald-700">{group.maNhom}</span>
-                            {group.nhom && <span className="text-gray-400 text-[10px] block">{group.nhom}</span>}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-700">
-                            {group.leaderCode && <span className="font-mono text-[10px] text-gray-500">{group.leaderCode} - </span>}
-                            <span className="font-medium">{group.leaderName || group.maNhom}</span>
-                          </TableCell>
-                          <TableCell className="text-center"><Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600">{group.contractCount}</Badge></TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || group.maNhom}</span></TableCell>
                           <TableCell className="text-right text-xs text-gray-700">{formatNumber(group.totalFYP)}</TableCell>
                           <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
@@ -1305,10 +1319,14 @@ export default function ThiDuaPage() {
                       return (
                         <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700 font-semibold text-emerald-700">{contract.maNhom}</TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-700">{contract.agentName}</TableCell>
-                          <TableCell className="text-center text-xs text-gray-500">{formatDate(contract.effectiveDate)}</TableCell>
+                          {conditionType === 'per_contract' && (
+                            <>
+                              <TableCell className="text-center text-xs text-gray-500">{formatDate(contract.effectiveDate)}</TableCell>
+                              <TableCell className="text-xs text-gray-700 font-mono">{contract.contractNumber || '—'}</TableCell>
+                            </>
+                          )}
                           <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
                           <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
