@@ -527,15 +527,12 @@ export default function ThiDuaPage() {
           agentTinhLuotMap.set(c.agentCode, Math.max(currentMax, c.tinhLuot || 0));
         }
         let rounds = 0;
-        for (const [, maxTinhLuot] of agentTinhLuotMap) {
+        for (const [agentCode, maxTinhLuot] of agentTinhLuotMap) {
           if (maxTinhLuot >= luotThreshold) {
             // If TVVm filter is on, only count TVVm
             if (useTVVmFilter) {
-              const agentContract = g.contracts.find(c => c.agentCode === agentTinhLuotMap.keys().next().value);
-              // Find the agent's contract to check startDate
-              const agentContracts = g.contracts.filter(c => c.agentCode === [...agentTinhLuotMap.keys()].find(k => agentTinhLuotMap.get(k) === maxTinhLuot));
-              const isTVVmAgent = agentContracts.some(ac => isTVVm(ac.startDate));
-              if (isTVVmAgent) rounds++;
+              const agentContracts = g.contracts.filter(c => c.agentCode === agentCode);
+              if (agentContracts.some(ac => isTVVm(ac.startDate))) rounds++;
             } else {
               rounds++;
             }
