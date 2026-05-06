@@ -25,7 +25,13 @@ export const defaultSettings: AppSettings = {
   profile_bio: 'Tat ca lien ket cua toi',
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error('An error occurred while fetching the data.')
+  }
+  return res.json()
+}
 
 export function useSettings() {
   const { data, isLoading, error } = useSWR<AppSettings>('/api/settings', fetcher, {

@@ -13,12 +13,22 @@ import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
 import useSWR, { mutate } from 'swr'
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const error = new Error('An error occurred while fetching the data.')
+    throw error
+  }
+  return res.json()
+}
 
 export default function Home() {
-  const { data: links = [], isLoading: linksLoading } = useSWR<Link[]>('/api/links', fetcher)
-  const { data: categories = [] } = useSWR<Category[]>('/api/categories', fetcher)
-  const { data: stats } = useSWR('/api/stats', fetcher)
+  const { data: linksData, isLoading: linksLoading, error: linksError } = useSWR<Link[]>('/api/links', fetcher)
+  const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher)
+  const { data: stats, error: statsError } = useSWR('/api/stats', fetcher)
+
+  const links = Array.isArray(linksData) ? linksData : []
+  const categories = Array.isArray(categoriesData) ? categoriesData : []
   const { settings } = useSettings()
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
@@ -149,6 +159,16 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Error Display */}
+      {(linksError || categoriesError) && (
+        <div className="max-w-md mx-auto px-4 mb-4">
+          <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-sm text-center">
+            <p className="text-destructive font-medium mb-1">Loi ket noi co so du lieu</p>
+            <p className="text-muted-foreground text-xs">Vui long kiem tra DATABASE_URL trong Environment Variables tren Vercel</p>
+          </div>
+        </div>
+      )}
+
       {/* Links Container */}
       <main className="max-w-md mx-auto px-4 pb-4 space-y-2">
         {linksLoading ? (
@@ -156,6 +176,13 @@ export default function Home() {
             {[1, 2, 3].map(i => (
               <div key={i} className="h-16 rounded-xl bg-card border border-border/50 animate-pulse" />
             ))}
+          </div>
+        ) : linksError ? (
+          <div className="text-center py-10">
+            <div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center">
+              <Link2 className="w-10 h-10 text-primary" />
+            </div>
+            <p className="text-muted-foreground text-xs">Khong the tai lien ket. Vui long thu lai sau.</p>
           </div>
         ) : filteredLinks.length === 0 ? (
           <div className="text-center py-10">
