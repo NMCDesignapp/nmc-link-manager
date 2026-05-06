@@ -24,7 +24,9 @@ import {
 interface Contract {
   id: string; contractNumber: string; agentCode: string; agentName: string;
   position: string; ban: string; nhom: string; maNhom: string;
-  effectiveDate: string; issueDate: string; fyp: number; afyp: number;
+  leaderAgentCode: string; recruiterCode: string;
+  startDate: string | null; effectiveDate: string; issueDate: string;
+  fyp: number; afyp: number; tinhLuot: number;
 }
 
 interface BonusTier {
@@ -49,6 +51,14 @@ type TargetType = 'tvv' | 'nhom';
 
 function isActivityRoundMode(ct: ConditionType): boolean {
   return ct === 'activity_round' || ct === 'activity_round_standard';
+}
+
+function isTVVm(startDate: string | null): boolean {
+  if (!startDate) return false;
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  return diffMonths <= 12;
 }
 
 const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv';
@@ -294,14 +304,20 @@ export default function ThiDuaPage() {
       const key = c.maNhom;
       if (!map.has(key)) map.set(key, { maNhom: key, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
       const g = map.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
-      if (c.position && c.position.toLowerCase().includes('trưởng nhóm')) { g.leaderName = c.agentName; g.leaderCode = c.agentCode; }
+      if (c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban'))) { g.leaderName = c.agentName; g.leaderCode = c.agentCode; }
     }
     if (isActivityRoundMode(conditionType)) {
-      const ipThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
+      const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
       for (const g of Array.from(map.values())) {
-        const agentIPMap = new Map<string, number>();
-        for (const c of g.contracts) { agentIPMap.set(c.agentCode, (agentIPMap.get(c.agentCode) || 0) + c.fyp); }
-        let rounds = 0; for (const [, totalIP] of agentIPMap) { if (totalIP >= ipThreshold) rounds++; }
+        const agentTinhLuotMap = new Map<string, number>();
+        for (const c of g.contracts) {
+          const currentMax = agentTinhLuotMap.get(c.agentCode) || 0;
+          agentTinhLuotMap.set(c.agentCode, Math.max(currentMax, c.tinhLuot || 0));
+        }
+        let rounds = 0;
+        for (const [, maxTinhLuot] of agentTinhLuotMap) {
+          if (maxTinhLuot >= luotThreshold) rounds++;
+        }
         g.activityRounds = rounds;
       }
     }
@@ -399,22 +415,42 @@ export default function ThiDuaPage() {
 
   // Download image function
   const handleDownloadImage = async () => {
-    if (!resultContentRef.current) return;
     setIsDownloadingImage(true);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(resultContentRef.current, {
+
+      // Create a temporary container outside the dialog portal
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'fixed';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      tempDiv.style.width = '800px'; // Fixed width for consistent capture
+      tempDiv.style.background = '#ffffff';
+      tempDiv.style.padding = '20px';
+      document.body.appendChild(tempDiv);
+
+      // Clone the result content
+      if (resultContentRef.current) {
+        tempDiv.innerHTML = resultContentRef.current.innerHTML;
+      }
+
+      const canvas = await html2canvas(tempDiv, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         logging: false,
+        width: 800,
       });
+
+      document.body.removeChild(tempDiv);
+
       const link = document.createElement('a');
       link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
-    } catch {
+    } catch (error) {
+      console.error('Download image error:', error);
       toast({ title: 'Lỗi', description: 'Không thể tải ảnh', variant: 'destructive' });
     } finally {
       setIsDownloadingImage(false);
