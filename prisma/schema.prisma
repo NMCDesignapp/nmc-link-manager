@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "sqlite"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
 }
 
 model Link {
@@ -91,6 +90,9 @@ model Contest {
   useSecondaryCondition Boolean @default(false)
   secondaryAFYPMin Float  @default(0)
   secondaryIPMin   Float  @default(0)
+  hideNotAchieved  Boolean @default(false)
+  useTVVmFilter    Boolean @default(false)
+  includeOwnNYD    Boolean @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
