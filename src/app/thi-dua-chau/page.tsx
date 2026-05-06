@@ -916,25 +916,22 @@ export default function ThiDuaPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
-          <h1 className="text-base font-bold text-white">Tính Thưởng Thi Đua</h1>
+          <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">1</div>
-                <div>
-                  <CardTitle className="text-sm text-emerald-400">Thông tin chương trình</CardTitle>
-                  <p className="text-[10px] text-white/40 mt-0.5">{contestTitle || 'Chưa đặt tên'}</p>
-                </div>
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                <CardTitle className="text-sm text-emerald-400 whitespace-nowrap drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Thông tin chương trình</CardTitle>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 ml-auto">
                 <Select value={selectedContestId} onValueChange={handleLoadContest}>
-                  <SelectTrigger className="w-[180px] h-7 text-xs bg-white/5 border-emerald-500/20 text-white"><BookmarkPlus className="w-3 h-3 mr-1 text-emerald-400" /><SelectValue placeholder="Chương trình đã lưu..." /></SelectTrigger>
+                  <SelectTrigger className="w-[160px] h-7 text-xs bg-white/5 border-emerald-500/20 text-white"><BookmarkPlus className="w-3 h-3 mr-1 text-emerald-400" /><SelectValue placeholder="Đã lưu..." /></SelectTrigger>
                   <SelectContent>{savedContests.length === 0 ? <SelectItem value="_none" disabled>Chưa có</SelectItem> : savedContests.map((sc) => (<SelectItem key={sc.id} value={sc.id}><div className="flex items-center gap-2"><span className="truncate">{sc.title}</span><Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-red-400 hover:text-red-600" onClick={(e) => handleDeleteContest(sc.id, e)}><Trash2 className="w-2.5 h-2.5" /></Button></div></SelectItem>))}</SelectContent>
                 </Select>
                 <Button variant="outline" size="sm" onClick={handleSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
@@ -942,7 +939,7 @@ export default function ThiDuaPage() {
             </div>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-xs font-medium text-white/70">Tên chương trình thi đua</Label>
               <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm" />
             </div>
@@ -955,12 +952,12 @@ export default function ThiDuaPage() {
         </Card>
 
         {/* STEP 2: Config - Collapsible */}
-        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
-          <CardHeader className="pb-2 pt-3 px-4">
+        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm` + (!showConfig ? ' py-0' : '')}>
+          <CardHeader className={!showConfig ? 'py-1.5 px-4' : 'pb-2 pt-3 px-4'}>
             <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-sm font-bold">2</div>
-                <CardTitle className="text-sm text-emerald-400">Cấu hình thi đua & Thưởng</CardTitle>
+                <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                <CardTitle className="text-sm text-emerald-400 whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
               </div>
               {showConfig ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>
@@ -1105,17 +1102,17 @@ export default function ThiDuaPage() {
           )}
         </Card>
 
-        {/* Action Buttons - Same Row */}
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 h-10 px-4 text-xs bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
-            <Link className="w-3.5 h-3.5 mr-1.5" /> Cập nhật link HD
+        {/* Action Buttons - Same Row, equal width */}
+        <div className="grid grid-cols-3 gap-2">
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
+            <Link className="w-3.5 h-3.5 mr-1" /> Cập nhật link
           </Button>
-          <Button variant="outline" size="sm" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 px-4 text-xs bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
-            <Users className="w-3.5 h-3.5 mr-1.5" /> Nhập danh sách đối tượng
+          <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
+            <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
             {subjectCodes.length > 0 && <Badge className="ml-1 bg-sky-500 text-white text-[9px] h-4 px-1">{subjectCodes.length}</Badge>}
           </Button>
-          <Button onClick={handleCalculate} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 px-6 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
-            <Trophy className="w-4 h-4 mr-2" /> Tính thi đua
+          <Button onClick={handleCalculate} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
+            <Trophy className="w-4 h-4 mr-1" /> Tính thi đua
           </Button>
         </div>
 
