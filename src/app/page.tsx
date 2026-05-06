@@ -7,12 +7,12 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Zap, Link2, Settings, Check, AlertCircle } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2 } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
 import useSWR, { mutate } from 'swr'
-import { motion, AnimatePresence, pageVariants, staggerContainer, staggerItem, floatAnimation, glowPulseAnimation } from '@/lib/animations'
+import { motion, AnimatePresence, staggerContainer, staggerItem, glowPulseAnimation } from '@/lib/animations'
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -23,7 +23,7 @@ const fetcher = async (url: string) => {
   return res.json()
 }
 
-// Neon divider component
+// Neon divider component with stronger glow
 function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   return (
     <div className="relative h-6 flex items-center justify-center">
@@ -50,6 +50,62 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
           ease: 'easeInOut',
         }}
       />
+    </div>
+  )
+}
+
+// Creative N.M.C text with neon effects
+function NMCLogo({ color = '#00ff88' }: { color?: string }) {
+  const letters = ['N', '.', 'M', '.', 'C']
+  return (
+    <div className="flex items-center justify-center gap-0.5">
+      {letters.map((char, i) => {
+        const isLetter = char !== '.'
+        return (
+          <motion.span
+            key={i}
+            className="relative inline-block"
+            style={{
+              fontSize: isLetter ? '2.5rem' : '1.5rem',
+              fontWeight: 800,
+              fontFamily: '"Outfit", system-ui, sans-serif',
+              color: isLetter ? color : `${color}80`,
+              textShadow: isLetter
+                ? `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`
+                : `0 0 8px ${color}40`,
+              letterSpacing: isLetter ? '0.05em' : '0',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: 0.1 + i * 0.08,
+              duration: 0.5,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
+          >
+            {char}
+            {/* Animated scan line for letters */}
+            {isLetter && (
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `linear-gradient(180deg, transparent 0%, ${color}30 50%, transparent 100%)`,
+                  backgroundSize: '100% 200%',
+                }}
+                animate={{
+                  backgroundPosition: ['0% 0%', '0% 200%'],
+                }}
+                transition={{
+                  duration: 2 + i * 0.3,
+                  repeat: Infinity,
+                  ease: 'linear',
+                  delay: i * 0.2,
+                }}
+              />
+            )}
+          </motion.span>
+        )
+      })}
     </div>
   )
 }
@@ -93,7 +149,6 @@ export default function Home() {
         throw new Error(errorData.error || 'Failed to save link')
       }
 
-      // Auto-create category if it doesn't exist
       if (data.category && data.category !== 'General') {
         const existingCat = categories.find(c => c.name === data.category)
         if (!existingCat) {
@@ -148,6 +203,8 @@ export default function Home() {
     window.open(`/api/export?format=${format}&category=all`, '_blank')
   }
 
+  const neonColor = settings.neon_color || '#00ff88'
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Save Status Toast */}
@@ -189,59 +246,64 @@ export default function Home() {
 
       {/* Header - fixed */}
       <motion.header
-        className="max-w-md mx-auto w-full px-4 pt-8 pb-4 text-center relative flex-shrink-0"
+        className="max-w-lg mx-auto w-full px-4 pt-6 pb-3 text-center relative flex-shrink-0"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {/* Settings button with glow pulse like logo */}
         <motion.button
           onClick={() => setIsSettingsOpen(true)}
-          className="absolute top-8 right-4 p-2.5 rounded-xl bg-secondary/50 border border-border/30 neon-press smooth-transition hover:border-primary/50 hover:bg-primary/10"
-          whileHover={{ scale: 1.05, rotate: 45 }}
+          className="absolute top-6 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+          style={{
+            background: `linear-gradient(135deg, ${neonColor}25, ${neonColor}10)`,
+            border: `1px solid ${neonColor}40`,
+            boxShadow: `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
+          }}
+          animate={{
+            boxShadow: [
+              `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
+              `0 0 25px ${neonColor}50, 0 0 50px ${neonColor}25`,
+              `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
+            ],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          whileHover={{
+            scale: 1.15,
+            rotate: 90,
+            boxShadow: `0 0 30px ${neonColor}60, 0 0 60px ${neonColor}30`,
+          }}
           whileTap={{ scale: 0.9 }}
-          transition={{ duration: 0.2 }}
         >
-          <Settings className="w-4 h-4 text-primary" />
+          <Settings className="w-4.5 h-4.5" style={{ color: neonColor }} />
         </motion.button>
 
-        <motion.div
-          className="inline-block mb-3"
-          animate={floatAnimation}
-        >
-          <motion.div
-            className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg, ${settings.neon_color}, ${settings.neon_color}99)` }}
-            animate={glowPulseAnimation}
-          >
-            <Zap className="w-7 h-7 text-primary-foreground" />
-          </motion.div>
-        </motion.div>
-        <motion.h1
-          className="text-2xl font-bold mb-1 neon-text"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          {settings.profile_name}
-        </motion.h1>
+        {/* N.M.C Creative Logo Text */}
+        <NMCLogo color={neonColor} />
+
+        {/* Bio */}
         <motion.p
-          className="text-xs text-muted-foreground"
+          className="text-xs text-muted-foreground mt-1"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
         >
           {settings.profile_bio}
         </motion.p>
       </motion.header>
 
       {/* Neon Divider - below header */}
-      <div className="max-w-md mx-auto w-full px-6 flex-shrink-0">
-        <NeonDivider color={settings.neon_color} />
+      <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0">
+        <NeonDivider color={neonColor} />
       </div>
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-md mx-auto w-full px-4 pt-2 pb-2">
+        <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-2">
           {/* Error Display */}
           <AnimatePresence>
             {(linksError || categoriesError) && (
@@ -276,7 +338,7 @@ export default function Home() {
             </div>
           ) : linksError ? (
             <motion.div
-              className="text-center py-10"
+              className="text-center py-8"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
@@ -288,7 +350,7 @@ export default function Home() {
             </motion.div>
           ) : links.length === 0 ? (
             <motion.div
-              className="text-center py-10"
+              className="text-center py-8"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
@@ -306,7 +368,7 @@ export default function Home() {
             </motion.div>
           ) : (
             <motion.div
-              className="space-y-2"
+              className="space-y-2.5"
               variants={staggerContainer}
               initial="initial"
               animate="animate"
@@ -338,13 +400,13 @@ export default function Home() {
         </div>
 
         {/* Neon Divider - below links */}
-        <div className="max-w-md mx-auto w-full px-6 pt-2">
-          <NeonDivider color={settings.neon_color} />
+        <div className="max-w-lg mx-auto w-full px-6 pt-3">
+          <NeonDivider color={neonColor} />
         </div>
 
-        {/* Calendar - below divider */}
+        {/* Calendar - wider, brighter */}
         <motion.div
-          className="max-w-md mx-auto w-full px-4 pt-3 pb-6"
+          className="max-w-lg mx-auto w-full px-4 pt-3 pb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
@@ -352,12 +414,13 @@ export default function Home() {
           <div
             className="rounded-xl p-4"
             style={{
-              background: 'rgba(30, 30, 50, 0.6)',
-              border: '1px solid rgba(0, 255, 136, 0.1)',
-              backdropFilter: 'blur(8px)',
+              background: 'rgba(40, 40, 65, 0.7)',
+              border: `1px solid ${neonColor}18`,
+              backdropFilter: 'blur(12px)',
+              boxShadow: `inset 0 0 30px ${neonColor}05, 0 0 20px ${neonColor}08`,
             }}
           >
-            <MonthlyCalendar />
+            <MonthlyCalendar neonColor={neonColor} />
           </div>
         </motion.div>
       </div>

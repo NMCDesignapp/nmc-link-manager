@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from '@/lib/animations'
 import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
@@ -27,13 +27,17 @@ const EVENT_COLORS = [
   '#ffcc00', '#bf00ff', '#ff4444', '#44aaff',
 ]
 
-export function MonthlyCalendar() {
+interface MonthlyCalendarProps {
+  neonColor?: string
+}
+
+export function MonthlyCalendar({ neonColor = '#00ff88' }: MonthlyCalendarProps) {
   const now = new Date()
   const [currentYear, setCurrentYear] = useState(now.getFullYear())
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth()) // 0-indexed
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [newEventTitle, setNewEventTitle] = useState('')
-  const [newEventColor, setNewEventColor] = useState('#00ff88')
+  const [newEventColor, setNewEventColor] = useState(neonColor)
   const [showEventModal, setShowEventModal] = useState(false)
 
   const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
@@ -80,7 +84,7 @@ export function MonthlyCalendar() {
     setSelectedDate(dateStr)
     setShowEventModal(true)
     setNewEventTitle('')
-    setNewEventColor('#00ff88')
+    setNewEventColor(neonColor)
   }
 
   const handleAddEvent = async () => {
@@ -113,13 +117,10 @@ export function MonthlyCalendar() {
     'Thang 9', 'Thang 10', 'Thang 11', 'Thang 12',
   ]
 
-  // Build calendar grid
   const calendarCells = []
-  // Empty cells before first day
   for (let i = 0; i < firstDay; i++) {
     calendarCells.push(null)
   }
-  // Day cells
   for (let day = 1; day <= daysInMonth; day++) {
     calendarCells.push(day)
   }
@@ -130,19 +131,26 @@ export function MonthlyCalendar() {
       <div className="flex items-center justify-between mb-3">
         <motion.button
           onClick={prevMonth}
-          className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
-          style={{ background: 'rgba(0, 255, 136, 0.1)', border: '1px solid rgba(0, 255, 136, 0.2)' }}
-          whileHover={{ scale: 1.1 }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
+          style={{
+            background: `${neonColor}15`,
+            border: `1px solid ${neonColor}30`,
+          }}
+          whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}30` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronLeft className="w-3.5 h-3.5 text-primary" />
+          <ChevronLeft className="w-4 h-4" style={{ color: neonColor }} />
         </motion.button>
 
         <motion.button
           onClick={goToToday}
-          className="text-sm font-semibold neon-text px-3 py-1 rounded-lg smooth-transition"
-          style={{ background: 'rgba(0, 255, 136, 0.05)' }}
-          whileHover={{ scale: 1.05 }}
+          className="text-sm font-semibold px-4 py-1.5 rounded-lg smooth-transition"
+          style={{
+            color: neonColor,
+            textShadow: `0 0 12px ${neonColor}60`,
+            background: `${neonColor}10`,
+          }}
+          whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}20` }}
           whileTap={{ scale: 0.95 }}
         >
           {monthNames[currentMonth]} {currentYear}
@@ -150,30 +158,33 @@ export function MonthlyCalendar() {
 
         <motion.button
           onClick={nextMonth}
-          className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
-          style={{ background: 'rgba(0, 255, 136, 0.1)', border: '1px solid rgba(0, 255, 136, 0.2)' }}
-          whileHover={{ scale: 1.1 }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
+          style={{
+            background: `${neonColor}15`,
+            border: `1px solid ${neonColor}30`,
+          }}
+          whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}30` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronRight className="w-3.5 h-3.5 text-primary" />
+          <ChevronRight className="w-4 h-4" style={{ color: neonColor }} />
         </motion.button>
       </div>
 
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
         {WEEKDAYS.map((day, i) => (
           <div
             key={i}
-            className="text-center text-[10px] font-medium py-1"
-            style={{ color: i === 0 ? '#ff6b6b' : 'rgba(255,255,255,0.4)' }}
+            className="text-center text-[11px] font-semibold py-1"
+            style={{ color: i === 0 ? '#ff8888' : 'rgba(255,255,255,0.55)' }}
           >
             {day}
           </div>
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* Calendar Grid - brighter cells */}
+      <div className="grid grid-cols-7 gap-1.5">
         {calendarCells.map((day, i) => {
           if (day === null) {
             return <div key={`empty-${i}`} className="aspect-square" />
@@ -188,53 +199,59 @@ export function MonthlyCalendar() {
             <motion.button
               key={dateStr}
               onClick={() => handleDayClick(day)}
-              className="aspect-square rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer"
+              className="aspect-square rounded-lg flex flex-col items-center justify-center relative smooth-transition cursor-pointer"
               style={{
                 background: isToday
-                  ? 'rgba(0, 255, 136, 0.15)'
-                  : 'rgba(255, 255, 255, 0.03)',
+                  ? `${neonColor}22`
+                  : 'rgba(255, 255, 255, 0.07)',
                 border: isToday
-                  ? '1px solid rgba(0, 255, 136, 0.4)'
-                  : '1px solid rgba(255, 255, 255, 0.05)',
+                  ? `1.5px solid ${neonColor}50`
+                  : '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: isToday
+                  ? `0 0 12px ${neonColor}20, inset 0 0 8px ${neonColor}10`
+                  : 'none',
               }}
               whileHover={{
-                background: 'rgba(0, 255, 136, 0.1)',
-                borderColor: 'rgba(0, 255, 136, 0.3)',
-                scale: 1.05,
+                background: `${neonColor}18`,
+                borderColor: `${neonColor}40`,
+                scale: 1.08,
+                boxShadow: `0 0 15px ${neonColor}20`,
               }}
               whileTap={{ scale: 0.95 }}
             >
               <span
-                className="text-[11px] font-medium leading-none"
+                className="text-[12px] font-semibold leading-none"
                 style={{
                   color: isToday
-                    ? '#00ff88'
+                    ? neonColor
                     : isSunday
-                    ? '#ff6b6b'
-                    : 'rgba(255, 255, 255, 0.7)',
+                    ? '#ff8888'
+                    : 'rgba(255, 255, 255, 0.8)',
+                  textShadow: isToday ? `0 0 8px ${neonColor}60` : 'none',
                 }}
               >
                 {day}
               </span>
 
-              {/* Event dots/labels */}
+              {/* Event labels */}
               {dayEvents.length > 0 && (
-                <div className="flex flex-col gap-0.5 mt-0.5 w-full px-0.5 items-center">
+                <div className="flex flex-col gap-[2px] mt-0.5 w-full px-[3px] items-center">
                   {dayEvents.slice(0, 2).map((event: CalendarEvent) => (
                     <div
                       key={event.id}
-                      className="w-full text-[6px] leading-tight text-center truncate rounded-sm px-0.5"
+                      className="w-full text-[7px] leading-tight text-center truncate rounded px-0.5 font-medium"
                       style={{
-                        background: `${event.color}20`,
+                        background: `${event.color}25`,
                         color: event.color,
-                        textShadow: `0 0 4px ${event.color}40`,
+                        textShadow: `0 0 6px ${event.color}60`,
+                        boxShadow: `0 0 4px ${event.color}15`,
                       }}
                     >
                       {event.title}
                     </div>
                   ))}
                   {dayEvents.length > 2 && (
-                    <span className="text-[6px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    <span className="text-[7px] font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       +{dayEvents.length - 2}
                     </span>
                   )}
@@ -257,10 +274,10 @@ export function MonthlyCalendar() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="w-full max-w-md rounded-t-2xl p-4 pb-6"
+              className="w-full max-w-lg rounded-t-2xl p-4 pb-6"
               style={{
                 background: '#141420',
-                border: '1px solid rgba(0, 255, 136, 0.15)',
+                border: `1px solid ${neonColor}20`,
                 borderBottom: 'none',
               }}
               onClick={e => e.stopPropagation()}
@@ -295,17 +312,17 @@ export function MonthlyCalendar() {
                       key={event.id}
                       className="flex items-center gap-2 p-2 rounded-lg"
                       style={{
-                        background: `${event.color}10`,
+                        background: `${event.color}12`,
                         border: `1px solid ${event.color}30`,
                       }}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                     >
                       <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: event.color, boxShadow: `0 0 6px ${event.color}` }}
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ background: event.color, boxShadow: `0 0 8px ${event.color}` }}
                       />
-                      <span className="text-xs flex-1 truncate" style={{ color: event.color }}>
+                      <span className="text-xs flex-1 truncate font-medium" style={{ color: event.color }}>
                         {event.title}
                       </span>
                       <motion.button
@@ -322,36 +339,37 @@ export function MonthlyCalendar() {
               )}
 
               {/* Add Event Form */}
-              <div className="flex gap-2 mb-2">
+              <div className="flex gap-2 mb-3">
                 <input
                   type="text"
                   value={newEventTitle}
                   onChange={e => setNewEventTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddEvent()}
                   placeholder="Them cong viec..."
-                  className="flex-1 px-3 py-2 rounded-lg text-xs neon-input"
+                  className="flex-1 px-3 py-2.5 rounded-lg text-xs neon-input"
                   style={{ background: '#1a1a2e' }}
                 />
                 <motion.button
                   onClick={handleAddEvent}
-                  className="px-3 py-2 rounded-lg text-xs font-medium neon-btn neon-press text-primary"
-                  whileHover={{ scale: 1.05 }}
+                  className="px-4 py-2.5 rounded-lg text-xs font-semibold neon-btn neon-press"
+                  style={{ color: neonColor, background: `${neonColor}15`, border: `1px solid ${neonColor}30` }}
+                  whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}30` }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                 </motion.button>
               </div>
 
               {/* Color Picker */}
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {EVENT_COLORS.map(color => (
                   <motion.button
                     key={color}
                     onClick={() => setNewEventColor(color)}
-                    className="w-5 h-5 rounded-full"
+                    className="w-6 h-6 rounded-full"
                     style={{
                       background: color,
-                      boxShadow: newEventColor === color ? `0 0 8px ${color}` : 'none',
+                      boxShadow: newEventColor === color ? `0 0 10px ${color}` : 'none',
                       border: newEventColor === color ? '2px solid white' : '2px solid transparent',
                     }}
                     whileHover={{ scale: 1.2 }}
