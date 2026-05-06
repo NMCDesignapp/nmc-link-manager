@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { Link, Category } from '@/lib/types'
 import { LinkCard } from '@/components/link-card'
 import { IframeModal } from '@/components/iframe-modal'
@@ -125,6 +125,7 @@ export default function Home() {
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [modalKey, setModalKey] = useState(0)
 
   const handleAddOrUpdateLink = async (data: Partial<Link>) => {
     setSaveStatus('saving')
@@ -204,6 +205,15 @@ export default function Home() {
   }
 
   const neonColor = settings.neon_color || '#00ff88'
+
+  const handleOpenLink = useCallback((link: Link) => {
+    setModalKey(k => k + 1)
+    setSelectedLink(link)
+  }, [])
+
+  const handleCloseLink = useCallback(() => {
+    setSelectedLink(null)
+  }, [])
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -384,7 +394,7 @@ export default function Home() {
                     <LinkCard
                       link={link}
                       index={index}
-                      onOpen={setSelectedLink}
+                      onOpen={handleOpenLink}
                       onEdit={link => {
                         setEditingLink(link)
                         setIsAddModalOpen(true)
@@ -426,9 +436,9 @@ export default function Home() {
       </div>
 
       {/* Modals */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {selectedLink && (
-          <IframeModal key={selectedLink.id} link={selectedLink} onClose={() => setSelectedLink(null)} />
+          <IframeModal key={`modal-${modalKey}`} link={selectedLink} onClose={handleCloseLink} />
         )}
       </AnimatePresence>
 
