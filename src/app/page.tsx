@@ -251,49 +251,49 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Settings button with glow pulse like logo */}
-        <motion.button
-          onClick={() => setIsSettingsOpen(true)}
-          className="absolute top-6 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            background: `linear-gradient(135deg, ${neonColor}25, ${neonColor}10)`,
-            border: `1px solid ${neonColor}40`,
-            boxShadow: `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
-          }}
-          animate={{
-            boxShadow: [
-              `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
-              `0 0 25px ${neonColor}50, 0 0 50px ${neonColor}25`,
-              `0 0 15px ${neonColor}30, 0 0 30px ${neonColor}15`,
-            ],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          whileHover={{
-            scale: 1.15,
-            rotate: 90,
-            boxShadow: `0 0 30px ${neonColor}60, 0 0 60px ${neonColor}30`,
-          }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <Settings className="w-4.5 h-4.5" style={{ color: neonColor }} />
-        </motion.button>
-
         {/* N.M.C Creative Logo Text */}
         <NMCLogo color={neonColor} />
 
-        {/* Bio */}
-        <motion.p
-          className="text-xs text-muted-foreground mt-1"
+        {/* Bio + Settings button inline */}
+        <motion.div
+          className="flex items-center justify-center gap-2 mt-1"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          {settings.profile_bio}
-        </motion.p>
+          <p className="text-xs text-muted-foreground">
+            {settings.profile_bio}
+          </p>
+          <motion.button
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              background: `${neonColor}15`,
+              border: `1px solid ${neonColor}30`,
+              boxShadow: `0 0 8px ${neonColor}20`,
+            }}
+            animate={{
+              boxShadow: [
+                `0 0 8px ${neonColor}20`,
+                `0 0 16px ${neonColor}35`,
+                `0 0 8px ${neonColor}20`,
+              ],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            whileHover={{
+              scale: 1.2,
+              rotate: 90,
+              boxShadow: `0 0 20px ${neonColor}50`,
+            }}
+            whileTap={{ scale: 0.85 }}
+          >
+            <Settings className="w-3 h-3" style={{ color: neonColor }} />
+          </motion.button>
+        </motion.div>
       </motion.header>
 
       {/* Neon Divider - below header */}
