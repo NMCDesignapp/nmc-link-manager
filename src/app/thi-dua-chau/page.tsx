@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,6 +107,13 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
   return formatCurrency(tier.bonusAmount);
 }
 
+function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
+  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
+  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
+  if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
+  return tier.bonusAmount;
+}
+
 function BonusTypeIcon({ type, className }: { type: string; className?: string }) {
   if (type === 'gift') return <Gift className={className} />;
   if (type === 'percent') return <Percent className={className} />;
@@ -134,8 +141,18 @@ function getTargetLabel(tt: TargetType): string {
   }
 }
 
+const TIER_COLORS = ['from-amber-400 to-orange-500','from-emerald-400 to-teal-500','from-sky-400 to-cyan-500','from-violet-400 to-purple-500','from-rose-400 to-pink-500','from-lime-400 to-green-500'];
+
+const BONUS_TYPE_BUTTONS = [
+  ['money', 'Tiền', Banknote, 'bg-emerald-600'],
+  ['gift', 'Quà', Gift, 'bg-pink-600'],
+  ['percent', '% IP', Percent, 'bg-violet-600'],
+  ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'],
+  ['money_per_round', '/Lượt', Layers, 'bg-teal-600'],
+] as const;
+
 // ContestPoster Component - supports white & gradient variants
-function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
+const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
   contestTitle: string; startDate: string; endDate: string; conditionType: ConditionType;
   targetType: TargetType; sortedTiers: BonusTier[]; filteredContracts: Contract[];
   groupedData: GroupData[]; totalFYP: number; totalBonus: number;
@@ -146,7 +163,7 @@ function ContestPoster({ contestTitle, startDate, endDate, conditionType, target
   const rowCount = targetType === 'nhom' ? groupedData.length : filteredContracts.length;
   const hasData = rowCount > 0;
   const achievementPercent = hasData ? Math.round((achievedCount / rowCount) * 100) : 0;
-  const tierColors = ['from-amber-400 to-orange-500','from-emerald-400 to-teal-500','from-sky-400 to-cyan-500','from-violet-400 to-purple-500','from-rose-400 to-pink-500','from-lime-400 to-green-500'];
+  const tierColors = TIER_COLORS;
   const isWhite = variant === 'white';
 
   const conditionLabel = getConditionLabel(conditionType);
@@ -237,10 +254,10 @@ function ContestPoster({ contestTitle, startDate, endDate, conditionType, target
       </div>
     </div>
   );
-}
+});
 
 // Bonus tier editor component
-function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
+const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
   tiers: BonusTier[];
   conditionType: ConditionType;
   onUpdate: (id: string, field: keyof BonusTier, value: string | number | null) => void;
@@ -270,7 +287,7 @@ function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, titl
             <div className="flex items-center gap-1.5 mb-1.5">
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
               <div className="flex items-center gap-0.5 ml-auto">
-                {([['money', 'Tiền', Banknote, 'bg-emerald-600'], ['gift', 'Quà', Gift, 'bg-pink-600'], ['percent', '% IP', Percent, 'bg-violet-600'], ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'], ['money_per_round', '/Lượt', Layers, 'bg-teal-600']] as const).map(([type, label, Icon, activeCls]) => (
+                {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
                   <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 px-1.5 text-[9px] ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)}><Icon className="w-2.5 h-2.5 mr-0.5" />{label}</Button>
                 ))}
               </div>
@@ -279,12 +296,12 @@ function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, titl
             <div className="grid grid-cols-3 gap-1.5">
               {isAR ? (
                 <>
-                  <div><Label className="text-[9px] text-white/40">Lượt từ</Label><Input type="number" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div><Label className="text-[9px] text-white/40">Lượt từ</Label><Input type="number" placeholder="0" value={tier.minFYP || 0} onChange={(e) => onUpdate(tier.id, 'minFYP', parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                   <div><Label className="text-[9px] text-white/40">Lượt đến</Label><Input type="number" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               ) : (
                 <>
-                  <div><Label className="text-[9px] text-white/40">IP từ (nđ)</Label><Input type="number" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div><Label className="text-[9px] text-white/40">IP từ (nđ)</Label><Input type="number" placeholder="0" value={vndToNgan(tier.minFYP) || 0} onChange={(e) => onUpdate(tier.id, 'minFYP', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                   <div><Label className="text-[9px] text-white/40">IP đến (nđ)</Label><Input type="number" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               )}
@@ -293,9 +310,9 @@ function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, titl
                   {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
                 </Label>
                 {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
-                  ? <Input type="number" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                  ? <Input type="number" placeholder="0" value={vndToNgan(tier.bonusAmount) || 0} onChange={(e) => onUpdate(tier.id, 'bonusAmount', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
                   : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
-                    ? <Input type="number" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                    ? <Input type="number" placeholder="7" value={tier.bonusPercent || 0} onChange={(e) => onUpdate(tier.id, 'bonusPercent', parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
                     : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />}
               </div>
             </div>
@@ -304,7 +321,7 @@ function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, titl
       </div>
     </div>
   );
-}
+});
 
 export default function ThiDuaPage() {
   const router = useRouter();
@@ -408,7 +425,7 @@ export default function ThiDuaPage() {
 
   const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[]): number => {
     const { tier } = calculateBonusWithTiers(fyp, tiers); if (!tier) return 0;
-    return tier.bonusType === 'percent' ? tier.bonusPercent / 100 * fyp : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (fyp * 0.25) : tier.bonusAmount;
+    return computeBonusFromTier(tier, fyp);
   }, [calculateBonusWithTiers]);
 
   const getBonusAmount = useCallback((fyp: number): number => {
@@ -435,10 +452,7 @@ export default function ThiDuaPage() {
 
   const getActivityRoundBonusAmount = useCallback((activityRounds: number, groupTotalFYP?: number): number => {
     const { tier } = calculateActivityRoundBonus(activityRounds); if (!tier) return 0;
-    if (tier.bonusType === 'percent' && groupTotalFYP) return tier.bonusPercent / 100 * groupTotalFYP;
-    if (tier.bonusType === 'percent_fyc' && groupTotalFYP) return tier.bonusPercent / 100 * (groupTotalFYP * 0.25);
-    if (tier.bonusType === 'money_per_round') return tier.bonusAmount * activityRounds;
-    return tier.bonusAmount;
+    return computeBonusFromTier(tier, groupTotalFYP || 0, activityRounds);
   }, [calculateActivityRoundBonus]);
 
   const getRemainingToNextActivityRoundTier = useCallback((activityRounds: number): number | null => {
@@ -455,7 +469,8 @@ export default function ThiDuaPage() {
     if (subjectCodes.length === 0) return filteredContracts;
     return filteredContracts.filter(c => {
       if (targetType === 'tvv') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName);
-      if (targetType === 'nyd') return true; // NYD filter is handled separately
+      if (targetType === 'nyd') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+        (c.recruiterCode && subjectCodes.includes(c.recruiterCode));
       return subjectCodes.includes(c.maNhom);
     });
   }, [filteredContracts, subjectCodes, targetType]);
@@ -578,7 +593,7 @@ export default function ThiDuaPage() {
           let rounds = 0;
           for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers);
-          if (tier) phase1Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * g.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (g.totalFYP * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * rounds : tier.bonusAmount;
+          if (tier) phase1Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
         }
       } else {
         const grouped = new Map<string, number>();
@@ -601,7 +616,7 @@ export default function ThiDuaPage() {
         for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers);
-        if (tier) phase1Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * value : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (value * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * recruitCount : tier.bonusAmount;
+        if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
     } else {
       for (const c of phase1Contracts) { phase1Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers); }
@@ -624,7 +639,7 @@ export default function ThiDuaPage() {
           let rounds = 0;
           for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers2);
-          if (tier) phase2Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * g.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (g.totalFYP * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * rounds : tier.bonusAmount;
+          if (tier) phase2Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
         }
       } else {
         const grouped = new Map<string, number>();
@@ -646,7 +661,7 @@ export default function ThiDuaPage() {
         for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-        if (tier) phase2Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * value : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (value * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * recruitCount : tier.bonusAmount;
+        if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
     } else {
       for (const c of phase2Contracts) { phase2Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers2); }
@@ -658,7 +673,7 @@ export default function ThiDuaPage() {
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
     const { tier } = calculateBonus(totalFYP); const remaining = getRemainingToNextTier(totalFYP);
-    const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (totalFYP * 0.25) : tier.bonusAmount) : 0;
+    const bonus = tier ? computeBonusFromTier(tier, totalFYP) : 0;
     return { totalFYP, bonus, tier, remaining };
   }, [displayContracts, calculateBonus, getRemainingToNextTier]);
 
@@ -764,14 +779,30 @@ export default function ThiDuaPage() {
         text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeOwnNYD ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
-      [...groupedData].map((g) => ({ group: g, tier: isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ group: g, tier }, idx) => {
+      [...groupedData].map((g) => {
+        const groupPhase = getGroupPhaseBonus(g);
+        const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
+        return { group: g, tier, groupPhase };
+      }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
-        text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+        if (usePhase2 && phase2StartDate) {
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+        } else {
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+        }
       });
     } else {
-      [...displayContracts].map((c) => ({ contract: c, tier: conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ contract: c, tier }, idx) => {
+      [...displayContracts].map((c) => {
+        const tier = conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null;
+        const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
+        return { contract: c, tier, phaseInfo };
+      }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).forEach(({ contract: c, tier, phaseInfo }, idx) => {
         const contractInfo = conditionType === 'per_contract' ? ` | ${formatDate(c.effectiveDate)}` : '';
-        text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
+        if (usePhase2 && phase2StartDate) {
+          text += `${idx + 1}. ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
+        } else {
+          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
+        }
       });
     }
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
@@ -886,42 +917,69 @@ export default function ThiDuaPage() {
     }
   };
 
-  // Computed values
-  const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
-  const tvvAchievedCount = displayContracts.filter((c) => calculateBonus(c.fyp).tier !== null).length;
-  const tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
-  const nhomAchievedCount = groupedData.filter((g) => calculateBonus(g.totalFYP).tier !== null).length;
-  const nhomTotalFYP = groupedData.reduce((s, g) => s + g.totalFYP, 0);
-  const nhomTotalBonus = groupedData.reduce((s, g) => s + getBonusAmount(g.totalFYP), 0);
-  const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter((g) => calculateActivityRoundBonus(g.activityRounds).tier !== null).length : 0;
-  const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
-  const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((s, g) => s + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
+  // Consolidated stats computation - single useMemo for all derived values
+  const stats = useMemo(() => {
+    const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
+    
+    // TVV stats
+    const tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.fyp).tier).length;
+    const tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
+    
+    // Nhóm stats
+    const nhomAchievedCount = groupedData.filter(g => {
+      if (isActivityRoundMode(conditionType)) return calculateActivityRoundBonus(g.activityRounds).tier;
+      return calculateBonus(g.totalFYP).tier;
+    }).length;
+    const nhomTotalFYP = groupedData.reduce((sum, g) => sum + g.totalFYP, 0);
+    const nhomTotalBonus = groupedData.reduce((sum, g) => {
+      if (isActivityRoundMode(conditionType)) return sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP);
+      return sum + getBonusAmount(g.totalFYP);
+    }, 0);
+    
+    // Activity round stats
+    const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter(g => calculateActivityRoundBonus(g.activityRounds).tier).length : 0;
+    const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
+    const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((sum, g) => sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
+    
+    // NYD stats
+    const nydAchievedCount = isNYDMode(conditionType) ? nydData.filter(n => {
+      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+      return calculateBonus(value).tier;
+    }).length : 0;
+    const nydNotAchievedCount = isNYDMode(conditionType) ? nydData.length - nydAchievedCount : 0;
+    const nydTotalBonus = isNYDMode(conditionType) ? nydData.reduce((sum, n) => {
+      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+      const { tier } = calculateBonus(value);
+      if (!tier) return sum;
+      return sum + computeBonusFromTier(tier, value, n.recruitCount);
+    }, 0) : 0;
+    
+    const achievedCount = isNYDMode(conditionType) ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
+    const notAchievedCount = isNYDMode(conditionType) ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : displayContracts.length - tvvAchievedCount;
+    
+    const baseTotalBonus = isNYDMode(conditionType) ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : tvvTotalBonus;
+    const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
+    const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
+    
+    // total_fyp mode
+    const totalFYPValue = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
+    const matchedTotalTier = conditionType === 'total_fyp' && targetType !== 'nhom' ? calculateBonus(totalFYPValue).tier : null;
+    const totalRemaining = conditionType === 'total_fyp' && matchedTotalTier ? getRemainingToNextTier(totalFYPValue) : null;
+    
+    return {
+      totalFYP, tvvAchievedCount, tvvTotalBonus,
+      nhomAchievedCount, nhomTotalFYP, nhomTotalBonus,
+      arAchievedCount, arNotAchievedCount, arTotalBonus,
+      nydAchievedCount, nydNotAchievedCount, nydTotalBonus,
+      achievedCount, notAchievedCount,
+      baseTotalBonus, totalBonusDisplay, displayTotalFYP,
+      totalFYPValue, matchedTotalTier, totalRemaining
+    };
+  }, [displayContracts, groupedData, nydData, conditionType, targetType, includeOwnNYD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier]);
 
-  // NYD computed
-  const nydAchievedCount = isNYDMode(conditionType) ? nydData.filter(n => {
-    const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
-    return calculateBonus(value).tier !== null;
-  }).length : 0;
-  const nydNotAchievedCount = isNYDMode(conditionType) ? nydData.length - nydAchievedCount : 0;
-  const nydTotalBonus = isNYDMode(conditionType) ? nydData.reduce((s, n) => {
-    const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
-    const { tier } = calculateBonus(value);
-    if (!tier) return s;
-    if (tier.bonusType === 'percent') return s + tier.bonusPercent / 100 * value;
-    if (tier.bonusType === 'percent_fyc') return s + tier.bonusPercent / 100 * (value * 0.25);
-    if (tier.bonusType === 'money_per_round') return s + tier.bonusAmount * n.recruitCount;
-    return s + tier.bonusAmount;
-  }, 0) : 0;
+  const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, matchedTotalTier, totalRemaining } = stats;
 
-  const achievedCount = isNYDMode(conditionType) ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
-  const notAchievedCount = isNYDMode(conditionType) ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : displayContracts.length - tvvAchievedCount;
-
-  // Total bonus with Phase2 support
-  const baseTotalBonus = isNYDMode(conditionType) ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : (conditionType === 'total_fyp' ? getTotalFYPBonus().bonus : tvvTotalBonus);
-  const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
-  const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
-  const { totalFYP: totalFYPValue, tier: matchedTotalTier, remaining: totalRemaining } = getTotalFYPBonus();
-  const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+  const sortedTiers = useMemo(() => [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP), [bonusTiers]);
 
   // Calculate and show results popup
   const handleCalculate = () => {
@@ -953,18 +1011,18 @@ export default function ThiDuaPage() {
   const getRowPhaseBonus = useCallback((fyp: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
     if (!usePhase2 || !phase2StartDate) {
       const { tier } = calculateBonus(fyp);
-      const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * fyp : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (fyp * 0.25) : tier.bonusAmount) : 0;
+      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
       return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
     }
     const p2Start = new Date(phase2StartDate);
     const isPhase1 = effectiveDate ? new Date(effectiveDate) < p2Start : true;
     if (isPhase1) {
       const { tier } = calculateBonusWithTiers(fyp, bonusTiers);
-      const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * fyp : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (fyp * 0.25) : tier.bonusAmount) : 0;
+      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
       return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
     } else {
       const { tier } = calculateBonusWithTiers(fyp, bonusTiers2);
-      const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * fyp : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (fyp * 0.25) : tier.bonusAmount) : 0;
+      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
       return { phase1Bonus: 0, phase2Bonus: bonus, phase1Tier: null, phase2Tier: tier };
     }
   }, [usePhase2, phase2StartDate, calculateBonus, calculateBonusWithTiers, bonusTiers, bonusTiers2]);
@@ -973,11 +1031,11 @@ export default function ThiDuaPage() {
     if (!usePhase2 || !phase2StartDate) {
       if (isActivityRoundMode(conditionType)) {
         const { tier } = calculateActivityRoundBonus(group.activityRounds);
-        const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * group.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (group.totalFYP * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * group.activityRounds : tier.bonusAmount) : 0;
+        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP, group.activityRounds) : 0;
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       } else {
         const { tier } = calculateBonus(group.totalFYP);
-        const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * group.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (group.totalFYP * 0.25) : tier.bonusAmount) : 0;
+        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP) : 0;
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       }
     }
@@ -999,7 +1057,7 @@ export default function ThiDuaPage() {
       const p1FYP = phase1Contracts.reduce((s, c) => s + c.fyp, 0);
       const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, bonusTiers);
       phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = p1Res.tier.bonusType === 'percent' ? p1Res.tier.bonusPercent / 100 * p1FYP : p1Res.tier.bonusType === 'percent_fyc' ? p1Res.tier.bonusPercent / 100 * (p1FYP * 0.25) : p1Res.tier.bonusType === 'money_per_round' ? p1Res.tier.bonusAmount * p1Rounds : p1Res.tier.bonusAmount;
+      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1FYP, p1Rounds);
 
       const p2AgentMap = new Map<string, number>();
       for (const c of phase2Contracts) { p2AgentMap.set(c.agentCode, Math.max(p2AgentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
@@ -1008,17 +1066,17 @@ export default function ThiDuaPage() {
       const p2FYP = phase2Contracts.reduce((s, c) => s + c.fyp, 0);
       const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, bonusTiers2);
       phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = p2Res.tier.bonusType === 'percent' ? p2Res.tier.bonusPercent / 100 * p2FYP : p2Res.tier.bonusType === 'percent_fyc' ? p2Res.tier.bonusPercent / 100 * (p2FYP * 0.25) : p2Res.tier.bonusType === 'money_per_round' ? p2Res.tier.bonusAmount * p2Rounds : p2Res.tier.bonusAmount;
+      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2FYP, p2Rounds);
     } else {
       const p1Total = phase1Contracts.reduce((s, c) => s + c.fyp, 0);
       const p1Res = calculateBonusWithTiers(p1Total, bonusTiers);
       phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = p1Res.tier.bonusType === 'percent' ? p1Res.tier.bonusPercent / 100 * p1Total : p1Res.tier.bonusType === 'percent_fyc' ? p1Res.tier.bonusPercent / 100 * (p1Total * 0.25) : p1Res.tier.bonusAmount;
+      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1Total);
 
       const p2Total = phase2Contracts.reduce((s, c) => s + c.fyp, 0);
       const p2Res = calculateBonusWithTiers(p2Total, bonusTiers2);
       phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = p2Res.tier.bonusType === 'percent' ? p2Res.tier.bonusPercent / 100 * p2Total : p2Res.tier.bonusType === 'percent_fyc' ? p2Res.tier.bonusPercent / 100 * (p2Total * 0.25) : p2Res.tier.bonusAmount;
+      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2Total);
     }
 
     return { phase1Bonus, phase2Bonus, phase1Tier, phase2Tier };
@@ -1472,22 +1530,36 @@ export default function ThiDuaPage() {
                       if (hideNotAchieved && !tier) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
                         const p2Start = new Date(phase2StartDate);
-                        const p1Contracts = nyd.contracts.filter(c => new Date(c.effectiveDate) < p2Start);
-                        const p2Contracts = nyd.contracts.filter(c => new Date(c.effectiveDate) >= p2Start);
-                        const p1Value = conditionType === 'nyd_activity' ? (() => {
-                          const agentFYPMap = new Map<string, number>();
-                          for (const rc of p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) { agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
-                          let count = 0; for (const [, af] of agentFYPMap) { if (af >= 3_000_000) count++; } return count;
-                        })() : p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
-                        const p2Value = conditionType === 'nyd_activity' ? (() => {
-                          const agentFYPMap = new Map<string, number>();
-                          for (const rc of p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) { agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
-                          let count = 0; for (const [, af] of agentFYPMap) { if (af >= 3_000_000) count++; } return count;
-                        })() : p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
+                        // Use ALL displayContracts, not just nyd.contracts
+                        const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+                        const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+                        
+                        // Phase 1: find recruited TVVm for this NYD
+                        const p1RecruitedMap = new Map<string, number>();
+                        for (const rc of p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
+                          p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
+                        }
+                        let p1RecruitCount = 0;
+                        let p1RecruitFYP = 0;
+                        for (const [, af] of p1RecruitedMap) { if (af >= 3_000_000) p1RecruitCount++; p1RecruitFYP += af; }
+                        const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
+                        const p1Value = conditionType === 'nyd_activity' ? p1RecruitCount : (p1RecruitFYP + (includeOwnNYD ? p1OwnFYP : 0));
                         const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
-                        const p1Bonus = p1Res.tier ? (p1Res.tier.bonusType === 'percent' ? p1Res.tier.bonusPercent / 100 * p1Value : p1Res.tier.bonusType === 'percent_fyc' ? p1Res.tier.bonusPercent / 100 * (p1Value * 0.25) : p1Res.tier.bonusAmount) : 0;
+                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
+
+                        // Phase 2
+                        const p2RecruitedMap = new Map<string, number>();
+                        for (const rc of p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
+                          p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
+                        }
+                        let p2RecruitCount = 0;
+                        let p2RecruitFYP = 0;
+                        for (const [, af] of p2RecruitedMap) { if (af >= 3_000_000) p2RecruitCount++; p2RecruitFYP += af; }
+                        const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
+                        const p2Value = conditionType === 'nyd_activity' ? p2RecruitCount : (p2RecruitFYP + (includeOwnNYD ? p2OwnFYP : 0));
                         const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
-                        const p2Bonus = p2Res.tier ? (p2Res.tier.bonusType === 'percent' ? p2Res.tier.bonusPercent / 100 * p2Value : p2Res.tier.bonusType === 'percent_fyc' ? p2Res.tier.bonusPercent / 100 * (p2Value * 0.25) : p2Res.tier.bonusAmount) : 0;
+                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
+
                         return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
                       })() : null;
                       return (
