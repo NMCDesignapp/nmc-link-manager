@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
 
       // Column mapping (0-indexed):
       // 0: STT, 1: Ban, 2: Mã trưởng ban, 3: Nhóm, 4: Mã Ban/Nhóm (MC NHÓM),
-      // 5: Mã trưởng Ban/Nhóm, 6: Mã ĐL, 7: Tên, 8: Chức vụ,
-      // 9: Ngày bắt đầu làm việc, 10: Số hợp đồng, 11: Ngày hiệu lực,
+      // 5: Mã trưởng Ban/Nhóm (leaderAgentCode), 6: Mã ĐL, 7: Tên, 8: Chức vụ,
+      // 9: Ngày bắt đầu làm việc (startDate), 10: Số hợp đồng, 11: Ngày hiệu lực,
       // 12: Ngày phát hành, 13: PĐT + 10% ĐT = FYP/IP,
-      // ... 20: AFYP
+      // ... 20: AFYP, 26: Tính Lượt (tinhLuot)
 
       const contractNumber = columns[10] || '';
       const agentCode = columns[6] || '';
@@ -75,10 +75,13 @@ export async function POST(request: NextRequest) {
       const ban = columns[1] || '';
       const nhom = columns[3] || '';
       const maNhom = columns[4] || '';  // Mã Ban/Nhóm (MC NHÓM)
+      const leaderAgentCode = columns[5] || '';  // Mã trưởng Ban/Nhóm
+      const startDateStr = columns[9] || '';     // Ngày bắt đầu làm việc
       const effectiveDateStr = columns[11] || '';
       const issueDateStr = columns[12] || '';
       const fypStr = columns[13] || '';
       const afypStr = columns[20] || '';
+      const tinhLuotStr = columns[26] || '0';   // Tính Lượt
 
       // Skip rows without contract number or effective date
       if (!contractNumber || !effectiveDateStr) continue;
@@ -89,11 +92,13 @@ export async function POST(request: NextRequest) {
 
       const effectiveDate = parseDate(effectiveDateStr);
       const issueDate = parseDate(issueDateStr);
+      const startDate = parseDate(startDateStr);
 
       if (!effectiveDate) continue;
 
       const fyp = parseNumber(fypStr);
       const afyp = parseNumber(afypStr);
+      const tinhLuot = parseNumber(tinhLuotStr);
 
       contracts.push({
         contractNumber,
@@ -103,10 +108,14 @@ export async function POST(request: NextRequest) {
         ban,
         nhom,
         maNhom,
+        leaderAgentCode,
+        recruiterCode: '', // Not available in current CSV format
+        startDate,
         effectiveDate,
         issueDate: issueDate || effectiveDate,
         fyp,
         afyp,
+        tinhLuot,
       });
     }
 

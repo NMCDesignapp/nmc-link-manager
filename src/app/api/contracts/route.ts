@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { contractNumber, agentCode, agentName, position, ban, nhom, maNhom, effectiveDate, issueDate, fyp, afyp } = body;
+    const { contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode, startDate, effectiveDate, issueDate, fyp, afyp, tinhLuot } = body;
 
     if (!contractNumber || !agentName || !effectiveDate || fyp === undefined) {
       return NextResponse.json(
@@ -62,10 +62,14 @@ export async function POST(request: NextRequest) {
         ban: ban || '',
         nhom: nhom || '',
         maNhom: maNhom || '',
+        leaderAgentCode: leaderAgentCode || '',
+        recruiterCode: recruiterCode || '',
+        startDate: startDate ? new Date(startDate) : null,
         effectiveDate: new Date(effectiveDate),
         issueDate: new Date(issueDate || effectiveDate),
         fyp: parseFloat(fyp) || 0,
         afyp: parseFloat(afyp) || 0,
+        tinhLuot: parseFloat(tinhLuot) || 0,
       },
     });
 
