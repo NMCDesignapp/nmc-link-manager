@@ -3,6 +3,7 @@
 import { Category } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Grid3X3, Star } from 'lucide-react'
+import { motion } from '@/lib/animations'
 
 interface CategoryFilterProps {
   categories: Category[]
@@ -13,7 +14,7 @@ interface CategoryFilterProps {
 export function CategoryFilter({ categories, selected, onSelect }: CategoryFilterProps) {
   return (
     <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide flex-1">
-      <button
+      <motion.button
         onClick={() => onSelect('all')}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap',
@@ -33,12 +34,15 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
                 color: '#fff',
               }
         }
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        layout
       >
         <Grid3X3 className="w-3 h-3" />
         Tat ca
-      </button>
+      </motion.button>
 
-      <button
+      <motion.button
         onClick={() => onSelect('favorites')}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg whitespace-nowrap',
@@ -58,13 +62,16 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
                 color: '#fff',
               }
         }
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        layout
       >
         <Star className={cn('w-3 h-3', selected === 'favorites' && 'fill-current')} />
         Yeu thich
-      </button>
+      </motion.button>
 
       {categories.map(cat => (
-        <button
+        <motion.button
           key={cat.id}
           onClick={() => onSelect(cat.name)}
           className={cn(
@@ -85,9 +92,15 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
                   color: '#fff',
                 }
           }
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          layout
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
         >
           {cat.name}
-        </button>
+        </motion.button>
       ))}
     </div>
   )
