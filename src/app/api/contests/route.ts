@@ -18,7 +18,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, startDate, endDate, issueDate, conditionType, targetType, bonusTiers, posterUrl, participants } = body as {
+    const {
+      title, startDate, endDate, issueDate, conditionType, targetType,
+      bonusTiers, posterUrl, participants,
+      usePhase2, phase2StartDate, phase2EndDate, bonusTiers2,
+      useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
+      hideNotAchieved, useTVVmFilter, includeOwnNYD,
+    } = body as {
       title: string;
       startDate: string;
       endDate: string;
@@ -28,6 +34,16 @@ export async function POST(request: NextRequest) {
       bonusTiers: string;
       posterUrl?: string;
       participants?: string;
+      usePhase2?: boolean;
+      phase2StartDate?: string;
+      phase2EndDate?: string;
+      bonusTiers2?: string;
+      useSecondaryCondition?: boolean;
+      secondaryAFYPMin?: number;
+      secondaryIPMin?: number;
+      hideNotAchieved?: boolean;
+      useTVVmFilter?: boolean;
+      includeOwnNYD?: boolean;
     };
 
     if (!title || !startDate || !endDate) {
@@ -37,36 +53,37 @@ export async function POST(request: NextRequest) {
     // Check if contest with same title exists, update it
     const existing = await db.contest.findFirst({ where: { title } });
 
+    const data = {
+      title,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      issueDate: issueDate ? new Date(issueDate) : null,
+      conditionType,
+      targetType: targetType || 'tvv',
+      bonusTiers,
+      posterUrl: posterUrl || '',
+      participants: participants || '[]',
+      usePhase2: usePhase2 ?? false,
+      phase2StartDate: phase2StartDate ? new Date(phase2StartDate) : null,
+      phase2EndDate: phase2EndDate ? new Date(phase2EndDate) : null,
+      bonusTiers2: bonusTiers2 || '[]',
+      useSecondaryCondition: useSecondaryCondition ?? false,
+      secondaryAFYPMin: secondaryAFYPMin ?? 0,
+      secondaryIPMin: secondaryIPMin ?? 0,
+      hideNotAchieved: hideNotAchieved ?? false,
+      useTVVmFilter: useTVVmFilter ?? false,
+      includeOwnNYD: includeOwnNYD ?? false,
+    };
+
     if (existing) {
       const updated = await db.contest.update({
         where: { id: existing.id },
-        data: {
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
-          issueDate: issueDate ? new Date(issueDate) : null,
-          conditionType,
-          targetType: targetType || 'tvv',
-          bonusTiers,
-          posterUrl: posterUrl || '',
-          participants: participants || '[]',
-        },
+        data,
       });
       return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: updated });
     }
 
-    const contest = await db.contest.create({
-      data: {
-        title,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        issueDate: issueDate ? new Date(issueDate) : null,
-        conditionType,
-        targetType: targetType || 'tvv',
-        bonusTiers,
-        posterUrl: posterUrl || '',
-        participants: participants || '[]',
-      },
-    });
+    const contest = await db.contest.create({ data });
 
     return NextResponse.json({ message: 'Đã lưu chương trình thi đua', contest });
   } catch (error) {
