@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useMemo, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Link, Category } from '@/lib/types'
 import { LinkCard } from '@/components/link-card'
 import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2 } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
@@ -111,6 +112,7 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
 }
 
 export default function Home() {
+  const router = useRouter()
   const { data: linksData, isLoading: linksLoading, error: linksError } = useSWR<Link[]>('/api/links', fetcher)
   const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher)
   const { data: stats, error: statsError } = useSWR('/api/stats', fetcher)
@@ -310,6 +312,30 @@ export default function Home() {
       <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0">
         <NeonDivider color={neonColor} />
       </div>
+
+      {/* Thi Đua Navigation Button */}
+      <motion.div
+        className="max-w-lg mx-auto w-full px-4 pb-2"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.3 }}
+      >
+        <motion.button
+          onClick={() => router.push('/thi-dua-chau')}
+          className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold"
+          style={{
+            background: `linear-gradient(135deg, ${neonColor}15, ${neonColor}25)`,
+            border: `1px solid ${neonColor}40`,
+            color: neonColor,
+            boxShadow: `0 0 15px ${neonColor}15`,
+          }}
+          whileHover={{ scale: 1.02, boxShadow: `0 0 25px ${neonColor}30` }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Trophy className="w-4 h-4" />
+          Thi Đua
+        </motion.button>
+      </motion.div>
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto min-h-0">
