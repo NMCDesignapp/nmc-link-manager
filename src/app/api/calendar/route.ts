@@ -4,6 +4,9 @@ import { eq, asc, like } from 'drizzle-orm'
 
 export async function GET(request: Request) {
   try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') // format: YYYY-MM
     const date = searchParams.get('date')   // format: YYYY-MM-DD
@@ -27,6 +30,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
     const data = await request.json()
     const { title, date, color } = data
 
@@ -52,6 +58,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 

@@ -4,6 +4,9 @@ import { desc } from 'drizzle-orm'
 
 export async function GET() {
   try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not configured. Please add DATABASE_URL environment variable.' }, { status: 503 })
+    }
     const allLinks = await db.select().from(links).orderBy(desc(links.created_at))
     return NextResponse.json(allLinks)
   } catch (error) {
@@ -14,6 +17,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!db) {
+      return NextResponse.json({ error: 'Database not configured. Please add DATABASE_URL environment variable.' }, { status: 503 })
+    }
     const body = await request.json()
     
     const newLink = await db.insert(links).values({
