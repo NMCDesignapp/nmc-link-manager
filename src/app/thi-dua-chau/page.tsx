@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,8 +43,6 @@ interface GroupData {
 interface NYDData {
   nydCode: string;
   nydName: string;
-  nhom: string;
-  position: string;
   recruitCount: number;
   recruitFYP: number;
   ownFYP: number;
@@ -89,6 +87,13 @@ function formatDate(dateStr: string): string { return new Date(dateStr).toLocale
 function nganToVnd(val: number): number { return val * 1_000; }
 function vndToNgan(val: number): number { return val / 1_000; }
 
+function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
+  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
+  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
+  if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
+  return tier.bonusAmount;
+}
+
 function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
   if (tier.bonusType === 'percent' && tier.bonusPercent > 0) {
@@ -105,13 +110,6 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
     return rounds ? `${formatCurrency(tier.bonusAmount)}/lượt × ${rounds} = ${formatCurrency(calculated)}` : `${formatCurrency(tier.bonusAmount)}/lượt`;
   }
   return formatCurrency(tier.bonusAmount);
-}
-
-function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
-  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
-  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
-  if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
-  return tier.bonusAmount;
 }
 
 function BonusTypeIcon({ type, className }: { type: string; className?: string }) {
@@ -141,18 +139,8 @@ function getTargetLabel(tt: TargetType): string {
   }
 }
 
-const TIER_COLORS = ['from-amber-400 to-orange-500','from-emerald-400 to-teal-500','from-sky-400 to-cyan-500','from-violet-400 to-purple-500','from-rose-400 to-pink-500','from-lime-400 to-green-500'];
-
-const BONUS_TYPE_BUTTONS = [
-  ['money', 'Tiền', Banknote, 'bg-emerald-600'],
-  ['gift', 'Quà', Gift, 'bg-pink-600'],
-  ['percent', '% IP', Percent, 'bg-violet-600'],
-  ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'],
-  ['money_per_round', '/Lượt', Layers, 'bg-teal-600'],
-] as const;
-
 // ContestPoster Component - supports white & gradient variants
-const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
+function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
   contestTitle: string; startDate: string; endDate: string; conditionType: ConditionType;
   targetType: TargetType; sortedTiers: BonusTier[]; filteredContracts: Contract[];
   groupedData: GroupData[]; totalFYP: number; totalBonus: number;
@@ -163,7 +151,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
   const rowCount = targetType === 'nhom' ? groupedData.length : filteredContracts.length;
   const hasData = rowCount > 0;
   const achievementPercent = hasData ? Math.round((achievedCount / rowCount) * 100) : 0;
-  const tierColors = TIER_COLORS;
+  const tierColors = ['from-amber-400 to-orange-500','from-emerald-400 to-teal-500','from-sky-400 to-cyan-500','from-violet-400 to-purple-500','from-rose-400 to-pink-500','from-lime-400 to-green-500'];
   const isWhite = variant === 'white';
 
   const conditionLabel = getConditionLabel(conditionType);
@@ -254,10 +242,10 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
       </div>
     </div>
   );
-});
+}
 
-// Bonus tier editor component - mobile optimized
-const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
+// Bonus tier editor component
+function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
   tiers: BonusTier[];
   conditionType: ConditionType;
   onUpdate: (id: string, field: keyof BonusTier, value: string | number | null) => void;
@@ -276,18 +264,18 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
-        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm</Button>
+        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {tiers.map((tier, index) => (
-          <div key={tier.id} className={`p-1.5 rounded-lg ${cls.bg} border ${cls.border}`}>
+          <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
             <div className="flex items-center gap-1 mb-1">
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1 py-0.5 rounded`}>{index + 1}</span>
               <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
-                {BONUS_TYPE_BUTTONS.map(([type, , Icon, activeCls]) => (
+                {([['money', Banknote, 'bg-emerald-600'], ['gift', Gift, 'bg-pink-600'], ['percent', Percent, 'bg-violet-600'], ['percent_fyc', Percent, 'bg-cyan-600'], ['money_per_round', Layers, 'bg-teal-600']] as const).map(([type, Icon, activeCls]) => (
                   <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={type}><Icon className="w-3 h-3" /></Button>
                 ))}
               </div>
@@ -322,7 +310,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
       </div>
     </div>
   );
-});
+}
 
 export default function ThiDuaPage() {
   const router = useRouter();
@@ -426,7 +414,7 @@ export default function ThiDuaPage() {
 
   const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[]): number => {
     const { tier } = calculateBonusWithTiers(fyp, tiers); if (!tier) return 0;
-    return computeBonusFromTier(tier, fyp);
+    return tier.bonusType === 'percent' ? tier.bonusPercent / 100 * fyp : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (fyp * 0.25) : tier.bonusAmount;
   }, [calculateBonusWithTiers]);
 
   const getBonusAmount = useCallback((fyp: number): number => {
@@ -453,7 +441,10 @@ export default function ThiDuaPage() {
 
   const getActivityRoundBonusAmount = useCallback((activityRounds: number, groupTotalFYP?: number): number => {
     const { tier } = calculateActivityRoundBonus(activityRounds); if (!tier) return 0;
-    return computeBonusFromTier(tier, groupTotalFYP || 0, activityRounds);
+    if (tier.bonusType === 'percent' && groupTotalFYP) return tier.bonusPercent / 100 * groupTotalFYP;
+    if (tier.bonusType === 'percent_fyc' && groupTotalFYP) return tier.bonusPercent / 100 * (groupTotalFYP * 0.25);
+    if (tier.bonusType === 'money_per_round') return tier.bonusAmount * activityRounds;
+    return tier.bonusAmount;
   }, [calculateActivityRoundBonus]);
 
   const getRemainingToNextActivityRoundTier = useCallback((activityRounds: number): number | null => {
@@ -470,8 +461,7 @@ export default function ThiDuaPage() {
     if (subjectCodes.length === 0) return filteredContracts;
     return filteredContracts.filter(c => {
       if (targetType === 'tvv') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName);
-      if (targetType === 'nyd') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
-        (c.recruiterCode && subjectCodes.includes(c.recruiterCode));
+      if (targetType === 'nyd') return true; // NYD filter is handled separately
       return subjectCodes.includes(c.maNhom);
     });
   }, [filteredContracts, subjectCodes, targetType]);
@@ -488,7 +478,7 @@ export default function ThiDuaPage() {
     const nydMap = new Map<string, NYDData>();
     for (const c of nydContracts) {
       if (!nydMap.has(c.agentCode)) {
-        nydMap.set(c.agentCode, { nydCode: c.agentCode, nydName: c.agentName, nhom: c.nhom, position: c.position || '', recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: [] });
+        nydMap.set(c.agentCode, { nydCode: c.agentCode, nydName: c.agentName, recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: [] });
       }
       const nyd = nydMap.get(c.agentCode)!;
       nyd.ownFYP += c.fyp;
@@ -594,7 +584,7 @@ export default function ThiDuaPage() {
           let rounds = 0;
           for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
+          if (tier) phase1Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * g.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (g.totalFYP * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * rounds : tier.bonusAmount;
         }
       } else {
         const grouped = new Map<string, number>();
@@ -617,7 +607,7 @@ export default function ThiDuaPage() {
         for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers);
-        if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
+        if (tier) phase1Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * value : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (value * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * recruitCount : tier.bonusAmount;
       }
     } else {
       for (const c of phase1Contracts) { phase1Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers); }
@@ -640,7 +630,7 @@ export default function ThiDuaPage() {
           let rounds = 0;
           for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
+          if (tier) phase2Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * g.totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (g.totalFYP * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * rounds : tier.bonusAmount;
         }
       } else {
         const grouped = new Map<string, number>();
@@ -662,7 +652,7 @@ export default function ThiDuaPage() {
         for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-        if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
+        if (tier) phase2Bonus += tier.bonusType === 'percent' ? tier.bonusPercent / 100 * value : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (value * 0.25) : tier.bonusType === 'money_per_round' ? tier.bonusAmount * recruitCount : tier.bonusAmount;
       }
     } else {
       for (const c of phase2Contracts) { phase2Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers2); }
@@ -674,7 +664,7 @@ export default function ThiDuaPage() {
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
     const { tier } = calculateBonus(totalFYP); const remaining = getRemainingToNextTier(totalFYP);
-    const bonus = tier ? computeBonusFromTier(tier, totalFYP) : 0;
+    const bonus = tier ? (tier.bonusType === 'percent' ? tier.bonusPercent / 100 * totalFYP : tier.bonusType === 'percent_fyc' ? tier.bonusPercent / 100 * (totalFYP * 0.25) : tier.bonusAmount) : 0;
     return { totalFYP, bonus, tier, remaining };
   }, [displayContracts, calculateBonus, getRemainingToNextTier]);
 
@@ -777,33 +767,17 @@ export default function ThiDuaPage() {
         return { nyd: n, tier, value };
       }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ nyd: n, tier, value }, idx) => {
         const displayVal = conditionType === 'nyd_activity' ? `${n.recruitCount} TVVm HĐ` : formatNumber(value);
-        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeOwnNYD ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
+        text += `${idx + 1}. ${n.nydCode} | ${n.nydName} | ${displayVal} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
-      [...groupedData].map((g) => {
-        const groupPhase = getGroupPhaseBonus(g);
-        const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
-        return { group: g, tier, groupPhase };
-      }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
+      [...groupedData].map((g) => ({ group: g, tier: isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ group: g, tier }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
-        if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
-        } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
-        }
+        text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
       });
     } else {
-      [...displayContracts].map((c) => {
-        const tier = conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null;
-        const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-        return { contract: c, tier, phaseInfo };
-      }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).forEach(({ contract: c, tier, phaseInfo }, idx) => {
-        const contractInfo = conditionType === 'per_contract' ? ` | ${formatDate(c.effectiveDate)}` : '';
-        if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
-        } else {
-          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
-        }
+      [...displayContracts].map((c) => ({ contract: c, tier: conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ contract: c, tier }, idx) => {
+        const contractInfo = conditionType === 'per_contract' ? ` | ${formatDate(c.effectiveDate)} | ${c.contractNumber || ''}` : '';
+        text += `${idx + 1}. ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
       });
     }
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
@@ -815,69 +789,23 @@ export default function ThiDuaPage() {
     let rows: (string | number)[][];
 
     if (isNYDMode(conditionType)) {
-      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm', ...(includeOwnNYD ? ['IP cá nhân'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Mã NYD', 'Tên NYD', conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm', 'Thưởng', 'Ghi chú'];
       rows = nydData.map(n => {
         const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
-        const base = [n.nhom || '', n.nydCode, n.nydName, n.position || '', conditionType === 'nyd_activity' ? n.recruitCount : value];
-        if (includeOwnNYD) base.push(n.ownFYP);
-        base.push(tier ? formatBonus(tier, value, n.recruitCount) : '');
-        base.push(tier ? '' : 'Chưa đạt mức');
-        return base;
+        return [n.nydCode, n.nydName, conditionType === 'nyd_activity' ? n.recruitCount : value, tier ? formatBonus(tier, value, n.recruitCount) : '', tier ? '' : 'Chưa đạt mức'];
       }).map((r, idx) => [idx + 1, ...r]);
     } else if (targetType === 'nhom') {
-      const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP';
-      if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => {
-          const groupPhase = getGroupPhaseBonus(g);
-          const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
-          return { g, tier, groupPhase };
-        }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
-        );
-      } else {
-        headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', condHeader, 'Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
-      }
+      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP', 'Thưởng', 'Ghi chú'];
+      rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
     } else {
-      // TVV per-contract or total_fyp
+      // TVV/NYD per-contract or total_fyp
       if (conditionType === 'per_contract') {
-        if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => {
-            const { tier } = calculateBonus(c.fyp);
-            const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-            return { c, tier, phaseInfo };
-          }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).map(({ c, tier, phaseInfo }, idx) => {
-            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.fyp];
-            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
-            base.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', tier ? '' : 'Chưa đạt mức');
-            return base;
-          });
-        } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), 'Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => {
-            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.fyp];
-            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
-            base.push(tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức');
-            return base;
-          });
-        }
+        headers = ['STT', 'Mã số', 'Họ tên', 'Ngày HL', 'Số HĐ', 'IP', 'Thưởng', 'Ghi chú'];
+        rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.contractNumber || '', c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
       } else {
-        if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => {
-            const { tier } = calculateBonus(c.fyp);
-            const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-            return { c, tier, phaseInfo };
-          }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).map(({ c, tier, phaseInfo }, idx) =>
-            [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.fyp, phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
-          );
-        } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
-        }
+        headers = ['STT', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng', 'Ghi chú'];
+        rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.agentCode, c.agentName, c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
       }
     }
     const csvContent = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
@@ -885,25 +813,30 @@ export default function ThiDuaPage() {
     link.href = URL.createObjectURL(blob); link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
   };
 
-  // Download image function - using html2canvas
+  // Download image function - using html-to-image
   const handleDownloadImage = async () => {
     setIsDownloadingImage(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
+      const { toBlob } = await import('html-to-image');
       if (!resultContentRef.current) {
         toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
         return;
       }
-      const canvas = await html2canvas(resultContentRef.current, {
-        scale: 2,
+      const blob = await toBlob(resultContentRef.current, {
+        quality: 1,
+        pixelRatio: 2,
         backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false,
       });
+      if (!blob) {
+        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = url;
       link.click();
+      URL.revokeObjectURL(url);
       toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
     } catch (error) {
       console.error('Download image error:', error);
@@ -913,182 +846,68 @@ export default function ThiDuaPage() {
     }
   };
 
-  // Consolidated stats computation - single useMemo for all derived values
-  const stats = useMemo(() => {
-    const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
-    
-    // TVV stats
-    const tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.fyp).tier).length;
-    const tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
-    
-    // Nhóm stats
-    const nhomAchievedCount = groupedData.filter(g => {
-      if (isActivityRoundMode(conditionType)) return calculateActivityRoundBonus(g.activityRounds).tier;
-      return calculateBonus(g.totalFYP).tier;
-    }).length;
-    const nhomTotalFYP = groupedData.reduce((sum, g) => sum + g.totalFYP, 0);
-    const nhomTotalBonus = groupedData.reduce((sum, g) => {
-      if (isActivityRoundMode(conditionType)) return sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP);
-      return sum + getBonusAmount(g.totalFYP);
-    }, 0);
-    
-    // Activity round stats
-    const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter(g => calculateActivityRoundBonus(g.activityRounds).tier).length : 0;
-    const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
-    const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((sum, g) => sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
-    
-    // NYD stats
-    const nydAchievedCount = isNYDMode(conditionType) ? nydData.filter(n => {
-      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
-      return calculateBonus(value).tier;
-    }).length : 0;
-    const nydNotAchievedCount = isNYDMode(conditionType) ? nydData.length - nydAchievedCount : 0;
-    const nydTotalBonus = isNYDMode(conditionType) ? nydData.reduce((sum, n) => {
-      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
-      const { tier } = calculateBonus(value);
-      if (!tier) return sum;
-      return sum + computeBonusFromTier(tier, value, n.recruitCount);
-    }, 0) : 0;
-    
-    const achievedCount = isNYDMode(conditionType) ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
-    const notAchievedCount = isNYDMode(conditionType) ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : displayContracts.length - tvvAchievedCount;
-    
-    const baseTotalBonus = isNYDMode(conditionType) ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : tvvTotalBonus;
-    const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
-    const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
-    
-    // total_fyp mode
-    const totalFYPValue = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
-    const matchedTotalTier = conditionType === 'total_fyp' && targetType !== 'nhom' ? calculateBonus(totalFYPValue).tier : null;
-    const totalRemaining = conditionType === 'total_fyp' && matchedTotalTier ? getRemainingToNextTier(totalFYPValue) : null;
-    
-    return {
-      totalFYP, tvvAchievedCount, tvvTotalBonus,
-      nhomAchievedCount, nhomTotalFYP, nhomTotalBonus,
-      arAchievedCount, arNotAchievedCount, arTotalBonus,
-      nydAchievedCount, nydNotAchievedCount, nydTotalBonus,
-      achievedCount, notAchievedCount,
-      baseTotalBonus, totalBonusDisplay, displayTotalFYP,
-      totalFYPValue, matchedTotalTier, totalRemaining
-    };
-  }, [displayContracts, groupedData, nydData, conditionType, targetType, includeOwnNYD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier]);
+  // Computed values
+  const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
+  const tvvAchievedCount = displayContracts.filter((c) => calculateBonus(c.fyp).tier !== null).length;
+  const tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
+  const nhomAchievedCount = groupedData.filter((g) => calculateBonus(g.totalFYP).tier !== null).length;
+  const nhomTotalFYP = groupedData.reduce((s, g) => s + g.totalFYP, 0);
+  const nhomTotalBonus = groupedData.reduce((s, g) => s + getBonusAmount(g.totalFYP), 0);
+  const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter((g) => calculateActivityRoundBonus(g.activityRounds).tier !== null).length : 0;
+  const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
+  const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((s, g) => s + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
 
-  const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, matchedTotalTier, totalRemaining } = stats;
+  // NYD computed
+  const nydAchievedCount = isNYDMode(conditionType) ? nydData.filter(n => {
+    const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+    return calculateBonus(value).tier !== null;
+  }).length : 0;
+  const nydNotAchievedCount = isNYDMode(conditionType) ? nydData.length - nydAchievedCount : 0;
+  const nydTotalBonus = isNYDMode(conditionType) ? nydData.reduce((s, n) => {
+    const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+    const { tier } = calculateBonus(value);
+    if (!tier) return s;
+    if (tier.bonusType === 'percent') return s + tier.bonusPercent / 100 * value;
+    if (tier.bonusType === 'percent_fyc') return s + tier.bonusPercent / 100 * (value * 0.25);
+    if (tier.bonusType === 'money_per_round') return s + tier.bonusAmount * n.recruitCount;
+    return s + tier.bonusAmount;
+  }, 0) : 0;
 
-  const sortedTiers = useMemo(() => [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP), [bonusTiers]);
+  const achievedCount = isNYDMode(conditionType) ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
+  const notAchievedCount = isNYDMode(conditionType) ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : displayContracts.length - tvvAchievedCount;
+
+  // Total bonus with Phase2 support
+  const baseTotalBonus = isNYDMode(conditionType) ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : (conditionType === 'total_fyp' ? getTotalFYPBonus().bonus : tvvTotalBonus);
+  const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
+  const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
+  const { totalFYP: totalFYPValue, tier: matchedTotalTier, remaining: totalRemaining } = getTotalFYPBonus();
+  const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
 
   // Calculate and show results popup
   const handleCalculate = () => {
-    try {
-      if (!startDate && !endDate) {
-        toast({ title: 'Thiếu thông tin', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến', variant: 'destructive' });
-        return;
-      }
-      if (contracts.length === 0) {
-        toast({ title: 'Chưa có dữ liệu', description: 'Nhấn "Cập nhật link" để tải dữ liệu hợp đồng trước', variant: 'destructive' });
-        return;
-      }
-      let results = [...contracts];
-      if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
-      if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
-      if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
-      // Secondary condition filter
-      if (useSecondaryCondition) {
-        if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
-        if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
-      }
-      results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
-      if (results.length === 0) {
-        setFilteredContracts([]);
-        toast({ title: 'Không có kết quả', description: 'Không tìm thấy hợp đồng nào phù hợp với điều kiện đã chọn', variant: 'destructive' });
-        return;
-      }
-      setFilteredContracts(results);
-      setIsResultDialogOpen(true);
-      toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng phù hợp` });
-    } catch (error) {
-      console.error('handleCalculate error:', error);
-      toast({ title: 'Lỗi', description: 'Có lỗi xảy ra khi tính toán. Vui lòng thử lại.', variant: 'destructive' });
+    if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
+    let results = [...contracts];
+    if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
+    if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
+    if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+    // Secondary condition filter
+    if (useSecondaryCondition) {
+      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
+      if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
     }
+    results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
+    if (results.length === 0) {
+      setFilteredContracts([]);
+      toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp' });
+      return;
+    }
+    setFilteredContracts(results);
+    setIsResultDialogOpen(true);
+    toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng` });
   };
 
   // Neon border style like main page
   const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)]';
-
-  // Phase 2 per-row bonus calculation helper
-  const getRowPhaseBonus = useCallback((fyp: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
-    if (!usePhase2 || !phase2StartDate) {
-      const { tier } = calculateBonus(fyp);
-      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
-      return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
-    }
-    const p2Start = new Date(phase2StartDate + 'T00:00:00');
-    const isPhase1 = effectiveDate ? new Date(effectiveDate + 'T00:00:00') < p2Start : true;
-    if (isPhase1) {
-      const { tier } = calculateBonusWithTiers(fyp, bonusTiers);
-      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
-      return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
-    } else {
-      const { tier } = calculateBonusWithTiers(fyp, bonusTiers2);
-      const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
-      return { phase1Bonus: 0, phase2Bonus: bonus, phase1Tier: null, phase2Tier: tier };
-    }
-  }, [usePhase2, phase2StartDate, calculateBonus, calculateBonusWithTiers, bonusTiers, bonusTiers2]);
-
-  const getGroupPhaseBonus = useCallback((group: GroupData): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
-    if (!usePhase2 || !phase2StartDate) {
-      if (isActivityRoundMode(conditionType)) {
-        const { tier } = calculateActivityRoundBonus(group.activityRounds);
-        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP, group.activityRounds) : 0;
-        return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
-      } else {
-        const { tier } = calculateBonus(group.totalFYP);
-        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP) : 0;
-        return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
-      }
-    }
-    const p2Start = new Date(phase2StartDate + 'T00:00:00');
-    const phase1Contracts = group.contracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') < p2Start);
-    const phase2Contracts = group.contracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') >= p2Start);
-
-    let phase1Bonus = 0;
-    let phase2Bonus = 0;
-    let phase1Tier: BonusTier | null = null;
-    let phase2Tier: BonusTier | null = null;
-
-    if (isActivityRoundMode(conditionType)) {
-      const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
-      const p1AgentMap = new Map<string, number>();
-      for (const c of phase1Contracts) { p1AgentMap.set(c.agentCode, Math.max(p1AgentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-      let p1Rounds = 0;
-      for (const [, maxT] of p1AgentMap) { if (maxT >= luotThreshold) p1Rounds++; }
-      const p1FYP = phase1Contracts.reduce((s, c) => s + c.fyp, 0);
-      const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, bonusTiers);
-      phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1FYP, p1Rounds);
-
-      const p2AgentMap = new Map<string, number>();
-      for (const c of phase2Contracts) { p2AgentMap.set(c.agentCode, Math.max(p2AgentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-      let p2Rounds = 0;
-      for (const [, maxT] of p2AgentMap) { if (maxT >= luotThreshold) p2Rounds++; }
-      const p2FYP = phase2Contracts.reduce((s, c) => s + c.fyp, 0);
-      const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, bonusTiers2);
-      phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2FYP, p2Rounds);
-    } else {
-      const p1Total = phase1Contracts.reduce((s, c) => s + c.fyp, 0);
-      const p1Res = calculateBonusWithTiers(p1Total, bonusTiers);
-      phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1Total);
-
-      const p2Total = phase2Contracts.reduce((s, c) => s + c.fyp, 0);
-      const p2Res = calculateBonusWithTiers(p2Total, bonusTiers2);
-      phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2Total);
-    }
-
-    return { phase1Bonus, phase2Bonus, phase1Tier, phase2Tier };
-  }, [usePhase2, phase2StartDate, conditionType, calculateBonus, calculateBonusWithTiers, calculateActivityRoundBonus, calculateActivityRoundBonusWithTiers, bonusTiers, bonusTiers2]);
 
   // Build NYD result rows
   const nydResultRows = useMemo(() => {
@@ -1122,7 +941,7 @@ export default function ThiDuaPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative overflow-x-hidden">
+      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
@@ -1145,10 +964,10 @@ export default function ThiDuaPage() {
               <Label className="text-xs font-medium text-white/70">Tên chương trình thi đua</Label>
               <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm w-full" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực từ</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
               <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực đến</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-              <div className="space-y-1 col-span-2 sm:col-span-1"><Label className="text-xs text-white/50">Ngày phát hành</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+              <div className="space-y-1"><Label className="text-xs text-white/50">Ngày phát hành</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
             </div>
           </CardContent>
         </Card>
@@ -1170,31 +989,31 @@ export default function ThiDuaPage() {
                 {/* Target */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Đối tượng</Label>
-                  <RadioGroup value={targetType} onValueChange={(v) => setTargetType(v as TargetType)} className="space-y-1">
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${isActivityRoundMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <RadioGroup value={targetType} onValueChange={(v) => setTargetType(v as TargetType)} className="space-y-1.5">
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isActivityRoundMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="tvv" id="tvv" disabled={isActivityRoundMode(conditionType)} />
-                      <Label htmlFor="tvv" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><Users className="w-3 h-3 text-emerald-400 shrink-0" /> TVV</div></Label>
+                      <Label htmlFor="tvv" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><Users className="w-3.5 h-3.5 text-emerald-400" /> TVV (cá nhân)</div></Label>
                     </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="nhom" id="nhom" disabled={isNYDMode(conditionType)} />
-                      <Label htmlFor="nhom" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><UserCheck className="w-3 h-3 text-sky-400 shrink-0" /> Nhóm</div></Label>
+                      <Label htmlFor="nhom" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserCheck className="w-3.5 h-3.5 text-sky-400" /> Theo nhóm (MC NHÓM)</div></Label>
                     </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${!isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${!isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="nyd" id="nyd" disabled={!isNYDMode(conditionType)} />
-                      <Label htmlFor="nyd" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> NYD</div></Label>
+                      <Label htmlFor="nyd" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserPlus className="w-3.5 h-3.5 text-violet-400" /> Người Tuyển Dụng (NYD)</div></Label>
                     </div>
                   </RadioGroup>
                 </div>
                 {/* Condition */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Điều kiện</Label>
-                  <RadioGroup value={conditionType} onValueChange={(v) => { setConditionType(v as ConditionType); if (isActivityRoundMode(v as ConditionType)) setTargetType('nhom'); if (isNYDMode(v as ConditionType)) setTargetType('nyd'); }} className="space-y-1">
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="per_contract" id="pc" /><Label htmlFor="pc" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><FileText className="w-3 h-3 text-emerald-400 shrink-0" /> <span>Theo HĐ</span></div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="total_fyp" id="tf" /><Label htmlFor="tf" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><TrendingUp className="w-3 h-3 text-amber-400 shrink-0" /> <span>Tổng IP</span></div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round" id="ar" /><Label htmlFor="ar" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><Layers className="w-3 h-3 text-orange-400 shrink-0" /> <span>Lượt HĐ <span className="text-white/40">≥3tr</span></span></div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round_standard" id="ars" /><Label htmlFor="ars" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><Layers className="w-3 h-3 text-orange-400 shrink-0" /> <span>HĐ Chuẩn <span className="text-white/40">≥12tr</span></span></div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 px-2 py-1.5 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_activity" id="nya" /><Label htmlFor="nya" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> <span>NYD-Lượt TVVm</span></div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 px-2 py-1.5 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_fyp" id="nyf" /><Label htmlFor="nyf" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> <span>NYD-FYP TVVm</span></div></Label></div>
+                  <RadioGroup value={conditionType} onValueChange={(v) => { setConditionType(v as ConditionType); if (isActivityRoundMode(v as ConditionType)) setTargetType('nhom'); if (isNYDMode(v as ConditionType)) setTargetType('nyd'); }} className="space-y-1.5">
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="per_contract" id="pc" /><Label htmlFor="pc" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Theo HĐ (IP/HĐ)</div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="total_fyp" id="tf" /><Label htmlFor="tf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Tổng IP</div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round" id="ar" /><Label htmlFor="ar" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ (IP ≥ 3tr)</div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round_standard" id="ars" /><Label htmlFor="ars" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ Chuẩn (IP ≥ 12tr)</div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_activity" id="nya" /><Label htmlFor="nya" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - Lượt TVVm HĐ</div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_fyp" id="nyf" /><Label htmlFor="nyf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - FYP TVVm</div></Label></div>
                   </RadioGroup>
                 </div>
               </div>
@@ -1222,9 +1041,9 @@ export default function ThiDuaPage() {
                 </div>
                 {usePhase2 && (
                   <div className="space-y-2 pl-4 border-l-2 border-sky-500/20">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="space-y-0.5"><Label className="text-[9px] text-sky-400/70">GĐ2 từ</Label><Input type="date" value={phase2StartDate} onChange={(e) => setPhase2StartDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
-                      <div className="space-y-0.5"><Label className="text-[9px] text-sky-400/70">GĐ2 đến</Label><Input type="date" value={phase2EndDate} onChange={(e) => setPhase2EndDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực từ</Label><Input type="date" value={phase2StartDate} onChange={(e) => setPhase2StartDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
+                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực đến</Label><Input type="date" value={phase2EndDate} onChange={(e) => setPhase2EndDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
                     </div>
                     <BonusTierEditor
                       tiers={bonusTiers2}
@@ -1249,9 +1068,9 @@ export default function ThiDuaPage() {
                   </Label>
                 </div>
                 {useSecondaryCondition && (
-                  <div className="grid grid-cols-2 gap-1.5 pl-4 border-l-2 border-orange-500/20">
-                    <div className="space-y-0.5"><Label className="text-[9px] text-orange-400/70 flex items-center gap-0.5"><Banknote className="w-2.5 h-2.5" /> AFYP (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
-                    <div className="space-y-0.5"><Label className="text-[9px] text-orange-400/70 flex items-center gap-0.5"><Target className="w-2.5 h-2.5" /> IP (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
+                  <div className="grid grid-cols-2 gap-2 pl-4 border-l-2 border-orange-500/20">
+                    <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP tối thiểu (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
+                    <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP tối thiểu (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
                   </div>
                 )}
               </div>
@@ -1408,127 +1227,56 @@ export default function ThiDuaPage() {
                       <TableHead className="text-white text-center w-[40px] font-bold">STT</TableHead>
                       {isNYDMode(conditionType) ? (
                         <>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[75px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">Chức vụ</TableHead>
-                          <TableHead className="text-white min-w-[90px] font-bold text-center">
+                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã NYD</TableHead>
+                          <TableHead className="text-white min-w-[130px] font-bold text-center">Tên NYD</TableHead>
+                          <TableHead className="text-white text-right min-w-[100px] font-bold text-center">
                             <div>{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'}</div>
+                            {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
-                          {includeOwnNYD && (
-                            <TableHead className="text-white min-w-[90px] font-bold text-center">IP cá nhân</TableHead>
-                          )}
-                          {usePhase2 ? (
-                            <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
-                                <div>Tổng Thưởng</div>
-                              </TableHead>
-                            </>
-                          ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
-                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                            </TableHead>
-                          )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
-                        </>
-                      ) : targetType === 'nhom' ? (
-                        <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">
-                            {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP'}
-                            {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                          <TableHead className="text-white text-right min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                           </TableHead>
-                          {usePhase2 ? (
-                            <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
-                                <div>Tổng Thưởng</div>
-                              </TableHead>
-                            </>
-                          ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
-                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                            </TableHead>
-                          )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
-                        </>
-                      ) : conditionType === 'per_contract' ? (
-                        <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white text-center w-[85px] font-bold">Ngày HL</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">IP</TableHead>
-                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableHead className="text-white min-w-[100px] font-bold text-center">AFYP</TableHead>
-                          )}
-                          {usePhase2 ? (
-                            <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
-                                <div>Tổng Thưởng</div>
-                              </TableHead>
-                            </>
-                          ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
-                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                            </TableHead>
-                          )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[110px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       ) : (
                         <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">
-                            <div>Tổng IP</div>
-                            {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
-                          </TableHead>
-                          {usePhase2 ? (
+                          {targetType === 'nhom' ? (
                             <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
-                              </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
-                                <div>Tổng Thưởng</div>
-                              </TableHead>
+                              <TableHead className="text-white min-w-[100px] font-bold text-center">Nhóm</TableHead>
+                              <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
+                              <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên TN</TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
-                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                            </TableHead>
+                            <>
+                              <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
+                              <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
+                            </>
                           )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          {conditionType === 'per_contract' && targetType !== 'nhom' && (
+                            <>
+                              <TableHead className="text-white text-center w-[85px] font-bold">Ngày HL</TableHead>
+                              <TableHead className="text-white text-center min-w-[90px] font-bold">Số HĐ</TableHead>
+                            </>
+                          )}
+                          <TableHead className="text-white text-right min-w-[100px] font-bold text-center">
+                            {(() => {
+                              if (isActivityRoundMode(conditionType) && targetType === 'nhom') {
+                                return <div>{conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ'}</div>;
+                              }
+                              if (conditionType === 'per_contract') {
+                                return <div>IP</div>;
+                              }
+                              return (
+                                <div>Tổng IP
+                                  {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                                </div>
+                              );
+                            })()}
+                          </TableHead>
+                          <TableHead className="text-white text-right min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+                          </TableHead>
+                          <TableHead className="text-white min-w-[110px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       )}
                     </TableRow>
@@ -1536,75 +1284,19 @@ export default function ThiDuaPage() {
                   <TableBody>
                     {isNYDMode(conditionType) ? nydResultRows.map(({ nyd, tier, value }, idx) => {
                       if (hideNotAchieved && !tier) return null;
-                      const phaseBonus = usePhase2 && phase2StartDate ? (() => {
-                        const p2Start = new Date(phase2StartDate + 'T00:00:00');
-                        // Use ALL displayContracts, not just nyd.contracts
-                        const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') < p2Start);
-                        const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') >= p2Start);
-                        
-                        // Phase 1: find recruited TVVm for this NYD
-                        const p1RecruitedMap = new Map<string, number>();
-                        for (const rc of p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
-                          p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
-                        }
-                        let p1RecruitCount = 0;
-                        let p1RecruitFYP = 0;
-                        for (const [, af] of p1RecruitedMap) { if (af >= 3_000_000) p1RecruitCount++; p1RecruitFYP += af; }
-                        const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
-                        const p1Value = conditionType === 'nyd_activity' ? p1RecruitCount : (p1RecruitFYP + (includeOwnNYD ? p1OwnFYP : 0));
-                        const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
-                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
-
-                        // Phase 2
-                        const p2RecruitedMap = new Map<string, number>();
-                        for (const rc of p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
-                          p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
-                        }
-                        let p2RecruitCount = 0;
-                        let p2RecruitFYP = 0;
-                        for (const [, af] of p2RecruitedMap) { if (af >= 3_000_000) p2RecruitCount++; p2RecruitFYP += af; }
-                        const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
-                        const p2Value = conditionType === 'nyd_activity' ? p2RecruitCount : (p2RecruitFYP + (includeOwnNYD ? p2OwnFYP : 0));
-                        const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
-                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
-
-                        return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
-                      })() : null;
                       return (
                         <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{nyd.nhom || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{nyd.nydCode}</TableCell>
                           <TableCell className="text-xs text-gray-700">{nyd.nydName}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{nyd.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs text-violet-600">
                             {conditionType === 'nyd_activity' ? `${nyd.recruitCount} lượt` : formatNumber(value)}
                           </TableCell>
-                          {includeOwnNYD && (
-                            <TableCell className="text-right text-xs text-gray-600">{formatNumber(nyd.ownFYP)}</TableCell>
-                          )}
-                          {usePhase2 && phaseBonus ? (
-                            <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
-                            </>
-                          ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
-                          )}
+                          <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : targetType === 'nhom' ? [...groupedData].map((g) => {
-                      const groupPhase = getGroupPhaseBonus(g);
-                      const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
-                      const remaining = isActivityRoundMode(conditionType) ? getRemainingToNextActivityRoundTier(g.activityRounds) : getRemainingToNextTier(g.totalFYP);
-                      return { group: g, tier, remaining, groupPhase };
-                    }).sort((a, b) => {
-                      const aTotal = a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus;
-                      const bTotal = b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus;
-                      return bTotal - aTotal;
-                    }).map(({ group, tier, remaining, groupPhase }, idx) => {
+                    }) : targetType === 'nhom' && isActivityRoundMode(conditionType) ? [...groupedData].map((g) => ({ group: g, tier: calculateActivityRoundBonus(g.activityRounds).tier, remaining: getRemainingToNextActivityRoundTier(g.activityRounds) })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ group, tier, remaining }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
                         <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
@@ -1612,85 +1304,39 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || group.maNhom}</span></TableCell>
-                          <TableCell className="text-right text-xs">
-                            {isActivityRoundMode(conditionType)
-                              ? <span className="text-orange-600">{group.activityRounds} lượt</span>
-                              : <span className="text-gray-700">{formatNumber(group.totalFYP)}</span>
-                            }
-                          </TableCell>
-                          {usePhase2 ? (
-                            <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
-                            </>
-                          ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
-                          )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="text-right text-xs text-orange-600">{group.activityRounds} lượt</TableCell>
+                          <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {remaining} lượt</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : conditionType === 'per_contract' ? [...displayContracts].map((c) => {
-                      const { tier } = calculateBonus(c.fyp);
-                      const remaining = getRemainingToNextTier(c.fyp);
-                      const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-                      return { contract: c, tier, remaining, phaseInfo };
-                    }).sort((a, b) => {
-                      const aTotal = a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus;
-                      const bTotal = b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus;
-                      return bTotal - aTotal;
-                    }).map(({ contract, tier, remaining, phaseInfo }, idx) => {
+                    }) : targetType === 'nhom' ? [...groupedData].map((g) => ({ group: g, tier: calculateBonus(g.totalFYP).tier, remaining: getRemainingToNextTier(g.totalFYP) })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ group, tier, remaining }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
-                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.nhom || contract.maNhom}</TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.agentName}</TableCell>
-                          <TableCell className="text-center text-xs text-gray-500">{formatDate(contract.effectiveDate)}</TableCell>
-                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
-                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableCell className="text-right text-xs text-gray-600">{formatNumber(contract.afyp)}</TableCell>
-                          )}
-                          {usePhase2 ? (
-                            <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
-                            </>
-                          ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
-                          )}
+                          <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || group.maNhom}</span></TableCell>
+                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(group.totalFYP)}</TableCell>
+                          <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : [...displayContracts].map((c) => {
-                      const { tier } = calculateBonus(c.fyp);
-                      const remaining = getRemainingToNextTier(c.fyp);
-                      const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-                      return { contract: c, tier, remaining, phaseInfo };
-                    }).sort((a, b) => {
-                      const aTotal = a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus;
-                      const bTotal = b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus;
-                      return bTotal - aTotal;
-                    }).map(({ contract, tier, remaining, phaseInfo }, idx) => {
+                    }) : [...displayContracts].map((c) => ({ contract: c, tier: conditionType === 'per_contract' ? calculateBonus(c.fyp).tier : null, remaining: conditionType === 'per_contract' ? getRemainingToNextTier(c.fyp) : null })).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ contract, tier, remaining }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
                         <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.nhom || contract.maNhom}</TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-700">{contract.agentName}</TableCell>
-                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
-                          {usePhase2 ? (
+                          {conditionType === 'per_contract' && (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                              <TableCell className="text-center text-xs text-gray-500">{formatDate(contract.effectiveDate)}</TableCell>
+                              <TableCell className="text-xs text-gray-700 font-mono">{contract.contractNumber || '—'}</TableCell>
                             </>
-                          ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
+                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
+                          <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
