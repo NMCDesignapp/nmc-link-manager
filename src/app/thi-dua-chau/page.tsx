@@ -73,7 +73,7 @@ function isNYDMode(ct: ConditionType): boolean {
 
 function isTVVm(startDate: string | null): boolean {
   if (!startDate) return false;
-  const start = new Date(startDate);
+  const start = new Date(startDate + 'T00:00:00');
   const now = new Date();
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   return diffMonths <= 12;
@@ -276,45 +276,45 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
         <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {tiers.map((tier, index) => (
-          <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
+          <div key={tier.id} className={`p-1.5 rounded-lg ${cls.bg} border ${cls.border}`}>
+            <div className="flex items-center gap-1 mb-1">
+              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1 py-0.5 rounded`}>{index + 1}</span>
               <div className="flex items-center gap-0.5 ml-auto">
-                {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
-                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 px-1.5 text-[9px] ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)}><Icon className="w-2.5 h-2.5 mr-0.5" />{label}</Button>
+                {BONUS_TYPE_BUTTONS.map(([type, , Icon, activeCls]) => (
+                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={type}><Icon className="w-3 h-3" /></Button>
                 ))}
               </div>
               <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-2.5 h-2.5" /></Button>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {isAR ? (
                 <>
-                  <div><Label className="text-[9px] text-white/40">Lượt từ</Label><Input type="number" placeholder="0" value={tier.minFYP || 0} onChange={(e) => onUpdate(tier.id, 'minFYP', parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div><Label className="text-[9px] text-white/40">Lượt từ</Label><Input type="number" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                   <div><Label className="text-[9px] text-white/40">Lượt đến</Label><Input type="number" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               ) : (
                 <>
-                  <div><Label className="text-[9px] text-white/40">IP từ (nđ)</Label><Input type="number" placeholder="0" value={vndToNgan(tier.minFYP) || 0} onChange={(e) => onUpdate(tier.id, 'minFYP', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div><Label className="text-[9px] text-white/40">IP từ (nđ)</Label><Input type="number" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                   <div><Label className="text-[9px] text-white/40">IP đến (nđ)</Label><Input type="number" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               )}
-              <div>
-                <Label className="text-[9px] text-white/40">
-                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
-                </Label>
-                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
-                  ? <Input type="number" placeholder="0" value={vndToNgan(tier.bonusAmount) || 0} onChange={(e) => onUpdate(tier.id, 'bonusAmount', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
-                  : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
-                    ? <Input type="number" placeholder="7" value={tier.bonusPercent || 0} onChange={(e) => onUpdate(tier.id, 'bonusPercent', parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
-                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />}
-              </div>
+            </div>
+            <div className="mt-1.5">
+              <Label className="text-[9px] text-white/40">
+                {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+              </Label>
+              {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
+                ? <Input type="number" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+                  ? <Input type="number" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                  : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />}
             </div>
           </div>
         ))}
@@ -396,15 +396,15 @@ export default function ThiDuaPage() {
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
     let results = [...contracts];
-    if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
-    if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    if (issueDate) { const issue = new Date(issueDate); results = results.filter((c) => { const cI = new Date(c.issueDate); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+    if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
+    if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
+    if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
     // Secondary condition filter
     if (useSecondaryCondition) {
       if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
       if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
     }
-    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+    results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
     setFilteredContracts(results);
     return results;
   }, [startDate, endDate, issueDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
@@ -571,9 +571,9 @@ export default function ThiDuaPage() {
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
     if (!usePhase2 || !phase2StartDate) return null;
-    const p2Start = new Date(phase2StartDate);
-    const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
-    const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+    const p2Start = new Date(phase2StartDate + 'T00:00:00');
+    const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') < p2Start);
+    const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') >= p2Start);
 
     // Calculate Phase 1 bonus
     let phase1Bonus = 0;
@@ -985,15 +985,15 @@ export default function ThiDuaPage() {
   const handleCalculate = () => {
     if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
     let results = [...contracts];
-    if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
-    if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    if (issueDate) { const issue = new Date(issueDate); results = results.filter((c) => { const cI = new Date(c.issueDate); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+    if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
+    if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
+    if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
     // Secondary condition filter
     if (useSecondaryCondition) {
       if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
       if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
     }
-    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+    results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
     if (results.length === 0) {
       setFilteredContracts([]);
       toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp' });
@@ -1014,8 +1014,8 @@ export default function ThiDuaPage() {
       const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
       return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
     }
-    const p2Start = new Date(phase2StartDate);
-    const isPhase1 = effectiveDate ? new Date(effectiveDate) < p2Start : true;
+    const p2Start = new Date(phase2StartDate + 'T00:00:00');
+    const isPhase1 = effectiveDate ? new Date(effectiveDate + 'T00:00:00') < p2Start : true;
     if (isPhase1) {
       const { tier } = calculateBonusWithTiers(fyp, bonusTiers);
       const bonus = tier ? computeBonusFromTier(tier, fyp) : 0;
@@ -1039,9 +1039,9 @@ export default function ThiDuaPage() {
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       }
     }
-    const p2Start = new Date(phase2StartDate);
-    const phase1Contracts = group.contracts.filter(c => new Date(c.effectiveDate) < p2Start);
-    const phase2Contracts = group.contracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+    const p2Start = new Date(phase2StartDate + 'T00:00:00');
+    const phase1Contracts = group.contracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') < p2Start);
+    const phase2Contracts = group.contracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') >= p2Start);
 
     let phase1Bonus = 0;
     let phase2Bonus = 0;
@@ -1529,10 +1529,10 @@ export default function ThiDuaPage() {
                     {isNYDMode(conditionType) ? nydResultRows.map(({ nyd, tier, value }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
-                        const p2Start = new Date(phase2StartDate);
+                        const p2Start = new Date(phase2StartDate + 'T00:00:00');
                         // Use ALL displayContracts, not just nyd.contracts
-                        const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
-                        const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+                        const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') < p2Start);
+                        const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate + 'T00:00:00') >= p2Start);
                         
                         // Phase 1: find recruited TVVm for this NYD
                         const p1RecruitedMap = new Map<string, number>();
