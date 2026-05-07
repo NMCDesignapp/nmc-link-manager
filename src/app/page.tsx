@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link, Category } from '@/lib/types'
 import { LinkCard } from '@/components/link-card'
@@ -120,6 +120,23 @@ export default function Home() {
   const links = Array.isArray(linksData) ? linksData : []
   const categories = Array.isArray(categoriesData) ? categoriesData : []
   const { settings } = useSettings()
+
+  // Load neon color from localStorage immediately on mount (before server responds)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('nmc-app-settings')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed.neon_color) {
+            document.documentElement.style.setProperty('--primary', parsed.neon_color)
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [editingLink, setEditingLink] = useState<Link | null>(null)

@@ -73,7 +73,18 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
 
   const handleColorChange = (color: string) => {
     handleChange('neon_color', color)
+    // Apply immediately to DOM
     document.documentElement.style.setProperty('--primary', color)
+    // Also save to localStorage immediately for instant persistence
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('nmc-app-settings')
+        const current = stored ? JSON.parse(stored) : {}
+        localStorage.setItem('nmc-app-settings', JSON.stringify({ ...current, neon_color: color }))
+      }
+    } catch {
+      // ignore
+    }
   }
 
   return (
