@@ -256,7 +256,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
   );
 });
 
-// Bonus tier editor component
+// Bonus tier editor component - mobile optimized
 const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
   tiers: BonusTier[];
   conditionType: ConditionType;
@@ -279,41 +279,42 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
-        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
+        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm</Button>
       </div>
       <div className="space-y-1.5">
         {tiers.map((tier, index) => (
           <div key={tier.id} className={`p-1.5 rounded-lg ${cls.bg} border ${cls.border}`}>
             <div className="flex items-center gap-1 mb-1">
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1 py-0.5 rounded`}>{index + 1}</span>
-              <div className="flex items-center gap-0.5 ml-auto">
+              <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
                 {BONUS_TYPE_BUTTONS.map(([type, , Icon, activeCls]) => (
-                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={type}><Icon className="w-3 h-3" /></Button>
+                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-white/10 text-white/50 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={type}><Icon className="w-3 h-3" /></Button>
                 ))}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-2.5 h-2.5" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-600 shrink-0"><Trash2 className="w-2.5 h-2.5" /></Button>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-1">
               {isAR ? (
                 <>
-                  <div><Label className="text-[9px] text-white/40">Lượt từ</Label><Input type="number" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-                  <div><Label className="text-[9px] text-white/40">Lượt đến</Label><Input type="number" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div className="space-y-0.5"><Label className="text-[9px] text-white/40 flex items-center gap-0.5"><Target className="w-2.5 h-2.5" /> Từ</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div className="space-y-0.5"><Label className="text-[9px] text-white/40 flex items-center gap-0.5"><ArrowLeft className="w-2.5 h-2.5 rotate-180" /> Đến</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               ) : (
                 <>
-                  <div><Label className="text-[9px] text-white/40">IP từ (nđ)</Label><Input type="number" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-                  <div><Label className="text-[9px] text-white/40">IP đến (nđ)</Label><Input type="number" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div className="space-y-0.5"><Label className="text-[9px] text-white/40 flex items-center gap-0.5"><Banknote className="w-2.5 h-2.5" /> Từ</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+                  <div className="space-y-0.5"><Label className="text-[9px] text-white/40 flex items-center gap-0.5"><Banknote className="w-2.5 h-2.5" /> Đến</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
                 </>
               )}
             </div>
-            <div className="mt-1.5">
-              <Label className="text-[9px] text-white/40">
-                {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+            <div className="mt-1">
+              <Label className="text-[9px] text-white/40 flex items-center gap-0.5">
+                <Sparkles className="w-2.5 h-2.5" />
+                {tier.bonusType === 'money' ? ' nđ' : tier.bonusType === 'money_per_round' ? ' nđ/lượt' : tier.bonusType === 'percent' ? ' %IP' : tier.bonusType === 'percent_fyc' ? ' %FYC' : ' Quà'}
               </Label>
               {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
-                ? <Input type="number" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
                 : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
-                  ? <Input type="number" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
+                  ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />
                   : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-emerald-500/20 bg-white/5 text-white" />}
             </div>
           </div>
@@ -884,30 +885,25 @@ export default function ThiDuaPage() {
     link.href = URL.createObjectURL(blob); link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
   };
 
-  // Download image function - using html-to-image
+  // Download image function - using html2canvas
   const handleDownloadImage = async () => {
     setIsDownloadingImage(true);
     try {
-      const { toBlob } = await import('html-to-image');
+      const html2canvas = (await import('html2canvas')).default;
       if (!resultContentRef.current) {
         toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
         return;
       }
-      const blob = await toBlob(resultContentRef.current, {
-        quality: 1,
-        pixelRatio: 2,
+      const canvas = await html2canvas(resultContentRef.current, {
+        scale: 2,
         backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
       });
-      if (!blob) {
-        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-        return;
-      }
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = url;
+      link.href = canvas.toDataURL('image/png');
       link.click();
-      URL.revokeObjectURL(url);
       toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
     } catch (error) {
       console.error('Download image error:', error);
@@ -983,25 +979,31 @@ export default function ThiDuaPage() {
 
   // Calculate and show results popup
   const handleCalculate = () => {
-    if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
-    let results = [...contracts];
-    if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
-    if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
-    if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
-    // Secondary condition filter
-    if (useSecondaryCondition) {
-      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
-      if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
+    try {
+      if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
+      if (contracts.length === 0) { toast({ title: 'Thông báo', description: 'Chưa có dữ liệu hợp đồng. Nhấn "Cập nhật link" để tải dữ liệu.' }); return; }
+      let results = [...contracts];
+      if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
+      if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
+      if (issueDate) { const issue = new Date(issueDate + 'T00:00:00'); results = results.filter((c) => { const cI = new Date(c.issueDate + 'T00:00:00'); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+      // Secondary condition filter
+      if (useSecondaryCondition) {
+        if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
+        if (secondaryIPMin > 0) results = results.filter((c) => c.fyp >= secondaryIPMin);
+      }
+      results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
+      if (results.length === 0) {
+        setFilteredContracts([]);
+        toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp với điều kiện đã chọn' });
+        return;
+      }
+      setFilteredContracts(results);
+      setIsResultDialogOpen(true);
+      toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng` });
+    } catch (error) {
+      console.error('handleCalculate error:', error);
+      toast({ title: 'Lỗi', description: 'Có lỗi xảy ra khi tính toán. Vui lòng thử lại.', variant: 'destructive' });
     }
-    results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
-    if (results.length === 0) {
-      setFilteredContracts([]);
-      toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp' });
-      return;
-    }
-    setFilteredContracts(results);
-    setIsResultDialogOpen(true);
-    toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng` });
   };
 
   // Neon border style like main page
@@ -1137,10 +1139,10 @@ export default function ThiDuaPage() {
               <Label className="text-xs font-medium text-white/70">Tên chương trình thi đua</Label>
               <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm w-full" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực từ</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
               <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực đến</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-              <div className="space-y-1"><Label className="text-xs text-white/50">Ngày phát hành</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+              <div className="space-y-1 col-span-2 sm:col-span-1"><Label className="text-xs text-white/50">Ngày phát hành</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
             </div>
           </CardContent>
         </Card>
@@ -1214,9 +1216,9 @@ export default function ThiDuaPage() {
                 </div>
                 {usePhase2 && (
                   <div className="space-y-2 pl-4 border-l-2 border-sky-500/20">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực từ</Label><Input type="date" value={phase2StartDate} onChange={(e) => setPhase2StartDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
-                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực đến</Label><Input type="date" value={phase2EndDate} onChange={(e) => setPhase2EndDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div className="space-y-0.5"><Label className="text-[9px] text-sky-400/70">GĐ2 từ</Label><Input type="date" value={phase2StartDate} onChange={(e) => setPhase2StartDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
+                      <div className="space-y-0.5"><Label className="text-[9px] text-sky-400/70">GĐ2 đến</Label><Input type="date" value={phase2EndDate} onChange={(e) => setPhase2EndDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
                     </div>
                     <BonusTierEditor
                       tiers={bonusTiers2}
@@ -1241,9 +1243,9 @@ export default function ThiDuaPage() {
                   </Label>
                 </div>
                 {useSecondaryCondition && (
-                  <div className="grid grid-cols-2 gap-2 pl-4 border-l-2 border-orange-500/20">
-                    <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP tối thiểu (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
-                    <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP tối thiểu (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
+                  <div className="grid grid-cols-2 gap-1.5 pl-4 border-l-2 border-orange-500/20">
+                    <div className="space-y-0.5"><Label className="text-[9px] text-orange-400/70 flex items-center gap-0.5"><Banknote className="w-2.5 h-2.5" /> AFYP (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
+                    <div className="space-y-0.5"><Label className="text-[9px] text-orange-400/70 flex items-center gap-0.5"><Target className="w-2.5 h-2.5" /> IP (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/20 bg-white/5 text-white" /></div>
                   </div>
                 )}
               </div>
