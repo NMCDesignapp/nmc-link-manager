@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link, Category } from '@/lib/types'
 import { LinkCard } from '@/components/link-card'
@@ -120,6 +120,23 @@ export default function Home() {
   const links = Array.isArray(linksData) ? linksData : []
   const categories = Array.isArray(categoriesData) ? categoriesData : []
   const { settings } = useSettings()
+
+  // Load neon color from localStorage immediately on mount (before server responds)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('nmc-app-settings')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed.neon_color) {
+            document.documentElement.style.setProperty('--primary', parsed.neon_color)
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [editingLink, setEditingLink] = useState<Link | null>(null)
@@ -340,22 +357,7 @@ export default function Home() {
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-2">
-          {/* Error Display */}
-          <AnimatePresence>
-            {(linksError || categoriesError) && (
-              <motion.div
-                className="mb-4"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-sm text-center">
-                  <p className="text-destructive font-medium mb-1">Loi ket noi co so du lieu</p>
-                  <p className="text-muted-foreground text-xs">Vui long kiem tra DATABASE_URL trong Environment Variables tren Vercel</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* DB Error is silently handled - links will show empty state */}
 
           {/* Links Container - scrollable */}
           {linksLoading ? (
@@ -372,19 +374,7 @@ export default function Home() {
                 </motion.div>
               ))}
             </div>
-          ) : linksError ? (
-            <motion.div
-              className="text-center py-8"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center">
-                <Link2 className="w-10 h-10 text-primary" />
-              </div>
-              <p className="text-muted-foreground text-xs">Khong the tai lien ket. Vui long thu lai sau.</p>
-            </motion.div>
-          ) : links.length === 0 ? (
+          ) : linksError || links.length === 0 ? (
             <motion.div
               className="text-center py-8"
               initial={{ opacity: 0, scale: 0.9 }}
