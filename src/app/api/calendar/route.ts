@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, calendarEvents } from '@/lib/db'
+import { eq, asc, like } from 'drizzle-orm'
 
 export async function GET(request: Request) {
   try {
@@ -7,17 +8,15 @@ export async function GET(request: Request) {
     const month = searchParams.get('month') // format: YYYY-MM
     const date = searchParams.get('date')   // format: YYYY-MM-DD
 
-    let where: any = {}
+    let query = db.select().from(calendarEvents).$dynamic()
+
     if (date) {
-      where.date = date
+      query = query.where(eq(calendarEvents.date, date))
     } else if (month) {
-      where.date = { startsWith: month }
+      query = query.where(like(calendarEvents.date, `${month}%`))
     }
 
-    const events = await db.calendarEvent.findMany({
-      where,
-      orderBy: { date: 'asc' },
-    })
+    const events = await query.orderBy(asc(calendarEvents.date))
 
     return NextResponse.json(events)
   } catch (error) {
@@ -35,13 +34,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
     }
 
-    const event = await db.calendarEvent.create({
-      data: {
+    const [event] = await db
+      .insert(calendarEvents)
+      .values({
         title,
         date,
         color: color || '#00ff88',
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json(event, { status: 201 })
   } catch (error) {
@@ -59,7 +59,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 })
     }
 
-    await db.calendarEvent.delete({ where: { id: parseInt(id) } })
+    await db.delete(calendarEvents).where(eq(calendarEvents.id, parseInt(id)))
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting calendar event:', error)

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, settings } from '@/lib/db'
+import { eq, asc } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const settings = await db.setting.findMany({ orderBy: { key: 'asc' } })
+    const allSettings = await db.select().from(settings).orderBy(asc(settings.key))
 
-    const settingsObject = settings.reduce((acc: Record<string, string>, setting: { key: string; value: string | null }) => {
+    const settingsObject = allSettings.reduce((acc: Record<string, string>, setting) => {
       acc[setting.key] = setting.value || ''
       return acc
     }, {})
@@ -22,11 +23,13 @@ export async function PUT(request: Request) {
     const data = await request.json()
 
     for (const [key, value] of Object.entries(data)) {
-      await db.setting.upsert({
-        where: { key },
-        update: { value: String(value), updated_at: new Date() },
-        create: { key, value: String(value) },
-      })
+      await db
+        .insert(settings)
+        .values({ key, value: String(value) })
+        .onConflictDoUpdate({
+          target: settings.key,
+          set: { value: String(value), updated_at: new Date() },
+        })
     }
 
     return NextResponse.json({ success: true })
