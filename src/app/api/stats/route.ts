@@ -1,32 +1,44 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, links } from '@/lib/db'
+import { eq, desc, count, sum } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const totalLinks = await db.link.count()
-    const totalClicksResult = await db.link.aggregate({ _sum: { click_count: true } })
-    const totalClicks = totalClicksResult._sum.click_count || 0
-    const favorites = await db.link.count({ where: { is_favorite: true } })
+    const [{ totalLinks }] = await db.select({ totalLinks: count() }).from(links)
 
-    const categoryCounts = await db.link.groupBy({
-      by: ['category'],
-      _count: { category: true },
-      orderBy: { _count: { category: 'desc' } },
-    })
+    const [{ totalClicks }] = await db
+      .select({ totalClicks: sum(links.click_count) })
+      .from(links)
 
-    const topLinks = await db.link.findMany({
-      orderBy: { click_count: 'desc' },
-      take: 5,
-      select: { id: true, title: true, url: true, click_count: true },
-    })
+    const [{ favorites }] = await db
+      .select({ favorites: count() })
+      .from(links)
+      .where(eq(links.is_favorite, true))
+
+    const categoryCounts = await db
+      .select({ category: links.category, count: count() })
+      .from(links)
+      .groupBy(links.category)
+      .orderBy(desc(count()))
+
+    const topLinks = await db
+      .select({
+        id: links.id,
+        title: links.title,
+        url: links.url,
+        click_count: links.click_count,
+      })
+      .from(links)
+      .orderBy(desc(links.click_count))
+      .limit(5)
 
     return NextResponse.json({
       total_links: totalLinks,
-      total_clicks: totalClicks,
+      total_clicks: Number(totalClicks) || 0,
       favorites,
       categories: categoryCounts.map(c => ({
         category: c.category,
-        count: c._count.category,
+        count: c.count,
       })),
       top_links: topLinks,
     })

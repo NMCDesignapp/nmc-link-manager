@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, links } from '@/lib/db'
+import { eq, desc, asc } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,31 +8,25 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get('format') || 'json'
     const category = searchParams.get('category')
 
-    let links
+    let allLinks
     if (category && category !== 'all') {
-      links = await db.link.findMany({
-        where: { category },
-        orderBy: [
-          { is_favorite: 'desc' },
-          { click_count: 'desc' },
-          { created_at: 'desc' },
-        ],
-      })
+      allLinks = await db
+        .select()
+        .from(links)
+        .where(eq(links.category, category))
+        .orderBy(desc(links.is_favorite), desc(links.click_count), desc(links.created_at))
     } else {
-      links = await db.link.findMany({
-        orderBy: [
-          { is_favorite: 'desc' },
-          { click_count: 'desc' },
-          { created_at: 'desc' },
-        ],
-      })
+      allLinks = await db
+        .select()
+        .from(links)
+        .orderBy(desc(links.is_favorite), desc(links.click_count), desc(links.created_at))
     }
 
     if (format === 'csv') {
       const headers = ['id', 'title', 'url', 'description', 'category', 'color', 'is_favorite', 'click_count', 'created_at']
       const csvContent = [
         headers.join(','),
-        ...links.map((link: Record<string, unknown>) =>
+        ...allLinks.map((link: Record<string, unknown>) =>
           headers.map(h => {
             const value = String(link[h as string] ?? '')
             if (value.includes(',')) {
@@ -52,8 +47,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       exported_at: new Date().toISOString(),
-      total_links: links.length,
-      links,
+      total_links: allLinks.length,
+      links: allLinks,
     })
   } catch (error) {
     console.error('Failed to export links:', error)
