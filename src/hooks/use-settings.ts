@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useCallback, useRef } from 'react'
 import useSWR, { mutate } from 'swr'
 
 export interface AppSettings {
@@ -25,6 +25,32 @@ export const defaultSettings: AppSettings = {
   profile_bio: 'Tat ca lien ket cua toi',
 }
 
+const SETTINGS_STORAGE_KEY = 'nmc-app-settings'
+
+// Helper: read settings from localStorage
+function getLocalSettings(): AppSettings | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (!stored) return null
+    const parsed = JSON.parse(stored)
+    // Merge with defaults to ensure all keys exist
+    return { ...defaultSettings, ...parsed }
+  } catch {
+    return null
+  }
+}
+
+// Helper: save settings to localStorage
+function saveLocalSettings(settings: AppSettings): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    console.warn('Failed to save settings to localStorage')
+  }
+}
+
 const fetcher = async (url: string) => {
   const res = await fetch(url)
   if (!res.ok) {
@@ -34,39 +60,98 @@ const fetcher = async (url: string) => {
 }
 
 export function useSettings() {
+  const localSettingsRef = useRef<AppSettings | null>(null)
+  const serverSyncedRef = useRef(false)
+
   const { data, isLoading, error } = useSWR<AppSettings>('/api/settings', fetcher, {
     fallbackData: defaultSettings,
     revalidateOnFocus: false,
+    // Only try to fetch from server, but don't block on it
+    dedupingInterval: 60000,
   })
 
-  const settings = useMemo(
-    () => ({
-      ...defaultSettings,
-      ...(data || {}),
-    }),
-    [data]
-  )
+  // Initialize local settings on mount
+  useEffect(() => {
+    const local = getLocalSettings()
+    if (local) {
+      localSettingsRef.current = local
+      // Apply neon color to DOM immediately
+      if (local.neon_color) {
+        document.documentElement.style.setProperty('--primary', local.neon_color)
+      }
+    }
+  }, [])
 
-  const updateSettings = async (newSettings: Partial<AppSettings>) => {
-    const merged = { ...settings, ...newSettings }
+  const settings = useMemo(() => {
+    // Priority: local storage > server data > defaults
+    const local = localSettingsRef.current || getLocalSettings()
+    const merged = {
+      ...defaultSettings,
+      ...(local || {}),
+      ...(data && !error ? data : {}),
+    }
+
+    // Cache locally for next access
+    if (local) {
+      localSettingsRef.current = local
+    }
+
+    return merged
+  }, [data, error])
+
+  const updateSettings = useCallback(async (newSettings: Partial<AppSettings>) => {
+    const current = localSettingsRef.current || getLocalSettings() || defaultSettings
+    const merged = { ...current, ...newSettings }
+
+    // ALWAYS save to localStorage first (instant, persistent)
+    localSettingsRef.current = merged
+    saveLocalSettings(merged)
+
+    // Apply neon color to DOM immediately
+    if (newSettings.neon_color) {
+      document.documentElement.style.setProperty('--primary', newSettings.neon_color)
+    }
+
+    // Optimistically update SWR cache
     mutate('/api/settings', merged, false)
 
+    // Try to sync to server (best-effort, won't block UI)
     try {
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
       })
+      serverSyncedRef.current = true
       mutate('/api/settings')
     } catch (err) {
-      console.error('Error updating settings:', err)
+      // Server sync failed, but local storage is already saved
+      console.warn('Server sync failed, settings saved locally:', err)
+      // Still revalidate to keep SWR in sync
       mutate('/api/settings')
     }
-  }
+  }, [])
 
-  const updateSetting = async (key: keyof AppSettings, value: string) => {
+  const updateSetting = useCallback(async (key: keyof AppSettings, value: string) => {
     await updateSettings({ [key]: value })
-  }
+  }, [updateSettings])
+
+  // Sync server data to localStorage on first successful load
+  useEffect(() => {
+    if (data && !error && !isLoading && !serverSyncedRef.current) {
+      const local = getLocalSettings()
+      // Only update localStorage from server if local is empty
+      // (to avoid overwriting user's latest changes)
+      if (!local || Object.keys(local).length === 0) {
+        const serverSettings = { ...defaultSettings, ...data }
+        localSettingsRef.current = serverSettings
+        saveLocalSettings(serverSettings)
+        if (serverSettings.neon_color) {
+          document.documentElement.style.setProperty('--primary', serverSettings.neon_color)
+        }
+      }
+    }
+  }, [data, error, isLoading])
 
   return {
     settings,
