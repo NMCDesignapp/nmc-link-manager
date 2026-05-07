@@ -980,8 +980,14 @@ export default function ThiDuaPage() {
   // Calculate and show results popup
   const handleCalculate = () => {
     try {
-      if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
-      if (contracts.length === 0) { toast({ title: 'Thông báo', description: 'Chưa có dữ liệu hợp đồng. Nhấn "Cập nhật link" để tải dữ liệu.' }); return; }
+      if (!startDate && !endDate) {
+        toast({ title: 'Thiếu thông tin', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến', variant: 'destructive' });
+        return;
+      }
+      if (contracts.length === 0) {
+        toast({ title: 'Chưa có dữ liệu', description: 'Nhấn "Cập nhật link" để tải dữ liệu hợp đồng trước', variant: 'destructive' });
+        return;
+      }
       let results = [...contracts];
       if (startDate) { const start = new Date(startDate + 'T00:00:00'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') >= start); }
       if (endDate) { const end = new Date(endDate + 'T23:59:59'); results = results.filter((c) => new Date(c.effectiveDate + 'T00:00:00') <= end); }
@@ -994,12 +1000,12 @@ export default function ThiDuaPage() {
       results.sort((a, b) => new Date(a.effectiveDate + 'T00:00:00').getTime() - new Date(b.effectiveDate + 'T00:00:00').getTime());
       if (results.length === 0) {
         setFilteredContracts([]);
-        toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp với điều kiện đã chọn' });
+        toast({ title: 'Không có kết quả', description: 'Không tìm thấy hợp đồng nào phù hợp với điều kiện đã chọn', variant: 'destructive' });
         return;
       }
       setFilteredContracts(results);
       setIsResultDialogOpen(true);
-      toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng` });
+      toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng phù hợp` });
     } catch (error) {
       console.error('handleCalculate error:', error);
       toast({ title: 'Lỗi', description: 'Có lỗi xảy ra khi tính toán. Vui lòng thử lại.', variant: 'destructive' });
@@ -1116,7 +1122,7 @@ export default function ThiDuaPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative">
+      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative overflow-x-hidden">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
@@ -1164,31 +1170,31 @@ export default function ThiDuaPage() {
                 {/* Target */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Đối tượng</Label>
-                  <RadioGroup value={targetType} onValueChange={(v) => setTargetType(v as TargetType)} className="space-y-1.5">
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isActivityRoundMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <RadioGroup value={targetType} onValueChange={(v) => setTargetType(v as TargetType)} className="space-y-1">
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${isActivityRoundMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="tvv" id="tvv" disabled={isActivityRoundMode(conditionType)} />
-                      <Label htmlFor="tvv" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><Users className="w-3.5 h-3.5 text-emerald-400" /> TVV (cá nhân)</div></Label>
+                      <Label htmlFor="tvv" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><Users className="w-3 h-3 text-emerald-400 shrink-0" /> TVV</div></Label>
                     </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="nhom" id="nhom" disabled={isNYDMode(conditionType)} />
-                      <Label htmlFor="nhom" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserCheck className="w-3.5 h-3.5 text-sky-400" /> Theo nhóm (MC NHÓM)</div></Label>
+                      <Label htmlFor="nhom" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><UserCheck className="w-3 h-3 text-sky-400 shrink-0" /> Nhóm</div></Label>
                     </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${!isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5 ${!isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
                       <RadioGroupItem value="nyd" id="nyd" disabled={!isNYDMode(conditionType)} />
-                      <Label htmlFor="nyd" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserPlus className="w-3.5 h-3.5 text-violet-400" /> Người Tuyển Dụng (NYD)</div></Label>
+                      <Label htmlFor="nyd" className="cursor-pointer flex-1"><div className="text-[11px] font-medium flex items-center gap-1 text-white/80"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> NYD</div></Label>
                     </div>
                   </RadioGroup>
                 </div>
                 {/* Condition */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Điều kiện</Label>
-                  <RadioGroup value={conditionType} onValueChange={(v) => { setConditionType(v as ConditionType); if (isActivityRoundMode(v as ConditionType)) setTargetType('nhom'); if (isNYDMode(v as ConditionType)) setTargetType('nyd'); }} className="space-y-1.5">
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="per_contract" id="pc" /><Label htmlFor="pc" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Theo HĐ (IP/HĐ)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="total_fyp" id="tf" /><Label htmlFor="tf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Tổng IP</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round" id="ar" /><Label htmlFor="ar" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ (IP ≥ 3tr)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round_standard" id="ars" /><Label htmlFor="ars" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ Chuẩn (IP ≥ 12tr)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_activity" id="nya" /><Label htmlFor="nya" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - Lượt TVVm HĐ</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_fyp" id="nyf" /><Label htmlFor="nyf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - FYP TVVm</div></Label></div>
+                  <RadioGroup value={conditionType} onValueChange={(v) => { setConditionType(v as ConditionType); if (isActivityRoundMode(v as ConditionType)) setTargetType('nhom'); if (isNYDMode(v as ConditionType)) setTargetType('nyd'); }} className="space-y-1">
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="per_contract" id="pc" /><Label htmlFor="pc" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><FileText className="w-3 h-3 text-emerald-400 shrink-0" /> <span>Theo HĐ</span></div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="total_fyp" id="tf" /><Label htmlFor="tf" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><TrendingUp className="w-3 h-3 text-amber-400 shrink-0" /> <span>Tổng IP</span></div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round" id="ar" /><Label htmlFor="ar" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><Layers className="w-3 h-3 text-orange-400 shrink-0" /> <span>Lượt HĐ <span className="text-white/40">≥3tr</span></span></div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 px-2 py-1.5 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round_standard" id="ars" /><Label htmlFor="ars" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><Layers className="w-3 h-3 text-orange-400 shrink-0" /> <span>HĐ Chuẩn <span className="text-white/40">≥12tr</span></span></div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 px-2 py-1.5 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_activity" id="nya" /><Label htmlFor="nya" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> <span>NYD-Lượt TVVm</span></div></Label></div>
+                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 px-2 py-1.5 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_fyp" id="nyf" /><Label htmlFor="nyf" className="cursor-pointer flex-1"><div className="text-[11px] font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400 shrink-0" /> <span>NYD-FYP TVVm</span></div></Label></div>
                   </RadioGroup>
                 </div>
               </div>
