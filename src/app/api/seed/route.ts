@@ -19,6 +19,12 @@ function parseNumber(numStr: string): number {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database not configured. Please add DATABASE_URL environment variable.' },
+        { status: 503 }
+      )
+    }
     const body = await request.json()
     const { csvData } = body as { csvData?: string }
 
