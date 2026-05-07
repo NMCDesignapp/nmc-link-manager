@@ -1,9 +1,4 @@
-export { db } from '../../db/index'
-export {
-  links,
-  categories,
-  settings,
-  calendarEvents,
-  contracts,
-  contests,
-} from '../../db/schema'
+// Stub: database is not available on Vercel (no persistent storage).
+// All API routes return empty/fallback data.
+// Settings are stored in localStorage on the client side.
+export const db = null
