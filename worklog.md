@@ -48,3 +48,24 @@ Stage Summary:
 - Nút tính thi đua sẽ hoạt động sau khi fix html-to-image → html2canvas
 - Build sạch hoàn toàn (0 warning, 0 error)
 - Đã push lên GitHub, Vercel sẽ tự deploy
+
+---
+Task ID: 1
+Agent: main
+Task: Fix "Tính thi đua" button not responding + fix pending issues
+
+Work Log:
+- Identified root cause: `Toaster` component was missing from layout.tsx, making toast notifications invisible
+- Added `Toaster` import and component to `src/app/layout.tsx`
+- Improved `handleCalculate` function with better error messages and `variant: 'destructive'` for error toasts
+- Removed debug console.log statements from handleCalculate
+- Added `overflow-x-hidden` to main container to prevent mobile overflow
+- Optimized Condition radio buttons for mobile: added icons, reduced padding, smaller text
+- Optimized Target radio buttons for mobile: shortened labels (TVV, Nhóm, NYD), smaller icons
+- Verified build succeeds
+
+Stage Summary:
+- Key fix: Toaster added to layout so toast messages are now visible
+- Button was working but feedback (toast) was invisible, making it appear unresponsive
+- Mobile UI optimized with icons and compact labels
+- All builds pass successfully
