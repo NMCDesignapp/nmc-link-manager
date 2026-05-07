@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, categories } from '@/lib/db'
+import { asc } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const categories = await db.category.findMany({
-      orderBy: { sort_order: 'asc' },
-    })
-    return NextResponse.json(categories)
+    const allCategories = await db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.sort_order))
+    return NextResponse.json(allCategories)
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 })
@@ -22,14 +24,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Category name is required' }, { status: 400 })
     }
 
-    const result = await db.category.create({
-      data: {
+    const [result] = await db
+      .insert(categories)
+      .values({
         name,
         icon: icon || null,
         color: color || '#3b82f6',
         sort_order: sort_order || 0,
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, links } from '@/lib/db'
+import { eq, sql } from 'drizzle-orm'
 
 export async function POST(
   request: NextRequest,
@@ -7,13 +8,14 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const result = await db.link.update({
-      where: { id: parseInt(id) },
-      data: {
-        click_count: { increment: 1 },
+    const [result] = await db
+      .update(links)
+      .set({
+        click_count: sql`${links.click_count} + 1`,
         updated_at: new Date(),
-      },
-    })
+      })
+      .where(eq(links.id, parseInt(id)))
+      .returning()
 
     if (!result) {
       return NextResponse.json({ error: 'Link not found' }, { status: 404 })

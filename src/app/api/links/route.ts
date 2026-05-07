@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, links } from '@/lib/db'
+import { eq, desc, asc } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const links = await db.link.findMany({
-      orderBy: [
-        { is_favorite: 'desc' },
-        { click_count: 'desc' },
-        { created_at: 'desc' },
-      ],
-    })
-    return NextResponse.json(links)
+    const allLinks = await db
+      .select()
+      .from(links)
+      .orderBy(desc(links.is_favorite), desc(links.click_count), desc(links.created_at))
+    return NextResponse.json(allLinks)
   } catch (error) {
     console.error('Failed to fetch links:', error)
     return NextResponse.json({ error: 'Failed to fetch links' }, { status: 500 })
@@ -46,8 +44,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File is required for file links' }, { status: 400 })
     }
 
-    const result = await db.link.create({
-      data: {
+    const [result] = await db
+      .insert(links)
+      .values({
         title,
         url: url || null,
         description: description || null,
@@ -59,8 +58,8 @@ export async function POST(request: NextRequest) {
         file_name: file_name || null,
         file_type: file_type || null,
         thumbnail: thumbnail || null,
-      },
-    })
+      })
+      .returning()
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
