@@ -1577,8 +1577,8 @@ export default function ThiDuaPage() {
                           )}
                           {usePhase2 && phaseBonus ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
@@ -1612,8 +1612,8 @@ export default function ThiDuaPage() {
                           </TableCell>
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
                             </>
                           ) : (
@@ -1646,8 +1646,8 @@ export default function ThiDuaPage() {
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
@@ -1676,8 +1676,8 @@ export default function ThiDuaPage() {
                           <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
