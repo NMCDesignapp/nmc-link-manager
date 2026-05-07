@@ -1,4 +1,4 @@
-export { db } from '../../db/index'
+export { db } from '@/../db/index'
 export {
   links,
   categories,
@@ -6,4 +6,4 @@ export {
   calendarEvents,
   contracts,
   contests,
-} from '../../db/schema'
+} from '@/../db/schema'
