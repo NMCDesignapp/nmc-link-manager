@@ -26,3 +26,25 @@ Stage Summary:
 - Updated contests API to save/load all new fields
 - Updated Prisma schema with 3 new fields + pushed to Neon
 - All changes deployed via GitHub → Vercel auto-deploy
+
+---
+Task ID: 1
+Agent: main
+Task: Fix nút tính thi đua không hoạt động + các bug UI
+
+Work Log:
+- Phát hiện `html-to-image` package không được cài trong node_modules mặc dù có trong package.json, gây warning "Module not found" khi build → có thể gây crash component trên client
+- Thay `html-to-image` bằng `html2canvas` (đã cài sẵn) trong handleDownloadImage
+- Thêm try-catch cho handleCalculate để catch lỗi runtime
+- Thêm check contracts.length === 0 với message rõ ràng hơn
+- Fix input UX: thêm inputMode="decimal" cho mobile keyboard, đổi pattern `e.target.value === '' ? 0 : ...` thay vì `parseFloat(e.target.value) || 0` để input trống không tự set về 0
+- Tối ưu mobile: rút gọn label (dùng icon), giảm gap, thêm overflow-x-auto cho bonus type buttons
+- Fix grid-cols-3 date inputs → grid-cols-2 sm:grid-cols-3 cho mobile
+- Fix secondary condition label dùng icon thay text dài
+- Fix Phase 2 date labels rút gọn (GĐ2 từ/đến)
+- Build thành công không còn warning
+
+Stage Summary:
+- Nút tính thi đua sẽ hoạt động sau khi fix html-to-image → html2canvas
+- Build sạch hoàn toàn (0 warning, 0 error)
+- Đã push lên GitHub, Vercel sẽ tự deploy
