@@ -88,6 +88,21 @@ model Staff {
   updatedAt       DateTime @updatedAt
 }
 
+model Recruiter {
+  id                 String    @id @default(cuid())
+  nydCode            String    // Mã người tuyển dụng
+  nydName            String    // Tên NYD
+  position           String    @default("") // Chức vụ
+  ban                String    @default("")
+  nhom               String    @default("")
+  maNhom             String    @default("")
+  recruitedAgentCode String    // Mã TVV được tuyển
+  recruitedAgentName String    @default("") // Tên TVV được tuyển
+  recruitedStartDate DateTime? // Ngày bắt đầu của TVV
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
 model Contest {
   id              String   @id @default(cuid())
   title           String
@@ -109,6 +124,9 @@ model Contest {
   hideNotAchieved  Boolean @default(false)
   useTVVmFilter    Boolean @default(false)
   includeOwnNYD    Boolean @default(false)
+  csvContractUrl   String   @default("")
+  csvStaffUrl      String   @default("")
+  csvRecruiterUrl  String   @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
