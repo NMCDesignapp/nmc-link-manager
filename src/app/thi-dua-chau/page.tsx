@@ -1015,9 +1015,9 @@ export default function ThiDuaPage() {
       }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || g.maNhom} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
         }
       });
     } else {
@@ -1056,17 +1056,17 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
           return { g, tier, groupPhase };
         }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
-        headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', condHeader, 'Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || g.maNhom, isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng', 'Ghi chú'];
+        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
       }
     } else {
       // TVV per-contract or total_fyp
@@ -1431,16 +1431,16 @@ export default function ThiDuaPage() {
                 {/* Condition */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Điều kiện</Label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 gap-1.5">
                     {([
-                      { value: 'per_contract' as ConditionType, label: 'Theo HĐ (IP/HĐ)', icon: FileText, selectedCls: 'bg-emerald-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-emerald-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'per_contract' as ConditionType, label: 'Theo HĐ', icon: FileText, selectedCls: 'bg-emerald-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-emerald-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                       { value: 'total_fyp' as ConditionType, label: 'Tổng IP', icon: TrendingUp, selectedCls: 'bg-teal-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-teal-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'activity_round' as ConditionType, label: 'Lượt HĐ (IP ≥ 3tr)', icon: Users, selectedCls: 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-amber-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'activity_round_standard' as ConditionType, label: 'Lượt HĐ Chuẩn (IP ≥ 12tr)', icon: Award, selectedCls: 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-orange-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'activity_round_tvv90' as ConditionType, label: 'Lượt HĐ TVV90 (IP ≥ 3tr, ≤3T)', icon: Users, selectedCls: 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-rose-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_activity' as ConditionType, label: 'NYD - Lượt TVVm HĐ', icon: UserPlus, selectedCls: 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-violet-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_activity_tvv90' as ConditionType, label: 'NYD - Lượt TVV90 HĐ', icon: UserPlus, selectedCls: 'bg-fuchsia-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-fuchsia-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_fyp' as ConditionType, label: 'NYD - FYP TVVm', icon: UserPlus, selectedCls: 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-purple-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round' as ConditionType, label: 'Lượt HĐ', icon: Users, selectedCls: 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-amber-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round_standard' as ConditionType, label: 'Lượt Chuẩn', icon: Award, selectedCls: 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-orange-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round_tvv90' as ConditionType, label: 'Lượt TVV90', icon: Users, selectedCls: 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-rose-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity' as ConditionType, label: 'NTD - TVVm', icon: UserPlus, selectedCls: 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-violet-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity_tvv90' as ConditionType, label: 'NTD - TVV90', icon: UserPlus, selectedCls: 'bg-fuchsia-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-fuchsia-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_fyp' as ConditionType, label: 'NTD - FYP', icon: UserPlus, selectedCls: 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-purple-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                     ]).map(({ value, label, icon: Icon, selectedCls, unselectedCls }) => (
                       <button
                         key={value}
@@ -1450,12 +1450,12 @@ export default function ThiDuaPage() {
                           if (isActivityRoundMode(value)) setTargetType('nhom');
                           if (isNYDMode(value)) setTargetType('nyd');
                         }}
-                        className={`flex items-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${
                           conditionType === value ? selectedCls : unselectedCls
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="leading-tight">{label}</span>
+                        <span>{label}</span>
                       </button>
                     ))}
                   </div>
@@ -1717,8 +1717,8 @@ export default function ThiDuaPage() {
                       ) : targetType === 'nhom' ? (
                         <>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã TN</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">Tên TN</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
@@ -1894,7 +1894,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || '—'}</span></TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-orange-600">{group.activityRounds} lượt</span>
