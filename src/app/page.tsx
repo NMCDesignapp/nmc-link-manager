@@ -228,19 +228,19 @@ export default function Home() {
             {saveStatus === 'saving' && (
               <>
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Dang luu...
+                Đang lưu...
               </>
             )}
             {saveStatus === 'success' && (
               <>
                 <Check className="w-4 h-4" />
-                Da luu thanh cong!
+                Đã lưu thành công!
               </>
             )}
             {saveStatus === 'error' && (
               <>
                 <AlertCircle className="w-4 h-4" />
-                Luu that bai!
+                Lưu thất bại!
               </>
             )}
           </motion.div>
@@ -249,7 +249,7 @@ export default function Home() {
 
       {/* Header - fixed at top */}
       <motion.header
-        className="max-w-lg mx-auto w-full px-4 pt-6 pb-3 text-center relative flex-shrink-0"
+        className="max-w-lg mx-auto w-full px-4 pt-10 pb-3 text-center relative flex-shrink-0"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -361,7 +361,7 @@ export default function Home() {
                 <Link2 className="w-10 h-10 text-primary" />
               </motion.div>
               <p className="text-muted-foreground text-xs">
-                Chua co lien ket nao. Mo Cai dat de them.
+                Chưa có liên kết nào. Mở Cài đặt để thêm.
               </p>
             </motion.div>
           ) : (

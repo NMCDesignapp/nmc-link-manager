@@ -49,20 +49,6 @@ const iconMap: Record<string, React.ElementType> = {
   video: Video,
 }
 
-// Convert hex neon color to a muted pastel/cute solid background
-function neonToCuteBg(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  // Mix with dark base, keep ~30% color saturation for a cute but dark-mode friendly tone
-  const mix = 0.18
-  const base = 20 // dark base
-  const rr = Math.round(base + (r - base) * mix)
-  const gg = Math.round(base + (g - base) * mix)
-  const bb = Math.round(base + (b - base) * mix)
-  return `rgb(${rr}, ${gg}, ${bb})`
-}
-
 interface LinkCardProps {
   link: Link
   index?: number
@@ -94,57 +80,71 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
     return link.file_name || link.link_type
   }
 
-  const cuteBg = neonToCuteBg(neonColor)
+  // Solid dark card with warm tint - distinctly different from the neon green Thi Đua button
+  // Uses a deep indigo/slate base that creates a "floating card" feel
+  const cardBg = '#1c1c35'
+  const cardBorder = 'rgba(130, 140, 255, 0.20)'
+  const iconBg = 'rgba(130, 140, 255, 0.12)'
 
   return (
     <motion.button
       onClick={handleClick}
-      className="w-full rounded-lg px-2 py-2 flex flex-row items-center gap-2 cursor-pointer neon-press neon-sweep relative overflow-hidden"
+      className="w-full rounded-xl px-3 py-2.5 flex flex-row items-center gap-2.5 cursor-pointer neon-press relative overflow-hidden"
       style={{
-        background: cuteBg,
-        border: `1px solid ${neonColor}35`,
-        boxShadow: `0 0 8px ${neonColor}10`,
-        minHeight: '48px',
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
+        boxShadow: `0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        minHeight: '50px',
       }}
       whileHover={{
         y: -1,
-        boxShadow: `0 4px 18px ${neonColor}20`,
-        borderColor: `${neonColor}55`,
+        boxShadow: `0 6px 24px rgba(0,0,0,0.4), 0 0 12px ${neonColor}15`,
+        borderColor: `${neonColor}40`,
       }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
     >
+      {/* Neon sweep line on hover */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-100"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${neonColor}10, transparent)`,
+        }}
+      />
+
       {/* Favorite dot */}
       {link.is_favorite && (
         <div
-          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+          className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
           style={{
             background: '#ffcc00',
-            boxShadow: '0 0 5px #ffcc0080',
+            boxShadow: '0 0 6px #ffcc0080',
           }}
         />
       )}
 
       {/* Icon */}
       <div
-        className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{
-          background: `${neonColor}22`,
+          background: iconBg,
+          boxShadow: `0 0 8px rgba(130, 140, 255, 0.08)`,
         }}
       >
-        <IconComponent className="w-3.5 h-3.5" style={{ color: neonColor }} />
+        <IconComponent className="w-4 h-4" style={{ color: '#8e8eff' }} />
       </div>
 
       {/* Text */}
       <div className="flex-1 min-w-0 text-left">
         <span
-          className="block font-semibold text-[11px] leading-tight truncate"
-          style={{ color: 'rgba(255, 255, 255, 0.90)' }}
+          className="block font-semibold text-[12px] leading-tight truncate"
+          style={{ color: 'rgba(255, 255, 255, 0.92)' }}
         >
           {link.title}
         </span>
         <span
-          className="block text-[9px] italic truncate opacity-45"
+          className="block text-[9px] italic truncate"
+          style={{ color: 'rgba(130, 140, 255, 0.55)' }}
         >
           {getSubtitle()}
         </span>
