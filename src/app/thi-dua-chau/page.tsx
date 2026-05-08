@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSettings } from '@/hooks/use-settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import {
   Download, X, Link, Loader2, Printer, Copy, Save, BookmarkPlus,
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
-  Camera, UserPlus, EyeOff, Filter, Layers, Settings2,
+  Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
 } from 'lucide-react';
 
 interface Contract {
@@ -191,7 +192,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
             {sortedTiers.map((tier, i) => (
-              <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[100px] shadow-md`}>
+              <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[70px] shadow-md`}>
                 <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3 h-3 opacity-80" /><span className="text-[9px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
                 <div className="text-[10px] font-semibold leading-tight">{isActivityRoundMode(conditionType) || isNYDMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
                 <div className="text-xs font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
@@ -236,7 +237,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
           {sortedTiers.map((tier, i) => (
-            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[100px] shadow-md`}>
+            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[70px] shadow-md`}>
               <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3 h-3 opacity-80" /><span className="text-[9px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
               <div className="text-[10px] font-semibold leading-tight">{isActivityRoundMode(conditionType) || isNYDMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
               <div className="text-xs font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
@@ -325,6 +326,8 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
 
 export default function ThiDuaPage() {
   const router = useRouter();
+  const { settings } = useSettings();
+  const csvUrl = settings.csv_url || DEFAULT_CSV_URL;
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -359,14 +362,14 @@ export default function ThiDuaPage() {
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [csvUrl, setCsvUrl] = useState(DEFAULT_CSV_URL);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false); // keep for reference but not used for sync button
   const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [showSourceData, setShowSourceData] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+  const [isResultExpanded, setIsResultExpanded] = useState(false);
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
@@ -751,7 +754,7 @@ export default function ThiDuaPage() {
       const { csvData } = await fetchRes.json();
       const importRes = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csvData }) });
       if (!importRes.ok) { const errData = await importRes.json(); throw new Error(errData.error || 'Không thể nhập'); }
-      const data = await importRes.json(); toast({ title: 'Thành công', description: data.message }); setIsImportDialogOpen(false); fetchContracts();
+      const data = await importRes.json(); toast({ title: 'Đồng bộ thành công', description: data.message }); fetchContracts();
     } catch (err: unknown) { const msg = err instanceof Error ? err.message : 'Lỗi không xác định'; toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' }); }
     finally { setIsImporting(false); }
   };
@@ -1298,8 +1301,8 @@ export default function ThiDuaPage() {
 
         {/* Action Buttons - Same Row, equal width */}
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
-            <Link className="w-3.5 h-3.5 mr-1" /> Cập nhật link
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 h-10 text-[11px] bg-transparent" onClick={handleImportFromUrl} disabled={isImporting}>
+            {isImporting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1" />} Đồng bộ
           </Button>
           <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
             <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
@@ -1366,15 +1369,18 @@ export default function ThiDuaPage() {
       </main>
 
       {/* Result Dialog Popup - White theme, only poster + detail table */}
-      <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
-        <DialogContent className="sm:max-w-5xl max-h-[92vh] overflow-y-auto bg-white border-emerald-200 p-0">
+      <Dialog open={isResultDialogOpen} onOpenChange={(open) => { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); }}>
+        <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-200 p-0 transition-all duration-300`}>
           {/* Action bar */}
-          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-emerald-100 px-4 py-2 flex items-center justify-between">
+          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-emerald-100 px-3 py-2 flex items-center justify-between">
             <DialogTitle className="text-emerald-700 text-sm font-bold flex items-center gap-2">
               <Trophy className="w-4 h-4 text-emerald-600" />
               Kết quả chi tiết
             </DialogTitle>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-emerald-200 text-emerald-600 h-7 w-7 p-0 hover:bg-emerald-50">
+                {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
                 {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
               </Button>
@@ -1384,7 +1390,7 @@ export default function ThiDuaPage() {
             </div>
           </div>
 
-          <div ref={resultContentRef} className="px-4 pb-4">
+          <div ref={resultContentRef} className="px-3 pb-3">
             <div ref={printRef}>
               {/* Poster image - full width, no gaps */}
               {posterUrl && <div className="mb-3"><img src={posterUrl} alt="Poster" className="w-full rounded-lg shadow-md" /></div>}
@@ -1393,134 +1399,134 @@ export default function ThiDuaPage() {
               )}
 
               {/* Result Table */}
-              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3">
-                <Table>
+              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3 -mx-1 px-1">
+                <Table className="text-[11px]">
                   <TableHeader>
                     <TableRow className="bg-emerald-700 hover:bg-emerald-700">
                       <TableHead className="text-white text-center w-[40px] font-bold">STT</TableHead>
                       {isNYDMode(conditionType) ? (
                         <>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[75px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">Chức vụ</TableHead>
-                          <TableHead className="text-white min-w-[90px] font-bold text-center">
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">Chức vụ</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">
                             <div>{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'}</div>
                           </TableHead>
                           {includeOwnNYD && (
-                            <TableHead className="text-white min-w-[90px] font-bold text-center">IP cá nhân</TableHead>
+                            <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       ) : targetType === 'nhom' ? (
                         <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       ) : conditionType === 'per_contract' ? (
                         <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
                           <TableHead className="text-white text-center w-[85px] font-bold">Ngày HL</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">IP</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">IP</TableHead>
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableHead className="text-white min-w-[100px] font-bold text-center">AFYP</TableHead>
+                            <TableHead className="text-white min-w-[70px] font-bold text-center">AFYP</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       ) : (
                         <>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[130px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[100px] font-bold text-center">
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold text-center">
                             <div>Tổng IP</div>
                             {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[110px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[120px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
                         </>
                       )}
                     </TableRow>
@@ -1692,18 +1698,6 @@ export default function ThiDuaPage() {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Import Dialog */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-[#1a1a2e] border-emerald-500/20">
-          <DialogHeader><DialogTitle className="text-white">Nhập dữ liệu từ Google Sheets</DialogTitle><DialogDescription className="text-white/50">Dán liên kết CSV để nhập dữ liệu hợp đồng</DialogDescription></DialogHeader>
-          <div className="space-y-3 py-3">
-            <div className="space-y-1"><Label className="text-xs text-white/60">Liên kết CSV</Label><Input value={csvUrl} onChange={(e) => setCsvUrl(e.target.value)} className="font-mono text-xs h-8 bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-xs text-amber-300"><p className="font-medium mb-1">Cột sử dụng:</p><ul className="space-y-0.5 ml-3 list-disc"><li><b>Ngày hiệu lực</b> → Ngày bắt đầu thi đua</li><li><b>PĐT + 10% ĐT</b> → IP</li></ul></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setIsImportDialogOpen(false)} className="h-8 border-emerald-500/20 bg-transparent text-white/70">Hủy</Button><Button onClick={handleImportFromUrl} disabled={isImporting} className="bg-emerald-600 hover:bg-emerald-700 h-8">{isImporting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang nhập...</> : <><Download className="w-3 h-3 mr-1" /> Nhập dữ liệu</>}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

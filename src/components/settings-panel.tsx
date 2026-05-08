@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3 } from 'lucide-react'
+import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSettings, AppSettings, defaultSettings } from '@/hooks/use-settings'
 import { motion, AnimatePresence, overlayVariants, modalVariants, popVariants, staggerContainer, staggerItem } from '@/lib/animations'
@@ -216,6 +216,30 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                       className="w-full px-3 py-2.5 rounded-lg text-sm neon-input"
                       style={{ background: '#1a1a2e' }}
                     />
+                  </div>
+                </motion.div>
+
+                {/* Data Source - CSV URL */}
+                <motion.div
+                  className="space-y-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18 }}
+                >
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Nguồn dữ liệu thi đua</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      value={localSettings.csv_url}
+                      onChange={e => handleChange('csv_url', e.target.value)}
+                      placeholder="Google Sheets CSV URL"
+                      className="w-full px-3 py-2.5 rounded-lg text-xs font-mono neon-input"
+                      style={{ background: '#1a1a2e' }}
+                    />
+                    <p className="text-[10px] text-muted-foreground/60">Liên kết Google Sheets (CSV) để đồng bộ dữ liệu hợp đồng cho trang thi đua</p>
                   </div>
                 </motion.div>
 
