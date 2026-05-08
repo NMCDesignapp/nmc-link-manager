@@ -73,6 +73,21 @@ model Contract {
   updatedAt       DateTime @updatedAt
 }
 
+model Staff {
+  id              String   @id @default(cuid())
+  agentCode       String   @unique
+  agentName       String
+  position        String   @default("")
+  ban             String   @default("")
+  nhom            String   @default("")
+  maNhom          String   @default("")
+  leaderAgentCode String   @default("")
+  recruiterCode   String   @default("")
+  startDate       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model Contest {
   id              String   @id @default(cuid())
   title           String

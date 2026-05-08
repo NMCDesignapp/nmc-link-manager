@@ -52,6 +52,13 @@ interface NYDData {
   contracts: Contract[];
 }
 
+interface StaffMember {
+  id: string; agentCode: string; agentName: string;
+  position: string; ban: string; nhom: string; maNhom: string;
+  leaderAgentCode: string; recruiterCode: string;
+  startDate: string | null;
+}
+
 interface SavedContest {
   id: string; title: string; startDate: string; endDate: string;
   issueDate: string | null; conditionType: string; targetType: string;
@@ -373,6 +380,7 @@ export default function ThiDuaPage() {
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
 
@@ -395,6 +403,12 @@ export default function ThiDuaPage() {
     try { const res = await fetch('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
   }, []);
   useEffect(() => { fetchSavedContests(); }, [fetchSavedContests]);
+
+  // Fetch staff list for group membership reference
+  const fetchStaff = useCallback(async () => {
+    try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
+  }, []);
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
@@ -478,16 +492,28 @@ export default function ThiDuaPage() {
     });
   }, [filteredContracts, subjectCodes, targetType]);
 
-  // NYD data computation
+  // NYD data computation - use Staff table as reference
   const nydData: NYDData[] = useMemo(() => {
     if (!isNYDMode(conditionType)) return [];
-    // Find all NYD contracts (positions containing trưởng ban, trưởng nhóm, tiền trưởng nhóm)
     const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
+    const nydMap = new Map<string, NYDData>();
+
+    // Step 1: If staff list exists, add ALL NYDs from staff (even with no contracts)
+    if (staffList.length > 0) {
+      for (const s of staffList) {
+        if (s.position && nydPositions.some(p => s.position.toLowerCase().includes(p))) {
+          nydMap.set(s.agentCode, {
+            nydCode: s.agentCode, nydName: s.agentName, nhom: s.nhom,
+            position: s.position || '', recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: []
+          });
+        }
+      }
+    }
+
+    // Step 2: Add NYD contracts data
     const nydContracts = displayContracts.filter(c =>
       c.position && nydPositions.some(p => c.position.toLowerCase().includes(p))
     );
-    // Group by agentCode
-    const nydMap = new Map<string, NYDData>();
     for (const c of nydContracts) {
       if (!nydMap.has(c.agentCode)) {
         nydMap.set(c.agentCode, { nydCode: c.agentCode, nydName: c.agentName, nhom: c.nhom, position: c.position || '', recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: [] });
@@ -515,36 +541,84 @@ export default function ThiDuaPage() {
       nyd.recruitFYP = recruitFYP;
     }
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType]);
+  }, [displayContracts, conditionType, staffList]);
 
-  // Grouped data from display contracts
+  // Grouped data - use Staff table as reference for group membership
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
-    for (const c of displayContracts) {
-      const key = c.maNhom;
-      if (!map.has(key)) map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
-      const g = map.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
-    }
-    // Fix leader detection - Priority 1: leaderAgentCode, Priority 2: position-based
-    for (const g of Array.from(map.values())) {
-      // Step 1: Try leaderAgentCode
-      const leaderContract = g.contracts.find(c => c.leaderAgentCode);
-      if (leaderContract?.leaderAgentCode) {
-        // Find leader name from ALL contracts (not just this group)
-        const leaderFromAll = contracts.find(c => c.agentCode === leaderContract.leaderAgentCode);
-        g.leaderCode = leaderContract.leaderAgentCode;
-        g.leaderName = leaderFromAll?.agentName || leaderContract.leaderAgentCode;
+
+    // Step 1: If staff list exists, use it as the primary source for groups
+    if (staffList.length > 0) {
+      // Build group map from staff data (captures ALL groups, even with no contracts)
+      const uniqueGroups = new Map<string, { nhom: string; leaderAgentCode: string; ban: string }>();
+      for (const s of staffList) {
+        if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
+          uniqueGroups.set(s.maNhom, { nhom: s.nhom, leaderAgentCode: s.leaderAgentCode, ban: s.ban });
+        }
       }
-      // Step 2: Fallback to position-based
-      if (!g.leaderName) {
-        const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
-        if (leaderByPosition) {
-          g.leaderName = leaderByPosition.agentName;
-          g.leaderCode = leaderByPosition.agentCode;
+      for (const [maNhom, info] of uniqueGroups) {
+        map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+      }
+      // Set leader info from staff data
+      for (const [maNhom, g] of map) {
+        const groupInfo = uniqueGroups.get(maNhom);
+        if (groupInfo?.leaderAgentCode) {
+          // Find leader name from staff list
+          const leaderStaff = staffList.find(s => s.agentCode === groupInfo.leaderAgentCode);
+          g.leaderCode = groupInfo.leaderAgentCode;
+          g.leaderName = leaderStaff?.agentName || groupInfo.leaderAgentCode;
+        }
+        // Fallback: find leader by position from staff list
+        if (!g.leaderName) {
+          const leaderByPosition = staffList.find(s =>
+            s.maNhom === maNhom && s.position && (
+              s.position.toLowerCase().includes('trưởng nhóm') ||
+              s.position.toLowerCase().includes('trưởng ban') ||
+              s.position.toLowerCase().includes('tiền trưởng nhóm')
+            )
+          );
+          if (leaderByPosition) {
+            g.leaderName = leaderByPosition.agentName;
+            g.leaderCode = leaderByPosition.agentCode;
+          }
         }
       }
     }
+
+    // Step 2: Add contracts data to the groups
+    for (const c of displayContracts) {
+      const key = c.maNhom;
+      if (!map.has(key)) {
+        // Group not in staff list, create from contract data (backward compatible)
+        map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+      }
+      const g = map.get(key)!;
+      g.totalFYP += c.fyp;
+      g.contractCount += 1;
+      g.contracts.push(c);
+    }
+
+    // Step 3: For groups not from staff list, try to detect leader from contracts
+    if (staffList.length === 0) {
+      for (const g of Array.from(map.values())) {
+        const leaderContract = g.contracts.find(c => c.leaderAgentCode);
+        if (leaderContract?.leaderAgentCode) {
+          const leaderFromAll = contracts.find(c => c.agentCode === leaderContract.leaderAgentCode);
+          g.leaderCode = leaderContract.leaderAgentCode;
+          g.leaderName = leaderFromAll?.agentName || leaderContract.leaderAgentCode;
+        }
+        if (!g.leaderName) {
+          const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
+          if (leaderByPosition) {
+            g.leaderName = leaderByPosition.agentName;
+            g.leaderCode = leaderByPosition.agentCode;
+          }
+        }
+      }
+    }
+
+    // Step 4: Calculate activity rounds
     if (isActivityRoundMode(conditionType)) {
       const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
       for (const g of Array.from(map.values())) {
@@ -556,7 +630,6 @@ export default function ThiDuaPage() {
         let rounds = 0;
         for (const [agentCode, maxTinhLuot] of agentTinhLuotMap) {
           if (maxTinhLuot >= luotThreshold) {
-            // If TVVm filter is on, only count TVVm
             if (useTVVmFilter) {
               const agentContracts = g.contracts.filter(c => c.agentCode === agentCode);
               if (agentContracts.some(ac => isTVVm(ac.startDate))) rounds++;
@@ -569,7 +642,7 @@ export default function ThiDuaPage() {
       }
     }
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, contracts, useTVVmFilter]);
+  }, [displayContracts, targetType, conditionType, contracts, staffList, useTVVmFilter]);
 
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
@@ -754,7 +827,7 @@ export default function ThiDuaPage() {
       const { csvData } = await fetchRes.json();
       const importRes = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csvData }) });
       if (!importRes.ok) { const errData = await importRes.json(); throw new Error(errData.error || 'Không thể nhập'); }
-      const data = await importRes.json(); toast({ title: 'Đồng bộ thành công', description: data.message }); fetchContracts();
+      const data = await importRes.json(); toast({ title: 'Đồng bộ thành công', description: data.message }); fetchContracts(); fetchStaff();
     } catch (err: unknown) { const msg = err instanceof Error ? err.message : 'Lỗi không xác định'; toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' }); }
     finally { setIsImporting(false); }
   };
