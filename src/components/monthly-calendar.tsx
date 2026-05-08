@@ -40,7 +40,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
   const [newEventTitle, setNewEventTitle] = useState('')
   const [newEventColor, setNewEventColor] = useState(neonColor)
   const [showEventModal, setShowEventModal] = useState(false)
-  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
+  const [popupPosition, setPopupPosition] = useState<{ x: number; bottom: number } | null>(null)
   const dayRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -86,13 +86,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
   const handleDayClick = (day: number) => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const ref = dayRefs.current[dateStr]
-    if (ref && containerRef.current) {
+    if (ref) {
       const dayRect = ref.getBoundingClientRect()
-      const containerRect = containerRef.current.getBoundingClientRect()
-      // Position popup above the clicked day
-      const x = dayRect.left - containerRect.left + dayRect.width / 2
-      const y = dayRect.top - containerRect.top - 8
-      setPopupPosition({ x, y })
+      // Use viewport coordinates directly (popup is inside fixed inset-0)
+      setPopupPosition({
+        x: dayRect.left + dayRect.width / 2,  // viewport center-x of day cell
+        bottom: window.innerHeight - dayRect.top + 8, // above the day cell
+      })
     }
     setSelectedDate(dateStr)
     setShowEventModal(true)
@@ -293,14 +293,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="absolute w-[280px] max-w-[85vw] rounded-xl p-3"
+              className="absolute w-[280px] rounded-xl p-3"
               style={{
                 background: '#1a1a2e',
                 border: `1px solid ${neonColor}25`,
                 boxShadow: `0 0 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
-                left: Math.min(popupPosition.x - 140, window.innerWidth - 300),
-                bottom: window.innerHeight - popupPosition.y + 8,
-                maxWidth: '85vw',
+                left: Math.max(8, Math.min(popupPosition.x - 140, window.innerWidth - 296)),
+                bottom: popupPosition.bottom,
               }}
               onClick={e => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
