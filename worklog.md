@@ -69,3 +69,36 @@ Stage Summary:
 - Button was working but feedback (toast) was invisible, making it appear unresponsive
 - Mobile UI optimized with icons and compact labels
 - All builds pass successfully
+---
+Task ID: 1-6
+Agent: Main
+Task: Add Staff reference table for thi đua calculation - fix missing TN with no sales
+
+Work Log:
+- Added Staff model to Prisma schema with fields: agentCode (unique), agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode, startDate
+- Ran prisma db push to create Staff table in Neon DB
+- Created /api/staff route (GET, POST bulk/single, DELETE all)
+- Created /api/staff/[id] route (GET, PATCH, DELETE single)
+- Modified /api/seed route to also extract unique agents and upsert to Staff table during CSV import
+- Modified thi-dua page groupedData useMemo to use Staff as primary source for groups
+  - Groups with no contracts now appear (0 FYP, 0 contracts) as long as they exist in Staff table
+  - Leader info populated from Staff table (more reliable than inferring from contracts)
+  - Backward compatible: if no staff data, falls back to contract-based group detection
+- Modified nydData useMemo similarly to include NYDs from Staff table even without contracts
+- Added StaffMember interface and staffList state to thi-dua page
+- Added fetchStaff() call on mount and after sync
+- Updated settings panel with new "Nhân sự" section:
+  - Quick Actions: 4 buttons now (Thêm link, QL link, Nhân sự, Thống kê)
+  - Staff management: add/edit/delete staff members
+  - Staff list grouped by maNhom, expandable with leader info
+  - Clear all staff option
+- Added postinstall script for prisma generate on Vercel
+- Created tag v1.2
+
+Stage Summary:
+- Staff model added to DB, migrated to Neon
+- API routes for Staff CRUD created
+- Thi đua calculation now uses Staff as reference table for group membership
+- Groups/TNs with no sales still appear in thi đua results
+- Settings panel has full staff management UI
+- Pushed to GitHub, tag v1.2 created
