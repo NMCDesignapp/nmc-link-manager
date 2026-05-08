@@ -696,7 +696,7 @@ export default function ThiDuaPage() {
           // Find leader name from staff list
           const leaderStaff = staffList.find(s => s.agentCode === groupInfo.leaderAgentCode);
           g.leaderCode = groupInfo.leaderAgentCode;
-          g.leaderName = leaderStaff?.agentName || groupInfo.leaderAgentCode;
+          g.leaderName = leaderStaff?.agentName || contracts.find(c => c.agentCode === groupInfo.leaderAgentCode)?.agentName || '';
         }
         // Fallback: find leader by position from staff list
         if (!g.leaderName) {
@@ -735,7 +735,7 @@ export default function ThiDuaPage() {
         if (leaderContract?.leaderAgentCode) {
           const leaderFromAll = contracts.find(c => c.agentCode === leaderContract.leaderAgentCode);
           g.leaderCode = leaderContract.leaderAgentCode;
-          g.leaderName = leaderFromAll?.agentName || leaderContract.leaderAgentCode;
+          g.leaderName = leaderFromAll?.agentName || '';
         }
         if (!g.leaderName) {
           const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
