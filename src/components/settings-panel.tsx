@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database, Link2, Star, Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, UserPlus } from 'lucide-react'
+import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database, Link2, Star, Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, UserPlus, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSettings, AppSettings, defaultSettings } from '@/hooks/use-settings'
 import { Link } from '@/lib/types'
@@ -31,6 +31,19 @@ interface StaffMember {
   startDate: string | null
 }
 
+interface RecruiterMember {
+  id: string
+  nydCode: string
+  nydName: string
+  position: string
+  ban: string
+  nhom: string
+  maNhom: string
+  recruitedAgentCode: string
+  recruitedAgentName: string
+  recruitedStartDate: string | null
+}
+
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
@@ -58,19 +71,26 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
   const { settings, updateSettings, isLoading } = useSettings()
   const { data: linksData } = useSWR<Link[]>('/api/links', fetcher)
   const { data: staffData, mutate: mutateStaff } = useSWR<StaffMember[]>('/api/staff', fetcher)
+  const { data: recruiterData, mutate: mutateRecruiters } = useSWR<RecruiterMember[]>('/api/recruiters', fetcher)
   const [localSettings, setLocalSettings] = useState<AppSettings>(defaultSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [showLinkManager, setShowLinkManager] = useState(false)
   const [showStaffManager, setShowStaffManager] = useState(false)
+  const [showRecruiterManager, setShowRecruiterManager] = useState(false)
   const [showAddStaff, setShowAddStaff] = useState(false)
+  const [showAddRecruiter, setShowAddRecruiter] = useState(false)
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
+  const [editingRecruiterId, setEditingRecruiterId] = useState<string | null>(null)
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
+  const [expandedNydGroup, setExpandedNydGroup] = useState<string | null>(null)
   const [staffForm, setStaffForm] = useState({ agentCode: '', agentName: '', position: '', ban: '', nhom: '', maNhom: '', leaderAgentCode: '' })
+  const [recruiterForm, setRecruiterForm] = useState({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
   const initializedRef = useRef(false)
 
   const links = Array.isArray(linksData) ? linksData : []
   const staff = Array.isArray(staffData) ? staffData : []
+  const recruiters = Array.isArray(recruiterData) ? recruiterData : []
   const neonColor = localSettings.neon_color || '#00ff88'
 
   useEffect(() => {
@@ -226,6 +246,45 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
     return acc
   }, {} as Record<string, StaffMember[]>)
 
+  // Recruiter handlers
+  const handleAddRecruiter = async () => {
+    if (!recruiterForm.nydCode || !recruiterForm.recruitedAgentCode) return
+    try {
+      const res = await fetch('/api/recruiters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recruiterForm),
+      })
+      if (res.ok) {
+        mutateRecruiters()
+        setRecruiterForm({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
+        setShowAddRecruiter(false)
+      }
+    } catch (error) { console.error('Failed to add recruiter:', error) }
+  }
+
+  const handleDeleteRecruiter = async (id: string) => {
+    if (confirm('Bạn có chắc muốn xóa?')) {
+      try { await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); mutateRecruiters() }
+      catch (error) { console.error('Failed to delete recruiter:', error) }
+    }
+  }
+
+  const handleClearAllRecruiters = async () => {
+    if (confirm('Bạn có chắc muốn xóa toàn bộ danh sách người tuyển dụng?')) {
+      try { await fetch('/api/recruiters', { method: 'DELETE' }); mutateRecruiters() }
+      catch (error) { console.error('Failed to clear recruiters:', error) }
+    }
+  }
+
+  // Group recruiters by nydCode
+  const groupedRecruiters = recruiters.reduce((acc, r) => {
+    const key = r.nydCode
+    if (!acc[key]) acc[key] = []
+    acc[key].push(r)
+    return acc
+  }, {} as Record<string, RecruiterMember[]>)
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -326,7 +385,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       QL link
                     </motion.button>
                     <motion.button
-                      onClick={() => setShowStaffManager(!showStaffManager)}
+                      onClick={() => { setShowStaffManager(!showStaffManager); setShowRecruiterManager(false) }}
                       className="py-2 px-1 rounded-lg text-[10px] font-medium flex flex-col items-center justify-center gap-1 smooth-transition"
                       style={{
                         background: showStaffManager ? 'rgba(255, 160, 0, 0.2)' : 'rgba(255, 160, 0, 0.1)',
@@ -340,17 +399,18 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       Nhân sự
                     </motion.button>
                     <motion.button
-                      onClick={() => {
-                        onClose()
-                        onOpenStats()
-                      }}
+                      onClick={() => { setShowRecruiterManager(!showRecruiterManager); setShowStaffManager(false) }}
                       className="py-2 px-1 rounded-lg text-[10px] font-medium flex flex-col items-center justify-center gap-1 smooth-transition"
-                      style={{ background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', color: '#00d4ff' }}
+                      style={{
+                        background: showRecruiterManager ? 'rgba(56, 189, 248, 0.2)' : 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38bdf8',
+                      }}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <BarChart3 className="w-3.5 h-3.5" />
-                      Thống kê
+                      <UserCheck className="w-3.5 h-3.5" />
+                      Người TD
                     </motion.button>
                   </div>
                 </motion.div>
@@ -634,6 +694,153 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                   )}
                 </AnimatePresence>
 
+                {/* Recruiter Manager - collapsible */}
+                <AnimatePresence>
+                  {showRecruiterManager && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5" style={{ color: '#38bdf8' }} />
+                            <span className="text-xs font-medium" style={{ color: '#38bdf8' }}>Danh sách Người tuyển dụng</span>
+                            <span className="text-[10px] text-muted-foreground">({recruiters.length})</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <motion.button
+                              onClick={() => {
+                                setShowAddRecruiter(true)
+                                setEditingRecruiterId(null)
+                                setRecruiterForm({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
+                              }}
+                              className="p-1 rounded text-sky-400 hover:bg-sky-400/10"
+                              whileTap={{ scale: 0.85 }}
+                              title="Thêm người TD"
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />
+                            </motion.button>
+                            {recruiters.length > 0 && (
+                              <motion.button
+                                onClick={handleClearAllRecruiters}
+                                className="p-1 rounded text-red-400 hover:bg-red-400/10"
+                                whileTap={{ scale: 0.85 }}
+                                title="Xóa tất cả"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </motion.button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Add recruiter form */}
+                        <AnimatePresence>
+                          {showAddRecruiter && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="space-y-2 p-2.5 rounded-lg" style={{ background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <input type="text" value={recruiterForm.nydCode} onChange={e => setRecruiterForm(f => ({ ...f, nydCode: e.target.value }))} placeholder="Mã NYD" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.nydName} onChange={e => setRecruiterForm(f => ({ ...f, nydName: e.target.value }))} placeholder="Tên NYD" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.position} onChange={e => setRecruiterForm(f => ({ ...f, position: e.target.value }))} placeholder="Chức vụ" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.ban} onChange={e => setRecruiterForm(f => ({ ...f, ban: e.target.value }))} placeholder="Ban" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.nhom} onChange={e => setRecruiterForm(f => ({ ...f, nhom: e.target.value }))} placeholder="Nhóm" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.maNhom} onChange={e => setRecruiterForm(f => ({ ...f, maNhom: e.target.value }))} placeholder="Mã nhóm" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.recruitedAgentCode} onChange={e => setRecruiterForm(f => ({ ...f, recruitedAgentCode: e.target.value }))} placeholder="Mã TVV được tuyển" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.recruitedAgentName} onChange={e => setRecruiterForm(f => ({ ...f, recruitedAgentName: e.target.value }))} placeholder="Tên TVV" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                </div>
+                                <div className="flex gap-2">
+                                  <motion.button
+                                    onClick={handleAddRecruiter}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-medium"
+                                    style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+                                    whileTap={{ scale: 0.97 }}
+                                  >
+                                    Thêm
+                                  </motion.button>
+                                  <motion.button
+                                    onClick={() => { setShowAddRecruiter(false); setEditingRecruiterId(null) }}
+                                    className="py-1.5 px-3 rounded-lg text-xs text-muted-foreground hover:bg-white/5"
+                                    whileTap={{ scale: 0.97 }}
+                                  >
+                                    Hủy
+                                  </motion.button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Recruiter list grouped by NYD */}
+                        <div className="max-h-64 overflow-y-auto pr-1 space-y-1.5">
+                          {recruiters.length === 0 ? (
+                            <div className="text-center py-4">
+                              <UserCheck className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                              <p className="text-xs text-muted-foreground">Chưa có người tuyển dụng</p>
+                              <p className="text-[10px] text-muted-foreground/60 mt-1">Nhấn Đồng bộ để tự động nhập, hoặc thêm thủ công</p>
+                            </div>
+                          ) : (
+                            Object.entries(groupedRecruiters).sort(([a], [b]) => a.localeCompare(b)).map(([nydCode, members]) => {
+                              const isExpanded = expandedNydGroup === nydCode
+                              return (
+                                <div key={nydCode} className="rounded-lg overflow-hidden" style={{ background: 'rgba(56, 189, 248, 0.04)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+                                  <button
+                                    onClick={() => setExpandedNydGroup(isExpanded ? null : nydCode)}
+                                    className="w-full flex items-center gap-2 p-2 text-left"
+                                  >
+                                    {isExpanded ? <ChevronDown className="w-3 h-3 text-sky-400" /> : <ChevronRight className="w-3 h-3 text-sky-400" />}
+                                    <span className="text-xs font-medium text-sky-400 flex-1 truncate">{members[0]?.nydName || nydCode}</span>
+                                    <span className="text-[10px] text-muted-foreground">{members.length} TVV</span>
+                                    <span className="text-[10px] text-sky-300/60">{nydCode}</span>
+                                  </button>
+                                  <AnimatePresence>
+                                    {isExpanded && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="overflow-hidden"
+                                      >
+                                        <div className="px-2 pb-2 space-y-1">
+                                          {members.map(m => (
+                                            <div key={m.id} className="flex items-center gap-1.5 p-1.5 rounded" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                                              <div className="flex-1 min-w-0">
+                                                <span className="block text-[11px] font-medium truncate">{m.recruitedAgentName || m.recruitedAgentCode}</span>
+                                                <span className="block text-[9px] text-muted-foreground">{m.recruitedAgentCode} {m.position && `· ${m.position}`}</span>
+                                              </div>
+                                              <motion.button
+                                                onClick={() => handleDeleteRecruiter(m.id)}
+                                                className="p-0.5 rounded text-red-400 hover:bg-red-400/10"
+                                                whileTap={{ scale: 0.85 }}
+                                              >
+                                                <Trash2 className="w-2.5 h-2.5" />
+                                              </motion.button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Profile Section */}
                 <motion.div
                   className="space-y-3"
@@ -674,18 +881,43 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Database className="w-3.5 h-3.5" />
-                    <span>Nguồn dữ liệu thi đua</span>
+                    <span>Liên kết đồng bộ thi đua</span>
                   </div>
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      value={localSettings.csv_url}
-                      onChange={e => handleChange('csv_url', e.target.value)}
-                      placeholder="Google Sheets CSV URL"
-                      className="w-full px-3 py-2.5 rounded-lg text-xs font-mono neon-input"
-                      style={{ background: '#1a1a2e' }}
-                    />
-                    <p className="text-[10px] text-muted-foreground/60">Liên kết Google Sheets (CSV) để đồng bộ dữ liệu hợp đồng cho trang thi đua</p>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] text-emerald-400/80 font-medium">1. Hợp đồng (Doanh số)</label>
+                      <input
+                        type="text"
+                        value={localSettings.csv_url}
+                        onChange={e => handleChange('csv_url', e.target.value)}
+                        placeholder="Google Sheets CSV URL — Hợp đồng"
+                        className="w-full px-3 py-2 rounded-lg text-xs font-mono neon-input mt-0.5"
+                        style={{ background: '#1a1a2e' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-amber-400/80 font-medium">2. Danh sách nhân sự (TVV/Nhóm)</label>
+                      <input
+                        type="text"
+                        value={localSettings.csv_staff_url}
+                        onChange={e => handleChange('csv_staff_url', e.target.value)}
+                        placeholder="Google Sheets CSV URL — Nhân sự"
+                        className="w-full px-3 py-2 rounded-lg text-xs font-mono neon-input mt-0.5"
+                        style={{ background: '#1a1a2e' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-sky-400/80 font-medium">3. Danh sách Người tuyển dụng</label>
+                      <input
+                        type="text"
+                        value={localSettings.csv_nyd_url}
+                        onChange={e => handleChange('csv_nyd_url', e.target.value)}
+                        placeholder="Google Sheets CSV URL — Người TD"
+                        className="w-full px-3 py-2 rounded-lg text-xs font-mono neon-input mt-0.5"
+                        style={{ background: '#1a1a2e' }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60">3 liên kết sẽ được tải đồng thời khi nhấn Đồng bộ ở trang thi đua</p>
                   </div>
                 </motion.div>
 

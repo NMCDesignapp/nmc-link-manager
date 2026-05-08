@@ -59,6 +59,13 @@ interface StaffMember {
   startDate: string | null;
 }
 
+interface RecruiterMember {
+  id: string; nydCode: string; nydName: string;
+  position: string; ban: string; nhom: string; maNhom: string;
+  recruitedAgentCode: string; recruitedAgentName: string;
+  recruitedStartDate: string | null;
+}
+
 interface SavedContest {
   id: string; title: string; startDate: string; endDate: string;
   issueDate: string | null; conditionType: string; targetType: string;
@@ -66,6 +73,7 @@ interface SavedContest {
   usePhase2?: boolean; phase2StartDate?: string | null; phase2EndDate?: string | null; bonusTiers2?: string;
   useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
   hideNotAchieved?: boolean; useTVVmFilter?: boolean; includeOwnNYD?: boolean;
+  csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
 
@@ -381,6 +389,7 @@ export default function ThiDuaPage() {
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
 
@@ -409,6 +418,12 @@ export default function ThiDuaPage() {
     try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
   }, []);
   useEffect(() => { fetchStaff(); }, [fetchStaff]);
+
+  // Fetch recruiter list for NYD reference
+  const fetchRecruiters = useCallback(async () => {
+    try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
+  }, []);
+  useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
@@ -492,14 +507,30 @@ export default function ThiDuaPage() {
     });
   }, [filteredContracts, subjectCodes, targetType]);
 
-  // NYD data computation - use Staff table as reference
+  // NYD data computation - use Recruiter table as primary reference
   const nydData: NYDData[] = useMemo(() => {
     if (!isNYDMode(conditionType)) return [];
     const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
     const nydMap = new Map<string, NYDData>();
 
-    // Step 1: If staff list exists, add ALL NYDs from staff (even with no contracts)
-    if (staffList.length > 0) {
+    // Step 1: If recruiter list exists, use it as primary source for NYD info
+    if (recruiterList.length > 0) {
+      // Group recruiters by NYD code to build NYD map
+      const nydGroups = new Map<string, { nydName: string; position: string; nhom: string; recruitedAgents: string[] }>();
+      for (const r of recruiterList) {
+        if (!nydGroups.has(r.nydCode)) {
+          nydGroups.set(r.nydCode, { nydName: r.nydName, position: r.position, nhom: r.nhom, recruitedAgents: [] });
+        }
+        nydGroups.get(r.nydCode)!.recruitedAgents.push(r.recruitedAgentCode);
+      }
+      for (const [nydCode, info] of nydGroups) {
+        nydMap.set(nydCode, {
+          nydCode, nydName: info.nydName, nhom: info.nhom,
+          position: info.position, recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: []
+        });
+      }
+    } else if (staffList.length > 0) {
+      // Fallback: add NYDs from staff list
       for (const s of staffList) {
         if (s.position && nydPositions.some(p => s.position.toLowerCase().includes(p))) {
           nydMap.set(s.agentCode, {
@@ -510,7 +541,7 @@ export default function ThiDuaPage() {
       }
     }
 
-    // Step 2: Add NYD contracts data
+    // Step 2: Add NYD contracts data (own FYP)
     const nydContracts = displayContracts.filter(c =>
       c.position && nydPositions.some(p => c.position.toLowerCase().includes(p))
     );
@@ -522,26 +553,46 @@ export default function ThiDuaPage() {
       nyd.ownFYP += c.fyp;
       nyd.contracts.push(c);
     }
-    // For each NYD, find TVVm they recruited (recruiterCode = nydCode)
+
+    // Step 3: Calculate recruit data
     for (const [nydCode, nyd] of nydMap) {
-      const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-      // nyd_activity: count TVVm with fyp >= 3,000,000
-      // Group by agentCode, sum their FYP
-      const agentFYPMap = new Map<string, number>();
-      for (const rc of recruitedContracts) {
-        agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
+      if (recruiterList.length > 0) {
+        // Use recruiter table: find all agents recruited by this NYD
+        const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
+        // For each recruited agent, sum their FYP from contracts
+        const agentFYPMap = new Map<string, number>();
+        for (const r of recruitedByNyd) {
+          const agentContracts = displayContracts.filter(c => c.agentCode === r.recruitedAgentCode);
+          const totalFYP = agentContracts.reduce((sum, c) => sum + c.fyp, 0);
+          agentFYPMap.set(r.recruitedAgentCode, totalFYP);
+        }
+        let recruitCount = 0;
+        let recruitFYP = 0;
+        for (const [, agentFYP] of agentFYPMap) {
+          if (agentFYP >= 3_000_000) recruitCount++;
+          recruitFYP += agentFYP;
+        }
+        nyd.recruitCount = recruitCount;
+        nyd.recruitFYP = recruitFYP;
+      } else {
+        // Fallback: use recruiterCode from contracts
+        const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
+        const agentFYPMap = new Map<string, number>();
+        for (const rc of recruitedContracts) {
+          agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
+        }
+        let recruitCount = 0;
+        let recruitFYP = 0;
+        for (const [, agentFYP] of agentFYPMap) {
+          if (agentFYP >= 3_000_000) recruitCount++;
+          recruitFYP += agentFYP;
+        }
+        nyd.recruitCount = recruitCount;
+        nyd.recruitFYP = recruitFYP;
       }
-      let recruitCount = 0;
-      let recruitFYP = 0;
-      for (const [, agentFYP] of agentFYPMap) {
-        if (agentFYP >= 3_000_000) recruitCount++;
-        recruitFYP += agentFYP;
-      }
-      nyd.recruitCount = recruitCount;
-      nyd.recruitFYP = recruitFYP;
     }
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, staffList]);
+  }, [displayContracts, conditionType, staffList, recruiterList]);
 
   // Grouped data - use Staff table as reference for group membership
   const groupedData: GroupData[] = useMemo(() => {
@@ -823,13 +874,46 @@ export default function ThiDuaPage() {
   const handleImportFromUrl = async () => {
     setIsImporting(true);
     try {
-      const fetchRes = await fetch(`/api/import-csv?url=${encodeURIComponent(csvUrl)}`); if (!fetchRes.ok) { const errData = await fetchRes.json(); throw new Error(errData.error || 'Không thể tải CSV'); }
-      const { csvData } = await fetchRes.json();
-      const importRes = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csvData }) });
-      if (!importRes.ok) { const errData = await importRes.json(); throw new Error(errData.error || 'Không thể nhập'); }
-      const data = await importRes.json(); toast({ title: 'Đồng bộ thành công', description: data.message }); fetchContracts(); fetchStaff();
-    } catch (err: unknown) { const msg = err instanceof Error ? err.message : 'Lỗi không xác định'; toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' }); }
-    finally { setIsImporting(false); }
+      // Fetch all 3 CSVs simultaneously
+      const urls = [
+        settings.csv_url || csvUrl,      // Contract CSV
+        settings.csv_staff_url || '',     // Staff CSV
+        settings.csv_nyd_url || '',       // Recruiter CSV
+      ];
+
+      const fetchPromises = urls.map(url => {
+        if (!url) return Promise.resolve(null);
+        return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
+          .then(res => res.ok ? res.json() : null)
+          .then(data => data?.csvData || null)
+          .catch(() => null);
+      });
+
+      const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
+
+      if (!contractCsv && !staffCsv && !recruiterCsv) {
+        throw new Error('Không thể tải bất kỳ CSV nào. Vui lòng kiểm tra lại các liên kết.');
+      }
+
+      // Send all to sync endpoint
+      const syncRes = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+      });
+
+      if (!syncRes.ok) {
+        const errData = await syncRes.json();
+        throw new Error(errData.error || 'Không thể nhập');
+      }
+
+      const data = await syncRes.json();
+      toast({ title: 'Đồng bộ thành công', description: data.message });
+      fetchContracts(); fetchStaff(); fetchRecruiters();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi không xác định';
+      toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' });
+    } finally { setIsImporting(false); }
   };
 
   const handlePrint = () => {
