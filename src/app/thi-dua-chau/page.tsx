@@ -1431,16 +1431,16 @@ export default function ThiDuaPage() {
                 {/* Condition */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Điều kiện</Label>
-                  <div className="grid grid-cols-1 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {([
                       { value: 'per_contract' as ConditionType, label: 'Theo HĐ', icon: FileText, selectedCls: 'bg-emerald-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-emerald-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                       { value: 'total_fyp' as ConditionType, label: 'Tổng IP', icon: TrendingUp, selectedCls: 'bg-teal-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-teal-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                       { value: 'activity_round' as ConditionType, label: 'Lượt HĐ', icon: Users, selectedCls: 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-amber-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                       { value: 'activity_round_standard' as ConditionType, label: 'Lượt Chuẩn', icon: Award, selectedCls: 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-orange-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                       { value: 'activity_round_tvv90' as ConditionType, label: 'Lượt TVV90', icon: Users, selectedCls: 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-rose-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_activity' as ConditionType, label: 'NTD - TVVm', icon: UserPlus, selectedCls: 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-violet-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_activity_tvv90' as ConditionType, label: 'NTD - TVV90', icon: UserPlus, selectedCls: 'bg-fuchsia-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-fuchsia-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
-                      { value: 'nyd_fyp' as ConditionType, label: 'NTD - FYP', icon: UserPlus, selectedCls: 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-purple-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity' as ConditionType, label: 'NTD TVVm', icon: UserPlus, selectedCls: 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-violet-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity_tvv90' as ConditionType, label: 'NTD TVV90', icon: UserPlus, selectedCls: 'bg-fuchsia-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-fuchsia-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_fyp' as ConditionType, label: 'NTD FYP', icon: UserPlus, selectedCls: 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-purple-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
                     ]).map(({ value, label, icon: Icon, selectedCls, unselectedCls }) => (
                       <button
                         key={value}
@@ -1450,11 +1450,11 @@ export default function ThiDuaPage() {
                           if (isActivityRoundMode(value)) setTargetType('nhom');
                           if (isNYDMode(value)) setTargetType('nyd');
                         }}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${
                           conditionType === value ? selectedCls : unselectedCls
                         }`}
                       >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <Icon className="w-3 h-3 shrink-0" />
                         <span>{label}</span>
                       </button>
                     ))}
