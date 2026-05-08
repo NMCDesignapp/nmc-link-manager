@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
