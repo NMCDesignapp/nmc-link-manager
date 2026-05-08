@@ -1,4 +1,13 @@
-// Stub: database is not available on Vercel (no persistent storage).
-// All API routes return empty/fallback data.
-// Settings are stored in localStorage on the client side.
-export const db = null
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query'],
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db

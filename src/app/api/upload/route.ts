@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getStore } from '@netlify/blobs'
-import { v4 as uuidv4 } from 'uuid'
+import { writeFile, mkdir } from 'fs/promises'
+import { join } from 'path'
+import { existsSync } from 'fs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,18 +12,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    const store = getStore('uploads')
-    const key = uuidv4()
-    const buffer = await file.arrayBuffer()
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
 
-    await store.set(key, buffer, {
-      metadata: {
-        contentType: file.type || 'application/octet-stream',
-        originalName: file.name,
-      },
-    })
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || ''
+    const key = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
 
-    const url = `/api/files/${key}`
+    // Save to public/uploads directory
+    const uploadDir = join(process.cwd(), 'public', 'uploads')
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true })
+    }
+
+    const filePath = join(uploadDir, key)
+    await writeFile(filePath, buffer)
+
+    const url = `/uploads/${key}`
 
     return NextResponse.json({ url, key, name: file.name, type: file.type })
   } catch (error) {
