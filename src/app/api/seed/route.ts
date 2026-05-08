@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
 
     const contracts = [];
     const seenContractNumbers = new Set<string>();
+    // Track unique agents for Staff table
+    const agentMap = new Map<string, {
+      agentCode: string;
+      agentName: string;
+      position: string;
+      ban: string;
+      nhom: string;
+      maNhom: string;
+      leaderAgentCode: string;
+      startDate: Date | null;
+    }>();
 
     for (const line of dataLines) {
       // Parse CSV respecting quoted fields
@@ -117,6 +128,20 @@ export async function POST(request: NextRequest) {
         afyp,
         tinhLuot,
       });
+
+      // Track unique agents for Staff table
+      if (agentCode && !agentMap.has(agentCode)) {
+        agentMap.set(agentCode, {
+          agentCode,
+          agentName,
+          position,
+          ban,
+          nhom,
+          maNhom,
+          leaderAgentCode,
+          startDate,
+        });
+      }
     }
 
     if (contracts.length === 0) {
@@ -132,9 +157,46 @@ export async function POST(request: NextRequest) {
       skipDuplicates: true,
     });
 
+    // Also update Staff table with unique agents from this import
+    // Merge with existing staff (don't delete manually added ones)
+    const staffUpserts = Array.from(agentMap.values()).map((agent) =>
+      db.staff.upsert({
+        where: { agentCode: agent.agentCode },
+        update: {
+          agentName: agent.agentName,
+          position: agent.position,
+          ban: agent.ban,
+          nhom: agent.nhom,
+          maNhom: agent.maNhom,
+          leaderAgentCode: agent.leaderAgentCode,
+          startDate: agent.startDate,
+        },
+        create: {
+          agentCode: agent.agentCode,
+          agentName: agent.agentName,
+          position: agent.position,
+          ban: agent.ban,
+          nhom: agent.nhom,
+          maNhom: agent.maNhom,
+          leaderAgentCode: agent.leaderAgentCode,
+          startDate: agent.startDate,
+        },
+      })
+    );
+
+    let staffCount = 0;
+    try {
+      const staffResults = await Promise.all(staffUpserts);
+      staffCount = staffResults.length;
+    } catch (err) {
+      console.error('Error upserting staff:', err);
+      // Non-critical — contracts are already saved
+    }
+
     return NextResponse.json({
-      message: `Đã nhập ${result.count} hợp đồng từ Google Sheets`,
+      message: `Đã nhập ${result.count} hợp đồng và ${staffCount} nhân sự từ Google Sheets`,
       count: result.count,
+      staffCount,
     });
   } catch (error) {
     console.error('Error importing data:', error);
