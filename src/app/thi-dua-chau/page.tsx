@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -72,19 +71,25 @@ interface SavedContest {
   bonusTiers: string; posterUrl?: string; participants?: string;
   usePhase2?: boolean; phase2StartDate?: string | null; phase2EndDate?: string | null; bonusTiers2?: string;
   useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
-  hideNotAchieved?: boolean; useTVVmFilter?: boolean; includeOwnNYD?: boolean;
+  hideNotAchieved?: boolean; useTVVmFilter?: boolean; useTVV90Filter?: boolean; includeOwnNYD?: boolean;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
 
-type ConditionType = 'per_contract' | 'total_fyp' | 'activity_round' | 'activity_round_standard' | 'nyd_activity' | 'nyd_fyp';
+type ConditionType = 'per_contract' | 'total_fyp' | 'activity_round' | 'activity_round_standard' | 'activity_round_tvv90' | 'nyd_activity' | 'nyd_activity_tvv90' | 'nyd_fyp';
 type TargetType = 'tvv' | 'nhom' | 'nyd';
 
 function isActivityRoundMode(ct: ConditionType): boolean {
-  return ct === 'activity_round' || ct === 'activity_round_standard';
+  return ct === 'activity_round' || ct === 'activity_round_standard' || ct === 'activity_round_tvv90';
 }
 function isNYDMode(ct: ConditionType): boolean {
-  return ct === 'nyd_activity' || ct === 'nyd_fyp';
+  return ct === 'nyd_activity' || ct === 'nyd_activity_tvv90' || ct === 'nyd_fyp';
+}
+function isNYDActivityMode(ct: ConditionType): boolean {
+  return ct === 'nyd_activity' || ct === 'nyd_activity_tvv90';
+}
+function isTVV90Mode(ct: ConditionType): boolean {
+  return ct === 'activity_round_tvv90' || ct === 'nyd_activity_tvv90';
 }
 
 function isTVVm(startDate: string | null): boolean {
@@ -93,6 +98,56 @@ function isTVVm(startDate: string | null): boolean {
   const now = new Date();
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   return diffMonths <= 12;
+}
+
+function isTVV90(startDate: string | null): boolean {
+  if (!startDate) return false;
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  return diffMonths <= 3;
+}
+
+// Helper: calculate lượt for a group of contracts based on new definition
+// A TVV counts as 1 lượt per month if their total FYP in that month >= threshold
+// Each TVV can count at most 1 lượt per month
+function calculateLuot(contracts: Contract[], luotThreshold: number, useTVVmFilter: boolean, useTVV90Filter: boolean): number {
+  // Map: agentCode -> Set of "YYYY-MM" months where they qualify
+  const agentMonthSet = new Map<string, Set<string>>();
+  // First, compute per-agent per-month FYP
+  const agentMonthFYP = new Map<string, Map<string, number>>();
+  for (const c of contracts) {
+    if (!c.issueDate) continue;
+    const issueMonth = new Date(c.issueDate).toISOString().slice(0, 7); // "YYYY-MM"
+    if (!agentMonthFYP.has(c.agentCode)) agentMonthFYP.set(c.agentCode, new Map());
+    const monthMap = agentMonthFYP.get(c.agentCode)!;
+    monthMap.set(issueMonth, (monthMap.get(issueMonth) || 0) + c.fyp);
+  }
+  // Check which agent-month pairs qualify
+  for (const [agentCode, monthMap] of agentMonthFYP) {
+    // Apply TVVm filter if enabled
+    if (useTVVmFilter) {
+      const agentContract = contracts.find(c => c.agentCode === agentCode);
+      if (agentContract && !isTVVm(agentContract.startDate)) continue;
+    }
+    // Apply TVV90 filter if enabled
+    if (useTVV90Filter) {
+      const agentContract = contracts.find(c => c.agentCode === agentCode);
+      if (agentContract && !isTVV90(agentContract.startDate)) continue;
+    }
+    for (const [month, totalFYP] of monthMap) {
+      if (totalFYP >= luotThreshold) {
+        if (!agentMonthSet.has(agentCode)) agentMonthSet.set(agentCode, new Set());
+        agentMonthSet.get(agentCode)!.add(month);
+      }
+    }
+  }
+  // Count total lượt = sum of qualifying months per agent
+  let rounds = 0;
+  for (const [, months] of agentMonthSet) {
+    rounds += months.size;
+  }
+  return rounds;
 }
 
 const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv';
@@ -144,7 +199,9 @@ function getConditionLabel(ct: ConditionType): string {
     case 'total_fyp': return 'Tổng IP';
     case 'activity_round': return 'Lượt HĐ';
     case 'activity_round_standard': return 'Lượt HĐ Chuẩn';
+    case 'activity_round_tvv90': return 'Lượt HĐ TVV90';
     case 'nyd_activity': return 'Lượt TVVm HĐ';
+    case 'nyd_activity_tvv90': return 'Lượt TVV90 HĐ';
     case 'nyd_fyp': return 'FYP TVVm';
   }
 }
@@ -369,6 +426,7 @@ export default function ThiDuaPage() {
   const [secondaryIPMin, setSecondaryIPMin] = useState(0);
   // New options
   const [useTVVmFilter, setUseTVVmFilter] = useState(false);
+  const [useTVV90Filter, setUseTVV90Filter] = useState(false);
   const [hideNotAchieved, setHideNotAchieved] = useState(false);
   const [includeOwnNYD, setIncludeOwnNYD] = useState(false);
 
@@ -555,44 +613,64 @@ export default function ThiDuaPage() {
     }
 
     // Step 3: Calculate recruit data
+    const luotThreshold = 3_000_000;
     for (const [nydCode, nyd] of nydMap) {
-      if (recruiterList.length > 0) {
-        // Use recruiter table: find all agents recruited by this NYD
-        const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
-        // For each recruited agent, sum their FYP from contracts
-        const agentFYPMap = new Map<string, number>();
-        for (const r of recruitedByNyd) {
-          const agentContracts = displayContracts.filter(c => c.agentCode === r.recruitedAgentCode);
-          const totalFYP = agentContracts.reduce((sum, c) => sum + c.fyp, 0);
-          agentFYPMap.set(r.recruitedAgentCode, totalFYP);
+      if (isNYDActivityMode(conditionType)) {
+        // NYD activity mode: count lượt using new per-month calculation
+        // Find all recruited agents for this NYD
+        let recruitedAgentCodes: string[] = [];
+        if (recruiterList.length > 0) {
+          const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
+          recruitedAgentCodes = recruitedByNyd.map(r => r.recruitedAgentCode);
+        } else {
+          // Fallback: use recruiterCode from contracts
+          const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
+          recruitedAgentCodes = [...new Set(recruitedContracts.map(c => c.agentCode))];
         }
-        let recruitCount = 0;
-        let recruitFYP = 0;
-        for (const [, agentFYP] of agentFYPMap) {
-          if (agentFYP >= 3_000_000) recruitCount++;
-          recruitFYP += agentFYP;
-        }
-        nyd.recruitCount = recruitCount;
-        nyd.recruitFYP = recruitFYP;
+        // Get all contracts for recruited agents
+        const recruitedContracts = displayContracts.filter(c => recruitedAgentCodes.includes(c.agentCode));
+        // Apply TVV90 filter if in TVV90 mode or if TVV90 filter is on
+        const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
+        const applyTVVm = useTVVmFilter;
+        nyd.recruitCount = calculateLuot(recruitedContracts, luotThreshold, applyTVVm, applyTVV90);
+        nyd.recruitFYP = recruitedContracts.reduce((sum, c) => sum + c.fyp, 0);
       } else {
-        // Fallback: use recruiterCode from contracts
-        const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-        const agentFYPMap = new Map<string, number>();
-        for (const rc of recruitedContracts) {
-          agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
+        // NYD FYP mode: count by total FYP
+        if (recruiterList.length > 0) {
+          const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
+          const agentFYPMap = new Map<string, number>();
+          for (const r of recruitedByNyd) {
+            const agentContracts = displayContracts.filter(c => c.agentCode === r.recruitedAgentCode);
+            const totalFYP = agentContracts.reduce((sum, c) => sum + c.fyp, 0);
+            agentFYPMap.set(r.recruitedAgentCode, totalFYP);
+          }
+          let recruitCount = 0;
+          let recruitFYP = 0;
+          for (const [, agentFYP] of agentFYPMap) {
+            if (agentFYP >= 3_000_000) recruitCount++;
+            recruitFYP += agentFYP;
+          }
+          nyd.recruitCount = recruitCount;
+          nyd.recruitFYP = recruitFYP;
+        } else {
+          const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
+          const agentFYPMap = new Map<string, number>();
+          for (const rc of recruitedContracts) {
+            agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
+          }
+          let recruitCount = 0;
+          let recruitFYP = 0;
+          for (const [, agentFYP] of agentFYPMap) {
+            if (agentFYP >= 3_000_000) recruitCount++;
+            recruitFYP += agentFYP;
+          }
+          nyd.recruitCount = recruitCount;
+          nyd.recruitFYP = recruitFYP;
         }
-        let recruitCount = 0;
-        let recruitFYP = 0;
-        for (const [, agentFYP] of agentFYPMap) {
-          if (agentFYP >= 3_000_000) recruitCount++;
-          recruitFYP += agentFYP;
-        }
-        nyd.recruitCount = recruitCount;
-        nyd.recruitFYP = recruitFYP;
       }
     }
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, staffList, recruiterList]);
+  }, [displayContracts, conditionType, staffList, recruiterList, useTVVmFilter, useTVV90Filter]);
 
   // Grouped data - use Staff table as reference for group membership
   const groupedData: GroupData[] = useMemo(() => {
@@ -669,31 +747,16 @@ export default function ThiDuaPage() {
       }
     }
 
-    // Step 4: Calculate activity rounds
+    // Step 4: Calculate activity rounds using new per-month lượt definition
     if (isActivityRoundMode(conditionType)) {
       const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
+      const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
       for (const g of Array.from(map.values())) {
-        const agentTinhLuotMap = new Map<string, number>();
-        for (const c of g.contracts) {
-          const currentMax = agentTinhLuotMap.get(c.agentCode) || 0;
-          agentTinhLuotMap.set(c.agentCode, Math.max(currentMax, c.tinhLuot || 0));
-        }
-        let rounds = 0;
-        for (const [agentCode, maxTinhLuot] of agentTinhLuotMap) {
-          if (maxTinhLuot >= luotThreshold) {
-            if (useTVVmFilter) {
-              const agentContracts = g.contracts.filter(c => c.agentCode === agentCode);
-              if (agentContracts.some(ac => isTVVm(ac.startDate))) rounds++;
-            } else {
-              rounds++;
-            }
-          }
-        }
-        g.activityRounds = rounds;
+        g.activityRounds = calculateLuot(g.contracts, luotThreshold, useTVVmFilter, applyTVV90);
       }
     }
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, contracts, staffList, useTVVmFilter]);
+  }, [displayContracts, targetType, conditionType, contracts, staffList, useTVVmFilter, useTVV90Filter]);
 
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
@@ -701,12 +764,12 @@ export default function ThiDuaPage() {
     const p2Start = new Date(phase2StartDate);
     const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
     const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+    const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
 
     // Calculate Phase 1 bonus
     let phase1Bonus = 0;
     if (targetType === 'nhom') {
       if (isActivityRoundMode(conditionType)) {
-        // For simplicity, use phase 1 contracts grouped
         const phase1Grouped = new Map<string, GroupData>();
         for (const c of phase1Contracts) {
           const key = c.maNhom;
@@ -715,10 +778,7 @@ export default function ThiDuaPage() {
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
         for (const g of phase1Grouped.values()) {
-          const agentMap = new Map<string, number>();
-          for (const c of g.contracts) { agentMap.set(c.agentCode, Math.max(agentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-          let rounds = 0;
-          for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
+          const rounds = calculateLuot(g.contracts, luotThreshold, useTVVmFilter, applyTVV90);
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers);
           if (tier) phase1Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
         }
@@ -728,7 +788,6 @@ export default function ThiDuaPage() {
         for (const [, total] of grouped) { phase1Bonus += getBonusAmountWithTiers(total, bonusTiers); }
       }
     } else if (isNYDMode(conditionType)) {
-      // NYD Phase 1 - simplified: use phase 1 nyd data
       const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
       const phase1NYDContracts = phase1Contracts.filter(c => c.position && nydPositions.some(p => c.position.toLowerCase().includes(p)));
       const nydMap = new Map<string, { ownFYP: number; agentFYPMap: Map<string, number> }>();
@@ -740,8 +799,15 @@ export default function ThiDuaPage() {
         const recruited = phase1Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
         for (const rc of recruited) { data.agentFYPMap.set(rc.agentCode, (data.agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
         let recruitCount = 0; let recruitFYP = 0;
-        for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
-        const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
+        if (isNYDActivityMode(conditionType)) {
+          // Use new lượt calculation
+          const recruitedContracts = phase1Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
+          recruitCount = calculateLuot(recruitedContracts, 3_000_000, useTVVmFilter, applyTVV90);
+          recruitFYP = recruitedContracts.reduce((s, c) => s + c.fyp, 0);
+        } else {
+          for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
+        }
+        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers);
         if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
@@ -761,10 +827,7 @@ export default function ThiDuaPage() {
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
         for (const g of phase2Grouped.values()) {
-          const agentMap = new Map<string, number>();
-          for (const c of g.contracts) { agentMap.set(c.agentCode, Math.max(agentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-          let rounds = 0;
-          for (const [, maxT] of agentMap) { if (maxT >= luotThreshold) rounds++; }
+          const rounds = calculateLuot(g.contracts, luotThreshold, useTVVmFilter, applyTVV90);
           const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers2);
           if (tier) phase2Bonus += computeBonusFromTier(tier, g.totalFYP, rounds);
         }
@@ -785,8 +848,13 @@ export default function ThiDuaPage() {
         const recruited = phase2Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
         for (const rc of recruited) { data.agentFYPMap.set(rc.agentCode, (data.agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
         let recruitCount = 0; let recruitFYP = 0;
-        for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
-        const value = conditionType === 'nyd_activity' ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
+        if (isNYDActivityMode(conditionType)) {
+          recruitCount = calculateLuot(recruited, 3_000_000, useTVVmFilter, applyTVV90);
+          recruitFYP = recruited.reduce((s, c) => s + c.fyp, 0);
+        } else {
+          for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
+        }
+        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers2);
         if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
@@ -795,7 +863,7 @@ export default function ThiDuaPage() {
     }
 
     return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count: phase1Contracts.length, phase2Count: phase2Contracts.length };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeOwnNYD, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers]);
+  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeOwnNYD, useTVVmFilter, useTVV90Filter, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers]);
 
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
@@ -824,7 +892,7 @@ export default function ThiDuaPage() {
         usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
         bonusTiers2: JSON.stringify(bonusTiers2),
         useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
-        hideNotAchieved, useTVVmFilter, includeOwnNYD,
+        hideNotAchieved, useTVVmFilter, useTVV90Filter, includeOwnNYD,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
       else toast({ title: 'Lỗi', description: 'Không thể lưu', variant: 'destructive' });
@@ -861,6 +929,7 @@ export default function ThiDuaPage() {
     // New options
     setHideNotAchieved(contest.hideNotAchieved ?? false);
     setUseTVVmFilter(contest.useTVVmFilter ?? false);
+    setUseTVV90Filter(contest.useTVV90Filter ?? false);
     setIncludeOwnNYD(contest.includeOwnNYD ?? false);
     setTimeout(() => handleSearchRef.current(), 100);
   };
@@ -931,11 +1000,11 @@ export default function ThiDuaPage() {
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     if (isNYDMode(conditionType)) {
       nydData.map(n => {
-        const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+        const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
         return { nyd: n, tier, value };
       }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ nyd: n, tier, value }, idx) => {
-        const displayVal = conditionType === 'nyd_activity' ? `${n.recruitCount} TVVm HĐ` : formatNumber(value);
+        const displayVal = isNYDActivityMode(conditionType) ? `${n.recruitCount} ${conditionType === 'nyd_activity_tvv90' ? 'TVV90' : 'TVVm'} HĐ` : formatNumber(value);
         text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeOwnNYD ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
@@ -974,18 +1043,18 @@ export default function ThiDuaPage() {
     let rows: (string | number)[][];
 
     if (isNYDMode(conditionType)) {
-      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm', ...(includeOwnNYD ? ['IP cá nhân'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', isNYDActivityMode(conditionType) ? (conditionType === 'nyd_activity_tvv90' ? 'Lượt TVV90 HĐ' : 'Lượt TVVm HĐ') : 'FYP TVVm', ...(includeOwnNYD ? ['IP cá nhân'] : []), 'Thưởng', 'Ghi chú'];
       rows = nydData.map(n => {
-        const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+        const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
-        const base = [n.nhom || '', n.nydCode, n.nydName, n.position || '', conditionType === 'nyd_activity' ? n.recruitCount : value];
+        const base = [n.nhom || '', n.nydCode, n.nydName, n.position || '', isNYDActivityMode(conditionType) ? n.recruitCount : value];
         if (includeOwnNYD) base.push(n.ownFYP);
         base.push(tier ? formatBonus(tier, value, n.recruitCount) : '');
         base.push(tier ? '' : 'Chưa đạt mức');
         return base;
       }).map((r, idx) => [idx + 1, ...r]);
     } else if (targetType === 'nhom') {
-      const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP';
+      const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP';
       if (usePhase2) {
         headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
@@ -1103,12 +1172,12 @@ export default function ThiDuaPage() {
     
     // NYD stats
     const nydAchievedCount = isNYDMode(conditionType) ? nydData.filter(n => {
-      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+      const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
       return calculateBonus(value).tier;
     }).length : 0;
     const nydNotAchievedCount = isNYDMode(conditionType) ? nydData.length - nydAchievedCount : 0;
     const nydTotalBonus = isNYDMode(conditionType) ? nydData.reduce((sum, n) => {
-      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+      const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
       const { tier } = calculateBonus(value);
       if (!tier) return sum;
       return sum + computeBonusFromTier(tier, value, n.recruitCount);
@@ -1210,19 +1279,14 @@ export default function ThiDuaPage() {
 
     if (isActivityRoundMode(conditionType)) {
       const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
-      const p1AgentMap = new Map<string, number>();
-      for (const c of phase1Contracts) { p1AgentMap.set(c.agentCode, Math.max(p1AgentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-      let p1Rounds = 0;
-      for (const [, maxT] of p1AgentMap) { if (maxT >= luotThreshold) p1Rounds++; }
+      const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
+      const p1Rounds = calculateLuot(phase1Contracts, luotThreshold, useTVVmFilter, applyTVV90);
       const p1FYP = phase1Contracts.reduce((s, c) => s + c.fyp, 0);
       const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, bonusTiers);
       phase1Tier = p1Res.tier;
       if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1FYP, p1Rounds);
 
-      const p2AgentMap = new Map<string, number>();
-      for (const c of phase2Contracts) { p2AgentMap.set(c.agentCode, Math.max(p2AgentMap.get(c.agentCode) || 0, c.tinhLuot || 0)); }
-      let p2Rounds = 0;
-      for (const [, maxT] of p2AgentMap) { if (maxT >= luotThreshold) p2Rounds++; }
+      const p2Rounds = calculateLuot(phase2Contracts, luotThreshold, useTVVmFilter, applyTVV90);
       const p2FYP = phase2Contracts.reduce((s, c) => s + c.fyp, 0);
       const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, bonusTiers2);
       phase2Tier = p2Res.tier;
@@ -1240,13 +1304,13 @@ export default function ThiDuaPage() {
     }
 
     return { phase1Bonus, phase2Bonus, phase1Tier, phase2Tier };
-  }, [usePhase2, phase2StartDate, conditionType, calculateBonus, calculateBonusWithTiers, calculateActivityRoundBonus, calculateActivityRoundBonusWithTiers, bonusTiers, bonusTiers2]);
+  }, [usePhase2, phase2StartDate, conditionType, calculateBonus, calculateBonusWithTiers, calculateActivityRoundBonus, calculateActivityRoundBonusWithTiers, bonusTiers, bonusTiers2, useTVVmFilter, useTVV90Filter]);
 
   // Build NYD result rows
   const nydResultRows = useMemo(() => {
     if (!isNYDMode(conditionType)) return [];
     return nydData.map(n => {
-      const value = conditionType === 'nyd_activity' ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
+      const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
       const { tier, tierIndex } = calculateBonus(value);
       return { nyd: n, tier, tierIndex, value };
     }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0));
@@ -1322,32 +1386,79 @@ export default function ThiDuaPage() {
                 {/* Target */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Đối tượng</Label>
-                  <RadioGroup value={targetType} onValueChange={(v) => setTargetType(v as TargetType)} className="space-y-1.5">
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isActivityRoundMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <RadioGroupItem value="tvv" id="tvv" disabled={isActivityRoundMode(conditionType)} />
-                      <Label htmlFor="tvv" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><Users className="w-3.5 h-3.5 text-emerald-400" /> TVV (cá nhân)</div></Label>
-                    </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <RadioGroupItem value="nhom" id="nhom" disabled={isNYDMode(conditionType)} />
-                      <Label htmlFor="nhom" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserCheck className="w-3.5 h-3.5 text-sky-400" /> Theo nhóm (MC NHÓM)</div></Label>
-                    </div>
-                    <div className={`flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5 ${!isNYDMode(conditionType) ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <RadioGroupItem value="nyd" id="nyd" disabled={!isNYDMode(conditionType)} />
-                      <Label htmlFor="nyd" className="cursor-pointer flex-1"><div className="text-xs font-medium flex items-center gap-1 text-white/80"><UserPlus className="w-3.5 h-3.5 text-violet-400" /> Người Tuyển Dụng (NYD)</div></Label>
-                    </div>
-                  </RadioGroup>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => { if (!isActivityRoundMode(conditionType)) setTargetType('tvv'); }}
+                      disabled={isActivityRoundMode(conditionType)}
+                      className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 ${
+                        targetType === 'tvv'
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300/50'
+                          : 'bg-emerald-500/20 text-emerald-300/60 hover:bg-emerald-500/30 hover:text-emerald-200'
+                      } ${isActivityRoundMode(conditionType) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>TVV</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (!isNYDMode(conditionType)) setTargetType('nhom'); }}
+                      disabled={isNYDMode(conditionType)}
+                      className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 ${
+                        targetType === 'nhom'
+                          ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30 ring-2 ring-sky-300/50'
+                          : 'bg-sky-500/20 text-sky-300/60 hover:bg-sky-500/30 hover:text-sky-200'
+                      } ${isNYDMode(conditionType) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      <span>Nhóm</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (isNYDMode(conditionType)) setTargetType('nyd'); }}
+                      disabled={!isNYDMode(conditionType)}
+                      className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 ${
+                        targetType === 'nyd'
+                          ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30 ring-2 ring-violet-300/50'
+                          : 'bg-violet-500/20 text-violet-300/60 hover:bg-violet-500/30 hover:text-violet-200'
+                      } ${!isNYDMode(conditionType) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>NYD</span>
+                    </button>
+                  </div>
                 </div>
                 {/* Condition */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-white/70">Điều kiện</Label>
-                  <RadioGroup value={conditionType} onValueChange={(v) => { setConditionType(v as ConditionType); if (isActivityRoundMode(v as ConditionType)) setTargetType('nhom'); if (isNYDMode(v as ConditionType)) setTargetType('nyd'); }} className="space-y-1.5">
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="per_contract" id="pc" /><Label htmlFor="pc" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Theo HĐ (IP/HĐ)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="total_fyp" id="tf" /><Label htmlFor="tf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Tổng IP</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round" id="ar" /><Label htmlFor="ar" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ (IP ≥ 3tr)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-emerald-500/20 p-2 cursor-pointer hover:bg-white/5"><RadioGroupItem value="activity_round_standard" id="ars" /><Label htmlFor="ars" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80">Lượt HĐ Chuẩn (IP ≥ 12tr)</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_activity" id="nya" /><Label htmlFor="nya" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - Lượt TVVm HĐ</div></Label></div>
-                    <div className="flex items-center space-x-2 rounded-lg border border-violet-500/20 p-2 cursor-pointer hover:bg-violet-500/5"><RadioGroupItem value="nyd_fyp" id="nyf" /><Label htmlFor="nyf" className="cursor-pointer flex-1"><div className="text-xs font-medium text-white/80 flex items-center gap-1"><UserPlus className="w-3 h-3 text-violet-400" /> NYD - FYP TVVm</div></Label></div>
-                  </RadioGroup>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([
+                      { value: 'per_contract' as ConditionType, label: 'Theo HĐ (IP/HĐ)', icon: FileText, selectedCls: 'bg-emerald-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-emerald-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'total_fyp' as ConditionType, label: 'Tổng IP', icon: TrendingUp, selectedCls: 'bg-teal-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-teal-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round' as ConditionType, label: 'Lượt HĐ (IP ≥ 3tr)', icon: Users, selectedCls: 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-amber-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round_standard' as ConditionType, label: 'Lượt HĐ Chuẩn (IP ≥ 12tr)', icon: Award, selectedCls: 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-orange-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'activity_round_tvv90' as ConditionType, label: 'Lượt HĐ TVV90 (IP ≥ 3tr, ≤3T)', icon: Users, selectedCls: 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-rose-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity' as ConditionType, label: 'NYD - Lượt TVVm HĐ', icon: UserPlus, selectedCls: 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-violet-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_activity_tvv90' as ConditionType, label: 'NYD - Lượt TVV90 HĐ', icon: UserPlus, selectedCls: 'bg-fuchsia-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-fuchsia-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                      { value: 'nyd_fyp' as ConditionType, label: 'NYD - FYP TVVm', icon: UserPlus, selectedCls: 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30', unselectedCls: 'bg-purple-600/50 text-white/70 hover:brightness-110 hover:text-white/90' },
+                    ]).map(({ value, label, icon: Icon, selectedCls, unselectedCls }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setConditionType(value);
+                          if (isActivityRoundMode(value)) setTargetType('nhom');
+                          if (isNYDMode(value)) setTargetType('nyd');
+                        }}
+                        className={`flex items-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                          conditionType === value ? selectedCls : unselectedCls
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="leading-tight">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1413,12 +1524,21 @@ export default function ThiDuaPage() {
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-white/70">Tùy chọn</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {/* TVVm Filter - only visible in activity_round mode */}
-                  {isActivityRoundMode(conditionType) && (
+                  {/* TVVm Filter - visible in activity_round mode and NYD activity mode */}
+                  {(isActivityRoundMode(conditionType) || isNYDActivityMode(conditionType)) && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/10 bg-white/[0.02]">
                       <Checkbox id="useTVVmFilter" checked={useTVVmFilter} onCheckedChange={(v) => setUseTVVmFilter(!!v)} />
                       <Label htmlFor="useTVVmFilter" className="text-xs text-white/60 cursor-pointer flex items-center gap-1">
                         <Filter className="w-3 h-3 text-emerald-400" /> Chỉ tính TVVm (≤12 tháng)
+                      </Label>
+                    </div>
+                  )}
+                  {/* TVV90 Filter - visible in activity_round mode and NYD activity mode */}
+                  {(isActivityRoundMode(conditionType) || isNYDActivityMode(conditionType)) && !isTVV90Mode(conditionType) && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-rose-500/10 bg-white/[0.02]">
+                      <Checkbox id="useTVV90Filter" checked={useTVV90Filter} onCheckedChange={(v) => setUseTVV90Filter(!!v)} />
+                      <Label htmlFor="useTVV90Filter" className="text-xs text-white/60 cursor-pointer flex items-center gap-1">
+                        <Filter className="w-3 h-3 text-rose-400" /> Chỉ tính TVV90 (≤3 tháng)
                       </Label>
                     </div>
                   )}
@@ -1483,7 +1603,7 @@ export default function ThiDuaPage() {
 
             {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-orange-900/40 to-amber-900/40 border border-orange-500/20 p-3">
-                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : 'Lượt HĐ Chuẩn'}: IP ≥ {conditionType === 'activity_round' ? '3' : '12'} triệu = 1 lượt</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ TVV90'}: IP ≥ {conditionType === 'activity_round_standard' ? '12' : '3'} triệu = 1 lượt{isTVV90Mode(conditionType) || useTVV90Filter ? ' (TVV90 ≤3T)' : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
               </div>
             )}
             {conditionType === 'total_fyp' && matchedTotalTier && (
@@ -1493,7 +1613,7 @@ export default function ThiDuaPage() {
             )}
             {isNYDMode(conditionType) && nydData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
-                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'} (NYD)</p><p className="text-[10px] text-violet-400/60">{conditionType === 'nyd_activity' ? 'TVVm có IP ≥ 3tr = 1 lượt' : `Tổng FYP TVVm${includeOwnNYD ? ' + IP NYD' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isNYDActivityMode(conditionType) ? (conditionType === 'nyd_activity_tvv90' ? 'Lượt TVV90 HĐ' : 'Lượt TVVm HĐ') : 'FYP TVVm'} (NYD)</p><p className="text-[10px] text-violet-400/60">{isNYDActivityMode(conditionType) ? 'TVV có IP ≥ 3tr/tháng = 1 lượt' : `Tổng FYP TVVm${includeOwnNYD ? ' + IP NYD' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
             )}
           </div>
@@ -1568,7 +1688,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">Chức vụ</TableHead>
                           <TableHead className="text-white min-w-[65px] font-bold text-center">
-                            <div>{conditionType === 'nyd_activity' ? 'Lượt TVVm HĐ' : 'FYP TVVm'}</div>
+                            <div>{isNYDActivityMode(conditionType) ? (conditionType === 'nyd_activity_tvv90' ? 'Lượt TVV90 HĐ' : 'Lượt TVVm HĐ') : 'FYP TVVm'}</div>
                           </TableHead>
                           {includeOwnNYD && (
                             <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
@@ -1600,7 +1720,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
                           <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">
-                            {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : 'Lượt HĐ') : 'Tổng IP'}
+                            {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {usePhase2 ? (
@@ -1693,33 +1813,41 @@ export default function ThiDuaPage() {
                       if (hideNotAchieved && !tier) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
                         const p2Start = new Date(phase2StartDate);
-                        // Use ALL displayContracts, not just nyd.contracts
                         const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
                         const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+                        const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
                         
-                        // Phase 1: find recruited TVVm for this NYD
-                        const p1RecruitedMap = new Map<string, number>();
-                        for (const rc of p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
-                          p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
-                        }
+                        // Phase 1: find recruited TVV for this NYD
+                        const p1Recruited = p1Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode);
                         let p1RecruitCount = 0;
                         let p1RecruitFYP = 0;
-                        for (const [, af] of p1RecruitedMap) { if (af >= 3_000_000) p1RecruitCount++; p1RecruitFYP += af; }
+                        if (isNYDActivityMode(conditionType)) {
+                          p1RecruitCount = calculateLuot(p1Recruited, 3_000_000, useTVVmFilter, applyTVV90);
+                          p1RecruitFYP = p1Recruited.reduce((s, c) => s + c.fyp, 0);
+                        } else {
+                          const p1RecruitedMap = new Map<string, number>();
+                          for (const rc of p1Recruited) { p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.fyp); }
+                          for (const [, af] of p1RecruitedMap) { if (af >= 3_000_000) p1RecruitCount++; p1RecruitFYP += af; }
+                        }
                         const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
-                        const p1Value = conditionType === 'nyd_activity' ? p1RecruitCount : (p1RecruitFYP + (includeOwnNYD ? p1OwnFYP : 0));
+                        const p1Value = isNYDActivityMode(conditionType) ? p1RecruitCount : (p1RecruitFYP + (includeOwnNYD ? p1OwnFYP : 0));
                         const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
                         const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
 
                         // Phase 2
-                        const p2RecruitedMap = new Map<string, number>();
-                        for (const rc of p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode)) {
-                          p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.fyp);
-                        }
+                        const p2Recruited = p2Contracts.filter(c => c.recruiterCode === nyd.nydCode && c.agentCode !== nyd.nydCode);
                         let p2RecruitCount = 0;
                         let p2RecruitFYP = 0;
-                        for (const [, af] of p2RecruitedMap) { if (af >= 3_000_000) p2RecruitCount++; p2RecruitFYP += af; }
+                        if (isNYDActivityMode(conditionType)) {
+                          p2RecruitCount = calculateLuot(p2Recruited, 3_000_000, useTVVmFilter, applyTVV90);
+                          p2RecruitFYP = p2Recruited.reduce((s, c) => s + c.fyp, 0);
+                        } else {
+                          const p2RecruitedMap = new Map<string, number>();
+                          for (const rc of p2Recruited) { p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.fyp); }
+                          for (const [, af] of p2RecruitedMap) { if (af >= 3_000_000) p2RecruitCount++; p2RecruitFYP += af; }
+                        }
                         const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.fyp, 0);
-                        const p2Value = conditionType === 'nyd_activity' ? p2RecruitCount : (p2RecruitFYP + (includeOwnNYD ? p2OwnFYP : 0));
+                        const p2Value = isNYDActivityMode(conditionType) ? p2RecruitCount : (p2RecruitFYP + (includeOwnNYD ? p2OwnFYP : 0));
                         const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
                         const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
 
@@ -1733,7 +1861,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-700">{nyd.nydName}</TableCell>
                           <TableCell className="text-xs text-gray-700">{nyd.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs text-violet-600">
-                            {conditionType === 'nyd_activity' ? `${nyd.recruitCount} lượt` : formatNumber(value)}
+                            {isNYDActivityMode(conditionType) ? `${nyd.recruitCount} ${conditionType === 'nyd_activity_tvv90' ? 'TVV90' : 'TVVm'} lượt` : formatNumber(value)}
                           </TableCell>
                           {includeOwnNYD && (
                             <TableCell className="text-right text-xs text-gray-600">{formatNumber(nyd.ownFYP)}</TableCell>

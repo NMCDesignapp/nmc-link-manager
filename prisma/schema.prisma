@@ -123,6 +123,7 @@ model Contest {
   secondaryIPMin   Float  @default(0)
   hideNotAchieved  Boolean @default(false)
   useTVVmFilter    Boolean @default(false)
+  useTVV90Filter   Boolean @default(false)
   includeOwnNYD    Boolean @default(false)
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")

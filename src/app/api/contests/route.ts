@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       bonusTiers, posterUrl, participants,
       usePhase2, phase2StartDate, phase2EndDate, bonusTiers2,
       useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
-      hideNotAchieved, useTVVmFilter, includeOwnNYD,
+      hideNotAchieved, useTVVmFilter, useTVV90Filter, includeOwnNYD,
     } = body as {
       title: string;
       startDate: string;
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       secondaryIPMin?: number;
       hideNotAchieved?: boolean;
       useTVVmFilter?: boolean;
+      useTVV90Filter?: boolean;
       includeOwnNYD?: boolean;
     };
 
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       secondaryIPMin: secondaryIPMin ?? 0,
       hideNotAchieved: hideNotAchieved ?? false,
       useTVVmFilter: useTVVmFilter ?? false,
+      useTVV90Filter: useTVV90Filter ?? false,
       includeOwnNYD: includeOwnNYD ?? false,
     };
 
