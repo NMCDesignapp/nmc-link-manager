@@ -1,15 +1,28 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database } from 'lucide-react'
+import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database, Link2, Star, Edit, Trash2, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSettings, AppSettings, defaultSettings } from '@/hooks/use-settings'
-import { motion, AnimatePresence, overlayVariants, modalVariants, popVariants, staggerContainer, staggerItem } from '@/lib/animations'
+import { Link } from '@/lib/types'
+import { motion, AnimatePresence, overlayVariants, modalVariants, staggerContainer, staggerItem } from '@/lib/animations'
+import useSWR, { mutate } from 'swr'
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Fetch error')
+  return res.json()
+}
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  globe: Globe,
+}
 
 interface SettingsPanelProps {
   isOpen: boolean
   onClose: () => void
   onAddLink: () => void
+  onEditLink: (link: Link) => void
   onOpenStats: () => void
 }
 
@@ -28,12 +41,17 @@ const ANIMATION_SPEEDS = [
   { name: 'Nhanh', value: 'fast' },
 ]
 
-export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: SettingsPanelProps) {
+export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenStats }: SettingsPanelProps) {
   const { settings, updateSettings, isLoading } = useSettings()
+  const { data: linksData } = useSWR<Link[]>('/api/links', fetcher)
   const [localSettings, setLocalSettings] = useState<AppSettings>(defaultSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [showLinkManager, setShowLinkManager] = useState(false)
   const initializedRef = useRef(false)
+
+  const links = Array.isArray(linksData) ? linksData : []
+  const neonColor = localSettings.neon_color || '#00ff88'
 
   useEffect(() => {
     if (settings && !isLoading && !initializedRef.current) {
@@ -47,6 +65,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
       setLocalSettings(settings)
       setHasChanges(false)
       initializedRef.current = true
+      setShowLinkManager(false)
     }
   }, [isOpen, settings])
 
@@ -73,9 +92,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
 
   const handleColorChange = (color: string) => {
     handleChange('neon_color', color)
-    // Apply immediately to DOM
     document.documentElement.style.setProperty('--primary', color)
-    // Also save to localStorage immediately for instant persistence
     try {
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('nmc-app-settings')
@@ -84,6 +101,32 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
       }
     } catch {
       // ignore
+    }
+  }
+
+  const handleDeleteLink = async (id: number) => {
+    if (confirm('Ban co chac muon xoa lien ket nay?')) {
+      try {
+        await fetch(`/api/links/${id}`, { method: 'DELETE' })
+        mutate('/api/links')
+        mutate('/api/stats')
+      } catch (error) {
+        console.error('Failed to delete link:', error)
+      }
+    }
+  }
+
+  const handleToggleFavorite = async (id: number, isFavorite: boolean) => {
+    try {
+      await fetch(`/api/links/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_favorite: isFavorite }),
+      })
+      mutate('/api/links')
+      mutate('/api/stats')
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
     }
   }
 
@@ -100,7 +143,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
         >
           <motion.div
             className="mx-4 w-full max-w-sm rounded-xl p-5 max-h-[90vh] overflow-y-auto"
-            style={{ background: '#141420', border: '1px solid rgba(0, 255, 136, 0.15)' }}
+            style={{ background: '#141420', border: `1px solid ${neonColor}20` }}
             onClick={e => e.stopPropagation()}
             variants={modalVariants}
             initial="initial"
@@ -119,7 +162,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                   animate={{ rotate: [0, 180, 360] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 >
-                  <Settings className="w-5 h-5 text-primary" />
+                  <Settings className="w-5 h-5" style={{ color: neonColor }} />
                 </motion.div>
                 <h2 className="text-base font-semibold">Cai dat</h2>
               </div>
@@ -158,35 +201,119 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                     <Zap className="w-3.5 h-3.5" />
                     <span>Thao tac nhanh</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <motion.button
                       onClick={() => {
                         onClose()
                         onAddLink()
                       }}
-                      className="py-2.5 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 neon-btn neon-press text-primary"
-                      style={{ background: 'rgba(0, 255, 136, 0.1)', border: '1px solid rgba(0, 255, 136, 0.3)' }}
+                      className="py-2.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 neon-btn neon-press"
+                      style={{ color: neonColor, background: `${neonColor}10`, border: `1px solid ${neonColor}30` }}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
                       Them link
+                    </motion.button>
+                    <motion.button
+                      onClick={() => setShowLinkManager(!showLinkManager)}
+                      className="py-2.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 smooth-transition"
+                      style={{
+                        background: showLinkManager ? `${neonColor}20` : `${neonColor}10`,
+                        border: `1px solid ${neonColor}30`,
+                        color: neonColor,
+                      }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      QL link
                     </motion.button>
                     <motion.button
                       onClick={() => {
                         onClose()
                         onOpenStats()
                       }}
-                      className="py-2.5 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 smooth-transition"
+                      className="py-2.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 smooth-transition"
                       style={{ background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', color: '#00d4ff' }}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <BarChart3 className="w-4 h-4" />
+                      <BarChart3 className="w-3.5 h-3.5" />
                       Thong ke
                     </motion.button>
                   </div>
                 </motion.div>
+
+                {/* Link Manager - collapsible */}
+                <AnimatePresence>
+                  {showLinkManager && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                        {links.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-3">Chua co lien ket nao</p>
+                        ) : (
+                          links.map((link) => (
+                            <div
+                              key={link.id}
+                              className="flex items-center gap-2 p-2 rounded-lg"
+                              style={{
+                                background: `${neonColor}08`,
+                                border: `1px solid ${neonColor}15`,
+                              }}
+                            >
+                              <div
+                                className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
+                                style={{ background: `${neonColor}15` }}
+                              >
+                                {(() => {
+                                  const IconComp = ICON_MAP[link.icon || 'globe'] || Globe
+                                  return <IconComp className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                                })()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="block text-xs font-medium truncate">{link.title}</span>
+                                <span className="block text-[10px] text-muted-foreground truncate">{link.url || link.link_type}</span>
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <motion.button
+                                  onClick={() => handleToggleFavorite(link.id, !link.is_favorite)}
+                                  className="p-1 rounded"
+                                  whileTap={{ scale: 0.85 }}
+                                >
+                                  <Star className={cn('w-3 h-3', link.is_favorite && 'fill-yellow-400 text-yellow-400')} />
+                                </motion.button>
+                                <motion.button
+                                  onClick={() => {
+                                    onClose()
+                                    setTimeout(() => onEditLink(link), 300)
+                                  }}
+                                  className="p-1 rounded hover:bg-white/10"
+                                  whileTap={{ scale: 0.85 }}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </motion.button>
+                                <motion.button
+                                  onClick={() => handleDeleteLink(link.id)}
+                                  className="p-1 rounded text-red-400 hover:bg-red-400/10"
+                                  whileTap={{ scale: 0.85 }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </motion.button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Profile Section */}
                 <motion.div
@@ -228,7 +355,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Database className="w-3.5 h-3.5" />
-                    <span>Nguồn dữ liệu thi đua</span>
+                    <span>Nguon du lieu thi dua</span>
                   </div>
                   <div className="space-y-1.5">
                     <input
@@ -239,7 +366,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                       className="w-full px-3 py-2.5 rounded-lg text-xs font-mono neon-input"
                       style={{ background: '#1a1a2e' }}
                     />
-                    <p className="text-[10px] text-muted-foreground/60">Liên kết Google Sheets (CSV) để đồng bộ dữ liệu hợp đồng cho trang thi đua</p>
+                    <p className="text-[10px] text-muted-foreground/60">Lien ket Google Sheets (CSV) de dong bo du lieu hop dong cho trang thi dua</p>
                   </div>
                 </motion.div>
 
@@ -297,9 +424,13 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                         className={cn(
                           'flex-1 py-2 px-3 rounded-lg text-sm font-medium smooth-transition neon-press',
                           localSettings.animation_speed === speed.value
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'text-primary'
                             : 'bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10'
                         )}
+                        style={localSettings.animation_speed === speed.value ? {
+                          background: `${neonColor}15`,
+                          border: `1px solid ${neonColor}30`,
+                        } : {}}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         layout
@@ -328,15 +459,16 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                       style={{ background: '#1a1a2e' }}
                     >
                       <div className="flex items-center gap-2">
-                        <toggle.icon className="w-4 h-4 text-primary" />
+                        <toggle.icon className="w-4 h-4" style={{ color: neonColor }} />
                         <span className="text-sm">{toggle.label}</span>
                       </div>
                       <motion.button
                         onClick={() => handleChange(toggle.key, localSettings[toggle.key] === 'true' ? 'false' : 'true')}
                         className={cn(
                           'w-11 h-6 rounded-full smooth-transition relative',
-                          localSettings[toggle.key] === 'true' ? 'bg-primary' : 'bg-white/20'
+                          localSettings[toggle.key] === 'true' ? '' : 'bg-white/20'
                         )}
+                        style={localSettings[toggle.key] === 'true' ? { background: neonColor } : {}}
                       >
                         <motion.span
                           className="absolute top-1 w-4 h-4 rounded-full bg-white"
@@ -359,8 +491,8 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onOpenStats }: Setti
                       className={cn(
                         'w-full py-3 rounded-xl font-medium text-sm',
                         'flex items-center justify-center gap-2 neon-btn neon-press',
-                        'text-primary'
                       )}
+                      style={{ color: neonColor }}
                       initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                       animate={{ opacity: 1, height: 'auto', marginBottom: 0 }}
                       exit={{ opacity: 0, height: 0 }}

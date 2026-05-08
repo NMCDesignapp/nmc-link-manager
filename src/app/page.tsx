@@ -121,7 +121,7 @@ export default function Home() {
   const categories = Array.isArray(categoriesData) ? categoriesData : []
   const { settings } = useSettings()
 
-  // Load neon color from localStorage immediately on mount (before server responds)
+  // Load neon color from localStorage immediately on mount
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -193,32 +193,6 @@ export default function Home() {
     }
   }
 
-  const handleDeleteLink = async (id: number) => {
-    if (confirm('Ban co chac muon xoa lien ket nay?')) {
-      try {
-        await fetch(`/api/links/${id}`, { method: 'DELETE' })
-        mutate('/api/links')
-        mutate('/api/stats')
-      } catch (error) {
-        console.error('Failed to delete link:', error)
-      }
-    }
-  }
-
-  const handleToggleFavorite = async (id: number, isFavorite: boolean) => {
-    try {
-      await fetch(`/api/links/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_favorite: isFavorite }),
-      })
-      mutate('/api/links')
-      mutate('/api/stats')
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-    }
-  }
-
   const handleExport = (format: 'json' | 'csv') => {
     window.open(`/api/export?format=${format}&category=all`, '_blank')
   }
@@ -247,7 +221,7 @@ export default function Home() {
             style={{
               background: saveStatus === 'success' ? 'rgba(0, 255, 136, 0.15)' : saveStatus === 'error' ? 'rgba(255, 68, 68, 0.15)' : 'rgba(0, 255, 136, 0.1)',
               border: `1px solid ${saveStatus === 'success' ? 'rgba(0, 255, 136, 0.3)' : saveStatus === 'error' ? 'rgba(255, 68, 68, 0.3)' : 'rgba(0, 255, 136, 0.2)'}`,
-              color: saveStatus === 'error' ? '#ff4444' : '#00ff88',
+              color: saveStatus === 'error' ? '#ff4444' : neonColor,
               backdropFilter: 'blur(12px)',
             }}
           >
@@ -273,7 +247,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Header - fixed */}
+      {/* Header - fixed at top */}
       <motion.header
         className="max-w-lg mx-auto w-full px-4 pt-6 pb-3 text-center relative flex-shrink-0"
         initial={{ opacity: 0, y: -20 }}
@@ -332,7 +306,7 @@ export default function Home() {
 
       {/* Thi Đua Navigation Button */}
       <motion.div
-        className="max-w-lg mx-auto w-full px-4 pb-2"
+        className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.3 }}
@@ -354,18 +328,16 @@ export default function Home() {
         </motion.button>
       </motion.div>
 
-      {/* Scrollable content area */}
+      {/* Scrollable content area - only the link buttons section scrolls */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-2">
-          {/* DB Error is silently handled - links will show empty state */}
-
-          {/* Links Container - scrollable */}
+        <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
+          {/* Links Grid - 2 per row, scrollable */}
           {linksLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => (
+            <div className="grid grid-cols-2 gap-2">
+              {[1, 2, 3, 4].map(i => (
                 <motion.div
                   key={i}
-                  className="h-16 rounded-xl bg-card border border-border/50"
+                  className="h-20 rounded-xl bg-card border border-border/50"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1, duration: 0.3 }}
@@ -394,7 +366,7 @@ export default function Home() {
             </motion.div>
           ) : (
             <motion.div
-              className="space-y-2.5"
+              className="grid grid-cols-2 gap-2"
               variants={staggerContainer}
               initial="initial"
               animate="animate"
@@ -410,13 +382,8 @@ export default function Home() {
                     <LinkCard
                       link={link}
                       index={index}
+                      neonColor={neonColor}
                       onOpen={handleOpenLink}
-                      onEdit={link => {
-                        setEditingLink(link)
-                        setIsAddModalOpen(true)
-                      }}
-                      onDelete={handleDeleteLink}
-                      onToggleFavorite={handleToggleFavorite}
                     />
                   </motion.div>
                 ))}
@@ -424,21 +391,23 @@ export default function Home() {
             </motion.div>
           )}
         </div>
+      </div>
 
-        {/* Neon Divider - below links */}
-        <div className="max-w-lg mx-auto w-full px-6 pt-3">
+      {/* Calendar - pinned to bottom, not scrollable */}
+      <div className="flex-shrink-0">
+        {/* Neon Divider - above calendar */}
+        <div className="max-w-lg mx-auto w-full px-6 pt-1">
           <NeonDivider color={neonColor} />
         </div>
 
-        {/* Calendar - wider, brighter */}
         <motion.div
-          className="max-w-lg mx-auto w-full px-4 pt-3 pb-6"
+          className="max-w-lg mx-auto w-full px-4 pt-2 pb-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
           <div
-            className="rounded-xl p-4"
+            className="rounded-xl p-3"
             style={{
               background: 'rgba(40, 40, 65, 0.7)',
               border: `1px solid ${neonColor}18`,
@@ -446,7 +415,7 @@ export default function Home() {
               boxShadow: `inset 0 0 30px ${neonColor}05, 0 0 20px ${neonColor}08`,
             }}
           >
-            <MonthlyCalendar neonColor={neonColor} />
+            <MonthlyCalendar neonColor={neonColor} compact />
           </div>
         </motion.div>
       </div>
@@ -476,6 +445,10 @@ export default function Home() {
         onClose={() => setIsSettingsOpen(false)}
         onAddLink={() => {
           setEditingLink(null)
+          setIsAddModalOpen(true)
+        }}
+        onEditLink={(link) => {
+          setEditingLink(link)
           setIsAddModalOpen(true)
         }}
         onOpenStats={() => setIsStatsOpen(true)}
