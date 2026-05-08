@@ -12,6 +12,7 @@ export interface AppSettings {
   enable_neon_effects: string
   profile_name: string
   profile_bio: string
+  csv_url: string
 }
 
 export const defaultSettings: AppSettings = {
@@ -23,6 +24,7 @@ export const defaultSettings: AppSettings = {
   enable_neon_effects: 'true',
   profile_name: 'N.M.C',
   profile_bio: 'Tat ca lien ket cua toi',
+  csv_url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv',
 }
 
 const SETTINGS_STORAGE_KEY = 'nmc-app-settings'
