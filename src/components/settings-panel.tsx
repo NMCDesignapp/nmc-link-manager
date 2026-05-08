@@ -36,8 +36,8 @@ const NEON_COLORS = [
 ]
 
 const ANIMATION_SPEEDS = [
-  { name: 'Cham', value: 'slow' },
-  { name: 'Binh thuong', value: 'normal' },
+  { name: 'Chậm', value: 'slow' },
+  { name: 'Bình thường', value: 'normal' },
   { name: 'Nhanh', value: 'fast' },
 ]
 
@@ -105,7 +105,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
   }
 
   const handleDeleteLink = async (id: number) => {
-    if (confirm('Ban co chac muon xoa lien ket nay?')) {
+    if (confirm('Bạn có chắc muốn xóa liên kết này?')) {
       try {
         await fetch(`/api/links/${id}`, { method: 'DELETE' })
         mutate('/api/links')
@@ -164,7 +164,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <Settings className="w-5 h-5" style={{ color: neonColor }} />
                 </motion.div>
-                <h2 className="text-base font-semibold">Cai dat</h2>
+                <h2 className="text-base font-semibold">Cài đặt</h2>
               </div>
               <motion.button
                 onClick={onClose}
@@ -199,7 +199,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Zap className="w-3.5 h-3.5" />
-                    <span>Thao tac nhanh</span>
+                    <span>Thao tác nhanh</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <motion.button
@@ -213,7 +213,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       whileTap={{ scale: 0.97 }}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Them link
+                      Thêm link
                     </motion.button>
                     <motion.button
                       onClick={() => setShowLinkManager(!showLinkManager)}
@@ -227,7 +227,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       whileTap={{ scale: 0.97 }}
                     >
                       <Link2 className="w-3.5 h-3.5" />
-                      QL link
+                      Quản lý link
                     </motion.button>
                     <motion.button
                       onClick={() => {
@@ -240,7 +240,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       whileTap={{ scale: 0.97 }}
                     >
                       <BarChart3 className="w-3.5 h-3.5" />
-                      Thong ke
+                      Thống kê
                     </motion.button>
                   </div>
                 </motion.div>
@@ -257,7 +257,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                     >
                       <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                         {links.length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-3">Chua co lien ket nao</p>
+                          <p className="text-xs text-muted-foreground text-center py-3">Chưa có liên kết nào</p>
                         ) : (
                           links.map((link) => (
                             <div
@@ -324,14 +324,14 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <User className="w-3.5 h-3.5" />
-                    <span>Ho so</span>
+                    <span>Hồ sơ</span>
                   </div>
                   <div className="space-y-2">
                     <input
                       type="text"
                       value={localSettings.profile_name}
                       onChange={e => handleChange('profile_name', e.target.value)}
-                      placeholder="Ten hien thi"
+                      placeholder="Tên hiển thị"
                       className="w-full px-3 py-2.5 rounded-lg text-sm neon-input"
                       style={{ background: '#1a1a2e' }}
                     />
@@ -339,7 +339,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       type="text"
                       value={localSettings.profile_bio}
                       onChange={e => handleChange('profile_bio', e.target.value)}
-                      placeholder="Mo ta ngan"
+                      placeholder="Mô tả ngắn"
                       className="w-full px-3 py-2.5 rounded-lg text-sm neon-input"
                       style={{ background: '#1a1a2e' }}
                     />
@@ -355,7 +355,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Database className="w-3.5 h-3.5" />
-                    <span>Nguon du lieu thi dua</span>
+                    <span>Nguồn dữ liệu thi đua</span>
                   </div>
                   <div className="space-y-1.5">
                     <input
@@ -366,7 +366,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       className="w-full px-3 py-2.5 rounded-lg text-xs font-mono neon-input"
                       style={{ background: '#1a1a2e' }}
                     />
-                    <p className="text-[10px] text-muted-foreground/60">Lien ket Google Sheets (CSV) de dong bo du lieu hop dong cho trang thi dua</p>
+                    <p className="text-[10px] text-muted-foreground/60">Liên kết Google Sheets (CSV) để đồng bộ dữ liệu hợp đồng cho trang thi đua</p>
                   </div>
                 </motion.div>
 
@@ -379,7 +379,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Palette className="w-3.5 h-3.5" />
-                    <span>Mau neon</span>
+                    <span>Màu neon</span>
                   </div>
                   <div className="grid grid-cols-6 gap-2">
                     {NEON_COLORS.map((color, i) => (
@@ -414,7 +414,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 >
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Zap className="w-3.5 h-3.5" />
-                    <span>Toc do hieu ung</span>
+                    <span>Tốc độ hiệu ứng</span>
                   </div>
                   <div className="flex gap-2">
                     {ANIMATION_SPEEDS.map(speed => (
@@ -449,9 +449,9 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                   transition={{ delay: 0.3 }}
                 >
                   {[
-                    { key: 'enable_neon_effects' as const, icon: Zap, label: 'Hieu ung neon' },
-                    { key: 'enable_haptic' as const, icon: Vibrate, label: 'Rung phan hoi' },
-                    { key: 'enable_sound' as const, icon: Volume2, label: 'Am thanh' },
+                    { key: 'enable_neon_effects' as const, icon: Zap, label: 'Hiệu ứng neon' },
+                    { key: 'enable_haptic' as const, icon: Vibrate, label: 'Rung phản hồi' },
+                    { key: 'enable_sound' as const, icon: Volume2, label: 'Âm thanh' },
                   ].map((toggle) => (
                     <label
                       key={toggle.key}
@@ -506,7 +506,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                       >
                         <Save className="w-4 h-4" />
                       </motion.div>
-                      {isSaving ? 'Dang luu...' : 'Luu thay doi'}
+                      {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </motion.button>
                   )}
                 </AnimatePresence>
