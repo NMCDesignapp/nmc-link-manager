@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
       bonusTiers, posterUrl, participants,
       usePhase2, phase2StartDate, phase2EndDate, bonusTiers2,
       useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
-      hideNotAchieved, useTVVmFilter, useTVV90Filter, includeOwnNYD,
+      secondaryLuotHDMin, secondaryLuotHDCMin,
+      secondaryLuotHDFilter, secondaryLuotHDCFilter,
+      hideNotAchieved, includeIndividualNTD, includeIndividualTN,
+      luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
     } = body as {
       title: string;
       startDate: string;
@@ -41,10 +44,17 @@ export async function POST(request: NextRequest) {
       useSecondaryCondition?: boolean;
       secondaryAFYPMin?: number;
       secondaryIPMin?: number;
+      secondaryLuotHDMin?: number;
+      secondaryLuotHDCMin?: number;
+      secondaryLuotHDFilter?: string;
+      secondaryLuotHDCFilter?: string;
       hideNotAchieved?: boolean;
-      useTVVmFilter?: boolean;
-      useTVV90Filter?: boolean;
-      includeOwnNYD?: boolean;
+      includeIndividualNTD?: boolean;
+      includeIndividualTN?: boolean;
+      luotHDThreshold?: number;
+      luotHDCTThreshold?: number;
+      tvv90MaxMonths?: number;
+      tvv90MinIP?: number;
     };
 
     if (!title || !startDate || !endDate) {
@@ -71,10 +81,17 @@ export async function POST(request: NextRequest) {
       useSecondaryCondition: useSecondaryCondition ?? false,
       secondaryAFYPMin: secondaryAFYPMin ?? 0,
       secondaryIPMin: secondaryIPMin ?? 0,
+      secondaryLuotHDMin: secondaryLuotHDMin ?? 0,
+      secondaryLuotHDCMin: secondaryLuotHDCMin ?? 0,
+      secondaryLuotHDFilter: secondaryLuotHDFilter || 'all',
+      secondaryLuotHDCFilter: secondaryLuotHDCFilter || 'all',
       hideNotAchieved: hideNotAchieved ?? false,
-      useTVVmFilter: useTVVmFilter ?? false,
-      useTVV90Filter: useTVV90Filter ?? false,
-      includeOwnNYD: includeOwnNYD ?? false,
+      includeIndividualNTD: includeIndividualNTD ?? false,
+      includeIndividualTN: includeIndividualTN ?? false,
+      luotHDThreshold: luotHDThreshold ?? 3_000_000,
+      luotHDCTThreshold: luotHDCTThreshold ?? 12_000_000,
+      tvv90MaxMonths: tvv90MaxMonths ?? 3,
+      tvv90MinIP: tvv90MinIP ?? 12_000_000,
     };
 
     if (existing) {

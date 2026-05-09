@@ -102,7 +102,7 @@ model Contest {
   startDate       DateTime
   endDate         DateTime
   issueDate       DateTime?
-  conditionType   String   @default("per_contract")
+  conditionType   String   @default("per_contract_ip")
   targetType      String   @default("tvv")
   bonusTiers      String
   posterUrl       String   @default("")
@@ -114,10 +114,17 @@ model Contest {
   useSecondaryCondition Boolean @default(false)
   secondaryAFYPMin Float  @default(0)
   secondaryIPMin   Float  @default(0)
+  secondaryLuotHDMin   Float @default(0)
+  secondaryLuotHDCMin  Float @default(0)
+  secondaryLuotHDFilter String @default("all")
+  secondaryLuotHDCFilter String @default("all")
   hideNotAchieved  Boolean @default(false)
-  useTVVmFilter    Boolean @default(false)
-  useTVV90Filter   Boolean @default(false)
-  includeOwnNYD    Boolean @default(false)
+  includeIndividualNTD Boolean @default(false)
+  includeIndividualTN  Boolean @default(false)
+  luotHDThreshold  Float  @default(3000000)
+  luotHDCTThreshold Float @default(12000000)
+  tvv90MaxMonths   Float  @default(3)
+  tvv90MinIP       Float  @default(12000000)
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")
