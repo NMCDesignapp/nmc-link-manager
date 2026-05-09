@@ -633,7 +633,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                           ) : (
                             Object.entries(groupedStaff).sort(([a], [b]) => a.localeCompare(b)).map(([maNhom, members]) => {
                               const leader = members.find(m =>
-                                m.position && (m.position.toLowerCase().includes('trưởng nhóm') || m.position.toLowerCase().includes('trưởng ban') || m.position.toLowerCase().includes('tiền trưởng'))
+                                m.position && (m.position.toLowerCase().trim() === 'trưởng nhóm' || m.position.toLowerCase().trim() === 'trưởng ban')
                               )
                               const groupLabel = maNhom === '_none' ? 'Chưa phân nhóm' : (members[0]?.nhom || maNhom)
                               const isExpanded = expandedGroup === maNhom
