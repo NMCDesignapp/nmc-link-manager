@@ -46,10 +46,8 @@ export async function POST(request: NextRequest) {
       agentCode: string;
       agentName: string;
       position: string;
-      ban: string;
       nhom: string;
       maNhom: string;
-      leaderAgentCode: string;
       startDate: Date | null;
     }>();
 
@@ -135,10 +133,8 @@ export async function POST(request: NextRequest) {
           agentCode,
           agentName,
           position,
-          ban,
           nhom,
           maNhom,
-          leaderAgentCode,
           startDate,
         });
       }
@@ -165,20 +161,16 @@ export async function POST(request: NextRequest) {
         update: {
           agentName: agent.agentName,
           position: agent.position,
-          ban: agent.ban,
           nhom: agent.nhom,
           maNhom: agent.maNhom,
-          leaderAgentCode: agent.leaderAgentCode,
           startDate: agent.startDate,
         },
         create: {
           agentCode: agent.agentCode,
           agentName: agent.agentName,
           position: agent.position,
-          ban: agent.ban,
           nhom: agent.nhom,
           maNhom: agent.maNhom,
-          leaderAgentCode: agent.leaderAgentCode,
           startDate: agent.startDate,
         },
       })
