@@ -558,7 +558,8 @@ export default function ThiDuaPage() {
       if (targetType === 'tvv') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName);
       if (targetType === 'nyd') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
         (c.recruiterCode && subjectCodes.includes(c.recruiterCode));
-      return subjectCodes.includes(c.maNhom);
+      // Nhóm: lọc theo mã nhóm HOẶC tên nhóm
+      return subjectCodes.includes(c.maNhom) || subjectCodes.includes(c.nhom);
     });
   }, [filteredContracts, subjectCodes, targetType]);
 
@@ -567,19 +568,39 @@ export default function ThiDuaPage() {
     if (!isNYDMode(conditionType)) return [];
     const nydMap = new Map<string, NYDData>();
 
-    // Step 1: Load ALL NTD from Recruiter table (primary source for NTD info)
-    for (const r of recruiterList) {
-      nydMap.set(r.agentCode, {
-        nydCode: r.agentCode,
-        nydName: r.agentName,
-        nhom: r.nhom,
-        position: r.position || '',
-        startDate: r.startDate,
-        recruitCount: 0,
-        recruitFYP: 0,
-        ownFYP: 0,
-        contracts: [],
-      });
+    // Step 1: Load NTD from Recruiter table
+    // Nếu có DS đối tượng → chỉ lấy NTD trong DS, ngược lại lấy tất cả
+    if (subjectCodes.length > 0) {
+      for (const r of recruiterList) {
+        if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
+          nydMap.set(r.agentCode, {
+            nydCode: r.agentCode,
+            nydName: r.agentName,
+            nhom: r.nhom,
+            position: r.position || '',
+            startDate: r.startDate,
+            recruitCount: 0,
+            recruitFYP: 0,
+            ownFYP: 0,
+            contracts: [],
+          });
+        }
+      }
+    } else {
+      // Không có DS đối tượng → lấy tất cả NTD
+      for (const r of recruiterList) {
+        nydMap.set(r.agentCode, {
+          nydCode: r.agentCode,
+          nydName: r.agentName,
+          nhom: r.nhom,
+          position: r.position || '',
+          startDate: r.startDate,
+          recruitCount: 0,
+          recruitFYP: 0,
+          ownFYP: 0,
+          contracts: [],
+        });
+      }
     }
 
     // Step 2: Calculate recruit data using recruiterCode from contracts
@@ -618,14 +639,27 @@ export default function ThiDuaPage() {
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, recruiterList, useTVVmFilter, useTVV90Filter]);
+  }, [displayContracts, conditionType, recruiterList, subjectCodes, useTVVmFilter, useTVV90Filter]);
 
   // Grouped data - use Staff table as reference for group membership
-  // Nhóm: ánh xạ theo mã nhóm (maNhom) sang bảng doanh số
+  // Nhóm: ánh xạ theo mã nhóm (maNhom) hoặc tên nhóm sang bảng doanh số
   // Trưởng nhóm: tìm theo chức vụ trong Staff table
+  // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
+
+    // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
+    const allowedMaNhom = new Set<string>();
+    const allowedNhomNames = new Set<string>();
+    if (subjectCodes.length > 0) {
+      // Người dùng nhập DS đối tượng → chỉ lấy nhóm trong DS
+      // Hỗ trợ nhập mã nhóm hoặc tên nhóm
+      for (const code of subjectCodes) {
+        allowedMaNhom.add(code);
+        allowedNhomNames.add(code);
+      }
+    }
 
     // Step 1: Build unique groups from Staff table
     // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm theo chức vụ
@@ -637,6 +671,8 @@ export default function ThiDuaPage() {
         }
       }
       for (const [maNhom, info] of uniqueGroups) {
+        // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
+        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(maNhom) && !allowedNhomNames.has(info.nhom)) continue;
         map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
       }
       // Find leader by position: Trưởng nhóm / Trưởng ban / Tiền trưởng nhóm
@@ -657,10 +693,12 @@ export default function ThiDuaPage() {
     }
 
     // Step 2: Add contracts data to the groups (using maNhom to map)
+    // displayContracts đã được lọc theo subjectCodes ở bước trước
     for (const c of displayContracts) {
       const key = c.maNhom;
       if (!map.has(key)) {
-        // Group not in staff list, create from contract data
+        // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
+        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(key) && !allowedNhomNames.has(c.nhom)) continue;
         map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
       }
       const g = map.get(key)!;
@@ -690,7 +728,7 @@ export default function ThiDuaPage() {
       }
     }
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, contracts, staffList, useTVVmFilter, useTVV90Filter]);
+  }, [displayContracts, targetType, conditionType, contracts, staffList, subjectCodes, useTVVmFilter, useTVV90Filter]);
 
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
@@ -1933,9 +1971,9 @@ export default function ThiDuaPage() {
                 <p className="font-medium">Đã nhập {subjectCodes.length} đối tượng</p>
               </div>
             )}
-            {contracts.length > 0 && (
+            {(targetType === 'tvv' ? contracts.length > 0 : targetType === 'nyd' ? recruiterList.length > 0 : staffList.length > 0) && (
               <div className="space-y-1">
-                <Label className="text-xs text-white/40">Đối tượng có sẵn ({targetType === 'tvv' ? 'TVV' : targetType === 'nyd' ? 'NYD' : 'Nhóm'}):</Label>
+                <Label className="text-xs text-white/40">Đối tượng có sẵn ({targetType === 'tvv' ? 'TVV' : targetType === 'nyd' ? 'NTD' : 'Nhóm'}):</Label>
                 <div className="max-h-24 overflow-y-auto rounded-lg border border-emerald-500/20 p-1.5">
                   <div className="flex flex-wrap gap-1">
                     {targetType === 'tvv'
@@ -1943,11 +1981,11 @@ export default function ThiDuaPage() {
                           <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-white/5 hover:bg-sky-500/10 border border-emerald-500/20 text-white/60 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
                         ))
                       : targetType === 'nyd'
-                        ? [...new Set(contracts.filter(c => c.position && ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'].some(p => c.position.toLowerCase().includes(p))).map(c => c.agentCode))].map(code => (
-                            <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-white/5 hover:bg-sky-500/10 border border-emerald-500/20 text-white/60 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
+                        ? recruiterList.map(r => (
+                            <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-white/5 hover:bg-sky-500/10 border border-emerald-500/20 text-white/60 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
                           ))
-                        : [...new Set(contracts.map(c => c.maNhom))].map(nhom => (
-                            <button key={nhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + nhom : nhom)} className="px-1.5 py-0.5 text-[9px] bg-white/5 hover:bg-sky-500/10 border border-emerald-500/20 text-white/60 hover:text-sky-400 rounded cursor-pointer transition-colors">{nhom}</button>
+                        : [...new Map(staffList.filter(s => s.maNhom).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
+                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-white/5 hover:bg-sky-500/10 border border-emerald-500/20 text-white/60 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
                           ))
                     }
                   </div>
