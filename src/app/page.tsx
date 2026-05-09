@@ -313,14 +313,12 @@ export default function Home() {
       >
         <motion.button
           onClick={() => router.push('/thi-dua-chau')}
-          className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold"
+          className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
           style={{
-            background: `linear-gradient(135deg, ${neonColor}15, ${neonColor}25)`,
-            border: `1px solid ${neonColor}40`,
-            color: neonColor,
-            boxShadow: `0 0 15px ${neonColor}15`,
+            background: '#f59e0b',
+            boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset',
           }}
-          whileHover={{ scale: 1.02, boxShadow: `0 0 25px ${neonColor}30` }}
+          whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
           whileTap={{ scale: 0.98 }}
         >
           <Trophy className="w-4 h-4" />
@@ -409,10 +407,10 @@ export default function Home() {
           <div
             className="rounded-xl p-3"
             style={{
-              background: 'rgba(40, 40, 65, 0.7)',
-              border: `1px solid ${neonColor}18`,
+              background: 'rgba(60, 60, 95, 0.85)',
+              border: '1px solid rgba(255,255,255,0.12)',
               backdropFilter: 'blur(12px)',
-              boxShadow: `inset 0 0 30px ${neonColor}05, 0 0 20px ${neonColor}08`,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}
           >
             <MonthlyCalendar neonColor={neonColor} compact />
