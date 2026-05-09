@@ -99,17 +99,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Import Staff CSV (7 columns: STT, Nhóm, Mã nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
+    // 2. Import Staff CSV (7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu)
+    // DS Nhóm — chỉ chứa trưởng nhóm/trưởng ban, có mã nhóm để ánh xạ
     if (staffCsv) {
       try {
+        await db.staff.deleteMany();
         const lines = staffCsv.split('\n').filter(l => l.trim() !== '');
         const dataLines = lines.slice(1);
-        const staffUpserts = [];
+        const staffRecords = [];
 
         for (const line of dataLines) {
           const columns = parseCSVLine(line);
           // Column mapping (7 columns):
-          // 0: STT, 1: Nhóm, 2: Mã nhóm, 3: Mã số, 4: Họ tên, 5: Chức vụ, 6: Ngày bắt đầu
+          // 0: STT, 1: Nhóm, 2: Mã nhóm, 3: Mã TN, 4: Họ tên TN, 5: Chức vụ, 6: Ngày bắt đầu
           const nhom = columns[1] || '';
           const maNhom = columns[2] || '';
           const agentCode = columns[3] || '';
@@ -119,18 +121,15 @@ export async function POST(request: NextRequest) {
 
           if (!agentCode || !agentName) continue;
 
-          staffUpserts.push(
-            db.staff.upsert({
-              where: { agentCode },
-              update: { agentName, position, nhom, maNhom, startDate: parseDate(startDateStr) },
-              create: { agentCode, agentName, position, nhom, maNhom, startDate: parseDate(startDateStr) },
-            })
-          );
+          staffRecords.push({
+            nhom, maNhom, agentCode, agentName, position,
+            startDate: parseDate(startDateStr),
+          });
         }
 
-        if (staffUpserts.length > 0) {
-          const sr = await Promise.all(staffUpserts);
-          results.staff = Math.max(results.staff, sr.length);
+        if (staffRecords.length > 0) {
+          const result = await db.staff.createMany({ data: staffRecords, skipDuplicates: true });
+          results.staff = result.count;
         }
       } catch (err) {
         results.errors.push(`NV: ${err instanceof Error ? err.message : 'Lỗi'}`);
