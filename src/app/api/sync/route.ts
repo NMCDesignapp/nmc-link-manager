@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         const dataLines = lines.slice(1);
         const contracts = [];
         const seenContractNumbers = new Set<string>();
-        const agentMap = new Map<string, { agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; leaderAgentCode: string; startDate: Date | null }>();
+        const agentMap = new Map<string, { agentCode: string; agentName: string; position: string; nhom: string; maNhom: string; startDate: Date | null }>();
 
         for (const line of dataLines) {
           const columns = parseCSVLine(line);
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
           const nhom = columns[3] || '';
           const maNhom = columns[4] || '';
           const leaderAgentCode = columns[5] || '';
+          const recruiterCode = columns[5] || ''; // Mã đại lý tuyển dụng (cột recruiterCode)
           const startDateStr = columns[9] || '';
           const effectiveDateStr = columns[11] || '';
           const issueDateStr = columns[12] || '';
@@ -86,10 +87,10 @@ export async function POST(request: NextRequest) {
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
 
-          contracts.push({ contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
+          contracts.push({ contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: recruiterCode || '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
 
           if (agentCode && !agentMap.has(agentCode)) {
-            agentMap.set(agentCode, { agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, startDate });
+            agentMap.set(agentCode, { agentCode, agentName, position, nhom, maNhom, startDate });
           }
         }
 
@@ -102,8 +103,8 @@ export async function POST(request: NextRequest) {
         const staffUpserts = Array.from(agentMap.values()).map(agent =>
           db.staff.upsert({
             where: { agentCode: agent.agentCode },
-            update: { agentName: agent.agentName, position: agent.position, ban: agent.ban, nhom: agent.nhom, maNhom: agent.maNhom, leaderAgentCode: agent.leaderAgentCode, startDate: agent.startDate },
-            create: { agentCode: agent.agentCode, agentName: agent.agentName, position: agent.position, ban: agent.ban, nhom: agent.nhom, maNhom: agent.maNhom, leaderAgentCode: agent.leaderAgentCode, startDate: agent.startDate },
+            update: { agentName: agent.agentName, position: agent.position, nhom: agent.nhom, maNhom: agent.maNhom, startDate: agent.startDate },
+            create: { agentCode: agent.agentCode, agentName: agent.agentName, position: agent.position, nhom: agent.nhom, maNhom: agent.maNhom, startDate: agent.startDate },
           })
         );
         if (staffUpserts.length > 0) {
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Import Staff CSV (supplements/overrides staff from contracts)
+    // 2. Import Staff CSV (7 columns: STT, Nhóm, Mã nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
     if (staffCsv) {
       try {
         const lines = staffCsv.split('\n').filter(l => l.trim() !== '');
@@ -124,22 +125,22 @@ export async function POST(request: NextRequest) {
 
         for (const line of dataLines) {
           const columns = parseCSVLine(line);
-          const agentCode = columns[1] || '';
-          const agentName = columns[2] || '';
-          const position = columns[3] || '';
-          const ban = columns[4] || '';
-          const nhom = columns[5] || '';
-          const maNhom = columns[6] || '';
-          const leaderAgentCode = columns[7] || '';
-          const startDateStr = columns[8] || '';
+          // Column mapping (7 columns):
+          // 0: STT, 1: Nhóm, 2: Mã nhóm, 3: Mã số, 4: Họ tên, 5: Chức vụ, 6: Ngày bắt đầu
+          const nhom = columns[1] || '';
+          const maNhom = columns[2] || '';
+          const agentCode = columns[3] || '';
+          const agentName = columns[4] || '';
+          const position = columns[5] || '';
+          const startDateStr = columns[6] || '';
 
           if (!agentCode || !agentName) continue;
 
           staffUpserts.push(
             db.staff.upsert({
               where: { agentCode },
-              update: { agentName, position, ban, nhom, maNhom, leaderAgentCode, startDate: parseDate(startDateStr) },
-              create: { agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, startDate: parseDate(startDateStr) },
+              update: { agentName, position, nhom, maNhom, startDate: parseDate(startDateStr) },
+              create: { agentCode, agentName, position, nhom, maNhom, startDate: parseDate(startDateStr) },
             })
           );
         }
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Import Recruiter CSV
+    // 3. Import Recruiter CSV (6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
     if (recruiterCsv) {
       try {
         await db.recruiter.deleteMany();
@@ -163,22 +164,22 @@ export async function POST(request: NextRequest) {
 
         for (const line of dataLines) {
           const columns = parseCSVLine(line);
-          const nydCode = columns[1] || '';
-          const nydName = columns[2] || '';
-          const position = columns[3] || '';
-          const ban = columns[4] || '';
-          const nhom = columns[5] || '';
-          const maNhom = columns[6] || '';
-          const recruitedAgentCode = columns[7] || '';
-          const recruitedAgentName = columns[8] || '';
-          const recruitedStartDateStr = columns[9] || '';
+          // Column mapping (6 columns):
+          // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu
+          const nhom = columns[1] || '';
+          const agentCode = columns[2] || '';
+          const agentName = columns[3] || '';
+          const position = columns[4] || '';
+          const startDateStr = columns[5] || '';
 
-          if (!nydCode || !recruitedAgentCode) continue;
+          if (!agentCode || !agentName) continue;
 
           recruiters.push({
-            nydCode, nydName, position, ban, nhom, maNhom,
-            recruitedAgentCode, recruitedAgentName,
-            recruitedStartDate: parseDate(recruitedStartDateStr),
+            nhom,
+            agentCode,
+            agentName,
+            position,
+            startDate: parseDate(startDateStr),
           });
         }
 
