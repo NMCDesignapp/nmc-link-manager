@@ -102,3 +102,27 @@ Stage Summary:
 - Groups/TNs with no sales still appear in thi đua results
 - Settings panel has full staff management UI
 - Pushed to GitHub, tag v1.2 created
+---
+Task ID: 1
+Agent: Main
+Task: Fix thi đua nhóm - tách Trưởng ban/Trưởng nhóm, loại "Tiền trưởng nhóm"
+
+Work Log:
+- Đọc và phân tích code thi-dua-chau/page.tsx, sync route, schema, settings panel
+- Phát hiện bug: `.includes('trưởng nhóm')` match cả "Tiền trưởng nhóm" → sai
+- Phát hiện 6 Staff records có agentCode sai (tên thay vì mã: "Nguyễn Văn Có", "Trương Quốc Uy", v.v.)
+- Fix GroupData interface: thay leaderCode/leaderName/leaderPosition → leaderBan + leaderNhom
+- Fix leader finding: exact match `pos === 'trưởng ban'` và `pos === 'trưởng nhóm'` (không .includes())
+- Fix table display: Mã TB/Tên TB + Mã TN/Tên TN (thay vì Mã TN/Tên TN/Chức vụ)
+- Fix Excel export headers và copy text
+- Fix settings panel leader identification
+- Xóa 6 bad Staff records từ production DB
+- Save CSV URLs to settings (user provided 2 Google Sheets links)
+- Build, push v1.5.0
+
+Stage Summary:
+- Code deployed v1.5.0 to nc-links.vercel.app
+- "Tiền trưởng nhóm" không còn xuất hiện trong kết quả thi đua nhóm
+- Kết quả hiển thị đúng Trưởng ban và Trưởng nhóm riêng biệt
+- 6 Staff records sai đã được xóa
+- CSV URLs saved to settings (có thể cần user xác nhận lại link do 404)
