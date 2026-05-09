@@ -74,33 +74,26 @@ model Contract {
 }
 
 model Staff {
-  id              String   @id @default(cuid())
-  agentCode       String   @unique
-  agentName       String
-  position        String   @default("")
-  ban             String   @default("")
-  nhom            String   @default("")
-  maNhom          String   @default("")
-  leaderAgentCode String   @default("")
-  recruiterCode   String   @default("")
-  startDate       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        String    @id @default(cuid())
+  nhom      String    @default("")  // Tên nhóm
+  maNhom    String    @default("")  // Mã nhóm (dùng ánh xạ, không hiển thị kết quả)
+  agentCode String    @unique       // Mã số
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Recruiter {
-  id                 String    @id @default(cuid())
-  nydCode            String    // Mã người tuyển dụng
-  nydName            String    // Tên NYD
-  position           String    @default("") // Chức vụ
-  ban                String    @default("")
-  nhom               String    @default("")
-  maNhom             String    @default("")
-  recruitedAgentCode String    // Mã TVV được tuyển
-  recruitedAgentName String    @default("") // Tên TVV được tuyển
-  recruitedStartDate DateTime? // Ngày bắt đầu của TVV
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  nhom      String    @default("")  // Nhóm
+  agentCode String    @unique       // Mã số NTD (dùng ánh xạ recruiterCode)
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Contest {
