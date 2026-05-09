@@ -9,9 +9,16 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    const { nhom, agentName, position, startDate } = body;
+
     const recruiter = await db.recruiter.update({
       where: { id },
-      data: body,
+      data: {
+        ...(nhom !== undefined && { nhom }),
+        ...(agentName !== undefined && { agentName }),
+        ...(position !== undefined && { position }),
+        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+      },
     });
     return NextResponse.json(recruiter);
   } catch (error) {

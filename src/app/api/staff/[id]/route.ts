@@ -33,18 +33,15 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode, startDate } = body;
+    const { nhom, maNhom, agentName, position, startDate } = body;
 
     const staff = await db.staff.update({
       where: { id },
       data: {
-        ...(agentName !== undefined && { agentName }),
-        ...(position !== undefined && { position }),
-        ...(ban !== undefined && { ban }),
         ...(nhom !== undefined && { nhom }),
         ...(maNhom !== undefined && { maNhom }),
-        ...(leaderAgentCode !== undefined && { leaderAgentCode }),
-        ...(recruiterCode !== undefined && { recruiterCode }),
+        ...(agentName !== undefined && { agentName }),
+        ...(position !== undefined && { position }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
       },
     });

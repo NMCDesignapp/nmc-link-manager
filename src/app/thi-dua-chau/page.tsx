@@ -36,7 +36,7 @@ interface BonusTier {
 }
 
 interface GroupData {
-  maNhom: string; nhom: string; leaderName: string; leaderCode: string; totalFYP: number;
+  maNhom: string; nhom: string; leaderName: string; leaderCode: string; leaderPosition: string; totalFYP: number;
   contractCount: number; activityRounds: number; contracts: Contract[];
 }
 
@@ -45,6 +45,7 @@ interface NYDData {
   nydName: string;
   nhom: string;
   position: string;
+  startDate: string | null;
   recruitCount: number;
   recruitFYP: number;
   ownFYP: number;
@@ -52,17 +53,13 @@ interface NYDData {
 }
 
 interface StaffMember {
-  id: string; agentCode: string; agentName: string;
-  position: string; ban: string; nhom: string; maNhom: string;
-  leaderAgentCode: string; recruiterCode: string;
-  startDate: string | null;
+  id: string; nhom: string; maNhom: string; agentCode: string; agentName: string;
+  position: string; startDate: string | null;
 }
 
 interface RecruiterMember {
-  id: string; nydCode: string; nydName: string;
-  position: string; ban: string; nhom: string; maNhom: string;
-  recruitedAgentCode: string; recruitedAgentName: string;
-  recruitedStartDate: string | null;
+  id: string; nhom: string; agentCode: string; agentName: string;
+  position: string; startDate: string | null;
 }
 
 interface SavedContest {
@@ -568,159 +565,103 @@ export default function ThiDuaPage() {
   // NYD data computation - use Recruiter table as primary reference
   const nydData: NYDData[] = useMemo(() => {
     if (!isNYDMode(conditionType)) return [];
-    const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
     const nydMap = new Map<string, NYDData>();
 
-    // Step 1: If recruiter list exists, use it as primary source for NYD info
-    if (recruiterList.length > 0) {
-      // Group recruiters by NYD code to build NYD map
-      const nydGroups = new Map<string, { nydName: string; position: string; nhom: string; recruitedAgents: string[] }>();
-      for (const r of recruiterList) {
-        if (!nydGroups.has(r.nydCode)) {
-          nydGroups.set(r.nydCode, { nydName: r.nydName, position: r.position, nhom: r.nhom, recruitedAgents: [] });
-        }
-        nydGroups.get(r.nydCode)!.recruitedAgents.push(r.recruitedAgentCode);
-      }
-      for (const [nydCode, info] of nydGroups) {
-        nydMap.set(nydCode, {
-          nydCode, nydName: info.nydName, nhom: info.nhom,
-          position: info.position, recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: []
-        });
-      }
-    } else if (staffList.length > 0) {
-      // Fallback: add NYDs from staff list
-      for (const s of staffList) {
-        if (s.position && nydPositions.some(p => s.position.toLowerCase().includes(p))) {
-          nydMap.set(s.agentCode, {
-            nydCode: s.agentCode, nydName: s.agentName, nhom: s.nhom,
-            position: s.position || '', recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: []
-          });
-        }
-      }
+    // Step 1: Load ALL NTD from Recruiter table (primary source for NTD info)
+    for (const r of recruiterList) {
+      nydMap.set(r.agentCode, {
+        nydCode: r.agentCode,
+        nydName: r.agentName,
+        nhom: r.nhom,
+        position: r.position || '',
+        startDate: r.startDate,
+        recruitCount: 0,
+        recruitFYP: 0,
+        ownFYP: 0,
+        contracts: [],
+      });
     }
 
-    // Step 2: Add NYD contracts data (own FYP)
-    const nydContracts = displayContracts.filter(c =>
-      c.position && nydPositions.some(p => c.position.toLowerCase().includes(p))
-    );
-    for (const c of nydContracts) {
-      if (!nydMap.has(c.agentCode)) {
-        nydMap.set(c.agentCode, { nydCode: c.agentCode, nydName: c.agentName, nhom: c.nhom, position: c.position || '', recruitCount: 0, recruitFYP: 0, ownFYP: 0, contracts: [] });
-      }
-      const nyd = nydMap.get(c.agentCode)!;
-      nyd.ownFYP += c.fyp;
-      nyd.contracts.push(c);
-    }
-
-    // Step 3: Calculate recruit data
+    // Step 2: Calculate recruit data using recruiterCode from contracts
+    // Mã số NTD → ánh xạ sang cột recruiterCode trong bảng doanh số
     const luotThreshold = 3_000_000;
     for (const [nydCode, nyd] of nydMap) {
+      // Find all contracts where recruiterCode = NTD's agentCode (TVV được tuyển bởi NTD này)
+      const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
+
       if (isNYDActivityMode(conditionType)) {
-        // NYD activity mode: count lượt using new per-month calculation
-        // Find all recruited agents for this NYD
-        let recruitedAgentCodes: string[] = [];
-        if (recruiterList.length > 0) {
-          const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
-          recruitedAgentCodes = recruitedByNyd.map(r => r.recruitedAgentCode);
-        } else {
-          // Fallback: use recruiterCode from contracts
-          const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-          recruitedAgentCodes = [...new Set(recruitedContracts.map(c => c.agentCode))];
-        }
-        // Get all contracts for recruited agents
-        const recruitedContracts = displayContracts.filter(c => recruitedAgentCodes.includes(c.agentCode));
-        // Apply TVV90 filter if in TVV90 mode or if TVV90 filter is on
+        // Lượt HĐ mode: count lượt using per-month calculation
         const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
         const applyTVVm = useTVVmFilter;
         nyd.recruitCount = calculateLuot(recruitedContracts, luotThreshold, applyTVVm, applyTVV90);
         nyd.recruitFYP = recruitedContracts.reduce((sum, c) => sum + c.fyp, 0);
       } else {
-        // NYD FYP mode: count by total FYP
-        if (recruiterList.length > 0) {
-          const recruitedByNyd = recruiterList.filter(r => r.nydCode === nydCode);
-          const agentFYPMap = new Map<string, number>();
-          for (const r of recruitedByNyd) {
-            const agentContracts = displayContracts.filter(c => c.agentCode === r.recruitedAgentCode);
-            const totalFYP = agentContracts.reduce((sum, c) => sum + c.fyp, 0);
-            agentFYPMap.set(r.recruitedAgentCode, totalFYP);
-          }
-          let recruitCount = 0;
-          let recruitFYP = 0;
-          for (const [, agentFYP] of agentFYPMap) {
-            if (agentFYP >= 3_000_000) recruitCount++;
-            recruitFYP += agentFYP;
-          }
-          nyd.recruitCount = recruitCount;
-          nyd.recruitFYP = recruitFYP;
-        } else {
-          const recruitedContracts = displayContracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-          const agentFYPMap = new Map<string, number>();
-          for (const rc of recruitedContracts) {
-            agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
-          }
-          let recruitCount = 0;
-          let recruitFYP = 0;
-          for (const [, agentFYP] of agentFYPMap) {
-            if (agentFYP >= 3_000_000) recruitCount++;
-            recruitFYP += agentFYP;
-          }
-          nyd.recruitCount = recruitCount;
-          nyd.recruitFYP = recruitFYP;
+        // NTD FYP mode: count by total FYP of recruited agents
+        const agentFYPMap = new Map<string, number>();
+        for (const rc of recruitedContracts) {
+          agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp);
         }
+        let recruitCount = 0;
+        let recruitFYP = 0;
+        for (const [, agentFYP] of agentFYPMap) {
+          if (agentFYP >= 3_000_000) recruitCount++;
+          recruitFYP += agentFYP;
+        }
+        nyd.recruitCount = recruitCount;
+        nyd.recruitFYP = recruitFYP;
       }
+
+      // Also add NTD's own FYP from contracts where agentCode = nydCode
+      const ownContracts = displayContracts.filter(c => c.agentCode === nydCode);
+      nyd.ownFYP = ownContracts.reduce((sum, c) => sum + c.fyp, 0);
+      nyd.contracts = [...recruitedContracts, ...ownContracts];
     }
+
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, staffList, recruiterList, useTVVmFilter, useTVV90Filter]);
+  }, [displayContracts, conditionType, recruiterList, useTVVmFilter, useTVV90Filter]);
 
   // Grouped data - use Staff table as reference for group membership
+  // Nhóm: ánh xạ theo mã nhóm (maNhom) sang bảng doanh số
+  // Trưởng nhóm: tìm theo chức vụ trong Staff table
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
 
-    // Step 1: If staff list exists, use it as the primary source for groups
+    // Step 1: Build unique groups from Staff table
+    // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm theo chức vụ
     if (staffList.length > 0) {
-      // Build group map from staff data (captures ALL groups, even with no contracts)
-      const uniqueGroups = new Map<string, { nhom: string; leaderAgentCode: string; ban: string }>();
+      const uniqueGroups = new Map<string, { nhom: string }>();
       for (const s of staffList) {
         if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
-          uniqueGroups.set(s.maNhom, { nhom: s.nhom, leaderAgentCode: s.leaderAgentCode, ban: s.ban });
+          uniqueGroups.set(s.maNhom, { nhom: s.nhom });
         }
       }
       for (const [maNhom, info] of uniqueGroups) {
-        map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+        map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
       }
-      // Set leader info from staff data
+      // Find leader by position: Trưởng nhóm / Trưởng ban / Tiền trưởng nhóm
       for (const [maNhom, g] of map) {
-        const groupInfo = uniqueGroups.get(maNhom);
-        if (groupInfo?.leaderAgentCode) {
-          // Find leader name from staff list
-          const leaderStaff = staffList.find(s => s.agentCode === groupInfo.leaderAgentCode);
-          g.leaderCode = groupInfo.leaderAgentCode;
-          g.leaderName = leaderStaff?.agentName || contracts.find(c => c.agentCode === groupInfo.leaderAgentCode)?.agentName || '';
-        }
-        // Fallback: find leader by position from staff list
-        if (!g.leaderName) {
-          const leaderByPosition = staffList.find(s =>
-            s.maNhom === maNhom && s.position && (
-              s.position.toLowerCase().includes('trưởng nhóm') ||
-              s.position.toLowerCase().includes('trưởng ban') ||
-              s.position.toLowerCase().includes('tiền trưởng nhóm')
-            )
-          );
-          if (leaderByPosition) {
-            g.leaderName = leaderByPosition.agentName;
-            g.leaderCode = leaderByPosition.agentCode;
-          }
+        const leader = staffList.find(s =>
+          s.maNhom === maNhom && s.position && (
+            s.position.toLowerCase().includes('trưởng nhóm') ||
+            s.position.toLowerCase().includes('trưởng ban') ||
+            s.position.toLowerCase().includes('tiền trưởng nhóm')
+          )
+        );
+        if (leader) {
+          g.leaderCode = leader.agentCode;
+          g.leaderName = leader.agentName;
+          g.leaderPosition = leader.position;
         }
       }
     }
 
-    // Step 2: Add contracts data to the groups
+    // Step 2: Add contracts data to the groups (using maNhom to map)
     for (const c of displayContracts) {
       const key = c.maNhom;
       if (!map.has(key)) {
-        // Group not in staff list, create from contract data (backward compatible)
-        map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+        // Group not in staff list, create from contract data
+        map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
       }
       const g = map.get(key)!;
       g.totalFYP += c.fyp;
@@ -731,23 +672,16 @@ export default function ThiDuaPage() {
     // Step 3: For groups not from staff list, try to detect leader from contracts
     if (staffList.length === 0) {
       for (const g of Array.from(map.values())) {
-        const leaderContract = g.contracts.find(c => c.leaderAgentCode);
-        if (leaderContract?.leaderAgentCode) {
-          const leaderFromAll = contracts.find(c => c.agentCode === leaderContract.leaderAgentCode);
-          g.leaderCode = leaderContract.leaderAgentCode;
-          g.leaderName = leaderFromAll?.agentName || '';
-        }
-        if (!g.leaderName) {
-          const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
-          if (leaderByPosition) {
-            g.leaderName = leaderByPosition.agentName;
-            g.leaderCode = leaderByPosition.agentCode;
-          }
+        const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
+        if (leaderByPosition) {
+          g.leaderName = leaderByPosition.agentName;
+          g.leaderCode = leaderByPosition.agentCode;
+          g.leaderPosition = leaderByPosition.position;
         }
       }
     }
 
-    // Step 4: Calculate activity rounds using new per-month lượt definition
+    // Step 4: Calculate activity rounds using per-month lượt definition
     if (isActivityRoundMode(conditionType)) {
       const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
       const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
@@ -773,7 +707,7 @@ export default function ThiDuaPage() {
         const phase1Grouped = new Map<string, GroupData>();
         for (const c of phase1Contracts) {
           const key = c.maNhom;
-          if (!phase1Grouped.has(key)) phase1Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+          if (!phase1Grouped.has(key)) phase1Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
           const g = phase1Grouped.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
@@ -788,26 +722,20 @@ export default function ThiDuaPage() {
         for (const [, total] of grouped) { phase1Bonus += getBonusAmountWithTiers(total, bonusTiers); }
       }
     } else if (isNYDMode(conditionType)) {
-      const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
-      const phase1NYDContracts = phase1Contracts.filter(c => c.position && nydPositions.some(p => c.position.toLowerCase().includes(p)));
-      const nydMap = new Map<string, { ownFYP: number; agentFYPMap: Map<string, number> }>();
-      for (const c of phase1NYDContracts) {
-        if (!nydMap.has(c.agentCode)) nydMap.set(c.agentCode, { ownFYP: 0, agentFYPMap: new Map() });
-        nydMap.get(c.agentCode)!.ownFYP += c.fyp;
-      }
-      for (const [nydCode, data] of nydMap) {
-        const recruited = phase1Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-        for (const rc of recruited) { data.agentFYPMap.set(rc.agentCode, (data.agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
+      // Use Recruiter table as reference for NTD list
+      for (const r of recruiterList) {
+        const recruited = phase1Contracts.filter(c => c.recruiterCode === r.agentCode && c.agentCode !== r.agentCode);
         let recruitCount = 0; let recruitFYP = 0;
         if (isNYDActivityMode(conditionType)) {
-          // Use new lượt calculation
-          const recruitedContracts = phase1Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-          recruitCount = calculateLuot(recruitedContracts, 3_000_000, useTVVmFilter, applyTVV90);
-          recruitFYP = recruitedContracts.reduce((s, c) => s + c.fyp, 0);
+          recruitCount = calculateLuot(recruited, 3_000_000, useTVVmFilter, applyTVV90);
+          recruitFYP = recruited.reduce((s, c) => s + c.fyp, 0);
         } else {
-          for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
+          const agentFYPMap = new Map<string, number>();
+          for (const rc of recruited) { agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
+          for (const [, af] of agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         }
-        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
+        const ownFYP = phase1Contracts.filter(c => c.agentCode === r.agentCode).reduce((s, c) => s + c.fyp, 0);
+        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers);
         if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
@@ -822,7 +750,7 @@ export default function ThiDuaPage() {
         const phase2Grouped = new Map<string, GroupData>();
         for (const c of phase2Contracts) {
           const key = c.maNhom;
-          if (!phase2Grouped.has(key)) phase2Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+          if (!phase2Grouped.has(key)) phase2Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
           const g = phase2Grouped.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
@@ -837,24 +765,20 @@ export default function ThiDuaPage() {
         for (const [, total] of grouped) { phase2Bonus += getBonusAmountWithTiers(total, bonusTiers2); }
       }
     } else if (isNYDMode(conditionType)) {
-      const nydPositions = ['trưởng ban', 'trưởng nhóm', 'tiền trưởng nhóm'];
-      const phase2NYDContracts = phase2Contracts.filter(c => c.position && nydPositions.some(p => c.position.toLowerCase().includes(p)));
-      const nydMap = new Map<string, { ownFYP: number; agentFYPMap: Map<string, number> }>();
-      for (const c of phase2NYDContracts) {
-        if (!nydMap.has(c.agentCode)) nydMap.set(c.agentCode, { ownFYP: 0, agentFYPMap: new Map() });
-        nydMap.get(c.agentCode)!.ownFYP += c.fyp;
-      }
-      for (const [nydCode, data] of nydMap) {
-        const recruited = phase2Contracts.filter(c => c.recruiterCode === nydCode && c.agentCode !== nydCode);
-        for (const rc of recruited) { data.agentFYPMap.set(rc.agentCode, (data.agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
+      // Use Recruiter table as reference for NTD list
+      for (const r of recruiterList) {
+        const recruited = phase2Contracts.filter(c => c.recruiterCode === r.agentCode && c.agentCode !== r.agentCode);
         let recruitCount = 0; let recruitFYP = 0;
         if (isNYDActivityMode(conditionType)) {
           recruitCount = calculateLuot(recruited, 3_000_000, useTVVmFilter, applyTVV90);
           recruitFYP = recruited.reduce((s, c) => s + c.fyp, 0);
         } else {
-          for (const [, af] of data.agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
+          const agentFYPMap = new Map<string, number>();
+          for (const rc of recruited) { agentFYPMap.set(rc.agentCode, (agentFYPMap.get(rc.agentCode) || 0) + rc.fyp); }
+          for (const [, af] of agentFYPMap) { if (af >= 3_000_000) recruitCount++; recruitFYP += af; }
         }
-        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? data.ownFYP : 0));
+        const ownFYP = phase2Contracts.filter(c => c.agentCode === r.agentCode).reduce((s, c) => s + c.fyp, 0);
+        const value = isNYDActivityMode(conditionType) ? recruitCount : (recruitFYP + (includeOwnNYD ? ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers2);
         if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
@@ -863,7 +787,7 @@ export default function ThiDuaPage() {
     }
 
     return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count: phase1Contracts.length, phase2Count: phase2Contracts.length };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeOwnNYD, useTVVmFilter, useTVV90Filter, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers]);
+  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeOwnNYD, useTVVmFilter, useTVV90Filter, recruiterList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers]);
 
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
@@ -1015,9 +939,9 @@ export default function ThiDuaPage() {
       }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${g.leaderPosition || ''} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leaderCode || ''} | ${g.leaderName || ''} | ${g.leaderPosition || ''} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
         }
       });
     } else {
@@ -1056,17 +980,17 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
           return { g, tier, groupPhase };
         }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', g.leaderPosition || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng', 'Ghi chú'];
+        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderCode || '', g.leaderName || '', g.leaderPosition || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
       }
     } else {
       // TVV per-contract or total_fyp
@@ -1719,6 +1643,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
                           <TableHead className="text-white min-w-[60px] font-bold text-center">Mã TN</TableHead>
                           <TableHead className="text-white min-w-[65px] font-bold text-center">Tên TN</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold text-center">Chức vụ</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
@@ -1895,6 +1820,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{group.leaderCode || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderName || '—'}</span></TableCell>
+                          <TableCell className="text-xs text-gray-500">{group.leaderPosition || '—'}</TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-orange-600">{group.activityRounds} lượt</span>

@@ -5,7 +5,6 @@ function parseDate(dateStr: string): Date | null {
   if (!dateStr || dateStr.trim() === '') return null;
   const parts = dateStr.trim().split('/');
   if (parts.length !== 3) {
-    // Try ISO format
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -14,11 +13,11 @@ function parseDate(dateStr: string): Date | null {
   return new Date(year, month - 1, day);
 }
 
-// GET /api/recruiters - List all recruiters
+// GET /api/recruiters - List all recruiters (NTD)
 export async function GET() {
   try {
     const recruiters = await db.recruiter.findMany({
-      orderBy: [{ ban: 'asc' }, { nhom: 'asc' }, { nydName: 'asc' }],
+      orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
     });
     return NextResponse.json(recruiters);
   } catch (error) {
@@ -30,21 +29,17 @@ export async function GET() {
   }
 }
 
-// POST /api/recruiters - Bulk upsert from CSV or single create
+// POST /api/recruiters - Bulk upsert from CSV or members array
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { members, csvData } = body as {
       members?: Array<{
-        nydCode: string;
-        nydName: string;
-        position?: string;
-        ban?: string;
         nhom?: string;
-        maNhom?: string;
-        recruitedAgentCode: string;
-        recruitedAgentName?: string;
-        recruitedStartDate?: string;
+        agentCode: string;
+        agentName: string;
+        position?: string;
+        startDate?: string;
       }>;
       csvData?: string;
     };
@@ -68,31 +63,22 @@ export async function POST(request: NextRequest) {
         }
         columns.push(current.trim());
 
-        // Column mapping:
-        // 0: STT, 1: Mã NYD, 2: Tên NYD, 3: Chức vụ, 4: Ban,
-        // 5: Nhóm, 6: Mã nhóm, 7: Mã TVV được tuyển, 8: Tên TVV, 9: Ngày bắt đầu TVV
-        const nydCode = columns[1] || '';
-        const nydName = columns[2] || '';
-        const position = columns[3] || '';
-        const ban = columns[4] || '';
-        const nhom = columns[5] || '';
-        const maNhom = columns[6] || '';
-        const recruitedAgentCode = columns[7] || '';
-        const recruitedAgentName = columns[8] || '';
-        const recruitedStartDateStr = columns[9] || '';
+        // Column mapping (6 columns):
+        // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu
+        const nhom = columns[1] || '';
+        const agentCode = columns[2] || '';
+        const agentName = columns[3] || '';
+        const position = columns[4] || '';
+        const startDateStr = columns[5] || '';
 
-        if (!nydCode || !recruitedAgentCode) continue;
+        if (!agentCode || !agentName) continue;
 
         recruiters.push({
-          nydCode,
-          nydName,
-          position,
-          ban,
           nhom,
-          maNhom,
-          recruitedAgentCode,
-          recruitedAgentName,
-          recruitedStartDate: parseDate(recruitedStartDateStr),
+          agentCode,
+          agentName,
+          position,
+          startDate: parseDate(startDateStr),
         });
       }
 
@@ -109,7 +95,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        message: `Đã nhập ${result.count} dòng người tuyển dụng`,
+        message: `Đã nhập ${result.count} người tuyển dụng`,
         count: result.count,
       });
     }
@@ -118,17 +104,13 @@ export async function POST(request: NextRequest) {
     if (members && Array.isArray(members)) {
       await db.recruiter.deleteMany();
       const data = members
-        .filter((m) => m.nydCode && m.recruitedAgentCode)
+        .filter((m) => m.agentCode && m.agentName)
         .map((m) => ({
-          nydCode: m.nydCode,
-          nydName: m.nydName || '',
-          position: m.position || '',
-          ban: m.ban || '',
           nhom: m.nhom || '',
-          maNhom: m.maNhom || '',
-          recruitedAgentCode: m.recruitedAgentCode,
-          recruitedAgentName: m.recruitedAgentName || '',
-          recruitedStartDate: m.recruitedStartDate ? parseDate(m.recruitedStartDate) : null,
+          agentCode: m.agentCode,
+          agentName: m.agentName,
+          position: m.position || '',
+          startDate: m.startDate ? parseDate(m.startDate) : null,
         }));
 
       if (data.length === 0) {
@@ -137,23 +119,24 @@ export async function POST(request: NextRequest) {
 
       const result = await db.recruiter.createMany({ data, skipDuplicates: true });
       return NextResponse.json({
-        message: `Đã nhập ${result.count} dòng người tuyển dụng`,
+        message: `Đã nhập ${result.count} người tuyển dụng`,
         count: result.count,
       });
     }
 
     // Single create mode
-    const { nydCode, nydName, position, ban, nhom, maNhom, recruitedAgentCode, recruitedAgentName, recruitedStartDate } = body;
-    if (!nydCode || !recruitedAgentCode) {
-      return NextResponse.json({ error: 'Vui lòng nhập mã NYD và mã TVV được tuyển' }, { status: 400 });
+    const { nhom, agentCode, agentName, position, startDate } = body;
+    if (!agentCode || !agentName) {
+      return NextResponse.json({ error: 'Vui lòng nhập mã số và họ tên' }, { status: 400 });
     }
 
     const recruiter = await db.recruiter.create({
       data: {
-        nydCode, nydName: nydName || '', position: position || '',
-        ban: ban || '', nhom: nhom || '', maNhom: maNhom || '',
-        recruitedAgentCode, recruitedAgentName: recruitedAgentName || '',
-        recruitedStartDate: recruitedStartDate ? parseDate(recruitedStartDate) : null,
+        nhom: nhom || '',
+        agentCode,
+        agentName,
+        position: position || '',
+        startDate: startDate ? parseDate(startDate) : null,
       },
     });
 

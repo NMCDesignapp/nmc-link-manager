@@ -20,28 +20,21 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 interface StaffMember {
   id: string
+  nhom: string
+  maNhom: string
   agentCode: string
   agentName: string
   position: string
-  ban: string
-  nhom: string
-  maNhom: string
-  leaderAgentCode: string
-  recruiterCode: string
   startDate: string | null
 }
 
 interface RecruiterMember {
   id: string
-  nydCode: string
-  nydName: string
-  position: string
-  ban: string
   nhom: string
-  maNhom: string
-  recruitedAgentCode: string
-  recruitedAgentName: string
-  recruitedStartDate: string | null
+  agentCode: string
+  agentName: string
+  position: string
+  startDate: string | null
 }
 
 interface SettingsPanelProps {
@@ -83,9 +76,8 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
   const [editingRecruiterId, setEditingRecruiterId] = useState<string | null>(null)
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
-  const [expandedNydGroup, setExpandedNydGroup] = useState<string | null>(null)
-  const [staffForm, setStaffForm] = useState({ agentCode: '', agentName: '', position: '', ban: '', nhom: '', maNhom: '', leaderAgentCode: '' })
-  const [recruiterForm, setRecruiterForm] = useState({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
+  const [staffForm, setStaffForm] = useState({ agentCode: '', agentName: '', position: '', nhom: '', maNhom: '', startDate: '' })
+  const [recruiterForm, setRecruiterForm] = useState({ agentCode: '', agentName: '', position: '', nhom: '', startDate: '' })
   const initializedRef = useRef(false)
 
   const links = Array.isArray(linksData) ? linksData : []
@@ -182,7 +174,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
       })
       if (res.ok) {
         mutateStaff()
-        setStaffForm({ agentCode: '', agentName: '', position: '', ban: '', nhom: '', maNhom: '', leaderAgentCode: '' })
+        setStaffForm({ agentCode: '', agentName: '', position: '', nhom: '', maNhom: '', startDate: '' })
         setShowAddStaff(false)
       }
     } catch (error) {
@@ -200,7 +192,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
       if (res.ok) {
         mutateStaff()
         setEditingStaffId(null)
-        setStaffForm({ agentCode: '', agentName: '', position: '', ban: '', nhom: '', maNhom: '', leaderAgentCode: '' })
+        setStaffForm({ agentCode: '', agentName: '', position: '', nhom: '', maNhom: '', startDate: '' })
       }
     } catch (error) {
       console.error('Failed to update staff:', error)
@@ -233,7 +225,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
     setEditingStaffId(s.id)
     setStaffForm({
       agentCode: s.agentCode, agentName: s.agentName, position: s.position,
-      ban: s.ban, nhom: s.nhom, maNhom: s.maNhom, leaderAgentCode: s.leaderAgentCode,
+      nhom: s.nhom, maNhom: s.maNhom, startDate: s.startDate || '',
     })
     setShowAddStaff(true)
   }
@@ -248,7 +240,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
 
   // Recruiter handlers
   const handleAddRecruiter = async () => {
-    if (!recruiterForm.nydCode || !recruiterForm.recruitedAgentCode) return
+    if (!recruiterForm.agentCode || !recruiterForm.agentName) return
     try {
       const res = await fetch('/api/recruiters', {
         method: 'POST',
@@ -257,10 +249,35 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
       })
       if (res.ok) {
         mutateRecruiters()
-        setRecruiterForm({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
+        setRecruiterForm({ agentCode: '', agentName: '', position: '', nhom: '', startDate: '' })
         setShowAddRecruiter(false)
       }
     } catch (error) { console.error('Failed to add recruiter:', error) }
+  }
+
+  const handleUpdateRecruiter = async (id: string) => {
+    try {
+      const res = await fetch(`/api/recruiters/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recruiterForm),
+      })
+      if (res.ok) {
+        mutateRecruiters()
+        setEditingRecruiterId(null)
+        setRecruiterForm({ agentCode: '', agentName: '', position: '', nhom: '', startDate: '' })
+        setShowAddRecruiter(false)
+      }
+    } catch (error) { console.error('Failed to update recruiter:', error) }
+  }
+
+  const startEditRecruiter = (r: RecruiterMember) => {
+    setEditingRecruiterId(r.id)
+    setRecruiterForm({
+      agentCode: r.agentCode, agentName: r.agentName, position: r.position,
+      nhom: r.nhom, startDate: r.startDate || '',
+    })
+    setShowAddRecruiter(true)
   }
 
   const handleDeleteRecruiter = async (id: string) => {
@@ -276,14 +293,6 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
       catch (error) { console.error('Failed to clear recruiters:', error) }
     }
   }
-
-  // Group recruiters by nydCode
-  const groupedRecruiters = recruiters.reduce((acc, r) => {
-    const key = r.nydCode
-    if (!acc[key]) acc[key] = []
-    acc[key].push(r)
-    return acc
-  }, {} as Record<string, RecruiterMember[]>)
 
   return (
     <AnimatePresence>
@@ -508,7 +517,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                               onClick={() => {
                                 setShowAddStaff(true)
                                 setEditingStaffId(null)
-                                setStaffForm({ agentCode: '', agentName: '', position: '', ban: '', nhom: '', maNhom: '', leaderAgentCode: '' })
+                                setStaffForm({ agentCode: '', agentName: '', position: '', nhom: '', maNhom: '', startDate: '' })
                               }}
                               className="p-1 rounded text-amber-400 hover:bg-amber-400/10"
                               whileTap={{ scale: 0.85 }}
@@ -543,9 +552,25 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                                 <div className="grid grid-cols-2 gap-2">
                                   <input
                                     type="text"
+                                    value={staffForm.nhom}
+                                    onChange={e => setStaffForm(f => ({ ...f, nhom: e.target.value }))}
+                                    placeholder="Tên nhóm"
+                                    className="px-2 py-1.5 rounded text-xs neon-input"
+                                    style={{ background: '#1a1a2e' }}
+                                  />
+                                  <input
+                                    type="text"
+                                    value={staffForm.maNhom}
+                                    onChange={e => setStaffForm(f => ({ ...f, maNhom: e.target.value }))}
+                                    placeholder="Mã nhóm"
+                                    className="px-2 py-1.5 rounded text-xs neon-input"
+                                    style={{ background: '#1a1a2e' }}
+                                  />
+                                  <input
+                                    type="text"
                                     value={staffForm.agentCode}
                                     onChange={e => setStaffForm(f => ({ ...f, agentCode: e.target.value }))}
-                                    placeholder="Mã NV"
+                                    placeholder="Mã số"
                                     className="px-2 py-1.5 rounded text-xs neon-input"
                                     style={{ background: '#1a1a2e' }}
                                     disabled={!!editingStaffId}
@@ -554,7 +579,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                                     type="text"
                                     value={staffForm.agentName}
                                     onChange={e => setStaffForm(f => ({ ...f, agentName: e.target.value }))}
-                                    placeholder="Tên NV"
+                                    placeholder="Họ tên"
                                     className="px-2 py-1.5 rounded text-xs neon-input"
                                     style={{ background: '#1a1a2e' }}
                                   />
@@ -567,38 +592,14 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                                     style={{ background: '#1a1a2e' }}
                                   />
                                   <input
-                                    type="text"
-                                    value={staffForm.ban}
-                                    onChange={e => setStaffForm(f => ({ ...f, ban: e.target.value }))}
-                                    placeholder="Ban"
-                                    className="px-2 py-1.5 rounded text-xs neon-input"
-                                    style={{ background: '#1a1a2e' }}
-                                  />
-                                  <input
-                                    type="text"
-                                    value={staffForm.nhom}
-                                    onChange={e => setStaffForm(f => ({ ...f, nhom: e.target.value }))}
-                                    placeholder="Nhóm"
-                                    className="px-2 py-1.5 rounded text-xs neon-input"
-                                    style={{ background: '#1a1a2e' }}
-                                  />
-                                  <input
-                                    type="text"
-                                    value={staffForm.maNhom}
-                                    onChange={e => setStaffForm(f => ({ ...f, maNhom: e.target.value }))}
-                                    placeholder="Mã nhóm"
+                                    type="date"
+                                    value={staffForm.startDate}
+                                    onChange={e => setStaffForm(f => ({ ...f, startDate: e.target.value }))}
+                                    placeholder="Ngày bắt đầu"
                                     className="px-2 py-1.5 rounded text-xs neon-input"
                                     style={{ background: '#1a1a2e' }}
                                   />
                                 </div>
-                                <input
-                                  type="text"
-                                  value={staffForm.leaderAgentCode}
-                                  onChange={e => setStaffForm(f => ({ ...f, leaderAgentCode: e.target.value }))}
-                                  placeholder="Mã Trưởng nhóm"
-                                  className="w-full px-2 py-1.5 rounded text-xs neon-input"
-                                  style={{ background: '#1a1a2e' }}
-                                />
                                 <div className="flex gap-2">
                                   <motion.button
                                     onClick={() => editingStaffId ? handleUpdateStaff(editingStaffId) : handleAddStaff()}
@@ -716,7 +717,7 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                               onClick={() => {
                                 setShowAddRecruiter(true)
                                 setEditingRecruiterId(null)
-                                setRecruiterForm({ nydCode: '', nydName: '', position: '', ban: '', nhom: '', maNhom: '', recruitedAgentCode: '', recruitedAgentName: '' })
+                                setRecruiterForm({ agentCode: '', agentName: '', position: '', nhom: '', startDate: '' })
                               }}
                               className="p-1 rounded text-sky-400 hover:bg-sky-400/10"
                               whileTap={{ scale: 0.85 }}
@@ -749,23 +750,20 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                             >
                               <div className="space-y-2 p-2.5 rounded-lg" style={{ background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
                                 <div className="grid grid-cols-2 gap-2">
-                                  <input type="text" value={recruiterForm.nydCode} onChange={e => setRecruiterForm(f => ({ ...f, nydCode: e.target.value }))} placeholder="Mã NYD" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.nydName} onChange={e => setRecruiterForm(f => ({ ...f, nydName: e.target.value }))} placeholder="Tên NYD" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.position} onChange={e => setRecruiterForm(f => ({ ...f, position: e.target.value }))} placeholder="Chức vụ" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.ban} onChange={e => setRecruiterForm(f => ({ ...f, ban: e.target.value }))} placeholder="Ban" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
                                   <input type="text" value={recruiterForm.nhom} onChange={e => setRecruiterForm(f => ({ ...f, nhom: e.target.value }))} placeholder="Nhóm" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.maNhom} onChange={e => setRecruiterForm(f => ({ ...f, maNhom: e.target.value }))} placeholder="Mã nhóm" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.recruitedAgentCode} onChange={e => setRecruiterForm(f => ({ ...f, recruitedAgentCode: e.target.value }))} placeholder="Mã TVV được tuyển" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
-                                  <input type="text" value={recruiterForm.recruitedAgentName} onChange={e => setRecruiterForm(f => ({ ...f, recruitedAgentName: e.target.value }))} placeholder="Tên TVV" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.agentCode} onChange={e => setRecruiterForm(f => ({ ...f, agentCode: e.target.value }))} placeholder="Mã số NTD" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} disabled={!!editingRecruiterId} />
+                                  <input type="text" value={recruiterForm.agentName} onChange={e => setRecruiterForm(f => ({ ...f, agentName: e.target.value }))} placeholder="Họ tên" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="text" value={recruiterForm.position} onChange={e => setRecruiterForm(f => ({ ...f, position: e.target.value }))} placeholder="Chức vụ" className="px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
+                                  <input type="date" value={recruiterForm.startDate} onChange={e => setRecruiterForm(f => ({ ...f, startDate: e.target.value }))} placeholder="Ngày bắt đầu" className="col-span-2 px-2 py-1.5 rounded text-xs neon-input" style={{ background: '#1a1a2e' }} />
                                 </div>
                                 <div className="flex gap-2">
                                   <motion.button
-                                    onClick={handleAddRecruiter}
+                                    onClick={() => editingRecruiterId ? handleUpdateRecruiter(editingRecruiterId) : handleAddRecruiter()}
                                     className="flex-1 py-1.5 rounded-lg text-xs font-medium"
                                     style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
                                     whileTap={{ scale: 0.97 }}
                                   >
-                                    Thêm
+                                    {editingRecruiterId ? 'Cập nhật' : 'Thêm'}
                                   </motion.button>
                                   <motion.button
                                     onClick={() => { setShowAddRecruiter(false); setEditingRecruiterId(null) }}
@@ -780,8 +778,8 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                           )}
                         </AnimatePresence>
 
-                        {/* Recruiter list grouped by NYD */}
-                        <div className="max-h-64 overflow-y-auto pr-1 space-y-1.5">
+                        {/* Recruiter list - flat */}
+                        <div className="max-h-64 overflow-y-auto pr-1 space-y-1">
                           {recruiters.length === 0 ? (
                             <div className="text-center py-4">
                               <UserCheck className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
@@ -789,51 +787,28 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                               <p className="text-[10px] text-muted-foreground/60 mt-1">Nhấn Đồng bộ để tự động nhập, hoặc thêm thủ công</p>
                             </div>
                           ) : (
-                            Object.entries(groupedRecruiters).sort(([a], [b]) => a.localeCompare(b)).map(([nydCode, members]) => {
-                              const isExpanded = expandedNydGroup === nydCode
-                              return (
-                                <div key={nydCode} className="rounded-lg overflow-hidden" style={{ background: 'rgba(56, 189, 248, 0.04)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
-                                  <button
-                                    onClick={() => setExpandedNydGroup(isExpanded ? null : nydCode)}
-                                    className="w-full flex items-center gap-2 p-2 text-left"
-                                  >
-                                    {isExpanded ? <ChevronDown className="w-3 h-3 text-sky-400" /> : <ChevronRight className="w-3 h-3 text-sky-400" />}
-                                    <span className="text-xs font-medium text-sky-400 flex-1 truncate">{members[0]?.nydName || nydCode}</span>
-                                    <span className="text-[10px] text-muted-foreground">{members.length} TVV</span>
-                                    <span className="text-[10px] text-sky-300/60">{nydCode}</span>
-                                  </button>
-                                  <AnimatePresence>
-                                    {isExpanded && (
-                                      <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="overflow-hidden"
-                                      >
-                                        <div className="px-2 pb-2 space-y-1">
-                                          {members.map(m => (
-                                            <div key={m.id} className="flex items-center gap-1.5 p-1.5 rounded" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                                              <div className="flex-1 min-w-0">
-                                                <span className="block text-[11px] font-medium truncate">{m.recruitedAgentName || m.recruitedAgentCode}</span>
-                                                <span className="block text-[9px] text-muted-foreground">{m.recruitedAgentCode} {m.position && `· ${m.position}`}</span>
-                                              </div>
-                                              <motion.button
-                                                onClick={() => handleDeleteRecruiter(m.id)}
-                                                className="p-0.5 rounded text-red-400 hover:bg-red-400/10"
-                                                whileTap={{ scale: 0.85 }}
-                                              >
-                                                <Trash2 className="w-2.5 h-2.5" />
-                                              </motion.button>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                            recruiters.map(r => (
+                              <div key={r.id} className="flex items-center gap-1.5 p-1.5 rounded" style={{ background: 'rgba(56, 189, 248, 0.04)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+                                <div className="flex-1 min-w-0">
+                                  <span className="block text-[11px] font-medium truncate">{r.agentName}</span>
+                                  <span className="block text-[9px] text-muted-foreground">{r.nhom && `${r.nhom} · `}{r.agentCode} {r.position && `· ${r.position}`}</span>
                                 </div>
-                              )
-                            })
+                                <motion.button
+                                  onClick={() => startEditRecruiter(r)}
+                                  className="p-0.5 rounded hover:bg-white/10"
+                                  whileTap={{ scale: 0.85 }}
+                                >
+                                  <Edit className="w-2.5 h-2.5 text-muted-foreground" />
+                                </motion.button>
+                                <motion.button
+                                  onClick={() => handleDeleteRecruiter(r.id)}
+                                  className="p-0.5 rounded text-red-400 hover:bg-red-400/10"
+                                  whileTap={{ scale: 0.85 }}
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                </motion.button>
+                              </div>
+                            ))
                           )}
                         </div>
                       </div>
