@@ -152,24 +152,23 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
           onClick={prevMonth}
           className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
           style={{
-            background: `${neonColor}15`,
-            border: `1px solid ${neonColor}30`,
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.15)',
           }}
-          whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}30` }}
+          whileHover={{ scale: 1.1, boxShadow: '0 0 12px rgba(255,255,255,0.15)' }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronLeft className="w-3.5 h-3.5" style={{ color: neonColor }} />
+          <ChevronLeft className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.9)' }} />
         </motion.button>
 
         <motion.button
           onClick={goToToday}
           className="text-xs font-semibold px-3 py-1 rounded-lg smooth-transition"
           style={{
-            color: neonColor,
-            textShadow: `0 0 12px ${neonColor}60`,
-            background: `${neonColor}10`,
+            color: 'white',
+            background: 'rgba(255,255,255,0.1)',
           }}
-          whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}20` }}
+          whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(255,255,255,0.1)' }}
           whileTap={{ scale: 0.95 }}
         >
           {monthNames[currentMonth]} {currentYear}
@@ -179,13 +178,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
           onClick={nextMonth}
           className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
           style={{
-            background: `${neonColor}15`,
-            border: `1px solid ${neonColor}30`,
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.15)',
           }}
-          whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}30` }}
+          whileHover={{ scale: 1.1, boxShadow: '0 0 12px rgba(255,255,255,0.15)' }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronRight className="w-3.5 h-3.5" style={{ color: neonColor }} />
+          <ChevronRight className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.9)' }} />
         </motion.button>
       </div>
 
@@ -194,8 +193,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
         {WEEKDAYS.map((day, i) => (
           <div
             key={i}
-            className={`text-center ${compact ? 'text-[10px]' : 'text-[11px]'} font-semibold py-0.5`}
-            style={{ color: i === 0 ? '#ff8888' : 'rgba(255,255,255,0.55)' }}
+            className={`text-center ${compact ? 'text-[10px]' : 'text-[11px]'} font-bold py-0.5`}
+            style={{ color: i === 0 ? '#ff9999' : 'rgba(255,255,255,0.75)' }}
           >
             {day}
           </div>
@@ -222,20 +221,20 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
               className={`${cellSize} rounded-lg flex flex-col items-center justify-center relative smooth-transition cursor-pointer`}
               style={{
                 background: isToday
-                  ? `${neonColor}22`
-                  : 'rgba(255, 255, 255, 0.07)',
+                  ? `${neonColor}35`
+                  : 'rgba(255, 255, 255, 0.10)',
                 border: isToday
-                  ? `1.5px solid ${neonColor}50`
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  ? `1.5px solid ${neonColor}70`
+                  : '1px solid rgba(255, 255, 255, 0.12)',
                 boxShadow: isToday
-                  ? `0 0 12px ${neonColor}20, inset 0 0 8px ${neonColor}10`
+                  ? `0 0 12px ${neonColor}30, inset 0 0 8px ${neonColor}15`
                   : 'none',
               }}
               whileHover={{
-                background: `${neonColor}18`,
-                borderColor: `${neonColor}40`,
+                background: 'rgba(255, 255, 255, 0.18)',
+                borderColor: 'rgba(255,255,255,0.25)',
                 scale: 1.08,
-                boxShadow: `0 0 15px ${neonColor}20`,
+                boxShadow: '0 0 15px rgba(255,255,255,0.1)',
               }}
               whileTap={{ scale: 0.95 }}
             >
@@ -245,8 +244,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
                   color: isToday
                     ? neonColor
                     : isSunday
-                    ? '#ff8888'
-                    : 'rgba(255, 255, 255, 0.8)',
+                    ? '#ff9999'
+                    : 'rgba(255, 255, 255, 0.9)',
                   textShadow: isToday ? `0 0 8px ${neonColor}60` : 'none',
                 }}
               >
@@ -261,7 +260,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
                       key={event.id}
                       className={`w-full ${eventFontSize} leading-tight text-center truncate rounded px-0.5 font-medium`}
                       style={{
-                        background: `${event.color}25`,
+                        background: `${event.color}40`,
                         color: event.color,
                         textShadow: `0 0 6px ${event.color}60`,
                       }}
@@ -295,9 +294,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
             <motion.div
               className="absolute w-[280px] rounded-xl p-3"
               style={{
-                background: '#1a1a2e',
-                border: `1px solid ${neonColor}25`,
-                boxShadow: `0 0 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
+                background: '#2a2a4a',
+                border: '1px solid rgba(255,255,255,0.15)',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
                 left: Math.max(8, Math.min(popupPosition.x - 140, window.innerWidth - 296)),
                 bottom: popupPosition.bottom,
               }}
@@ -311,9 +310,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
               <div
                 className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
                 style={{
-                  background: '#1a1a2e',
-                  borderRight: `1px solid ${neonColor}25`,
-                  borderBottom: `1px solid ${neonColor}25`,
+                  background: '#2a2a4a',
+                  borderRight: '1px solid rgba(255,255,255,0.15)',
+                  borderBottom: '1px solid rgba(255,255,255,0.15)',
                 }}
               />
 
@@ -343,8 +342,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
                       key={event.id}
                       className="flex items-center gap-2 p-1.5 rounded-lg"
                       style={{
-                        background: `${event.color}12`,
-                        border: `1px solid ${event.color}30`,
+                        background: `${event.color}20`,
+                        border: `1px solid ${event.color}45`,
                       }}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -378,13 +377,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
                   onKeyDown={e => e.key === 'Enter' && handleAddEvent()}
                   placeholder="Them cong viec..."
                   className="flex-1 px-2.5 py-2 rounded-lg text-[11px] neon-input"
-                  style={{ background: '#141420' }}
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 />
                 <motion.button
                   onClick={handleAddEvent}
                   className="px-3 py-2 rounded-lg text-[11px] font-semibold neon-btn neon-press"
-                  style={{ color: neonColor, background: `${neonColor}15`, border: `1px solid ${neonColor}30` }}
-                  whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}30` }}
+                  style={{ color: 'white', background: '#f59e0b', border: 'none' }}
+                  whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(245,158,11,0.4)' }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <Plus className="w-3.5 h-3.5" />

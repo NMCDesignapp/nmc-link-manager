@@ -49,17 +49,43 @@ const iconMap: Record<string, React.ElementType> = {
   video: Video,
 }
 
-// Neon hex → bright solid fill for button background
-function neonToSolidBg(hex: string): string {
+// Vibrant solid color palette - each link gets its own vivid solid color
+const VIVID_COLORS = [
+  '#10b981', // emerald
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#f97316', // orange
+  '#14b8a6', // teal
+  '#6366f1', // indigo
+  '#84cc16', // lime
+  '#e11d48', // rose
+  '#0ea5e9', // sky
+  '#a855f7', // purple
+  '#22c55e', // green
+  '#eab308', // yellow
+]
+
+// Deterministic hash from link id → color index
+function getLinkColor(linkId: number, linkColor?: string): string {
+  // If the link has a custom color set that's not the default, use it
+  if (linkColor && linkColor !== '#3b82f6' && linkColor !== '#00ff88') {
+    return linkColor
+  }
+  return VIVID_COLORS[linkId % VIVID_COLORS.length]
+}
+
+// Lighten a hex color for subtle hover effect
+function lightenColor(hex: string, amount: number = 0.15): string {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  // Brighten to ~65% saturation for a vivid solid fill
-  const factor = 0.55
-  const base = 30
-  const rr = Math.min(255, Math.round(base + (r - base) * factor))
-  const gg = Math.min(255, Math.round(base + (g - base) * factor))
-  const bb = Math.min(255, Math.round(base + (b - base) * factor))
+  const rr = Math.min(255, Math.round(r + (255 - r) * amount))
+  const gg = Math.min(255, Math.round(g + (255 - g) * amount))
+  const bb = Math.min(255, Math.round(b + (255 - b) * amount))
   return `rgb(${rr}, ${gg}, ${bb})`
 }
 
@@ -94,20 +120,22 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
     return link.file_name || link.link_type
   }
 
-  const solidBg = neonToSolidBg(neonColor)
+  const solidColor = getLinkColor(link.id, link.color)
+  const hoverBg = lightenColor(solidColor, 0.12)
 
   return (
     <motion.button
       onClick={handleClick}
       className="w-full rounded-xl px-3 py-2.5 flex flex-row items-center gap-2.5 cursor-pointer relative overflow-hidden"
       style={{
-        background: solidBg,
+        background: solidColor,
         minHeight: '50px',
-        boxShadow: `0 2px 8px rgba(0,0,0,0.3), 0 0 12px ${neonColor}20`,
+        boxShadow: `0 2px 10px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset`,
       }}
       whileHover={{
-        y: -1,
-        boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 20px ${neonColor}35`,
+        y: -2,
+        background: hoverBg,
+        boxShadow: `0 6px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.12) inset`,
       }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
@@ -118,29 +146,29 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
           className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
           style={{
             background: '#ffcc00',
-            boxShadow: '0 0 6px rgba(255,204,0,0.6)',
+            boxShadow: '0 0 6px rgba(255,204,0,0.7)',
           }}
         />
       )}
 
-      {/* Icon - black on bright background */}
+      {/* Icon - white on solid color */}
       <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-        style={{ background: 'rgba(0,0,0,0.15)' }}
+        style={{ background: 'rgba(255,255,255,0.25)' }}
       >
-        <IconComponent className="w-4 h-4" style={{ color: 'rgba(0,0,0,0.8)' }} />
+        <IconComponent className="w-4 h-4" style={{ color: 'white' }} />
       </div>
 
-      {/* Text - black on bright background */}
+      {/* Text - white on solid color */}
       <div className="flex-1 min-w-0 text-left">
         <span
           className="block font-bold text-[12px] leading-tight truncate"
-          style={{ color: 'rgba(0,0,0,0.85)' }}
+          style={{ color: 'white' }}
         >
           {link.title}
         </span>
         <span
           className="block text-[9px] italic truncate"
-          style={{ color: 'rgba(0,0,0,0.50)' }}
+          style={{ color: 'rgba(255,255,255,0.70)' }}
         >
           {getSubtitle()}
         </span>
