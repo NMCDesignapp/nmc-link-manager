@@ -41,8 +41,7 @@ interface GroupLeader {
 
 interface GroupData {
   maNhom: string; nhom: string;
-  leaderBan: GroupLeader | null;   // Trưởng ban
-  leaderNhom: GroupLeader | null;  // Trưởng nhóm
+  leader: GroupLeader | null;   // Trưởng nhóm (hoặc Trưởng ban tham dự với vai trò Trưởng nhóm)
   totalFYP: number;
   contractCount: number; activityRounds: number; contracts: Contract[];
 }
@@ -653,7 +652,10 @@ export default function ThiDuaPage() {
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // Bảng doanh số CHỈ dùng để tính số liệu (FYP, lượt), KHÔNG dùng để lấy thông tin nhóm
   // Thi đua nhóm: nhóm = nguồn chính, doanh số chỉ dùng tính số liệu
-  // Trưởng nhóm/Trưởng ban: tìm theo chức vụ trong Staff table, fallback Recruiter table
+  // Thi đua nhóm: 1 nhóm = 1 trưởng nhóm tham dự
+  // Trưởng ban tham dự với vai trò Trưởng nhóm, ưu tiên lấy Trưởng ban trước
+  // Nếu chỉ có Trưởng nhóm → lấy Trưởng nhóm
+  // Chỉ lấy đúng "Trưởng ban"/"Trưởng nhóm", KHÔNG lấy "Tiền trưởng nhóm"/"Phó"
   // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
   // Nhóm không có HĐ vẫn hiện với giá trị 0
   const groupedData: GroupData[] = useMemo(() => {
@@ -661,7 +663,7 @@ export default function ThiDuaPage() {
     const map = new Map<string, GroupData>();
 
     // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
-    // Hỗ trợ lọc theo: mã nhóm, tên nhóm, mã trưởng nhóm/ban, tên trưởng nhóm/ban
+    // Hỗ trợ lọc theo: mã nhóm, tên nhóm, mã trưởng nhóm, tên trưởng nhóm
     const allowedMaNhom = new Set<string>();
     const allowedNhomNames = new Set<string>();
     const allowedAgentCodes = new Set<string>();
@@ -676,7 +678,6 @@ export default function ThiDuaPage() {
     }
 
     // Step 1: Build groups CHỈ từ Staff table (DS Nhóm)
-    // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm/ban theo chức vụ
     const uniqueGroups = new Map<string, { nhom: string }>();
     for (const s of staffList) {
       if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
@@ -688,7 +689,6 @@ export default function ThiDuaPage() {
     if (allowedMaNhom.size > 0) {
       for (const s of staffList) {
         if (!s.maNhom) continue;
-        // Nếu trưởng nhóm/ban khớp DS đối tượng → thêm nhóm đó
         if (
           allowedAgentCodes.has(s.agentCode) ||
           allowedAgentNames.has(s.agentName?.toLowerCase())
@@ -701,7 +701,6 @@ export default function ThiDuaPage() {
     }
 
     for (const [maNhom, info] of uniqueGroups) {
-      // Nếu có DS đối tượng, chỉ thêm nhóm trong DS (mã nhóm, tên nhóm, hoặc trưởng khớp)
       if (allowedMaNhom.size > 0) {
         const groupStaff = staffList.filter(s => s.maNhom === maNhom);
         const hasMatchingLeader = groupStaff.some(s =>
@@ -709,61 +708,56 @@ export default function ThiDuaPage() {
         );
         if (!allowedMaNhom.has(maNhom.toLowerCase()) && !allowedNhomNames.has(info.nhom.toLowerCase()) && !hasMatchingLeader) continue;
       }
-      map.set(maNhom, { maNhom, nhom: info.nhom, leaderBan: null, leaderNhom: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+      map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
     }
 
-    // Tìm Trưởng ban và Trưởng nhóm theo chức vụ
-    // Ưu tiên Staff table, fallback sang Recruiter table (NTD CSV có đầy đủ TVV)
-    // QUAN TRỌNG: Không lấy "Tiền trưởng nhóm" - đó là chức vụ khác!
-    // Chỉ lấy đúng "Trưởng ban" và "Trưởng nhóm" (không phải "Phó" hay "Tiền")
+    // Tìm Trưởng nhóm tham dự thi đua
+    // Ưu tiên: Trưởng ban > Trưởng nhóm (TB tham dự với vai trò TN)
+    // Fallback sang Recruiter table nếu Staff table không có
     for (const [maNhom, g] of map) {
       const groupStaff = staffList.filter(s => s.maNhom === maNhom);
 
-      // Tìm Trưởng ban từ Staff table
+      // Ưu tiên Trưởng ban (họ tham dự thi đua với vai trò Trưởng nhóm)
       const truongBan = groupStaff.find(s => {
         const pos = s.position?.toLowerCase().trim() || '';
         return pos === 'trưởng ban';
       });
       if (truongBan) {
-        g.leaderBan = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
+        g.leader = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
+        continue; // Trưởng ban → là người đại diện, không cần tìm thêm
       }
 
-      // Tìm Trưởng nhóm từ Staff table
+      // Nếu không có Trưởng ban → lấy Trưởng nhóm
       const truongNhom = groupStaff.find(s => {
         const pos = s.position?.toLowerCase().trim() || '';
         return pos === 'trưởng nhóm';
       });
       if (truongNhom) {
-        g.leaderNhom = { agentCode: truongNhom.agentCode, agentName: truongNhom.agentName, position: truongNhom.position };
+        g.leader = { agentCode: truongNhom.agentCode, agentName: truongNhom.agentName, position: truongNhom.position };
+        continue;
       }
 
-      // Fallback: Nếu chưa tìm đủ, tìm trong Recruiter table theo tên nhóm
-      if (!g.leaderBan || !g.leaderNhom) {
-        const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom);
-        if (!g.leaderBan) {
-          const rBan = groupRecruiters.find(r => {
-            const pos = r.position?.toLowerCase().trim() || '';
-            return pos === 'trưởng ban';
-          });
-          if (rBan) {
-            g.leaderBan = { agentCode: rBan.agentCode, agentName: rBan.agentName, position: rBan.position };
-          }
-        }
-        if (!g.leaderNhom) {
-          const rNhom = groupRecruiters.find(r => {
-            const pos = r.position?.toLowerCase().trim() || '';
-            return pos === 'trưởng nhóm';
-          });
-          if (rNhom) {
-            g.leaderNhom = { agentCode: rNhom.agentCode, agentName: rNhom.agentName, position: rNhom.position };
-          }
-        }
+      // Fallback: Tìm trong Recruiter table theo tên nhóm
+      const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom);
+      const rBan = groupRecruiters.find(r => {
+        const pos = r.position?.toLowerCase().trim() || '';
+        return pos === 'trưởng ban';
+      });
+      if (rBan) {
+        g.leader = { agentCode: rBan.agentCode, agentName: rBan.agentName, position: rBan.position };
+        continue;
+      }
+      const rNhom = groupRecruiters.find(r => {
+        const pos = r.position?.toLowerCase().trim() || '';
+        return pos === 'trưởng nhóm';
+      });
+      if (rNhom) {
+        g.leader = { agentCode: rNhom.agentCode, agentName: rNhom.agentName, position: rNhom.position };
       }
     }
 
     // Step 2: Map doanh số vào nhóm ĐÃ CÓ từ Staff table
     // Dùng mã nhóm (maNhom) để ánh xạ
-    // Chỉ cộng doanh số vào nhóm đã tồn tại, KHÔNG tạo nhóm mới từ contracts
     for (const c of displayContracts) {
       const key = c.maNhom;
       const g = map.get(key);
@@ -801,7 +795,7 @@ export default function ThiDuaPage() {
         const phase1Grouped = new Map<string, GroupData>();
         for (const s of staffList) {
           if (s.maNhom && !phase1Grouped.has(s.maNhom)) {
-            phase1Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leaderBan: null, leaderNhom: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+            phase1Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
           }
         }
         for (const c of phase1Contracts) {
@@ -849,7 +843,7 @@ export default function ThiDuaPage() {
         const phase2Grouped = new Map<string, GroupData>();
         for (const s of staffList) {
           if (s.maNhom && !phase2Grouped.has(s.maNhom)) {
-            phase2Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leaderBan: null, leaderNhom: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+            phase2Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
           }
         }
         for (const c of phase2Contracts) {
@@ -1041,15 +1035,12 @@ export default function ThiDuaPage() {
         return { group: g, tier, groupPhase };
       }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
-        // Format leader info: Trưởng ban + Trưởng nhóm
-        const leaders = [
-          g.leaderBan ? `TB: ${g.leaderBan.agentCode} ${g.leaderBan.agentName}` : '',
-          g.leaderNhom ? `TN: ${g.leaderNhom.agentCode} ${g.leaderNhom.agentName}` : '',
-        ].filter(Boolean).join(' | ');
+        // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
+        const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '';
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaders} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaders} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
         }
       });
     } else {
@@ -1088,17 +1079,17 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TB', 'Tên TB', 'Mã TN', 'Tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
           return { g, tier, groupPhase };
         }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leaderBan?.agentCode || '', g.leaderBan?.agentName || '', g.leaderNhom?.agentCode || '', g.leaderNhom?.agentName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader ? `${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TB', 'Tên TB', 'Mã TN', 'Tên TN', condHeader, 'Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leaderBan?.agentCode || '', g.leaderBan?.agentName || '', g.leaderNhom?.agentCode || '', g.leaderNhom?.agentName || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng', 'Ghi chú'];
+        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader ? `${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
       }
     } else {
       // TVV per-contract or total_fyp
@@ -1749,10 +1740,8 @@ export default function ThiDuaPage() {
                       ) : targetType === 'nhom' ? (
                         <>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[50px] font-bold text-center">Mã TB</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Tên Trưởng Ban</TableHead>
-                          <TableHead className="text-white min-w-[50px] font-bold text-center">Mã TN</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Tên Trưởng Nhóm</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold text-center">Mã TN</TableHead>
+                          <TableHead className="text-white min-w-[90px] font-bold text-center">Tên Trưởng Nhóm</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
@@ -1927,10 +1916,8 @@ export default function ThiDuaPage() {
                         <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{group.leaderBan?.agentCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderBan?.agentName || '—'}</span></TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{group.leaderNhom?.agentCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leaderNhom?.agentName || '—'}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700 font-mono">{group.leader?.agentCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leader ? `${group.leader.agentName}${group.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '—'}</span></TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-orange-600">{group.activityRounds} lượt</span>
