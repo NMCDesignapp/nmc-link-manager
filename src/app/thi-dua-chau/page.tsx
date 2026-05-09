@@ -641,10 +641,11 @@ export default function ThiDuaPage() {
     return Array.from(nydMap.values());
   }, [displayContracts, conditionType, recruiterList, subjectCodes, useTVVmFilter, useTVV90Filter]);
 
-  // Grouped data - use Staff table as reference for group membership
-  // Nhóm: ánh xạ theo mã nhóm (maNhom) hoặc tên nhóm sang bảng doanh số
-  // Trưởng nhóm: tìm theo chức vụ trong Staff table
+  // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
+  // Bảng doanh số CHỈ dùng để tính số liệu (FYP, lượt), KHÔNG dùng để lấy thông tin nhóm
+  // Trưởng nhóm/Trưởng ban: tìm theo chức vụ trong Staff table
   // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
+  // Nhóm không có HĐ vẫn hiện với giá trị 0
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
@@ -653,73 +654,57 @@ export default function ThiDuaPage() {
     const allowedMaNhom = new Set<string>();
     const allowedNhomNames = new Set<string>();
     if (subjectCodes.length > 0) {
-      // Người dùng nhập DS đối tượng → chỉ lấy nhóm trong DS
-      // Hỗ trợ nhập mã nhóm hoặc tên nhóm
       for (const code of subjectCodes) {
         allowedMaNhom.add(code);
         allowedNhomNames.add(code);
       }
     }
 
-    // Step 1: Build unique groups from Staff table
-    // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm theo chức vụ
-    if (staffList.length > 0) {
-      const uniqueGroups = new Map<string, { nhom: string }>();
-      for (const s of staffList) {
-        if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
-          uniqueGroups.set(s.maNhom, { nhom: s.nhom });
-        }
+    // Step 1: Build groups CHỈ từ Staff table (DS TN)
+    // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm/ban theo chức vụ
+    const uniqueGroups = new Map<string, { nhom: string }>();
+    for (const s of staffList) {
+      if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
+        uniqueGroups.set(s.maNhom, { nhom: s.nhom });
       }
-      for (const [maNhom, info] of uniqueGroups) {
-        // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
-        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(maNhom) && !allowedNhomNames.has(info.nhom)) continue;
-        map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
-      }
-      // Find leader by position: Trưởng nhóm / Trưởng ban / Tiền trưởng nhóm
-      for (const [maNhom, g] of map) {
-        const leader = staffList.find(s =>
-          s.maNhom === maNhom && s.position && (
-            s.position.toLowerCase().includes('trưởng nhóm') ||
-            s.position.toLowerCase().includes('trưởng ban') ||
-            s.position.toLowerCase().includes('tiền trưởng nhóm')
-          )
-        );
-        if (leader) {
-          g.leaderCode = leader.agentCode;
-          g.leaderName = leader.agentName;
-          g.leaderPosition = leader.position;
-        }
+    }
+    for (const [maNhom, info] of uniqueGroups) {
+      // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
+      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(maNhom) && !allowedNhomNames.has(info.nhom)) continue;
+      map.set(maNhom, { maNhom, nhom: info.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+    }
+
+    // Tìm trưởng nhóm/trưởng ban theo chức vụ trong Staff table
+    for (const [maNhom, g] of map) {
+      const leader = staffList.find(s =>
+        s.maNhom === maNhom && s.position && (
+          s.position.toLowerCase().includes('trưởng nhóm') ||
+          s.position.toLowerCase().includes('trưởng ban')
+        )
+      );
+      if (leader) {
+        g.leaderCode = leader.agentCode;
+        g.leaderName = leader.agentName;
+        g.leaderPosition = leader.position;
       }
     }
 
-    // Step 2: Add contracts data to the groups (using maNhom to map)
-    // displayContracts đã được lọc theo subjectCodes ở bước trước
+    // Step 2: Map doanh số vào nhóm ĐÃ CÓ từ Staff table
+    // Dùng mã nhóm (maNhom) hoặc tên nhóm (nhom) để ánh xạ
+    // Chỉ cộng doanh số vào nhóm đã tồn tại, KHÔNG tạo nhóm mới từ contracts
     for (const c of displayContracts) {
       const key = c.maNhom;
-      if (!map.has(key)) {
-        // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
-        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(key) && !allowedNhomNames.has(c.nhom)) continue;
-        map.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+      const g = map.get(key);
+      if (g) {
+        // Tìm thấy nhóm trong Staff table → cộng doanh số
+        g.totalFYP += c.fyp;
+        g.contractCount += 1;
+        g.contracts.push(c);
       }
-      const g = map.get(key)!;
-      g.totalFYP += c.fyp;
-      g.contractCount += 1;
-      g.contracts.push(c);
+      // Nếu không tìm thấy nhóm → bỏ qua (không tạo nhóm mới từ contracts)
     }
 
-    // Step 3: For groups not from staff list, try to detect leader from contracts
-    if (staffList.length === 0) {
-      for (const g of Array.from(map.values())) {
-        const leaderByPosition = g.contracts.find(c => c.position && (c.position.toLowerCase().includes('trưởng nhóm') || c.position.toLowerCase().includes('trưởng ban')));
-        if (leaderByPosition) {
-          g.leaderName = leaderByPosition.agentName;
-          g.leaderCode = leaderByPosition.agentCode;
-          g.leaderPosition = leaderByPosition.position;
-        }
-      }
-    }
-
-    // Step 4: Calculate activity rounds using per-month lượt definition
+    // Step 3: Calculate activity rounds using per-month lượt definition
     if (isActivityRoundMode(conditionType)) {
       const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
       const applyTVV90 = isTVV90Mode(conditionType) || useTVV90Filter;
@@ -728,7 +713,7 @@ export default function ThiDuaPage() {
       }
     }
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, contracts, staffList, subjectCodes, useTVVmFilter, useTVV90Filter]);
+  }, [displayContracts, targetType, conditionType, staffList, subjectCodes, useTVVmFilter, useTVV90Filter]);
 
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
@@ -742,11 +727,16 @@ export default function ThiDuaPage() {
     let phase1Bonus = 0;
     if (targetType === 'nhom') {
       if (isActivityRoundMode(conditionType)) {
+        // Dùng nhóm từ Staff table, chỉ cộng doanh số vào nhóm đã có
         const phase1Grouped = new Map<string, GroupData>();
+        for (const s of staffList) {
+          if (s.maNhom && !phase1Grouped.has(s.maNhom)) {
+            phase1Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+          }
+        }
         for (const c of phase1Contracts) {
-          const key = c.maNhom;
-          if (!phase1Grouped.has(key)) phase1Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
-          const g = phase1Grouped.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
+          const g = phase1Grouped.get(c.maNhom);
+          if (g) { g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c); }
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
         for (const g of phase1Grouped.values()) {
@@ -785,11 +775,16 @@ export default function ThiDuaPage() {
     let phase2Bonus = 0;
     if (targetType === 'nhom') {
       if (isActivityRoundMode(conditionType)) {
+        // Dùng nhóm từ Staff table, chỉ cộng doanh số vào nhóm đã có
         const phase2Grouped = new Map<string, GroupData>();
+        for (const s of staffList) {
+          if (s.maNhom && !phase2Grouped.has(s.maNhom)) {
+            phase2Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+          }
+        }
         for (const c of phase2Contracts) {
-          const key = c.maNhom;
-          if (!phase2Grouped.has(key)) phase2Grouped.set(key, { maNhom: key, nhom: c.nhom, leaderName: '', leaderCode: '', leaderPosition: '', totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
-          const g = phase2Grouped.get(key)!; g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c);
+          const g = phase2Grouped.get(c.maNhom);
+          if (g) { g.totalFYP += c.fyp; g.contractCount += 1; g.contracts.push(c); }
         }
         const luotThreshold = conditionType === 'activity_round_standard' ? 12_000_000 : 3_000_000;
         for (const g of phase2Grouped.values()) {
