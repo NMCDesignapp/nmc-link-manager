@@ -1036,7 +1036,7 @@ export default function ThiDuaPage() {
       }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
         // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
-        const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '';
+        const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
         if (usePhase2 && phase2StartDate) {
           text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
         } else {
@@ -1060,8 +1060,8 @@ export default function ThiDuaPage() {
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
   };
 
-  const handleExport = () => {
-    if (displayContracts.length === 0 && nydData.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
+  const handleExport = async () => {
+    if (displayContracts.length === 0 && nydData.length === 0 && groupedData.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
 
@@ -1070,7 +1070,7 @@ export default function ThiDuaPage() {
       rows = nydData.map(n => {
         const value = isNYDActivityMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeOwnNYD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
-        const base = [n.nhom || '', n.nydCode, n.nydName, n.position || '', isNYDActivityMode(conditionType) ? n.recruitCount : value];
+        const base: (string | number)[] = [n.nhom || '', n.nydCode, n.nydName, n.position || '', isNYDActivityMode(conditionType) ? n.recruitCount : value];
         if (includeOwnNYD) base.push(n.ownFYP);
         base.push(tier ? formatBonus(tier, value, n.recruitCount) : '');
         base.push(tier ? '' : 'Chưa đạt mức');
@@ -1079,17 +1079,17 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
           return { g, tier, groupPhase };
         }).sort((a, b) => ((b.groupPhase.phase1Bonus + b.groupPhase.phase2Bonus) - (a.groupPhase.phase1Bonus + a.groupPhase.phase2Bonus))).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader ? `${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', condHeader, 'Thưởng', 'Ghi chú'];
-        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader ? `${g.leader.agentName}${g.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng', 'Ghi chú'];
+        rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
       }
     } else {
       // TVV per-contract or total_fyp
@@ -1131,9 +1131,17 @@ export default function ThiDuaPage() {
         }
       }
     }
-    const csvContent = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob); link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
+    const XLSX = await import('xlsx');
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    // Auto-size columns
+    const colWidths = headers.map((h, i) => {
+      const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] || '').length));
+      return { wch: Math.min(maxLen + 2, 30) };
+    });
+    ws['!cols'] = colWidths;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi đua');
+    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Download image function - using html-to-image
@@ -1164,6 +1172,53 @@ export default function ThiDuaPage() {
     } catch (error) {
       console.error('Download image error:', error);
       toast({ title: 'Lỗi', description: 'Không thể tải ảnh', variant: 'destructive' });
+    } finally {
+      setIsDownloadingImage(false);
+    }
+  };
+
+  // Share image function - capture result as image and share via Web Share API
+  const handleShareImage = async () => {
+    setIsDownloadingImage(true);
+    try {
+      const { toBlob } = await import('html-to-image');
+      if (!resultContentRef.current) {
+        toast({ title: 'Lỗi', description: 'Không có nội dung để chia sẻ', variant: 'destructive' });
+        return;
+      }
+      const blob = await toBlob(resultContentRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+      if (!blob) {
+        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+        return;
+      }
+      const file = new File([blob], `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
+
+      // Try Web Share API first (mobile-friendly)
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: contestTitle || 'Kết quả thi đua',
+          text: `${contestTitle} — Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}`,
+          files: [file],
+        });
+        toast({ title: 'Thành công', description: 'Đã chia sẻ ảnh' });
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast({ title: 'Thành công', description: 'Đã tải ảnh xuống (trình duyệt không hỗ trợ chia sẻ)' });
+      }
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return; // User cancelled share
+      console.error('Share image error:', error);
+      toast({ title: 'Lỗi', description: 'Không thể chia sẻ ảnh', variant: 'destructive' });
     } finally {
       setIsDownloadingImage(false);
     }
@@ -1681,12 +1736,13 @@ export default function ThiDuaPage() {
               <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-emerald-200 text-emerald-600 h-7 w-7 p-0 hover:bg-emerald-50">
                 {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               </Button>
+              <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
+                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
+              </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
                 {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCopyText} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Copy className="w-3 h-3 mr-1" />Copy</Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50"><Printer className="w-3 h-3 mr-1" />In</Button>
-              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-200 text-gray-600 h-7 text-xs hover:bg-gray-50"><Download className="w-3 h-3 mr-1" />CSV</Button>
+              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-200 text-gray-600 h-7 text-xs hover:bg-gray-50"><Download className="w-3 h-3 mr-1" />XLSX</Button>
             </div>
           </div>
 
@@ -1741,7 +1797,8 @@ export default function ThiDuaPage() {
                         <>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
                           <TableHead className="text-white min-w-[55px] font-bold text-center">Mã TN</TableHead>
-                          <TableHead className="text-white min-w-[90px] font-bold text-center">Tên Trưởng Nhóm</TableHead>
+                          <TableHead className="text-white min-w-[80px] font-bold text-center">Tên Trưởng Nhóm</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold text-center">Chức vụ</TableHead>
                           <TableHead className="text-white min-w-[70px] font-bold text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
@@ -1917,7 +1974,8 @@ export default function ThiDuaPage() {
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{group.leader?.agentCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leader ? `${group.leader.agentName}${group.leader.position?.toLowerCase().trim() === 'trưởng ban' ? ' (TB)' : ''}` : '—'}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
+                          <TableCell className="text-xs text-gray-700">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-orange-600">{group.activityRounds} lượt</span>
