@@ -1102,7 +1102,7 @@ export default function ThiDuaPage() {
         const { tier } = calculateBonus(value);
         return { nyd: n, tier, value };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value }, idx) => {
-        const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} ${getConditionLabel(conditionType)} HĐ` : formatNumber(value);
+        const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} Lượt` : formatNumber(value);
         text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualTN ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
@@ -1115,7 +1115,7 @@ export default function ThiDuaPage() {
         const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
         return bValue - aValue;
       }).forEach(({ group: g, tier, groupPhase }, idx) => {
-        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : `IP: ${formatNumber(g.totalFYP)}`;
+        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : `IP: ${formatNumber(g.totalFYP)}`;
         // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
         const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
         if (usePhase2 && phase2StartDate) {
@@ -1186,7 +1186,7 @@ export default function ThiDuaPage() {
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
         }).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
         headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng', 'Ghi chú'];
@@ -1194,7 +1194,7 @@ export default function ThiDuaPage() {
           const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
-        }).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        }).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
       }
     } else {
       // TVV per-contract or total_fyp
@@ -2188,7 +2188,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-700">{nyd.nydName}</TableCell>
                           <TableCell className="text-xs text-gray-700">{nyd.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs text-violet-600">
-                            {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} ${getConditionLabel(conditionType)} lượt` : formatNumber(value)}
+                            {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
                           </TableCell>
                           {includeIndividualTN && (
                             <TableCell className="text-right text-xs text-gray-600">{formatNumber(nyd.ownFYP)}</TableCell>
@@ -2225,7 +2225,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-700">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
-                              ? <span className="text-orange-600">{group.activityRounds} lượt</span>
+                              ? <span className="text-orange-600">{group.activityRounds} Lượt</span>
                               : <span className="text-gray-700">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
