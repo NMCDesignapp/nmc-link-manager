@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
         const dataLines = lines.slice(1);
         const contracts = [];
         const seenContractNumbers = new Set<string>();
-        const agentMap = new Map<string, { agentCode: string; agentName: string; position: string; nhom: string; maNhom: string; startDate: Date | null }>();
 
         for (const line of dataLines) {
           const columns = parseCSVLine(line);
@@ -88,29 +87,13 @@ export async function POST(request: NextRequest) {
           const tinhLuot = parseNumber(tinhLuotStr);
 
           contracts.push({ contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: recruiterCode || '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
-
-          if (agentCode && !agentMap.has(agentCode)) {
-            agentMap.set(agentCode, { agentCode, agentName, position, nhom, maNhom, startDate });
-          }
         }
 
         if (contracts.length > 0) {
           const result = await db.contract.createMany({ data: contracts, skipDuplicates: true });
           results.contracts = result.count;
         }
-
-        // Also upsert staff from contracts
-        const staffUpserts = Array.from(agentMap.values()).map(agent =>
-          db.staff.upsert({
-            where: { agentCode: agent.agentCode },
-            update: { agentName: agent.agentName, position: agent.position, nhom: agent.nhom, maNhom: agent.maNhom, startDate: agent.startDate },
-            create: { agentCode: agent.agentCode, agentName: agent.agentName, position: agent.position, nhom: agent.nhom, maNhom: agent.maNhom, startDate: agent.startDate },
-          })
-        );
-        if (staffUpserts.length > 0) {
-          const sr = await Promise.all(staffUpserts);
-          results.staff = sr.length;
-        }
+        // KHÔNG upsert Staff từ contracts — Staff chỉ từ Staff CSV
       } catch (err) {
         results.errors.push(`HĐ: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
