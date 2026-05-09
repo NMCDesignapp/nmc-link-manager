@@ -155,6 +155,8 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, useTVVmFilt
 }
 
 const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv';
+const DEFAULT_STAFF_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLOfLKaDdEL8EcAb6kaI6GKt3cFaXLxnwuCgeR63rmn2pQI0wC-aZswNRCDqvt87G0981ibFjmDNG1/pub?output=csv';
+const DEFAULT_NYD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMzanBhPmqGXv2JXxYHkuaNiWC2YhzOAemkQao1FfW_l2a5-wJnjDeFnxvohS4ydTXusXVey8J3jdA/pub?output=csv';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
@@ -650,7 +652,8 @@ export default function ThiDuaPage() {
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // Bảng doanh số CHỈ dùng để tính số liệu (FYP, lượt), KHÔNG dùng để lấy thông tin nhóm
-  // Trưởng nhóm/Trưởng ban: tìm theo chức vụ trong Staff table
+  // Thi đua nhóm: nhóm = nguồn chính, doanh số chỉ dùng tính số liệu
+  // Trưởng nhóm/Trưởng ban: tìm theo chức vụ trong Staff table, fallback Recruiter table
   // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
   // Nhóm không có HĐ vẫn hiện với giá trị 0
   const groupedData: GroupData[] = useMemo(() => {
@@ -658,16 +661,21 @@ export default function ThiDuaPage() {
     const map = new Map<string, GroupData>();
 
     // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
+    // Hỗ trợ lọc theo: mã nhóm, tên nhóm, mã trưởng nhóm/ban, tên trưởng nhóm/ban
     const allowedMaNhom = new Set<string>();
     const allowedNhomNames = new Set<string>();
+    const allowedAgentCodes = new Set<string>();
+    const allowedAgentNames = new Set<string>();
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
-        allowedMaNhom.add(code);
-        allowedNhomNames.add(code);
+        allowedMaNhom.add(code.toLowerCase());
+        allowedNhomNames.add(code.toLowerCase());
+        allowedAgentCodes.add(code);
+        allowedAgentNames.add(code.toLowerCase());
       }
     }
 
-    // Step 1: Build groups CHỈ từ Staff table (DS TN)
+    // Step 1: Build groups CHỈ từ Staff table (DS Nhóm)
     // Gom theo mã nhóm, mỗi nhóm lấy tên nhóm + tìm trưởng nhóm/ban theo chức vụ
     const uniqueGroups = new Map<string, { nhom: string }>();
     for (const s of staffList) {
@@ -675,18 +683,43 @@ export default function ThiDuaPage() {
         uniqueGroups.set(s.maNhom, { nhom: s.nhom });
       }
     }
+
+    // Nếu có DS đối tượng: tìm nhóm theo mã/nhóm HOẶC theo agent code/name của trưởng
+    if (allowedMaNhom.size > 0) {
+      for (const s of staffList) {
+        if (!s.maNhom) continue;
+        // Nếu trưởng nhóm/ban khớp DS đối tượng → thêm nhóm đó
+        if (
+          allowedAgentCodes.has(s.agentCode) ||
+          allowedAgentNames.has(s.agentName?.toLowerCase())
+        ) {
+          if (!uniqueGroups.has(s.maNhom)) {
+            uniqueGroups.set(s.maNhom, { nhom: s.nhom });
+          }
+        }
+      }
+    }
+
     for (const [maNhom, info] of uniqueGroups) {
-      // Nếu có DS đối tượng, chỉ thêm nhóm trong DS
-      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(maNhom) && !allowedNhomNames.has(info.nhom)) continue;
+      // Nếu có DS đối tượng, chỉ thêm nhóm trong DS (mã nhóm, tên nhóm, hoặc trưởng khớp)
+      if (allowedMaNhom.size > 0) {
+        const groupStaff = staffList.filter(s => s.maNhom === maNhom);
+        const hasMatchingLeader = groupStaff.some(s =>
+          allowedAgentCodes.has(s.agentCode) || allowedAgentNames.has(s.agentName?.toLowerCase())
+        );
+        if (!allowedMaNhom.has(maNhom.toLowerCase()) && !allowedNhomNames.has(info.nhom.toLowerCase()) && !hasMatchingLeader) continue;
+      }
       map.set(maNhom, { maNhom, nhom: info.nhom, leaderBan: null, leaderNhom: null, totalFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
     }
 
-    // Tìm Trưởng ban và Trưởng nhóm theo chức vụ trong Staff table
+    // Tìm Trưởng ban và Trưởng nhóm theo chức vụ
+    // Ưu tiên Staff table, fallback sang Recruiter table (NTD CSV có đầy đủ TVV)
     // QUAN TRỌNG: Không lấy "Tiền trưởng nhóm" - đó là chức vụ khác!
     // Chỉ lấy đúng "Trưởng ban" và "Trưởng nhóm" (không phải "Phó" hay "Tiền")
     for (const [maNhom, g] of map) {
       const groupStaff = staffList.filter(s => s.maNhom === maNhom);
-      // Tìm Trưởng ban (chính xác, không phải "Phó trưởng ban")
+
+      // Tìm Trưởng ban từ Staff table
       const truongBan = groupStaff.find(s => {
         const pos = s.position?.toLowerCase().trim() || '';
         return pos === 'trưởng ban';
@@ -694,7 +727,8 @@ export default function ThiDuaPage() {
       if (truongBan) {
         g.leaderBan = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
       }
-      // Tìm Trưởng nhóm (chính xác, không phải "Tiền trưởng nhóm" hay "Phó trưởng nhóm")
+
+      // Tìm Trưởng nhóm từ Staff table
       const truongNhom = groupStaff.find(s => {
         const pos = s.position?.toLowerCase().trim() || '';
         return pos === 'trưởng nhóm';
@@ -702,21 +736,42 @@ export default function ThiDuaPage() {
       if (truongNhom) {
         g.leaderNhom = { agentCode: truongNhom.agentCode, agentName: truongNhom.agentName, position: truongNhom.position };
       }
+
+      // Fallback: Nếu chưa tìm đủ, tìm trong Recruiter table theo tên nhóm
+      if (!g.leaderBan || !g.leaderNhom) {
+        const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom);
+        if (!g.leaderBan) {
+          const rBan = groupRecruiters.find(r => {
+            const pos = r.position?.toLowerCase().trim() || '';
+            return pos === 'trưởng ban';
+          });
+          if (rBan) {
+            g.leaderBan = { agentCode: rBan.agentCode, agentName: rBan.agentName, position: rBan.position };
+          }
+        }
+        if (!g.leaderNhom) {
+          const rNhom = groupRecruiters.find(r => {
+            const pos = r.position?.toLowerCase().trim() || '';
+            return pos === 'trưởng nhóm';
+          });
+          if (rNhom) {
+            g.leaderNhom = { agentCode: rNhom.agentCode, agentName: rNhom.agentName, position: rNhom.position };
+          }
+        }
+      }
     }
 
     // Step 2: Map doanh số vào nhóm ĐÃ CÓ từ Staff table
-    // Dùng mã nhóm (maNhom) hoặc tên nhóm (nhom) để ánh xạ
+    // Dùng mã nhóm (maNhom) để ánh xạ
     // Chỉ cộng doanh số vào nhóm đã tồn tại, KHÔNG tạo nhóm mới từ contracts
     for (const c of displayContracts) {
       const key = c.maNhom;
       const g = map.get(key);
       if (g) {
-        // Tìm thấy nhóm trong Staff table → cộng doanh số
         g.totalFYP += c.fyp;
         g.contractCount += 1;
         g.contracts.push(c);
       }
-      // Nếu không tìm thấy nhóm → bỏ qua (không tạo nhóm mới từ contracts)
     }
 
     // Step 3: Calculate activity rounds using per-month lượt definition
@@ -728,7 +783,7 @@ export default function ThiDuaPage() {
       }
     }
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, staffList, subjectCodes, useTVVmFilter, useTVV90Filter]);
+  }, [displayContracts, targetType, conditionType, staffList, recruiterList, subjectCodes, useTVVmFilter, useTVV90Filter]);
 
   // Phase 2: Split contracts and compute bonus
   const phase2Results = useMemo(() => {
@@ -917,9 +972,9 @@ export default function ThiDuaPage() {
     try {
       // Fetch all 3 CSVs simultaneously
       const urls = [
-        settings.csv_url || csvUrl,      // Contract CSV
-        settings.csv_staff_url || '',     // Staff CSV
-        settings.csv_nyd_url || '',       // Recruiter CSV
+        settings.csv_url || csvUrl,                     // Contract CSV
+        settings.csv_staff_url || DEFAULT_STAFF_CSV_URL, // Staff CSV (DS Nhóm)
+        settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,     // Recruiter CSV (DS NTD)
       ];
 
       const fetchPromises = urls.map(url => {
