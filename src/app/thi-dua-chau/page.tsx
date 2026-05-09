@@ -856,6 +856,20 @@ export default function ThiDuaPage() {
         const { tier } = calculateBonusWithTiers(value, bonusTiers);
         if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
       }
+    } else if (isTotalMode(conditionType) && targetType === 'tvv') {
+      // TVV total mode: aggregate by agentCode for phase 1
+      const isAFYP = conditionType === 'total_afyp';
+      const agentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+      for (const c of phase1Contracts) {
+        const existing = agentMap.get(c.agentCode);
+        if (existing) { existing.totalFYP += c.fyp; existing.totalAFYP += c.afyp; }
+        else { agentMap.set(c.agentCode, { totalFYP: c.fyp, totalAFYP: c.afyp }); }
+      }
+      for (const [, data] of agentMap) {
+        const value = isAFYP ? data.totalAFYP : data.totalFYP;
+        const { tier } = calculateBonusWithTiers(value, bonusTiers);
+        if (tier) phase1Bonus += computeBonusFromTier(tier, value);
+      }
     } else {
       for (const c of phase1Contracts) { phase1Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers); }
     }
@@ -908,6 +922,20 @@ export default function ThiDuaPage() {
         const value = isActivityRoundMode(conditionType) ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0));
         const { tier } = calculateBonusWithTiers(value, bonusTiers2);
         if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
+      }
+    } else if (isTotalMode(conditionType) && targetType === 'tvv') {
+      // TVV total mode: aggregate by agentCode for phase 2
+      const isAFYP = conditionType === 'total_afyp';
+      const agentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+      for (const c of phase2Contracts) {
+        const existing = agentMap.get(c.agentCode);
+        if (existing) { existing.totalFYP += c.fyp; existing.totalAFYP += c.afyp; }
+        else { agentMap.set(c.agentCode, { totalFYP: c.fyp, totalAFYP: c.afyp }); }
+      }
+      for (const [, data] of agentMap) {
+        const value = isAFYP ? data.totalAFYP : data.totalFYP;
+        const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+        if (tier) phase2Bonus += computeBonusFromTier(tier, value);
       }
     } else {
       for (const c of phase2Contracts) { phase2Bonus += getBonusAmountWithTiers(c.fyp, bonusTiers2); }
@@ -1092,18 +1120,34 @@ export default function ThiDuaPage() {
           text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
         }
       });
-    } else {
+    } else if (isPerContractMode(conditionType)) {
       [...displayContracts].map((c) => {
-        const tier = isPerContractMode(conditionType) ? calculateBonus(getContractValue(c)).tier : null;
+        const tier = calculateBonus(getContractValue(c)).tier;
         const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
         return { contract: c, tier, phaseInfo };
       }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).forEach(({ contract: c, tier, phaseInfo }, idx) => {
-        const contractInfo = isPerContractMode(conditionType) ? ` | ${formatDate(c.effectiveDate)}` : '';
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.fyp)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName}${contractInfo} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.fyp)} | ${tier ? `Thưởng: ${formatBonus(tier, c.fyp)}` : 'Chưa đạt'}\n`;
         }
+      });
+    } else {
+      // total_ip / total_afyp mode: aggregate by TVV
+      const isAFYP = conditionType === 'total_afyp';
+      const agentMap = new Map<string, { agentCode: string; agentName: string; nhom: string; totalFYP: number; totalAFYP: number; contracts: Contract[] }>();
+      for (const c of displayContracts) {
+        const existing = agentMap.get(c.agentCode);
+        if (existing) { existing.totalFYP += c.fyp; existing.totalAFYP += c.afyp; existing.contracts.push(c); }
+        else { agentMap.set(c.agentCode, { agentCode: c.agentCode, agentName: c.agentName, nhom: c.nhom || c.maNhom, totalFYP: c.fyp, totalAFYP: c.afyp, contracts: [c] }); }
+      }
+      Array.from(agentMap.values()).map(agent => {
+        const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
+        const { tier } = calculateBonus(value);
+        return { agent, value, tier };
+      }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).forEach(({ agent, value, tier }, idx) => {
+        const valueLabel = isAFYP ? `AFYP: ${formatNumber(value)}` : `IP: ${formatNumber(value)}`;
+        text += `${idx + 1}. ${agent.nhom} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, value)}` : 'Chưa đạt'}\n`;
       });
     }
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
@@ -1165,18 +1209,50 @@ export default function ThiDuaPage() {
           });
         }
       } else {
+        // total_ip / total_afyp mode for TVV: aggregate by agentCode
+        const isAFYP = conditionType === 'total_afyp';
+        const agentMap = new Map<string, { agentCode: string; agentName: string; nhom: string; maNhom: string; totalFYP: number; totalAFYP: number; contracts: Contract[] }>();
+        for (const c of displayContracts) {
+          const existing = agentMap.get(c.agentCode);
+          if (existing) {
+            existing.totalFYP += c.fyp;
+            existing.totalAFYP += c.afyp;
+            existing.contracts.push(c);
+          } else {
+            agentMap.set(c.agentCode, { agentCode: c.agentCode, agentName: c.agentName, nhom: c.nhom, maNhom: c.maNhom, totalFYP: c.fyp, totalAFYP: c.afyp, contracts: [c] });
+          }
+        }
         if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => {
-            const { tier } = calculateBonus(c.fyp);
-            const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-            return { c, tier, phaseInfo };
-          }).sort((a, b) => ((b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus) - (a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus))).map(({ c, tier, phaseInfo }, idx) =>
-            [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.fyp, phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
+          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          rows = Array.from(agentMap.values()).map(agent => {
+            const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
+            const { tier } = calculateBonus(value);
+            // Phase 2
+            let p1Bonus = 0, p2Bonus = 0;
+            if (phase2StartDate) {
+              const p2Start = new Date(phase2StartDate);
+              const p1Contracts = agent.contracts.filter(c => new Date(c.effectiveDate) < p2Start);
+              const p2Contracts = agent.contracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+              const p1Value = isAFYP ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.fyp, 0);
+              const p2Value = isAFYP ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.fyp, 0);
+              const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
+              const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
+              p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0;
+              p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0;
+            }
+            return { agent, value, tier, p1Bonus, p2Bonus };
+          }).sort((a, b) => ((b.p1Bonus + b.p2Bonus) - (a.p1Bonus + a.p2Bonus))).map(({ agent, value, tier, p1Bonus, p2Bonus }, idx) =>
+            [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value, p1Bonus || '', p2Bonus || '', p1Bonus + p2Bonus || '', tier ? '' : 'Chưa đạt mức']
           );
         } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Tổng IP', 'Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ c, tier }, idx) => [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.fyp, tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức']);
+          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', 'Thưởng', 'Ghi chú'];
+          rows = Array.from(agentMap.values()).map(agent => {
+            const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
+            const { tier } = calculateBonus(value);
+            return { agent, value, tier };
+          }).sort((a, b) => (b.tier?.bonusAmount || 0) - (a.tier?.bonusAmount || 0)).map(({ agent, value, tier }, idx) =>
+            [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value, tier ? formatBonus(tier, value) : '', tier ? '' : 'Chưa đạt mức']
+          );
         }
       }
     }
@@ -1277,9 +1353,36 @@ export default function ThiDuaPage() {
   const stats = useMemo(() => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.fyp, 0);
     
-    // TVV stats
-    const tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.fyp).tier).length;
-    const tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
+    // TVV stats - for total_ip/total_afyp mode, aggregate by agent first
+    let tvvAchievedCount: number;
+    let tvvTotalBonus: number;
+    if (isTotalMode(conditionType) && targetType === 'tvv') {
+      // Aggregate by agentCode, then apply bonus tiers on total
+      const agentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+      for (const c of displayContracts) {
+        const existing = agentMap.get(c.agentCode);
+        if (existing) {
+          existing.totalFYP += c.fyp;
+          existing.totalAFYP += c.afyp;
+        } else {
+          agentMap.set(c.agentCode, { totalFYP: c.fyp, totalAFYP: c.afyp });
+        }
+      }
+      const isAFYP = conditionType === 'total_afyp';
+      tvvAchievedCount = 0;
+      tvvTotalBonus = 0;
+      for (const [, data] of agentMap) {
+        const value = isAFYP ? data.totalAFYP : data.totalFYP;
+        const { tier } = calculateBonus(value);
+        if (tier) {
+          tvvAchievedCount++;
+          tvvTotalBonus += computeBonusFromTier(tier, value);
+        }
+      }
+    } else {
+      tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.fyp).tier).length;
+      tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.fyp), 0);
+    }
     
     // Nhóm stats
     const nhomAchievedCount = groupedData.filter(g => {
@@ -1310,8 +1413,12 @@ export default function ThiDuaPage() {
       return sum + computeBonusFromTier(tier, value, n.recruitCount);
     }, 0) : 0;
     
+    // For TVV total mode, count unique agents instead of contracts
+    const tvvAgentCount = isTotalMode(conditionType) && targetType === 'tvv'
+      ? new Set(displayContracts.map(c => c.agentCode)).size
+      : displayContracts.length;
     const achievedCount = targetType === 'nyd' ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
-    const notAchievedCount = targetType === 'nyd' ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : displayContracts.length - tvvAchievedCount;
+    const notAchievedCount = targetType === 'nyd' ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : tvvAgentCount - tvvAchievedCount;
     
     const baseTotalBonus = targetType === 'nyd' ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : tvvTotalBonus;
     const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
@@ -2154,37 +2261,78 @@ export default function ThiDuaPage() {
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : [...displayContracts].map((c) => {
-                      const { tier } = calculateBonus(c.fyp);
-                      const remaining = getRemainingToNextTier(c.fyp);
-                      const phaseInfo = getRowPhaseBonus(c.fyp, c.effectiveDate);
-                      return { contract: c, tier, remaining, phaseInfo };
-                    }).sort((a, b) => {
-                      const aTotal = a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus;
-                      const bTotal = b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus;
-                      return bTotal - aTotal;
-                    }).map(({ contract, tier, remaining, phaseInfo }, idx) => {
-                      if (hideNotAchieved && !tier) return null;
-                      return (
-                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
-                          <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.nhom || contract.maNhom}</TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.agentName}</TableCell>
-                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.fyp)}</TableCell>
-                          {usePhase2 ? (
-                            <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
-                            </>
-                          ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
-                          )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    }) : (() => {
+                      // total_ip / total_afyp mode for TVV: aggregate by agentCode, then apply bonus tiers
+                      const agentMap = new Map<string, {
+                        agentCode: string; agentName: string; nhom: string; maNhom: string;
+                        totalFYP: number; totalAFYP: number; contractCount: number;
+                        contracts: Contract[];
+                      }>();
+                      for (const c of displayContracts) {
+                        const existing = agentMap.get(c.agentCode);
+                        if (existing) {
+                          existing.totalFYP += c.fyp;
+                          existing.totalAFYP += c.afyp;
+                          existing.contractCount += 1;
+                          existing.contracts.push(c);
+                        } else {
+                          agentMap.set(c.agentCode, {
+                            agentCode: c.agentCode, agentName: c.agentName,
+                            nhom: c.nhom, maNhom: c.maNhom,
+                            totalFYP: c.fyp, totalAFYP: c.afyp, contractCount: 1,
+                            contracts: [c],
+                          });
+                        }
+                      }
+                      const isAFYP = conditionType === 'total_afyp';
+                      return Array.from(agentMap.values()).map(agent => {
+                        const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
+                        const { tier } = calculateBonus(value);
+                        const remaining = getRemainingToNextTier(value);
+                        // Phase 2 calculation
+                        let phaseInfo = { phase1Bonus: 0, phase2Bonus: 0, phase1Tier: null as BonusTier | null, phase2Tier: null as BonusTier | null };
+                        if (usePhase2 && phase2StartDate) {
+                          const p2Start = new Date(phase2StartDate);
+                          const p1Contracts = agent.contracts.filter(c => new Date(c.effectiveDate) < p2Start);
+                          const p2Contracts = agent.contracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+                          const p1Value = isAFYP ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.fyp, 0);
+                          const p2Value = isAFYP ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.fyp, 0);
+                          const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
+                          const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
+                          phaseInfo = {
+                            phase1Bonus: p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0,
+                            phase2Bonus: p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0,
+                            phase1Tier: p1Res.tier, phase2Tier: p2Res.tier,
+                          };
+                        }
+                        return { agent, value, tier, remaining, phaseInfo };
+                      }).sort((a, b) => {
+                        const aTotal = a.phaseInfo.phase1Bonus + a.phaseInfo.phase2Bonus;
+                        const bTotal = b.phaseInfo.phase1Bonus + b.phaseInfo.phase2Bonus;
+                        return bTotal - aTotal;
+                      }).map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
+                        if (hideNotAchieved && !tier) return null;
+                        return (
+                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                            <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
+                            <TableCell className="text-xs text-gray-700">{agent.nhom || agent.maNhom}</TableCell>
+                            <TableCell className="text-xs text-gray-700 font-mono">{agent.agentCode}</TableCell>
+                            <TableCell className="text-xs text-gray-700">{agent.agentName}</TableCell>
+                            <TableCell className="text-right text-xs text-gray-700">{formatNumber(value)}</TableCell>
+                            {usePhase2 ? (
+                              <>
+                                <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                              </>
+                            ) : (
+                              <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, value)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            )}
+                            <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
                   </TableBody>
                 </Table>
               </div>
