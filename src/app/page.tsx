@@ -55,9 +55,9 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   )
 }
 
-// Creative NGUYEN•MINH•CHAU text with neon effects - vertical layout
+// Creative N•M•C text with neon effects - vertical layout
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
-  const parts = ['NGUYEN', '•', 'MINH', '•', 'CHAU']
+  const parts = ['N', '•', 'M', '•', 'C']
   return (
     <div className="flex flex-col items-center justify-center gap-0">
       {parts.map((part, i) => {
@@ -67,14 +67,14 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
             key={i}
             className="relative inline-block leading-none"
             style={{
-              fontSize: isBullet ? '0.7rem' : '1.6rem',
-              fontWeight: isBullet ? 400 : 800,
+              fontSize: isBullet ? '0.8rem' : '3rem',
+              fontWeight: isBullet ? 400 : 900,
               fontFamily: '"Outfit", system-ui, sans-serif',
               color: isBullet ? `${color}60` : color,
               textShadow: isBullet
                 ? `0 0 6px ${color}30`
                 : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
-              letterSpacing: isBullet ? '0' : '0.2em',
+              letterSpacing: isBullet ? '0' : '0.15em',
             }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
