@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
+import { HoneycombBackground } from '@/components/honeycomb-bg'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -49,7 +50,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="h-full overflow-auto grid-bg">
+      <body className="h-full overflow-auto honeycomb-bg">
+        <HoneycombBackground />
         <ErrorBoundary>
           {children}
           <PwaInstallPrompt />

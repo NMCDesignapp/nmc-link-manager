@@ -1598,15 +1598,11 @@ export default function ThiDuaPage() {
   }, [nydData, conditionType, includeIndividualTN, calculateBonus]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
-      {/* Grid background */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03]" style={{
-        backgroundImage: 'linear-gradient(rgba(0,255,136,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.3) 1px, transparent 1px)',
-        backgroundSize: '40px 40px'
-      }} />
+    <div className="min-h-screen">
+      {/* Honeycomb background is handled by layout */}
 
       {/* Header */}
-      <header className="border-b border-emerald-500/20 bg-[#0a0a0f]/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
           <button
             onClick={() => router.push('/')}
