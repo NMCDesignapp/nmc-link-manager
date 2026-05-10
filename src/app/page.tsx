@@ -55,38 +55,38 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   )
 }
 
-// Creative N.M.C text with neon effects
+// Creative NGUYEN•MINH•CHAU text with neon effects - vertical layout
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
-  const letters = ['N', '.', 'M', '.', 'C']
+  const parts = ['NGUYEN', '•', 'MINH', '•', 'CHAU']
   return (
-    <div className="flex items-center justify-center gap-0.5">
-      {letters.map((char, i) => {
-        const isLetter = char !== '.'
+    <div className="flex flex-col items-center justify-center gap-0">
+      {parts.map((part, i) => {
+        const isBullet = part === '•'
         return (
           <motion.span
             key={i}
-            className="relative inline-block"
+            className="relative inline-block leading-none"
             style={{
-              fontSize: isLetter ? '2.5rem' : '1.5rem',
-              fontWeight: 800,
+              fontSize: isBullet ? '0.7rem' : '1.6rem',
+              fontWeight: isBullet ? 400 : 800,
               fontFamily: '"Outfit", system-ui, sans-serif',
-              color: isLetter ? color : `${color}80`,
-              textShadow: isLetter
-                ? `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`
-                : `0 0 8px ${color}40`,
-              letterSpacing: isLetter ? '0.05em' : '0',
+              color: isBullet ? `${color}60` : color,
+              textShadow: isBullet
+                ? `0 0 6px ${color}30`
+                : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
+              letterSpacing: isBullet ? '0' : '0.2em',
             }}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: 0.1 + i * 0.08,
+              delay: 0.1 + i * 0.1,
               duration: 0.5,
               ease: [0.25, 0.46, 0.45, 0.94],
             }}
           >
-            {char}
+            {part}
             {/* Animated scan line for letters */}
-            {isLetter && (
+            {!isBullet && (
               <motion.div
                 className="absolute inset-0 pointer-events-none"
                 style={{
