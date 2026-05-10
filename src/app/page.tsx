@@ -55,11 +55,11 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   )
 }
 
-// Creative N•M•C text with neon effects - vertical layout
+// Creative N•M•C text with neon effects - horizontal layout
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
   const parts = ['N', '•', 'M', '•', 'C']
   return (
-    <div className="flex flex-col items-center justify-center gap-0">
+    <div className="flex items-center justify-center gap-0.5">
       {parts.map((part, i) => {
         const isBullet = part === '•'
         return (
@@ -67,25 +67,24 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
             key={i}
             className="relative inline-block leading-none"
             style={{
-              fontSize: isBullet ? '0.8rem' : '3rem',
+              fontSize: isBullet ? '1.5rem' : '3rem',
               fontWeight: isBullet ? 400 : 900,
               fontFamily: '"Outfit", system-ui, sans-serif',
               color: isBullet ? `${color}60` : color,
               textShadow: isBullet
                 ? `0 0 6px ${color}30`
                 : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
-              letterSpacing: isBullet ? '0' : '0.15em',
+              letterSpacing: isBullet ? '0' : '0.05em',
             }}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: 0.1 + i * 0.1,
+              delay: 0.1 + i * 0.08,
               duration: 0.5,
               ease: [0.25, 0.46, 0.45, 0.94],
             }}
           >
             {part}
-            {/* Animated scan line for letters */}
             {!isBullet && (
               <motion.div
                 className="absolute inset-0 pointer-events-none"
