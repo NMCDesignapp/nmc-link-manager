@@ -55,57 +55,122 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   )
 }
 
-// Creative N•M•C text with neon effects - horizontal layout
+// Creative N•M•C text with neon effects - horizontal layout with chevron arrows
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
   const parts = ['N', '•', 'M', '•', 'C']
-  return (
-    <div className="flex items-center justify-center gap-0.5">
-      {parts.map((part, i) => {
-        const isBullet = part === '•'
-        return (
-          <motion.span
-            key={i}
-            className="relative inline-block leading-none"
-            style={{
-              fontSize: isBullet ? '1.5rem' : '3rem',
-              fontWeight: isBullet ? 400 : 900,
-              fontFamily: '"Outfit", system-ui, sans-serif',
-              color: isBullet ? `${color}60` : color,
-              textShadow: isBullet
-                ? `0 0 6px ${color}30`
-                : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
-              letterSpacing: isBullet ? '0' : '0.05em',
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: 0.1 + i * 0.08,
-              duration: 0.5,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
+
+  // Chevron arrows pointing inward - 3 arrows on each side
+  const ChevronArrows = ({ direction }: { direction: 'left' | 'right' }) => {
+    const arrows = [0, 1, 2]
+    return (
+      <div className={`flex flex-col items-center justify-center gap-1 ${direction === 'left' ? 'mr-3' : 'ml-3'}`}>
+        {arrows.map((idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, x: direction === 'left' ? -20 : 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 + idx * 0.1, duration: 0.4 }}
           >
-            {part}
-            {!isBullet && (
-              <motion.div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: `linear-gradient(180deg, transparent 0%, ${color}30 50%, transparent 100%)`,
-                  backgroundSize: '100% 200%',
-                }}
-                animate={{
-                  backgroundPosition: ['0% 0%', '0% 200%'],
-                }}
-                transition={{
-                  duration: 2 + i * 0.3,
-                  repeat: Infinity,
-                  ease: 'linear',
-                  delay: i * 0.2,
-                }}
+            <svg
+              width="22"
+              height="16"
+              viewBox="0 0 22 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                transform: direction === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
+                filter: `drop-shadow(0 0 4px ${color}60) drop-shadow(0 0 8px ${color}30)`,
+              }}
+            >
+              <path
+                d="M2 8L10 2L10 14L2 8Z"
+                fill="none"
+                stroke="url(#chevronGrad)"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
               />
-            )}
-          </motion.span>
-        )
-      })}
+              <path
+                d="M8 8L16 2L16 14L8 8Z"
+                fill="none"
+                stroke="url(#chevronGrad2)"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+                opacity="0.6"
+              />
+              <defs>
+                <linearGradient id="chevronGrad" x1="2" y1="8" x2="16" y2="8">
+                  <stop offset="0%" stopColor={color} />
+                  <stop offset="100%" stopColor="#00d4ff" />
+                </linearGradient>
+                <linearGradient id="chevronGrad2" x1="8" y1="8" x2="16" y2="8">
+                  <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.8" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </motion.div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-center">
+      {/* Left arrows pointing right (inward) */}
+      <ChevronArrows direction="left" />
+
+      {/* Main text */}
+      <div className="flex items-center justify-center gap-0.5">
+        {parts.map((part, i) => {
+          const isBullet = part === '•'
+          return (
+            <motion.span
+              key={i}
+              className="relative inline-block leading-none"
+              style={{
+                fontSize: isBullet ? '1.5rem' : '3rem',
+                fontWeight: isBullet ? 400 : 900,
+                fontFamily: '"Outfit", system-ui, sans-serif',
+                color: isBullet ? `${color}60` : color,
+                textShadow: isBullet
+                  ? `0 0 6px ${color}30`
+                  : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
+                letterSpacing: isBullet ? '0' : '0.05em',
+              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.1 + i * 0.08,
+                duration: 0.5,
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
+            >
+              {part}
+              {!isBullet && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `linear-gradient(180deg, transparent 0%, ${color}30 50%, transparent 100%)`,
+                    backgroundSize: '100% 200%',
+                  }}
+                  animate={{
+                    backgroundPosition: ['0% 0%', '0% 200%'],
+                  }}
+                  transition={{
+                    duration: 2 + i * 0.3,
+                    repeat: Infinity,
+                    ease: 'linear',
+                    delay: i * 0.2,
+                  }}
+                />
+              )}
+            </motion.span>
+          )
+        })}
+      </div>
+
+      {/* Right arrows pointing left (inward) */}
+      <ChevronArrows direction="right" />
     </div>
   )
 }
