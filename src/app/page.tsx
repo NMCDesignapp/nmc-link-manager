@@ -531,10 +531,10 @@ export default function Home() {
           <div
             className="rounded-xl p-3"
             style={{
-              background: 'rgba(60, 60, 95, 0.85)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(14, 14, 30, 0.85)',
+              border: `1px solid ${neonColor}18`,
               backdropFilter: 'blur(12px)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08`,
             }}
           >
             <MonthlyCalendar neonColor={neonColor} compact />
