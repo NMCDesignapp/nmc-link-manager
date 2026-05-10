@@ -203,6 +203,25 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
   return formatCurrency(tier.bonusAmount);
 }
 
+// Format rate label for percent-based bonus types
+function formatRate(tier: BonusTier): string {
+  if (tier.bonusType === 'percent') return `${tier.bonusPercent}% IP`;
+  if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}% FYC`;
+  return '';
+}
+
+// Format bonus amount only (no formula) for display in table
+function formatBonusAmount(tier: BonusTier, fyp?: number, rounds?: number): string {
+  if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
+  const amount = computeBonusFromTier(tier, fyp || 0, rounds);
+  return formatCurrency(amount);
+}
+
+// Check if any tier uses percent-based bonus
+function hasPercentBonus(tiers: BonusTier[]): boolean {
+  return tiers.some(t => t.bonusType === 'percent' || t.bonusType === 'percent_fyc');
+}
+
 function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
   if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
   if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
@@ -1163,13 +1182,14 @@ export default function ThiDuaPage() {
     let rows: (string | number)[][];
 
     if (targetType === 'nyd') {
-      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
       rows = nydData.map(n => {
         const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
         const base: (string | number)[] = [n.nhom || '', n.nydCode, n.nydName, n.position || '', isActivityRoundMode(conditionType) ? n.recruitCount : value];
         if (includeIndividualTN) base.push(n.ownFYP);
-        base.push(tier ? formatBonus(tier, value, n.recruitCount) : '');
+        if (showRateColumn) base.push(tier ? formatRate(tier) : '');
+        base.push(tier ? (showRateColumn ? formatBonusAmount(tier, value, n.recruitCount) : formatBonus(tier, value, n.recruitCount)) : '');
         base.push(tier ? '' : 'Chưa đạt mức');
         return base;
       }).map((r, idx) => [idx + 1, ...r]);
@@ -1189,12 +1209,18 @@ export default function ThiDuaPage() {
           [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
         );
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => {
           const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
-        }).map(({ g, tier }, idx) => [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, tier ? formatBonus(tier, g.totalFYP, g.activityRounds) : '', tier ? '' : 'Chưa đạt mức']);
+        }).map(({ g, tier }, idx) => {
+          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
+          if (showRateColumn) row.push(tier ? formatRate(tier) : '');
+          row.push(tier ? (showRateColumn ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : formatBonus(tier, g.totalFYP, g.activityRounds)) : '');
+          row.push(tier ? '' : 'Chưa đạt mức');
+          return row;
+        });
       }
     } else {
       // TVV per-contract or total_fyp
@@ -1212,11 +1238,13 @@ export default function ThiDuaPage() {
             return base;
           });
         } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), 'Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.fyp); return { c, tier }; }).sort((a, b) => b.c.fyp - a.c.fyp).map(({ c, tier }, idx) => {
             const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.fyp];
             if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
-            base.push(tier ? formatBonus(tier, c.fyp) : '', tier ? '' : 'Chưa đạt mức');
+            if (showRateColumn) base.push(tier ? formatRate(tier) : '');
+            base.push(tier ? (showRateColumn ? formatBonusAmount(tier, c.fyp) : formatBonus(tier, c.fyp)) : '');
+            base.push(tier ? '' : 'Chưa đạt mức');
             return base;
           });
         }
@@ -1257,14 +1285,18 @@ export default function ThiDuaPage() {
             [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value, p1Bonus || '', p2Bonus || '', p1Bonus + p2Bonus || '', tier ? '' : 'Chưa đạt mức']
           );
         } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', 'Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           rows = Array.from(agentMap.values()).map(agent => {
             const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
             const { tier } = calculateBonus(value);
             return { agent, value, tier };
-          }).sort((a, b) => b.value - a.value).map(({ agent, value, tier }, idx) =>
-            [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value, tier ? formatBonus(tier, value) : '', tier ? '' : 'Chưa đạt mức']
-          );
+          }).sort((a, b) => b.value - a.value).map(({ agent, value, tier }, idx) => {
+            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+            if (showRateColumn) row.push(tier ? formatRate(tier) : '');
+            row.push(tier ? (showRateColumn ? formatBonusAmount(tier, value) : formatBonus(tier, value)) : '');
+            row.push(tier ? '' : 'Chưa đạt mức');
+            return row;
+          });
         }
       }
     }
@@ -1457,6 +1489,7 @@ export default function ThiDuaPage() {
   const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
 
   const sortedTiers = useMemo(() => [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP), [bonusTiers]);
+  const showRateColumn = useMemo(() => hasPercentBonus(bonusTiers), [bonusTiers]);
 
   // Calculate and show results popup
   const handleCalculate = () => {
@@ -1933,7 +1966,7 @@ export default function ThiDuaPage() {
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
               <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/20 p-3">
-                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonus(matchedTotalTier, totalValue)}</p></div> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-white/10 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-white/10 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{showRateColumn ? formatBonusAmount(matchedTotalTier, totalValue) : formatBonus(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-white/10 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
               </div>
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
@@ -2019,6 +2052,9 @@ export default function ThiDuaPage() {
                           {includeIndividualTN && (
                             <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
                           )}
+                          {showRateColumn && !usePhase2 && (
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
@@ -2050,6 +2086,9 @@ export default function ThiDuaPage() {
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
+                          {showRateColumn && !usePhase2 && (
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
@@ -2081,6 +2120,9 @@ export default function ThiDuaPage() {
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
                             <TableHead className="text-white min-w-[70px] font-bold text-center">AFYP</TableHead>
                           )}
+                          {showRateColumn && !usePhase2 && (
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
@@ -2111,6 +2153,9 @@ export default function ThiDuaPage() {
                             <div>{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
                             {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
+                          {showRateColumn && !usePhase2 && (
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
@@ -2193,6 +2238,9 @@ export default function ThiDuaPage() {
                           {includeIndividualTN && (
                             <TableCell className="text-right text-xs text-gray-600">{formatNumber(nyd.ownFYP)}</TableCell>
                           )}
+                          {showRateColumn && !usePhase2 && (
+                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                          )}
                           {usePhase2 && phaseBonus ? (
                             <>
                               <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
@@ -2200,7 +2248,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, value, nyd.recruitCount) : formatBonus(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2229,6 +2277,9 @@ export default function ThiDuaPage() {
                               : <span className="text-gray-700">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
+                          {showRateColumn && !usePhase2 && (
+                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
@@ -2236,7 +2287,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, group.totalFYP, group.activityRounds) : formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2259,6 +2310,9 @@ export default function ThiDuaPage() {
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
                             <TableCell className="text-right text-xs text-gray-600">{formatNumber(contract.afyp)}</TableCell>
                           )}
+                          {showRateColumn && !usePhase2 && (
+                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                          )}
                           {usePhase2 ? (
                             <>
                               <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
@@ -2266,7 +2320,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, contract.fyp) : formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2325,6 +2379,9 @@ export default function ThiDuaPage() {
                             <TableCell className="text-xs text-gray-700 font-mono">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-700">{agent.agentName}</TableCell>
                             <TableCell className="text-right text-xs text-gray-700">{formatNumber(value)}</TableCell>
+                            {showRateColumn && !usePhase2 && (
+                              <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            )}
                             {usePhase2 ? (
                               <>
                                 <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
@@ -2332,7 +2389,7 @@ export default function ThiDuaPage() {
                                 <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonus(tier, value)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, value) : formatBonus(tier, value)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                             )}
                             <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
