@@ -55,69 +55,71 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
   )
 }
 
-// Creative N•M•C text with neon effects - horizontal layout with chevron arrows
+// Creative N•M•C text with neon effects - horizontal layout with flowing chevron arrows
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
   const parts = ['N', '•', 'M', '•', 'C']
 
-  // Chevron arrows pointing inward - 3 arrows on each side
-  const ChevronArrows = ({ direction }: { direction: 'left' | 'right' }) => {
-    const arrows = [0, 1, 2]
+  // Flowing chevron arrows from edge toward center
+  // Each side has ~8 small chevrons, fading from edge to center
+  const ArrowTrail = ({ direction }: { direction: 'left' | 'right' }) => {
+    const count = 8
     return (
-      <div className={`flex flex-col items-center justify-center gap-1 ${direction === 'left' ? 'mr-3' : 'ml-3'}`}>
-        {arrows.map((idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, x: direction === 'left' ? -20 : 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 + idx * 0.1, duration: 0.4 }}
-          >
-            <svg
-              width="22"
-              height="16"
-              viewBox="0 0 22 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+      <div className={`flex items-center ${direction === 'left' ? 'flex-row' : 'flex-row-reverse'}`}>
+        {Array.from({ length: count }).map((_, idx) => {
+          // Opacity: dim at edge, brighter near text
+          const proximity = idx / (count - 1) // 0=far, 1=near text
+          const baseOpacity = 0.15 + proximity * 0.85
+
+          return (
+            <motion.div
+              key={idx}
+              className="relative"
               style={{
-                transform: direction === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
-                filter: `drop-shadow(0 0 4px ${color}60) drop-shadow(0 0 8px ${color}30)`,
+                marginLeft: idx === 0 ? 0 : '-4px',
+                marginRight: idx === 0 ? 0 : '-4px',
               }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 + idx * 0.05, duration: 0.3 }}
             >
-              <path
-                d="M2 8L10 2L10 14L2 8Z"
+              <svg
+                width="10"
+                height="14"
+                viewBox="0 0 10 14"
                 fill="none"
-                stroke="url(#chevronGrad)"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 8L16 2L16 14L8 8Z"
-                fill="none"
-                stroke="url(#chevronGrad2)"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-                opacity="0.6"
-              />
-              <defs>
-                <linearGradient id="chevronGrad" x1="2" y1="8" x2="16" y2="8">
-                  <stop offset="0%" stopColor={color} />
-                  <stop offset="100%" stopColor="#00d4ff" />
-                </linearGradient>
-                <linearGradient id="chevronGrad2" x1="8" y1="8" x2="16" y2="8">
-                  <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.8" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </motion.div>
-        ))}
+                xmlns="http://www.w3.org/2000/svg"
+                style={{
+                  transform: direction === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
+                  filter: `drop-shadow(0 0 3px ${color}40)`,
+                }}
+              >
+                <path
+                  d="M1 7L8 1L8 13L1 7Z"
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="1.2"
+                  strokeLinejoin="round"
+                  className="chevron-arrow-flow"
+                  style={{
+                    opacity: baseOpacity,
+                    animationDelay: `${idx * 0.12}s`,
+                  }}
+                />
+              </svg>
+            </motion.div>
+          )
+        })}
       </div>
     )
   }
 
   return (
     <div className="flex items-center justify-center">
-      {/* Left arrows pointing right (inward) */}
-      <ChevronArrows direction="left" />
+      {/* Left arrows: →→→→ pointing right toward text */}
+      <ArrowTrail direction="left" />
+
+      {/* Spacing */}
+      <div className="w-2" />
 
       {/* Main text */}
       <div className="flex items-center justify-center gap-0.5">
@@ -169,8 +171,11 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
         })}
       </div>
 
-      {/* Right arrows pointing left (inward) */}
-      <ChevronArrows direction="right" />
+      {/* Spacing */}
+      <div className="w-2" />
+
+      {/* Right arrows: ←←←← pointing left toward text */}
+      <ArrowTrail direction="right" />
     </div>
   )
 }
