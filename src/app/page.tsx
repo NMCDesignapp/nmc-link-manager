@@ -59,73 +59,128 @@ function NeonDivider({ color = '#00ff88' }: { color?: string }) {
 function NMCLogo({ color = '#00ff88' }: { color?: string }) {
   const parts = ['N', '•', 'M', '•', 'C']
 
-  // Flowing chevron arrows from edge toward center
-  // Left side: →→→ pointing RIGHT into text
-  // Right side: ←←← pointing LEFT into text
-  const ArrowTrail = ({ direction }: { direction: 'left' | 'right' }) => {
-    const count = 8
+  // Flowing chevron arrow stream - spans from edge toward center text
+  // Uses SVG with animated sweep mask for ultra-smooth flowing light effect
+  const ArrowStream = ({ direction }: { direction: 'left' | 'right' }) => {
     const isLeft = direction === 'left'
-    return (
-      <div className="flex items-center">
-        {Array.from({ length: count }).map((_, idx) => {
-          // Proximity: how close to the text (0=far edge, 1=near text)
-          const proximity = isLeft ? idx / (count - 1) : (count - 1 - idx) / (count - 1)
-          const baseOpacity = 0.15 + proximity * 0.85
+    const count = 18
+    const spacing = 14
+    const svgW = count * spacing
+    const svgH = 22
 
-          return (
-            <motion.div
-              key={idx}
-              className="relative"
-              style={{
-                marginLeft: idx === 0 ? 0 : '-4px',
-                marginRight: idx === 0 ? 0 : '-4px',
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 + idx * 0.05, duration: 0.3 }}
-            >
-              <svg
-                width="10"
-                height="14"
-                viewBox="0 0 10 14"
+    return (
+      <div className="flex-1 min-w-0 overflow-hidden" style={{ height: '24px' }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          preserveAspectRatio="none"
+        >
+          <defs>
+            {/* Proximity fade gradient - chevrons near text are brighter */}
+            <linearGradient id={`fade-${direction}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              {isLeft ? (
+                <>
+                  <stop offset="0%" stopColor={color} stopOpacity="0.06" />
+                  <stop offset="80%" stopColor={color} stopOpacity="0.45" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor={color} stopOpacity="0.6" />
+                  <stop offset="20%" stopColor={color} stopOpacity="0.45" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0.06" />
+                </>
+              )}
+            </linearGradient>
+
+            {/* Sweep gradient for animated glow - moves from edge toward text */}
+            <linearGradient id={`sweep-${direction}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={svgW} y2="0">
+              <stop stopColor="white" stopOpacity="0">
+                <animate
+                  attributeName="offset"
+                  values={isLeft ? '-0.25;-0.25;1.25' : '1.25;1.25;-0.25'}
+                  keyTimes="0;0.55;1"
+                  dur="2.2s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+              <stop stopColor="white" stopOpacity="1">
+                <animate
+                  attributeName="offset"
+                  values={isLeft ? '-0.12;-0.12;1.38' : '1.38;1.38;-0.12'}
+                  keyTimes="0;0.55;1"
+                  dur="2.2s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+              <stop stopColor="white" stopOpacity="0">
+                <animate
+                  attributeName="offset"
+                  values={isLeft ? '0;0;1.5' : '1.5;1.5;0'}
+                  keyTimes="0;0.55;1"
+                  dur="2.2s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+            </linearGradient>
+
+            <mask id={`mask-${direction}`}>
+              <rect x="0" y="0" width={svgW} height={svgH} fill={`url(#sweep-${direction})`} />
+            </mask>
+          </defs>
+
+          {/* Base chevrons - always dimly visible */}
+          {Array.from({ length: count }).map((_, i) => {
+            const x = i * spacing
+            return (
+              <path
+                key={i}
+                d={isLeft
+                  ? `M${x + 4} 4 L${x + 10} 11 L${x + 4} 18`
+                  : `M${x + 10} 4 L${x + 4} 11 L${x + 10} 18`
+                }
                 fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{
-                  filter: `drop-shadow(0 0 3px ${color}40)`,
-                }}
-              >
+                stroke={`url(#fade-${direction})`}
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )
+          })}
+
+          {/* Glow chevrons - revealed by sweeping mask */}
+          <g mask={`url(#mask-${direction})`} style={{ filter: `drop-shadow(0 0 4px ${color})` }}>
+            {Array.from({ length: count }).map((_, i) => {
+              const x = i * spacing
+              return (
                 <path
-                  // Left side: open left, point right → ; Right side: open right, point left ←
-                  d={isLeft ? 'M2 1L8 7L2 13' : 'M8 1L2 7L8 13'}
+                  key={`g${i}`}
+                  d={isLeft
+                    ? `M${x + 4} 4 L${x + 10} 11 L${x + 4} 18`
+                    : `M${x + 10} 4 L${x + 4} 11 L${x + 10} 18`
+                  }
                   fill="none"
                   stroke={color}
-                  strokeWidth="1.2"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="chevron-arrow-flow"
-                  style={{
-                    opacity: baseOpacity,
-                    animationDelay: `${idx * 0.12}s`,
-                  }}
                 />
-              </svg>
-            </motion.div>
-          )
-        })}
+              )
+            })}
+          </g>
+        </svg>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-center">
-      {/* Left arrows: →→→→ pointing right toward text */}
-      <ArrowTrail direction="left" />
+    <div className="flex items-center w-full">
+      {/* Left arrows: flowing right → toward text */}
+      <ArrowStream direction="left" />
 
-      {/* Spacing */}
-      <div className="w-2" />
-
-      {/* Main text */}
-      <div className="flex items-center justify-center gap-0.5">
+      {/* N•M•C text */}
+      <div className="flex items-center justify-center gap-0.5 flex-shrink-0 px-1">
         {parts.map((part, i) => {
           const isBullet = part === '•'
           return (
@@ -174,11 +229,8 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
         })}
       </div>
 
-      {/* Spacing */}
-      <div className="w-2" />
-
-      {/* Right arrows: ←←←← pointing left toward text */}
-      <ArrowTrail direction="right" />
+      {/* Right arrows: flowing left ← toward text */}
+      <ArrowStream direction="right" />
     </div>
   )
 }

@@ -153,16 +153,7 @@
 .hex-line-flow-v1 { animation: hexLineFlowV1 28s linear infinite; }
 .hex-line-flow-v2 { animation: hexLineFlowV2 22s linear infinite; }
 
-/* Chevron arrow flowing neon animation */
-@keyframes chevronFlow {
-  0% { stroke: #00ff88; filter: drop-shadow(0 0 2px #00ff8840); }
-  33% { stroke: #00d4ff; filter: drop-shadow(0 0 4px #00d4ff80); }
-  66% { stroke: #00ff88; filter: drop-shadow(0 0 6px #00ff88a0); }
-  100% { stroke: #00ff88; filter: drop-shadow(0 0 2px #00ff8840); }
-}
-.chevron-arrow-flow {
-  animation: chevronFlow 2.4s ease-in-out infinite;
-}
+/* Chevron arrow animations - now handled by SVG sweep mask for smooth flow */
 
 /* Float animation */
 @keyframes float {
