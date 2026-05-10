@@ -1189,7 +1189,7 @@ export default function ThiDuaPage() {
         const base: (string | number)[] = [n.nhom || '', n.nydCode, n.nydName, n.position || '', isActivityRoundMode(conditionType) ? n.recruitCount : value];
         if (includeIndividualTN) base.push(n.ownFYP);
         if (showRateColumn) base.push(tier ? formatRate(tier) : '');
-        base.push(tier ? (showRateColumn ? formatBonusAmount(tier, value, n.recruitCount) : formatBonus(tier, value, n.recruitCount)) : '');
+        base.push(tier ? formatBonusAmount(tier, value, n.recruitCount) : '');
         base.push(tier ? '' : 'Chưa đạt mức');
         return base;
       }).map((r, idx) => [idx + 1, ...r]);
@@ -1217,7 +1217,7 @@ export default function ThiDuaPage() {
         }).map(({ g, tier }, idx) => {
           const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
           if (showRateColumn) row.push(tier ? formatRate(tier) : '');
-          row.push(tier ? (showRateColumn ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : formatBonus(tier, g.totalFYP, g.activityRounds)) : '');
+          row.push(tier ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : '');
           row.push(tier ? '' : 'Chưa đạt mức');
           return row;
         });
@@ -1243,7 +1243,7 @@ export default function ThiDuaPage() {
             const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.fyp];
             if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
             if (showRateColumn) base.push(tier ? formatRate(tier) : '');
-            base.push(tier ? (showRateColumn ? formatBonusAmount(tier, c.fyp) : formatBonus(tier, c.fyp)) : '');
+            base.push(tier ? formatBonusAmount(tier, c.fyp) : '');
             base.push(tier ? '' : 'Chưa đạt mức');
             return base;
           });
@@ -1293,7 +1293,7 @@ export default function ThiDuaPage() {
           }).sort((a, b) => b.value - a.value).map(({ agent, value, tier }, idx) => {
             const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
             if (showRateColumn) row.push(tier ? formatRate(tier) : '');
-            row.push(tier ? (showRateColumn ? formatBonusAmount(tier, value) : formatBonus(tier, value)) : '');
+            row.push(tier ? formatBonusAmount(tier, value) : '');
             row.push(tier ? '' : 'Chưa đạt mức');
             return row;
           });
@@ -1966,7 +1966,7 @@ export default function ThiDuaPage() {
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
               <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/20 p-3">
-                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-white/10 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{showRateColumn ? formatBonusAmount(matchedTotalTier, totalValue) : formatBonus(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-white/10 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-white/10 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-white/10 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
               </div>
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
@@ -2248,7 +2248,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, value, nyd.recruitCount) : formatBonus(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2287,7 +2287,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, group.totalFYP, group.activityRounds) : formatBonus(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2320,7 +2320,7 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, contract.fyp) : formatBonus(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonusAmount(tier, contract.fyp)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
@@ -2389,7 +2389,7 @@ export default function ThiDuaPage() {
                                 <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{showRateColumn ? formatBonusAmount(tier, value) : formatBonus(tier, value)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50/80 text-xs">{tier ? <span className="flex items-center justify-end gap-1"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 text-emerald-500" /><span className="font-bold text-emerald-700">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-300">—</span>}</TableCell>
                             )}
                             <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
