@@ -205,8 +205,8 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
 
 // Format rate label for percent-based bonus types
 function formatRate(tier: BonusTier): string {
-  if (tier.bonusType === 'percent') return `${tier.bonusPercent}% IP`;
-  if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}% FYC`;
+  if (tier.bonusType === 'percent') return `${tier.bonusPercent}%`;
+  if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}%`;
   return '';
 }
 
