@@ -60,14 +60,16 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
   const parts = ['N', '•', 'M', '•', 'C']
 
   // Flowing chevron arrows from edge toward center
-  // Each side has ~8 small chevrons, fading from edge to center
+  // Left side: →→→ pointing RIGHT into text
+  // Right side: ←←← pointing LEFT into text
   const ArrowTrail = ({ direction }: { direction: 'left' | 'right' }) => {
     const count = 8
+    const isLeft = direction === 'left'
     return (
-      <div className={`flex items-center ${direction === 'left' ? 'flex-row' : 'flex-row-reverse'}`}>
+      <div className="flex items-center">
         {Array.from({ length: count }).map((_, idx) => {
-          // Opacity: dim at edge, brighter near text
-          const proximity = idx / (count - 1) // 0=far, 1=near text
+          // Proximity: how close to the text (0=far edge, 1=near text)
+          const proximity = isLeft ? idx / (count - 1) : (count - 1 - idx) / (count - 1)
           const baseOpacity = 0.15 + proximity * 0.85
 
           return (
@@ -89,15 +91,16 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 style={{
-                  transform: direction === 'left' ? 'scaleX(1)' : 'scaleX(-1)',
                   filter: `drop-shadow(0 0 3px ${color}40)`,
                 }}
               >
                 <path
-                  d="M1 7L8 1L8 13L1 7Z"
+                  // Left side: open left, point right → ; Right side: open right, point left ←
+                  d={isLeft ? 'M2 1L8 7L2 13' : 'M8 1L2 7L8 13'}
                   fill="none"
                   stroke={color}
                   strokeWidth="1.2"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                   className="chevron-arrow-flow"
                   style={{
