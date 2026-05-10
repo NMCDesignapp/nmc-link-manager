@@ -126,6 +126,33 @@
   background-color: #0e0e18;
 }
 
+/* Honeycomb flowing line animations */
+@keyframes hexLineFlow1 {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(50%); }
+}
+@keyframes hexLineFlow2 {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(50%); }
+}
+@keyframes hexLineFlow3 {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(50%); }
+}
+@keyframes hexLineFlowV1 {
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(50%); }
+}
+@keyframes hexLineFlowV2 {
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(50%); }
+}
+.hex-line-flow-1 { animation: hexLineFlow1 25s linear infinite; }
+.hex-line-flow-2 { animation: hexLineFlow2 30s linear infinite; }
+.hex-line-flow-3 { animation: hexLineFlow3 20s linear infinite; }
+.hex-line-flow-v1 { animation: hexLineFlowV1 28s linear infinite; }
+.hex-line-flow-v2 { animation: hexLineFlowV2 22s linear infinite; }
+
 /* Float animation */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

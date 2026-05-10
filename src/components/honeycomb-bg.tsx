@@ -1,146 +1,118 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-
 export function HoneycombBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>(0)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let width = 0
-    let height = 0
-    let hexagons: { x: number; y: number; size: number; phase: number; speed: number }[] = []
-
-    const resize = () => {
-      width = window.innerWidth
-      height = document.documentElement.scrollHeight
-      canvas.width = width
-      canvas.height = height
-      generateHexagons()
-    }
-
-    const hexSize = 38
-    const hexHeight = hexSize * Math.sqrt(3)
-
-    const generateHexagons = () => {
-      hexagons = []
-      const cols = Math.ceil(width / (hexSize * 1.5)) + 2
-      const rows = Math.ceil(height / hexHeight) + 2
-
-      for (let row = -1; row < rows; row++) {
-        for (let col = -1; col < cols; col++) {
-          const x = col * hexSize * 1.5
-          const y = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2)
-          hexagons.push({
-            x,
-            y,
-            size: hexSize,
-            phase: Math.random() * Math.PI * 2,
-            speed: 0.003 + Math.random() * 0.005,
-          })
-        }
-      }
-    }
-
-    const drawHex = (cx: number, cy: number, size: number) => {
-      ctx.beginPath()
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i - Math.PI / 6
-        const px = cx + size * Math.cos(angle)
-        const py = cy + size * Math.sin(angle)
-        if (i === 0) ctx.moveTo(px, py)
-        else ctx.lineTo(px, py)
-      }
-      ctx.closePath()
-    }
-
-    let time = 0
-
-    const animate = () => {
-      time += 1
-      ctx.clearRect(0, 0, width, height)
-
-      for (const hex of hexagons) {
-        const pulse = Math.sin(time * hex.speed + hex.phase)
-        const alpha = 0.025 + pulse * 0.015
-
-        // Draw hex outline
-        drawHex(hex.x, hex.y, hex.size)
-        ctx.strokeStyle = `rgba(0, 255, 136, ${Math.max(0.008, alpha)})`
-        ctx.lineWidth = 0.5
-        ctx.stroke()
-
-        // Occasional glow on some hexagons
-        if (pulse > 0.85) {
-          drawHex(hex.x, hex.y, hex.size)
-          ctx.strokeStyle = `rgba(0, 255, 136, ${0.06 * (pulse - 0.85) / 0.15})`
-          ctx.lineWidth = 1
-          ctx.stroke()
-        }
-      }
-
-      // Animated flowing lines along honeycomb paths
-      const lineCount = 5
-      for (let l = 0; l < lineCount; l++) {
-        const linePhase = (time * 0.008 + l * 1.3) % (width + height)
-        const baseY = (height / (lineCount + 1)) * (l + 1)
-        const wobbleY = Math.sin(time * 0.01 + l * 2) * 60
-
-        ctx.beginPath()
-        ctx.moveTo(0, baseY + wobbleY)
-
-        for (let x = 0; x < width; x += hexSize * 1.5) {
-          const col = Math.round(x / (hexSize * 1.5))
-          const yOffset = (col % 2 === 0 ? 0 : hexHeight / 2)
-          const nearHex = hexagons.find(h =>
-            Math.abs(h.x - x) < hexSize && Math.abs(h.y - (baseY + yOffset)) < hexHeight
-          )
-          const snapY = nearHex ? nearHex.y : baseY + yOffset + wobbleY
-          ctx.lineTo(x, snapY + Math.sin(time * 0.015 + x * 0.01 + l) * 15)
-        }
-
-        const lineAlpha = 0.04 + Math.sin(time * 0.02 + l) * 0.02
-        ctx.strokeStyle = `rgba(0, 212, 255, ${Math.max(0.01, lineAlpha)})`
-        ctx.lineWidth = 0.8
-        ctx.stroke()
-      }
-
-      animRef.current = requestAnimationFrame(animate)
-    }
-
-    resize()
-    animate()
-
-    // Re-measure on scroll/resize
-    const onResize = () => resize()
-    window.addEventListener('resize', onResize)
-
-    // Periodically re-measure height in case content changes
-    const interval = setInterval(() => {
-      const newHeight = document.documentElement.scrollHeight
-      if (Math.abs(newHeight - height) > 100) {
-        resize()
-      }
-    }, 3000)
-
-    return () => {
-      cancelAnimationFrame(animRef.current)
-      window.removeEventListener('resize', onResize)
-      clearInterval(interval)
-    }
-  }, [])
+  // SVG-based honeycomb pattern - lightweight, no canvas needed
+  const hexSize = 30
+  const hexW = hexSize * 2
+  const hexH = hexSize * Math.sqrt(3)
+  const patternW = hexW * 0.75
+  const patternH = hexH
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0"
-      style={{ opacity: 0.6 }}
-    />
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      {/* Honeycomb pattern layer */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <pattern
+            id="honeycomb"
+            width={patternW}
+            height={patternH}
+            patternUnits="userSpaceOnUse"
+          >
+            {/* Flat-top hexagon */}
+            <path
+              d={`M ${hexSize} 0 L ${hexW * 0.75} ${hexH * 0.25} L ${hexW * 0.75} ${hexH * 0.75} L ${hexSize} ${hexH} L ${hexW * 0.25} ${hexH * 0.75} L ${hexW * 0.25} ${hexH * 0.25} Z`}
+              fill="none"
+              stroke="rgba(0, 255, 136, 0.06)"
+              strokeWidth="0.5"
+            />
+            {/* Second hexagon for tiling offset */}
+            <path
+              d={`M ${hexSize + patternW} 0 L ${hexW * 0.75 + patternW} ${hexH * 0.25} L ${hexW * 0.75 + patternW} ${hexH * 0.75} L ${hexSize + patternW} ${hexH} L ${hexW * 0.25 + patternW} ${hexH * 0.75} L ${hexW * 0.25 + patternW} ${hexH * 0.25} Z`}
+              fill="none"
+              stroke="rgba(0, 255, 136, 0.06)"
+              strokeWidth="0.5"
+            />
+            {/* Offset row hexagon */}
+            <path
+              d={`M ${hexSize + patternW / 2} ${hexH * 0.5} L ${hexW * 0.75 + patternW / 2} ${hexH * 0.75} L ${hexW * 0.75 + patternW / 2} ${hexH * 1.25} L ${hexSize + patternW / 2} ${hexH * 1.5} L ${hexW * 0.25 + patternW / 2} ${hexH * 1.25} L ${hexW * 0.25 + patternW / 2} ${hexH * 0.75} Z`}
+              fill="none"
+              stroke="rgba(0, 255, 136, 0.06)"
+              strokeWidth="0.5"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#honeycomb)" />
+      </svg>
+
+      {/* Animated flowing lines - CSS based */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute w-[200%] h-px hex-line-flow-1"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.8) 20%, rgba(0,255,136,0.6) 50%, rgba(0,212,255,0.8) 80%, transparent 100%)',
+            top: '25%',
+            opacity: 0.04,
+          }}
+        />
+        <div
+          className="absolute w-[200%] h-px hex-line-flow-2"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(0,255,136,0.6) 30%, rgba(0,212,255,0.8) 60%, transparent 100%)',
+            top: '55%',
+            opacity: 0.03,
+          }}
+        />
+        <div
+          className="absolute w-[200%] h-px hex-line-flow-3"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(0,255,136,0.7) 40%, rgba(0,212,255,0.5) 70%, transparent 100%)',
+            top: '80%',
+            opacity: 0.035,
+          }}
+        />
+        {/* Vertical lines */}
+        <div
+          className="absolute h-[200%] w-px hex-line-flow-v1"
+          style={{
+            background: 'linear-gradient(180deg, transparent 0%, rgba(0,255,136,0.6) 30%, rgba(0,212,255,0.4) 60%, transparent 100%)',
+            left: '30%',
+            opacity: 0.03,
+          }}
+        />
+        <div
+          className="absolute h-[200%] w-px hex-line-flow-v2"
+          style={{
+            background: 'linear-gradient(180deg, transparent 0%, rgba(0,212,255,0.5) 40%, rgba(0,255,136,0.6) 70%, transparent 100%)',
+            left: '70%',
+            opacity: 0.025,
+          }}
+        />
+      </div>
+
+      {/* Subtle radial glows */}
+      <div
+        className="absolute w-[600px] h-[600px] rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(0,255,136,0.4) 0%, transparent 70%)',
+          top: '20%',
+          left: '10%',
+          opacity: 0.03,
+        }}
+      />
+      <div
+        className="absolute w-[500px] h-[500px] rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(0,212,255,0.3) 0%, transparent 70%)',
+          bottom: '10%',
+          right: '5%',
+          opacity: 0.025,
+        }}
+      />
+    </div>
   )
 }
