@@ -137,19 +137,19 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     calendarCells.push(day)
   }
 
-  const dayFontSize = desktopBright ? 'text-base' : compact ? 'text-[11px]' : 'text-[12px]'
-  const eventFontSize = desktopBright ? 'text-[9px]' : compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = desktopBright ? 'gap-2.5' : compact ? 'gap-1' : 'gap-1.5'
-  const weekdayFontSize = desktopBright ? 'text-xs' : compact ? 'text-[9px]' : 'text-[10px]'
-  const headerBtnSize = desktopBright ? 'w-10 h-10' : 'w-7 h-7'
-  const headerMonthSize = desktopBright ? 'text-base' : 'text-xs'
+  const dayFontSize = desktopBright ? 'text-lg' : compact ? 'text-[11px]' : 'text-[12px]'
+  const eventFontSize = desktopBright ? 'text-[10px]' : compact ? 'text-[6px]' : 'text-[7px]'
+  const gapSize = desktopBright ? 'gap-3' : compact ? 'gap-1' : 'gap-1.5'
+  const weekdayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[9px]' : 'text-[10px]'
+  const headerBtnSize = desktopBright ? 'w-11 h-11' : 'w-7 h-7'
+  const headerMonthSize = desktopBright ? 'text-lg' : 'text-xs'
   const chevronIconSize = desktopBright ? 'w-5 h-5' : 'w-3.5 h-3.5'
   const calendarIconSize = desktopBright ? 'w-5 h-5' : 'w-3 h-3'
 
   return (
     <div className="w-full relative">
       {/* Calendar Header - Neon styled */}
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex items-center justify-between mb-4">
         <motion.button
           onClick={prevMonth}
           className={`${headerBtnSize} rounded-lg flex items-center justify-center smooth-transition`}
@@ -197,22 +197,22 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
 
       {/* Neon line under header */}
       <div
-        className="w-full h-[1px] mb-2"
+        className="w-full h-[1px] mb-3"
         style={{
-          background: `linear-gradient(90deg, transparent, ${neonColor}40, ${neonColor}, ${neonColor}40, transparent)`,
-          boxShadow: `0 0 6px ${neonColor}30`,
+          background: `linear-gradient(90deg, transparent, ${neonColor}50, ${neonColor}, ${neonColor}50, transparent)`,
+          boxShadow: `0 0 8px ${neonColor}35`,
         }}
       />
 
       {/* Weekday Headers */}
-      <div className={`grid grid-cols-7 ${gapSize} mb-1.5`}>
+      <div className={`grid grid-cols-7 ${gapSize} mb-2`}>
         {WEEKDAYS.map((day, i) => (
           <div
             key={i}
-            className={`text-center ${weekdayFontSize} font-bold py-0.5 uppercase tracking-wider`}
+            className={`text-center ${weekdayFontSize} font-bold py-1 uppercase tracking-wider`}
             style={{
               color: i === 0 ? (desktopBright ? '#ff9999' : '#ff6b6b') : (desktopBright ? neonColor : `${neonColor}80`),
-              textShadow: i === 0 ? '0 0 6px rgba(255,107,107,0.4)' : `0 0 6px ${neonColor}25`,
+              textShadow: i === 0 ? '0 0 8px rgba(255,107,107,0.5)' : `0 0 8px ${neonColor}30`,
             }}
           >
             {day}
@@ -237,27 +237,27 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               key={dateStr}
               ref={(el) => { dayRefs.current[dateStr] = el }}
               onClick={() => handleDayClick(day)}
-              className="aspect-[1.1] rounded-lg flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
+              className="aspect-[1.1] rounded-xl flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
                 background: isToday
-                  ? `${neonColor}30`
+                  ? `${neonColor}35`
                   : desktopBright
-                  ? 'rgba(255, 255, 255, 0.10)'
+                  ? 'rgba(255, 255, 255, 0.12)'
                   : 'rgba(255, 255, 255, 0.04)',
                 border: isToday
-                  ? `2px solid ${neonColor}70`
+                  ? `2px solid ${neonColor}80`
                   : desktopBright
-                  ? `1px solid ${neonColor}18`
+                  ? `1px solid ${neonColor}20`
                   : `1px solid rgba(255, 255, 255, 0.06)`,
                 boxShadow: isToday
-                  ? `0 0 16px ${neonColor}30, inset 0 0 12px ${neonColor}15`
+                  ? `0 0 20px ${neonColor}35, inset 0 0 14px ${neonColor}18`
                   : 'none',
               }}
               whileHover={{
-                background: `${neonColor}18`,
-                borderColor: `${neonColor}35`,
-                scale: 1.06,
-                boxShadow: `0 0 12px ${neonColor}20`,
+                background: `${neonColor}22`,
+                borderColor: `${neonColor}40`,
+                scale: 1.05,
+                boxShadow: `0 0 14px ${neonColor}25`,
               }}
               whileTap={{ scale: 0.94 }}
             >
@@ -288,13 +288,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                     ? neonColor
                     : isSunday
                     ? (desktopBright ? '#ff9999' : '#ff6b6b')
-                    : (desktopBright ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.75)'),
+                    : (desktopBright ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.75)'),
                   textShadow: isToday
-                    ? `0 0 10px ${neonColor}80`
+                    ? `0 0 12px ${neonColor}90`
                     : isSunday
-                    ? '0 0 6px rgba(255,107,107,0.4)'
+                    ? '0 0 8px rgba(255,107,107,0.5)'
                     : desktopBright
-                    ? `0 0 4px ${neonColor}20`
+                    ? `0 0 6px ${neonColor}25`
                     : 'none',
                 }}
               >
