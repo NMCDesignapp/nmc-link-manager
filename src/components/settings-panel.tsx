@@ -66,6 +66,8 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 30000,
+    keepPreviousData: true,
+    fallbackData: [],
   })
   const { data: staffData, mutate: mutateStaff } = useSWR<StaffMember[]>('/api/staff', fetcher, {
     revalidateOnFocus: false,
@@ -153,7 +155,12 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
     if (confirm('Bạn có chắc muốn xóa liên kết này?')) {
       try {
         await fetch(`/api/links/${id}`, { method: 'DELETE' })
-        mutate('/api/links')
+        // Revalidate with async updater to prevent flash of empty state
+        mutate('/api/links', async (current) => {
+          const res = await fetch('/api/links')
+          if (!res.ok) return current || []
+          return res.json()
+        }, { revalidate: true })
         mutate('/api/stats')
       } catch (error) {
         console.error('Failed to delete link:', error)
@@ -168,7 +175,11 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_favorite: isFavorite }),
       })
-      mutate('/api/links')
+      mutate('/api/links', async (current) => {
+        const res = await fetch('/api/links')
+        if (!res.ok) return current || []
+        return res.json()
+      }, { revalidate: true })
       mutate('/api/stats')
     } catch (error) {
       console.error('Failed to toggle favorite:', error)
