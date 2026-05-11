@@ -62,9 +62,21 @@ const ANIMATION_SPEEDS = [
 
 export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenStats }: SettingsPanelProps) {
   const { settings, updateSettings, isLoading } = useSettings()
-  const { data: linksData } = useSWR<Link[]>('/api/links', fetcher)
-  const { data: staffData, mutate: mutateStaff } = useSWR<StaffMember[]>('/api/staff', fetcher)
-  const { data: recruiterData, mutate: mutateRecruiters } = useSWR<RecruiterMember[]>('/api/recruiters', fetcher)
+  const { data: linksData } = useSWR<Link[]>('/api/links', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+  })
+  const { data: staffData, mutate: mutateStaff } = useSWR<StaffMember[]>('/api/staff', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+  })
+  const { data: recruiterData, mutate: mutateRecruiters } = useSWR<RecruiterMember[]>('/api/recruiters', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+  })
   const [localSettings, setLocalSettings] = useState<AppSettings>(defaultSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)

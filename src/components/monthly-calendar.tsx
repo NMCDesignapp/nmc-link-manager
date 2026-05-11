@@ -82,7 +82,11 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
   const dayRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
-  const { data: events = [] } = useSWR<CalendarEvent[]>(`/api/calendar?month=${monthStr}`, fetcher)
+  const { data: events = [] } = useSWR<CalendarEvent[]>(`/api/calendar?month=${monthStr}`, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+  })
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay()
