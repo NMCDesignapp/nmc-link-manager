@@ -137,12 +137,14 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     calendarCells.push(day)
   }
 
-  const dayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[11px]' : 'text-[12px]'
-  const eventFontSize = desktopBright ? 'text-[8px]' : compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = desktopBright ? 'gap-2' : compact ? 'gap-1' : 'gap-1.5'
-  const weekdayFontSize = desktopBright ? 'text-[11px]' : compact ? 'text-[9px]' : 'text-[10px]'
-  const headerBtnSize = desktopBright ? 'w-9 h-9' : 'w-7 h-7'
-  const headerMonthSize = desktopBright ? 'text-sm' : 'text-xs'
+  const dayFontSize = desktopBright ? 'text-base' : compact ? 'text-[11px]' : 'text-[12px]'
+  const eventFontSize = desktopBright ? 'text-[9px]' : compact ? 'text-[6px]' : 'text-[7px]'
+  const gapSize = desktopBright ? 'gap-2.5' : compact ? 'gap-1' : 'gap-1.5'
+  const weekdayFontSize = desktopBright ? 'text-xs' : compact ? 'text-[9px]' : 'text-[10px]'
+  const headerBtnSize = desktopBright ? 'w-10 h-10' : 'w-7 h-7'
+  const headerMonthSize = desktopBright ? 'text-base' : 'text-xs'
+  const chevronIconSize = desktopBright ? 'w-5 h-5' : 'w-3.5 h-3.5'
+  const calendarIconSize = desktopBright ? 'w-5 h-5' : 'w-3 h-3'
 
   return (
     <div className="w-full relative">
@@ -159,7 +161,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronLeft className={desktopBright ? 'w-4 h-4' : 'w-3.5 h-3.5'} />
+          <ChevronLeft className={chevronIconSize} />
         </motion.button>
 
         <motion.button
@@ -174,7 +176,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}20` }}
           whileTap={{ scale: 0.95 }}
         >
-          <Calendar className={desktopBright ? 'w-4 h-4' : 'w-3 h-3'} />
+          <Calendar className={calendarIconSize} />
           {monthNames[currentMonth]} {currentYear}
         </motion.button>
 
@@ -189,7 +191,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronRight className={desktopBright ? 'w-4 h-4' : 'w-3.5 h-3.5'} />
+          <ChevronRight className={chevronIconSize} />
         </motion.button>
       </div>
 
@@ -222,7 +224,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
       <div className={`grid grid-cols-7 ${gapSize}`}>
         {calendarCells.map((day, i) => {
           if (day === null) {
-            return <div key={`empty-${i}`} className="aspect-[1.1]" />
+            return <div key={`empty-${i}`} className={desktopBright ? 'aspect-[1.1]' : 'aspect-[1.1]'} />
           }
 
           const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -238,17 +240,17 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               className="aspect-[1.1] rounded-lg flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
                 background: isToday
-                  ? `${neonColor}28`
+                  ? `${neonColor}30`
                   : desktopBright
-                  ? 'rgba(255, 255, 255, 0.08)'
+                  ? 'rgba(255, 255, 255, 0.10)'
                   : 'rgba(255, 255, 255, 0.04)',
                 border: isToday
-                  ? `1.5px solid ${neonColor}60`
+                  ? `2px solid ${neonColor}70`
                   : desktopBright
-                  ? `1px solid ${neonColor}15`
+                  ? `1px solid ${neonColor}18`
                   : `1px solid rgba(255, 255, 255, 0.06)`,
                 boxShadow: isToday
-                  ? `0 0 14px ${neonColor}25, inset 0 0 10px ${neonColor}10`
+                  ? `0 0 16px ${neonColor}30, inset 0 0 12px ${neonColor}15`
                   : 'none',
               }}
               whileHover={{
