@@ -237,9 +237,23 @@ function NMCLogo({ color = '#00ff88' }: { color?: string }) {
 
 export default function Home() {
   const router = useRouter()
-  const { data: linksData, isLoading: linksLoading, error: linksError } = useSWR<Link[]>('/api/links', fetcher)
-  const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher)
-  const { data: stats, error: statsError } = useSWR('/api/stats', fetcher)
+  const { data: linksData, isLoading: linksLoading, isValidating: linksValidating, error: linksError } = useSWR<Link[]>('/api/links', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+    keepPreviousData: true,
+  })
+  const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+    keepPreviousData: true,
+  })
+  const { data: stats, error: statsError } = useSWR('/api/stats', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000,
+  })
 
   const links = Array.isArray(linksData) ? linksData : []
   const categories = Array.isArray(categoriesData) ? categoriesData : []
@@ -418,7 +432,7 @@ export default function Home() {
 
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
-            {linksLoading ? (
+            {linksLoading && !linksData ? (
               <div className="grid grid-cols-2 gap-2">
                 {[1, 2, 3, 4].map(i => (
                   <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
@@ -426,7 +440,14 @@ export default function Home() {
                   </motion.div>
                 ))}
               </div>
-            ) : linksError || links.length === 0 ? (
+            ) : linksError && !linksData ? (
+              <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+                <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                  <Link2 className="w-10 h-10 text-primary" />
+                </motion.div>
+                <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
+              </motion.div>
+            ) : links.length === 0 ? (
               <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                 <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                   <Link2 className="w-10 h-10 text-primary" />
@@ -437,7 +458,7 @@ export default function Home() {
               <motion.div className="grid grid-cols-2 gap-2" variants={staggerContainer} initial="initial" animate="animate">
                 <AnimatePresence mode="popLayout">
                   {links.map((link, index) => (
-                    <motion.div key={link.id} variants={staggerItem} layout layoutId={`link-${link.id}`}>
+                    <motion.div key={link.id} variants={staggerItem} layout layoutId={`mobile-link-${link.id}`}>
                       <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
                     </motion.div>
                   ))}
@@ -506,7 +527,7 @@ export default function Home() {
 
           <div className="flex-shrink-0 max-h-[55vh] overflow-y-auto min-h-0">
             <div className="w-full px-8 pt-1 pb-6">
-              {linksLoading ? (
+              {linksLoading && !linksData ? (
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map(i => (
                     <motion.div key={i} className="h-24 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
@@ -514,7 +535,14 @@ export default function Home() {
                     </motion.div>
                   ))}
                 </div>
-              ) : linksError || links.length === 0 ? (
+              ) : linksError && !linksData ? (
+                <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+                  <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                    <Link2 className="w-10 h-10 text-primary" />
+                  </motion.div>
+                  <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
+                </motion.div>
+              ) : links.length === 0 ? (
                 <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                   <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                     <Link2 className="w-10 h-10 text-primary" />
@@ -525,7 +553,7 @@ export default function Home() {
                 <motion.div className="grid grid-cols-2 gap-3" variants={staggerContainer} initial="initial" animate="animate">
                   <AnimatePresence mode="popLayout">
                     {links.map((link, index) => (
-                      <motion.div key={link.id} variants={staggerItem} layout layoutId={`link-${link.id}`}>
+                      <motion.div key={link.id} variants={staggerItem} layout layoutId={`desktop-link-${link.id}`}>
                         <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
                       </motion.div>
                     ))}

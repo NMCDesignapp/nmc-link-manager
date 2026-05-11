@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     "http://localhost:3099",
     "http://0.0.0.0:3099",
     "http://21.0.4.40:3099",
+    "http://21.0.13.29:3000",
+    "http://localhost:3000",
   ],
 };
 

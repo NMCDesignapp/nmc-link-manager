@@ -531,6 +531,48 @@ export default function ThiDuaPage() {
   }, []);
   useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
 
+  // Auto-sync on first load if no data exists
+  const hasAutoSynced = useRef(false);
+  useEffect(() => {
+    if (hasAutoSynced.current) return;
+    if (contracts.length === 0 && !isLoading && !isImporting) {
+      hasAutoSynced.current = true;
+      // Trigger import after a short delay to ensure settings are loaded
+      const timer = setTimeout(() => {
+        // Use direct fetch approach to avoid circular dependency
+        (async () => {
+          try {
+            const urls = [
+              settings.csv_url || csvUrl,
+              settings.csv_staff_url || DEFAULT_STAFF_CSV_URL,
+              settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,
+            ];
+            const fetchPromises = urls.map(url => {
+              if (!url) return Promise.resolve(null);
+              return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(data => data?.csvData || null)
+                .catch(() => null);
+            });
+            const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
+            if (!contractCsv && !staffCsv && !recruiterCsv) return;
+            const syncRes = await fetch('/api/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+            });
+            if (syncRes.ok) {
+              const data = await syncRes.json();
+              toast({ title: 'Đồng bộ tự động', description: data.message });
+              fetchContracts(); fetchStaff(); fetchRecruiters();
+            }
+          } catch { /* silent fail on auto-sync */ }
+        })();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [contracts.length, isLoading, isImporting]);
+
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
     let results = [...contracts];

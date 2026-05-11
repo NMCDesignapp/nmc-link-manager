@@ -1,179 +1,21 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Update thi-đua sub-page with document specifications - conditions, calculations, result tables
-
-Work Log:
-- Read document Thi-Dua-Chau-Tai-Lieu-Prompt.docx - extracted all specs for conditions, calculations, result tables
-- Read current page.tsx (865 lines), API route, Prisma schema
-- Identified gaps: missing nyd_activity, nyd_fyp condition types; missing nyd target type; missing money_per_round bonus type; missing Phase 2; missing Secondary Condition; missing leader priority; broken download image
-- Delegated full implementation to full-stack-developer subagent
-- Fixed Prisma schema: restored PostgreSQL provider (subagent changed to sqlite incorrectly)
-- Pushed schema changes to Neon PostgreSQL (added hideNotAchieved, useTVVmFilter, includeOwnNYD fields)
-- Verified build succeeds with `npx next build`
-- Pushed all changes to GitHub for Vercel auto-deploy
-
-Stage Summary:
-- ConditionType now includes: per_contract, total_fyp, activity_round, activity_round_standard, nyd_activity, nyd_fyp
-- TargetType now includes: tvv, nhom, nyd
-- BonusTier.bonusType now includes: money, gift, percent, money_per_round
-- Added NYDData interface and NYD computation logic
-- Fixed leader detection: leaderAgentCode priority, position fallback
-- Added Phase 2 support with separate bonusTiers2
-- Added Secondary Condition (AFYP min, IP min)
-- Added TVVm filter, hideNotAchieved, includeOwnNYD options
-- Fixed download image: replaced html2canvas with html-to-image (toBlob)
-- Updated contests API to save/load all new fields
-- Updated Prisma schema with 3 new fields + pushed to Neon
-- All changes deployed via GitHub → Vercel auto-deploy
-
----
-Task ID: 1
 Agent: main
-Task: Fix nút tính thi đua không hoạt động + các bug UI
+Task: Fix app issues - links disappearing, data not syncing
 
 Work Log:
-- Phát hiện `html-to-image` package không được cài trong node_modules mặc dù có trong package.json, gây warning "Module not found" khi build → có thể gây crash component trên client
-- Thay `html-to-image` bằng `html2canvas` (đã cài sẵn) trong handleDownloadImage
-- Thêm try-catch cho handleCalculate để catch lỗi runtime
-- Thêm check contracts.length === 0 với message rõ ràng hơn
-- Fix input UX: thêm inputMode="decimal" cho mobile keyboard, đổi pattern `e.target.value === '' ? 0 : ...` thay vì `parseFloat(e.target.value) || 0` để input trống không tự set về 0
-- Tối ưu mobile: rút gọn label (dùng icon), giảm gap, thêm overflow-x-auto cho bonus type buttons
-- Fix grid-cols-3 date inputs → grid-cols-2 sm:grid-cols-3 cho mobile
-- Fix secondary condition label dùng icon thay text dài
-- Fix Phase 2 date labels rút gọn (GĐ2 từ/đến)
-- Build thành công không còn warning
+- Diagnosed root cause of links appearing then disappearing: SWR revalidation on focus/reconnect causing data to flash
+- Added `revalidateOnFocus: false`, `revalidateOnReconnect: false`, `dedupingInterval: 30000`, `keepPreviousData: true` to all SWR calls in page.tsx
+- Changed link rendering logic to use `linksLoading && !linksData` instead of just `linksLoading` to prevent skeleton flash during revalidation
+- Added separate error state (`linksError && !linksData`) vs empty state (`links.length === 0`)
+- Fixed SWR options in monthly-calendar.tsx and settings-panel.tsx similarly
+- Fixed `layoutId` conflict between mobile and desktop layouts (mobile-link- vs desktop-link-)
+- Added allowedDevOrigins for server ports in next.config.ts
+- Added auto-sync feature on thi-đua page when no contract data exists
+- Build successful
 
 Stage Summary:
-- Nút tính thi đua sẽ hoạt động sau khi fix html-to-image → html2canvas
-- Build sạch hoàn toàn (0 warning, 0 error)
-- Đã push lên GitHub, Vercel sẽ tự deploy
-
----
-Task ID: 1
-Agent: main
-Task: Fix "Tính thi đua" button not responding + fix pending issues
-
-Work Log:
-- Identified root cause: `Toaster` component was missing from layout.tsx, making toast notifications invisible
-- Added `Toaster` import and component to `src/app/layout.tsx`
-- Improved `handleCalculate` function with better error messages and `variant: 'destructive'` for error toasts
-- Removed debug console.log statements from handleCalculate
-- Added `overflow-x-hidden` to main container to prevent mobile overflow
-- Optimized Condition radio buttons for mobile: added icons, reduced padding, smaller text
-- Optimized Target radio buttons for mobile: shortened labels (TVV, Nhóm, NYD), smaller icons
-- Verified build succeeds
-
-Stage Summary:
-- Key fix: Toaster added to layout so toast messages are now visible
-- Button was working but feedback (toast) was invisible, making it appear unresponsive
-- Mobile UI optimized with icons and compact labels
-- All builds pass successfully
----
-Task ID: 1-6
-Agent: Main
-Task: Add Staff reference table for thi đua calculation - fix missing TN with no sales
-
-Work Log:
-- Added Staff model to Prisma schema with fields: agentCode (unique), agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode, startDate
-- Ran prisma db push to create Staff table in Neon DB
-- Created /api/staff route (GET, POST bulk/single, DELETE all)
-- Created /api/staff/[id] route (GET, PATCH, DELETE single)
-- Modified /api/seed route to also extract unique agents and upsert to Staff table during CSV import
-- Modified thi-dua page groupedData useMemo to use Staff as primary source for groups
-  - Groups with no contracts now appear (0 FYP, 0 contracts) as long as they exist in Staff table
-  - Leader info populated from Staff table (more reliable than inferring from contracts)
-  - Backward compatible: if no staff data, falls back to contract-based group detection
-- Modified nydData useMemo similarly to include NYDs from Staff table even without contracts
-- Added StaffMember interface and staffList state to thi-dua page
-- Added fetchStaff() call on mount and after sync
-- Updated settings panel with new "Nhân sự" section:
-  - Quick Actions: 4 buttons now (Thêm link, QL link, Nhân sự, Thống kê)
-  - Staff management: add/edit/delete staff members
-  - Staff list grouped by maNhom, expandable with leader info
-  - Clear all staff option
-- Added postinstall script for prisma generate on Vercel
-- Created tag v1.2
-
-Stage Summary:
-- Staff model added to DB, migrated to Neon
-- API routes for Staff CRUD created
-- Thi đua calculation now uses Staff as reference table for group membership
-- Groups/TNs with no sales still appear in thi đua results
-- Settings panel has full staff management UI
-- Pushed to GitHub, tag v1.2 created
----
-Task ID: 1
-Agent: Main
-Task: Fix thi đua nhóm - tách Trưởng ban/Trưởng nhóm, loại "Tiền trưởng nhóm"
-
-Work Log:
-- Đọc và phân tích code thi-dua-chau/page.tsx, sync route, schema, settings panel
-- Phát hiện bug: `.includes('trưởng nhóm')` match cả "Tiền trưởng nhóm" → sai
-- Phát hiện 6 Staff records có agentCode sai (tên thay vì mã: "Nguyễn Văn Có", "Trương Quốc Uy", v.v.)
-- Fix GroupData interface: thay leaderCode/leaderName/leaderPosition → leaderBan + leaderNhom
-- Fix leader finding: exact match `pos === 'trưởng ban'` và `pos === 'trưởng nhóm'` (không .includes())
-- Fix table display: Mã TB/Tên TB + Mã TN/Tên TN (thay vì Mã TN/Tên TN/Chức vụ)
-- Fix Excel export headers và copy text
-- Fix settings panel leader identification
-- Xóa 6 bad Staff records từ production DB
-- Save CSV URLs to settings (user provided 2 Google Sheets links)
-- Build, push v1.5.0
-
-Stage Summary:
-- Code deployed v1.5.0 to nc-links.vercel.app
-- "Tiền trưởng nhóm" không còn xuất hiện trong kết quả thi đua nhóm
-- Kết quả hiển thị đúng Trưởng ban và Trưởng nhóm riêng biệt
-- 6 Staff records sai đã được xóa
-- CSV URLs saved to settings (có thể cần user xác nhận lại link do 404)
-
----
-Task ID: 1
-Agent: Main Agent
-Task: Center left panel vertically, brighten calendar, fill empty spaces with info/effects
-
-Work Log:
-- Added `justify-center` to left panel column for vertical centering with calendar
-- Removed top padding (pt-8 → removed) from desktop header for centering
-- Changed left panel links area from `flex-1 overflow-y-auto` to `flex-shrink-0 max-h-[55vh] overflow-y-auto`
-- Brightened calendar: increased border opacity (20→30), brighter button backgrounds (12→18), stronger text shadows, brighter day cell backgrounds, stronger divider glow
-- Made vertical neon divider taller (55%→65%) and brighter (35→40, 70→80)
-- Calendar container: darker background, brighter border, stronger glow, added inset shadow
-- Added LiveClock component with real-time digital clock display (HH:MM:SS + day name)
-- Added 3 stats cards: Công việc (total events), Ngày có CV (days with events), Ngày còn lại (remaining days)
-- Added upcoming events section (next 7 days, max 5 items) with neon-styled cards
-- Added decorative animated glow bar at bottom
-- Empty calendar cells now have subtle background fill
-- Fixed LiveClock to use proper useEffect instead of useState hack
-
-Stage Summary:
-- Desktop layout now has left panel vertically centered, balanced with right calendar panel
-- Calendar is significantly brighter with increased opacity values throughout
-- Empty spaces filled with: live clock, stats cards, upcoming events list, animated glow bar
-- Build compiles successfully
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Fix app not loading data - missing links, no data loading
-
-Work Log:
-- Investigated root cause: DATABASE_URL system env var pointing to empty SQLite file (0 bytes)
-- Old Neon PostgreSQL credentials expired (password authentication failed)
-- Prisma schema was set to PostgreSQL provider but system env had SQLite URL
-- Switched Prisma schema from PostgreSQL to SQLite for local development
-- Changed @default(cuid()) to @default(uuid()) for SQLite compatibility
-- Removed directUrl from datasource (SQLite doesn't support it)
-- Created .env with DATABASE_URL="file:/home/z/my-project/db/custom.db"
-- Ran prisma db push to create SQLite database with schema
-- Seeded database with 5 links, 3 settings, 3 categories, 3 calendar events
-- Disabled query logging in db.ts (was causing memory issues)
-- Updated postinstall script to only run prisma generate (not db push)
-- Verified all APIs return correct data: /api/links, /api/settings, /api/calendar, /api/categories
-
-Stage Summary:
-- Root cause: DATABASE_URL env var was pointing to empty SQLite file while Prisma schema expected PostgreSQL
-- Fix: Switched to SQLite with proper schema, created and seeded database
-- All 5 links, 3 settings, 3 categories, 3 calendar events loaded correctly
-- App should work when user runs it on their machine with `npm run dev`
-- Note: Dev server keeps dying in this container environment (likely memory limits during compilation), but production build and direct API tests all pass
+- SWR revalidation flash fixed with keepPreviousData + revalidateOnFocus: false
+- layoutId conflict fixed with separate prefixes
+- Auto-sync added for first load of thi-đua page
+- All changes build successfully
