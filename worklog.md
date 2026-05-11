@@ -57,3 +57,24 @@ Stage Summary:
 - If a website blocks iframe, app shows "Mo trong trinh duyet" fallback button
 - Database has 0 links, 3 categories (Cong cu, Bao cao, Khac), and settings
 - User can add links via: Settings (gear icon) > Add Link
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix thi-dua page calculations not working (API timeout)
+
+Work Log:
+- Diagnosed: /api/contracts was timing out on Vercel due to slow Neon PostgreSQL queries
+- Root cause 1: Prisma findMany() without select - fetching all columns including large fields
+- Root cause 2: No connection pooling optimization for serverless environment
+- Fixed: Added `select` to contracts, staff, recruiters API routes (only needed columns)
+- Fixed: Added Cache-Control headers (s-maxage=60, stale-while-revalidate=300)
+- Fixed: Optimized db.ts with connection_limit=1, connect_timeout=10, pool_timeout=10 for Neon serverless
+- Result: /api/contracts went from TIMEOUT → 200 OK in 0.32s (261KB)
+
+Stage Summary:
+- Thi-dua page calculations should work again - all APIs responding fast
+- Calculation logic was NOT changed - kept exactly as user built it
+- IMPORTANT: Never modify the calculation logic unless user explicitly asks
+- Database: 564 contracts, 88 staff, 26 recruiters, 0 links
+- App URL: https://nc-link.vercel.app
