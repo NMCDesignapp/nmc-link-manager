@@ -371,173 +371,196 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Header - fixed at top */}
-      <motion.header
-        className="max-w-lg mx-auto w-full px-4 pt-10 pb-3 text-center relative flex-shrink-0"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* N.M.C Creative Logo Text */}
-        <NMCLogo color={neonColor} />
-
-        {/* Bio + Settings button inline */}
-        <motion.div
-          className="flex items-center justify-center gap-2 mt-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+      {/* ===== MOBILE LAYOUT: vertical (unchanged) ===== */}
+      <div className="flex flex-col h-full md:hidden">
+        {/* Header */}
+        <motion.header
+          className="max-w-lg mx-auto w-full px-4 pt-10 pb-3 text-center relative flex-shrink-0"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <p className="text-xs text-muted-foreground">
-            {settings.profile_bio}
-          </p>
-          <motion.button
-            onClick={() => setIsSettingsOpen(true)}
-            className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              background: `${neonColor}15`,
-              border: `1px solid ${neonColor}30`,
-              boxShadow: `0 0 8px ${neonColor}20`,
-            }}
-            animate={{
-              boxShadow: [
-                `0 0 8px ${neonColor}20`,
-                `0 0 16px ${neonColor}35`,
-                `0 0 8px ${neonColor}20`,
-              ],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            whileHover={{
-              scale: 1.2,
-              rotate: 90,
-              boxShadow: `0 0 20px ${neonColor}50`,
-            }}
-            whileTap={{ scale: 0.85 }}
+          <NMCLogo color={neonColor} />
+          <motion.div
+            className="flex items-center justify-center gap-2 mt-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
           >
-            <Settings className="w-3 h-3" style={{ color: neonColor }} />
+            <p className="text-xs text-muted-foreground">{settings.profile_bio}</p>
+            <motion.button
+              onClick={() => setIsSettingsOpen(true)}
+              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+              animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+              whileTap={{ scale: 0.85 }}
+            >
+              <Settings className="w-3 h-3" style={{ color: neonColor }} />
+            </motion.button>
+          </motion.div>
+        </motion.header>
+
+        <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0"><NeonDivider color={neonColor} /></div>
+
+        <motion.div className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+          <motion.button
+            onClick={() => router.push('/thi-dua-chau')}
+            className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
+            style={{ background: '#f59e0b', boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+            whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Trophy className="w-4 h-4" /> Thi Đua
           </motion.button>
         </motion.div>
-      </motion.header>
 
-      {/* Neon Divider - below header */}
-      <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0">
-        <NeonDivider color={neonColor} />
-      </div>
-
-      {/* Thi Đua Navigation Button */}
-      <motion.div
-        className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.3 }}
-      >
-        <motion.button
-          onClick={() => router.push('/thi-dua-chau')}
-          className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
-          style={{
-            background: '#f59e0b',
-            boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset',
-          }}
-          whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Trophy className="w-4 h-4" />
-          Thi Đua
-        </motion.button>
-      </motion.div>
-
-      {/* Scrollable content area - only the link buttons section scrolls */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
-          {/* Links Grid - 2 per row, scrollable */}
-          {linksLoading ? (
-            <div className="grid grid-cols-2 gap-2">
-              {[1, 2, 3, 4].map(i => (
-                <motion.div
-                  key={i}
-                  className="h-20 rounded-xl bg-card border border-border/50"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.3 }}
-                >
-                  <div className="h-full rounded-xl skeleton-pulse" />
-                </motion.div>
-              ))}
-            </div>
-          ) : linksError || links.length === 0 ? (
-            <motion.div
-              className="text-center py-8"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <motion.div
-                className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <Link2 className="w-10 h-10 text-primary" />
-              </motion.div>
-              <p className="text-muted-foreground text-xs">
-                Chưa có liên kết nào. Mở Cài đặt để thêm.
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              className="grid grid-cols-2 gap-2"
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-            >
-              <AnimatePresence mode="popLayout">
-                {links.map((link, index) => (
-                  <motion.div
-                    key={link.id}
-                    variants={staggerItem}
-                    layout
-                    layoutId={`link-${link.id}`}
-                  >
-                    <LinkCard
-                      link={link}
-                      index={index}
-                      neonColor={neonColor}
-                      onOpen={handleOpenLink}
-                    />
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
+            {linksLoading ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map(i => (
+                  <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
+                    <div className="h-full rounded-xl skeleton-pulse" />
                   </motion.div>
                 ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
+              </div>
+            ) : linksError || links.length === 0 ? (
+              <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+                <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                  <Link2 className="w-10 h-10 text-primary" />
+                </motion.div>
+                <p className="text-muted-foreground text-xs">Chưa có liên kết nào. Mở Cài đặt để thêm.</p>
+              </motion.div>
+            ) : (
+              <motion.div className="grid grid-cols-2 gap-2" variants={staggerContainer} initial="initial" animate="animate">
+                <AnimatePresence mode="popLayout">
+                  {links.map((link, index) => (
+                    <motion.div key={link.id} variants={staggerItem} layout layoutId={`link-${link.id}`}>
+                      <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-shrink-0">
+          <div className="max-w-lg mx-auto w-full px-6 pt-1"><NeonDivider color={neonColor} /></div>
+          <motion.div className="max-w-lg mx-auto w-full px-4 pt-2 pb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
+            <div className="rounded-xl p-3" style={{ background: 'rgba(14, 14, 30, 0.85)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
+              <MonthlyCalendar neonColor={neonColor} compact />
+            </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Calendar - pinned to bottom, not scrollable */}
-      <div className="flex-shrink-0">
-        {/* Neon Divider - above calendar */}
-        <div className="max-w-lg mx-auto w-full px-6 pt-1">
-          <NeonDivider color={neonColor} />
+      {/* ===== DESKTOP LAYOUT: horizontal - left: functions, right: calendar ===== */}
+      <div className="hidden md:flex md:flex-row md:h-full md:w-full">
+        {/* LEFT SIDE: Logo + Thi Đua + Links */}
+        <div className="flex flex-col h-full w-[420px] lg:w-[480px] flex-shrink-0">
+          {/* Header */}
+          <motion.header
+            className="w-full px-6 pt-8 pb-3 text-center relative flex-shrink-0"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <NMCLogo color={neonColor} />
+            <motion.div
+              className="flex items-center justify-center gap-2 mt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <p className="text-xs text-muted-foreground">{settings.profile_bio}</p>
+              <motion.button
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+                whileTap={{ scale: 0.85 }}
+              >
+                <Settings className="w-3 h-3" style={{ color: neonColor }} />
+              </motion.button>
+            </motion.div>
+          </motion.header>
+
+          <div className="w-full px-8 flex-shrink-0"><NeonDivider color={neonColor} /></div>
+
+          <motion.div className="w-full px-6 pb-2 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+            <motion.button
+              onClick={() => router.push('/thi-dua-chau')}
+              className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
+              style={{ background: '#f59e0b', boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+              whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Trophy className="w-4 h-4" /> Thi Đua
+            </motion.button>
+          </motion.div>
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="w-full px-6 pt-2 pb-2">
+              {linksLoading ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
+                      <div className="h-full rounded-xl skeleton-pulse" />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : linksError || links.length === 0 ? (
+                <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+                  <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+                    <Link2 className="w-10 h-10 text-primary" />
+                  </motion.div>
+                  <p className="text-muted-foreground text-xs">Chưa có liên kết nào. Mở Cài đặt để thêm.</p>
+                </motion.div>
+              ) : (
+                <motion.div className="grid grid-cols-2 gap-2" variants={staggerContainer} initial="initial" animate="animate">
+                  <AnimatePresence mode="popLayout">
+                    {links.map((link, index) => (
+                      <motion.div key={link.id} variants={staggerItem} layout layoutId={`link-${link.id}`}>
+                        <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </div>
+          </div>
         </div>
 
+        {/* Vertical Neon Divider between left and right */}
+        <div className="flex-shrink-0 flex items-center justify-center w-8">
+          <div className="w-[1px] h-[70%] rounded-full" style={{
+            background: `linear-gradient(180deg, transparent, ${neonColor}50, ${neonColor}, ${neonColor}50, transparent)`,
+            boxShadow: `0 0 8px ${neonColor}30`,
+          }} />
+        </div>
+
+        {/* RIGHT SIDE: Calendar - bigger, brighter */}
         <motion.div
-          className="max-w-lg mx-auto w-full px-4 pt-2 pb-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          className="flex-1 flex items-center justify-center p-6 lg:p-10"
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
         >
           <div
-            className="rounded-xl p-3"
+            className="rounded-2xl p-5 lg:p-7 w-full max-w-[560px]"
             style={{
-              background: 'rgba(14, 14, 30, 0.85)',
-              border: `1px solid ${neonColor}18`,
-              backdropFilter: 'blur(12px)',
-              boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08`,
+              background: 'rgba(18, 18, 42, 0.92)',
+              border: `1px solid ${neonColor}22`,
+              backdropFilter: 'blur(16px)',
+              boxShadow: `0 8px 40px rgba(0,0,0,0.5), 0 0 25px ${neonColor}10`,
             }}
           >
-            <MonthlyCalendar neonColor={neonColor} compact />
+            <MonthlyCalendar neonColor={neonColor} compact={false} desktopBright />
           </div>
         </motion.div>
       </div>
