@@ -460,10 +460,10 @@ export default function Home() {
       {/* ===== DESKTOP LAYOUT: horizontal - left: functions, right: calendar ===== */}
       <div className="hidden md:flex md:flex-row md:h-full md:w-full">
         {/* LEFT SIDE: Logo + Thi Đua + Links */}
-        <div className="flex flex-col h-full w-[420px] lg:w-[480px] flex-shrink-0">
+        <div className="flex flex-col h-full w-[380px] lg:w-[440px] xl:w-[480px] flex-shrink-0">
           {/* Header */}
           <motion.header
-            className="w-full px-6 pt-8 pb-3 text-center relative flex-shrink-0"
+            className="w-full px-6 pt-6 pb-2 text-center relative flex-shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -505,9 +505,9 @@ export default function Home() {
           </motion.div>
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="w-full px-6 pt-2 pb-2">
+            <div className="w-full px-6 pt-2 pb-4">
               {linksLoading ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   {[1, 2, 3, 4].map(i => (
                     <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
                       <div className="h-full rounded-xl skeleton-pulse" />
@@ -522,7 +522,7 @@ export default function Home() {
                   <p className="text-muted-foreground text-xs">Chưa có liên kết nào. Mở Cài đặt để thêm.</p>
                 </motion.div>
               ) : (
-                <motion.div className="grid grid-cols-2 gap-2" variants={staggerContainer} initial="initial" animate="animate">
+                <motion.div className="grid grid-cols-2 gap-2.5" variants={staggerContainer} initial="initial" animate="animate">
                   <AnimatePresence mode="popLayout">
                     {links.map((link, index) => (
                       <motion.div key={link.id} variants={staggerItem} layout layoutId={`link-${link.id}`}>
@@ -537,27 +537,27 @@ export default function Home() {
         </div>
 
         {/* Vertical Neon Divider between left and right */}
-        <div className="flex-shrink-0 flex items-center justify-center w-8">
-          <div className="w-[1px] h-[70%] rounded-full" style={{
-            background: `linear-gradient(180deg, transparent, ${neonColor}50, ${neonColor}, ${neonColor}50, transparent)`,
-            boxShadow: `0 0 8px ${neonColor}30`,
+        <div className="flex-shrink-0 flex items-center justify-center w-6">
+          <div className="w-[1px] h-[60%] rounded-full" style={{
+            background: `linear-gradient(180deg, transparent, ${neonColor}40, ${neonColor}80, ${neonColor}40, transparent)`,
+            boxShadow: `0 0 6px ${neonColor}25`,
           }} />
         </div>
 
         {/* RIGHT SIDE: Calendar - bigger, brighter */}
         <motion.div
-          className="flex-1 flex items-center justify-center p-6 lg:p-10"
+          className="flex-1 flex items-center justify-center p-4 lg:p-8 xl:p-12"
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           <div
-            className="rounded-2xl p-5 lg:p-7 w-full max-w-[560px]"
+            className="rounded-2xl p-6 lg:p-8 xl:p-10 w-full max-w-[680px]"
             style={{
-              background: 'rgba(18, 18, 42, 0.92)',
-              border: `1px solid ${neonColor}22`,
+              background: 'rgba(22, 22, 50, 0.94)',
+              border: `1px solid ${neonColor}28`,
               backdropFilter: 'blur(16px)',
-              boxShadow: `0 8px 40px rgba(0,0,0,0.5), 0 0 25px ${neonColor}10`,
+              boxShadow: `0 8px 40px rgba(0,0,0,0.5), 0 0 30px ${neonColor}12`,
             }}
           >
             <MonthlyCalendar neonColor={neonColor} compact={false} desktopBright />
