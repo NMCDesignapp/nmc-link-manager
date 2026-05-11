@@ -103,13 +103,13 @@ export async function POST(request: NextRequest) {
           const nhom = columns[3] || '';
           const maNhom = columns[4] || '';
           const leaderAgentCode = columns[5] || '';
-          const recruiterCode = columns[5] || ''; // Mã đại lý tuyển dụng (cột recruiterCode)
+          const recruiterCode = columns[28] || ''; // Mã đại lý tuyển dụng (MÃ ĐL TD - cột 28)
           const startDateStr = columns[9] || '';
           const effectiveDateStr = columns[11] || '';
           const issueDateStr = columns[12] || '';
           const fypStr = columns[13] || '';
           const afypStr = columns[20] || '';
-          const tinhLuotStr = columns[26] || '0';
+          const tinhLuotStr = columns[27] || '0'; // TÍNH LƯỢT (cột 27, không phải col 26 THÁNG HL)
 
           if (!contractNumber || !effectiveDateStr) continue;
           if (seenContractNumbers.has(contractNumber)) continue;
@@ -137,24 +137,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Import Staff CSV (7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu)
-    // DS Nhóm — chỉ chứa trưởng nhóm/trưởng ban, có mã nhóm để ánh xạ
+    // 2. Import Staff CSV (6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
+    // DS Nhóm — chỉ chứa trưởng nhóm/trưởng ban
+    // CSV KHÔNG có cột Mã nhóm → phải lookup từ contracts
     if (staffCsv) {
       try {
         await db.staff.deleteMany();
         const rows = parseCSV(staffCsv);
+        const header = rows[0] || [];
         const dataRows = rows.slice(1); // Skip header
-        const staffRecords = [];
 
+        // Xác định cấu trúc CSV dựa trên số cột header
+        const colCount = header.length;
+
+        // Build nhóm→mã nhóm mapping từ contracts đã import
+        const nhomToMaNhom = new Map<string, string>();
+        if (results.contracts > 0) {
+          const allContracts = await db.contract.findMany({ select: { nhom: true, maNhom: true } });
+          for (const c of allContracts) {
+            if (c.nhom && c.maNhom && !nhomToMaNhom.has(c.nhom)) {
+              nhomToMaNhom.set(c.nhom, c.maNhom);
+            }
+          }
+        }
+
+        const staffRecords = [];
         for (const columns of dataRows) {
-          // Column mapping (7 columns):
-          // 0: STT, 1: Nhóm, 2: Mã nhóm, 3: Mã TN, 4: Họ tên TN, 5: Chức vụ, 6: Ngày bắt đầu
-          const nhom = columns[1] || '';
-          const maNhom = columns[2] || '';
-          const agentCode = columns[3] || '';
-          const agentName = columns[4] || '';
-          const position = columns[5] || '';
-          const startDateStr = columns[6] || '';
+          let nhom: string, maNhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
+
+          if (colCount >= 7) {
+            // 7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu
+            nhom = columns[1] || '';
+            maNhom = columns[2] || '';
+            agentCode = columns[3] || '';
+            agentName = columns[4] || '';
+            position = columns[5] || '';
+            startDateStr = columns[6] || '';
+          } else {
+            // 6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu
+            nhom = columns[1] || '';
+            maNhom = nhomToMaNhom.get(nhom) || ''; // Lookup từ contracts
+            agentCode = columns[2] || '';
+            agentName = columns[3] || '';
+            position = columns[4] || '';
+            startDateStr = columns[5] || '';
+          }
 
           if (!agentCode || !agentName) continue;
 
@@ -173,22 +200,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Import Recruiter CSV (6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
+    // 3. Import Recruiter CSV (7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu)
     if (recruiterCsv) {
       try {
         await db.recruiter.deleteMany();
         const rows = parseCSV(recruiterCsv);
+        const header = rows[0] || [];
         const dataRows = rows.slice(1); // Skip header
+
+        const colCount = header.length;
         const recruiters = [];
 
         for (const columns of dataRows) {
-          // Column mapping (6 columns):
-          // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu
-          const nhom = columns[1] || '';
-          const agentCode = columns[2] || '';
-          const agentName = columns[3] || '';
-          const position = columns[4] || '';
-          const startDateStr = columns[5] || '';
+          let nhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
+
+          if (colCount >= 7) {
+            // 7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu
+            nhom = columns[1] || '';
+            agentCode = columns[3] || '';
+            agentName = columns[4] || '';
+            position = columns[5] || '';
+            startDateStr = columns[6] || '';
+          } else {
+            // 6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu
+            nhom = columns[1] || '';
+            agentCode = columns[2] || '';
+            agentName = columns[3] || '';
+            position = columns[4] || '';
+            startDateStr = columns[5] || '';
+          }
 
           if (!agentCode || !agentName) continue;
 
