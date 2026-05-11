@@ -30,9 +30,10 @@ const EVENT_COLORS = [
 interface MonthlyCalendarProps {
   neonColor?: string
   compact?: boolean
+  desktopBright?: boolean
 }
 
-export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: MonthlyCalendarProps) {
+export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, desktopBright = false }: MonthlyCalendarProps) {
   const now = new Date()
   const [currentYear, setCurrentYear] = useState(now.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(now.getMonth())
@@ -136,9 +137,12 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
     calendarCells.push(day)
   }
 
-  const dayFontSize = compact ? 'text-[11px]' : 'text-[12px]'
-  const eventFontSize = compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = compact ? 'gap-1' : 'gap-1.5'
+  const dayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[11px]' : 'text-[12px]'
+  const eventFontSize = desktopBright ? 'text-[8px]' : compact ? 'text-[6px]' : 'text-[7px]'
+  const gapSize = desktopBright ? 'gap-2' : compact ? 'gap-1' : 'gap-1.5'
+  const weekdayFontSize = desktopBright ? 'text-[11px]' : compact ? 'text-[9px]' : 'text-[10px]'
+  const headerBtnSize = desktopBright ? 'w-9 h-9' : 'w-7 h-7'
+  const headerMonthSize = desktopBright ? 'text-sm' : 'text-xs'
 
   return (
     <div className="w-full relative">
@@ -146,7 +150,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
       <div className="flex items-center justify-between mb-2.5">
         <motion.button
           onClick={prevMonth}
-          className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
+          className={`${headerBtnSize} rounded-lg flex items-center justify-center smooth-transition`}
           style={{
             background: `${neonColor}12`,
             border: `1px solid ${neonColor}25`,
@@ -155,12 +159,12 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
+          <ChevronLeft className={desktopBright ? 'w-4 h-4' : 'w-3.5 h-3.5'} />
         </motion.button>
 
         <motion.button
           onClick={goToToday}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg smooth-transition flex items-center gap-1.5"
+          className={`${headerMonthSize} font-semibold px-3 py-1.5 rounded-lg smooth-transition flex items-center gap-1.5`}
           style={{
             color: neonColor,
             background: `${neonColor}10`,
@@ -170,13 +174,13 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
           whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}20` }}
           whileTap={{ scale: 0.95 }}
         >
-          <Calendar className="w-3 h-3" />
+          <Calendar className={desktopBright ? 'w-4 h-4' : 'w-3 h-3'} />
           {monthNames[currentMonth]} {currentYear}
         </motion.button>
 
         <motion.button
           onClick={nextMonth}
-          className="w-7 h-7 rounded-lg flex items-center justify-center smooth-transition"
+          className={`${headerBtnSize} rounded-lg flex items-center justify-center smooth-transition`}
           style={{
             background: `${neonColor}12`,
             border: `1px solid ${neonColor}25`,
@@ -185,7 +189,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
           whileTap={{ scale: 0.9 }}
         >
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className={desktopBright ? 'w-4 h-4' : 'w-3.5 h-3.5'} />
         </motion.button>
       </div>
 
@@ -203,9 +207,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
         {WEEKDAYS.map((day, i) => (
           <div
             key={i}
-            className={`text-center ${compact ? 'text-[9px]' : 'text-[10px]'} font-bold py-0.5 uppercase tracking-wider`}
+            className={`text-center ${weekdayFontSize} font-bold py-0.5 uppercase tracking-wider`}
             style={{
-              color: i === 0 ? '#ff6b6b' : `${neonColor}80`,
+              color: i === 0 ? (desktopBright ? '#ff9999' : '#ff6b6b') : (desktopBright ? neonColor : `${neonColor}80`),
               textShadow: i === 0 ? '0 0 6px rgba(255,107,107,0.4)' : `0 0 6px ${neonColor}25`,
             }}
           >
@@ -234,10 +238,14 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
               className="aspect-[1.1] rounded-lg flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
                 background: isToday
-                  ? `${neonColor}22`
+                  ? `${neonColor}28`
+                  : desktopBright
+                  ? 'rgba(255, 255, 255, 0.08)'
                   : 'rgba(255, 255, 255, 0.04)',
                 border: isToday
                   ? `1.5px solid ${neonColor}60`
+                  : desktopBright
+                  ? `1px solid ${neonColor}15`
                   : `1px solid rgba(255, 255, 255, 0.06)`,
                 boxShadow: isToday
                   ? `0 0 14px ${neonColor}25, inset 0 0 10px ${neonColor}10`
@@ -277,12 +285,14 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false }: Mont
                   color: isToday
                     ? neonColor
                     : isSunday
-                    ? '#ff6b6b'
-                    : 'rgba(255, 255, 255, 0.75)',
+                    ? (desktopBright ? '#ff9999' : '#ff6b6b')
+                    : (desktopBright ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.75)'),
                   textShadow: isToday
                     ? `0 0 10px ${neonColor}80`
                     : isSunday
                     ? '0 0 6px rgba(255,107,107,0.4)'
+                    : desktopBright
+                    ? `0 0 4px ${neonColor}20`
                     : 'none',
                 }}
               >
