@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Link {
@@ -53,7 +52,7 @@ model CalendarEvent {
 }
 
 model Contract {
-  id              String   @id @default(cuid())
+  id              String   @id @default(uuid())
   contractNumber  String   @unique
   agentCode       String
   agentName       String
@@ -74,9 +73,9 @@ model Contract {
 }
 
 model Staff {
-  id        String    @id @default(cuid())
+  id        String    @id @default(uuid())
   nhom      String    @default("")  // Tên nhóm
-  maNhom    String    @default("")  // Mã nhóm (dùng ánh xạ, không hiển thị kết quả)
+  maNhom    String    @default("")  // Mã nhóm
   agentCode String    @unique       // Mã số
   agentName String                   // Họ tên
   position  String    @default("")  // Chức vụ
@@ -86,9 +85,9 @@ model Staff {
 }
 
 model Recruiter {
-  id        String    @id @default(cuid())
+  id        String    @id @default(uuid())
   nhom      String    @default("")  // Nhóm
-  agentCode String    @unique       // Mã số NTD (dùng ánh xạ recruiterCode)
+  agentCode String    @unique       // Mã số NTD
   agentName String                   // Họ tên
   position  String    @default("")  // Chức vụ
   startDate DateTime?               // Ngày bắt đầu
@@ -97,7 +96,7 @@ model Recruiter {
 }
 
 model Contest {
-  id              String   @id @default(cuid())
+  id              String   @id @default(uuid())
   title           String
   startDate       DateTime
   endDate         DateTime

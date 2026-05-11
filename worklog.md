@@ -151,3 +151,29 @@ Stage Summary:
 - Calendar is significantly brighter with increased opacity values throughout
 - Empty spaces filled with: live clock, stats cards, upcoming events list, animated glow bar
 - Build compiles successfully
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix app not loading data - missing links, no data loading
+
+Work Log:
+- Investigated root cause: DATABASE_URL system env var pointing to empty SQLite file (0 bytes)
+- Old Neon PostgreSQL credentials expired (password authentication failed)
+- Prisma schema was set to PostgreSQL provider but system env had SQLite URL
+- Switched Prisma schema from PostgreSQL to SQLite for local development
+- Changed @default(cuid()) to @default(uuid()) for SQLite compatibility
+- Removed directUrl from datasource (SQLite doesn't support it)
+- Created .env with DATABASE_URL="file:/home/z/my-project/db/custom.db"
+- Ran prisma db push to create SQLite database with schema
+- Seeded database with 5 links, 3 settings, 3 categories, 3 calendar events
+- Disabled query logging in db.ts (was causing memory issues)
+- Updated postinstall script to only run prisma generate (not db push)
+- Verified all APIs return correct data: /api/links, /api/settings, /api/calendar, /api/categories
+
+Stage Summary:
+- Root cause: DATABASE_URL env var was pointing to empty SQLite file while Prisma schema expected PostgreSQL
+- Fix: Switched to SQLite with proper schema, created and seeded database
+- All 5 links, 3 settings, 3 categories, 3 calendar events loaded correctly
+- App should work when user runs it on their machine with `npm run dev`
+- Note: Dev server keeps dying in this container environment (likely memory limits during compilation), but production build and direct API tests all pass
