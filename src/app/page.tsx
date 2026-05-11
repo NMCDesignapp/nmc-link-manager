@@ -459,11 +459,11 @@ export default function Home() {
 
       {/* ===== DESKTOP LAYOUT: horizontal - left: functions, right: calendar ===== */}
       <div className="hidden md:flex md:flex-row md:h-full md:w-full">
-        {/* LEFT SIDE: Logo + Thi Đua + Links */}
-        <div className="flex flex-col h-full md:w-[40%] lg:w-[38%] xl:w-[36%] flex-shrink-0">
+        {/* LEFT SIDE: Logo + Thi Đua + Links - vertically centered */}
+        <div className="flex flex-col h-full md:w-[40%] lg:w-[38%] xl:w-[36%] flex-shrink-0 justify-center">
           {/* Header */}
           <motion.header
-            className="w-full px-8 pt-8 pb-3 text-center relative flex-shrink-0"
+            className="w-full px-8 pb-3 text-center relative flex-shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -504,7 +504,7 @@ export default function Home() {
             </motion.button>
           </motion.div>
 
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-shrink-0 max-h-[55vh] overflow-y-auto min-h-0">
             <div className="w-full px-8 pt-1 pb-6">
               {linksLoading ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -538,26 +538,26 @@ export default function Home() {
 
         {/* Vertical Neon Divider between left and right */}
         <div className="flex-shrink-0 flex items-center justify-center w-4">
-          <div className="w-[1px] h-[55%] rounded-full" style={{
-            background: `linear-gradient(180deg, transparent, ${neonColor}35, ${neonColor}70, ${neonColor}35, transparent)`,
-            boxShadow: `0 0 8px ${neonColor}20`,
+          <div className="w-[1px] h-[65%] rounded-full" style={{
+            background: `linear-gradient(180deg, transparent, ${neonColor}40, ${neonColor}80, ${neonColor}40, transparent)`,
+            boxShadow: `0 0 12px ${neonColor}30`,
           }} />
         </div>
 
         {/* RIGHT SIDE: Calendar - bigger, brighter */}
         <motion.div
-          className="flex-1 flex items-center justify-center py-6 px-6 lg:px-10 xl:px-16"
+          className="flex-1 flex items-center justify-center py-4 px-4 lg:px-8 xl:px-12"
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           <div
-            className="rounded-2xl p-6 lg:p-8 w-full max-w-[720px]"
+            className="rounded-2xl p-5 lg:p-7 w-full max-w-[780px]"
             style={{
-              background: 'rgba(20, 20, 48, 0.92)',
-              border: `1px solid ${neonColor}20`,
-              backdropFilter: 'blur(16px)',
-              boxShadow: `0 12px 48px rgba(0,0,0,0.4), 0 0 40px ${neonColor}08`,
+              background: 'rgba(16, 16, 42, 0.95)',
+              border: `1.5px solid ${neonColor}30`,
+              backdropFilter: 'blur(20px)',
+              boxShadow: `0 12px 48px rgba(0,0,0,0.5), 0 0 50px ${neonColor}12, inset 0 0 30px ${neonColor}05`,
             }}
           >
             <MonthlyCalendar neonColor={neonColor} compact={false} desktopBright />
