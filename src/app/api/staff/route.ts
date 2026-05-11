@@ -5,9 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET() {
   try {
     const staff = await db.staff.findMany({
+      select: {
+        id: true, nhom: true, maNhom: true, agentCode: true, agentName: true,
+        position: true, startDate: true,
+      },
       orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
     });
-    return NextResponse.json(staff);
+    return NextResponse.json(staff, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('Error fetching staff:', error);
     return NextResponse.json(

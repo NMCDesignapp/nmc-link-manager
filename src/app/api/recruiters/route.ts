@@ -17,9 +17,15 @@ function parseDate(dateStr: string): Date | null {
 export async function GET() {
   try {
     const recruiters = await db.recruiter.findMany({
+      select: {
+        id: true, nhom: true, agentCode: true, agentName: true,
+        position: true, startDate: true,
+      },
       orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
     });
-    return NextResponse.json(recruiters);
+    return NextResponse.json(recruiters, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('Error fetching recruiters:', error);
     return NextResponse.json(

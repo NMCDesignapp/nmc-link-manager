@@ -27,10 +27,19 @@ export async function GET(request: NextRequest) {
 
     const contracts = await db.contract.findMany({
       where,
+      select: {
+        id: true, contractNumber: true, agentCode: true, agentName: true,
+        position: true, ban: true, nhom: true, maNhom: true,
+        leaderAgentCode: true, recruiterCode: true,
+        startDate: true, effectiveDate: true, issueDate: true,
+        fyp: true, afyp: true, tinhLuot: true,
+      },
       orderBy: { effectiveDate: 'asc' },
     });
 
-    return NextResponse.json(contracts);
+    return NextResponse.json(contracts, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('Error fetching contracts:', error);
     return NextResponse.json(
