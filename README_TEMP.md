@@ -1,1 +1,0 @@
-# NMC Link Manager
