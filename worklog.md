@@ -126,3 +126,28 @@ Stage Summary:
 - Kết quả hiển thị đúng Trưởng ban và Trưởng nhóm riêng biệt
 - 6 Staff records sai đã được xóa
 - CSV URLs saved to settings (có thể cần user xác nhận lại link do 404)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Center left panel vertically, brighten calendar, fill empty spaces with info/effects
+
+Work Log:
+- Added `justify-center` to left panel column for vertical centering with calendar
+- Removed top padding (pt-8 → removed) from desktop header for centering
+- Changed left panel links area from `flex-1 overflow-y-auto` to `flex-shrink-0 max-h-[55vh] overflow-y-auto`
+- Brightened calendar: increased border opacity (20→30), brighter button backgrounds (12→18), stronger text shadows, brighter day cell backgrounds, stronger divider glow
+- Made vertical neon divider taller (55%→65%) and brighter (35→40, 70→80)
+- Calendar container: darker background, brighter border, stronger glow, added inset shadow
+- Added LiveClock component with real-time digital clock display (HH:MM:SS + day name)
+- Added 3 stats cards: Công việc (total events), Ngày có CV (days with events), Ngày còn lại (remaining days)
+- Added upcoming events section (next 7 days, max 5 items) with neon-styled cards
+- Added decorative animated glow bar at bottom
+- Empty calendar cells now have subtle background fill
+- Fixed LiveClock to use proper useEffect instead of useState hack
+
+Stage Summary:
+- Desktop layout now has left panel vertically centered, balanced with right calendar panel
+- Calendar is significantly brighter with increased opacity values throughout
+- Empty spaces filled with: live clock, stats cards, upcoming events list, animated glow bar
+- Build compiles successfully

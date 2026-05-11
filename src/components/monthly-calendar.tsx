@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from '@/lib/animations'
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Calendar, Clock, Zap, TrendingUp } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
 
 interface CalendarEvent {
@@ -26,6 +26,43 @@ const EVENT_COLORS = [
   '#00ff88', '#00d4ff', '#ff6600', '#ff0080',
   '#ffcc00', '#bf00ff', '#ff4444', '#44aaff',
 ]
+
+// Real-time clock component
+function LiveClock({ neonColor }: { neonColor: string }) {
+  const [time, setTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const hours = time.getHours().toString().padStart(2, '0')
+  const minutes = time.getMinutes().toString().padStart(2, '0')
+  const seconds = time.getSeconds().toString().padStart(2, '0')
+  const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+  const dayName = dayNames[time.getDay()]
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
+        <Clock className="w-4 h-4" style={{ color: neonColor, filter: `drop-shadow(0 0 4px ${neonColor}60)` }} />
+        <span
+          className="text-2xl font-bold tracking-wider"
+          style={{
+            color: neonColor,
+            textShadow: `0 0 12px ${neonColor}80, 0 0 30px ${neonColor}30`,
+            fontFamily: '"Outfit", monospace',
+          }}
+        >
+          {hours}<span className="animate-pulse mx-0.5 opacity-60">:</span>{minutes}<span className="text-base opacity-50 ml-0.5">:{seconds}</span>
+        </span>
+      </div>
+      <span className="text-sm font-medium" style={{ color: `${neonColor}90` }}>
+        {dayName}
+      </span>
+    </div>
+  )
+}
 
 interface MonthlyCalendarProps {
   neonColor?: string
@@ -137,9 +174,28 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     calendarCells.push(day)
   }
 
+  // Calculate month stats
+  const totalEvents = events.length
+  const todayEvents = getEventsForDate(todayStr).length
+  const daysWithEvents = new Set(events.map((e: CalendarEvent) => e.date)).size
+  const remainingDays = daysInMonth - today.getDate()
+
+  // Find upcoming events (next 7 days)
+  const upcomingEvents = useMemo(() => {
+    const result: CalendarEvent[] = []
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(today)
+      d.setDate(d.getDate() + i)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const dayEvs = events.filter((e: CalendarEvent) => e.date === dateStr)
+      result.push(...dayEvs)
+    }
+    return result.slice(0, 5)
+  }, [events, today])
+
   const dayFontSize = desktopBright ? 'text-lg' : compact ? 'text-[11px]' : 'text-[12px]'
   const eventFontSize = desktopBright ? 'text-[10px]' : compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = desktopBright ? 'gap-3' : compact ? 'gap-1' : 'gap-1.5'
+  const gapSize = desktopBright ? 'gap-2.5' : compact ? 'gap-1' : 'gap-1.5'
   const weekdayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[9px]' : 'text-[10px]'
   const headerBtnSize = desktopBright ? 'w-11 h-11' : 'w-7 h-7'
   const headerMonthSize = desktopBright ? 'text-lg' : 'text-xs'
@@ -148,14 +204,101 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
 
   return (
     <div className="w-full relative">
+      {/* === DESKTOP BRIGHT: Top info bar with clock + month stats === */}
+      {desktopBright && (
+        <motion.div
+          className="mb-4"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          {/* Live Clock + Day info */}
+          <div className="flex items-center justify-between mb-3">
+            <LiveClock neonColor={neonColor} />
+            <motion.button
+              onClick={goToToday}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+              style={{
+                color: neonColor,
+                background: `${neonColor}15`,
+                border: `1px solid ${neonColor}30`,
+                textShadow: `0 0 6px ${neonColor}40`,
+              }}
+              whileHover={{ scale: 1.05, boxShadow: `0 0 12px ${neonColor}25` }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              Hôm nay
+            </motion.button>
+          </div>
+
+          {/* Stats cards row */}
+          <div className="grid grid-cols-3 gap-2.5 mb-4">
+            <motion.div
+              className="rounded-xl p-3 text-center"
+              style={{
+                background: `${neonColor}10`,
+                border: `1px solid ${neonColor}20`,
+                boxShadow: `0 0 15px ${neonColor}08, inset 0 0 12px ${neonColor}05`,
+              }}
+              whileHover={{ scale: 1.03, boxShadow: `0 0 20px ${neonColor}15` }}
+            >
+              <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: neonColor, filter: `drop-shadow(0 0 4px ${neonColor}60)` }} />
+              <div className="text-xl font-bold" style={{ color: neonColor, textShadow: `0 0 10px ${neonColor}50` }}>
+                {totalEvents}
+              </div>
+              <div className="text-[10px] font-medium mt-0.5" style={{ color: `${neonColor}80` }}>
+                Công việc
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="rounded-xl p-3 text-center"
+              style={{
+                background: 'rgba(0, 212, 255, 0.08)',
+                border: '1px solid rgba(0, 212, 255, 0.18)',
+                boxShadow: '0 0 15px rgba(0, 212, 255, 0.06), inset 0 0 12px rgba(0, 212, 255, 0.03)',
+              }}
+              whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(0, 212, 255, 0.12)' }}
+            >
+              <TrendingUp className="w-4 h-4 mx-auto mb-1" style={{ color: '#00d4ff', filter: 'drop-shadow(0 0 4px rgba(0,212,255,0.6))' }} />
+              <div className="text-xl font-bold" style={{ color: '#00d4ff', textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>
+                {daysWithEvents}
+              </div>
+              <div className="text-[10px] font-medium mt-0.5" style={{ color: 'rgba(0, 212, 255, 0.7)' }}>
+                Ngày có CV
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="rounded-xl p-3 text-center"
+              style={{
+                background: 'rgba(255, 204, 0, 0.08)',
+                border: '1px solid rgba(255, 204, 0, 0.18)',
+                boxShadow: '0 0 15px rgba(255, 204, 0, 0.06), inset 0 0 12px rgba(255, 204, 0, 0.03)',
+              }}
+              whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(255, 204, 0, 0.12)' }}
+            >
+              <Calendar className="w-4 h-4 mx-auto mb-1" style={{ color: '#ffcc00', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.6))' }} />
+              <div className="text-xl font-bold" style={{ color: '#ffcc00', textShadow: '0 0 10px rgba(255,204,0,0.5)' }}>
+                {remainingDays > 0 ? remainingDays : 0}
+              </div>
+              <div className="text-[10px] font-medium mt-0.5" style={{ color: 'rgba(255, 204, 0, 0.7)' }}>
+                Ngày còn lại
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Calendar Header - Neon styled */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <motion.button
           onClick={prevMonth}
           className={`${headerBtnSize} rounded-lg flex items-center justify-center smooth-transition`}
           style={{
-            background: `${neonColor}12`,
-            border: `1px solid ${neonColor}25`,
+            background: desktopBright ? `${neonColor}18` : `${neonColor}12`,
+            border: `1px solid ${neonColor}${desktopBright ? '35' : '25'}`,
             color: neonColor,
           }}
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
@@ -169,9 +312,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           className={`${headerMonthSize} font-semibold px-3 py-1.5 rounded-lg smooth-transition flex items-center gap-1.5`}
           style={{
             color: neonColor,
-            background: `${neonColor}10`,
-            border: `1px solid ${neonColor}20`,
-            textShadow: `0 0 8px ${neonColor}40`,
+            background: desktopBright ? `${neonColor}18` : `${neonColor}10`,
+            border: `1px solid ${neonColor}${desktopBright ? '35' : '20'}`,
+            textShadow: `0 0 ${desktopBright ? '12' : '8'}px ${neonColor}${desktopBright ? '60' : '40'}`,
           }}
           whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}20` }}
           whileTap={{ scale: 0.95 }}
@@ -184,8 +327,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           onClick={nextMonth}
           className={`${headerBtnSize} rounded-lg flex items-center justify-center smooth-transition`}
           style={{
-            background: `${neonColor}12`,
-            border: `1px solid ${neonColor}25`,
+            background: desktopBright ? `${neonColor}18` : `${neonColor}12`,
+            border: `1px solid ${neonColor}${desktopBright ? '35' : '25'}`,
             color: neonColor,
           }}
           whileHover={{ scale: 1.1, boxShadow: `0 0 12px ${neonColor}25` }}
@@ -199,8 +342,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
       <div
         className="w-full h-[1px] mb-3"
         style={{
-          background: `linear-gradient(90deg, transparent, ${neonColor}50, ${neonColor}, ${neonColor}50, transparent)`,
-          boxShadow: `0 0 8px ${neonColor}35`,
+          background: `linear-gradient(90deg, transparent, ${neonColor}${desktopBright ? '70' : '50'}, ${neonColor}, ${neonColor}${desktopBright ? '70' : '50'}, transparent)`,
+          boxShadow: `0 0 ${desktopBright ? '12' : '8'}px ${neonColor}${desktopBright ? '50' : '35'}`,
         }}
       />
 
@@ -212,7 +355,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
             className={`text-center ${weekdayFontSize} font-bold py-1 uppercase tracking-wider`}
             style={{
               color: i === 0 ? (desktopBright ? '#ff9999' : '#ff6b6b') : (desktopBright ? neonColor : `${neonColor}80`),
-              textShadow: i === 0 ? '0 0 8px rgba(255,107,107,0.5)' : `0 0 8px ${neonColor}30`,
+              textShadow: i === 0 ? '0 0 8px rgba(255,107,107,0.5)' : `0 0 ${desktopBright ? '10' : '8'}px ${neonColor}${desktopBright ? '50' : '30'}`,
             }}
           >
             {day}
@@ -224,7 +367,16 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
       <div className={`grid grid-cols-7 ${gapSize}`}>
         {calendarCells.map((day, i) => {
           if (day === null) {
-            return <div key={`empty-${i}`} className={desktopBright ? 'aspect-[1.1]' : 'aspect-[1.1]'} />
+            return (
+              <div
+                key={`empty-${i}`}
+                className="aspect-[1.1] rounded-xl"
+                style={desktopBright ? {
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                } : undefined}
+              />
+            )
           }
 
           const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -240,24 +392,26 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               className="aspect-[1.1] rounded-xl flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
                 background: isToday
-                  ? `${neonColor}35`
+                  ? `${neonColor}40`
                   : desktopBright
-                  ? 'rgba(255, 255, 255, 0.12)'
+                  ? 'rgba(255, 255, 255, 0.10)'
                   : 'rgba(255, 255, 255, 0.04)',
                 border: isToday
-                  ? `2px solid ${neonColor}80`
+                  ? `2px solid ${neonColor}90`
                   : desktopBright
-                  ? `1px solid ${neonColor}20`
+                  ? `1px solid ${neonColor}25`
                   : `1px solid rgba(255, 255, 255, 0.06)`,
                 boxShadow: isToday
-                  ? `0 0 20px ${neonColor}35, inset 0 0 14px ${neonColor}18`
+                  ? `0 0 24px ${neonColor}40, inset 0 0 16px ${neonColor}20`
+                  : desktopBright
+                  ? `0 0 8px ${neonColor}08`
                   : 'none',
               }}
               whileHover={{
-                background: `${neonColor}22`,
-                borderColor: `${neonColor}40`,
+                background: `${neonColor}28`,
+                borderColor: `${neonColor}50`,
                 scale: 1.05,
-                boxShadow: `0 0 14px ${neonColor}25`,
+                boxShadow: `0 0 16px ${neonColor}30`,
               }}
               whileTap={{ scale: 0.94 }}
             >
@@ -266,15 +420,15 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                 <motion.div
                   className="absolute inset-0 rounded-lg pointer-events-none"
                   style={{
-                    border: `1px solid ${neonColor}`,
-                    boxShadow: `0 0 10px ${neonColor}40, inset 0 0 8px ${neonColor}15`,
+                    border: `1.5px solid ${neonColor}`,
+                    boxShadow: `0 0 12px ${neonColor}50, inset 0 0 10px ${neonColor}20`,
                   }}
                   animate={{
                     opacity: [0.5, 1, 0.5],
                     boxShadow: [
-                      `0 0 10px ${neonColor}30, inset 0 0 8px ${neonColor}10`,
-                      `0 0 18px ${neonColor}50, inset 0 0 12px ${neonColor}20`,
-                      `0 0 10px ${neonColor}30, inset 0 0 8px ${neonColor}10`,
+                      `0 0 12px ${neonColor}35, inset 0 0 10px ${neonColor}12`,
+                      `0 0 22px ${neonColor}60, inset 0 0 16px ${neonColor}25`,
+                      `0 0 12px ${neonColor}35, inset 0 0 10px ${neonColor}12`,
                     ],
                   }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -290,11 +444,11 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                     ? (desktopBright ? '#ff9999' : '#ff6b6b')
                     : (desktopBright ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.75)'),
                   textShadow: isToday
-                    ? `0 0 12px ${neonColor}90`
+                    ? `0 0 14px ${neonColor}90`
                     : isSunday
                     ? '0 0 8px rgba(255,107,107,0.5)'
                     : desktopBright
-                    ? `0 0 6px ${neonColor}25`
+                    ? `0 0 8px ${neonColor}30`
                     : 'none',
                 }}
               >
@@ -309,10 +463,10 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                       key={event.id}
                       className={`w-full ${eventFontSize} leading-tight text-center truncate rounded px-0.5 font-medium`}
                       style={{
-                        background: `${event.color}25`,
+                        background: `${event.color}30`,
                         color: event.color,
                         textShadow: `0 0 4px ${event.color}50`,
-                        border: `0.5px solid ${event.color}30`,
+                        border: `0.5px solid ${event.color}40`,
                       }}
                     >
                       {event.title}
@@ -329,6 +483,104 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           )
         })}
       </div>
+
+      {/* === DESKTOP BRIGHT: Bottom section - Upcoming events + decorative === */}
+      {desktopBright && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+        >
+          {/* Neon divider */}
+          <div
+            className="w-full h-[1px] my-4"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${neonColor}50, ${neonColor}, ${neonColor}50, transparent)`,
+              boxShadow: `0 0 10px ${neonColor}40`,
+            }}
+          />
+
+          {/* Upcoming events section */}
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Zap className="w-3.5 h-3.5" style={{ color: neonColor, filter: `drop-shadow(0 0 4px ${neonColor}60)` }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: neonColor, textShadow: `0 0 8px ${neonColor}40` }}>
+                Sắp tới
+              </span>
+            </div>
+
+            {upcomingEvents.length > 0 ? (
+              <div className="space-y-1.5">
+                {upcomingEvents.map((event, i) => {
+                  const eventDate = new Date(event.date)
+                  const dayLabel = eventDate.getDate()
+                  const monthLabel = `T${eventDate.getMonth() + 1}`
+                  return (
+                    <motion.div
+                      key={event.id}
+                      className="flex items-center gap-2.5 p-2 rounded-lg"
+                      style={{
+                        background: `${event.color}10`,
+                        border: `1px solid ${event.color}20`,
+                      }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + i * 0.08 }}
+                      whileHover={{ background: `${event.color}18`, scale: 1.02 }}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex flex-col items-center justify-center flex-shrink-0"
+                        style={{
+                          background: `${event.color}20`,
+                          border: `1px solid ${event.color}30`,
+                        }}
+                      >
+                        <span className="text-[10px] font-bold leading-none" style={{ color: event.color }}>{dayLabel}</span>
+                        <span className="text-[7px] font-medium leading-none mt-0.5" style={{ color: `${event.color}90` }}>{monthLabel}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium truncate block" style={{ color: event.color, textShadow: `0 0 4px ${event.color}30` }}>
+                          {event.title}
+                        </span>
+                      </div>
+                      <div
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ background: event.color, boxShadow: `0 0 6px ${event.color}60` }}
+                      />
+                    </motion.div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-3">
+                <p className="text-[11px] font-medium" style={{ color: `${neonColor}50` }}>
+                  Không có công việc sắp tới
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Decorative bottom glow bar */}
+          <div className="relative h-1 rounded-full overflow-hidden mt-2">
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${neonColor}40, #00d4ff40, ${neonColor}40, transparent)`,
+              }}
+            />
+            <motion.div
+              className="absolute h-full rounded-full"
+              style={{
+                width: '40%',
+                background: `linear-gradient(90deg, transparent, ${neonColor}, #00d4ff, transparent)`,
+                filter: `drop-shadow(0 0 6px ${neonColor}60)`,
+              }}
+              animate={{ x: ['-100%', '300%'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* Event Popup - Neon themed */}
       <AnimatePresence>
