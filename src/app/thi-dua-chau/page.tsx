@@ -2024,8 +2024,8 @@ export default function ThiDuaPage() {
 
           <div ref={resultContentRef} className="px-3 pb-3">
             <div ref={printRef}>
-              {/* Poster image - full width, no gaps */}
-              {posterUrl && <div className="mb-3"><img src={posterUrl} alt="Poster" className="w-full rounded-lg shadow-md" /></div>}
+              {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
+              {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-cover rounded-lg shadow-md" /></div>}
               {!posterUrl && (
                 <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}
