@@ -78,3 +78,20 @@ Stage Summary:
 - IMPORTANT: Never modify the calculation logic unless user explicitly asks
 - Database: 564 contracts, 88 staff, 26 recruiters, 0 links
 - App URL: https://nc-link.vercel.app
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: UI tweaks - calendar redesign, neon date picker for thi đua, poster fix
+
+Work Log:
+- Redesigned monthly-calendar.tsx: brighter backgrounds (0.04→0.08), less border-radius (rounded-xl→rounded-md), wider gaps (gap-1.5→gap-2), brighter text (0.75→0.90), subtle glow on non-today cells
+- Created new component neon-date-picker.tsx: popup calendar matching MonthlyCalendar neon style with month nav, weekday headers, day grid, today/selected highlighting, quick "Hôm nay" and "Xóa" buttons
+- Replaced 5 native <Input type="date"> in thi-dua-chau/page.tsx with NeonDatePicker (3 main dates + 2 phase-2 dates)
+- Fixed poster image in result dialog: changed object-cover→object-fill so image stretches to fill 21:9 container instead of being cropped
+- Deployed to Vercel production: https://nc-link.vercel.app
+
+Stage Summary:
+- Calendar: brighter, less rounded corners, wider spacing between cells
+- Thi đua date pickers: now use neon popup calendar consistent with main page calendar design
+- Poster image: fills the container (stretched) instead of being cropped
