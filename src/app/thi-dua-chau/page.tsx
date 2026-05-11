@@ -21,6 +21,7 @@ import {
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
 } from 'lucide-react';
+import { NeonDatePicker } from '@/components/neon-date-picker';
 
 interface Contract {
   id: string; contractNumber: string; agentCode: string; agentName: string;
@@ -1681,9 +1682,9 @@ export default function ThiDuaPage() {
               <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500/20 bg-white/5 text-white h-9 text-sm w-full" />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực từ</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-              <div className="space-y-1"><Label className="text-xs text-white/50">Hiệu lực đến</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
-              <div className="space-y-1"><Label className="text-xs text-white/50">Ngày phát hành</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-8 text-xs border-emerald-500/20 bg-white/5 text-white" /></div>
+              <NeonDatePicker label="Hiệu lực từ" value={startDate} onChange={setStartDate} />
+              <NeonDatePicker label="Hiệu lực đến" value={endDate} onChange={setEndDate} />
+              <NeonDatePicker label="Ngày phát hành" value={issueDate} onChange={setIssueDate} />
             </div>
           </CardContent>
         </Card>
@@ -1871,8 +1872,8 @@ export default function ThiDuaPage() {
                 {usePhase2 && (
                   <div className="space-y-2 pl-4 border-l-2 border-sky-500/20">
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực từ</Label><Input type="date" value={phase2StartDate} onChange={(e) => setPhase2StartDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
-                      <div className="space-y-1"><Label className="text-[10px] text-sky-400/70">GĐ2 Hiệu lực đến</Label><Input type="date" value={phase2EndDate} onChange={(e) => setPhase2EndDate(e.target.value)} className="h-7 text-xs border-sky-500/20 bg-white/5 text-white" /></div>
+                      <NeonDatePicker label="GĐ2 Hiệu lực từ" value={phase2StartDate} onChange={setPhase2StartDate} accentColor="sky" />
+                      <NeonDatePicker label="GĐ2 Hiệu lực đến" value={phase2EndDate} onChange={setPhase2EndDate} accentColor="sky" />
                     </div>
                     <BonusTierEditor
                       tiers={bonusTiers2}
@@ -2067,7 +2068,7 @@ export default function ThiDuaPage() {
           <div ref={resultContentRef} className="px-3 pb-3">
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
-              {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-cover rounded-lg shadow-md" /></div>}
+              {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill rounded-lg shadow-md" /></div>}
               {!posterUrl && (
                 <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}

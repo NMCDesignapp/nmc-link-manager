@@ -197,14 +197,14 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     return result.slice(0, 5)
   }, [events, today])
 
-  const dayFontSize = desktopBright ? 'text-lg' : compact ? 'text-[11px]' : 'text-[12px]'
+  const dayFontSize = desktopBright ? 'text-lg' : compact ? 'text-[11px]' : 'text-[13px]'
   const eventFontSize = desktopBright ? 'text-[10px]' : compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = desktopBright ? 'gap-2.5' : compact ? 'gap-1' : 'gap-1.5'
-  const weekdayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[9px]' : 'text-[10px]'
-  const headerBtnSize = desktopBright ? 'w-11 h-11' : 'w-7 h-7'
-  const headerMonthSize = desktopBright ? 'text-lg' : 'text-xs'
-  const chevronIconSize = desktopBright ? 'w-5 h-5' : 'w-3.5 h-3.5'
-  const calendarIconSize = desktopBright ? 'w-5 h-5' : 'w-3 h-3'
+  const gapSize = desktopBright ? 'gap-3' : compact ? 'gap-1.5' : 'gap-2'
+  const weekdayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[9px]' : 'text-[11px]'
+  const headerBtnSize = desktopBright ? 'w-11 h-11' : 'w-8 h-8'
+  const headerMonthSize = desktopBright ? 'text-lg' : 'text-sm'
+  const chevronIconSize = desktopBright ? 'w-5 h-5' : 'w-4 h-4'
+  const calendarIconSize = desktopBright ? 'w-5 h-5' : 'w-3.5 h-3.5'
 
   return (
     <div className="w-full relative">
@@ -374,10 +374,10 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
             return (
               <div
                 key={`empty-${i}`}
-                className="aspect-[1.1] rounded-xl"
+                className="aspect-[1.1] rounded-md"
                 style={desktopBright ? {
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
                 } : undefined}
               />
             )
@@ -393,23 +393,23 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               key={dateStr}
               ref={(el) => { dayRefs.current[dateStr] = el }}
               onClick={() => handleDayClick(day)}
-              className="aspect-[1.1] rounded-xl flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
+              className="aspect-[1.1] rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
                 background: isToday
                   ? `${neonColor}40`
                   : desktopBright
-                  ? 'rgba(255, 255, 255, 0.10)'
-                  : 'rgba(255, 255, 255, 0.04)',
+                  ? 'rgba(255, 255, 255, 0.13)'
+                  : 'rgba(255, 255, 255, 0.08)',
                 border: isToday
                   ? `2px solid ${neonColor}90`
                   : desktopBright
-                  ? `1px solid ${neonColor}25`
-                  : `1px solid rgba(255, 255, 255, 0.06)`,
+                  ? `1px solid ${neonColor}30`
+                  : `1px solid rgba(255, 255, 255, 0.10)`,
                 boxShadow: isToday
                   ? `0 0 24px ${neonColor}40, inset 0 0 16px ${neonColor}20`
                   : desktopBright
-                  ? `0 0 8px ${neonColor}08`
-                  : 'none',
+                  ? `0 0 8px ${neonColor}10`
+                  : `0 0 4px ${neonColor}06`,
               }}
               whileHover={{
                 background: `${neonColor}28`,
@@ -445,15 +445,15 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                   color: isToday
                     ? neonColor
                     : isSunday
-                    ? (desktopBright ? '#ff9999' : '#ff6b6b')
-                    : (desktopBright ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.75)'),
+                    ? (desktopBright ? '#ff9999' : '#ff8888')
+                    : (desktopBright ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.90)'),
                   textShadow: isToday
                     ? `0 0 14px ${neonColor}90`
                     : isSunday
                     ? '0 0 8px rgba(255,107,107,0.5)'
                     : desktopBright
                     ? `0 0 8px ${neonColor}30`
-                    : 'none',
+                    : `0 0 4px ${neonColor}15`,
                 }}
               >
                 {day}
