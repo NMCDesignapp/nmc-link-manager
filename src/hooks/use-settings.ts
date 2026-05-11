@@ -90,11 +90,13 @@ export function useSettings() {
 
   const settings = useMemo(() => {
     // Priority: local storage > server data > defaults
+    // Local MUST win over server to prevent race conditions where
+    // stale server data overwrites recent local changes
     const local = localSettingsRef.current || getLocalSettings()
     const merged = {
       ...defaultSettings,
-      ...(local || {}),
       ...(data && !error ? data : {}),
+      ...(local || {}),  // Local LAST = highest priority
     }
 
     // Cache locally for next access
@@ -143,12 +145,13 @@ export function useSettings() {
   }, [updateSettings])
 
   // Sync server data to localStorage on first successful load
+  // Only sync if there's NO local data at all
   useEffect(() => {
     if (data && !error && !isLoading && !serverSyncedRef.current) {
       const local = getLocalSettings()
-      // Only update localStorage from server if local is empty
-      // (to avoid overwriting user's latest changes)
-      if (!local || Object.keys(local).length === 0) {
+      // Only update localStorage from server if local doesn't exist at all
+      // This prevents server data from overwriting recent local changes
+      if (!local) {
         const serverSettings = { ...defaultSettings, ...data }
         localSettingsRef.current = serverSettings
         saveLocalSettings(serverSettings)
@@ -156,6 +159,7 @@ export function useSettings() {
           document.documentElement.style.setProperty('--primary', serverSettings.neon_color)
         }
       }
+      serverSyncedRef.current = true
     }
   }, [data, error, isLoading])
 

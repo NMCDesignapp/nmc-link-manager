@@ -242,12 +242,14 @@ export default function Home() {
     revalidateOnReconnect: false,
     dedupingInterval: 30000,
     keepPreviousData: true,
+    fallbackData: [],
   })
   const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     dedupingInterval: 30000,
     keepPreviousData: true,
+    fallbackData: [],
   })
   const { data: stats, error: statsError } = useSWR('/api/stats', fetcher, {
     revalidateOnFocus: false,
@@ -255,8 +257,8 @@ export default function Home() {
     dedupingInterval: 30000,
   })
 
-  const links = Array.isArray(linksData) ? linksData : []
-  const categories = Array.isArray(categoriesData) ? categoriesData : []
+  const links = useMemo(() => Array.isArray(linksData) ? linksData : [], [linksData])
+  const categories = useMemo(() => Array.isArray(categoriesData) ? categoriesData : [], [categoriesData])
   const { settings } = useSettings()
 
   // Load neon color from localStorage immediately on mount
@@ -321,7 +323,12 @@ export default function Home() {
 
       setSaveStatus('success')
       setTimeout(() => setSaveStatus('idle'), 2000)
-      mutate('/api/links')
+      // Optimistic update: mutate with revalidation to prevent flash
+      mutate('/api/links', async (current) => {
+        const res = await fetch('/api/links')
+        if (!res.ok) throw new Error()
+        return res.json()
+      }, { revalidate: true })
       mutate('/api/stats')
       setEditingLink(null)
     } catch (error) {
@@ -432,7 +439,7 @@ export default function Home() {
 
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
-            {linksLoading && !linksData ? (
+            {linksLoading && links.length === 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {[1, 2, 3, 4].map(i => (
                   <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
@@ -440,14 +447,14 @@ export default function Home() {
                   </motion.div>
                 ))}
               </div>
-            ) : linksError && !linksData ? (
+            ) : linksError && links.length === 0 ? (
               <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                 <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                   <Link2 className="w-10 h-10 text-primary" />
                 </motion.div>
                 <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
               </motion.div>
-            ) : links.length === 0 ? (
+            ) : links.length === 0 && !linksLoading ? (
               <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                 <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                   <Link2 className="w-10 h-10 text-primary" />
@@ -481,7 +488,7 @@ export default function Home() {
       {/* ===== DESKTOP LAYOUT: horizontal - left: functions, right: calendar ===== */}
       <div className="hidden md:flex md:flex-row md:h-full md:w-full">
         {/* LEFT SIDE: Logo + Thi Đua + Links - vertically centered */}
-        <div className="flex flex-col h-full md:w-[40%] lg:w-[38%] xl:w-[36%] flex-shrink-0 justify-center">
+        <div className="flex flex-col h-full md:w-[40%] lg:w-[38%] xl:w-[36%] flex-shrink-0 pt-6 pb-4">
           {/* Header */}
           <motion.header
             className="w-full px-8 pb-3 text-center relative flex-shrink-0"
@@ -525,9 +532,9 @@ export default function Home() {
             </motion.button>
           </motion.div>
 
-          <div className="flex-shrink-0 max-h-[55vh] overflow-y-auto min-h-0">
-            <div className="w-full px-8 pt-1 pb-6">
-              {linksLoading && !linksData ? (
+          <div className="flex-shrink-0 flex-1 overflow-y-auto min-h-0 px-8">
+            <div className="w-full pt-1 pb-6">
+              {linksLoading && links.length === 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map(i => (
                     <motion.div key={i} className="h-24 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
@@ -535,14 +542,14 @@ export default function Home() {
                     </motion.div>
                   ))}
                 </div>
-              ) : linksError && !linksData ? (
+              ) : linksError && links.length === 0 ? (
                 <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                   <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                     <Link2 className="w-10 h-10 text-primary" />
                   </motion.div>
                   <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
                 </motion.div>
-              ) : links.length === 0 ? (
+              ) : links.length === 0 && !linksLoading ? (
                 <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
                   <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
                     <Link2 className="w-10 h-10 text-primary" />

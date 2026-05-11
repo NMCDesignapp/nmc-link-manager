@@ -13,18 +13,57 @@ function parseDate(dateStr: string): Date | null {
   return new Date(year, month - 1, day);
 }
 
-function parseCSVLine(line: string): string[] {
-  const columns: string[] = [];
+function parseCSV(csv: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
   let current = '';
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') { inQuotes = !inQuotes; }
-    else if (char === ',' && !inQuotes) { columns.push(current.trim()); current = ''; }
-    else { current += char; }
+  
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    const nextChar = csv[i + 1];
+    
+    if (inQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          // Escaped quote ""
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // End of quoted field
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(current.trim());
+        current = '';
+      } else if (char === '\r') {
+        // Skip carriage return
+        continue;
+      } else if (char === '\n') {
+        currentRow.push(current.trim());
+        if (currentRow.some(c => c !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        current = '';
+      } else {
+        current += char;
+      }
+    }
   }
-  columns.push(current.trim());
-  return columns;
+  // Don't forget the last field/row
+  currentRow.push(current.trim());
+  if (currentRow.some(c => c !== '')) {
+    rows.push(currentRow);
+  }
+  
+  return rows;
 }
 
 function parseNumber(numStr: string): number {
@@ -50,13 +89,12 @@ export async function POST(request: NextRequest) {
     if (contractCsv) {
       try {
         await db.contract.deleteMany();
-        const lines = contractCsv.split('\n').filter(l => l.trim() !== '');
-        const dataLines = lines.slice(1);
+        const rows = parseCSV(contractCsv);
+        const dataRows = rows.slice(1); // Skip header
         const contracts = [];
         const seenContractNumbers = new Set<string>();
 
-        for (const line of dataLines) {
-          const columns = parseCSVLine(line);
+        for (const columns of dataRows) {
           const contractNumber = columns[10] || '';
           const agentCode = columns[6] || '';
           const agentName = columns[7] || '';
@@ -90,7 +128,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (contracts.length > 0) {
-          const result = await db.contract.createMany({ data: contracts, skipDuplicates: true });
+          const result = await db.contract.createMany({ data: contracts });
           results.contracts = result.count;
         }
         // KHÔNG upsert Staff từ contracts — Staff chỉ từ Staff CSV
@@ -104,12 +142,11 @@ export async function POST(request: NextRequest) {
     if (staffCsv) {
       try {
         await db.staff.deleteMany();
-        const lines = staffCsv.split('\n').filter(l => l.trim() !== '');
-        const dataLines = lines.slice(1);
+        const rows = parseCSV(staffCsv);
+        const dataRows = rows.slice(1); // Skip header
         const staffRecords = [];
 
-        for (const line of dataLines) {
-          const columns = parseCSVLine(line);
+        for (const columns of dataRows) {
           // Column mapping (7 columns):
           // 0: STT, 1: Nhóm, 2: Mã nhóm, 3: Mã TN, 4: Họ tên TN, 5: Chức vụ, 6: Ngày bắt đầu
           const nhom = columns[1] || '';
@@ -128,7 +165,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (staffRecords.length > 0) {
-          const result = await db.staff.createMany({ data: staffRecords, skipDuplicates: true });
+          const result = await db.staff.createMany({ data: staffRecords });
           results.staff = result.count;
         }
       } catch (err) {
@@ -140,12 +177,11 @@ export async function POST(request: NextRequest) {
     if (recruiterCsv) {
       try {
         await db.recruiter.deleteMany();
-        const lines = recruiterCsv.split('\n').filter(l => l.trim() !== '');
-        const dataLines = lines.slice(1);
+        const rows = parseCSV(recruiterCsv);
+        const dataRows = rows.slice(1); // Skip header
         const recruiters = [];
 
-        for (const line of dataLines) {
-          const columns = parseCSVLine(line);
+        for (const columns of dataRows) {
           // Column mapping (6 columns):
           // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu
           const nhom = columns[1] || '';
@@ -166,7 +202,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (recruiters.length > 0) {
-          const result = await db.recruiter.createMany({ data: recruiters, skipDuplicates: true });
+          const result = await db.recruiter.createMany({ data: recruiters });
           results.recruiters = result.count;
         }
       } catch (err) {
