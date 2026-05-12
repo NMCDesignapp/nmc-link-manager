@@ -95,3 +95,21 @@ Stage Summary:
 - Calendar: brighter, less rounded corners, wider spacing between cells
 - Thi đua date pickers: now use neon popup calendar consistent with main page calendar design
 - Poster image: fills the container (stretched) instead of being cropped
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Move clock to left panel desktop, fix calendar popup alignment
+
+Work Log:
+- Created DesktopBigClock component (desktop-big-clock.tsx): big clock with 4.5rem font, neon glow, seconds, day/date info, decorative glow line
+- Moved clock from right panel (MonthlyCalendar desktopBright) to left panel below link buttons in page.tsx
+- Removed LiveClock from MonthlyCalendar desktopBright top section
+- Fixed calendar event popup positioning: changed from bottom-based to top-based positioning with dynamic above/below calculation
+- Arrow indicator now dynamically positioned to point at the correct cell even when popup is clamped to edge
+- Popup uses fixed positioning with accurate cellCenterX/cellTop/cellBottom coordinates
+- Deployed to Vercel: https://nc-link.vercel.app
+
+Stage Summary:
+- Desktop left panel: Big neon clock in empty space below links (bigger than NMC text)
+- Calendar popup: now properly aligned with cell, arrow points correctly
