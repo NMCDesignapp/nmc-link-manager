@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Download, X, Smartphone } from 'lucide-react'
 import { motion, AnimatePresence } from '@/lib/animations'
 import { useSettings } from '@/hooks/use-settings'
@@ -14,6 +14,8 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
 }
 
+const INSTALL_STORAGE_KEY = 'nmc-pwa-installed'
+
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
@@ -23,11 +25,35 @@ export function PwaInstallPrompt() {
   const neonColor = settings.neon_color || '#00ff88'
 
   useEffect(() => {
-    // Check if already installed
+    // Check localStorage first for persistent install state
+    const storedInstalled = localStorage.getItem(INSTALL_STORAGE_KEY)
+    if (storedInstalled === 'true') {
+      setIsInstalled(true)
+    }
+
+    // Check if already running in standalone mode (installed PWA)
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true)
+      localStorage.setItem(INSTALL_STORAGE_KEY, 'true')
       return
     }
+
+    // Also check navigator.standalone for iOS Safari
+    if ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone) {
+      setIsInstalled(true)
+      localStorage.setItem(INSTALL_STORAGE_KEY, 'true')
+      return
+    }
+
+    // Listen for display-mode changes (when user launches from home screen)
+    const mediaQuery = window.matchMedia('(display-mode: standalone)')
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true)
+        localStorage.setItem(INSTALL_STORAGE_KEY, 'true')
+      }
+    }
+    mediaQuery.addEventListener('change', handleMediaChange)
 
     // Listen for beforeinstallprompt event
     const handler = (e: Event) => {
@@ -40,14 +66,19 @@ export function PwaInstallPrompt() {
     window.addEventListener('beforeinstallprompt', handler)
 
     // Listen for successful install
-    window.addEventListener('appinstalled', () => {
+    const installHandler = () => {
       setIsInstalled(true)
+      localStorage.setItem(INSTALL_STORAGE_KEY, 'true')
       setShowPrompt(false)
       setDeferredPrompt(null)
-    })
+    }
+
+    window.addEventListener('appinstalled', installHandler)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', installHandler)
+      mediaQuery.removeEventListener('change', handleMediaChange)
     }
   }, [])
 
@@ -59,6 +90,7 @@ export function PwaInstallPrompt() {
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
         setIsInstalled(true)
+        localStorage.setItem(INSTALL_STORAGE_KEY, 'true')
       }
     } catch (error) {
       console.error('Install prompt error:', error)
@@ -70,6 +102,10 @@ export function PwaInstallPrompt() {
 
   const handleDismiss = useCallback(() => {
     setShowPrompt(false)
+  }, [])
+
+  const handleManualGuideDismiss = useCallback(() => {
+    setShowManualGuide(false)
   }, [])
 
   // Don't render if already installed
@@ -105,7 +141,7 @@ export function PwaInstallPrompt() {
                 }}
               >
                 <img
-                  src="/icons/icon-192x192.png"
+                  src="/icon/icon-192x192.png"
                   alt="NMC"
                   className="w-9 h-9 rounded-lg"
                 />
@@ -114,10 +150,10 @@ export function PwaInstallPrompt() {
               {/* Text */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">
-                  Cai dat N.M.C
+                  Cài đặt N.M.C
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Them vao man hinh chinh de truy cap nhanh
+                  Thêm vào màn hình chính để truy cập nhanh
                 </p>
               </div>
 
@@ -136,7 +172,7 @@ export function PwaInstallPrompt() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Cai dat
+                  Cài đặt
                 </motion.button>
                 <motion.button
                   onClick={handleDismiss}
@@ -169,7 +205,7 @@ export function PwaInstallPrompt() {
             <motion.div
               className="absolute inset-0"
               style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-              onClick={() => setShowManualGuide(false)}
+              onClick={handleManualGuideDismiss}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -191,7 +227,7 @@ export function PwaInstallPrompt() {
             >
               {/* Close button */}
               <motion.button
-                onClick={() => setShowManualGuide(false)}
+                onClick={handleManualGuideDismiss}
                 className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
                 whileHover={{ scale: 1.1 }}
@@ -209,14 +245,14 @@ export function PwaInstallPrompt() {
                   }}
                 >
                   <img
-                    src="/icons/icon-192x192.png"
+                    src="/icon/icon-192x192.png"
                     alt="NMC"
                     className="w-11 h-11 rounded-xl"
                   />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Cai dat N.M.C</h3>
-                  <p className="text-xs text-muted-foreground">Them ung dung vao man hinh chinh</p>
+                  <h3 className="text-lg font-bold text-foreground">Cài đặt N.M.C</h3>
+                  <p className="text-xs text-muted-foreground">Thêm ứng dụng vào màn hình chính</p>
                 </div>
               </div>
 
@@ -231,10 +267,10 @@ export function PwaInstallPrompt() {
                   </div>
                   <div>
                     <p className="text-sm text-foreground font-medium">
-                      Nhan vao nut Chia se
+                      Nhấn vào nút Chia sẻ
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Tim nut chia se (hinh hop mui ten chi len) o thanh dia chi cua Safari
+                      Tìm nút chia sẻ (hình hộp mũi tên chỉ lên) ở thanh địa chỉ của Safari
                     </p>
                   </div>
                 </div>
@@ -248,10 +284,10 @@ export function PwaInstallPrompt() {
                   </div>
                   <div>
                     <p className="text-sm text-foreground font-medium">
-                      Chon &quot;Them vao Man hinh Chinh&quot;
+                      Chọn &quot;Thêm vào Màn hình Chính&quot;
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Cuon xuong va nhan vao tuy chon &quot;Them vao Man hinh Chinh&quot;
+                      Cuộn xuống và nhấn vào tùy chọn &quot;Thêm vào Màn hình Chính&quot;
                     </p>
                   </div>
                 </div>
@@ -265,17 +301,19 @@ export function PwaInstallPrompt() {
                   </div>
                   <div>
                     <p className="text-sm text-foreground font-medium">
-                      Nhan &quot;Them&quot;
+                      Nhấn &quot;Thêm&quot;
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Xac nhan de them N.M.C vao man hinh chinh cua ban
+                      Xác nhận để thêm N.M.C vào màn hình chính của bạn
                     </p>
                   </div>
                 </div>
               </div>
 
               <motion.button
-                onClick={() => setShowManualGuide(false)}
+                onClick={() => {
+                  handleManualGuideDismiss()
+                }}
                 className="w-full mt-5 py-3 rounded-xl text-sm font-bold"
                 style={{
                   background: `linear-gradient(135deg, ${neonColor}20, ${neonColor}35)`,
@@ -286,7 +324,7 @@ export function PwaInstallPrompt() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Da hieu!
+                Đã hiểu!
               </motion.button>
             </motion.div>
           </motion.div>
@@ -345,7 +383,7 @@ export function PwaInstallPrompt() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 3 }}
             >
-              Cai dat app
+              Cài đặt app
             </motion.div>
           </motion.div>
         )}

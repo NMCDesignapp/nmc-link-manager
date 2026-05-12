@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from '@/lib/animations'
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react'
 
 const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
 const MONTH_NAMES = [
@@ -17,7 +18,7 @@ interface NeonDatePickerProps {
   label?: string
   neonColor?: string
   className?: string
-  accentColor?: 'emerald' | 'sky' // to match the thi đua sections
+  accentColor?: 'emerald' | 'sky'
 }
 
 export function NeonDatePicker({
@@ -29,6 +30,7 @@ export function NeonDatePicker({
   accentColor = 'emerald',
 }: NeonDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const [currentYear, setCurrentYear] = useState(() => {
     if (value) return new Date(value).getFullYear()
     return new Date().getFullYear()
@@ -39,41 +41,35 @@ export function NeonDatePicker({
   })
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLButtonElement>(null)
-
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const isSky = accentColor === 'sky'
-  const borderColor = isSky ? 'border-sky-500/20' : 'border-emerald-500/20'
 
-  // Close popup when clicking outside
+  // Close on click outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        // Also check the portal popup
+        !(e.target as Element).closest('[data-calendar-popup]')
+      ) {
         setIsOpen(false)
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    if (isOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [isOpen])
 
-  // Sync month/year when value changes externally
+  // Sync month/year when value changes
   useEffect(() => {
-    if (value) {
+    if (value && !isOpen) {
       const d = new Date(value)
-      if (d.getFullYear() !== currentYear || d.getMonth() !== currentMonth) {
-        // Only update if user hasn't opened the picker
-        if (!isOpen) {
-          setCurrentYear(d.getFullYear())
-          setCurrentMonth(d.getMonth())
-        }
-      }
+      setCurrentYear(d.getFullYear())
+      setCurrentMonth(d.getMonth())
     }
   }, [value, isOpen])
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate()
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay()
-
   const daysInMonth = getDaysInMonth(currentYear, currentMonth)
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth)
 
@@ -99,6 +95,23 @@ export function NeonDatePicker({
     setIsOpen(false)
   }
 
+  const handleOpen = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      // Position popup below the trigger, same width
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      // If not enough space below, show above
+      const showAbove = spaceBelow < 320 && spaceAbove > spaceBelow
+      setPopupPos({
+        left: rect.left,
+        width: rect.width,
+        top: showAbove ? rect.top - 310 : rect.bottom + 4,
+      })
+    }
+    setIsOpen(!isOpen)
+  }
+
   const displayValue = value ? new Date(value).toLocaleDateString('vi-VN') : ''
 
   const calendarCells = []
@@ -109,14 +122,16 @@ export function NeonDatePicker({
     <div ref={containerRef} className={`relative ${className}`}>
       {label && <label className="text-xs text-white/50 mb-1 block">{label}</label>}
 
-      {/* Trigger button styled like the date input */}
+      {/* Trigger button - same size as old Input type="date" */}
       <button
-        ref={inputRef}
+        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full h-8 text-xs ${borderColor} bg-white/5 text-white rounded-md flex items-center justify-between px-2.5 cursor-pointer hover:bg-white/8 transition-colors`}
+        onClick={handleOpen}
+        className="w-full h-8 text-xs rounded-md flex items-center justify-between px-2.5 cursor-pointer hover:bg-white/8 transition-colors"
         style={{
+          background: 'rgba(255, 255, 255, 0.05)',
           border: `1px solid ${isSky ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
+          color: 'white',
         }}
       >
         <span className={value ? 'text-white' : 'text-white/30'}>
@@ -125,32 +140,55 @@ export function NeonDatePicker({
         <Calendar className="w-3.5 h-3.5" style={{ color: isSky ? '#38bdf8' : neonColor }} />
       </button>
 
-      {/* Calendar Popup */}
-      <AnimatePresence>
-        {isOpen && (
+      {/* Calendar Popup - rendered via Portal to avoid overflow/transform issues */}
+      {isOpen && popupPos && createPortal(
+        <AnimatePresence>
           <motion.div
-            className="absolute z-[60] left-0 right-0 mt-1"
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            data-calendar-popup
+            className="fixed inset-0 z-[9999]"
+            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}
+            onClick={() => setIsOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <div
-              className="rounded-xl p-2.5 shadow-2xl"
+            <motion.div
+              className="fixed rounded-xl p-3 shadow-2xl"
               style={{
                 background: 'rgba(15, 20, 30, 0.97)',
                 border: `1px solid ${neonColor}25`,
                 boxShadow: `0 12px 40px rgba(0,0,0,0.6), 0 0 20px ${neonColor}10`,
                 backdropFilter: 'blur(16px)',
+                // Center horizontally on screen, position vertically near trigger
+                left: Math.max(8, popupPos.left - 20),
+                top: popupPos.top,
+                width: Math.max(popupPos.width + 40, 280),
+                maxWidth: 'calc(100vw - 16px)',
               }}
+              onClick={e => e.stopPropagation()}
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
-              {/* Calendar Header */}
+              {/* Close button */}
+              <motion.button
+                onClick={() => setIsOpen(false)}
+                className="absolute top-2 right-2 p-1 rounded-md"
+                style={{ color: `${neonColor}80` }}
+                whileHover={{ scale: 1.1, rotate: 90, background: `${neonColor}15` }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </motion.button>
+
+              {/* Calendar Header - same style as MonthlyCalendar */}
               <div className="flex items-center justify-between mb-2">
                 <motion.button
                   onClick={prevMonth}
                   className="w-7 h-7 rounded-md flex items-center justify-center"
                   style={{
-                    background: `${neonColor}15`,
+                    background: `${neonColor}12`,
                     border: `1px solid ${neonColor}25`,
                     color: neonColor,
                   }}
@@ -165,7 +203,7 @@ export function NeonDatePicker({
                   className="text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1"
                   style={{
                     color: neonColor,
-                    background: `${neonColor}12`,
+                    background: `${neonColor}10`,
                     border: `1px solid ${neonColor}20`,
                     textShadow: `0 0 8px ${neonColor}40`,
                   }}
@@ -180,7 +218,7 @@ export function NeonDatePicker({
                   onClick={nextMonth}
                   className="w-7 h-7 rounded-md flex items-center justify-center"
                   style={{
-                    background: `${neonColor}15`,
+                    background: `${neonColor}12`,
                     border: `1px solid ${neonColor}25`,
                     color: neonColor,
                   }}
@@ -191,7 +229,7 @@ export function NeonDatePicker({
                 </motion.button>
               </div>
 
-              {/* Neon divider */}
+              {/* Neon divider - same as MonthlyCalendar */}
               <div
                 className="w-full h-[1px] mb-2"
                 style={{
@@ -201,11 +239,11 @@ export function NeonDatePicker({
               />
 
               {/* Weekday Headers */}
-              <div className="grid grid-cols-7 gap-1 mb-1.5">
+              <div className="grid grid-cols-7 gap-1.5 mb-1.5">
                 {WEEKDAYS.map((day, i) => (
                   <div
                     key={i}
-                    className="text-center text-[9px] font-bold py-0.5 uppercase tracking-wider"
+                    className="text-center text-[10px] font-bold py-0.5 uppercase tracking-wider"
                     style={{
                       color: i === 0 ? '#ff8888' : `${neonColor}80`,
                       textShadow: i === 0 ? '0 0 6px rgba(255,136,136,0.4)' : `0 0 6px ${neonColor}30`,
@@ -216,14 +254,14 @@ export function NeonDatePicker({
                 ))}
               </div>
 
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1">
+              {/* Calendar Grid - same style as MonthlyCalendar compact mode */}
+              <div className="grid grid-cols-7 gap-1.5">
                 {calendarCells.map((day, i) => {
                   if (day === null) {
                     return (
                       <div
                         key={`empty-${i}`}
-                        className="aspect-square rounded-sm"
+                        className="aspect-[1.1] rounded-md"
                         style={{ background: 'rgba(255, 255, 255, 0.03)' }}
                       />
                     )
@@ -238,42 +276,57 @@ export function NeonDatePicker({
                     <motion.button
                       key={dateStr}
                       onClick={() => handleDaySelect(day)}
-                      className="aspect-square rounded-sm flex items-center justify-center text-[11px] font-semibold cursor-pointer relative"
+                      className="aspect-[1.1] rounded-md flex flex-col items-center justify-center text-[12px] font-semibold cursor-pointer relative overflow-hidden"
                       style={{
                         background: isSelected
-                          ? `${neonColor}35`
+                          ? `${neonColor}40`
                           : isToday
                           ? `${neonColor}20`
-                          : 'rgba(255, 255, 255, 0.06)',
+                          : 'rgba(255, 255, 255, 0.08)',
                         border: isSelected
-                          ? `1.5px solid ${neonColor}`
+                          ? `2px solid ${neonColor}90`
                           : isToday
                           ? `1px solid ${neonColor}50`
-                          : '1px solid rgba(255, 255, 255, 0.06)',
+                          : '1px solid rgba(255, 255, 255, 0.10)',
                         boxShadow: isSelected
-                          ? `0 0 12px ${neonColor}40, inset 0 0 8px ${neonColor}15`
+                          ? `0 0 12px ${neonColor}40, inset 0 0 8px ${neonColor}20`
                           : isToday
                           ? `0 0 8px ${neonColor}20`
-                          : 'none',
+                          : `0 0 4px ${neonColor}06`,
                         color: isSelected
                           ? neonColor
                           : isSunday
                           ? '#ff8888'
-                          : 'rgba(255, 255, 255, 0.85)',
+                          : 'rgba(255, 255, 255, 0.90)',
                         textShadow: isSelected
                           ? `0 0 10px ${neonColor}80`
                           : isSunday
                           ? '0 0 6px rgba(255,136,136,0.4)'
-                          : 'none',
+                          : `0 0 4px ${neonColor}15`,
                       }}
                       whileHover={{
-                        background: `${neonColor}20`,
-                        borderColor: `${neonColor}40`,
-                        scale: 1.08,
+                        background: `${neonColor}28`,
+                        borderColor: `${neonColor}50`,
+                        scale: 1.05,
+                        boxShadow: `0 0 16px ${neonColor}30`,
                       }}
-                      whileTap={{ scale: 0.92 }}
+                      whileTap={{ scale: 0.94 }}
                     >
                       {day}
+                      {/* Today glow ring - same as MonthlyCalendar */}
+                      {isToday && !isSelected && (
+                        <motion.div
+                          className="absolute inset-0 rounded-md pointer-events-none"
+                          style={{
+                            border: `1.5px solid ${neonColor}`,
+                            boxShadow: `0 0 12px ${neonColor}50, inset 0 0 10px ${neonColor}20`,
+                          }}
+                          animate={{
+                            opacity: [0.5, 1, 0.5],
+                          }}
+                          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
                       {/* Selected indicator dot */}
                       {isSelected && (
                         <motion.div
@@ -282,7 +335,6 @@ export function NeonDatePicker({
                             background: neonColor,
                             boxShadow: `0 0 6px ${neonColor}80`,
                           }}
-                          layoutId="selected-dot"
                         />
                       )}
                     </motion.button>
@@ -300,7 +352,7 @@ export function NeonDatePicker({
                     goToToday()
                     handleDaySelect(today.getDate())
                   }}
-                  className="text-[10px] font-semibold px-2 py-1 rounded-md"
+                  className="text-[10px] font-semibold px-2 py-1 rounded-md flex items-center gap-1"
                   style={{
                     color: neonColor,
                     background: `${neonColor}10`,
@@ -309,6 +361,7 @@ export function NeonDatePicker({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
+                  <Calendar className="w-3 h-3" />
                   Hôm nay
                 </motion.button>
                 {value && (
@@ -318,14 +371,15 @@ export function NeonDatePicker({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    Xóa
+                    Xóa ngày
                   </motion.button>
                 )}
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }

@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Link {
+  id          Int      @id @default(autoincrement())
+  title       String
+  url         String?
+  description String?
+  icon        String   @default("globe")
+  category    String   @default("General")
+  color       String   @default("#3b82f6")
+  link_type   String   @default("web")
+  file_url    String?
+  file_name   String?
+  file_type   String?
+  thumbnail   String?
+  is_favorite Boolean  @default(false)
+  click_count Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Category {
+  id         Int      @id @default(autoincrement())
+  name       String
+  icon       String?
+  color      String   @default("#3b82f6")
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+}
+
+model Setting {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      String?
+  updated_at DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        String   // format: YYYY-MM-DD
+  color       String   @default("#00ff88")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Contract {
+  id              String   @id @default(uuid())
+  contractNumber  String   @unique
+  agentCode       String
+  agentName       String
+  position        String   @default("")
+  ban             String   @default("")
+  nhom            String   @default("")
+  maNhom          String   @default("")
+  leaderAgentCode String   @default("")
+  recruiterCode   String   @default("")
+  startDate       DateTime?
+  effectiveDate   DateTime
+  issueDate       DateTime
+  fyp             Float    @default(0)
+  afyp            Float    @default(0)
+  tinhLuot        Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Staff {
+  id        String    @id @default(uuid())
+  nhom      String    @default("")  // Tên nhóm
+  maNhom    String    @default("")  // Mã nhóm
+  agentCode String    @unique       // Mã số
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Recruiter {
+  id        String    @id @default(uuid())
+  nhom      String    @default("")  // Nhóm
+  agentCode String    @unique       // Mã số NTD
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Contest {
+  id              String   @id @default(uuid())
+  title           String
+  startDate       DateTime
+  endDate         DateTime
+  issueDate       DateTime?
+  conditionType   String   @default("per_contract_ip")
+  targetType      String   @default("tvv")
+  bonusTiers      String
+  posterUrl       String   @default("")
+  participants    String   @default("[]")
+  usePhase2       Boolean  @default(false)
+  phase2StartDate DateTime?
+  phase2EndDate   DateTime?
+  bonusTiers2     String   @default("[]")
+  useSecondaryCondition Boolean @default(false)
+  secondaryAFYPMin Float  @default(0)
+  secondaryIPMin   Float  @default(0)
+  secondaryLuotHDMin   Float @default(0)
+  secondaryLuotHDCMin  Float @default(0)
+  secondaryLuotHDFilter String @default("all")
+  secondaryLuotHDCFilter String @default("all")
+  hideNotAchieved  Boolean @default(false)
+  includeIndividualNTD Boolean @default(false)
+  includeIndividualTN  Boolean @default(false)
+  luotHDThreshold  Float  @default(3000000)
+  luotHDCTThreshold Float @default(12000000)
+  tvv90MaxMonths   Float  @default(3)
+  tvv90MinIP       Float  @default(12000000)
+  csvContractUrl   String   @default("")
+  csvStaffUrl      String   @default("")
+  csvRecruiterUrl  String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
