@@ -78,7 +78,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
   const [newEventTitle, setNewEventTitle] = useState('')
   const [newEventColor, setNewEventColor] = useState(neonColor)
   const [showEventModal, setShowEventModal] = useState(false)
-  const [popupPosition, setPopupPosition] = useState<{ x: number; bottom: number } | null>(null)
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number; cellCenterX: number; cellTop: number; cellBottom: number } | null>(null)
   const dayRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
@@ -129,10 +129,10 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     const ref = dayRefs.current[dateStr]
     if (ref) {
       const dayRect = ref.getBoundingClientRect()
-      setPopupPosition({
-        x: dayRect.left + dayRect.width / 2,
-        bottom: window.innerHeight - dayRect.top + 8,
-      })
+      const cellCenterX = dayRect.left + dayRect.width / 2
+      const cellTop = dayRect.top
+      const cellBottom = dayRect.bottom
+      setPopupPosition({ x: cellCenterX, y: cellTop, cellCenterX, cellTop, cellBottom })
     }
     setSelectedDate(dateStr)
     setShowEventModal(true)
@@ -208,7 +208,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
 
   return (
     <div className="w-full relative">
-      {/* === DESKTOP BRIGHT: Top info bar with clock + month stats === */}
+      {/* === DESKTOP BRIGHT: Top info bar with month stats (clock moved to left panel) === */}
       {desktopBright && (
         <motion.div
           className="mb-4"
@@ -216,26 +216,6 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}
         >
-          {/* Live Clock + Day info */}
-          <div className="flex items-center justify-between mb-3">
-            <LiveClock neonColor={neonColor} />
-            <motion.button
-              onClick={goToToday}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-              style={{
-                color: neonColor,
-                background: `${neonColor}15`,
-                border: `1px solid ${neonColor}30`,
-                textShadow: `0 0 6px ${neonColor}40`,
-              }}
-              whileHover={{ scale: 1.05, boxShadow: `0 0 12px ${neonColor}25` }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              Hôm nay
-            </motion.button>
-          </div>
-
           {/* Stats cards row */}
           <div className="grid grid-cols-3 gap-2.5 mb-4">
             <motion.div
@@ -588,40 +568,58 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
 
       {/* Event Popup - Neon themed */}
       <AnimatePresence>
-        {showEventModal && selectedDate && popupPosition && (
-          <motion.div
-            className="fixed inset-0 z-[70]"
-            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setShowEventModal(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+        {showEventModal && selectedDate && popupPosition && (() => {
+          const POPUP_W = 280
+          const POPUP_EST_HEIGHT = 220
+          const GAP = 10
+          const { cellCenterX, cellTop, cellBottom } = popupPosition
+          // Decide: show above or below the cell
+          const showAbove = cellTop > POPUP_EST_HEIGHT + GAP
+          // Calculate left position (center on cell, but clamp)
+          const rawLeft = cellCenterX - POPUP_W / 2
+          const clampedLeft = Math.max(8, Math.min(rawLeft, window.innerWidth - POPUP_W - 8))
+          // Arrow X offset relative to popup: should point at cellCenterX
+          const arrowLeft = cellCenterX - clampedLeft
+          // Vertical position
+          const popupTop = showAbove
+            ? cellTop - POPUP_EST_HEIGHT - GAP
+            : cellBottom + GAP
+
+          return (
             <motion.div
-              className="absolute w-[280px] rounded-xl p-3"
-              style={{
-                background: 'rgba(20, 20, 40, 0.95)',
-                border: `1px solid ${neonColor}25`,
-                boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
-                backdropFilter: 'blur(12px)',
-                left: Math.max(8, Math.min(popupPosition.x - 140, window.innerWidth - 296)),
-                bottom: popupPosition.bottom,
-              }}
-              onClick={e => e.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-0 z-[70]"
+              style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+              onClick={() => setShowEventModal(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              {/* Arrow indicator pointing down */}
-              <div
-                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
+              <motion.div
+                className="fixed w-[280px] rounded-xl p-3"
                 style={{
                   background: 'rgba(20, 20, 40, 0.95)',
-                  borderRight: `1px solid ${neonColor}25`,
-                  borderBottom: `1px solid ${neonColor}25`,
+                  border: `1px solid ${neonColor}25`,
+                  boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
+                  backdropFilter: 'blur(12px)',
+                  left: clampedLeft,
+                  top: popupTop,
                 }}
-              />
+                onClick={e => e.stopPropagation()}
+                initial={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              >
+                {/* Arrow indicator - points toward the cell */}
+                <div
+                  className="absolute w-3 h-3 rotate-45"
+                  style={{
+                    left: Math.max(12, Math.min(arrowLeft - 6, POPUP_W - 18)),
+                    ...(showAbove
+                      ? { bottom: -5, background: 'rgba(20, 20, 40, 0.95)', borderRight: `1px solid ${neonColor}25`, borderBottom: `1px solid ${neonColor}25` }
+                      : { top: -5, background: 'rgba(20, 20, 40, 0.95)', borderLeft: `1px solid ${neonColor}25`, borderTop: `1px solid ${neonColor}25` }),
+                  }}
+                />
 
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-2.5">
@@ -728,7 +726,8 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               </div>
             </motion.div>
           </motion.div>
-        )}
+          )
+        })()}
       </AnimatePresence>
     </div>
   )

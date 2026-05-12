@@ -10,6 +10,7 @@ import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
 import { Settings, Check, AlertCircle, Link2, Trophy } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
+import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
 import useSWR, { mutate } from 'swr'
@@ -532,6 +533,7 @@ export default function Home() {
             </motion.button>
           </motion.div>
 
+          {/* Links grid */}
           <div className="flex-shrink-0 flex-1 overflow-y-auto min-h-0 px-8">
             <div className="w-full pt-1 pb-6">
               {linksLoading && links.length === 0 ? (
@@ -568,6 +570,11 @@ export default function Home() {
                 </motion.div>
               )}
             </div>
+          </div>
+
+          {/* Big Clock in the empty space below links */}
+          <div className="flex-shrink-0 px-8 pb-4">
+            <DesktopBigClock neonColor={neonColor} />
           </div>
         </div>
 
