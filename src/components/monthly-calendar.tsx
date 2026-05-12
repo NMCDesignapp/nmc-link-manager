@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from '@/lib/animations'
 import { ChevronLeft, ChevronRight, Plus, X, Trash2, Calendar, Clock, Zap, TrendingUp } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
@@ -566,169 +567,169 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
         </motion.div>
       )}
 
-      {/* Event Popup - Neon themed */}
-      <AnimatePresence>
-        {showEventModal && selectedDate && popupPosition && (() => {
-          const POPUP_W = 280
-          const POPUP_EST_HEIGHT = 220
-          const GAP = 10
-          const { cellCenterX, cellTop, cellBottom } = popupPosition
-          // Decide: show above or below the cell
-          const showAbove = cellTop > POPUP_EST_HEIGHT + GAP
-          // Calculate left position (center on cell, but clamp)
-          const rawLeft = cellCenterX - POPUP_W / 2
-          const clampedLeft = Math.max(8, Math.min(rawLeft, window.innerWidth - POPUP_W - 8))
-          // Arrow X offset relative to popup: should point at cellCenterX
-          const arrowLeft = cellCenterX - clampedLeft
-          // Vertical position
-          const popupTop = showAbove
-            ? cellTop - POPUP_EST_HEIGHT - GAP
-            : cellBottom + GAP
+      {/* Event Popup - Neon themed, rendered via Portal for accurate positioning */}
+      {showEventModal && selectedDate && popupPosition && createPortal(
+        <AnimatePresence>
+          <motion.div
+            className="fixed inset-0 z-[9999]"
+            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setShowEventModal(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {(() => {
+              const POPUP_W = 280
+              const POPUP_EST_HEIGHT = 240
+              const GAP = 10
+              const { cellCenterX, cellTop, cellBottom } = popupPosition
+              const showAbove = cellTop > POPUP_EST_HEIGHT + GAP
+              const rawLeft = cellCenterX - POPUP_W / 2
+              const clampedLeft = Math.max(8, Math.min(rawLeft, window.innerWidth - POPUP_W - 8))
+              const arrowLeft = cellCenterX - clampedLeft
+              const popupTop = showAbove
+                ? cellTop - POPUP_EST_HEIGHT - GAP
+                : cellBottom + GAP
 
-          return (
-            <motion.div
-              className="fixed inset-0 z-[70]"
-              style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-              onClick={() => setShowEventModal(false)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="fixed w-[280px] rounded-xl p-3"
-                style={{
-                  background: 'rgba(20, 20, 40, 0.95)',
-                  border: `1px solid ${neonColor}25`,
-                  boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
-                  backdropFilter: 'blur(12px)',
-                  left: clampedLeft,
-                  top: popupTop,
-                }}
-                onClick={e => e.stopPropagation()}
-                initial={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              >
-                {/* Arrow indicator - points toward the cell */}
-                <div
-                  className="absolute w-3 h-3 rotate-45"
+              return (
+                <motion.div
+                  className="fixed w-[280px] rounded-xl p-3"
                   style={{
-                    left: Math.max(12, Math.min(arrowLeft - 6, POPUP_W - 18)),
-                    ...(showAbove
-                      ? { bottom: -5, background: 'rgba(20, 20, 40, 0.95)', borderRight: `1px solid ${neonColor}25`, borderBottom: `1px solid ${neonColor}25` }
-                      : { top: -5, background: 'rgba(20, 20, 40, 0.95)', borderLeft: `1px solid ${neonColor}25`, borderTop: `1px solid ${neonColor}25` }),
+                    background: 'rgba(20, 20, 40, 0.95)',
+                    border: `1px solid ${neonColor}25`,
+                    boxShadow: `0 8px 30px rgba(0,0,0,0.5), 0 0 15px ${neonColor}10`,
+                    backdropFilter: 'blur(12px)',
+                    left: clampedLeft,
+                    top: popupTop,
+                    zIndex: 10000,
                   }}
-                />
-
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-2.5">
-                <div>
-                  <h3 className="text-xs font-semibold" style={{ color: neonColor, textShadow: `0 0 8px ${neonColor}40` }}>
-                    {selectedDate}
-                  </h3>
-                  <p className="text-[9px]" style={{ color: `${neonColor}70` }}>
-                    {getEventsForDate(selectedDate).length} công việc
-                  </p>
-                </div>
-                <motion.button
-                  onClick={() => setShowEventModal(false)}
-                  className="p-1 rounded-lg"
-                  style={{ color: `${neonColor}80` }}
-                  whileHover={{ scale: 1.1, rotate: 90, background: `${neonColor}15` }}
-                  whileTap={{ scale: 0.9 }}
+                  onClick={e => e.stopPropagation()}
+                  initial={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: showAbove ? 10 : -10 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </motion.button>
-              </div>
-
-              {/* Existing Events */}
-              {getEventsForDate(selectedDate).length > 0 && (
-                <div className="space-y-1 mb-2.5">
-                  {getEventsForDate(selectedDate).map((event: CalendarEvent) => (
-                    <motion.div
-                      key={event.id}
-                      className="flex items-center gap-2 p-1.5 rounded-lg"
-                      style={{
-                        background: `${event.color}12`,
-                        border: `1px solid ${event.color}30`,
-                      }}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: event.color, boxShadow: `0 0 8px ${event.color}60` }}
-                      />
-                      <span className="text-[11px] flex-1 truncate font-medium" style={{ color: event.color }}>
-                        {event.title}
-                      </span>
-                      <motion.button
-                        onClick={() => handleDeleteEvent(event.id)}
-                        className="p-0.5 rounded"
-                        whileHover={{ scale: 1.2, background: 'rgba(255,68,68,0.15)' }}
-                        whileTap={{ scale: 0.8 }}
-                      >
-                        <Trash2 className="w-2.5 h-2.5 text-red-400" />
-                      </motion.button>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {/* Add Event Form */}
-              <div className="flex gap-1.5 mb-2">
-                <input
-                  type="text"
-                  value={newEventTitle}
-                  onChange={e => setNewEventTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddEvent()}
-                  placeholder="Thêm công việc..."
-                  className="flex-1 px-2.5 py-2 rounded-lg text-[11px] neon-input"
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'white',
-                    border: `1px solid ${neonColor}20`,
-                  }}
-                />
-                <motion.button
-                  onClick={handleAddEvent}
-                  className="px-3 py-2 rounded-lg text-[11px] font-semibold flex items-center justify-center"
-                  style={{
-                    color: 'white',
-                    background: `${neonColor}25`,
-                    border: `1px solid ${neonColor}40`,
-                    boxShadow: `0 0 10px ${neonColor}15`,
-                  }}
-                  whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}30` }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Plus className="w-3.5 h-3.5" style={{ color: neonColor }} />
-                </motion.button>
-              </div>
-
-              {/* Color Picker */}
-              <div className="flex gap-1.5 flex-wrap">
-                {EVENT_COLORS.map(color => (
-                  <motion.button
-                    key={color}
-                    onClick={() => setNewEventColor(color)}
-                    className="w-5 h-5 rounded-full"
+                  {/* Arrow indicator - points toward the cell */}
+                  <div
+                    className="absolute w-3 h-3 rotate-45"
                     style={{
-                      background: color,
-                      boxShadow: newEventColor === color ? `0 0 10px ${color}60` : `0 0 4px ${color}20`,
-                      border: newEventColor === color ? '2px solid white' : '1.5px solid rgba(255,255,255,0.15)',
+                      left: Math.max(12, Math.min(arrowLeft - 6, POPUP_W - 18)),
+                      ...(showAbove
+                        ? { bottom: -5, background: 'rgba(20, 20, 40, 0.95)', borderRight: `1px solid ${neonColor}25`, borderBottom: `1px solid ${neonColor}25` }
+                        : { top: -5, background: 'rgba(20, 20, 40, 0.95)', borderLeft: `1px solid ${neonColor}25`, borderTop: `1px solid ${neonColor}25` }),
                     }}
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.8 }}
                   />
-                ))}
-              </div>
-            </motion.div>
+
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div>
+                      <h3 className="text-xs font-semibold" style={{ color: neonColor, textShadow: `0 0 8px ${neonColor}40` }}>
+                        {selectedDate}
+                      </h3>
+                      <p className="text-[9px]" style={{ color: `${neonColor}70` }}>
+                        {getEventsForDate(selectedDate).length} công việc
+                      </p>
+                    </div>
+                    <motion.button
+                      onClick={() => setShowEventModal(false)}
+                      className="p-1 rounded-lg"
+                      style={{ color: `${neonColor}80` }}
+                      whileHover={{ scale: 1.1, rotate: 90, background: `${neonColor}15` }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </motion.button>
+                  </div>
+
+                  {/* Existing Events */}
+                  {getEventsForDate(selectedDate).length > 0 && (
+                    <div className="space-y-1 mb-2.5">
+                      {getEventsForDate(selectedDate).map((event: CalendarEvent) => (
+                        <motion.div
+                          key={event.id}
+                          className="flex items-center gap-2 p-1.5 rounded-lg"
+                          style={{
+                            background: `${event.color}12`,
+                            border: `1px solid ${event.color}30`,
+                          }}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ background: event.color, boxShadow: `0 0 8px ${event.color}60` }}
+                          />
+                          <span className="text-[11px] flex-1 truncate font-medium" style={{ color: event.color }}>
+                            {event.title}
+                          </span>
+                          <motion.button
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="p-0.5 rounded"
+                            whileHover={{ scale: 1.2, background: 'rgba(255,68,68,0.15)' }}
+                            whileTap={{ scale: 0.8 }}
+                          >
+                            <Trash2 className="w-2.5 h-2.5 text-red-400" />
+                          </motion.button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Event Form */}
+                  <div className="flex gap-1.5 mb-2">
+                    <input
+                      type="text"
+                      value={newEventTitle}
+                      onChange={e => setNewEventTitle(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddEvent()}
+                      placeholder="Thêm công việc..."
+                      className="flex-1 px-2.5 py-2 rounded-lg text-[11px] neon-input"
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        color: 'white',
+                        border: `1px solid ${neonColor}20`,
+                      }}
+                    />
+                    <motion.button
+                      onClick={handleAddEvent}
+                      className="px-3 py-2 rounded-lg text-[11px] font-semibold flex items-center justify-center"
+                      style={{
+                        color: 'white',
+                        background: `${neonColor}25`,
+                        border: `1px solid ${neonColor}40`,
+                        boxShadow: `0 0 10px ${neonColor}15`,
+                      }}
+                      whileHover={{ scale: 1.05, boxShadow: `0 0 15px ${neonColor}30` }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Plus className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                    </motion.button>
+                  </div>
+
+                  {/* Color Picker */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {EVENT_COLORS.map(color => (
+                      <motion.button
+                        key={color}
+                        onClick={() => setNewEventColor(color)}
+                        className="w-5 h-5 rounded-full"
+                        style={{
+                          background: color,
+                          boxShadow: newEventColor === color ? `0 0 10px ${color}60` : `0 0 4px ${color}20`,
+                          border: newEventColor === color ? '2px solid white' : '1.5px solid rgba(255,255,255,0.15)',
+                        }}
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.8 }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )
+            })()}
           </motion.div>
-          )
-        })()}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }
