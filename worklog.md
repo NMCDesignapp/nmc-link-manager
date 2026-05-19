@@ -113,3 +113,23 @@ Work Log:
 Stage Summary:
 - Desktop left panel: Big neon clock in empty space below links (bigger than NMC text)
 - Calendar popup: now properly aligned with cell, arrow points correctly
+---
+Task ID: 6
+Agent: Main Agent
+Task: Center clock, add LED-colored button backgrounds, redesign background with Matrix binary rain + 4D space
+
+Work Log:
+- Centered clock in left panel: changed layout so links take fixed space (6 buttons max), clock uses flex-1 to fill remaining space and center itself
+- Limited desktop link buttons to 6 visible (links.slice(0, 6))
+- Added semi-transparent colored backgrounds to link buttons matching their LED border color: `${solidColor}15` instead of dark `rgba(10,10,25,0.9)`
+- Added same treatment to competition button: `rgba(245,158,11,0.12)` instead of dark background
+- Completely redesigned SpaceBackground component:
+  - Top portion: Matrix-style binary rain (0s and 1s falling in columns) with head glow effect and fading tails
+  - Bottom portion: 4D hypercube (tesseract) space with rotating tesseracts projected from 4D to 2D, stars, and wormhole tunnel effect
+  - Smooth transition zone between matrix rain and 4D space
+- Deployed to Vercel production: https://nc-link.vercel.app
+
+Stage Summary:
+- Clock now centered in its area below the 6 link buttons
+- All buttons have semi-transparent colored backgrounds matching their LED border
+- Background now has Matrix binary rain falling from top + 4D hypercube space at bottom
