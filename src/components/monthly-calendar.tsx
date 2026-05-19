@@ -198,9 +198,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
     return result.slice(0, 5)
   }, [events, today])
 
-  const dayFontSize = desktopBright ? 'text-lg' : compact ? 'text-[11px]' : 'text-[13px]'
+  const dayFontSize = desktopBright ? 'text-base' : compact ? 'text-[11px]' : 'text-[13px]'
   const eventFontSize = desktopBright ? 'text-[10px]' : compact ? 'text-[6px]' : 'text-[7px]'
-  const gapSize = desktopBright ? 'gap-3' : compact ? 'gap-1.5' : 'gap-2'
+  const gapSize = desktopBright ? 'gap-2' : compact ? 'gap-1.5' : 'gap-2'
   const weekdayFontSize = desktopBright ? 'text-sm' : compact ? 'text-[9px]' : 'text-[11px]'
   const headerBtnSize = desktopBright ? 'w-11 h-11' : 'w-8 h-8'
   const headerMonthSize = desktopBright ? 'text-lg' : 'text-sm'
@@ -355,10 +355,11 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
             return (
               <div
                 key={`empty-${i}`}
-                className="aspect-[1.1] rounded-md"
+                className="rounded-md"
                 style={desktopBright ? {
                   background: 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
+                  height: '42px',
                 } : undefined}
               />
             )
@@ -374,8 +375,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               key={dateStr}
               ref={(el) => { dayRefs.current[dateStr] = el }}
               onClick={() => handleDayClick(day)}
-              className="aspect-[1.1] rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
+              className="rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
               style={{
+                ...(desktopBright ? { height: '42px' } : {}),
                 background: isToday
                   ? `${neonColor}40`
                   : desktopBright

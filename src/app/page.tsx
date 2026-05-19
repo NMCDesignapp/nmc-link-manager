@@ -429,12 +429,17 @@ export default function Home() {
         <motion.div className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
           <motion.button
             onClick={() => router.push('/thi-dua-chau')}
-            className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
-            style={{ background: '#f59e0b', boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
-            whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
-            whileTap={{ scale: 0.98 }}
+            className="w-full py-2.5 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+            style={{ background: 'rgba(10,10,25,0.9)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
+            whileTap={{ scale: 0.97 }}
           >
-            <Trophy className="w-4 h-4" /> Thi Đua
+            {/* LED border animation */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', bottom: -1, right: 0 }} animate={{ x: ['100%', '-300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: 1.2 }} />
+            </div>
+            <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
           </motion.button>
         </motion.div>
 
@@ -524,12 +529,24 @@ export default function Home() {
           <motion.div className="w-full px-8 py-3 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
             <motion.button
               onClick={() => router.push('/thi-dua-chau')}
-              className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white"
-              style={{ background: '#f59e0b', boxShadow: '0 2px 10px rgba(245,158,11,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
-              whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
-              whileTap={{ scale: 0.98 }}
+              className="w-full py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+              style={{ background: 'rgba(10,10,25,0.9)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+              whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
+              whileTap={{ scale: 0.97 }}
             >
-              <Trophy className="w-4 h-4" /> Thi Đua
+              {/* LED border animation */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', bottom: -1, right: 0 }} animate={{ x: ['100%', '-300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: 1.2 }} />
+                <motion.div className="absolute w-[2px] h-[40%]" style={{ background: 'linear-gradient(180deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', left: -1, top: 0 }} animate={{ y: ['-100%', '300%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: 0.5 }} />
+                <motion.div className="absolute w-[2px] h-[40%]" style={{ background: 'linear-gradient(180deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', right: -1, bottom: 0 }} animate={{ y: ['100%', '-300%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: 1.7 }} />
+              </div>
+              {/* Corner LEDs */}
+              <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
+              <div className="absolute top-0 right-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
+              <div className="absolute bottom-0 left-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
+              <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
+              <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
             </motion.button>
           </motion.div>
 
@@ -572,8 +589,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Big Clock in the empty space below links */}
-          <div className="flex-shrink-0 px-8 pb-4">
+          {/* Big Clock in the empty space below links - centered */}
+          <div className="flex-shrink-0 px-4 pb-4 flex items-center justify-center">
             <DesktopBigClock neonColor={neonColor} />
           </div>
         </div>
@@ -586,15 +603,15 @@ export default function Home() {
           }} />
         </div>
 
-        {/* RIGHT SIDE: Calendar - bigger, brighter */}
+        {/* RIGHT SIDE: Calendar - wider, shorter */}
         <motion.div
-          className="flex-1 flex items-center justify-center py-4 px-4 lg:px-8 xl:px-12"
+          className="flex-1 flex items-center justify-center py-4 px-2 lg:px-4 xl:px-6"
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           <div
-            className="rounded-2xl p-5 lg:p-7 w-full max-w-[780px]"
+            className="rounded-none p-4 lg:p-5 w-full max-w-[900px]"
             style={{
               background: 'rgba(16, 16, 42, 0.95)',
               border: `1.5px solid ${neonColor}30`,

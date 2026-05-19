@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
-import { HoneycombBackground } from '@/components/honeycomb-bg'
+import { SpaceBackground } from '@/components/space-bg'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -51,7 +51,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
-        <HoneycombBackground />
+        <SpaceBackground />
         <ErrorBoundary>
           {children}
           <PwaInstallPrompt />

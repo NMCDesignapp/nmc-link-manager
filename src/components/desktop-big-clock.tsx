@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from '@/lib/animations'
-import { Clock } from 'lucide-react'
 
 export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string }) {
   const [time, setTime] = useState(new Date())
@@ -23,21 +22,12 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center w-full py-4"
+      className="flex flex-col items-center justify-center w-full py-2"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6, duration: 0.5 }}
     >
-      {/* Clock icon */}
-      <Clock
-        className="w-5 h-5 mb-2"
-        style={{
-          color: neonColor,
-          filter: `drop-shadow(0 0 6px ${neonColor}60)`,
-        }}
-      />
-
-      {/* Main time - VERY large */}
+      {/* Main time - DOUBLE SIZE */}
       <div
         className="flex items-baseline tracking-wider leading-none"
         style={{
@@ -47,9 +37,10 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
         <span
           className="font-black"
           style={{
-            fontSize: '4.5rem',
+            fontSize: '9rem',
             color: neonColor,
-            textShadow: `0 0 20px ${neonColor}80, 0 0 50px ${neonColor}40, 0 0 80px ${neonColor}20, 0 0 120px ${neonColor}10`,
+            textShadow: `0 0 30px ${neonColor}80, 0 0 80px ${neonColor}40, 0 0 140px ${neonColor}20, 0 0 200px ${neonColor}10`,
+            lineHeight: 1,
           }}
         >
           {hours}
@@ -57,9 +48,10 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
         <span
           className="animate-pulse mx-1 opacity-60"
           style={{
-            fontSize: '3.5rem',
+            fontSize: '7rem',
             color: neonColor,
-            textShadow: `0 0 15px ${neonColor}60`,
+            textShadow: `0 0 20px ${neonColor}60`,
+            lineHeight: 1,
           }}
         >
           :
@@ -67,20 +59,22 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
         <span
           className="font-black"
           style={{
-            fontSize: '4.5rem',
+            fontSize: '9rem',
             color: neonColor,
-            textShadow: `0 0 20px ${neonColor}80, 0 0 50px ${neonColor}40, 0 0 80px ${neonColor}20, 0 0 120px ${neonColor}10`,
+            textShadow: `0 0 30px ${neonColor}80, 0 0 80px ${neonColor}40, 0 0 140px ${neonColor}20, 0 0 200px ${neonColor}10`,
+            lineHeight: 1,
           }}
         >
           {minutes}
         </span>
         <span
-          className="ml-2 opacity-40 self-end mb-2"
+          className="ml-2 opacity-40 self-end mb-4"
           style={{
-            fontSize: '1.8rem',
+            fontSize: '3rem',
             color: neonColor,
-            textShadow: `0 0 8px ${neonColor}30`,
+            textShadow: `0 0 12px ${neonColor}30`,
             fontFamily: '"Outfit", monospace',
+            lineHeight: 1,
           }}
         >
           :{seconds}
@@ -88,7 +82,7 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
       </div>
 
       {/* Day & Date info */}
-      <div className="flex items-center gap-3 mt-2">
+      <div className="flex items-center gap-3 mt-1">
         <span
           className="text-sm font-semibold"
           style={{
@@ -112,7 +106,7 @@ export function DesktopBigClock({ neonColor = '#00ff88' }: { neonColor?: string 
       </div>
 
       {/* Decorative glow line */}
-      <div className="w-3/4 mt-3 relative h-[2px] rounded-full overflow-hidden">
+      <div className="w-3/4 mt-2 relative h-[2px] rounded-full overflow-hidden">
         <div
           className="absolute inset-0 rounded-full"
           style={{

@@ -49,44 +49,18 @@ const iconMap: Record<string, React.ElementType> = {
   video: Video,
 }
 
-// Vibrant solid color palette - each link gets its own vivid solid color
+// Vibrant solid color palette
 const VIVID_COLORS = [
-  '#10b981', // emerald
-  '#3b82f6', // blue
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#14b8a6', // teal
-  '#6366f1', // indigo
-  '#84cc16', // lime
-  '#e11d48', // rose
-  '#0ea5e9', // sky
-  '#a855f7', // purple
-  '#22c55e', // green
-  '#eab308', // yellow
+  '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899',
+  '#06b6d4', '#f97316', '#14b8a6', '#6366f1', '#84cc16', '#e11d48',
+  '#0ea5e9', '#a855f7', '#22c55e', '#eab308',
 ]
 
-// Deterministic hash from link id → color index
 function getLinkColor(linkId: number, linkColor?: string): string {
-  // If the link has a custom color set that's not the default, use it
   if (linkColor && linkColor !== '#3b82f6' && linkColor !== '#00ff88') {
     return linkColor
   }
   return VIVID_COLORS[linkId % VIVID_COLORS.length]
-}
-
-// Lighten a hex color for subtle hover effect
-function lightenColor(hex: string, amount: number = 0.15): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const rr = Math.min(255, Math.round(r + (255 - r) * amount))
-  const gg = Math.min(255, Math.round(g + (255 - g) * amount))
-  const bb = Math.min(255, Math.round(b + (255 - b) * amount))
-  return `rgb(${rr}, ${gg}, ${bb})`
 }
 
 interface LinkCardProps {
@@ -121,25 +95,85 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
   }
 
   const solidColor = getLinkColor(link.id, link.color)
-  const hoverBg = lightenColor(solidColor, 0.12)
 
   return (
     <motion.button
       onClick={handleClick}
-      className="w-full rounded-xl px-3 py-2.5 flex flex-row items-center gap-2.5 cursor-pointer relative overflow-hidden"
+      className="w-full rounded-none px-3 py-2.5 flex flex-row items-center gap-2.5 cursor-pointer relative overflow-hidden group"
       style={{
-        background: solidColor,
+        background: 'rgba(10, 10, 25, 0.9)',
         minHeight: '50px',
-        boxShadow: `0 2px 10px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset`,
+        boxShadow: `0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)`,
+        border: `1.5px solid ${solidColor}40`,
       }}
       whileHover={{
-        y: -2,
-        background: hoverBg,
-        boxShadow: `0 6px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.12) inset`,
+        y: -3,
+        boxShadow: `0 8px 25px rgba(0,0,0,0.6), 0 0 20px ${solidColor}30, inset 0 1px 0 rgba(255,255,255,0.08)`,
       }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
     >
+      {/* LED border animation - running light effect */}
+      <div
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{ borderRadius: 0 }}
+      >
+        {/* Top edge LED runner */}
+        <motion.div
+          className="absolute h-[2px] w-[40%]"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${solidColor}, transparent)`,
+            boxShadow: `0 0 8px ${solidColor}80, 0 0 16px ${solidColor}40`,
+            top: -1,
+            left: 0,
+          }}
+          animate={{ x: ['-100%', '300%'] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: index * 0.3 }}
+        />
+        {/* Bottom edge LED runner */}
+        <motion.div
+          className="absolute h-[2px] w-[40%]"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${solidColor}, transparent)`,
+            boxShadow: `0 0 8px ${solidColor}80, 0 0 16px ${solidColor}40`,
+            bottom: -1,
+            right: 0,
+          }}
+          animate={{ x: ['100%', '-300%'] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: index * 0.3 + 1.2 }}
+        />
+        {/* Left edge LED runner */}
+        <motion.div
+          className="absolute w-[2px] h-[40%]"
+          style={{
+            background: `linear-gradient(180deg, transparent, ${solidColor}, transparent)`,
+            boxShadow: `0 0 8px ${solidColor}80, 0 0 16px ${solidColor}40`,
+            left: -1,
+            top: 0,
+          }}
+          animate={{ y: ['-100%', '300%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: index * 0.2 + 0.5 }}
+        />
+        {/* Right edge LED runner */}
+        <motion.div
+          className="absolute w-[2px] h-[40%]"
+          style={{
+            background: `linear-gradient(180deg, transparent, ${solidColor}, transparent)`,
+            boxShadow: `0 0 8px ${solidColor}80, 0 0 16px ${solidColor}40`,
+            right: -1,
+            bottom: 0,
+          }}
+          animate={{ y: ['100%', '-300%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: index * 0.2 + 1.7 }}
+        />
+      </div>
+
+      {/* Corner LED dots - always glowing */}
+      <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ background: solidColor, boxShadow: `0 0 6px ${solidColor}80`, opacity: 0.7 }} />
+      <div className="absolute top-0 right-0 w-1.5 h-1.5" style={{ background: solidColor, boxShadow: `0 0 6px ${solidColor}80`, opacity: 0.7 }} />
+      <div className="absolute bottom-0 left-0 w-1.5 h-1.5" style={{ background: solidColor, boxShadow: `0 0 6px ${solidColor}80`, opacity: 0.7 }} />
+      <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ background: solidColor, boxShadow: `0 0 6px ${solidColor}80`, opacity: 0.7 }} />
+
       {/* Favorite dot */}
       {link.is_favorite && (
         <div
@@ -151,24 +185,25 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
         />
       )}
 
-      {/* Icon - white on solid color */}
-      <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-        style={{ background: 'rgba(255,255,255,0.25)' }}
+      {/* Icon */}
+      <div
+        className="w-7 h-7 rounded-none flex items-center justify-center flex-shrink-0"
+        style={{ background: `${solidColor}20`, border: `1px solid ${solidColor}40` }}
       >
-        <IconComponent className="w-4 h-4" style={{ color: 'white' }} />
+        <IconComponent className="w-4 h-4" style={{ color: solidColor }} />
       </div>
 
-      {/* Text - white on solid color */}
+      {/* Text */}
       <div className="flex-1 min-w-0 text-left">
         <span
           className="block font-bold text-[12px] leading-tight truncate"
-          style={{ color: 'white' }}
+          style={{ color: 'rgba(255,255,255,0.95)' }}
         >
           {link.title}
         </span>
         <span
           className="block text-[9px] italic truncate"
-          style={{ color: 'rgba(255,255,255,0.70)' }}
+          style={{ color: `${solidColor}90` }}
         >
           {getSubtitle()}
         </span>
