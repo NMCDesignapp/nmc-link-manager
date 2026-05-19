@@ -430,7 +430,7 @@ export default function Home() {
           <motion.button
             onClick={() => router.push('/thi-dua-chau')}
             className="w-full py-2.5 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
-            style={{ background: 'rgba(10,10,25,0.9)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+            style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
             whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
             whileTap={{ scale: 0.97 }}
           >
@@ -530,7 +530,7 @@ export default function Home() {
             <motion.button
               onClick={() => router.push('/thi-dua-chau')}
               className="w-full py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
-              style={{ background: 'rgba(10,10,25,0.9)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+              style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
               whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
               whileTap={{ scale: 0.97 }}
             >
@@ -550,9 +550,9 @@ export default function Home() {
             </motion.button>
           </motion.div>
 
-          {/* Links grid */}
-          <div className="flex-shrink-0 flex-1 overflow-y-auto min-h-0 px-8">
-            <div className="w-full pt-1 pb-6">
+          {/* Links grid - only 6 buttons shown */}
+          <div className="flex-shrink-0 px-8">
+            <div className="w-full pt-1 pb-4">
               {linksLoading && links.length === 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map(i => (
@@ -578,7 +578,7 @@ export default function Home() {
               ) : (
                 <motion.div className="grid grid-cols-2 gap-3" variants={staggerContainer} initial="initial" animate="animate">
                   <AnimatePresence mode="popLayout">
-                    {links.map((link, index) => (
+                    {links.slice(0, 6).map((link, index) => (
                       <motion.div key={link.id} variants={staggerItem} layout layoutId={`desktop-link-${link.id}`}>
                         <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
                       </motion.div>
@@ -589,8 +589,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Big Clock in the empty space below links - centered */}
-          <div className="flex-shrink-0 px-4 pb-4 flex items-center justify-center">
+          {/* Big Clock - centered in remaining space */}
+          <div className="flex-1 flex items-center justify-center px-4 pb-4 min-h-0">
             <DesktopBigClock neonColor={neonColor} />
           </div>
         </div>

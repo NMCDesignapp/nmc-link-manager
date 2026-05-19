@@ -101,9 +101,9 @@ export function LinkCard({ link, index = 0, neonColor = '#00ff88', onOpen, onEdi
       onClick={handleClick}
       className="w-full rounded-none px-3 py-2.5 flex flex-row items-center gap-2.5 cursor-pointer relative overflow-hidden group"
       style={{
-        background: 'rgba(10, 10, 25, 0.9)',
+        background: `${solidColor}15`,
         minHeight: '50px',
-        boxShadow: `0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)`,
+        boxShadow: `0 4px 15px rgba(0,0,0,0.5), 0 0 12px ${solidColor}15, inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)`,
         border: `1.5px solid ${solidColor}40`,
       }}
       whileHover={{
