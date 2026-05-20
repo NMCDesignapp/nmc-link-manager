@@ -21,6 +21,21 @@ const fetcher = async (url: string) => {
   return res.json()
 }
 
+// Helper: convert hex color to solid dark version (opaque, no RGBA)
+function solidDark(hex: string, factor: number = 0.15): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`
+}
+
+function solidMid(hex: string, factor: number = 0.35): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`
+}
+
 const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
 
 const EVENT_COLORS = [
@@ -507,21 +522,21 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                       key={event.id}
                       className="flex items-center gap-3 p-2.5 rounded-xl"
                       style={{
-                        background: `${event.color}25`,
-                        border: `1.5px solid ${event.color}45`,
-                        boxShadow: `0 0 12px ${event.color}15`,
+                        background: solidDark(event.color, 0.18),
+                        border: `1.5px solid ${solidMid(event.color, 0.5)}`,
+                        boxShadow: `0 0 12px ${solidMid(event.color, 0.2)}`,
                       }}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + i * 0.08 }}
-                      whileHover={{ background: `${event.color}35`, scale: 1.02, boxShadow: `0 0 20px ${event.color}25` }}
+                      whileHover={{ background: solidDark(event.color, 0.25), scale: 1.02, boxShadow: `0 0 20px ${solidMid(event.color, 0.3)}` }}
                     >
                       <div
                         className="w-9 h-9 rounded-lg flex flex-col items-center justify-center flex-shrink-0"
                         style={{
-                          background: `${event.color}35`,
-                          border: `1.5px solid ${event.color}55`,
-                          boxShadow: `0 0 8px ${event.color}20`,
+                          background: solidDark(event.color, 0.25),
+                          border: `1.5px solid ${solidMid(event.color, 0.55)}`,
+                          boxShadow: `0 0 8px ${solidMid(event.color, 0.25)}`,
                         }}
                       >
                         <span className="text-[11px] font-extrabold leading-none" style={{ color: event.color, textShadow: `0 0 6px ${event.color}50` }}>{dayLabel}</span>
