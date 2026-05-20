@@ -489,15 +489,15 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
 
           {/* Upcoming events section */}
           <div className="mb-3">
-            <div className="flex items-center gap-2 mb-2.5">
-              <Zap className="w-3.5 h-3.5" style={{ color: neonColor, filter: `drop-shadow(0 0 4px ${neonColor}60)` }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: neonColor, textShadow: `0 0 8px ${neonColor}40` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4" style={{ color: neonColor, filter: `drop-shadow(0 0 6px ${neonColor}80)` }} />
+              <span className="text-sm font-extrabold uppercase tracking-widest" style={{ color: neonColor, textShadow: `0 0 12px ${neonColor}60` }}>
                 Sắp tới
               </span>
             </div>
 
             {upcomingEvents.length > 0 ? (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {upcomingEvents.map((event, i) => {
                   const eventDate = new Date(event.date)
                   const dayLabel = eventDate.getDate()
@@ -505,34 +505,36 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
                   return (
                     <motion.div
                       key={event.id}
-                      className="flex items-center gap-2.5 p-2 rounded-lg"
+                      className="flex items-center gap-3 p-2.5 rounded-xl"
                       style={{
-                        background: `${event.color}10`,
-                        border: `1px solid ${event.color}20`,
+                        background: `${event.color}25`,
+                        border: `1.5px solid ${event.color}45`,
+                        boxShadow: `0 0 12px ${event.color}15`,
                       }}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + i * 0.08 }}
-                      whileHover={{ background: `${event.color}18`, scale: 1.02 }}
+                      whileHover={{ background: `${event.color}35`, scale: 1.02, boxShadow: `0 0 20px ${event.color}25` }}
                     >
                       <div
-                        className="w-8 h-8 rounded-lg flex flex-col items-center justify-center flex-shrink-0"
+                        className="w-9 h-9 rounded-lg flex flex-col items-center justify-center flex-shrink-0"
                         style={{
-                          background: `${event.color}20`,
-                          border: `1px solid ${event.color}30`,
+                          background: `${event.color}35`,
+                          border: `1.5px solid ${event.color}55`,
+                          boxShadow: `0 0 8px ${event.color}20`,
                         }}
                       >
-                        <span className="text-[10px] font-bold leading-none" style={{ color: event.color }}>{dayLabel}</span>
-                        <span className="text-[7px] font-medium leading-none mt-0.5" style={{ color: `${event.color}90` }}>{monthLabel}</span>
+                        <span className="text-[11px] font-extrabold leading-none" style={{ color: event.color, textShadow: `0 0 6px ${event.color}50` }}>{dayLabel}</span>
+                        <span className="text-[8px] font-bold leading-none mt-0.5" style={{ color: event.color, opacity: 0.85 }}>{monthLabel}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs font-medium truncate block" style={{ color: event.color, textShadow: `0 0 4px ${event.color}30` }}>
+                        <span className="text-[13px] font-bold truncate block" style={{ color: event.color, textShadow: `0 0 8px ${event.color}40` }}>
                           {event.title}
                         </span>
                       </div>
                       <div
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ background: event.color, boxShadow: `0 0 6px ${event.color}60` }}
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: event.color, boxShadow: `0 0 8px ${event.color}80` }}
                       />
                     </motion.div>
                   )
@@ -540,7 +542,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               </div>
             ) : (
               <div className="text-center py-3">
-                <p className="text-[11px] font-medium" style={{ color: `${neonColor}50` }}>
+                <p className="text-[11px] font-medium" style={{ color: `${neonColor}60` }}>
                   Không có công việc sắp tới
                 </p>
               </div>
