@@ -92,49 +92,56 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     >
       {/* Content Area - full screen */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Back button - ALWAYS visible, small & subtle */}
-        <motion.button
-          onClick={handleClose}
-          className="absolute top-2.5 left-2.5 z-[60] w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
-          style={{
-            background: '#00ff8818',
-            border: '1px solid #00ff8835',
-            color: '#00ff88',
-            backdropFilter: 'blur(12px)',
-          }}
-          whileHover={{ scale: 1.08, background: '#00ff8825' }}
-          whileTap={{ scale: 0.92 }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </motion.button>
-
-        {/* Open in new tab button - auto-hides after 4s */}
-        <AnimatePresence>
-          {showExtraBtn && (
-            <motion.button
-              onClick={handleOpenExternal}
-              className="absolute top-2.5 left-13 z-[60] w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
-              style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: 'rgba(255, 255, 255, 0.6)',
-                backdropFilter: 'blur(12px)',
-              }}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.2 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        {/* Tap zone to show/hide the extra button */}
+        {/* Floating button bar - SOLID background shields iframe events */}
         <div
-          className="absolute top-0 left-0 right-0 h-16 z-[55]"
+          className="absolute top-2.5 left-2.5 z-[100] flex items-center gap-1.5 rounded-xl px-1.5 py-1.5"
+          style={{
+            background: 'rgba(10, 10, 15, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(0, 255, 136, 0.15)',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          {/* Back button - ALWAYS visible */}
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+            style={{
+              background: '#00ff8820',
+              border: '1px solid #00ff8840',
+              color: '#00ff88',
+            }}
+            onTouchEnd={(e) => { e.preventDefault(); handleClose(); }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          {/* Open in new tab button - auto-hides after 4s */}
+          <AnimatePresence>
+            {showExtraBtn && (
+              <motion.button
+                onClick={handleOpenExternal}
+                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                }}
+                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                animate={{ opacity: 1, width: 32, marginLeft: 0 }}
+                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Tap zone for extra button - EXCLUDES the button bar area */}
+        <div
+          className="absolute top-0 left-0 right-0 h-12 z-[90]"
           onClick={startHideTimer}
           style={{ cursor: 'pointer' }}
         />
