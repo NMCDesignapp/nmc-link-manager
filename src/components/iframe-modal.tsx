@@ -14,7 +14,7 @@ interface IframeModalProps {
 export function IframeModal({ link, onClose }: IframeModalProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [iframeError, setIframeError] = useState(false)
-  const [showControls, setShowControls] = useState(true)
+  const [showExtraBtn, setShowExtraBtn] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const onCloseRef = useRef(onClose)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -26,17 +26,17 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
 
   const startHideTimer = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-    setShowControls(true)
+    setShowExtraBtn(true)
     hideTimerRef.current = setTimeout(() => {
-      setShowControls(false)
-    }, 3000)
+      setShowExtraBtn(false)
+    }, 4000)
   }, [])
 
   // Reset state when link changes + push history
   useEffect(() => {
     setIsLoading(true)
     setIframeError(false)
-    setShowControls(true)
+    setShowExtraBtn(true)
     startHideTimer()
     // Push state for back button
     window.history.pushState({ modal: true }, '')
@@ -92,52 +92,48 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     >
       {/* Content Area - full screen */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Floating Controls - compact, auto-hide */}
-        <AnimatePresence>
-          {showControls && (
-            <motion.div
-              className="absolute top-3 left-3 z-[60] flex items-center gap-1.5"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Back button */}
-              <motion.button
-                onClick={handleClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition"
-                style={{
-                  background: 'rgba(0, 0, 0, 0.7)',
-                  border: '1px solid rgba(0, 255, 136, 0.3)',
-                  color: '#00ff88',
-                  backdropFilter: 'blur(8px)',
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </motion.button>
+        {/* Back button - ALWAYS visible */}
+        <motion.button
+          onClick={handleClose}
+          className="absolute top-3 left-3 z-[60] w-10 h-10 rounded-full flex items-center justify-center smooth-transition"
+          style={{
+            background: 'rgb(0, 0, 0)',
+            border: '2px solid #00ff88',
+            color: '#00ff88',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 0 12px #00ff8840, 0 0 24px #00ff8820',
+          }}
+          whileHover={{ scale: 1.1, boxShadow: '0 0 20px #00ff8860, 0 0 40px #00ff8830' }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </motion.button>
 
-              {/* Open in new tab button */}
-              <motion.button
-                onClick={handleOpenExternal}
-                className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition"
-                style={{
-                  background: 'rgba(0, 0, 0, 0.7)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  backdropFilter: 'blur(8px)',
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <ExternalLink className="w-4 h-4" />
-              </motion.button>
-            </motion.div>
+        {/* Open in new tab button - auto-hides after 4s */}
+        <AnimatePresence>
+          {showExtraBtn && (
+            <motion.button
+              onClick={handleOpenExternal}
+              className="absolute top-3 left-16 z-[60] w-10 h-10 rounded-full flex items-center justify-center smooth-transition"
+              style={{
+                background: 'rgb(0, 0, 0)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(8px)',
+              }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.25 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <ExternalLink className="w-4 h-4" />
+            </motion.button>
           )}
         </AnimatePresence>
 
-        {/* Tap zone to show/hide controls */}
+        {/* Tap zone to show/hide the extra button */}
         <div
           className="absolute top-0 left-0 right-0 h-16 z-[55]"
           onClick={startHideTimer}
