@@ -47,6 +47,7 @@ interface GroupData {
   totalFYP: number;
   totalAFYP: number;
   contractCount: number; activityRounds: number; contracts: Contract[];
+  memberCount: number;  // Số TVV trong nhóm (từ Staff table)
 }
 
 interface NYDData {
@@ -802,7 +803,7 @@ export default function ThiDuaPage() {
         );
         if (!allowedMaNhom.has(maNhom.toLowerCase()) && !allowedNhomNames.has(info.nhom.toLowerCase()) && !hasMatchingLeader) continue;
       }
-      map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+      map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
 
     // Tìm Trưởng nhóm tham dự thi đua
@@ -869,6 +870,12 @@ export default function ThiDuaPage() {
         g.activityRounds = calculateLuot(g.contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
       }
     }
+
+    // Step 4: Calculate memberCount từ Staff table
+    for (const g of Array.from(map.values())) {
+      g.memberCount = staffList.filter(s => s.maNhom === g.maNhom).length;
+    }
+
     return Array.from(map.values());
   }, [displayContracts, targetType, conditionType, staffList, recruiterList, subjectCodes, isTVVmMode(conditionType), conditionType === 'activity_round_tvv90', luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
@@ -887,7 +894,7 @@ export default function ThiDuaPage() {
         const phase1Grouped = new Map<string, GroupData>();
         for (const s of staffList) {
           if (s.maNhom && !phase1Grouped.has(s.maNhom)) {
-            phase1Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+            phase1Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
           }
         }
         for (const c of phase1Contracts) {
@@ -954,7 +961,7 @@ export default function ThiDuaPage() {
         const phase2Grouped = new Map<string, GroupData>();
         for (const s of staffList) {
           if (s.maNhom && !phase2Grouped.has(s.maNhom)) {
-            phase2Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [] });
+            phase2Grouped.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
           }
         }
         for (const c of phase2Contracts) {
@@ -1188,12 +1195,13 @@ export default function ThiDuaPage() {
         return bValue - aValue;
       }).forEach(({ group: g, tier, groupPhase }, idx) => {
         const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : `IP: ${formatNumber(g.totalFYP)}`;
+        const tbLabel = !isActivityRoundMode(conditionType) && g.memberCount > 0 ? ` | SL TVV: ${g.memberCount} | TB/TVV: ${formatNumber(Math.round(g.totalFYP / g.memberCount))}` : '';
         // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
         const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel}${tbLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel}${tbLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
         }
       });
     } else if (isPerContractMode(conditionType)) {
@@ -1249,7 +1257,7 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, ...(!isActivityRoundMode(conditionType) ? ['SL TVV', 'TB/TVV'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
@@ -1258,17 +1266,21 @@ export default function ThiDuaPage() {
           const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
-        }).map(({ g, tier, groupPhase }, idx) =>
-          [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
-        );
+        }).map(({ g, tier, groupPhase }, idx) => {
+          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
+          if (!isActivityRoundMode(conditionType)) { row.push(g.memberCount); row.push(g.memberCount > 0 ? Math.round(g.totalFYP / g.memberCount) : 0); }
+          row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức');
+          return row;
+        });
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, ...(!isActivityRoundMode(conditionType) ? ['SL TVV', 'TB/TVV'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => {
           const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
         }).map(({ g, tier }, idx) => {
           const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
+          if (!isActivityRoundMode(conditionType)) { row.push(g.memberCount); row.push(g.memberCount > 0 ? Math.round(g.totalFYP / g.memberCount) : 0); }
           if (showRateColumn) row.push(tier ? formatRate(tier) : '');
           row.push(tier ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : '');
           row.push(tier ? '' : 'Chưa đạt mức');
@@ -1375,11 +1387,19 @@ export default function ThiDuaPage() {
         toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
         return;
       }
-      const blob = await toBlob(resultContentRef.current, {
+      // Temporarily set width to fit-content for tight capture (no white side borders)
+      const el = resultContentRef.current;
+      const origWidth = el.style.width;
+      const origOverflow = el.style.overflow;
+      el.style.width = 'fit-content';
+      el.style.overflow = 'hidden';
+      const blob = await toBlob(el, {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
       });
+      el.style.width = origWidth;
+      el.style.overflow = origOverflow;
       if (!blob) {
         toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
         return;
@@ -1408,11 +1428,19 @@ export default function ThiDuaPage() {
         toast({ title: 'Lỗi', description: 'Không có nội dung để chia sẻ', variant: 'destructive' });
         return;
       }
-      const blob = await toBlob(resultContentRef.current, {
+      // Temporarily set width to fit-content for tight capture (no white side borders)
+      const el = resultContentRef.current;
+      const origWidth = el.style.width;
+      const origOverflow = el.style.overflow;
+      el.style.width = 'fit-content';
+      el.style.overflow = 'hidden';
+      const blob = await toBlob(el, {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
       });
+      el.style.width = origWidth;
+      el.style.overflow = origOverflow;
       if (!blob) {
         toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
         return;
@@ -2101,7 +2129,7 @@ export default function ThiDuaPage() {
             </div>
           </div>
 
-          <div ref={resultContentRef} className="p-0">
+          <div ref={resultContentRef} className="px-3 py-2">
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill rounded-lg shadow-md" /></div>}
@@ -2110,7 +2138,7 @@ export default function ThiDuaPage() {
               )}
 
               {/* Result Table */}
-              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3 -mx-1 px-1">
+              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3">
                 <Table className="text-[11px]">
                   <TableHeader>
                     <TableRow className="bg-emerald-700 hover:bg-emerald-700">
@@ -2161,6 +2189,17 @@ export default function ThiDuaPage() {
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
+                          {!isActivityRoundMode(conditionType) && (
+                            <TableHead className="text-white min-w-[60px] font-bold text-center bg-sky-600/30">
+                              <div>SL TVV</div>
+                            </TableHead>
+                          )}
+                          {!isActivityRoundMode(conditionType) && (
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-sky-600/20">
+                              <div>TB/TVV</div>
+                              <div className="text-[9px] font-normal text-white/60 italic">IP bình quân</div>
+                            </TableHead>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
@@ -2352,6 +2391,14 @@ export default function ThiDuaPage() {
                               : <span className="text-gray-700">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
+                          {!isActivityRoundMode(conditionType) && (
+                            <TableCell className="text-center bg-sky-50/80 text-xs text-sky-700 font-semibold">{group.memberCount || '—'}</TableCell>
+                          )}
+                          {!isActivityRoundMode(conditionType) && (
+                            <TableCell className="text-right bg-sky-50/60 text-xs text-sky-600 font-semibold">
+                              {group.memberCount > 0 ? formatNumber(Math.round(group.totalFYP / group.memberCount)) : '—'}
+                            </TableCell>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
