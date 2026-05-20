@@ -111,9 +111,11 @@ export async function POST(request: NextRequest) {
           const afypStr = columns[20] || '';
           const tinhLuotStr = columns[27] || '0'; // TÍNH LƯỢT (cột 27, không phải col 26 THÁNG HL)
 
-          if (!contractNumber || !effectiveDateStr) continue;
-          if (seenContractNumbers.has(contractNumber)) continue;
-          seenContractNumbers.add(contractNumber);
+          if (!effectiveDateStr) continue;
+          // Auto-generate contract number if missing
+          const finalContractNumber = contractNumber || `AUTO_${Date.now()}_${columns.length}_${Math.random().toString(36).slice(2, 8)}`;
+          if (seenContractNumbers.has(finalContractNumber)) continue;
+          seenContractNumbers.add(finalContractNumber);
 
           const effectiveDate = parseDate(effectiveDateStr);
           const issueDate = parseDate(issueDateStr);
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
 
-          contracts.push({ contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: recruiterCode || '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
+          contracts.push({ contractNumber: finalContractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: recruiterCode || '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
         }
 
         if (contracts.length > 0) {

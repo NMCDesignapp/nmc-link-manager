@@ -83,12 +83,11 @@ export async function POST(request: NextRequest) {
       const afypStr = columns[20] || '';
       const tinhLuotStr = columns[26] || '0';   // Tính Lượt
 
-      // Skip rows without contract number or effective date
-      if (!contractNumber || !effectiveDateStr) continue;
-
-      // Skip duplicate contract numbers
-      if (seenContractNumbers.has(contractNumber)) continue;
-      seenContractNumbers.add(contractNumber);
+      // Skip rows without effective date; auto-generate contract number if missing
+      if (!effectiveDateStr) continue;
+      const finalContractNumber = contractNumber || `AUTO_${Date.now()}_${columns.length}_${Math.random().toString(36).slice(2, 8)}`;
+      if (seenContractNumbers.has(finalContractNumber)) continue;
+      seenContractNumbers.add(finalContractNumber);
 
       const effectiveDate = parseDate(effectiveDateStr);
       const issueDate = parseDate(issueDateStr);
@@ -101,7 +100,7 @@ export async function POST(request: NextRequest) {
       const tinhLuot = parseNumber(tinhLuotStr);
 
       contracts.push({
-        contractNumber,
+        contractNumber: finalContractNumber,
         agentCode,
         agentName,
         position,

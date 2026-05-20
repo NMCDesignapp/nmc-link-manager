@@ -2101,7 +2101,7 @@ export default function ThiDuaPage() {
             </div>
           </div>
 
-          <div ref={resultContentRef} className="px-3 pb-3">
+          <div ref={resultContentRef} className="p-0">
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill rounded-lg shadow-md" /></div>}
