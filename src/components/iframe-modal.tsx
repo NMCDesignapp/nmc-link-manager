@@ -92,21 +92,20 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     >
       {/* Content Area - full screen */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Back button - ALWAYS visible */}
+        {/* Back button - ALWAYS visible, small & subtle */}
         <motion.button
           onClick={handleClose}
-          className="absolute top-3 left-3 z-[60] w-10 h-10 rounded-full flex items-center justify-center smooth-transition"
+          className="absolute top-2.5 left-2.5 z-[60] w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
           style={{
-            background: 'rgb(0, 0, 0)',
-            border: '2px solid #00ff88',
+            background: '#00ff8818',
+            border: '1px solid #00ff8835',
             color: '#00ff88',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 0 12px #00ff8840, 0 0 24px #00ff8820',
+            backdropFilter: 'blur(12px)',
           }}
-          whileHover={{ scale: 1.1, boxShadow: '0 0 20px #00ff8860, 0 0 40px #00ff8830' }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.08, background: '#00ff8825' }}
+          whileTap={{ scale: 0.92 }}
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4" />
         </motion.button>
 
         {/* Open in new tab button - auto-hides after 4s */}
@@ -114,21 +113,21 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
           {showExtraBtn && (
             <motion.button
               onClick={handleOpenExternal}
-              className="absolute top-3 left-16 z-[60] w-10 h-10 rounded-full flex items-center justify-center smooth-transition"
+              className="absolute top-2.5 left-13 z-[60] w-8 h-8 rounded-lg flex items-center justify-center smooth-transition"
               style={{
-                background: 'rgb(0, 0, 0)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(8px)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(12px)',
               }}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.25 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.2 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.92 }}
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </motion.button>
           )}
         </AnimatePresence>

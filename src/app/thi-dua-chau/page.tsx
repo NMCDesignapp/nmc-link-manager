@@ -20,6 +20,7 @@ import {
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
+  RefreshCw, CheckCircle2, AlertCircle, Clock,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 
@@ -532,47 +533,56 @@ export default function ThiDuaPage() {
   }, []);
   useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
 
-  // Auto-sync on first load if no data exists
+  // Auto-sync EVERY TIME page opens
   const hasAutoSynced = useRef(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
+
+  const doAutoSync = useCallback(async () => {
+    if (isImporting) return;
+    setSyncStatus('syncing');
+    try {
+      const urls = [
+        settings.csv_url || csvUrl,
+        settings.csv_staff_url || DEFAULT_STAFF_CSV_URL,
+        settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,
+      ];
+      const fetchPromises = urls.map(url => {
+        if (!url) return Promise.resolve(null);
+        return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
+          .then(res => res.ok ? res.json() : null)
+          .then(data => data?.csvData || null)
+          .catch(() => null);
+      });
+      const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
+      if (!contractCsv && !staffCsv && !recruiterCsv) {
+        setSyncStatus('error');
+        return;
+      }
+      const syncRes = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+      });
+      if (syncRes.ok) {
+        const data = await syncRes.json();
+        setSyncStatus('success');
+        setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
+        fetchContracts(); fetchStaff(); fetchRecruiters();
+      } else {
+        setSyncStatus('error');
+      }
+    } catch {
+      setSyncStatus('error');
+    }
+  }, [isImporting, settings.csv_url, settings.csv_staff_url, settings.csv_nyd_url, csvUrl, fetchContracts, fetchStaff, fetchRecruiters]);
+
   useEffect(() => {
     if (hasAutoSynced.current) return;
-    if (contracts.length === 0 && !isLoading && !isImporting) {
-      hasAutoSynced.current = true;
-      // Trigger import after a short delay to ensure settings are loaded
-      const timer = setTimeout(() => {
-        // Use direct fetch approach to avoid circular dependency
-        (async () => {
-          try {
-            const urls = [
-              settings.csv_url || csvUrl,
-              settings.csv_staff_url || DEFAULT_STAFF_CSV_URL,
-              settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,
-            ];
-            const fetchPromises = urls.map(url => {
-              if (!url) return Promise.resolve(null);
-              return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(data => data?.csvData || null)
-                .catch(() => null);
-            });
-            const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
-            if (!contractCsv && !staffCsv && !recruiterCsv) return;
-            const syncRes = await fetch('/api/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
-            });
-            if (syncRes.ok) {
-              const data = await syncRes.json();
-              toast({ title: 'Đồng bộ tự động', description: data.message });
-              fetchContracts(); fetchStaff(); fetchRecruiters();
-            }
-          } catch { /* silent fail on auto-sync */ }
-        })();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [contracts.length, isLoading, isImporting]);
+    hasAutoSynced.current = true;
+    const timer = setTimeout(() => { doAutoSync(); }, 800);
+    return () => clearTimeout(timer);
+  }, [doAutoSync]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
@@ -1655,6 +1665,32 @@ export default function ThiDuaPage() {
           </button>
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
           <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
+          {/* Sync status icon */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {syncStatus === 'syncing' && (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400/70">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span className="hidden sm:inline">Đồng bộ...</span>
+              </span>
+            )}
+            {syncStatus === 'success' && (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400" title={`Đồng bộ lúc ${lastSyncTime}`}>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{lastSyncTime}</span>
+              </span>
+            )}
+            {syncStatus === 'error' && (
+              <span className="flex items-center gap-1 text-[10px] text-red-400" title="Lỗi đồng bộ">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Lỗi</span>
+              </span>
+            )}
+            {syncStatus === 'idle' && (
+              <span className="flex items-center gap-1 text-[10px] text-white/30" title="Chưa đồng bộ">
+                <Clock className="w-3.5 h-3.5" />
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
