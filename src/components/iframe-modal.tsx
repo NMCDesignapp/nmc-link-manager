@@ -92,54 +92,46 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     >
       {/* Content Area - full screen */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Floating button bar - SOLID background shields iframe events */}
-        <div
-          className="absolute top-2.5 left-2.5 z-[100] flex items-center gap-1.5 rounded-xl px-1.5 py-1.5"
+        {/* Back button - small round, minimal overlay */}
+        <button
+          onClick={handleClose}
+          className="absolute top-3 left-3 z-[100] w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
           style={{
-            background: 'rgba(10, 10, 15, 0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(0, 255, 136, 0.15)',
-            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.5)',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            color: '#00ff88',
+            border: '1px solid rgba(0, 255, 136, 0.3)',
           }}
+          onTouchEnd={(e) => { e.preventDefault(); handleClose(); }}
         >
-          {/* Back button - ALWAYS visible */}
-          <button
-            onClick={handleClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
-            style={{
-              background: '#00ff8820',
-              border: '1px solid #00ff8840',
-              color: '#00ff88',
-            }}
-            onTouchEnd={(e) => { e.preventDefault(); handleClose(); }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+          <ArrowLeft className="w-4 h-4" />
+        </button>
 
-          {/* Open in new tab button - auto-hides after 4s */}
-          <AnimatePresence>
-            {showExtraBtn && (
-              <motion.button
-                onClick={handleOpenExternal}
-                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                }}
-                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                animate={{ opacity: 1, width: 32, marginLeft: 0 }}
-                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Open in new tab button - small round, auto-hides after 4s */}
+        <AnimatePresence>
+          {showExtraBtn && (
+            <motion.button
+              onClick={handleOpenExternal}
+              className="absolute top-3 left-14 z-[100] w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+              style={{
+                background: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                color: 'rgba(255, 255, 255, 0.7)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
 
-        {/* Tap zone for extra button - EXCLUDES the button bar area */}
+        {/* Tap zone to show extra button */}
         <div
           className="absolute top-0 left-0 right-0 h-12 z-[90]"
           onClick={startHideTimer}
