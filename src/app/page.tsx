@@ -605,13 +605,13 @@ export default function Home() {
 
         {/* RIGHT SIDE: Calendar - wider, shorter */}
         <motion.div
-          className="flex-1 flex items-center justify-center py-4 px-2 lg:px-4 xl:px-6"
+          className="flex-1 flex items-start justify-center py-4 px-2 lg:px-4 xl:px-6 overflow-y-auto"
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           <div
-            className="rounded-none p-4 lg:p-5 w-full max-w-[900px]"
+            className="rounded-none p-3 lg:p-4 w-full max-w-[900px] flex-shrink-0"
             style={{
               background: 'rgba(16, 16, 42, 0.95)',
               border: `1.5px solid ${neonColor}30`,
