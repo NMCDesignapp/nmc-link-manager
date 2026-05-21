@@ -567,9 +567,10 @@ export default function ThiDuaPage() {
       });
       if (syncRes.ok) {
         const data = await syncRes.json();
+        // AWAIT all data fetches so state is updated before setting success
+        await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters()]);
         setSyncStatus('success');
         setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
-        fetchContracts(); fetchStaff(); fetchRecruiters();
       } else {
         setSyncStatus('error');
       }
@@ -584,6 +585,19 @@ export default function ThiDuaPage() {
     const timer = setTimeout(() => { doAutoSync(); }, 800);
     return () => clearTimeout(timer);
   }, [doAutoSync]);
+
+  // Auto re-search when sync completes and search conditions exist
+  useEffect(() => {
+    if (syncStatus === 'success' && (startDate || endDate)) {
+      // Re-search with new data after sync - delay to ensure contracts state is settled
+      const timer = setTimeout(() => {
+        handleSearchRef.current();
+        // Also open result dialog if not already open
+        setIsResultDialogOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [syncStatus, startDate, endDate]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
@@ -1154,8 +1168,9 @@ export default function ThiDuaPage() {
       }
 
       const data = await syncRes.json();
+      // AWAIT all data fetches so state is updated before proceeding
+      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters()]);
       toast({ title: 'Đồng bộ thành công', description: data.message });
-      fetchContracts(); fetchStaff(); fetchRecruiters();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Lỗi không xác định';
       toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' });
