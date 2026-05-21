@@ -550,8 +550,8 @@ export default function Home() {
             </motion.button>
           </motion.div>
 
-          {/* Links grid - only 6 buttons shown */}
-          <div className="flex-shrink-0 px-8">
+          {/* Links grid - scrollable when many buttons */}
+          <div className="flex-1 min-h-0 px-8 overflow-y-auto scrollbar-none">
             <div className="w-full pt-1 pb-4">
               {linksLoading && links.length === 0 ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -578,7 +578,7 @@ export default function Home() {
               ) : (
                 <motion.div className="grid grid-cols-2 gap-3" variants={staggerContainer} initial="initial" animate="animate">
                   <AnimatePresence mode="popLayout">
-                    {links.slice(0, 6).map((link, index) => (
+                    {links.map((link, index) => (
                       <motion.div key={link.id} variants={staggerItem} layout layoutId={`desktop-link-${link.id}`}>
                         <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
                       </motion.div>
