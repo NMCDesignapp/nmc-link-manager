@@ -673,14 +673,35 @@ export default function ThiDuaPage() {
   // Display contracts with subject filter applied
   const displayContracts = useMemo(() => {
     if (subjectCodes.length === 0) return filteredContracts;
+    if (targetType === 'tvv') {
+      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
+    }
+    if (targetType === 'nyd') {
+      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+        (c.recruiterCode && subjectCodes.includes(c.recruiterCode)));
+    }
+    // Nhóm: lọc theo mã nhóm, tên nhóm, HOẶC mã/tên trưởng nhóm
+    // Xác định tập mã nhóm được phép (bao gồm nhóm tìm được qua mã/tên TN)
+    const allowedMaNhomSet = new Set<string>();
+    const allowedNhomNameSet = new Set<string>();
+    const subjectCodesLower = subjectCodes.map(s => s.toLowerCase());
+    for (const code of subjectCodes) {
+      allowedMaNhomSet.add(code.toLowerCase());
+      allowedNhomNameSet.add(code.toLowerCase());
+    }
+    // Tìm thêm nhóm qua mã/tên trưởng nhóm
+    for (const s of staffList) {
+      if (subjectCodes.includes(s.agentCode) || subjectCodesLower.includes(s.agentName?.toLowerCase())) {
+        if (s.maNhom) {
+          allowedMaNhomSet.add(s.maNhom.toLowerCase());
+          allowedNhomNameSet.add(s.nhom?.toLowerCase());
+        }
+      }
+    }
     return filteredContracts.filter(c => {
-      if (targetType === 'tvv') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName);
-      if (targetType === 'nyd') return subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
-        (c.recruiterCode && subjectCodes.includes(c.recruiterCode));
-      // Nhóm: lọc theo mã nhóm HOẶC tên nhóm
-      return subjectCodes.includes(c.maNhom) || subjectCodes.includes(c.nhom);
+      return allowedMaNhomSet.has(c.maNhom?.toLowerCase()) || allowedNhomNameSet.has(c.nhom?.toLowerCase());
     });
-  }, [filteredContracts, subjectCodes, targetType]);
+  }, [filteredContracts, subjectCodes, targetType, staffList]);
 
   // NYD data computation - use Recruiter table as primary reference
   const nydData: NYDData[] = useMemo(() => {
