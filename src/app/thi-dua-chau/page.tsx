@@ -687,14 +687,15 @@ export default function ThiDuaPage() {
     // Xác định tập mã nhóm được phép (bao gồm nhóm tìm được qua mã/tên TN)
     const allowedMaNhomSet = new Set<string>();
     const allowedNhomNameSet = new Set<string>();
-    const subjectCodesLower = subjectCodes.map(s => s.toLowerCase());
     for (const code of subjectCodes) {
       allowedMaNhomSet.add(code.toLowerCase());
       allowedNhomNameSet.add(code.toLowerCase());
     }
-    // Tìm thêm nhóm qua mã/tên trưởng nhóm
+    // Tìm thêm nhóm qua mã/tên TRƯỞNG NHÓM (chỉ trưởng ban/trưởng nhóm, không bao gồm TVV thường)
     for (const s of staffList) {
-      if (subjectCodes.includes(s.agentCode) || subjectCodesLower.includes(s.agentName?.toLowerCase())) {
+      const pos = s.position?.toLowerCase().trim() || '';
+      const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
+      if (isLeader && (subjectCodes.includes(s.agentCode) || subjectCodes.map(c => c.toLowerCase()).includes(s.agentName?.toLowerCase()))) {
         if (s.maNhom) {
           allowedMaNhomSet.add(s.maNhom.toLowerCase());
           allowedNhomNameSet.add(s.nhom?.toLowerCase());
@@ -888,6 +889,7 @@ export default function ThiDuaPage() {
 
     // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
     // Hỗ trợ lọc theo: mã nhóm, tên nhóm, mã trưởng nhóm, tên trưởng nhóm
+    // QUAN TRỌNG: chỉ so khớp mã/nhóm trưởng nhóm (không so khớp TVV thường)
     const allowedMaNhom = new Set<string>();
     const allowedNhomNames = new Set<string>();
     const allowedAgentCodes = new Set<string>();
@@ -896,22 +898,44 @@ export default function ThiDuaPage() {
       for (const code of subjectCodes) {
         allowedMaNhom.add(code.toLowerCase());
         allowedNhomNames.add(code.toLowerCase());
+        // Chỉ thêm vào allowedAgentCodes nếu code KHÔNG phải là mã nhóm
+        // (mã nhóm thường có định dạng khác agentCode)
+        // Tạm thêm tất cả, nhưng sẽ lọc chính xác ở hasMatchingLeader
         allowedAgentCodes.add(code);
         allowedAgentNames.add(code.toLowerCase());
       }
+      // Tìm thêm nhóm qua mã/tên TRƯỞNG NHÓM trong staffList
+      for (const s of staffList) {
+        const pos = s.position?.toLowerCase().trim() || '';
+        const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
+        if (isLeader && s.maNhom && (
+          allowedAgentCodes.has(s.agentCode) || allowedAgentNames.has(s.agentName?.toLowerCase())
+        )) {
+          allowedMaNhom.add(s.maNhom.toLowerCase());
+          if (s.nhom) allowedNhomNames.add(s.nhom.toLowerCase());
+        }
+      }
     }
 
-    // Step 1: Build groups từ Staff table (DS Nhóm) + từ hợp đồng + từ danh sách đối tượng
+    // Step 1: Build groups CHỈ từ nguồn hợp lệ
     const uniqueGroups = new Map<string, { nhom: string }>();
-    // Từ Staff table
+    // Từ Staff table - chỉ thêm nhóm đã được cho phép
     for (const s of staffList) {
       if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
+        // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
+        if (allowedMaNhom.size > 0) {
+          if (!allowedMaNhom.has(s.maNhom.toLowerCase()) && !allowedNhomNames.has(s.nhom?.toLowerCase())) continue;
+        }
         uniqueGroups.set(s.maNhom, { nhom: s.nhom });
       }
     }
     // Từ hợp đồng (đảm bảo nhóm có trong dữ liệu doanh số cũng được tạo)
     for (const c of displayContracts) {
       if (c.maNhom && !uniqueGroups.has(c.maNhom)) {
+        // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
+        if (allowedMaNhom.size > 0) {
+          if (!allowedMaNhom.has(c.maNhom?.toLowerCase()) && !allowedNhomNames.has(c.nhom?.toLowerCase())) continue;
+        }
         uniqueGroups.set(c.maNhom, { nhom: c.nhom || c.maNhom });
       }
     }
@@ -920,34 +944,27 @@ export default function ThiDuaPage() {
       for (const code of subjectCodes) {
         const codeLower = code.toLowerCase();
         // Nếu code là mã nhóm chưa có trong uniqueGroups → tạo mới
-        if (!Array.from(uniqueGroups.keys()).some(k => k.toLowerCase() === codeLower)) {
+        if (allowedMaNhom.has(codeLower) && !Array.from(uniqueGroups.keys()).some(k => k.toLowerCase() === codeLower)) {
           uniqueGroups.set(code, { nhom: code });
         }
       }
     }
 
-    // Nếu có DS đối tượng: tìm nhóm theo mã/nhóm HOẶC theo agent code/name của trưởng
-    if (allowedMaNhom.size > 0) {
-      for (const s of staffList) {
-        if (!s.maNhom) continue;
-        if (
-          allowedAgentCodes.has(s.agentCode) ||
-          allowedAgentNames.has(s.agentName?.toLowerCase())
-        ) {
-          if (!uniqueGroups.has(s.maNhom)) {
-            uniqueGroups.set(s.maNhom, { nhom: s.nhom });
-          }
-        }
-      }
-    }
-
     for (const [maNhom, info] of uniqueGroups) {
+      // Lọc cuối: đảm bảo nhóm thực sự thuộc DS (mã nhóm, tên nhóm, hoặc trưởng nhóm)
       if (allowedMaNhom.size > 0) {
-        const groupStaff = staffList.filter(s => s.maNhom === maNhom);
-        const hasMatchingLeader = groupStaff.some(s =>
-          allowedAgentCodes.has(s.agentCode) || allowedAgentNames.has(s.agentName?.toLowerCase())
-        );
-        if (!allowedMaNhom.has(maNhom.toLowerCase()) && !allowedNhomNames.has(info.nhom.toLowerCase()) && !hasMatchingLeader) continue;
+        if (allowedMaNhom.has(maNhom.toLowerCase()) || allowedNhomNames.has(info.nhom.toLowerCase())) {
+          // OK - mã nhóm hoặc tên nhóm khớp trực tiếp
+        } else {
+          // Kiểm tra xem trưởng nhóm của nhóm này có trong DS không
+          const groupStaff = staffList.filter(s => s.maNhom === maNhom);
+          const hasMatchingLeader = groupStaff.some(s => {
+            const pos = s.position?.toLowerCase().trim() || '';
+            const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
+            return isLeader && (allowedAgentCodes.has(s.agentCode) || allowedAgentNames.has(s.agentName?.toLowerCase()));
+          });
+          if (!hasMatchingLeader) continue;
+        }
       }
       map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
