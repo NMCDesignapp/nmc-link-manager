@@ -685,21 +685,48 @@ export default function ThiDuaPage() {
     }
     // Nhóm: lọc theo mã nhóm, tên nhóm, HOẶC mã/tên trưởng nhóm
     // Xác định tập mã nhóm được phép (bao gồm nhóm tìm được qua mã/tên TN)
+    // QUAN TRỌNG: chỉ khớp chính xác theo loại - mã nhóm với mã nhóm, tên nhóm với tên nhóm
     const allowedMaNhomSet = new Set<string>();
     const allowedNhomNameSet = new Set<string>();
     for (const code of subjectCodes) {
-      allowedMaNhomSet.add(code.toLowerCase());
-      allowedNhomNameSet.add(code.toLowerCase());
-    }
-    // Tìm thêm nhóm qua mã/tên TRƯỞNG NHÓM (chỉ trưởng ban/trưởng nhóm, không bao gồm TVV thường)
-    for (const s of staffList) {
-      const pos = s.position?.toLowerCase().trim() || '';
-      const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
-      if (isLeader && (subjectCodes.includes(s.agentCode) || subjectCodes.map(c => c.toLowerCase()).includes(s.agentName?.toLowerCase()))) {
-        if (s.maNhom) {
-          allowedMaNhomSet.add(s.maNhom.toLowerCase());
-          allowedNhomNameSet.add(s.nhom?.toLowerCase());
+      const codeLower = code.toLowerCase();
+      // Kiểm tra xem code này là mã nhóm hay tên nhóm hay mã/tên TN
+      const isMaNhom = staffList.some(s => s.maNhom?.toLowerCase() === codeLower);
+      const isNhomName = staffList.some(s => s.nhom?.toLowerCase() === codeLower);
+      const matchingLeader = staffList.find(s => {
+        const pos = s.position?.toLowerCase().trim() || '';
+        const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
+        return isLeader && (s.agentCode === code || s.agentName?.toLowerCase() === codeLower);
+      });
+
+      if (isMaNhom) {
+        // Code là mã nhóm → thêm mã nhóm
+        allowedMaNhomSet.add(codeLower);
+        // Thêm luôn tên nhóm tương ứng
+        for (const s of staffList) {
+          if (s.maNhom?.toLowerCase() === codeLower && s.nhom) {
+            allowedNhomNameSet.add(s.nhom.toLowerCase());
+          }
         }
+      }
+      if (isNhomName) {
+        // Code là tên nhóm → thêm tên nhóm
+        allowedNhomNameSet.add(codeLower);
+        // Thêm luôn mã nhóm tương ứng
+        for (const s of staffList) {
+          if (s.nhom?.toLowerCase() === codeLower && s.maNhom) {
+            allowedMaNhomSet.add(s.maNhom.toLowerCase());
+          }
+        }
+      }
+      if (matchingLeader) {
+        // Code là mã/tên trưởng nhóm → thêm nhóm của họ
+        allowedMaNhomSet.add(matchingLeader.maNhom.toLowerCase());
+        if (matchingLeader.nhom) allowedNhomNameSet.add(matchingLeader.nhom.toLowerCase());
+      }
+      // Nếu code không khớp gì → vẫn thêm vào allowedMaNhomSet (có thể là mã nhóm chưa có trong staffList)
+      if (!isMaNhom && !isNhomName && !matchingLeader) {
+        allowedMaNhomSet.add(codeLower);
       }
     }
     return filteredContracts.filter(c => {
@@ -889,30 +916,55 @@ export default function ThiDuaPage() {
 
     // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
     // Hỗ trợ lọc theo: mã nhóm, tên nhóm, mã trưởng nhóm, tên trưởng nhóm
-    // QUAN TRỌNG: chỉ so khớp mã/nhóm trưởng nhóm (không so khớp TVV thường)
+    // QUAN TRỌNG: chỉ so khớp chính xác theo loại - mã nhóm với mã nhóm, tên nhóm với tên nhóm
+    // KHÔNG thêm tất cả subjectCodes vào mọi tập để tránh khớp chéo sai
     const allowedMaNhom = new Set<string>();
     const allowedNhomNames = new Set<string>();
     const allowedAgentCodes = new Set<string>();
     const allowedAgentNames = new Set<string>();
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
-        allowedMaNhom.add(code.toLowerCase());
-        allowedNhomNames.add(code.toLowerCase());
-        // Chỉ thêm vào allowedAgentCodes nếu code KHÔNG phải là mã nhóm
-        // (mã nhóm thường có định dạng khác agentCode)
-        // Tạm thêm tất cả, nhưng sẽ lọc chính xác ở hasMatchingLeader
-        allowedAgentCodes.add(code);
-        allowedAgentNames.add(code.toLowerCase());
-      }
-      // Tìm thêm nhóm qua mã/tên TRƯỞNG NHÓM trong staffList
-      for (const s of staffList) {
-        const pos = s.position?.toLowerCase().trim() || '';
-        const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
-        if (isLeader && s.maNhom && (
-          allowedAgentCodes.has(s.agentCode) || allowedAgentNames.has(s.agentName?.toLowerCase())
-        )) {
-          allowedMaNhom.add(s.maNhom.toLowerCase());
-          if (s.nhom) allowedNhomNames.add(s.nhom.toLowerCase());
+        const codeLower = code.toLowerCase();
+        // Kiểm tra xem code này là loại gì: mã nhóm, tên nhóm, hay mã/tên trưởng nhóm
+        const isMaNhom = staffList.some(s => s.maNhom?.toLowerCase() === codeLower);
+        const isNhomName = staffList.some(s => s.nhom?.toLowerCase() === codeLower);
+        const matchingLeader = staffList.find(s => {
+          const pos = s.position?.toLowerCase().trim() || '';
+          const isLeader = pos === 'trưởng ban' || pos === 'trưởng nhóm';
+          return isLeader && (s.agentCode === code || s.agentName?.toLowerCase() === codeLower);
+        });
+
+        if (isMaNhom) {
+          // Code là mã nhóm → chỉ thêm vào allowedMaNhom
+          allowedMaNhom.add(codeLower);
+          // Thêm luôn tên nhóm tương ứng để khớp HĐ
+          for (const s of staffList) {
+            if (s.maNhom?.toLowerCase() === codeLower && s.nhom) {
+              allowedNhomNames.add(s.nhom.toLowerCase());
+            }
+          }
+        }
+        if (isNhomName) {
+          // Code là tên nhóm → chỉ thêm vào allowedNhomNames
+          allowedNhomNames.add(codeLower);
+          // Thêm luôn mã nhóm tương ứng
+          for (const s of staffList) {
+            if (s.nhom?.toLowerCase() === codeLower && s.maNhom) {
+              allowedMaNhom.add(s.maNhom.toLowerCase());
+            }
+          }
+        }
+        if (matchingLeader) {
+          // Code là mã/tên trưởng nhóm → thêm nhóm của họ
+          allowedMaNhom.add(matchingLeader.maNhom.toLowerCase());
+          if (matchingLeader.nhom) allowedNhomNames.add(matchingLeader.nhom.toLowerCase());
+          // Lưu lại mã/tên TN để dùng ở hasMatchingLeader check
+          allowedAgentCodes.add(matchingLeader.agentCode);
+          allowedAgentNames.add(matchingLeader.agentName?.toLowerCase());
+        }
+        // Nếu code không khớp gì → vẫn thêm vào allowedMaNhom (có thể là mã nhóm chưa có trong staffList)
+        if (!isMaNhom && !isNhomName && !matchingLeader) {
+          allowedMaNhom.add(codeLower);
         }
       }
     }
