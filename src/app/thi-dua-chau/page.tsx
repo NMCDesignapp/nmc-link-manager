@@ -686,13 +686,22 @@ export default function ThiDuaPage() {
       return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
         (c.recruiterCode && subjectCodes.includes(c.recruiterCode)));
     }
-    // Nhóm: lọc chỉ theo TÊN NHÓM (không có tên nhóm nào trùng nhau hay trùng mã nhóm)
-    const allowedNhomNames = new Set<string>();
+    // Nhóm: người dùng nhập TÊN NHÓM → tìm MÃ NHÓM tương ứng → lọc HĐ bằng MÃ NHÓM
+    // Chỉ cần norm() 1 lần khi tìm mã nhóm, sau đó dùng mã nhóm (không có vấn đề Unicode)
+    const allowedMaNhom = new Set<string>();
     for (const code of subjectCodes) {
-      allowedNhomNames.add(norm(code).toLowerCase());
+      const codeLower = norm(code).toLowerCase();
+      // Tìm mã nhóm từ staffList theo tên nhóm
+      const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+      if (staff?.maNhom) {
+        allowedMaNhom.add(staff.maNhom);
+      } else {
+        // Nếu không tìm thấy trong staffList → có thể là mã nhóm trực tiếp
+        allowedMaNhom.add(code);
+      }
     }
     return filteredContracts.filter(c => {
-      return allowedNhomNames.has(norm(c.nhom || '').toLowerCase());
+      return allowedMaNhom.has(c.maNhom);
     });
   }, [filteredContracts, subjectCodes, targetType, staffList]);
 
@@ -876,57 +885,52 @@ export default function ThiDuaPage() {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
 
-    // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
-    // Chỉ lọc theo TÊN NHÓM (không có tên nhóm nào trùng nhau hay trùng mã nhóm)
-    // Dùng norm() để chuẩn hóa Unicode NFC trước khi so sánh (tránh NFD vs NFC)
-    const allowedNhomNames = new Set<string>();
+    // Người dùng nhập TÊN NHÓM → tìm MÃ NHÓM → dùng MÃ NHÓM cho mọi tính toán
+    // Chỉ cần norm() 1 lần khi tìm mã nhóm từ tên nhóm
+    // Map: mã nhóm → tên nhóm (để hiển thị)
+    const allowedMaNhom = new Set<string>();
+    const maNhomToName = new Map<string, string>(); // mã nhóm → tên nhóm hiển thị
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
-        allowedNhomNames.add(norm(code).toLowerCase());
+        const codeLower = norm(code).toLowerCase();
+        const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+        if (staff?.maNhom) {
+          allowedMaNhom.add(staff.maNhom);
+          maNhomToName.set(staff.maNhom, staff.nhom);
+        } else {
+          // Không tìm thấy trong staffList → có thể là mã nhóm trực tiếp
+          allowedMaNhom.add(code);
+          maNhomToName.set(code, code);
+        }
       }
     }
 
-    // Step 1: Build groups CHỈ từ nguồn hợp lệ
+    // Step 1: Build groups CHỈ từ nguồn hợp lệ, lọc bằng MÃ NHÓM
     const uniqueGroups = new Map<string, { nhom: string }>();
-    // Từ Staff table - chỉ thêm nhóm có tên nhóm trong DS
+    // Từ Staff table - chỉ thêm nhóm có mã nhóm trong DS
     for (const s of staffList) {
       if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
-        if (allowedNhomNames.size > 0) {
-          if (!allowedNhomNames.has(norm(s.nhom || '').toLowerCase())) continue;
-        }
-        uniqueGroups.set(s.maNhom, { nhom: s.nhom });
+        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
+        uniqueGroups.set(s.maNhom, { nhom: maNhomToName.get(s.maNhom) || s.nhom });
       }
     }
     // Từ hợp đồng (đảm bảo nhóm có trong dữ liệu doanh số cũng được tạo)
     for (const c of displayContracts) {
       if (c.maNhom && !uniqueGroups.has(c.maNhom)) {
-        if (allowedNhomNames.size > 0) {
-          if (!allowedNhomNames.has(norm(c.nhom || '').toLowerCase())) continue;
-        }
-        uniqueGroups.set(c.maNhom, { nhom: c.nhom || c.maNhom });
+        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(c.maNhom)) continue;
+        uniqueGroups.set(c.maNhom, { nhom: maNhomToName.get(c.maNhom) || c.nhom || c.maNhom });
       }
     }
-    // Từ danh sách đối tượng (đảm bảo tất cả tên nhóm trong DS đều được tạo, kể cả nhóm chưa có HĐ)
-    if (allowedNhomNames.size > 0) {
-      for (const code of subjectCodes) {
-        const codeLower = norm(code).toLowerCase();
-        // Nếu tên nhóm chưa có trong uniqueGroups → tạo mới (nhóm chưa có HĐ)
-        if (!Array.from(uniqueGroups.values()).some(info => norm(info.nhom).toLowerCase() === codeLower)) {
-          // Tìm mã nhóm tương ứng từ staffList
-          const staffMatch = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
-          const maNhom = staffMatch?.maNhom || code;
-          if (!uniqueGroups.has(maNhom)) {
-            uniqueGroups.set(maNhom, { nhom: code });
-          }
+    // Từ danh sách đối tượng (đảm bảo tất cả mã nhóm trong DS đều được tạo, kể cả nhóm chưa có HĐ)
+    if (allowedMaNhom.size > 0) {
+      for (const maNhom of allowedMaNhom) {
+        if (!uniqueGroups.has(maNhom)) {
+          uniqueGroups.set(maNhom, { nhom: maNhomToName.get(maNhom) || maNhom });
         }
       }
     }
 
     for (const [maNhom, info] of uniqueGroups) {
-      // Lọc cuối: đảm bảo tên nhóm thuộc DS
-      if (allowedNhomNames.size > 0) {
-        if (!allowedNhomNames.has(norm(info.nhom).toLowerCase())) continue;
-      }
       map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
 
