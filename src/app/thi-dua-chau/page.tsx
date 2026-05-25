@@ -807,11 +807,28 @@ export default function ThiDuaPage() {
       }
     }
 
-    // Step 1: Build groups CHỈ từ Staff table (DS Nhóm)
+    // Step 1: Build groups từ Staff table (DS Nhóm) + từ hợp đồng + từ danh sách đối tượng
     const uniqueGroups = new Map<string, { nhom: string }>();
+    // Từ Staff table
     for (const s of staffList) {
       if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
         uniqueGroups.set(s.maNhom, { nhom: s.nhom });
+      }
+    }
+    // Từ hợp đồng (đảm bảo nhóm có trong dữ liệu doanh số cũng được tạo)
+    for (const c of displayContracts) {
+      if (c.maNhom && !uniqueGroups.has(c.maNhom)) {
+        uniqueGroups.set(c.maNhom, { nhom: c.nhom || c.maNhom });
+      }
+    }
+    // Từ danh sách đối tượng (đảm bảo tất cả mã nhóm trong DS đều được tạo)
+    if (allowedMaNhom.size > 0) {
+      for (const code of subjectCodes) {
+        const codeLower = code.toLowerCase();
+        // Nếu code là mã nhóm chưa có trong uniqueGroups → tạo mới
+        if (!Array.from(uniqueGroups.keys()).some(k => k.toLowerCase() === codeLower)) {
+          uniqueGroups.set(code, { nhom: code });
+        }
       }
     }
 
@@ -867,8 +884,8 @@ export default function ThiDuaPage() {
         continue;
       }
 
-      // Fallback: Tìm trong Recruiter table theo tên nhóm
-      const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom);
+      // Fallback: Tìm trong Recruiter table theo mã nhóm hoặc tên nhóm
+      const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom || r.nhom === g.maNhom);
       const rBan = groupRecruiters.find(r => {
         const pos = r.position?.toLowerCase().trim() || '';
         return pos === 'trưởng ban';
@@ -886,11 +903,16 @@ export default function ThiDuaPage() {
       }
     }
 
-    // Step 2: Map doanh số vào nhóm ĐÃ CÓ từ Staff table
-    // Dùng mã nhóm (maNhom) để ánh xạ
+    // Step 2: Map doanh số vào nhóm ĐÃ CÓ
+    // Dùng mã nhóm (maNhom) để ánh xạ, hỗ trợ case-insensitive
+    const mapKeyIndex = new Map<string, string>(); // lowercase → actual key
+    for (const key of map.keys()) {
+      mapKeyIndex.set(key.toLowerCase(), key);
+    }
     for (const c of displayContracts) {
-      const key = c.maNhom;
-      const g = map.get(key);
+      if (!c.maNhom) continue;
+      const actualKey = map.get(c.maNhom) ? c.maNhom : mapKeyIndex.get(c.maNhom.toLowerCase());
+      const g = actualKey ? map.get(actualKey) : null;
       if (g) {
         g.totalFYP += c.fyp;
         g.contractCount += 1;
