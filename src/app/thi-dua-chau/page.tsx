@@ -1479,6 +1479,34 @@ export default function ThiDuaPage() {
     ws['!cols'] = colWidths;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi đua');
+
+    // Sheet 2: Chi tiết hợp đồng — tất cả HĐ được tính vào thi đua
+    if (displayContracts.length > 0) {
+      const detailHeaders = ['STT', 'Nhóm', 'Mã nhóm', 'Mã TVV', 'Tên TVV', 'Chức vụ', 'Số HĐ', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Mã NTD', 'Bàn'];
+      const detailRows: (string | number)[][] = displayContracts.map((c, idx) => [
+        idx + 1,
+        c.nhom || c.maNhom || '',
+        c.maNhom || '',
+        c.agentCode || '',
+        c.agentName || '',
+        c.position || '',
+        c.contractNumber || '',
+        c.effectiveDate ? formatDate(c.effectiveDate) : '',
+        c.issueDate ? formatDate(c.issueDate) : '',
+        c.fyp,
+        c.afyp,
+        c.recruiterCode || '',
+        c.ban || '',
+      ]);
+      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+      const detailColWidths = detailHeaders.map((h, i) => {
+        const maxLen = Math.max(h.length, ...detailRows.map(r => String(r[i] || '').length));
+        return { wch: Math.min(maxLen + 2, 30) };
+      });
+      wsDetail['!cols'] = detailColWidths;
+      XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
+    }
+
     XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
