@@ -181,6 +181,9 @@ const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqba
 const DEFAULT_STAFF_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLOfLKaDdEL8EcAb6kaI6GKt3cFaXLxnwuCgeR63rmn2pQI0wC-aZswNRCDqvt87G0981ibFjmDNG1/pub?output=csv';
 const DEFAULT_NYD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMzanBhPmqGXv2JXxYHkuaNiWC2YhzOAemkQao1FfW_l2a5-wJnjDeFnxvohS4ydTXusXVey8J3jdA/pub?output=csv';
 
+// Chuẩn hóa Unicode NFC để so sánh tiếng Việt (NFD vs NFC, vd: "ề" vs "ề")
+function norm(s: string): string { return s.normalize('NFC'); }
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
 }
@@ -686,10 +689,10 @@ export default function ThiDuaPage() {
     // Nhóm: lọc chỉ theo TÊN NHÓM (không có tên nhóm nào trùng nhau hay trùng mã nhóm)
     const allowedNhomNames = new Set<string>();
     for (const code of subjectCodes) {
-      allowedNhomNames.add(code.toLowerCase());
+      allowedNhomNames.add(norm(code).toLowerCase());
     }
     return filteredContracts.filter(c => {
-      return allowedNhomNames.has(c.nhom?.toLowerCase());
+      return allowedNhomNames.has(norm(c.nhom || '').toLowerCase());
     });
   }, [filteredContracts, subjectCodes, targetType, staffList]);
 
@@ -718,11 +721,11 @@ export default function ThiDuaPage() {
       }
       // Thêm NTD từ subjectCodes KHÔNG có trong recruiterList (để hiện đầy đủ DS)
       for (const code of subjectCodes) {
-        const codeLower = code.toLowerCase();
-        const found = Array.from(nydMap.keys()).some(k => k.toLowerCase() === codeLower);
+        const codeLower = norm(code).toLowerCase();
+        const found = Array.from(nydMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
         if (!found) {
           // Tìm thông tin từ staffList nếu có
-          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || s.agentName?.toLowerCase() === codeLower);
+          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || norm(s.agentName || '').toLowerCase() === codeLower);
           nydMap.set(code, {
             nydCode: staff?.agentCode || code,
             nydName: staff?.agentName || code,
@@ -818,13 +821,13 @@ export default function ThiDuaPage() {
     // Thêm TVV từ subjectCodes KHÔNG có trong displayContracts (không có HĐ → giá trị 0)
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
-        const codeLower = code.toLowerCase();
+        const codeLower = norm(code).toLowerCase();
         // Kiểm tra đã có trong agentMap chưa (case-insensitive)
-        const found = Array.from(agentMap.keys()).some(k => k.toLowerCase() === codeLower);
+        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
         if (!found) {
           // Tìm thông tin TVV từ staffList hoặc recruiterList
-          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || s.agentName?.toLowerCase() === codeLower);
-          const recruiter = !staff ? recruiterList.find(r => r.agentCode.toLowerCase() === codeLower || r.agentName?.toLowerCase() === codeLower) : null;
+          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || norm(s.agentName || '').toLowerCase() === codeLower);
+          const recruiter = !staff ? recruiterList.find(r => r.agentCode.toLowerCase() === codeLower || norm(r.agentName || '').toLowerCase() === codeLower) : null;
           const info = staff || recruiter;
           agentMap.set(code, {
             agentCode: info?.agentCode || code,
@@ -875,10 +878,11 @@ export default function ThiDuaPage() {
 
     // Xác định nhóm cần hiển thị dựa trên DS đối tượng tham dự
     // Chỉ lọc theo TÊN NHÓM (không có tên nhóm nào trùng nhau hay trùng mã nhóm)
+    // Dùng norm() để chuẩn hóa Unicode NFC trước khi so sánh (tránh NFD vs NFC)
     const allowedNhomNames = new Set<string>();
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
-        allowedNhomNames.add(code.toLowerCase());
+        allowedNhomNames.add(norm(code).toLowerCase());
       }
     }
 
@@ -888,7 +892,7 @@ export default function ThiDuaPage() {
     for (const s of staffList) {
       if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
         if (allowedNhomNames.size > 0) {
-          if (!allowedNhomNames.has(s.nhom?.toLowerCase())) continue;
+          if (!allowedNhomNames.has(norm(s.nhom || '').toLowerCase())) continue;
         }
         uniqueGroups.set(s.maNhom, { nhom: s.nhom });
       }
@@ -897,7 +901,7 @@ export default function ThiDuaPage() {
     for (const c of displayContracts) {
       if (c.maNhom && !uniqueGroups.has(c.maNhom)) {
         if (allowedNhomNames.size > 0) {
-          if (!allowedNhomNames.has(c.nhom?.toLowerCase())) continue;
+          if (!allowedNhomNames.has(norm(c.nhom || '').toLowerCase())) continue;
         }
         uniqueGroups.set(c.maNhom, { nhom: c.nhom || c.maNhom });
       }
@@ -905,11 +909,11 @@ export default function ThiDuaPage() {
     // Từ danh sách đối tượng (đảm bảo tất cả tên nhóm trong DS đều được tạo, kể cả nhóm chưa có HĐ)
     if (allowedNhomNames.size > 0) {
       for (const code of subjectCodes) {
-        const codeLower = code.toLowerCase();
+        const codeLower = norm(code).toLowerCase();
         // Nếu tên nhóm chưa có trong uniqueGroups → tạo mới (nhóm chưa có HĐ)
-        if (!Array.from(uniqueGroups.values()).some(info => info.nhom.toLowerCase() === codeLower)) {
+        if (!Array.from(uniqueGroups.values()).some(info => norm(info.nhom).toLowerCase() === codeLower)) {
           // Tìm mã nhóm tương ứng từ staffList
-          const staffMatch = staffList.find(s => s.nhom?.toLowerCase() === codeLower);
+          const staffMatch = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
           const maNhom = staffMatch?.maNhom || code;
           if (!uniqueGroups.has(maNhom)) {
             uniqueGroups.set(maNhom, { nhom: code });
@@ -921,7 +925,7 @@ export default function ThiDuaPage() {
     for (const [maNhom, info] of uniqueGroups) {
       // Lọc cuối: đảm bảo tên nhóm thuộc DS
       if (allowedNhomNames.size > 0) {
-        if (!allowedNhomNames.has(info.nhom.toLowerCase())) continue;
+        if (!allowedNhomNames.has(norm(info.nhom).toLowerCase())) continue;
       }
       map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
