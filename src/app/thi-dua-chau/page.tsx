@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -490,6 +491,8 @@ export default function ThiDuaPage() {
   const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [contestListOpen, setContestListOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSourceData, setShowSourceData] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
@@ -1259,10 +1262,10 @@ export default function ThiDuaPage() {
     setTimeout(() => handleSearchRef.current(), 100);
   };
 
-  const handleDeleteContest = async (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); } }
+  const handleDeleteContest = async (id: string) => {
+    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
     catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+    setDeleteConfirmId(null);
   };
 
   const handleImportFromUrl = async () => {
@@ -1848,10 +1851,42 @@ export default function ThiDuaPage() {
                 <CardTitle className="text-sm text-emerald-400 whitespace-nowrap drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Thông tin chương trình</CardTitle>
               </div>
               <div className="flex items-center gap-1.5 ml-auto">
-                <Select value={selectedContestId} onValueChange={handleLoadContest}>
-                  <SelectTrigger className="w-[160px] h-7 text-xs bg-white/5 border-emerald-500/20 text-white"><BookmarkPlus className="w-3 h-3 mr-1 text-emerald-400" /><SelectValue placeholder="Đã lưu..." /></SelectTrigger>
-                  <SelectContent>{savedContests.length === 0 ? <SelectItem value="_none" disabled>Chưa có</SelectItem> : savedContests.map((sc) => (<SelectItem key={sc.id} value={sc.id}><div className="flex items-center gap-2"><span className="truncate">{sc.title}</span><Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-red-400 hover:text-red-600" onClick={(e) => handleDeleteContest(sc.id, e)}><Trash2 className="w-2.5 h-2.5" /></Button></div></SelectItem>))}</SelectContent>
-                </Select>
+                <Popover open={contestListOpen} onOpenChange={setContestListOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[160px] h-7 text-xs bg-white/5 border-emerald-500/20 text-white hover:bg-white/10 justify-start">
+                      <BookmarkPlus className="w-3 h-3 mr-1 text-emerald-400 shrink-0" />
+                      <span className="truncate">{selectedContestId ? savedContests.find(sc => sc.id === selectedContestId)?.title || 'Đã lưu...' : 'Đã lưu...'}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[220px] p-1 bg-[#1a1a2e] border-emerald-500/20" align="end">
+                    {savedContests.length === 0 ? (
+                      <div className="text-xs text-white/40 text-center py-2">Chưa có chương trình nào</div>
+                    ) : savedContests.map((sc) => (
+                      <div key={sc.id} className="flex items-center gap-1 group">
+                        <button
+                          className="flex-1 text-left text-xs text-white/80 hover:text-white hover:bg-emerald-500/10 rounded px-2 py-1.5 truncate transition-colors"
+                          onClick={() => { handleLoadContest(sc.id); setContestListOpen(false); }}
+                        >
+                          {sc.title}
+                        </button>
+                        {deleteConfirmId === sc.id ? (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDeleteContest(sc.id)}>
+                              <CheckCircle2 className="w-3 h-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-white/40 hover:text-white/60 hover:bg-white/5" onClick={() => setDeleteConfirmId(null)}>
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-white/20 hover:text-red-400 hover:bg-red-500/10 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleteConfirmId(sc.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </PopoverContent>
+                </Popover>
                 <Button variant="outline" size="sm" onClick={handleSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
               </div>
             </div>
