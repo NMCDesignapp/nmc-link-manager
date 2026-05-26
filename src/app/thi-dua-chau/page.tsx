@@ -680,33 +680,49 @@ export default function ThiDuaPage() {
   }, [thiDuaSubjects]);
 
   // Display contracts with subject filter applied
+  // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
   const displayContracts = useMemo(() => {
-    if (subjectCodes.length === 0) return filteredContracts;
     if (targetType === 'tvv') {
+      if (subjectCodes.length === 0) return filteredContracts;
       return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
     }
-    if (targetType === 'nyd') {
-      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
-        (c.recruiterCode && subjectCodes.includes(c.recruiterCode)));
-    }
-    // Nhóm: người dùng nhập TÊN NHÓM → tìm MÃ NHÓM tương ứng → lọc HĐ bằng MÃ NHÓM
-    // Chỉ cần norm() 1 lần khi tìm mã nhóm, sau đó dùng mã nhóm (không có vấn đề Unicode)
-    const allowedMaNhom = new Set<string>();
-    for (const code of subjectCodes) {
-      const codeLower = norm(code).toLowerCase();
-      // Tìm mã nhóm từ staffList theo tên nhóm
-      const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
-      if (staff?.maNhom) {
-        allowedMaNhom.add(staff.maNhom);
+    if (targetType === 'nhom') {
+      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại PA)
+      // Sau đó lọc HĐ theo mã nhóm
+      const allowedMaNhom = new Set<string>();
+      if (subjectCodes.length > 0) {
+        // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
+        for (const code of subjectCodes) {
+          const codeLower = norm(code).toLowerCase();
+          const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+          if (staff?.maNhom) {
+            allowedMaNhom.add(staff.maNhom);
+          } else {
+            allowedMaNhom.add(code);
+          }
+        }
       } else {
-        // Nếu không tìm thấy trong staffList → có thể là mã nhóm trực tiếp
-        allowedMaNhom.add(code);
+        // Không nhập đối tượng → lấy tất cả nhóm từ Staff table (trừ PA)
+        for (const s of staffList) {
+          if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+            allowedMaNhom.add(s.maNhom);
+          }
+        }
       }
+      return filteredContracts.filter(c => allowedMaNhom.has(c.maNhom));
     }
-    return filteredContracts.filter(c => {
-      return allowedMaNhom.has(c.maNhom);
-    });
-  }, [filteredContracts, subjectCodes, targetType, staffList]);
+    if (targetType === 'nyd') {
+      // NTD: xác định tập mã NTD từ Recruiter table
+      if (subjectCodes.length > 0) {
+        return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+          (c.recruiterCode && subjectCodes.includes(c.recruiterCode)));
+      }
+      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table
+      const ntdCodes = new Set(recruiterList.map(r => r.agentCode));
+      return filteredContracts.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.recruiterCode));
+    }
+    return filteredContracts;
+  }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
 
   // NYD data computation - use Recruiter table as primary reference
   const nydData: NYDData[] = useMemo(() => {
@@ -878,63 +894,64 @@ export default function ThiDuaPage() {
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // Bảng doanh số CHỈ dùng để tính số liệu (FYP, lượt), KHÔNG dùng để lấy thông tin nhóm
   // Thi đua nhóm: nhóm = nguồn chính, doanh số chỉ dùng tính số liệu
-  // Thi đua nhóm: 1 nhóm = 1 trưởng nhóm tham dự
-  // Trưởng ban tham dự với vai trò Trưởng nhóm, ưu tiên lấy Trưởng ban trước
-  // Nếu chỉ có Trưởng nhóm → lấy Trưởng nhóm
-  // Chỉ lấy đúng "Trưởng ban"/"Trưởng nhóm", KHÔNG lấy "Tiền trưởng nhóm"/"Phó"
+  // Thi đua nhóm: Dùng Staff table làm nguồn chính để xây dựng danh sách nhóm
+  // Ánh xạ doanh số từ displayContracts vào nhóm theo mã nhóm
+  // Loại bỏ nhóm PA
+  // Trưởng ban tham dự với vai trò Trưởng nhóm
   // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
   // Nhóm không có HĐ vẫn hiện với giá trị 0
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
 
-    // Người dùng nhập TÊN NHÓM → tìm MÃ NHÓM → dùng MÃ NHÓM cho mọi tính toán
-    // Chỉ cần norm() 1 lần khi tìm mã nhóm từ tên nhóm
-    // Map: mã nhóm → tên nhóm (để hiển thị)
+    // Xác định tập mã nhóm hợp lệ
+    // 1. Nếu có nhập đối tượng → chỉ lấy nhóm trong DS
+    // 2. Nếu không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
     const allowedMaNhom = new Set<string>();
-    const maNhomToName = new Map<string, string>(); // mã nhóm → tên nhóm hiển thị
+
     if (subjectCodes.length > 0) {
+      // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
         const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
         if (staff?.maNhom) {
           allowedMaNhom.add(staff.maNhom);
-          maNhomToName.set(staff.maNhom, staff.nhom);
         } else {
-          // Không tìm thấy trong staffList → có thể là mã nhóm trực tiếp
+          // Không tìm thấy → vẫn thêm (nhóm chưa có trong staffList)
           allowedMaNhom.add(code);
-          maNhomToName.set(code, code);
+        }
+      }
+    } else {
+      // Không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
+      for (const s of staffList) {
+        if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+          allowedMaNhom.add(s.maNhom);
         }
       }
     }
 
-    // Step 1: Build groups CHỈ từ nguồn hợp lệ, lọc bằng MÃ NHÓM
-    const uniqueGroups = new Map<string, { nhom: string }>();
-    // Từ Staff table - chỉ thêm nhóm có mã nhóm trong DS
+    // Step 1: Build groups từ Staff table (nguồn chính)
     for (const s of staffList) {
-      if (s.maNhom && !uniqueGroups.has(s.maNhom)) {
-        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
-        uniqueGroups.set(s.maNhom, { nhom: maNhomToName.get(s.maNhom) || s.nhom });
-      }
-    }
-    // Từ hợp đồng (đảm bảo nhóm có trong dữ liệu doanh số cũng được tạo)
-    for (const c of displayContracts) {
-      if (c.maNhom && !uniqueGroups.has(c.maNhom)) {
-        if (allowedMaNhom.size > 0 && !allowedMaNhom.has(c.maNhom)) continue;
-        uniqueGroups.set(c.maNhom, { nhom: maNhomToName.get(c.maNhom) || c.nhom || c.maNhom });
-      }
-    }
-    // Từ danh sách đối tượng (đảm bảo tất cả mã nhóm trong DS đều được tạo, kể cả nhóm chưa có HĐ)
-    if (allowedMaNhom.size > 0) {
-      for (const maNhom of allowedMaNhom) {
-        if (!uniqueGroups.has(maNhom)) {
-          uniqueGroups.set(maNhom, { nhom: maNhomToName.get(maNhom) || maNhom });
-        }
-      }
+      if (!s.maNhom) continue;
+      if (map.has(s.maNhom)) continue;
+      // Loại bỏ nhóm PA
+      if (norm(s.nhom || '').toLowerCase().includes('pa')) continue;
+      // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
+      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
+
+      map.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
 
-    for (const [maNhom, info] of uniqueGroups) {
-      map.set(maNhom, { maNhom, nhom: info.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
+    // Thêm nhóm trong DS đối tượng nhưng chưa có trong Staff table (nhóm mới, giá trị 0)
+    if (subjectCodes.length > 0) {
+      for (const maNhom of allowedMaNhom) {
+        if (!map.has(maNhom)) {
+          // Tìm tên nhóm từ staffList
+          const staff = staffList.find(s => s.maNhom === maNhom);
+          const nhomName = staff?.nhom || maNhom;
+          map.set(maNhom, { maNhom, nhom: nhomName, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
+        }
+      }
     }
 
     // Tìm Trưởng nhóm tham dự thi đua
@@ -945,17 +962,17 @@ export default function ThiDuaPage() {
 
       // Ưu tiên Trưởng ban (họ tham dự thi đua với vai trò Trưởng nhóm)
       const truongBan = groupStaff.find(s => {
-        const pos = s.position?.toLowerCase().trim() || '';
+        const pos = norm(s.position || '').toLowerCase().trim();
         return pos === 'trưởng ban';
       });
       if (truongBan) {
         g.leader = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
-        continue; // Trưởng ban → là người đại diện, không cần tìm thêm
+        continue;
       }
 
       // Nếu không có Trưởng ban → lấy Trưởng nhóm
       const truongNhom = groupStaff.find(s => {
-        const pos = s.position?.toLowerCase().trim() || '';
+        const pos = norm(s.position || '').toLowerCase().trim();
         return pos === 'trưởng nhóm';
       });
       if (truongNhom) {
@@ -966,7 +983,7 @@ export default function ThiDuaPage() {
       // Fallback: Tìm trong Recruiter table theo mã nhóm hoặc tên nhóm
       const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom || r.nhom === g.maNhom);
       const rBan = groupRecruiters.find(r => {
-        const pos = r.position?.toLowerCase().trim() || '';
+        const pos = norm(r.position || '').toLowerCase().trim();
         return pos === 'trưởng ban';
       });
       if (rBan) {
@@ -974,7 +991,7 @@ export default function ThiDuaPage() {
         continue;
       }
       const rNhom = groupRecruiters.find(r => {
-        const pos = r.position?.toLowerCase().trim() || '';
+        const pos = norm(r.position || '').toLowerCase().trim();
         return pos === 'trưởng nhóm';
       });
       if (rNhom) {
