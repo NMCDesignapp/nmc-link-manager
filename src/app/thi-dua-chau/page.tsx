@@ -673,8 +673,11 @@ export default function ThiDuaPage() {
     return null;
   }, [bonusTiers]);
 
-  // Subject filter
-  const subjectCodes = useMemo(() => thiDuaSubjects.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean), [thiDuaSubjects]);
+  // Subject filter - loại bỏ trùng lặp
+  const subjectCodes = useMemo(() => {
+    const raw = thiDuaSubjects.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    return [...new Set(raw)];
+  }, [thiDuaSubjects]);
 
   // Display contracts with subject filter applied
   const displayContracts = useMemo(() => {
