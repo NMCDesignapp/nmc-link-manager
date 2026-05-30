@@ -598,8 +598,6 @@ export default function ThiDuaPage() {
       // Re-search with new data after sync - delay to ensure contracts state is settled
       const timer = setTimeout(() => {
         handleSearchRef.current();
-        // Also open result dialog if not already open
-        setIsResultDialogOpen(true);
       }, 500);
       return () => clearTimeout(timer);
     }
