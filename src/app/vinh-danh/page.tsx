@@ -68,8 +68,13 @@ export interface PosterTemplate {
 }
 
 // ===== ALL 5 TEMPLATES =====
+// Positions are derived from PDF analysis (PyMuPDF) of the actual template files
+// Image slots are positioned to match the decorative frames in each template
 const TEMPLATES: PosterTemplate[] = [
-  // MẪU 1 - Chúc mừng tháng (company name at center top, congratulations script below, photo on left area)
+  // MẪU 1 - Chúc mừng tháng
+  // PDF analysis: outer frame at (2.5%, 18.2%) size=(41.5% x 78.6%), inner photo area at (2.9%, 26.9%) size=(40.8% x 35.5%)
+  // Company name "CÔNG TY BẢO VIỆT..." at ~49% left, 7.5% top, #f5d182 gold
+  // "Congratulations!" in Fineday-StyleTwo script at ~54% left, 16.6% top, #f8d210
   {
     id: 'mau-1',
     name: 'Mẫu 1',
@@ -80,14 +85,13 @@ const TEMPLATES: PosterTemplate[] = [
       {
         id: 'photo-1',
         label: 'Hình nhân viên',
-        left: 8,
-        top: 28,
-        width: 18,
-        height: 50,
-        borderRadius: '8px',
+        left: 3.5,
+        top: 27,
+        width: 39,
+        height: 34,
+        borderRadius: '4px',
         objectFit: 'cover',
-        borderWidth: 2,
-        borderColor: 'rgba(245,209,130,0.6)',
+        borderWidth: 0,
       },
     ],
     textFields: [
@@ -96,15 +100,15 @@ const TEMPLATES: PosterTemplate[] = [
         label: 'Tên nhân viên / Phòng ban',
         placeholder: 'VD: NGUYỄN MINH CHÂU',
         defaultValue: '',
-        left: 60,
-        top: 52,
-        fontSize: 28,
+        left: 58,
+        top: 48,
+        fontSize: 30,
         width: 55,
         color: '#f5d182',
         fontWeight: '700',
         fontFamily: FONT_FAMILIES.serifDisplay,
         textTransform: 'uppercase',
-        textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(245,209,130,0.3)',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 30px rgba(245,209,130,0.4)',
         letterSpacing: '0.12em',
         textAlign: 'center',
         lineHeight: '1.3',
@@ -114,15 +118,15 @@ const TEMPLATES: PosterTemplate[] = [
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch tháng',
         defaultValue: '',
-        left: 60,
-        top: 65,
+        left: 58,
+        top: 62,
         fontSize: 15,
         width: 50,
-        color: '#e8d5a3',
+        color: '#e2cc87',
         fontWeight: '400',
         fontFamily: FONT_FAMILIES.sansSerif,
         textTransform: 'none',
-        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.04em',
         textAlign: 'center',
         lineHeight: '1.5',
@@ -130,6 +134,8 @@ const TEMPLATES: PosterTemplate[] = [
     ],
   },
   // MẪU 2 - 2 ảnh bên trái, nội dung bên phải
+  // PDF analysis: photo-1 frame at (3.3%, 6.7%) size=(25.0% x 50.0%), photo-2 frame at (10.4%, 32.9%) size=(25.8% x 51.6%)
+  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
   {
     id: 'mau-2',
     name: 'Mẫu 2',
@@ -141,25 +147,23 @@ const TEMPLATES: PosterTemplate[] = [
         id: 'photo-1',
         label: 'Hình nhân viên 1',
         left: 4,
-        top: 15,
+        top: 8,
         width: 24,
-        height: 30,
-        borderRadius: '8px',
+        height: 48,
+        borderRadius: '4px',
         objectFit: 'cover',
-        borderWidth: 2,
-        borderColor: 'rgba(245,209,130,0.5)',
+        borderWidth: 0,
       },
       {
         id: 'photo-2',
         label: 'Hình nhân viên 2',
-        left: 12,
-        top: 42,
+        left: 11,
+        top: 35,
         width: 24,
-        height: 30,
-        borderRadius: '8px',
+        height: 48,
+        borderRadius: '4px',
         objectFit: 'cover',
-        borderWidth: 2,
-        borderColor: 'rgba(245,209,130,0.5)',
+        borderWidth: 0,
       },
     ],
     textFields: [
@@ -169,14 +173,14 @@ const TEMPLATES: PosterTemplate[] = [
         placeholder: 'VD: PHÒNG PTKD 3',
         defaultValue: '',
         left: 66,
-        top: 45,
-        fontSize: 26,
+        top: 48,
+        fontSize: 28,
         width: 50,
         color: '#f3e4af',
         fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
+        fontFamily: '"DM Serif Display", serif',
         textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.8), 0 0 20px rgba(243,228,175,0.25)',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
         letterSpacing: '0.1em',
         textAlign: 'center',
         lineHeight: '1.3',
@@ -187,14 +191,14 @@ const TEMPLATES: PosterTemplate[] = [
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch quý',
         defaultValue: '',
         left: 66,
-        top: 60,
+        top: 62,
         fontSize: 14,
         width: 45,
-        color: '#d4c494',
+        color: '#e2cc87',
         fontWeight: '400',
         fontFamily: FONT_FAMILIES.sansSerif,
         textTransform: 'none',
-        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
         textAlign: 'center',
         lineHeight: '1.5',
@@ -202,6 +206,8 @@ const TEMPLATES: PosterTemplate[] = [
     ],
   },
   // MẪU 3 - Ảnh lớn bên trái, nội dung bên phải
+  // PDF analysis: main frame at (-2.7%, 4.9%) size=(42.6% x 85.1%), inner photo area at (0%, 26.4%) size=(29.8% x 85.5%)
+  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
   {
     id: 'mau-3',
     name: 'Mẫu 3',
@@ -212,142 +218,10 @@ const TEMPLATES: PosterTemplate[] = [
       {
         id: 'photo-1',
         label: 'Hình nhân viên',
-        left: 6,
-        top: 18,
-        width: 28,
-        height: 55,
-        borderRadius: '6px',
-        objectFit: 'cover',
-        borderWidth: 2,
-        borderColor: 'rgba(245,209,130,0.5)',
-      },
-    ],
-    textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 66,
-        top: 50,
-        fontSize: 26,
-        width: 50,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.8), 0 0 20px rgba(243,228,175,0.25)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
-      {
-        id: 'content',
-        label: 'Nội dung vinh danh',
-        placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
-        defaultValue: '',
-        left: 66,
-        top: 63,
-        fontSize: 14,
-        width: 45,
-        color: '#d4c494',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
-        textTransform: 'none',
-        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
-        letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
-      },
-    ],
-  },
-  // MẪU 4 - Nội dung bên trái, ảnh lớn bên phải
-  {
-    id: 'mau-4',
-    name: 'Mẫu 4',
-    description: 'Nội dung trái - Ảnh lớn phải',
-    backgroundImage: '/posters/template-mau4.png',
-    aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên 1',
-        left: 22,
-        top: 78,
-        width: 5,
-        height: 10,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        borderWidth: 1,
-        borderColor: 'rgba(245,209,130,0.4)',
-      },
-      {
-        id: 'photo-2',
-        label: 'Hình nhân viên 2',
-        left: 32,
-        top: 78,
-        width: 5,
-        height: 10,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        borderWidth: 1,
-        borderColor: 'rgba(245,209,130,0.4)',
-      },
-    ],
-    textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 28,
-        top: 55,
-        fontSize: 26,
+        left: 1,
+        top: 6,
         width: 40,
-        color: '#ffffff',
-        fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.8), 0 0 15px rgba(255,255,255,0.15)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
-      {
-        id: 'content',
-        label: 'Nội dung vinh danh',
-        placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
-        defaultValue: '',
-        left: 28,
-        top: 68,
-        fontSize: 14,
-        width: 35,
-        color: '#d4c494',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
-        textTransform: 'none',
-        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
-        letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
-      },
-    ],
-  },
-  // MẪU 5 - Ảnh lớn bên trái (có viền trang trí)
-  {
-    id: 'mau-5',
-    name: 'Mẫu 5',
-    description: 'Ảnh viền trang trí - Nội dung phải',
-    backgroundImage: '/posters/template-mau5.png',
-    aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên',
-        left: 7,
-        top: 22,
-        width: 25,
-        height: 48,
+        height: 82,
         borderRadius: '4px',
         objectFit: 'cover',
         borderWidth: 0,
@@ -360,14 +234,14 @@ const TEMPLATES: PosterTemplate[] = [
         placeholder: 'VD: NGUYỄN MINH CHÂU',
         defaultValue: '',
         left: 66,
-        top: 50,
-        fontSize: 26,
+        top: 48,
+        fontSize: 28,
         width: 50,
         color: '#f3e4af',
         fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
+        fontFamily: '"DM Serif Display", serif',
         textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.8), 0 0 20px rgba(243,228,175,0.25)',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
         letterSpacing: '0.1em',
         textAlign: 'center',
         lineHeight: '1.3',
@@ -378,14 +252,136 @@ const TEMPLATES: PosterTemplate[] = [
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
         defaultValue: '',
         left: 66,
-        top: 63,
+        top: 62,
         fontSize: 14,
         width: 45,
-        color: '#d4c494',
+        color: '#e2cc87',
         fontWeight: '400',
         fontFamily: FONT_FAMILIES.sansSerif,
         textTransform: 'none',
-        textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+        letterSpacing: '0.03em',
+        textAlign: 'center',
+        lineHeight: '1.5',
+      },
+    ],
+  },
+  // MẪU 4 - Nội dung bên trái, 1 ảnh lớn bên phải
+  // PDF analysis: main photo image at (55.3%, 10.0%) size=(42.6% x 85.2%)
+  // Company name in NotoSerifDisplay #f5d182, "Congratulations!" in Amoresa #ffffff
+  {
+    id: 'mau-4',
+    name: 'Mẫu 4',
+    description: 'Nội dung trái - Ảnh lớn phải',
+    backgroundImage: '/posters/template-mau4.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình nhân viên',
+        left: 56,
+        top: 12,
+        width: 40,
+        height: 80,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên nhân viên / Phòng ban',
+        placeholder: 'VD: NGUYỄN MINH CHÂU',
+        defaultValue: '',
+        left: 28,
+        top: 52,
+        fontSize: 28,
+        width: 40,
+        color: '#f5d182',
+        fontWeight: '700',
+        fontFamily: FONT_FAMILIES.serifDisplay,
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(245,209,130,0.3)',
+        letterSpacing: '0.1em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+      {
+        id: 'content',
+        label: 'Nội dung vinh danh',
+        placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
+        defaultValue: '',
+        left: 28,
+        top: 66,
+        fontSize: 14,
+        width: 35,
+        color: '#e2cc87',
+        fontWeight: '400',
+        fontFamily: FONT_FAMILIES.sansSerif,
+        textTransform: 'none',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+        letterSpacing: '0.03em',
+        textAlign: 'center',
+        lineHeight: '1.5',
+      },
+    ],
+  },
+  // MẪU 5 - Ảnh bên trái có viền trang trí, nội dung bên phải
+  // PDF analysis: outer frame at (4.9%, 16.8%) size=(30.8% x 61.5%), inner photo at (5.8%, 18.4%) size=(29.1% x 58.2%)
+  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
+  {
+    id: 'mau-5',
+    name: 'Mẫu 5',
+    description: 'Ảnh viền trang trí - Nội dung phải',
+    backgroundImage: '/posters/template-mau5.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình nhân viên',
+        left: 6,
+        top: 19,
+        width: 28,
+        height: 56,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên nhân viên / Phòng ban',
+        placeholder: 'VD: NGUYỄN MINH CHÂU',
+        defaultValue: '',
+        left: 66,
+        top: 48,
+        fontSize: 28,
+        width: 50,
+        color: '#f3e4af',
+        fontWeight: '700',
+        fontFamily: '"DM Serif Display", serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
+        letterSpacing: '0.1em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+      {
+        id: 'content',
+        label: 'Nội dung vinh danh',
+        placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
+        defaultValue: '',
+        left: 66,
+        top: 62,
+        fontSize: 14,
+        width: 45,
+        color: '#e2cc87',
+        fontWeight: '400',
+        fontFamily: FONT_FAMILIES.sansSerif,
+        textTransform: 'none',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
         textAlign: 'center',
         lineHeight: '1.5',
@@ -984,7 +980,7 @@ export default function VinhDanhPage() {
                       draggable={false}
                     />
 
-                    {/* Image Slot Overlays */}
+                    {/* Image Slot Overlays - positioned to match template frames exactly */}
                     {activeTemplate.imageSlots.map((slot) => {
                       const imageKey = `${activeTemplateId}-${slot.id}`;
                       const imageUrl = imageUploads[imageKey];
@@ -993,33 +989,38 @@ export default function VinhDanhPage() {
                       return (
                         <div
                           key={slot.id}
-                          className="absolute overflow-hidden"
+                          className="absolute"
                           style={{
                             left: `${slot.left}%`,
                             top: `${slot.top}%`,
                             width: `${slot.width}%`,
                             height: `${slot.height}%`,
                             borderRadius: slot.borderRadius,
+                            overflow: 'hidden',
                             border: slot.borderWidth ? `${slot.borderWidth}px solid ${slot.borderColor || 'rgba(245,209,130,0.5)'}` : 'none',
                           }}
                         >
                           {imageUrl ? (
                             <div
-                              className="w-full h-full cursor-move"
+                              className="w-full h-full cursor-move relative"
                               onMouseDown={(e) => handleImgMouseDown(slot.id, e)}
+                              style={{ overflow: 'hidden' }}
                             >
                               <img
                                 src={imageUrl}
                                 alt={slot.label}
                                 crossOrigin="anonymous"
                                 draggable={false}
-                                className="w-full h-full"
                                 style={{
-                                  objectFit: 'cover',
-                                  transform: `translate(${pz.panX}%, ${pz.panY}%) scale(${pz.zoom})`,
-                                  transformOrigin: 'center center',
+                                  position: 'absolute',
+                                  top: '50%',
+                                  left: '50%',
+                                  transform: `translate(-50%, -50%) translate(${pz.panX}%, ${pz.panY}%) scale(${pz.zoom})`,
                                   minWidth: '100%',
                                   minHeight: '100%',
+                                  objectFit: 'cover',
+                                  maxWidth: 'none',
+                                  maxHeight: 'none',
                                 }}
                               />
                             </div>
@@ -1032,7 +1033,7 @@ export default function VinhDanhPage() {
                             </div>
                           )}
                           {imageUrl && !draggingImage && (
-                            <div className="absolute bottom-0.5 right-0.5 bg-black/60 text-white/40 text-[6px] px-1 py-0.5 rounded pointer-events-none">
+                            <div className="absolute bottom-0.5 right-0.5 bg-black/60 text-white/40 text-[6px] px-1 py-0.5 rounded pointer-events-none z-10">
                               Kéo để di chuyển
                             </div>
                           )}
