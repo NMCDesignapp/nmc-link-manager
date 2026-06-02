@@ -26,6 +26,7 @@ export interface ImageSlot {
   height: number;       // % height
   shape: 'circle' | 'rect' | 'rounded'; // Shape of the image
   objectFit: 'cover' | 'contain';
+  draggable?: boolean;  // Allow drag to reposition within frame
 }
 
 export interface TextField {
@@ -106,22 +107,69 @@ const TEMPLATES: PosterTemplate[] = [
       },
     ],
   },
-  // Add more templates here as the user sends them:
-  // {
-  //   id: 'mau-2',
-  //   name: 'Mẫu 2',
-  //   description: 'Chúc mừng quý',
-  //   backgroundImage: '/posters/template-quy.png',
-  //   aspectRatio: '925/462',
-  //   imageSlots: [
-  //     { id: 'photo-1', label: 'Hình 1', left: 5, top: 16, width: 27, height: 37, shape: 'circle', objectFit: 'cover' },
-  //     { id: 'photo-2', label: 'Hình 2', left: 68, top: 16, width: 27, height: 37, shape: 'rect', objectFit: 'cover' },
-  //   ],
-  //   textFields: [
-  //     { id: 'name', label: 'Tên nhân viên', placeholder: 'VD: NGUYỄN MINH CHÂU', defaultValue: '', left: 50, top: 65, fontSize: 22, width: 80, color: '#ffffff', fontWeight: '800', textTransform: 'uppercase', textShadow: '0 2px 8px rgba(0,0,0,0.7)', letterSpacing: '0.08em' },
-  //     { id: 'content', label: 'Nội dung', placeholder: 'VD: hoàn thành kế hoạch quý', defaultValue: 'hoàn thành kế hoạch quý', left: 50, top: 75, fontSize: 14, width: 80, color: '#e0e0e0', fontWeight: '500', textTransform: 'none', textShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '0.02em' },
-  //   ],
-  // },
+  {
+    id: 'mau-2',
+    name: 'Mẫu 2',
+    description: 'Chúc mừng - 2 hình ảnh',
+    backgroundImage: '/posters/template-mau2.png',
+    aspectRatio: '1200/600',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình nhân viên 1',
+        left: 5,
+        top: 15,
+        width: 20,
+        height: 35,
+        shape: 'circle',
+        objectFit: 'cover',
+        draggable: true,
+      },
+      {
+        id: 'photo-2',
+        label: 'Hình nhân viên 2',
+        left: 8,
+        top: 48,
+        width: 27,
+        height: 27,
+        shape: 'circle',
+        objectFit: 'cover',
+        draggable: true,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên nhân viên',
+        placeholder: 'VD: NGUYỄN MINH CHÂU',
+        defaultValue: '',
+        left: 69.5,
+        top: 42,
+        fontSize: 22,
+        width: 55,
+        color: '#eeeae3',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 6px rgba(0,0,0,0.6), 0 0 2px rgba(0,0,0,0.4)',
+        letterSpacing: '0.06em',
+      },
+      {
+        id: 'content',
+        label: 'Nội dung',
+        placeholder: 'VD: hoàn thành kế hoạch tháng',
+        defaultValue: 'hoàn thành kế hoạch tháng',
+        left: 69.5,
+        top: 63,
+        fontSize: 14,
+        width: 55,
+        color: '#bcb695',
+        fontWeight: '400',
+        textTransform: 'none',
+        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+        letterSpacing: '0.02em',
+      },
+    ],
+  },
 ];
 
 export default function VinhDanhPage() {
@@ -152,6 +200,13 @@ export default function VinhDanhPage() {
   // Position adjustments per field (keyed by templateId-fieldId)
   const [positionAdjustments, setPositionAdjustments] = useState<Record<string, { left: number; top: number; fontSize: number }>>({});
 
+  // Image position adjustments (keyed by templateId-slotId) - for dragging photos within frames
+  const [imagePositionAdjustments, setImagePositionAdjustments] = useState<Record<string, { offsetX: number; offsetY: number; scale: number }>>({});
+
+  // Dragging state
+  const [draggingImage, setDraggingImage] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+
   const getTextValue = (field: TextField) => textValues[`${activeTemplateId}-${field.id}`] ?? field.defaultValue;
   const setTextValue = (field: TextField, value: string) => {
     setTextValues(prev => ({ ...prev, [`${activeTemplateId}-${field.id}`]: value }));
@@ -174,6 +229,54 @@ export default function VinhDanhPage() {
       [key]: { ...prev[key], ...{ [prop]: value } },
     }));
   };
+
+  const getImagePosition = (slotId: string) => {
+    const key = `${activeTemplateId}-${slotId}`;
+    const adj = imagePositionAdjustments[key];
+    return {
+      offsetX: adj?.offsetX ?? 0,
+      offsetY: adj?.offsetY ?? 0,
+      scale: adj?.scale ?? 1,
+    };
+  };
+
+  const setImagePosition = (slotId: string, prop: 'offsetX' | 'offsetY' | 'scale', value: number) => {
+    const key = `${activeTemplateId}-${slotId}`;
+    setImagePositionAdjustments(prev => ({
+      ...prev,
+      [key]: { ...prev[key], ...{ [prop]: value } },
+    }));
+  };
+
+  // Drag handlers for images within frames
+  const handleImageMouseDown = useCallback((slotId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const imgPos = getImagePosition(slotId);
+    setDraggingImage(slotId);
+    setDragStart({ x: e.clientX, y: e.clientY, offsetX: imgPos.offsetX, offsetY: imgPos.offsetY });
+  }, [activeTemplateId]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!draggingImage || !dragStart || !posterRef.current) return;
+    const rect = posterRef.current.getBoundingClientRect();
+    const dx = ((e.clientX - dragStart.x) / rect.width) * 100;
+    const dy = ((e.clientY - dragStart.y) / rect.height) * 100;
+    setImagePositionAdjustments(prev => ({
+      ...prev,
+      [`${activeTemplateId}-${draggingImage}`]: {
+        ...prev[`${activeTemplateId}-${draggingImage}`],
+        offsetX: dragStart.offsetX + dx,
+        offsetY: dragStart.offsetY + dy,
+        scale: prev[`${activeTemplateId}-${draggingImage}`]?.scale ?? 1,
+      },
+    }));
+  }, [draggingImage, dragStart, activeTemplateId]);
+
+  const handleMouseUp = useCallback(() => {
+    setDraggingImage(null);
+    setDragStart(null);
+  }, []);
 
   const handleImageUpload = useCallback((slotId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,6 +325,13 @@ export default function VinhDanhPage() {
       newAdj[key] = { left: f.left, top: f.top, fontSize: f.fontSize };
     });
     setPositionAdjustments(prev => ({ ...prev, ...newAdj }));
+    // Reset image positions too
+    const newImgAdj: Record<string, { offsetX: number; offsetY: number; scale: number }> = {};
+    activeTemplate.imageSlots.forEach(s => {
+      const key = `${activeTemplateId}-${s.id}`;
+      newImgAdj[key] = { offsetX: 0, offsetY: 0, scale: 1 };
+    });
+    setImagePositionAdjustments(prev => ({ ...prev, ...newImgAdj }));
   };
 
   const nameField = activeTemplate.textFields.find(f => f.id === 'name');
@@ -386,13 +496,81 @@ export default function VinhDanhPage() {
               >
                 <div className="flex items-center gap-2">
                   <Move className="w-4 h-4 text-cyan-400" />
-                  <Label className="text-sm font-bold text-cyan-300">Điều chỉnh vị trí</Label>
+                  <Label className="text-sm font-bold text-cyan-300">Điều chỉnh vị trí & kích cỡ</Label>
                 </div>
                 {showPositionControl ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
               </button>
 
               {showPositionControl && (
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 space-y-4">
+                  {/* Image position/scale controls */}
+                  {activeTemplate.imageSlots.map((slot) => {
+                    const imgPos = getImagePosition(slot.id);
+                    const imageKey = `${activeTemplateId}-${slot.id}`;
+                    const hasImage = !!imageUploads[imageKey];
+
+                    return (
+                      <div key={slot.id} className={!hasImage ? 'opacity-40 pointer-events-none' : ''}>
+                        <div className="text-[10px] font-bold uppercase mb-1 text-violet-400/60">
+                          {slot.label} - Vị trí & kích cỡ
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[9px] text-white/30">Di chuyển X</span>
+                              <span className="text-[9px] text-cyan-400 font-mono">{imgPos.offsetX.toFixed(1)}%</span>
+                            </div>
+                            <input
+                              type="range" min="-30" max="30" step="0.5"
+                              value={imgPos.offsetX}
+                              onChange={(e) => setImagePosition(slot.id, 'offsetX', parseFloat(e.target.value))}
+                              className="w-full h-1 accent-cyan-500"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[9px] text-white/30">Di chuyển Y</span>
+                              <span className="text-[9px] text-cyan-400 font-mono">{imgPos.offsetY.toFixed(1)}%</span>
+                            </div>
+                            <input
+                              type="range" min="-30" max="30" step="0.5"
+                              value={imgPos.offsetY}
+                              onChange={(e) => setImagePosition(slot.id, 'offsetY', parseFloat(e.target.value))}
+                              className="w-full h-1 accent-cyan-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[9px] text-white/30">Phóng to / Thu nhỏ</span>
+                            <span className="text-[9px] text-cyan-400 font-mono">{imgPos.scale.toFixed(2)}x</span>
+                          </div>
+                          <input
+                            type="range" min="0.5" max="3" step="0.05"
+                            value={imgPos.scale}
+                            onChange={(e) => setImagePosition(slot.id, 'scale', parseFloat(e.target.value))}
+                            className="w-full h-1 accent-cyan-500"
+                          />
+                        </div>
+                        <button
+                          className="text-[9px] text-white/30 hover:text-white/50 mt-1"
+                          onClick={() => setImagePositionAdjustments(prev => ({
+                            ...prev,
+                            [`${activeTemplateId}-${slot.id}`]: { offsetX: 0, offsetY: 0, scale: 1 },
+                          }))}
+                        >
+                          Reset vị trí hình
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Divider between image and text controls */}
+                  {activeTemplate.imageSlots.length > 0 && activeTemplate.textFields.length > 0 && (
+                    <div className="border-t border-white/5 my-1" />
+                  )}
+
+                  {/* Text position controls */}
                   {activeTemplate.textFields.map((field) => {
                     const pos = getPosition(field);
                     const isName = field.id === 'name';
@@ -450,7 +628,7 @@ export default function VinhDanhPage() {
                     className="w-full h-7 text-[10px] text-white/40 hover:text-white border border-white/10 mt-1"
                     onClick={resetPositions}
                   >
-                    <RotateCcw className="w-3 h-3 mr-1" /> Reset mặc định
+                    <RotateCcw className="w-3 h-3 mr-1" /> Reset tất cả mặc định
                   </Button>
                 </div>
               )}
@@ -492,6 +670,9 @@ export default function VinhDanhPage() {
               <div
                 className="relative bg-[#1a1a2e] rounded-none border border-white/10 overflow-hidden"
                 style={{ aspectRatio: activeTemplate.aspectRatio }}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
               >
                 <div ref={posterRef} className="relative w-full h-full">
                   {/* Background Template Image */}
@@ -508,6 +689,8 @@ export default function VinhDanhPage() {
                     const imageUrl = imageUploads[imageKey];
                     if (!imageUrl) return null;
 
+                    const imgPos = getImagePosition(slot.id);
+
                     return (
                       <div
                         key={slot.id}
@@ -519,14 +702,30 @@ export default function VinhDanhPage() {
                           height: `${slot.height}%`,
                         }}
                       >
-                        <img
-                          src={imageUrl}
-                          alt={slot.label}
-                          className={`w-full h-full ${slot.objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${
-                            slot.shape === 'circle' ? 'rounded-full' : slot.shape === 'rounded' ? 'rounded-lg' : 'rounded-none'
-                          }`}
-                          crossOrigin="anonymous"
-                        />
+                        <div
+                          className={`w-full h-full ${slot.draggable ? 'cursor-move' : ''}`}
+                          style={{
+                            transform: `translate(${imgPos.offsetX}%, ${imgPos.offsetY}%) scale(${imgPos.scale})`,
+                            transformOrigin: 'center center',
+                          }}
+                          onMouseDown={slot.draggable ? (e) => handleImageMouseDown(slot.id, e) : undefined}
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={slot.label}
+                            className={`w-full h-full ${slot.objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${
+                              slot.shape === 'circle' ? 'rounded-full' : slot.shape === 'rounded' ? 'rounded-lg' : 'rounded-none'
+                            }`}
+                            crossOrigin="anonymous"
+                            draggable={false}
+                          />
+                        </div>
+                        {/* Drag hint for draggable images */}
+                        {slot.draggable && !draggingImage && (
+                          <div className="absolute bottom-1 right-1 bg-black/50 text-white/60 text-[7px] px-1 py-0.5 rounded-sm pointer-events-none">
+                            Kéo để di chuyển
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -572,7 +771,7 @@ export default function VinhDanhPage() {
               <div className="mt-4 rounded-none border border-white/5 bg-white/[0.02] p-3">
                 <p className="text-[10px] text-white/30 leading-relaxed">
                   <Sparkles className="w-3 h-3 inline text-amber-500/40 mr-1" />
-                  <b className="text-white/40">Hướng dẫn:</b> Chọn mẫu poster → Upload hình → Nhập tên & nội dung → Bấm tải poster. Điều chỉnh vị trí chữ nếu cần trong phần &quot;Điều chỉnh vị trí&quot;.
+                  <b className="text-white/40">Hướng dẫn:</b> Chọn mẫu → Upload hình (kéo để di chuyển ảnh trong khung) → Nhập tên & nội dung → Bấm tải. Điều chỉnh vị trí, kích cỡ chữ và ảnh trong phần &quot;Điều chỉnh vị trí & kích cỡ&quot;.
                 </p>
               </div>
             </div>
