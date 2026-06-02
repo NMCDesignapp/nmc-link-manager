@@ -2289,7 +2289,7 @@ export default function ThiDuaPage() {
               )}
 
               {/* Result Table */}
-              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3">
+              <div className="overflow-x-auto rounded-none border-[0.2px] border-emerald-200 shadow-sm mt-3">
                 <Table className="text-[11px]">
                   <TableHeader>
                     <TableRow className="bg-emerald-700 hover:bg-emerald-700">
