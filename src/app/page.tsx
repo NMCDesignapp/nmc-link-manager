@@ -8,7 +8,7 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2, Trophy } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy, Award } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { useSettings } from '@/hooks/use-settings'
@@ -426,20 +426,30 @@ export default function Home() {
 
         <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0"><NeonDivider color={neonColor} /></div>
 
-        <motion.div className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+        <motion.div className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-2 gap-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
           <motion.button
             onClick={() => router.push('/thi-dua-chau')}
-            className="w-full py-2.5 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+            className="py-2.5 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
             style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
             whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
             whileTap={{ scale: 0.97 }}
           >
-            {/* LED border animation */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
-              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', bottom: -1, right: 0 }} animate={{ x: ['100%', '-300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: 1.2 }} />
             </div>
             <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
+          </motion.button>
+          <motion.button
+            onClick={() => router.push('/vinh-danh')}
+            className="py-2.5 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+            style={{ background: 'rgba(168,85,247,0.12)', border: '1.5px solid #a855f760', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(168,85,247,0.2)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(168,85,247,0.35)' }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #a855f7, transparent)', boxShadow: '0 0 8px #a855f780, 0 0 16px #a855f740', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+            </div>
+            <Award className="w-4 h-4 relative z-10" /> <span className="relative z-10">Vinh Danh</span>
           </motion.button>
         </motion.div>
 
@@ -526,27 +536,30 @@ export default function Home() {
 
           <div className="w-full px-8 flex-shrink-0"><NeonDivider color={neonColor} /></div>
 
-          <motion.div className="w-full px-8 py-3 flex-shrink-0" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+          <motion.div className="w-full px-8 py-3 flex-shrink-0 grid grid-cols-2 gap-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
             <motion.button
               onClick={() => router.push('/thi-dua-chau')}
-              className="w-full py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+              className="py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
               style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
               whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
               whileTap={{ scale: 0.97 }}
             >
-              {/* LED border animation */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
-                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', bottom: -1, right: 0 }} animate={{ x: ['100%', '-300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', delay: 1.2 }} />
-                <motion.div className="absolute w-[2px] h-[40%]" style={{ background: 'linear-gradient(180deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', left: -1, top: 0 }} animate={{ y: ['-100%', '300%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: 0.5 }} />
-                <motion.div className="absolute w-[2px] h-[40%]" style={{ background: 'linear-gradient(180deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', right: -1, bottom: 0 }} animate={{ y: ['100%', '-300%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: 1.7 }} />
               </div>
-              {/* Corner LEDs */}
-              <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
-              <div className="absolute top-0 right-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
-              <div className="absolute bottom-0 left-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
-              <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ background: '#f59e0b', boxShadow: '0 0 6px #f59e0b80', opacity: 0.7 }} />
               <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
+            </motion.button>
+            <motion.button
+              onClick={() => router.push('/vinh-danh')}
+              className="py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+              style={{ background: 'rgba(168,85,247,0.12)', border: '1.5px solid #a855f760', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(168,85,247,0.2)' }}
+              whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(168,85,247,0.35)' }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #a855f7, transparent)', boxShadow: '0 0 8px #a855f780, 0 0 16px #a855f740', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+              </div>
+              <Award className="w-4 h-4 relative z-10" /> <span className="relative z-10">Vinh Danh</span>
             </motion.button>
           </motion.div>
 
