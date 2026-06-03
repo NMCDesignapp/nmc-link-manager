@@ -31,10 +31,44 @@ interface MonthlyRevenue {
 }
 
 interface Contract {
-  id: string; contractNumber: string; agentCode: string; agentName: string;
-  position: string; ban: string; nhom: string; maNhom: string;
-  leaderAgentCode: string; recruiterCode: string; startDate: string | null;
-  effectiveDate: string; issueDate: string; fyp: number; afyp: number; tinhLuot: number;
+  id: string;
+  stt: number;
+  contractNumber: string;
+  ban: string;
+  maTruongBan: string;
+  nhom: string;
+  maBanNhom: string;
+  maTruongBanNhom: string;
+  maDL: string;
+  agentCode: string;
+  agentName: string;
+  position: string;
+  ngayBatDauLamViec: string | null;
+  effectiveDate: string;
+  issueDate: string;
+  pdt10DT: number;
+  fyp: number;
+  nguonDuLieu: string;
+  hopDongToChuc: string;
+  dkDongPhi: string;
+  phiDongThem: number;
+  afypChuaTru10DT: number;
+  afyp: number;
+  ad: string;
+  nhom2: string;
+  ngayBatDauLamViec2: string | null;
+  thangTD: number;
+  namTD: number;
+  thangHL: number;
+  tinhLuot: number;
+  tinhLuot3tr: number;
+  maDaiLyTD: string;
+  danhDauTVV: string;
+  chucVu2: string;
+  leaderAgentCode: string;
+  recruiterCode: string;
+  startDate: string | null;
+  maNhom: string;
 }
 
 interface StaffMember {
@@ -98,8 +132,8 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
     sampleData: [{ 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' }],
   },
   contracts: {
-    headers: ['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Mã TN', 'Mã NTD', 'Ngày bắt đầu', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Tính lượt'],
-    sampleData: [{ 'Số HĐ': 'HD001', 'Mã TVV': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Mã TN': 'TN001', 'Mã NTD': 'NTD001', 'Ngày bắt đầu': '01/01/2026', 'Ngày hiệu lực': '15/01/2026', 'Ngày cấp': '20/01/2026', 'IP': '5000000', 'AFYP': '6500000', 'Tính lượt': '1' }],
+    headers: ['STT', 'Ban', 'Mã trưởng ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã trưởng Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'FYP', 'Nguồn dữ liệu', 'Hợp đồng tổ chức', 'ĐK ĐÓNG PHÍ', 'PHÍ ĐÓNG THÊM', 'AFYP chưa trừ 10% ĐT', 'AFYP', 'AD', 'NHÓM', 'NGÀY BẮT ĐẦU LÀM VIỆC', 'THÁNG TD', 'NĂM TD', 'THÁNG HL', 'TÍNH LƯỢT 3 tr', 'Mã đại lý tuyển dụng', 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1', 'Chức vụ'],
+    sampleData: [{ 'STT': '1', 'Ban': 'Hiệp Tiến', 'Mã trưởng ban': 'D104132535', 'Nhóm': 'Nhiệt An', 'Mã Ban/Nhóm': 'U1041A3L6E', 'Mã trưởng Ban/Nhóm': 'D104132784', 'Mã ĐL': 'D104132784', 'Tên': 'Dương Thị Hồng Nga', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/10/2017', 'Số hợp đồng': '10000017167449', 'Ngày hiệu lực': '01/11/2026', 'Ngày phát hành': '15/11/2026', 'PĐT + 10% ĐT': '12651118', 'FYP': '12651118', 'Nguồn dữ liệu': 'PH', 'Hợp đồng tổ chức': '', 'ĐK ĐÓNG PHÍ': 'Năm', 'PHÍ ĐÓNG THÊM': '75060', 'AFYP chưa trừ 10% ĐT': '12651118', 'AFYP': '12643612', 'AD': 'Trương Quốc Uy', 'NHÓM': 'Nhiệt An', 'NGÀY BẮT ĐẦU LÀM VIỆC': '01/10/2017', 'THÁNG TD': '10', 'NĂM TD': '2017', 'THÁNG HL': '1', 'TÍNH LƯỢT 3 tr': '12651118', 'Mã đại lý tuyển dụng': 'D104102154', 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1': '', 'Chức vụ': 'Trưởng nhóm' }],
   },
   staff: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'],
@@ -110,6 +144,41 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
     sampleData: [{ 'Mã số': 'NTD001', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'NTD', 'Nhóm': 'Nhóm 1', 'Ngày bắt đầu': '01/01/2026' }],
   },
 };
+
+// Contract columns matching CHI TIẾT PH.xlsx layout
+const CONTRACT_COLUMNS = [
+  { f: 'stt', l: 'STT', type: 'number' as const },
+  { f: 'ban', l: 'Ban', type: 'text' as const },
+  { f: 'maTruongBan', l: 'Mã trưởng ban', type: 'text' as const },
+  { f: 'nhom', l: 'Nhóm', type: 'text' as const },
+  { f: 'maBanNhom', l: 'Mã Ban/Nhóm', type: 'text' as const },
+  { f: 'maTruongBanNhom', l: 'Mã trưởng Ban/Nhóm', type: 'text' as const },
+  { f: 'maDL', l: 'Mã ĐL', type: 'text' as const },
+  { f: 'agentName', l: 'Tên', type: 'text' as const },
+  { f: 'position', l: 'Chức vụ', type: 'text' as const },
+  { f: 'ngayBatDauLamViec', l: 'Ngày bắt đầu LV', type: 'date' as const },
+  { f: 'contractNumber', l: 'Số hợp đồng', type: 'text' as const },
+  { f: 'effectiveDate', l: 'Ngày hiệu lực', type: 'date' as const },
+  { f: 'issueDate', l: 'Ngày phát hành', type: 'date' as const },
+  { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
+  { f: 'fyp', l: 'FYP', type: 'number' as const },
+  { f: 'nguonDuLieu', l: 'Nguồn DL', type: 'text' as const },
+  { f: 'hopDongToChuc', l: 'HĐ tổ chức', type: 'text' as const },
+  { f: 'dkDongPhi', l: 'ĐK đóng phí', type: 'text' as const },
+  { f: 'phiDongThem', l: 'Phí đóng thêm', type: 'number' as const },
+  { f: 'afypChuaTru10DT', l: 'AFYP chưa trừ 10% ĐT', type: 'number' as const },
+  { f: 'afyp', l: 'AFYP', type: 'number' as const },
+  { f: 'ad', l: 'AD', type: 'text' as const },
+  { f: 'nhom2', l: 'NHÓM', type: 'text' as const },
+  { f: 'ngayBatDauLamViec2', l: 'Ngày bắt đầu LV 2', type: 'date' as const },
+  { f: 'thangTD', l: 'Tháng TD', type: 'number' as const },
+  { f: 'namTD', l: 'Năm TD', type: 'number' as const },
+  { f: 'thangHL', l: 'Tháng HL', type: 'number' as const },
+  { f: 'tinhLuot3tr', l: 'Tính lượt 3tr', type: 'number' as const },
+  { f: 'maDaiLyTD', l: 'Mã ĐL tuyển dụng', type: 'text' as const },
+  { f: 'danhDauTVV', l: 'Đánh dấu TVV', type: 'text' as const },
+  { f: 'chucVu2', l: 'Chức vụ 2', type: 'text' as const },
+];
 
 // ==================== HELPERS ====================
 function formatCurrency(n: number): string {
@@ -929,7 +998,24 @@ export default function QuanLyPage() {
     try { const r = await fetch(`/api/contracts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setContracts(p => p.map(c => c.id === id ? { ...c, [field]: value } : c)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
   const addContract = useCallback(async () => {
-    try { const now = new Date().toISOString().slice(0, 10); const r = await fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập', effectiveDate: now }) }); if (r.ok) { const n = await r.json(); setContracts(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try {
+      const now = new Date().toISOString().slice(0, 10);
+      const r = await fetch('/api/contracts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stt: 0, contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập',
+          position: '', ban: '', maTruongBan: '', nhom: '', maBanNhom: '',
+          maTruongBanNhom: '', maDL: '', maNhom: '', leaderAgentCode: '',
+          ngayBatDauLamViec: null, effectiveDate: now, issueDate: now,
+          pdt10DT: 0, fyp: 0, nguonDuLieu: '', hopDongToChuc: '', dkDongPhi: '',
+          phiDongThem: 0, afypChuaTru10DT: 0, afyp: 0, ad: '', nhom2: '',
+          ngayBatDauLamViec2: null, thangTD: 0, namTD: 0, thangHL: 0,
+          tinhLuot: 0, tinhLuot3tr: 0, maDaiLyTD: '', danhDauTVV: '',
+          chucVu2: '', recruiterCode: '', startDate: null,
+        })
+      });
+      if (r.ok) { const n = await r.json(); setContracts(p => [n, ...p]); toast({ title: 'Đã thêm' }); }
+    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
   const deleteContract = useCallback(async (id: string) => {
     if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/contracts/${id}`, { method: 'DELETE' }); if (r.ok) { setContracts(p => p.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
@@ -976,7 +1062,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map(c => ({ 'Số HĐ': c.contractNumber, 'Mã TVV': c.agentCode, 'Họ tên': c.agentName, 'Chức vụ': c.position, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã nhóm': c.maNhom, 'Ngày HL': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'IP': c.fyp, 'AFYP': c.afyp }));
+      else if (sheetName === 'contracts') data = contracts.map(c => ({ 'STT': c.stt, 'Ban': c.ban, 'Mã trưởng ban': c.maTruongBan, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maBanNhom, 'Mã trưởng Ban/Nhóm': c.maTruongBanNhom, 'Mã ĐL': c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'FYP': c.fyp, 'Nguồn dữ liệu': c.nguonDuLieu, 'Hợp đồng tổ chức': c.hopDongToChuc, 'ĐK ĐÓNG PHÍ': c.dkDongPhi, 'PHÍ ĐÓNG THÊM': c.phiDongThem, 'AFYP chưa trừ 10% ĐT': c.afypChuaTru10DT, 'AFYP': c.afyp, 'AD': c.ad, 'NHÓM': c.nhom2, 'NGÀY BẮT ĐẦU LÀM VIỆC': c.ngayBatDauLamViec2 ? new Date(c.ngayBatDauLamViec2).toLocaleDateString('vi-VN') : '', 'THÁNG TD': c.thangTD, 'NĂM TD': c.namTD, 'THÁNG HL': c.thangHL, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'Mã đại lý tuyển dụng': c.maDaiLyTD, 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1': c.danhDauTVV, 'Chức vụ': c.chucVu2 }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
 
@@ -1028,7 +1114,48 @@ export default function QuanLyPage() {
         await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
         fetchRevenue();
       } else if (sheetName === 'contracts') {
-        for (const r of data) { const row = r as any; await fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contractNumber: String(row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now()), agentCode: String(row['Mã TVV'] || row['agentCode'] || ''), agentName: String(row['Họ tên'] || row['agentName'] || ''), position: String(row['Chức vụ'] || row['position'] || ''), ban: String(row['Ban'] || row['ban'] || ''), nhom: String(row['Nhóm'] || row['nhom'] || ''), maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''), effectiveDate: row['Ngày hiệu lực'] || row['Ngày HL'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10), fyp: parseFloat(row['IP'] || row['fyp'] || 0) || 0, afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0, tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0 }) }); }
+        for (const r of data) {
+          const row = r as any;
+          await fetch('/api/contracts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stt: parseInt(row['STT'] || row['stt'] || 0) || 0,
+              ban: String(row['Ban'] || row['ban'] || ''),
+              maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || ''),
+              nhom: String(row['Nhóm'] || row['nhom'] || ''),
+              maBanNhom: String(row['Mã Ban/Nhóm'] || row['maBanNhom'] || ''),
+              maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || ''),
+              maDL: String(row['Mã ĐL'] || row['maDL'] || ''),
+              agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || ''),
+              agentName: String(row['Tên'] || row['Họ tên'] || row['agentName'] || ''),
+              position: String(row['Chức vụ'] || row['position'] || ''),
+              ngayBatDauLamViec: row['Ngày bắt đầu làm việc'] || row['ngayBatDauLamViec'] || null,
+              contractNumber: String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now()),
+              effectiveDate: row['Ngày hiệu lực'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10),
+              issueDate: row['Ngày phát hành'] || row['Ngày cấp'] || row['issueDate'] || null,
+              pdt10DT: parseFloat(row['PĐT + 10% ĐT'] || row['pdt10DT'] || 0) || 0,
+              fyp: parseFloat(row['FYP'] || row['IP'] || row['fyp'] || 0) || 0,
+              nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || ''),
+              hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || ''),
+              dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || ''),
+              phiDongThem: parseFloat(row['PHÍ ĐÓNG THÊM'] || row['phiDongThem'] || 0) || 0,
+              afypChuaTru10DT: parseFloat(row['AFYP chưa trừ 10% ĐT'] || row['afypChuaTru10DT'] || 0) || 0,
+              afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0,
+              ad: String(row['AD'] || row['ad'] || ''),
+              nhom2: String(row['NHÓM'] || row['nhom2'] || ''),
+              ngayBatDauLamViec2: row['NGÀY BẮT ĐẦU LÀM VIỆC'] || row['ngayBatDauLamViec2'] || null,
+              thangTD: parseInt(row['THÁNG TD'] || row['thangTD'] || 0) || 0,
+              namTD: parseInt(row['NĂM TD'] || row['namTD'] || 0) || 0,
+              thangHL: parseInt(row['THÁNG HL'] || row['thangHL'] || 0) || 0,
+              tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0,
+              tinhLuot3tr: parseFloat(row['TÍNH LƯỢT 3 tr'] || row['tinhLuot3tr'] || 0) || 0,
+              maDaiLyTD: String(row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['maDaiLyTD'] || ''),
+              danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || ''),
+              chucVu2: String(row['Chức vụ'] || row['chucVu2'] || ''),
+              maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
+            })
+          });
+        }
         fetchContracts();
       } else if (sheetName === 'staff') {
         const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: r['Ngày bắt đầu'] || r['startDate'] || null })).filter(m => m.agentCode || m.agentName);
@@ -1271,6 +1398,11 @@ export default function QuanLyPage() {
     const aggRounds = filteredRevenue.reduce((s, r) => s + r.activityRounds, 0);
     const contractFYP = filteredContracts.reduce((s, c) => s + c.fyp, 0);
     const contractAFYP = filteredContracts.reduce((s, c) => s + c.afyp, 0);
+    const contractPDT = filteredContracts.reduce((s, c) => s + c.pdt10DT, 0);
+    const contractPhiDongThem = filteredContracts.reduce((s, c) => s + c.phiDongThem, 0);
+    const contractAFYPChuaTru = filteredContracts.reduce((s, c) => s + c.afypChuaTru10DT, 0);
+    const contractTinhLuot3tr = filteredContracts.reduce((s, c) => s + c.tinhLuot3tr, 0);
+    const contractCount = filteredContracts.length;
 
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
@@ -1299,14 +1431,15 @@ export default function QuanLyPage() {
         </div>
 
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mb-4">
           {[
-            { label: 'Tổng IP (DT)', value: formatCurrency(aggFYP), color: 'bg-emerald-700' },
-            { label: 'Tổng AFYP (DT)', value: formatCurrency(aggAFYP), color: 'bg-emerald-700' },
-            { label: 'Số HĐ (DT)', value: formatNumber(aggContracts), color: 'bg-sky-700' },
-            { label: 'Lượt HĐ (DT)', value: formatNumber(aggRounds), color: 'bg-sky-700' },
-            { label: 'Tổng IP (HĐ)', value: formatCurrency(contractFYP), color: 'bg-amber-700' },
-            { label: 'Tổng AFYP (HĐ)', value: formatCurrency(contractAFYP), color: 'bg-amber-700' },
+            { label: 'Tổng FYP', value: formatCurrency(contractFYP), color: 'bg-amber-700' },
+            { label: 'Tổng AFYP', value: formatCurrency(contractAFYP), color: 'bg-amber-700' },
+            { label: 'Tổng PĐT + 10% ĐT', value: formatCurrency(contractPDT), color: 'bg-sky-700' },
+            { label: 'Tổng Phí đóng thêm', value: formatCurrency(contractPhiDongThem), color: 'bg-sky-700' },
+            { label: 'Tổng AFYP chưa trừ 10% ĐT', value: formatCurrency(contractAFYPChuaTru), color: 'bg-violet-700' },
+            { label: 'Tổng Tính lượt 3tr', value: formatCurrency(contractTinhLuot3tr), color: 'bg-violet-700' },
+            { label: 'Số HĐ', value: formatNumber(contractCount), color: 'bg-emerald-700' },
           ].map((kpi, i) => (
             <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
               <p className="text-white/60 text-[10px] font-bold">{kpi.label}</p>
@@ -1375,42 +1508,49 @@ export default function QuanLyPage() {
         </div>
         <div className="overflow-x-auto border border-amber-600">
           <Table>
-            <TableHeader><TableRow className="bg-amber-800 hover:bg-amber-800">
-              {['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Ngày HL', 'IP', 'AFYP'].map((h, i) => (
-                <TableHead key={i} className="text-white text-xs font-bold whitespace-nowrap">{h}</TableHead>
-              ))}
-              {!syncEnabled && <TableHead className="text-white text-xs w-[36px]"></TableHead>}
-            </TableRow></TableHeader>
+            <TableHeader>
+              <TableRow className="bg-amber-800 hover:bg-amber-800">
+                {CONTRACT_COLUMNS.map(col => (
+                  <TableHead key={col.f} className="text-white text-[10px] font-bold whitespace-nowrap cursor-pointer hover:text-amber-300" onClick={() => sortData(col.f)}>
+                    {col.l} <SortIcon field={col.f} />
+                  </TableHead>
+                ))}
+                {!syncEnabled && <TableHead className="text-white text-xs w-[36px]"></TableHead>}
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {sortedContracts.slice(0, 200).map(c => (
                 <TableRow key={c.id} className="bg-white hover:bg-amber-50 border-b border-gray-200">
-                  {!syncEnabled ? (<>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.contractNumber} onSave={(v) => updateContract(c.id, 'contractNumber', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.agentCode} onSave={(v) => updateContract(c.id, 'agentCode', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.agentName} onSave={(v) => updateContract(c.id, 'agentName', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.position} onSave={(v) => updateContract(c.id, 'position', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.ban} onSave={(v) => updateContract(c.id, 'ban', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.nhom} onSave={(v) => updateContract(c.id, 'nhom', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.maNhom} onSave={(v) => updateContract(c.id, 'maNhom', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.effectiveDate ? new Date(c.effectiveDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateContract(c.id, 'effectiveDate', v)} type="date" /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.fyp} onSave={(v) => updateContract(c.id, 'fyp', v)} type="number" className="text-right" /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={c.afyp} onSave={(v) => updateContract(c.id, 'afyp', v)} type="number" className="text-right" /></TableCell>
-                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                  </>) : (<>
-                    <TableCell className="text-xs text-gray-900">{c.contractNumber}</TableCell>
-                    <TableCell className="text-xs text-gray-900 font-mono">{c.agentCode}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{c.agentName}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{c.position}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{c.ban}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{c.nhom}</TableCell>
-                    <TableCell className="text-xs text-gray-900 font-mono">{c.maNhom}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{new Date(c.effectiveDate).toLocaleDateString('vi-VN')}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right font-semibold text-emerald-700">{formatNumber(c.fyp)}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(c.afyp)}</TableCell>
-                  </>)}
+                  {CONTRACT_COLUMNS.map(col => (
+                    <TableCell key={col.f} className="text-xs p-0">
+                      {!syncEnabled ? (
+                        <EditableCell
+                          value={col.type === 'number' ? (c as any)[col.f] : (c as any)[col.f] || ''}
+                          onSave={(v) => updateContract(c.id, col.f, v)}
+                          type={col.type}
+                          className={col.type === 'number' ? 'text-right' : ''}
+                        />
+                      ) : (
+                        <span className="px-1 py-0.5 block text-gray-900 text-xs">
+                          {col.type === 'number' && typeof (c as any)[col.f] === 'number'
+                            ? formatNumber((c as any)[col.f])
+                            : col.type === 'date' && (c as any)[col.f]
+                              ? new Date(String((c as any)[col.f])).toLocaleDateString('vi-VN')
+                              : String((c as any)[col.f] || '—')}
+                        </span>
+                      )}
+                    </TableCell>
+                  ))}
+                  {!syncEnabled && (
+                    <TableCell className="text-xs p-1">
+                      <Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
-              {sortedContracts.length === 0 && <TableRow><TableCell colSpan={syncEnabled ? 10 : 11} className="text-center text-gray-500 text-sm py-6">Chưa có HĐ</TableCell></TableRow>}
+              {sortedContracts.length === 0 && <TableRow><TableCell colSpan={CONTRACT_COLUMNS.length + (syncEnabled ? 0 : 1)} className="text-center text-gray-500 text-sm py-6">Chưa có HĐ</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>

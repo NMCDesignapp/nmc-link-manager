@@ -28,11 +28,16 @@ export async function GET(request: NextRequest) {
     const contracts = await db.contract.findMany({
       where,
       select: {
-        id: true, contractNumber: true, agentCode: true, agentName: true,
-        position: true, ban: true, nhom: true, maNhom: true,
-        leaderAgentCode: true, recruiterCode: true,
-        startDate: true, effectiveDate: true, issueDate: true,
-        fyp: true, afyp: true, tinhLuot: true,
+        id: true, stt: true, contractNumber: true, agentCode: true, agentName: true,
+        position: true, ban: true, maTruongBan: true, nhom: true, maBanNhom: true,
+        maTruongBanNhom: true, maDL: true, maNhom: true, leaderAgentCode: true,
+        ngayBatDauLamViec: true, effectiveDate: true, issueDate: true,
+        pdt10DT: true, fyp: true, nguonDuLieu: true, hopDongToChuc: true,
+        dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
+        ad: true, nhom2: true, ngayBatDauLamViec2: true,
+        thangTD: true, namTD: true, thangHL: true,
+        tinhLuot: true, tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
+        chucVu2: true, recruiterCode: true, startDate: true,
       },
       orderBy: { effectiveDate: 'asc' },
     });
@@ -53,7 +58,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { contractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode, startDate, effectiveDate, issueDate, fyp, afyp, tinhLuot } = body;
+    const {
+      stt, contractNumber, agentCode, agentName, position, ban, maTruongBan,
+      nhom, maBanNhom, maTruongBanNhom, maDL, maNhom, leaderAgentCode,
+      ngayBatDauLamViec, effectiveDate, issueDate,
+      pdt10DT, fyp, nguonDuLieu, hopDongToChuc, dkDongPhi, phiDongThem,
+      afypChuaTru10DT, afyp, ad, nhom2, ngayBatDauLamViec2,
+      thangTD, namTD, thangHL, tinhLuot, tinhLuot3tr, maDaiLyTD, danhDauTVV,
+      chucVu2, recruiterCode, startDate,
+    } = body;
 
     if (!contractNumber || !agentName || !effectiveDate || fyp === undefined) {
       return NextResponse.json(
@@ -64,21 +77,43 @@ export async function POST(request: NextRequest) {
 
     const contract = await db.contract.create({
       data: {
+        stt: parseInt(stt) || 0,
         contractNumber,
         agentCode: agentCode || '',
         agentName,
         position: position || '',
         ban: ban || '',
+        maTruongBan: maTruongBan || '',
         nhom: nhom || '',
+        maBanNhom: maBanNhom || '',
+        maTruongBanNhom: maTruongBanNhom || '',
+        maDL: maDL || '',
         maNhom: maNhom || '',
         leaderAgentCode: leaderAgentCode || '',
-        recruiterCode: recruiterCode || '',
-        startDate: startDate ? new Date(startDate) : null,
+        ngayBatDauLamViec: ngayBatDauLamViec ? new Date(ngayBatDauLamViec) : null,
         effectiveDate: new Date(effectiveDate),
         issueDate: new Date(issueDate || effectiveDate),
+        pdt10DT: parseFloat(pdt10DT) || 0,
         fyp: parseFloat(fyp) || 0,
+        nguonDuLieu: nguonDuLieu || '',
+        hopDongToChuc: hopDongToChuc || '',
+        dkDongPhi: dkDongPhi || '',
+        phiDongThem: parseFloat(phiDongThem) || 0,
+        afypChuaTru10DT: parseFloat(afypChuaTru10DT) || 0,
         afyp: parseFloat(afyp) || 0,
+        ad: ad || '',
+        nhom2: nhom2 || '',
+        ngayBatDauLamViec2: ngayBatDauLamViec2 ? new Date(ngayBatDauLamViec2) : null,
+        thangTD: parseInt(thangTD) || 0,
+        namTD: parseInt(namTD) || 0,
+        thangHL: parseInt(thangHL) || 0,
         tinhLuot: parseFloat(tinhLuot) || 0,
+        tinhLuot3tr: parseFloat(tinhLuot3tr) || 0,
+        maDaiLyTD: maDaiLyTD || '',
+        danhDauTVV: danhDauTVV || '',
+        chucVu2: chucVu2 || '',
+        recruiterCode: recruiterCode || '',
+        startDate: startDate ? new Date(startDate) : null,
       },
     });
 

@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Link {
@@ -53,24 +52,46 @@ model CalendarEvent {
 }
 
 model Contract {
-  id              String   @id @default(uuid())
-  contractNumber  String   @unique
-  agentCode       String
-  agentName       String
-  position        String   @default("")
-  ban             String   @default("")
-  nhom            String   @default("")
-  maNhom          String   @default("")
-  leaderAgentCode String   @default("")
-  recruiterCode   String   @default("")
-  startDate       DateTime?
-  effectiveDate   DateTime
-  issueDate       DateTime
-  fyp             Float    @default(0)
-  afyp            Float    @default(0)
-  tinhLuot        Float    @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String    @id @default(uuid())
+  stt                 Int       @default(0)
+  contractNumber      String    @unique
+  agentCode           String
+  agentName           String
+  position            String    @default("")
+  ban                 String    @default("")
+  maTruongBan         String    @default("")
+  nhom                String    @default("")
+  maBanNhom           String    @default("")
+  maTruongBanNhom     String    @default("")
+  maDL                String    @default("")
+  maNhom              String    @default("")
+  leaderAgentCode     String    @default("")
+  ngayBatDauLamViec   DateTime?
+  effectiveDate       DateTime
+  issueDate           DateTime
+  pdt10DT             Float     @default(0)
+  fyp                 Float     @default(0)
+  nguonDuLieu         String    @default("")
+  hopDongToChuc       String    @default("")
+  dkDongPhi           String    @default("")
+  phiDongThem         Float     @default(0)
+  afypChuaTru10DT     Float     @default(0)
+  afyp                Float     @default(0)
+  ad                  String    @default("")
+  nhom2               String    @default("")
+  ngayBatDauLamViec2  DateTime?
+  thangTD             Int       @default(0)
+  namTD               Int       @default(0)
+  thangHL             Int       @default(0)
+  tinhLuot            Float     @default(0)
+  tinhLuot3tr         Float     @default(0)
+  maDaiLyTD           String    @default("")
+  danhDauTVV          String    @default("")
+  chucVu2             String    @default("")
+  recruiterCode       String    @default("")
+  startDate           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model Staff {
