@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
   LayoutDashboard, Users, DollarSign, FileText, UserCircle, Loader2,
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
-  Calendar, TrendingUp, Hash,
+  Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -142,6 +143,84 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
           ? new Date(String(value)).toLocaleDateString('vi-VN')
           : String(value || '—')}
     </div>
+  );
+}
+
+// ==================== SETTINGS POPOVER ====================
+function SettingsPopover({ sectionKey, sectionLabel }: { sectionKey: string; sectionLabel: string }) {
+  const [link, setLink] = useState('');
+  const [syncOn, setSyncOn] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedLink = localStorage.getItem(`nmc-link-${sectionKey}`) || '';
+      const savedSync = localStorage.getItem(`nmc-sync-${sectionKey}`);
+      setLink(savedLink);
+      if (savedSync !== null) setSyncOn(savedSync === 'true');
+    } catch {}
+  }, [sectionKey, open]);
+
+  const handleSave = useCallback(() => {
+    try {
+      localStorage.setItem(`nmc-link-${sectionKey}`, link);
+      localStorage.setItem(`nmc-sync-${sectionKey}`, String(syncOn));
+      toast({ title: 'Đã lưu cài đặt', description: `${sectionLabel}: ${link ? 'Đã thiết lập link' : 'Chưa có link'} • Đồng bộ: ${syncOn ? 'BẬT' : 'TẮT'}` });
+    } catch {
+      toast({ title: 'Lỗi lưu cài đặt', variant: 'destructive' });
+    }
+    setOpen(false);
+  }, [link, syncOn, sectionKey, sectionLabel]);
+
+  const hasLink = !!(localStorage.getItem(`nmc-link-${sectionKey}`));
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-800`}
+          title="Cài đặt"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          {hasLink && <Link2 className="w-3 h-3 ml-1 text-emerald-400" />}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="bg-gray-900 border-emerald-700 w-80 p-3" align="end" sideOffset={4}>
+        <div className="space-y-3">
+          <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+            <Settings className="w-3.5 h-3.5" /> Cài đặt: {sectionLabel}
+          </h4>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Link nguồn (Google Sheets URL)</label>
+            <div className="flex items-center gap-1">
+              <Input
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="h-7 text-xs bg-gray-800 border-gray-600 text-white placeholder-gray-500"
+              />
+              {link && (
+                <a href={link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 flex-shrink-0">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">Đồng bộ tự động</span>
+            <button onClick={() => setSyncOn(!syncOn)} className="flex items-center">
+              {syncOn
+                ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" />
+                : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+            </button>
+          </div>
+          <Button onClick={handleSave} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+            Lưu cài đặt
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -418,13 +497,41 @@ export default function QuanLyPage() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load sync preference
+  // Per-section settings state
+  const [sectionLinks, setSectionLinks] = useState<Record<string, string>>({});
+  const [sectionSyncs, setSectionSyncs] = useState<Record<string, boolean>>({});
+  const [settingsVersion, setSettingsVersion] = useState(0);
+
+  // Load sync preference & section settings
   useEffect(() => {
     try { const s = localStorage.getItem('nmc-sync-enabled'); if (s !== null) setSyncEnabled(s === 'true'); } catch {}
   }, []);
   useEffect(() => {
     try { localStorage.setItem('nmc-sync-enabled', String(syncEnabled)); } catch {}
   }, [syncEnabled]);
+
+  // Load section links & syncs from localStorage
+  useEffect(() => {
+    try {
+      const links: Record<string, string> = {};
+      const syncs: Record<string, boolean> = {};
+      const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+        'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
+        'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
+      allKeys.forEach(key => {
+        const l = localStorage.getItem(`nmc-link-${key}`);
+        if (l) links[key] = l;
+        const s = localStorage.getItem(`nmc-sync-${key}`);
+        if (s !== null) syncs[key] = s === 'true';
+      });
+      setSectionLinks(links);
+      setSectionSyncs(syncs);
+    } catch {}
+  }, [settingsVersion]);
+
+  const refreshSettings = useCallback(() => setSettingsVersion(v => v + 1), []);
+  const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
+  const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
 
   // Fetch
   const fetchLeaders = useCallback(async () => {
@@ -654,9 +761,24 @@ export default function QuanLyPage() {
   // ========== RENDER: Leaders ==========
   const renderLeaders = () => {
     const filtered = getFiltered(getSorted(leaders), ['agentCode', 'agentName', 'position', 'nhom', 'ban']);
+    const kpiTotalTB = filtered.length;
+    const kpiTotalSalary = filtered.reduce((s, l) => s + l.salary, 0);
     return (
       <div>
+        {/* KPI Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-700', icon: Users },
+            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-700', icon: DollarSign },
+          ].map((kpi, i) => (
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/60" /><p className="text-white/60 text-[10px] font-bold">{kpi.label}</p></div>
+              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
+            </div>
+          ))}
+        </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" />
           <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
           <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
           <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
@@ -699,14 +821,29 @@ export default function QuanLyPage() {
   const renderRecruiters = () => {
     const filtered = getFiltered(getSorted(recruiters), ['agentCode', 'agentName', 'nhom', 'position']);
     const canEdit = !syncEnabled;
+    const kpiTotalNTD = filtered.length;
+    const kpiActive = filtered.filter(r => !r.startDate || r.startDate === '').length;
     return (
       <div>
+        {/* KPI Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-700', icon: UserCircle },
+            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-700', icon: CheckCircle2 },
+          ].map((kpi, i) => (
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/60" /><p className="text-white/60 text-[10px] font-bold">{kpi.label}</p></div>
+              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
+            </div>
+          ))}
+        </div>
         <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
           {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa</span></>
             : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-200/60 text-xs">— Chỉ xem</span></>}
           <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" />
           {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
             <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
           <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
@@ -782,17 +919,19 @@ export default function QuanLyPage() {
       <div>
         {/* Sub-tabs for months */}
         <div className="flex items-center gap-1 mb-3 flex-wrap">
+          <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} />
           {MONTHS.map(m => (
             <button
               key={m.key}
               onClick={() => setRevenueSub(m.key)}
-              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
                 revenueSub === m.key
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-900 text-emerald-300 hover:bg-emerald-700 hover:text-white'
               }`}
             >
               {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+              {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
             </button>
           ))}
         </div>
@@ -907,7 +1046,10 @@ export default function QuanLyPage() {
   // ========== RENDER: Structure (placeholder) ==========
   const renderStructure = () => (
     <div className="space-y-4">
-      <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
+        <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" />
+      </div>
       <div className="bg-amber-900 border border-amber-600 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-300" /><span className="text-amber-200 font-bold">Đang xây dựng</span></div>
         <p className="text-amber-200/70 text-sm">Mục này sẽ chứa sơ đồ ban nhóm, nhân viên quản lý, ánh xạ NV-Nhóm, và chỉ số được giao. Đây là nền tảng để trích xuất số liệu theo nhóm hoặc theo nhân viên.</p>
@@ -1013,6 +1155,7 @@ export default function QuanLyPage() {
                   >
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate flex-1 text-left">{sheet.label}</span>
+                    {hasSectionLink(sheet.key) && <Link2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
                     {sheet.synced && syncEnabled && <RefreshCw className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
                     {sheet.synced && !syncEnabled && <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />}
                     {sheet.hasSub && (revenueExpanded && activeSheet === 'revenue' ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
@@ -1030,6 +1173,7 @@ export default function QuanLyPage() {
                         >
                           {m.key === 'all' ? <TrendingUp className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
                           <span>{m.label}</span>
+                          {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5 text-emerald-400" />}
                         </button>
                       ))}
                     </div>
