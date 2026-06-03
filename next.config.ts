@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  serverExternalPackages: ["ws"],
+  serverExternalPackages: ["ws", "xlsx"],
   allowedDevOrigins: [
     "http://127.0.0.1:3099",
     "http://localhost:3099",

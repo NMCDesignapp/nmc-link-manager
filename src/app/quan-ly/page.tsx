@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
@@ -13,6 +14,7 @@ import {
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
+  Merge, Split, Target, BarChart3,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -43,6 +45,23 @@ interface StaffMember {
 interface Recruiter {
   id: string; nhom: string; agentCode: string; agentName: string;
   position: string; startDate: string | null;
+}
+
+// Merge range for spreadsheet
+interface MergeRange {
+  startRow: number;
+  startCol: number;
+  endRow: number;
+  endCol: number;
+}
+
+// KPI configuration
+interface KPIConfig {
+  id: string;
+  label: string;
+  field: string;
+  calculation: 'sum' | 'average' | 'count' | 'min' | 'max';
+  target?: number;
 }
 
 // ==================== CONSTANTS ====================
@@ -224,6 +243,183 @@ function SettingsPopover({ sectionKey, sectionLabel }: { sectionKey: string; sec
   );
 }
 
+// ==================== KPI SETTINGS POPOVER ====================
+function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }: {
+  sectionKey: string; sectionLabel: string;
+  data: Record<string, any>[];
+  availableFields: { key: string; label: string; type: 'number' | 'string' }[];
+}) {
+  const [configs, setConfigs] = useState<KPIConfig[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`nmc-kpi-${sectionKey}`);
+      if (saved) setConfigs(JSON.parse(saved));
+    } catch {}
+  }, [sectionKey, open]);
+
+  const saveConfigs = useCallback((newConfigs: KPIConfig[]) => {
+    setConfigs(newConfigs);
+    try {
+      localStorage.setItem(`nmc-kpi-${sectionKey}`, JSON.stringify(newConfigs));
+    } catch {}
+  }, [sectionKey]);
+
+  const addConfig = useCallback(() => {
+    const newConfig: KPIConfig = {
+      id: `kpi-${Date.now()}`,
+      label: 'KPI mới',
+      field: availableFields[0]?.key || '',
+      calculation: 'sum',
+      target: undefined,
+    };
+    saveConfigs([...configs, newConfig]);
+  }, [configs, saveConfigs, availableFields]);
+
+  const updateConfig = useCallback((id: string, updates: Partial<KPIConfig>) => {
+    saveConfigs(configs.map(c => c.id === id ? { ...c, ...updates } : c));
+  }, [configs, saveConfigs]);
+
+  const removeConfig = useCallback((id: string) => {
+    saveConfigs(configs.filter(c => c.id !== id));
+  }, [configs, saveConfigs]);
+
+  // Calculate KPI values from data
+  const calculateKPI = useCallback((config: KPIConfig): number => {
+    const values = data
+      .map(item => parseFloat(item[config.field]) || 0)
+      .filter(v => !isNaN(v));
+
+    if (values.length === 0) return 0;
+    switch (config.calculation) {
+      case 'sum': return values.reduce((a, b) => a + b, 0);
+      case 'average': return values.reduce((a, b) => a + b, 0) / values.length;
+      case 'count': return values.length;
+      case 'min': return Math.min(...values);
+      case 'max': return Math.max(...values);
+      default: return 0;
+    }
+  }, [data]);
+
+  const formatKPIValue = (val: number): string => {
+    if (Math.abs(val) >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)} tỷ`;
+    if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)} triệu`;
+    if (Math.abs(val) >= 1_000) return formatNumber(Math.round(val));
+    return val.toFixed(val % 1 === 0 ? 0 : 1);
+  };
+
+  const numFields = availableFields.filter(f => f.type === 'number');
+
+  return (
+    <div className="space-y-2">
+      {/* KPI cards */}
+      {configs.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {configs.map(config => {
+            const actual = calculateKPI(config);
+            const pct = config.target ? Math.min((actual / config.target) * 100, 100) : undefined;
+            const fieldLabel = availableFields.find(f => f.key === config.field)?.label || config.field;
+            const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
+            return (
+              <div key={config.id} className="bg-emerald-800 rounded-lg p-2.5 border border-white/10">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-white/60 text-[9px] font-bold">{config.label || fieldLabel}</p>
+                  <span className="text-white/40 text-[8px]">{calcLabel} {fieldLabel}</span>
+                </div>
+                <p className="text-white text-sm font-extrabold truncate">{formatKPIValue(actual)}</p>
+                {config.target && config.target > 0 && (
+                  <div className="mt-1">
+                    <div className="flex items-center justify-between text-[9px]">
+                      <span className="text-white/50">Mục tiêu: {formatKPIValue(config.target)}</span>
+                      <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-900 [&>div]:bg-emerald-400" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Settings popover */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-800"
+            title="Cài đặt KPI"
+          >
+            <BarChart3 className="w-3 h-3" />
+            <span className="ml-1">KPI</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="bg-gray-900 border-emerald-700 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5" /> KPI: {sectionLabel}
+            </h4>
+            <p className="text-[10px] text-gray-400">Tự động tính toán từ dữ liệu bảng. Thêm chỉ số KPI và đặt mục tiêu.</p>
+
+            {configs.map(config => (
+              <div key={config.id} className="bg-gray-800 rounded-md p-2 space-y-1.5 border border-gray-700">
+                <div className="flex items-center gap-1">
+                  <Input
+                    value={config.label}
+                    onChange={(e) => updateConfig(config.id, { label: e.target.value })}
+                    className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+                    placeholder="Tên KPI"
+                  />
+                  <Button variant="ghost" size="sm" onClick={() => removeConfig(config.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300">
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <select
+                    value={config.field}
+                    onChange={(e) => updateConfig(config.id, { field: e.target.value })}
+                    className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+                  >
+                    {numFields.map(f => (
+                      <option key={f.key} value={f.key}>{f.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={config.calculation}
+                    onChange={(e) => updateConfig(config.id, { calculation: e.target.value as KPIConfig['calculation'] })}
+                    className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+                  >
+                    <option value="sum">Tổng (sum)</option>
+                    <option value="average">Trung bình (avg)</option>
+                    <option value="count">Số lượng (count)</option>
+                    <option value="min">Nhỏ nhất (min)</option>
+                    <option value="max">Lớn nhất (max)</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Target className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                  <Input
+                    type="number"
+                    value={config.target || ''}
+                    onChange={(e) => updateConfig(config.id, { target: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+                    placeholder="Mục tiêu (để trống = không có)"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <Button onClick={addConfig} className="w-full bg-emerald-700 hover:bg-emerald-600 text-white h-7 text-xs">
+              <Plus className="w-3 h-3 mr-1" /> Thêm chỉ số KPI
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 // ==================== SPREADSHEET COMPONENT ====================
 const SPREADSHEET_ROWS = 50;
 const SPREADSHEET_COLS = 26;
@@ -327,25 +523,123 @@ function evaluateFormula(formula: string, cells: CellMap): string {
 
 function SpreadsheetSheet() {
   const [cells, setCells] = useState<CellMap>({});
+  const [merges, setMerges] = useState<MergeRange[]>([]);
   const [activeCell, setActiveCell] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [editVal, setEditVal] = useState('');
+  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Load cells and merges from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nmc-spreadsheet');
       if (saved) setCells(JSON.parse(saved));
+      const savedMerges = localStorage.getItem('nmc-spreadsheet-merges');
+      if (savedMerges) setMerges(JSON.parse(savedMerges));
     } catch {}
   }, []);
 
+  // Save cells to localStorage
   useEffect(() => {
     try { localStorage.setItem('nmc-spreadsheet', JSON.stringify(cells)); } catch {}
   }, [cells]);
 
+  // Save merges to localStorage
+  useEffect(() => {
+    try { localStorage.setItem('nmc-spreadsheet-merges', JSON.stringify(merges)); } catch {}
+  }, [merges]);
+
   useEffect(() => {
     if (editingCell && inputRef.current) inputRef.current.focus();
   }, [editingCell]);
+
+  // Parse cellId to {col, row} (0-indexed)
+  const parseCellId = useCallback((cellId: string) => {
+    const col = cellId.charCodeAt(0) - 65;
+    const row = parseInt(cellId.slice(1)) - 1;
+    return { col, row };
+  }, []);
+
+  // Check if a cell is the top-left of a merge
+  const getCellMerge = useCallback((cellId: string): MergeRange | null => {
+    const { col, row } = parseCellId(cellId);
+    return merges.find(m => m.startRow === row && m.startCol === col) || null;
+  }, [merges, parseCellId]);
+
+  // Check if a cell is hidden by a merge
+  const isCellHidden = useCallback((cellId: string): boolean => {
+    const { col, row } = parseCellId(cellId);
+    return merges.some(m =>
+      row >= m.startRow && row <= m.endRow &&
+      col >= m.startCol && col <= m.endCol &&
+      !(row === m.startRow && col === m.startCol)
+    );
+  }, [merges, parseCellId]);
+
+  // Get rowSpan/colSpan for a cell
+  const getCellSpan = useCallback((cellId: string): { rowSpan?: number; colSpan?: number } => {
+    const merge = getCellMerge(cellId);
+    if (!merge) return {};
+    return {
+      rowSpan: merge.endRow - merge.startRow + 1,
+      colSpan: merge.endCol - merge.startCol + 1,
+    };
+  }, [getCellMerge]);
+
+  // Check if a cell is in the selection range
+  const isCellSelected = useCallback((cellId: string): boolean => {
+    if (!selectionStart) return false;
+    const end = selectionEnd || selectionStart;
+    const { col: sc, row: sr } = parseCellId(selectionStart);
+    const { col: ec, row: er } = parseCellId(end);
+    const { col, row } = parseCellId(cellId);
+    const minCol = Math.min(sc, ec), maxCol = Math.max(sc, ec);
+    const minRow = Math.min(sr, er), maxRow = Math.max(sr, er);
+    return col >= minCol && col <= maxCol && row >= minRow && row <= maxRow;
+  }, [selectionStart, selectionEnd, parseCellId]);
+
+  // Merge selected cells
+  const handleMergeCells = useCallback(() => {
+    if (!selectionStart || !selectionEnd) {
+      toast({ title: 'Chọn vùng ô trước', description: 'Click ô đầu → Shift+Click ô cuối', variant: 'destructive' });
+      return;
+    }
+    const { col: sc, row: sr } = parseCellId(selectionStart);
+    const { col: ec, row: er } = parseCellId(selectionEnd);
+    const newMerge: MergeRange = {
+      startRow: Math.min(sr, er),
+      startCol: Math.min(sc, ec),
+      endRow: Math.max(sr, er),
+      endCol: Math.max(sc, ec),
+    };
+    // Check if already merged
+    const overlaps = merges.some(m =>
+      m.startRow <= newMerge.endRow && m.endRow >= newMerge.startRow &&
+      m.startCol <= newMerge.endCol && m.endCol >= newMerge.startCol
+    );
+    if (overlaps) {
+      toast({ title: 'Vùng đã được gộp', description: 'Tách ô trước khi gộp lại', variant: 'destructive' });
+      return;
+    }
+    setMerges(prev => [...prev, newMerge]);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    toast({ title: 'Đã gộp ô', description: `${String.fromCharCode(65 + newMerge.startCol)}${newMerge.startRow + 1}:${String.fromCharCode(65 + newMerge.endCol)}${newMerge.endRow + 1}` });
+  }, [selectionStart, selectionEnd, merges, parseCellId]);
+
+  // Unmerge cells
+  const handleUnmergeCells = useCallback(() => {
+    if (!activeCell) return;
+    const merge = getCellMerge(activeCell);
+    if (!merge) {
+      toast({ title: 'Ô này không phải ô gộp', variant: 'destructive' });
+      return;
+    }
+    setMerges(prev => prev.filter(m => m !== merge));
+    toast({ title: 'Đã tách ô' });
+  }, [activeCell, getCellMerge]);
 
   const getDisplayValue = (cellId: string) => {
     const raw = cells[cellId] || '';
@@ -375,7 +669,7 @@ function SpreadsheetSheet() {
   };
 
   const clearSheet = () => {
-    if (confirm('Xóa toàn bộ trang tính?')) setCells({});
+    if (confirm('Xóa toàn bộ trang tính?')) { setCells({}); setMerges([]); }
   };
 
   const activeCellValue = editingCell ? editVal : (activeCell ? (cells[activeCell] || '') : '');
@@ -416,8 +710,30 @@ function SpreadsheetSheet() {
             {f.label}
           </button>
         ))}
-        <span className="text-gray-400 text-[10px] ml-2">Chọn ô → nhấn nút hàm → sửa range → Enter</span>
+        <div className="border-l border-gray-600 h-4 mx-1" />
+        <button
+          onClick={handleMergeCells}
+          className="px-2 py-0.5 bg-violet-700 hover:bg-violet-600 text-white text-[10px] font-bold rounded flex items-center gap-1"
+          title="Gộp các ô đã chọn (Click → Shift+Click)"
+        >
+          <Merge className="w-3 h-3" /> Gộp ô
+        </button>
+        <button
+          onClick={handleUnmergeCells}
+          className="px-2 py-0.5 bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-bold rounded flex items-center gap-1"
+          title="Tách ô gộp tại ô đang chọn"
+        >
+          <Split className="w-3 h-3" /> Tách ô
+        </button>
+        <span className="text-gray-400 text-[10px] ml-2">Chọn ô → nhấn nút hàm → sửa range → Enter • Click+Shift để chọn vùng gộp</span>
       </div>
+
+      {/* Selection info */}
+      {selectionStart && selectionEnd && (
+        <div className="mb-2 px-2 py-1 bg-violet-900/40 border border-violet-600 rounded text-[10px] text-violet-200">
+          Đã chọn: {selectionStart}:{selectionEnd} — Nhấn "Gộp ô" để gộp
+        </div>
+      )}
 
       {/* Spreadsheet grid */}
       <div className="flex-1 overflow-auto border border-gray-600 bg-white">
@@ -438,18 +754,38 @@ function SpreadsheetSheet() {
                   <td className="bg-gray-100 text-gray-500 text-[10px] text-center border border-gray-300 font-mono sticky left-0">{rowNum}</td>
                   {COL_LABELS.map(col => {
                     const cellId = col + rowNum;
+                    // Skip hidden cells (part of a merge but not top-left)
+                    if (isCellHidden(cellId)) return null;
+
                     const isActive = activeCell === cellId;
                     const isEditing = editingCell === cellId;
                     const display = getDisplayValue(cellId);
                     const isFormula = (cells[cellId] || '').startsWith('=');
+                    const isSelected = isCellSelected(cellId);
+                    const isMerged = !!getCellMerge(cellId);
+                    const span = getCellSpan(cellId);
 
                     return (
                       <td
                         key={cellId}
+                        rowSpan={span.rowSpan}
+                        colSpan={span.colSpan}
                         className={`border border-gray-300 px-1 py-0 text-[11px] cursor-cell min-w-[80px] ${
-                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-50' : 'hover:bg-gray-50'
-                        } ${isFormula ? 'text-blue-800 font-medium' : 'text-gray-900'}`}
-                        onClick={() => { setActiveCell(cellId); setEditingCell(null); }}
+                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-50' : ''
+                        } ${isSelected && !isActive ? 'bg-violet-100 outline outline-1 outline-violet-400' : ''
+                        } ${!isActive && !isSelected ? 'hover:bg-gray-50' : ''
+                        } ${isFormula ? 'text-blue-800 font-medium' : 'text-gray-900'
+                        } ${isMerged ? 'bg-emerald-50 border-emerald-400' : ''}`}
+                        onClick={(e) => {
+                          if (e.shiftKey && selectionStart) {
+                            setSelectionEnd(cellId);
+                          } else {
+                            setSelectionStart(cellId);
+                            setSelectionEnd(null);
+                          }
+                          setActiveCell(cellId);
+                          setEditingCell(null);
+                        }}
                         onDoubleClick={() => { setActiveCell(cellId); setEditingCell(cellId); setEditVal(cells[cellId] || ''); }}
                       >
                         {isEditing ? (
@@ -473,7 +809,7 @@ function SpreadsheetSheet() {
           </tbody>
         </table>
       </div>
-      <div className="text-gray-400 text-[10px] mt-1">Nháy đúp để sửa ô • Dùng = để nhập công thức (SUM, AVERAGE, COUNT, MAX, MIN, +, -, *, /) • Dữ liệu lưu trong trình duyệt</div>
+      <div className="text-gray-400 text-[10px] mt-1">Nháy đúp để sửa ô • Dùng = để nhập công thức • Click+Shift để chọn vùng • Gộp/Tách ô • Dữ liệu lưu trong trình duyệt</div>
     </div>
   );
 }
@@ -621,38 +957,56 @@ export default function QuanLyPage() {
     if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); if (r.ok) { setRecruiters(p => p.filter(rc => rc.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
-  // ========== Download Template ==========
-  const handleDownloadTemplate = useCallback(async (sheetName: string) => {
+  // ========== Download Template (server-side) ==========
+  const handleDownloadTemplate = useCallback((sheetName: string) => {
     try {
-      const XLSX = await import('xlsx');
       const template = TEMPLATES[sheetName];
       if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu', variant: 'destructive' }); return; }
-      const data = [template.sampleData.length > 0 ? template.sampleData[0] : Object.fromEntries(template.headers.map(h => [h, '']))];
-      const ws = XLSX.utils.json_to_sheet(data, { header: template.headers });
-      ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      XLSX.writeFile(wb, `Mau_${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast({ title: 'Tải mẫu thành công' });
-    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+      window.open(`/api/quan-ly/template?type=${sheetName}`, '_blank');
+      toast({ title: 'Đang tải mẫu...', description: `Mẫu ${sheetName}` });
+    } catch (err) {
+      console.error('[handleDownloadTemplate] Error:', err);
+      toast({ title: 'Lỗi tải mẫu', description: String(err), variant: 'destructive' });
+    }
   }, []);
 
-  // ========== Export ==========
+  // ========== Export (server-side) ==========
   const handleExport = useCallback(async (sheetName: string) => {
     try {
-      const XLSX = await import('xlsx');
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
       else if (sheetName === 'contracts') data = contracts.map(c => ({ 'Số HĐ': c.contractNumber, 'Mã TVV': c.agentCode, 'Họ tên': c.agentName, 'Chức vụ': c.position, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã nhóm': c.maNhom, 'Ngày HL': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'IP': c.fyp, 'AFYP': c.afyp }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      XLSX.writeFile(wb, `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+      if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
+
+      const res = await fetch('/api/quan-ly/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetName, data }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errData.error || 'Export failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       toast({ title: 'Xuất Excel thành công' });
-    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    } catch (err) {
+      console.error('[handleExport] Error:', err);
+      toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
+    }
   }, [leaders, revenue, contracts, staff, recruiters]);
 
   // ========== Import ==========
@@ -763,6 +1117,9 @@ export default function QuanLyPage() {
     const filtered = getFiltered(getSorted(leaders), ['agentCode', 'agentName', 'position', 'nhom', 'ban']);
     const kpiTotalTB = filtered.length;
     const kpiTotalSalary = filtered.reduce((s, l) => s + l.salary, 0);
+    const leaderFields: { key: string; label: string; type: 'number' | 'string' }[] = [
+      { key: 'salary', label: 'Tiền/tháng', type: 'number' },
+    ];
     return (
       <div>
         {/* KPI Summary */}
@@ -777,7 +1134,9 @@ export default function QuanLyPage() {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {/* Custom KPI */}
+        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" data={filtered} availableFields={leaderFields} />
+        <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
           <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" />
           <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
           <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
@@ -823,6 +1182,7 @@ export default function QuanLyPage() {
     const canEdit = !syncEnabled;
     const kpiTotalNTD = filtered.length;
     const kpiActive = filtered.filter(r => !r.startDate || r.startDate === '').length;
+    const recruiterFields: { key: string; label: string; type: 'number' | 'string' }[] = [];
     return (
       <div>
         {/* KPI Summary */}
@@ -837,7 +1197,9 @@ export default function QuanLyPage() {
             </div>
           ))}
         </div>
-        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
+        {/* Custom KPI */}
+        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" data={filtered} availableFields={recruiterFields} />
+        <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
           {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa</span></>
             : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-200/60 text-xs">— Chỉ xem</span></>}
           <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
@@ -952,6 +1314,19 @@ export default function QuanLyPage() {
             </div>
           ))}
         </div>
+
+        {/* Custom KPI for Revenue */}
+        <KPISettingsPopover
+          sectionKey={`revenue-${revenueSub}`}
+          sectionLabel={`Doanh thu - ${monthLabel}`}
+          data={filteredRevenue}
+          availableFields={[
+            { key: 'totalFYP', label: 'Tổng IP', type: 'number' },
+            { key: 'totalAFYP', label: 'Tổng AFYP', type: 'number' },
+            { key: 'contractCount', label: 'Số HĐ', type: 'number' },
+            { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
+          ]}
+        />
 
         {/* Revenue detail table */}
         <h3 className="text-sm font-bold text-emerald-300 mb-2">Doanh số chi tiết — {monthLabel}</h3>
