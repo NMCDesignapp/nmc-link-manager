@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,11 @@ import {
   ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
   LayoutDashboard, Users, DollarSign, FileText, UserCircle, Loader2,
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
-  AlertTriangle, Info,
+  AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
+  Calendar, TrendingUp, Hash,
 } from 'lucide-react';
 
-// Types
+// ==================== TYPES ====================
 interface LeaderInfo {
   id: string; agentCode: string; agentName: string; position: string;
   ban: string; nhom: string; maNhom: string; salary: number;
@@ -38,44 +39,59 @@ interface StaffMember {
   agentName: string; position: string; startDate: string | null;
 }
 
-type SheetKey = 'overview' | 'leaders' | 'revenue' | 'contracts' | 'staff';
+interface Recruiter {
+  id: string; nhom: string; agentCode: string; agentName: string;
+  position: string; startDate: string | null;
+}
 
-const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean }[] = [
-  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
-  { key: 'leaders', label: 'Trưởng Ban/Nhóm', icon: Users, synced: false },
-  { key: 'revenue', label: 'Doanh thu tháng', icon: DollarSign, synced: false },
-  { key: 'contracts', label: 'Hợp đồng', icon: FileText, synced: true },
-  { key: 'staff', label: 'Nhân sự', icon: UserCircle, synced: true },
+// ==================== CONSTANTS ====================
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet';
+type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
+
+const MONTHS: { key: RevenueSubKey; label: string }[] = [
+  { key: 'all', label: 'Cả năm' },
+  { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
+  { key: '03', label: 'Tháng 3' }, { key: '04', label: 'Tháng 4' },
+  { key: '05', label: 'Tháng 5' }, { key: '06', label: 'Tháng 6' },
+  { key: '07', label: 'Tháng 7' }, { key: '08', label: 'Tháng 8' },
+  { key: '09', label: 'Tháng 9' }, { key: '10', label: 'Tháng 10' },
+  { key: '11', label: 'Tháng 11' }, { key: '12', label: 'Tháng 12' },
 ];
 
-// Template definitions for each sheet
+const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
+  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
+  { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
+  { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: true },
+  { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
+  { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
+  { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
+];
+
+// Templates
 const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, string>[] }> = {
   leaders: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Tiền/tháng', 'SĐT', 'Email', 'Ghi chú'],
-    sampleData: [
-      { 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ghi chú': '' },
-    ],
+    sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ghi chú': '' }],
   },
   revenue: {
     headers: ['Tháng', 'Mã nhóm', 'Nhóm', 'Mã TVV', 'Tên TVV', 'Tổng IP', 'Tổng AFYP', 'Số HĐ', 'Lượt HĐ', 'Ghi chú'],
-    sampleData: [
-      { 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' },
-    ],
+    sampleData: [{ 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' }],
   },
   contracts: {
     headers: ['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Mã TN', 'Mã NTD', 'Ngày bắt đầu', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Tính lượt'],
-    sampleData: [
-      { 'Số HĐ': 'HD001', 'Mã TVV': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Mã TN': 'TN001', 'Mã NTD': 'NTD001', 'Ngày bắt đầu': '01/01/2026', 'Ngày hiệu lực': '15/01/2026', 'Ngày cấp': '20/01/2026', 'IP': '5000000', 'AFYP': '6500000', 'Tính lượt': '1' },
-    ],
+    sampleData: [{ 'Số HĐ': 'HD001', 'Mã TVV': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Mã TN': 'TN001', 'Mã NTD': 'NTD001', 'Ngày bắt đầu': '01/01/2026', 'Ngày hiệu lực': '15/01/2026', 'Ngày cấp': '20/01/2026', 'IP': '5000000', 'AFYP': '6500000', 'Tính lượt': '1' }],
   },
   staff: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'],
-    sampleData: [
-      { 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Ngày bắt đầu': '01/01/2026' },
-    ],
+    sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Ngày bắt đầu': '01/01/2026' }],
+  },
+  recruiters: {
+    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu'],
+    sampleData: [{ 'Mã số': 'NTD001', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'NTD', 'Nhóm': 'Nhóm 1', 'Ngày bắt đầu': '01/01/2026' }],
   },
 };
 
+// ==================== HELPERS ====================
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
 }
@@ -83,15 +99,15 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('vi-VN').format(n);
 }
 
-// Editable Cell Component
+// ==================== EDITABLE CELL ====================
 function EditableCell({ value, onSave, type = 'text', className = '' }: {
   value: string | number; onSave: (val: any) => void; type?: 'text' | 'number' | 'date'; className?: string;
 }) {
   const [editing, setEditing] = useState(false);
-  const [editVal, setEditVal] = useState(String(value));
+  const [editVal, setEditVal] = useState(String(value ?? ''));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setEditVal(String(value)); }, [value]);
+  useEffect(() => { setEditVal(String(value ?? '')); }, [value]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
 
   const handleSave = useCallback(() => {
@@ -109,14 +125,14 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
         onChange={(e) => setEditVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full h-full px-1 py-0.5 text-xs bg-white text-black border border-emerald-500 outline-none"
+        className="w-full h-full px-1 py-0.5 text-xs bg-white text-black border-2 border-emerald-500 outline-none"
       />
     );
   }
 
   return (
     <div
-      className={`cursor-pointer hover:bg-emerald-50 hover:outline hover:outline-1 hover:outline-emerald-300 px-1 py-0.5 min-h-[22px] ${className}`}
+      className={`cursor-pointer hover:bg-emerald-50 hover:outline hover:outline-1 hover:outline-emerald-300 px-1 py-0.5 min-h-[22px] text-gray-900 ${className}`}
       onDoubleClick={() => setEditing(true)}
       title="Nháy đúp để sửa"
     >
@@ -129,170 +145,373 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
   );
 }
 
+// ==================== SPREADSHEET COMPONENT ====================
+const SPREADSHEET_ROWS = 50;
+const SPREADSHEET_COLS = 26;
+const COL_LABELS = Array.from({ length: SPREADSHEET_COLS }, (_, i) => String.fromCharCode(65 + i));
+
+type CellValue = string;
+type CellMap = Record<string, CellValue>;
+
+function evaluateFormula(formula: string, cells: CellMap): string {
+  if (!formula.startsWith('=')) return formula;
+  const expr = formula.slice(1).trim().toUpperCase();
+
+  // SUM function
+  const sumMatch = expr.match(/^SUM\(([A-Z]\d+):([A-Z]\d+)\)$/);
+  if (sumMatch) {
+    const startCol = sumMatch[1][0], startRow = parseInt(sumMatch[1].slice(1));
+    const endCol = sumMatch[2][0], endRow = parseInt(sumMatch[2].slice(1));
+    let total = 0;
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+        if (!isNaN(val)) total += val;
+      }
+    }
+    return String(total);
+  }
+
+  // AVERAGE function
+  const avgMatch = expr.match(/^AVERAGE\(([A-Z]\d+):([A-Z]\d+)\)$/);
+  if (avgMatch) {
+    const startCol = avgMatch[1][0], startRow = parseInt(avgMatch[1].slice(1));
+    const endCol = avgMatch[2][0], endRow = parseInt(avgMatch[2].slice(1));
+    let total = 0, count = 0;
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) { total += val; count++; }
+      }
+    }
+    return count > 0 ? String(Math.round((total / count) * 100) / 100) : '0';
+  }
+
+  // COUNT function
+  const countMatch = expr.match(/^COUNT\(([A-Z]\d+):([A-Z]\d+)\)$/);
+  if (countMatch) {
+    const startCol = countMatch[1][0], startRow = parseInt(countMatch[1].slice(1));
+    const endCol = countMatch[2][0], endRow = parseInt(countMatch[2].slice(1));
+    let count = 0;
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+        if (cells[String.fromCharCode(c) + r]) count++;
+      }
+    }
+    return String(count);
+  }
+
+  // MAX function
+  const maxMatch = expr.match(/^MAX\(([A-Z]\d+):([A-Z]\d+)\)$/);
+  if (maxMatch) {
+    const startCol = maxMatch[1][0], startRow = parseInt(maxMatch[1].slice(1));
+    const endCol = maxMatch[2][0], endRow = parseInt(maxMatch[2].slice(1));
+    let max = -Infinity;
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) max = Math.max(max, val);
+      }
+    }
+    return max === -Infinity ? '0' : String(max);
+  }
+
+  // MIN function
+  const minMatch = expr.match(/^MIN\(([A-Z]\d+):([A-Z]\d+)\)$/);
+  if (minMatch) {
+    const startCol = minMatch[1][0], startRow = parseInt(minMatch[1].slice(1));
+    const endCol = minMatch[2][0], endRow = parseInt(minMatch[2].slice(1));
+    let min = Infinity;
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) min = Math.min(min, val);
+      }
+    }
+    return min === Infinity ? '0' : String(min);
+  }
+
+  // Cell reference math: =A1+B1, =A1*2, =A1+B1*C1
+  try {
+    const resolved = expr.replace(/([A-Z])(\d+)/g, (match) => {
+      const v = parseFloat(cells[match] || '0');
+      return isNaN(v) ? '0' : String(v);
+    });
+    // Safe eval for simple math
+    const result = Function('"use strict"; return (' + resolved + ')')();
+    if (typeof result === 'number' && isFinite(result)) return String(Math.round(result * 100) / 100);
+    return formula;
+  } catch {
+    return formula;
+  }
+}
+
+function SpreadsheetSheet() {
+  const [cells, setCells] = useState<CellMap>({});
+  const [activeCell, setActiveCell] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nmc-spreadsheet');
+      if (saved) setCells(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('nmc-spreadsheet', JSON.stringify(cells)); } catch {}
+  }, [cells]);
+
+  useEffect(() => {
+    if (editingCell && inputRef.current) inputRef.current.focus();
+  }, [editingCell]);
+
+  const getDisplayValue = (cellId: string) => {
+    const raw = cells[cellId] || '';
+    if (raw.startsWith('=')) return evaluateFormula(raw, cells);
+    return raw;
+  };
+
+  const handleCellSave = () => {
+    if (!editingCell) return;
+    setCells(prev => ({ ...prev, [editingCell]: editVal }));
+    setEditingCell(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { handleCellSave(); }
+    else if (e.key === 'Escape') { setEditingCell(null); }
+    else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleCellSave();
+      if (activeCell) {
+        const col = activeCell[0].charCodeAt(0);
+        const row = activeCell.slice(1);
+        const nextCol = String.fromCharCode(col + 1);
+        if (col < 65 + SPREADSHEET_COLS - 1) setActiveCell(nextCol + row);
+      }
+    }
+  };
+
+  const clearSheet = () => {
+    if (confirm('Xóa toàn bộ trang tính?')) setCells({});
+  };
+
+  const activeCellValue = editingCell ? editVal : (activeCell ? (cells[activeCell] || '') : '');
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Formula bar */}
+      <div className="flex items-center gap-2 mb-2 bg-gray-800 p-2 rounded-md">
+        <span className="text-gray-300 text-xs font-mono min-w-[40px] text-center">{activeCell || '—'}</span>
+        <span className="text-gray-500 text-xs">fx</span>
+        <input
+          ref={inputRef}
+          value={editingCell ? editVal : activeCellValue}
+          onChange={(e) => { if (editingCell) setEditVal(e.target.value); }}
+          onFocus={() => { if (activeCell && !editingCell) { setEditingCell(activeCell); setEditVal(cells[activeCell] || ''); } }}
+          onBlur={handleCellSave}
+          onKeyDown={handleKeyDown}
+          className="flex-1 bg-gray-700 text-white text-xs px-2 py-1 border border-gray-600 outline-none focus:border-emerald-500"
+          placeholder="Nhập giá trị hoặc công thức (vd: =SUM(A1:A10))"
+        />
+        <Button onClick={clearSheet} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 text-xs px-2">Xóa hết</Button>
+      </div>
+
+      {/* Quick functions toolbar */}
+      <div className="flex items-center gap-1 mb-2 flex-wrap">
+        {[
+          { label: 'SUM', fn: 'SUM(A1:A10)' },
+          { label: 'AVG', fn: 'AVERAGE(A1:A10)' },
+          { label: 'COUNT', fn: 'COUNT(A1:A10)' },
+          { label: 'MAX', fn: 'MAX(A1:A10)' },
+          { label: 'MIN', fn: 'MIN(A1:A10)' },
+        ].map(f => (
+          <button
+            key={f.label}
+            onClick={() => { if (activeCell) { setEditingCell(activeCell); setEditVal('=' + f.fn); } }}
+            className="px-2 py-0.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold rounded"
+          >
+            {f.label}
+          </button>
+        ))}
+        <span className="text-gray-400 text-[10px] ml-2">Chọn ô → nhấn nút hàm → sửa range → Enter</span>
+      </div>
+
+      {/* Spreadsheet grid */}
+      <div className="flex-1 overflow-auto border border-gray-600 bg-white">
+        <table className="border-collapse w-max">
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th className="bg-gray-700 text-gray-300 text-[10px] font-bold w-[40px] min-w-[40px] border border-gray-600 sticky left-0 z-20">#</th>
+              {COL_LABELS.map(col => (
+                <th key={col} className="bg-gray-700 text-gray-300 text-[10px] font-bold min-w-[80px] border border-gray-600 px-1 py-0.5">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: SPREADSHEET_ROWS }, (_, rowIdx) => {
+              const rowNum = rowIdx + 1;
+              return (
+                <tr key={rowNum}>
+                  <td className="bg-gray-100 text-gray-500 text-[10px] text-center border border-gray-300 font-mono sticky left-0">{rowNum}</td>
+                  {COL_LABELS.map(col => {
+                    const cellId = col + rowNum;
+                    const isActive = activeCell === cellId;
+                    const isEditing = editingCell === cellId;
+                    const display = getDisplayValue(cellId);
+                    const isFormula = (cells[cellId] || '').startsWith('=');
+
+                    return (
+                      <td
+                        key={cellId}
+                        className={`border border-gray-300 px-1 py-0 text-[11px] cursor-cell min-w-[80px] ${
+                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-50' : 'hover:bg-gray-50'
+                        } ${isFormula ? 'text-blue-800 font-medium' : 'text-gray-900'}`}
+                        onClick={() => { setActiveCell(cellId); setEditingCell(null); }}
+                        onDoubleClick={() => { setActiveCell(cellId); setEditingCell(cellId); setEditVal(cells[cellId] || ''); }}
+                      >
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            value={editVal}
+                            onChange={(e) => setEditVal(e.target.value)}
+                            onBlur={handleCellSave}
+                            onKeyDown={handleKeyDown}
+                            className="w-full h-full px-0 py-0 text-[11px] bg-white text-black border-none outline-none"
+                          />
+                        ) : (
+                          <span className="block truncate">{display}</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="text-gray-400 text-[10px] mt-1">Nháy đúp để sửa ô • Dùng = để nhập công thức (SUM, AVERAGE, COUNT, MAX, MIN, +, -, *, /) • Dữ liệu lưu trong trình duyệt</div>
+    </div>
+  );
+}
+
+// ==================== MAIN PAGE ====================
 export default function QuanLyPage() {
   const router = useRouter();
   const [activeSheet, setActiveSheet] = useState<SheetKey>('overview');
+  const [revenueSub, setRevenueSub] = useState<RevenueSubKey>('all');
+  const [revenueExpanded, setRevenueExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
-  // Sync toggle state - stored in localStorage
   const [syncEnabled, setSyncEnabled] = useState(true);
 
-  // Data states
+  // Data
   const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
   const [revenue, setRevenue] = useState<MonthlyRevenue[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load sync preference from localStorage
+  // Load sync preference
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('nmc-sync-enabled');
-      if (saved !== null) setSyncEnabled(saved === 'true');
-    } catch {}
+    try { const s = localStorage.getItem('nmc-sync-enabled'); if (s !== null) setSyncEnabled(s === 'true'); } catch {}
   }, []);
-
-  // Save sync preference to localStorage
   useEffect(() => {
     try { localStorage.setItem('nmc-sync-enabled', String(syncEnabled)); } catch {}
   }, [syncEnabled]);
 
-  // Fetch functions
+  // Fetch
   const fetchLeaders = useCallback(async () => {
-    try { const res = await fetch('/api/leaders'); if (res.ok) setLeaders(await res.json()); }
-    catch { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu trưởng ban/nhóm', variant: 'destructive' }); }
+    try { const r = await fetch('/api/leaders'); if (r.ok) setLeaders(await r.json()); } catch {}
   }, []);
-
   const fetchRevenue = useCallback(async () => {
-    try { const res = await fetch('/api/revenue'); if (res.ok) setRevenue(await res.json()); }
-    catch { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu doanh thu', variant: 'destructive' }); }
+    try { const r = await fetch('/api/revenue'); if (r.ok) setRevenue(await r.json()); } catch {}
   }, []);
-
   const fetchContracts = useCallback(async () => {
-    try { const res = await fetch('/api/contracts'); if (res.ok) setContracts(await res.json()); }
-    catch { /* silent */ }
+    try { const r = await fetch('/api/contracts'); if (r.ok) setContracts(await r.json()); } catch {}
   }, []);
-
   const fetchStaff = useCallback(async () => {
-    try { const res = await fetch('/api/staff'); if (res.ok) setStaff(await res.json()); }
-    catch { /* silent */ }
+    try { const r = await fetch('/api/staff'); if (r.ok) setStaff(await r.json()); } catch {}
+  }, []);
+  const fetchRecruiters = useCallback(async () => {
+    try { const r = await fetch('/api/recruiters'); if (r.ok) setRecruiters(await r.json()); } catch {}
   }, []);
 
   const loadSheet = useCallback((sheet: SheetKey) => {
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
-      overview: async () => { await Promise.all([fetchLeaders(), fetchRevenue(), fetchContracts(), fetchStaff()]); },
+      overview: async () => { await Promise.all([fetchLeaders(), fetchRevenue(), fetchContracts(), fetchStaff(), fetchRecruiters()]); },
       leaders: fetchLeaders,
-      revenue: fetchRevenue,
-      contracts: fetchContracts,
-      staff: fetchStaff,
+      recruiters: fetchRecruiters,
+      revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
+      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff()]); },
+      spreadsheet: async () => {},
     };
     loaders[sheet]().finally(() => setIsLoading(false));
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff]);
+  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
 
   // ========== CRUD: Leaders ==========
   const updateLeader = useCallback(async (id: string, field: string, value: any) => {
-    try {
-      const res = await fetch(`/api/leaders/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
-      if (res.ok) { setLeaders(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l)); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật', variant: 'destructive' }); }
+    try { const r = await fetch(`/api/leaders/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setLeaders(p => p.map(l => l.id === id ? { ...l, [field]: value } : l)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const addLeader = useCallback(async () => {
-    try {
-      const res = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }) });
-      if (res.ok) { const newLeader = await res.json(); setLeaders(prev => [newLeader, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm', variant: 'destructive' }); }
+    try { const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setLeaders(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const deleteLeader = useCallback(async (id: string) => {
-    if (!confirm('Xóa dòng này?')) return;
-    try {
-      const res = await fetch(`/api/leaders/${id}`, { method: 'DELETE' });
-      if (res.ok) { setLeaders(prev => prev.filter(l => l.id !== id)); toast({ title: 'Đã xóa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/leaders/${id}`, { method: 'DELETE' }); if (r.ok) { setLeaders(p => p.filter(l => l.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
   // ========== CRUD: Revenue ==========
   const updateRevenue = useCallback(async (id: string, field: string, value: any) => {
-    try {
-      const res = await fetch(`/api/revenue/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
-      if (res.ok) { setRevenue(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r)); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật', variant: 'destructive' }); }
+    try { const r = await fetch(`/api/revenue/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setRevenue(p => p.map(rv => rv.id === id ? { ...rv, [field]: value } : rv)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const addRevenue = useCallback(async () => {
     const month = new Date().toISOString().slice(0, 7);
-    try {
-      const res = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month, agentName: 'Chưa nhập' }) });
-      if (res.ok) { const newRev = await res.json(); setRevenue(prev => [newRev, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm', variant: 'destructive' }); }
+    try { const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month, agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setRevenue(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const deleteRevenue = useCallback(async (id: string) => {
-    if (!confirm('Xóa dòng này?')) return;
-    try {
-      const res = await fetch(`/api/revenue/${id}`, { method: 'DELETE' });
-      if (res.ok) { setRevenue(prev => prev.filter(r => r.id !== id)); toast({ title: 'Đã xóa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/revenue/${id}`, { method: 'DELETE' }); if (r.ok) { setRevenue(p => p.filter(rv => rv.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
-  // ========== CRUD: Contracts (only when sync OFF) ==========
+  // ========== CRUD: Contracts ==========
   const updateContract = useCallback(async (id: string, field: string, value: any) => {
-    try {
-      const res = await fetch(`/api/contracts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
-      if (res.ok) { setContracts(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c)); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật hợp đồng', variant: 'destructive' }); }
+    try { const r = await fetch(`/api/contracts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setContracts(p => p.map(c => c.id === id ? { ...c, [field]: value } : c)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const addContract = useCallback(async () => {
-    try {
-      const now = new Date().toISOString().slice(0, 10);
-      const res = await fetch('/api/contracts', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập', effectiveDate: now }),
-      });
-      if (res.ok) { const newC = await res.json(); setContracts(prev => [newC, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
-      else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể thêm', variant: 'destructive' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm hợp đồng', variant: 'destructive' }); }
+    try { const now = new Date().toISOString().slice(0, 10); const r = await fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập', effectiveDate: now }) }); if (r.ok) { const n = await r.json(); setContracts(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const deleteContract = useCallback(async (id: string) => {
-    if (!confirm('Xóa hợp đồng này?')) return;
-    try {
-      const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' });
-      if (res.ok) { setContracts(prev => prev.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/contracts/${id}`, { method: 'DELETE' }); if (r.ok) { setContracts(p => p.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
-  // ========== CRUD: Staff (only when sync OFF) ==========
+  // ========== CRUD: Staff ==========
   const updateStaffMember = useCallback(async (id: string, field: string, value: any) => {
-    try {
-      const res = await fetch(`/api/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
-      if (res.ok) { setStaff(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s)); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật nhân sự', variant: 'destructive' }); }
+    try { const r = await fetch(`/api/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setStaff(p => p.map(s => s.id === id ? { ...s, [field]: value } : s)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
-
   const addStaffMember = useCallback(async () => {
-    try {
-      const res = await fetch('/api/staff', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }),
-      });
-      if (res.ok) { const newS = await res.json(); setStaff(prev => [newS, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm nhân sự', variant: 'destructive' }); }
+    try { const r = await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setStaff(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const deleteStaffMember = useCallback(async (id: string) => {
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/staff/${id}`, { method: 'DELETE' }); if (r.ok) { setStaff(p => p.filter(s => s.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
-  const deleteStaffMember = useCallback(async (id: string) => {
-    if (!confirm('Xóa nhân sự này?')) return;
-    try {
-      const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-      if (res.ok) { setStaff(prev => prev.filter(s => s.id !== id)); toast({ title: 'Đã xóa' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+  // ========== CRUD: Recruiters ==========
+  const updateRecruiter = useCallback(async (id: string, field: string, value: any) => {
+    try { const r = await fetch(`/api/recruiters/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setRecruiters(p => p.map(rc => rc.id === id ? { ...rc, [field]: value } : rc)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const addRecruiter = useCallback(async () => {
+    try { const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NTD_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setRecruiters(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const deleteRecruiter = useCallback(async (id: string) => {
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); if (r.ok) { setRecruiters(p => p.filter(rc => rc.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
   // ========== Download Template ==========
@@ -300,326 +519,157 @@ export default function QuanLyPage() {
     try {
       const XLSX = await import('xlsx');
       const template = TEMPLATES[sheetName];
-      if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu cho bảng này', variant: 'destructive' }); return; }
-
+      if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu', variant: 'destructive' }); return; }
       const data = [template.sampleData.length > 0 ? template.sampleData[0] : Object.fromEntries(template.headers.map(h => [h, '']))];
       const ws = XLSX.utils.json_to_sheet(data, { header: template.headers });
-      // Set column widths
       ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       XLSX.writeFile(wb, `Mau_${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast({ title: 'Tải mẫu thành công', description: 'Điền dữ liệu theo mẫu rồi import vào ứng dụng' });
-    } catch { toast({ title: 'Lỗi', description: 'Không thể tạo mẫu Excel', variant: 'destructive' }); }
+      toast({ title: 'Tải mẫu thành công' });
+    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, []);
 
-  // ========== Export to Excel ==========
+  // ========== Export ==========
   const handleExport = useCallback(async (sheetName: string) => {
     try {
       const XLSX = await import('xlsx');
       let data: any[] = [];
-      let filename = sheetName;
-
-      if (sheetName === 'leaders') data = leaders.map(l => ({
-        'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position,
-        'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary,
-        'SĐT': l.phone, 'Email': l.email, 'Ghi chú': l.note,
-      }));
-      else if (sheetName === 'revenue') data = revenue.map(r => ({
-        'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode,
-        'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP,
-        'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note,
-      }));
-      else if (sheetName === 'contracts') data = contracts.map(c => ({
-        'Số HĐ': c.contractNumber, 'Mã TVV': c.agentCode, 'Họ tên': c.agentName,
-        'Chức vụ': c.position, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã nhóm': c.maNhom,
-        'Mã TN': c.leaderAgentCode, 'Mã NTD': c.recruiterCode,
-        'Ngày bắt đầu': c.startDate ? new Date(c.startDate).toLocaleDateString('vi-VN') : '',
-        'Ngày HL': new Date(c.effectiveDate).toLocaleDateString('vi-VN'),
-        'Ngày cấp': new Date(c.issueDate).toLocaleDateString('vi-VN'),
-        'IP': c.fyp, 'AFYP': c.afyp, 'Tính lượt': c.tinhLuot,
-      }));
-      else if (sheetName === 'staff') data = staff.map(s => ({
-        'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position,
-        'Nhóm': s.nhom, 'Mã nhóm': s.maNhom,
-        'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '',
-      }));
-
+      if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ghi chú': l.note }));
+      else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
+      else if (sheetName === 'contracts') data = contracts.map(c => ({ 'Số HĐ': c.contractNumber, 'Mã TVV': c.agentCode, 'Họ tên': c.agentName, 'Chức vụ': c.position, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã nhóm': c.maNhom, 'Ngày HL': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'IP': c.fyp, 'AFYP': c.afyp }));
+      else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
+      else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      XLSX.writeFile(wb, `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast({ title: 'Xuất Excel thành công' });
-    } catch { toast({ title: 'Lỗi', description: 'Không thể xuất Excel', variant: 'destructive' }); }
-  }, [leaders, revenue, contracts, staff]);
+    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [leaders, revenue, contracts, staff, recruiters]);
 
-  // ========== Import from Excel/CSV ==========
+  // ========== Import ==========
   const handleImport = useCallback(async (sheetName: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const XLSX = await import('xlsx');
-      const arrayBuffer = await file.arrayBuffer();
-      const wb = XLSX.read(arrayBuffer);
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws);
-
-      if (data.length === 0) {
-        toast({ title: 'Lỗi', description: 'File không có dữ liệu', variant: 'destructive' });
-        e.target.value = '';
-        return;
-      }
+      const wb = XLSX.read(await file.arrayBuffer());
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      if (!data.length) { toast({ title: 'File trống', variant: 'destructive' }); e.target.value = ''; return; }
 
       if (sheetName === 'leaders') {
-        const rows = data.map((r: any) => ({
-          agentCode: String(r['Mã số'] || r['agentCode'] || ''),
-          agentName: String(r['Họ tên'] || r['agentName'] || ''),
-          position: String(r['Chức vụ'] || r['position'] || ''),
-          ban: String(r['Ban'] || r['ban'] || ''),
-          nhom: String(r['Nhóm'] || r['nhom'] || ''),
-          maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
-          salary: parseFloat(r['Tiền/tháng'] || r['salary'] || 0) || 0,
-          phone: String(r['SĐT'] || r['phone'] || ''),
-          email: String(r['Email'] || r['email'] || ''),
-          note: String(r['Ghi chú'] || r['note'] || ''),
-        })).filter(r => r.agentCode || r.agentName);
-        for (const row of rows) {
-          await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
-        }
+        const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(r['Tiền/tháng'] || r['salary'] || 0) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || '') })).filter(r => r.agentCode || r.agentName);
+        for (const row of rows) await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
         fetchLeaders();
       } else if (sheetName === 'revenue') {
-        const rows = data.map((r: any) => ({
-          month: String(r['Tháng'] || r['month'] || ''),
-          maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
-          nhom: String(r['Nhóm'] || r['nhom'] || ''),
-          agentCode: String(r['Mã TVV'] || r['agentCode'] || ''),
-          agentName: String(r['Tên TVV'] || r['agentName'] || ''),
-          totalFYP: parseFloat(r['Tổng IP'] || r['totalFYP'] || 0) || 0,
-          totalAFYP: parseFloat(r['Tổng AFYP'] || r['totalAFYP'] || 0) || 0,
-          contractCount: parseInt(r['Số HĐ'] || r['contractCount'] || 0) || 0,
-          activityRounds: parseInt(r['Lượt HĐ'] || r['activityRounds'] || 0) || 0,
-          note: String(r['Ghi chú'] || r['note'] || ''),
-        }));
+        const rows = data.map((r: any) => ({ month: String(r['Tháng'] || r['month'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã TVV'] || r['agentCode'] || ''), agentName: String(r['Tên TVV'] || r['agentName'] || ''), totalFYP: parseFloat(r['Tổng IP'] || r['totalFYP'] || 0) || 0, totalAFYP: parseFloat(r['Tổng AFYP'] || r['totalAFYP'] || 0) || 0, contractCount: parseInt(r['Số HĐ'] || r['contractCount'] || 0) || 0, activityRounds: parseInt(r['Lượt HĐ'] || r['activityRounds'] || 0) || 0, note: String(r['Ghi chú'] || r['note'] || '') }));
         await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
         fetchRevenue();
       } else if (sheetName === 'contracts') {
-        for (const r of data) {
-          const row = r as any;
-          await fetch('/api/contracts', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contractNumber: String(row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now() + Math.random().toString(36).slice(2, 6)),
-              agentCode: String(row['Mã TVV'] || row['agentCode'] || ''),
-              agentName: String(row['Họ tên'] || row['agentName'] || 'Chưa nhập'),
-              position: String(row['Chức vụ'] || row['position'] || ''),
-              ban: String(row['Ban'] || row['ban'] || ''),
-              nhom: String(row['Nhóm'] || row['nhom'] || ''),
-              maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
-              leaderAgentCode: String(row['Mã TN'] || row['leaderAgentCode'] || ''),
-              recruiterCode: String(row['Mã NTD'] || row['recruiterCode'] || ''),
-              startDate: row['Ngày bắt đầu'] || row['startDate'] || null,
-              effectiveDate: row['Ngày hiệu lực'] || row['Ngày HL'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10),
-              issueDate: row['Ngày cấp'] || row['issueDate'] || null,
-              fyp: parseFloat(row['IP'] || row['fyp'] || 0) || 0,
-              afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0,
-              tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0,
-            }),
-          });
-        }
+        for (const r of data) { const row = r as any; await fetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contractNumber: String(row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now()), agentCode: String(row['Mã TVV'] || row['agentCode'] || ''), agentName: String(row['Họ tên'] || row['agentName'] || ''), position: String(row['Chức vụ'] || row['position'] || ''), ban: String(row['Ban'] || row['ban'] || ''), nhom: String(row['Nhóm'] || row['nhom'] || ''), maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''), effectiveDate: row['Ngày hiệu lực'] || row['Ngày HL'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10), fyp: parseFloat(row['IP'] || row['fyp'] || 0) || 0, afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0, tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0 }) }); }
         fetchContracts();
       } else if (sheetName === 'staff') {
-        const members = data.map((r: any) => ({
-          agentCode: String(r['Mã số'] || r['agentCode'] || ''),
-          agentName: String(r['Họ tên'] || r['agentName'] || ''),
-          position: String(r['Chức vụ'] || r['position'] || ''),
-          nhom: String(r['Nhóm'] || r['nhom'] || ''),
-          maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
-          startDate: r['Ngày bắt đầu'] || r['startDate'] || null,
-        })).filter(m => m.agentCode || m.agentName);
-
-        if (members.length > 0) {
-          await fetch('/api/staff', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ members }),
-          });
-        }
+        const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: r['Ngày bắt đầu'] || r['startDate'] || null })).filter(m => m.agentCode || m.agentName);
+        if (members.length) await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
         fetchStaff();
+      } else if (sheetName === 'recruiters') {
+        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: r['Ngày bắt đầu'] || r['startDate'] || null })).filter(m => m.agentCode || m.agentName);
+        if (members.length) await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+        fetchRecruiters();
       }
-      toast({ title: 'Import thành công', description: `${data.length} dòng đã được thêm` });
-    } catch { toast({ title: 'Lỗi', description: 'Không thể import file. Kiểm tra đúng định dạng mẫu.', variant: 'destructive' }); }
+      toast({ title: 'Import thành công', description: `${data.length} dòng` });
+    } catch { toast({ title: 'Lỗi import', variant: 'destructive' }); }
     e.target.value = '';
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff]);
+  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
 
   // Sort & filter
-  const sortData = useCallback((data: any[], field: string) => {
+  const sortData = useCallback((field: string) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir('asc'); }
   }, [sortField]);
-
   const getSorted = useCallback((data: any[]) => {
     if (!sortField) return data;
-    return [...data].sort((a, b) => {
-      const va = a[sortField], vb = b[sortField];
-      if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
-      return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-    });
+    return [...data].sort((a, b) => { const va = a[sortField], vb = b[sortField]; if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va; return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va)); });
   }, [sortField, sortDir]);
-
   const getFiltered = useCallback((data: any[], fields: string[]) => {
-    if (!searchTerm) return data;
-    const lower = searchTerm.toLowerCase();
-    return data.filter(item => fields.some(f => String(item[f] || '').toLowerCase().includes(lower)));
+    if (!searchTerm) return data; const l = searchTerm.toLowerCase(); return data.filter(item => fields.some(f => String(item[f] || '').toLowerCase().includes(l)));
   }, [searchTerm]);
 
-  // Overview stats
+  const SortIcon = ({ field }: { field: string }) => (
+    <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-emerald-300/40'}`} />
+  );
+
+  const handleSyncToggle = useCallback(() => {
+    if (syncEnabled) { if (!confirm('Tắt đồng bộ?\nBảng Hợp đồng & Nhân sự sẽ chuyển sang chế độ thủ công.')) return; setSyncEnabled(false); toast({ title: 'Đã tắt đồng bộ', description: 'Có thể chỉnh sửa HĐ & Nhân sự' }); }
+    else { setSyncEnabled(true); toast({ title: 'Đã bật đồng bộ', description: 'Tự động cập nhật từ Google Sheets' }); }
+  }, [syncEnabled]);
+
+  // ========== RENDER: Overview ==========
   const totalLeaders = leaders.length;
   const totalStaff = staff.length;
   const totalContracts = contracts.length;
-  const totalFYP = contracts.reduce((sum, c) => sum + c.fyp, 0);
-  const totalSalary = leaders.reduce((sum, l) => sum + l.salary, 0);
+  const totalFYP = contracts.reduce((s, c) => s + c.fyp, 0);
+  const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
+  const totalRecruiters = recruiters.length;
+  const totalRevenue = revenue.reduce((s, r) => s + r.totalFYP, 0);
 
-  const SortIcon = ({ field }: { field: string }) => (
-    <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-white/40'}`} />
-  );
-
-  // Sync toggle handler
-  const handleSyncToggle = useCallback(() => {
-    if (syncEnabled) {
-      // Turning OFF sync - warn user
-      const confirmed = confirm('Tắt đồng bộ tự động?\n\nKhi tắt: Bảng Hợp đồng & Nhân sự sẽ chuyển sang chế độ thủ công (có thể chỉnh sửa, thêm, xóa, import file).\n\nDữ liệu hiện tại sẽ được giữ nguyên cho đến khi bạn bật lại đồng bộ.');
-      if (!confirmed) return;
-      setSyncEnabled(false);
-      toast({ title: 'Đã tắt đồng bộ tự động', description: 'Các bảng Hợp đồng & Nhân sự giờ có thể chỉnh sửa' });
-    } else {
-      setSyncEnabled(true);
-      toast({ title: 'Đã bật đồng bộ tự động', description: 'Bảng Hợp đồng & Nhân sự sẽ tự động cập nhật từ Google Sheets' });
-    }
-  }, [syncEnabled]);
-
-  // ========== Render Overview ==========
   const renderOverview = () => (
     <div className="space-y-4">
       <h2 className="text-xl font-extrabold text-emerald-400">Tổng quan hệ thống</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Trưởng Ban/Nhóm', value: totalLeaders, icon: Users, color: 'bg-emerald-700', textColor: 'text-emerald-200' },
-          { label: 'Tổng TVV', value: totalStaff, icon: UserCircle, color: 'bg-sky-700', textColor: 'text-sky-200' },
-          { label: 'Tổng HĐ', value: totalContracts, icon: FileText, color: 'bg-amber-700', textColor: 'text-amber-200' },
-          { label: 'Tổng IP (HĐ)', value: formatCurrency(totalFYP), icon: DollarSign, color: 'bg-violet-700', textColor: 'text-violet-200', isText: true },
-          { label: 'Tổng lương TN', value: formatCurrency(totalSalary), icon: DollarSign, color: 'bg-rose-700', textColor: 'text-rose-200', isText: true },
+          { label: 'Trưởng Ban/Nhóm', value: totalLeaders, icon: Users, color: 'bg-emerald-700' },
+          { label: 'Tổng TVV', value: totalStaff, icon: UserCircle, color: 'bg-sky-700' },
+          { label: 'Người TD', value: totalRecruiters, icon: UserCircle, color: 'bg-violet-700' },
+          { label: 'Tổng HĐ', value: totalContracts, icon: FileText, color: 'bg-amber-700' },
+          { label: 'Tổng IP (HĐ)', value: formatCurrency(totalFYP), isText: true, icon: DollarSign, color: 'bg-rose-700' },
+          { label: 'Tổng DT', value: formatCurrency(totalRevenue), isText: true, icon: TrendingUp, color: 'bg-emerald-700' },
+          { label: 'Tổng lương TN', value: formatCurrency(totalSalary), isText: true, icon: DollarSign, color: 'bg-sky-700' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.color} rounded-lg p-4 border border-white/10`}>
-            <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`w-5 h-5 ${stat.textColor}`} />
-              <span className={`text-sm ${stat.textColor} font-bold`}>{stat.label}</span>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><stat.icon className="w-5 h-5 text-white/70" /><span className="text-sm text-white/80 font-bold">{stat.label}</span></div>
             <p className="text-2xl font-extrabold text-white">{stat.isText ? stat.value : formatNumber(stat.value as number)}</p>
           </div>
         ))}
       </div>
-      {/* Sync Status Card */}
+      {/* Sync Status */}
       <div className={`rounded-lg p-4 border ${syncEnabled ? 'bg-emerald-900 border-emerald-700' : 'bg-amber-900 border-amber-700'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {syncEnabled ? (
-              <CheckCircle2 className="w-6 h-6 text-emerald-300" />
-            ) : (
-              <AlertTriangle className="w-6 h-6 text-amber-300" />
-            )}
+            {syncEnabled ? <CheckCircle2 className="w-6 h-6 text-emerald-300" /> : <AlertTriangle className="w-6 h-6 text-amber-300" />}
             <div>
-              <h3 className={`text-base font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>
-                {syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}
-              </h3>
-              <p className="text-white/60 text-sm">
-                {syncEnabled
-                  ? 'Hợp đồng & Nhân sự tự động cập nhật từ Google Sheets (chỉ xem)'
-                  : 'Chế độ thủ công: Có thể chỉnh sửa, thêm, xóa, import file'}
-              </p>
+              <h3 className={`text-base font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
+              <p className="text-white/50 text-sm">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
             </div>
           </div>
-          <button
-            onClick={handleSyncToggle}
-            className="flex items-center gap-2"
-            title={syncEnabled ? 'Tắt đồng bộ' : 'Bật đồng bộ'}
-          >
-            {syncEnabled ? (
-              <ToggleRight className="w-10 h-10 text-emerald-400 cursor-pointer hover:text-emerald-300 transition-colors" />
-            ) : (
-              <ToggleLeft className="w-10 h-10 text-amber-400 cursor-pointer hover:text-amber-300 transition-colors" />
-            )}
+          <button onClick={handleSyncToggle}>
+            {syncEnabled ? <ToggleRight className="w-10 h-10 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-10 h-10 text-amber-400 cursor-pointer" />}
           </button>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-        <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
-          <h3 className="text-base font-bold text-emerald-300 mb-3">Doanh thu theo tháng</h3>
-          {revenue.length === 0 ? (
-            <p className="text-white/40 text-sm">Chưa có dữ liệu doanh thu</p>
-          ) : (
-            <div className="space-y-2">
-              {Array.from(new Set(revenue.map(r => r.month))).sort().reverse().slice(0, 6).map(month => {
-                const monthData = revenue.filter(r => r.month === month);
-                const monthTotal = monthData.reduce((s, r) => s + r.totalFYP, 0);
-                return (
-                  <div key={month} className="flex items-center justify-between">
-                    <span className="text-white text-sm font-medium">{month}</span>
-                    <span className="text-amber-300 text-sm font-bold">{formatCurrency(monthTotal)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
-          <h3 className="text-base font-bold text-emerald-300 mb-3">Trưởng Ban/Nhóm</h3>
-          {leaders.length === 0 ? (
-            <p className="text-white/40 text-sm">Chưa có dữ liệu trưởng ban/nhóm</p>
-          ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {leaders.slice(0, 10).map(l => (
-                <div key={l.id} className="flex items-center justify-between">
-                  <span className="text-white text-sm">{l.agentName} <span className="text-white/40 text-xs">({l.position})</span></span>
-                  <span className="text-amber-300 text-sm font-bold">{l.salary > 0 ? formatCurrency(l.salary) : '—'}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 
-  // ========== Render Leaders ==========
+  // ========== RENDER: Leaders ==========
   const renderLeaders = () => {
     const filtered = getFiltered(getSorted(leaders), ['agentCode', 'agentName', 'position', 'nhom', 'ban']);
     return (
       <div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
-          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
-            <Upload className="w-3.5 h-3.5" /> Import
-            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} />
-          </label>
-          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
-          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
+          <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {[
-                  { f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' },
-                  { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' },
-                  { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' },
-                  { f: 'note', l: 'Ghi chú' },
-                ].map(col => (
-                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
-                    {col.l} <SortIcon field={col.f} />
-                  </TableHead>
-                ))}
-                <TableHead className="text-white text-xs w-[40px]"></TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
+              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'note', l: 'Ghi chú' }].map(col => (
+                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+              ))}
+              <TableHead className="text-white text-xs w-[40px]"></TableHead>
+            </TableRow></TableHeader>
             <TableBody>
               {filtered.map(l => (
                 <TableRow key={l.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
@@ -636,50 +686,152 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteLeader(l.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={11} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm dòng" hoặc "Import" để bắt đầu.</TableCell></TableRow>
-              )}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng • Nháy đúp ô để chỉnh sửa</p>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa</p>
       </div>
     );
   };
 
-  // ========== Render Revenue ==========
-  const renderRevenue = () => {
-    const filtered = getFiltered(getSorted(revenue), ['month', 'maNhom', 'nhom', 'agentCode', 'agentName']);
+  // ========== RENDER: Recruiters ==========
+  const renderRecruiters = () => {
+    const filtered = getFiltered(getSorted(recruiters), ['agentCode', 'agentName', 'nhom', 'position']);
+    const canEdit = !syncEnabled;
     return (
       <div>
+        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
+          {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa</span></>
+            : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-200/60 text-xs">— Chỉ xem</span></>}
+          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
+        </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <Button onClick={addRevenue} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
-          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
-            <Upload className="w-3.5 h-3.5" /> Import
-            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} />
-          </label>
-          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
-          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
+          {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
+          <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {[
-                  { f: 'month', l: 'Tháng' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'nhom', l: 'Nhóm' },
-                  { f: 'agentCode', l: 'Mã TVV' }, { f: 'agentName', l: 'Tên TVV' },
-                  { f: 'totalFYP', l: 'Tổng IP' }, { f: 'totalAFYP', l: 'Tổng AFYP' },
-                  { f: 'contractCount', l: 'Số HĐ' }, { f: 'activityRounds', l: 'Lượt HĐ' }, { f: 'note', l: 'Ghi chú' },
-                ].map(col => (
-                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
-                    {col.l} <SortIcon field={col.f} />
-                  </TableHead>
-                ))}
-                <TableHead className="text-white text-xs w-[40px]"></TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
+              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
+                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+              ))}
+              {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
+            </TableRow></TableHeader>
             <TableBody>
               {filtered.map(r => (
+                <TableRow key={r.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                  {canEdit ? (<>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.agentCode} onSave={(v) => updateRecruiter(r.id, 'agentCode', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.agentName} onSave={(v) => updateRecruiter(r.id, 'agentName', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.position} onSave={(v) => updateRecruiter(r.id, 'position', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.nhom} onSave={(v) => updateRecruiter(r.id, 'nhom', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
+                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  </>) : (<>
+                    <TableCell className="text-xs text-gray-900 font-mono">{r.agentCode}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{r.agentName}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{r.position}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{r.nhom}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
+                  </>)}
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={canEdit ? 6 : 5} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng</p>
+      </div>
+    );
+  };
+
+  // ========== RENDER: Revenue with sub-tabs ==========
+  const renderRevenue = () => {
+    const currentYear = new Date().getFullYear();
+    // Filter revenue by selected month
+    const filteredRevenue = revenueSub === 'all'
+      ? revenue
+      : revenue.filter(r => r.month === `${currentYear}-${revenueSub}` || r.month.endsWith(`-${revenueSub}`));
+
+    // Filter contracts by month
+    const filteredContracts = revenueSub === 'all'
+      ? contracts
+      : contracts.filter(c => {
+          const d = new Date(c.effectiveDate);
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          return mm === revenueSub;
+        });
+
+    // Aggregate KPIs
+    const aggFYP = filteredRevenue.reduce((s, r) => s + r.totalFYP, 0);
+    const aggAFYP = filteredRevenue.reduce((s, r) => s + r.totalAFYP, 0);
+    const aggContracts = filteredRevenue.reduce((s, r) => s + r.contractCount, 0);
+    const aggRounds = filteredRevenue.reduce((s, r) => s + r.activityRounds, 0);
+    const contractFYP = filteredContracts.reduce((s, c) => s + c.fyp, 0);
+    const contractAFYP = filteredContracts.reduce((s, c) => s + c.afyp, 0);
+
+    const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
+
+    const sortedRev = getSorted(getFiltered(filteredRevenue, ['month', 'maNhom', 'nhom', 'agentCode', 'agentName']));
+    const sortedContracts = getSorted(getFiltered(filteredContracts, ['contractNumber', 'agentCode', 'agentName', 'nhom']));
+
+    return (
+      <div>
+        {/* Sub-tabs for months */}
+        <div className="flex items-center gap-1 mb-3 flex-wrap">
+          {MONTHS.map(m => (
+            <button
+              key={m.key}
+              onClick={() => setRevenueSub(m.key)}
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors ${
+                revenueSub === m.key
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-900 text-emerald-300 hover:bg-emerald-700 hover:text-white'
+              }`}
+            >
+              {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+            </button>
+          ))}
+        </div>
+
+        {/* KPI Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          {[
+            { label: 'Tổng IP (DT)', value: formatCurrency(aggFYP), color: 'bg-emerald-700' },
+            { label: 'Tổng AFYP (DT)', value: formatCurrency(aggAFYP), color: 'bg-emerald-700' },
+            { label: 'Số HĐ (DT)', value: formatNumber(aggContracts), color: 'bg-sky-700' },
+            { label: 'Lượt HĐ (DT)', value: formatNumber(aggRounds), color: 'bg-sky-700' },
+            { label: 'Tổng IP (HĐ)', value: formatCurrency(contractFYP), color: 'bg-amber-700' },
+            { label: 'Tổng AFYP (HĐ)', value: formatCurrency(contractAFYP), color: 'bg-amber-700' },
+          ].map((kpi, i) => (
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
+              <p className="text-white/60 text-[10px] font-bold">{kpi.label}</p>
+              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Revenue detail table */}
+        <h3 className="text-sm font-bold text-emerald-300 mb-2">Doanh số chi tiết — {monthLabel}</h3>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <Button onClick={addRevenue} className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm DT</Button>
+          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DT<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DT</Button>
+        </div>
+        <div className="overflow-x-auto border border-emerald-600 mb-4">
+          <Table>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
+              {[{ f: 'month', l: 'Tháng' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'nhom', l: 'Nhóm' }, { f: 'agentCode', l: 'Mã TVV' }, { f: 'agentName', l: 'Tên TVV' }, { f: 'totalFYP', l: 'Tổng IP' }, { f: 'totalAFYP', l: 'Tổng AFYP' }, { f: 'contractCount', l: 'Số HĐ' }, { f: 'activityRounds', l: 'Lượt HĐ' }, { f: 'note', l: 'Ghi chú' }].map(col => (
+                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+              ))}
+              <TableHead className="text-white text-xs w-[36px]"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {sortedRev.map(r => (
                 <TableRow key={r.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
                   <TableCell className="text-xs p-0"><EditableCell value={r.month} onSave={(v) => updateRevenue(r.id, 'month', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={r.maNhom} onSave={(v) => updateRevenue(r.id, 'maNhom', v)} /></TableCell>
@@ -691,229 +843,136 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={r.contractCount} onSave={(v) => updateRevenue(r.id, 'contractCount', v)} type="number" className="text-right" /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={r.activityRounds} onSave={(v) => updateRevenue(r.id, 'activityRounds', v)} type="number" className="text-right" /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={r.note} onSave={(v) => updateRevenue(r.id, 'note', v)} /></TableCell>
-                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={11} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm dòng" hoặc "Import" để bắt đầu.</TableCell></TableRow>
-              )}
+              {sortedRev.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng • Nháy đúp ô để chỉnh sửa</p>
-      </div>
-    );
-  };
 
-  // ========== Render Contracts (editable when sync OFF) ==========
-  const renderContracts = () => {
-    const filtered = getFiltered(getSorted(contracts), ['contractNumber', 'agentCode', 'agentName', 'nhom', 'ban']);
-    const canEdit = !syncEnabled;
-
-    return (
-      <div>
-        {/* Sync status banner */}
-        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
-          {canEdit ? (
-            <>
-              <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
-              <span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span>
-              <span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa, thêm, xóa, import. Bật đồng bộ lại sẽ ghi đè dữ liệu từ Google Sheets.</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-              <span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span>
-              <span className="text-emerald-200/60 text-xs">— Dữ liệu từ Google Sheets (chỉ xem). Tắt đồng bộ để chỉnh sửa.</span>
-            </>
-          )}
-          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">
-            {syncEnabled ? (
-              <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer hover:text-emerald-300" />
-            ) : (
-              <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer hover:text-amber-300" />
-            )}
-          </button>
+        {/* Contracts for this month */}
+        <h3 className="text-sm font-bold text-amber-300 mb-2">Hợp đồng — {monthLabel} ({sortedContracts.length} HĐ)</h3>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {!syncEnabled && <><Button onClick={addContract} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm HĐ</Button>
+            <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
+          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu HĐ</Button>
+          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất HĐ</Button>
         </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {canEdit && (
-            <>
-              <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
-              <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
-                <Upload className="w-3.5 h-3.5" /> Import
-                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} />
-              </label>
-            </>
-          )}
-          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
-          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
-        </div>
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-x-auto border border-amber-600">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {[
-                  { f: 'contractNumber', l: 'Số HĐ' }, { f: 'agentCode', l: 'Mã TVV' }, { f: 'agentName', l: 'Họ tên' },
-                  { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' },
-                  { f: 'effectiveDate', l: 'Ngày HL' }, { f: 'fyp', l: 'IP' }, { f: 'afyp', l: 'AFYP' },
-                ].map(col => (
-                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
-                    {col.l} <SortIcon field={col.f} />
-                  </TableHead>
-                ))}
-                {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow className="bg-amber-800 hover:bg-amber-800">
+              {['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Ngày HL', 'IP', 'AFYP'].map((h, i) => (
+                <TableHead key={i} className="text-white text-xs font-bold whitespace-nowrap">{h}</TableHead>
+              ))}
+              {!syncEnabled && <TableHead className="text-white text-xs w-[36px]"></TableHead>}
+            </TableRow></TableHeader>
             <TableBody>
-              {filtered.slice(0, 200).map(c => (
-                <TableRow key={c.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  {canEdit ? (
-                    <>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.contractNumber} onSave={(v) => updateContract(c.id, 'contractNumber', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.agentCode} onSave={(v) => updateContract(c.id, 'agentCode', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.agentName} onSave={(v) => updateContract(c.id, 'agentName', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.position} onSave={(v) => updateContract(c.id, 'position', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.ban} onSave={(v) => updateContract(c.id, 'ban', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.nhom} onSave={(v) => updateContract(c.id, 'nhom', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.maNhom} onSave={(v) => updateContract(c.id, 'maNhom', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.effectiveDate ? new Date(c.effectiveDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateContract(c.id, 'effectiveDate', v)} type="date" /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.fyp} onSave={(v) => updateContract(c.id, 'fyp', v)} type="number" className="text-right" /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={c.afyp} onSave={(v) => updateContract(c.id, 'afyp', v)} type="number" className="text-right" /></TableCell>
-                      <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell className="text-xs">{c.contractNumber}</TableCell>
-                      <TableCell className="text-xs font-mono">{c.agentCode}</TableCell>
-                      <TableCell className="text-xs">{c.agentName}</TableCell>
-                      <TableCell className="text-xs">{c.position}</TableCell>
-                      <TableCell className="text-xs">{c.ban}</TableCell>
-                      <TableCell className="text-xs">{c.nhom}</TableCell>
-                      <TableCell className="text-xs font-mono">{c.maNhom}</TableCell>
-                      <TableCell className="text-xs">{new Date(c.effectiveDate).toLocaleDateString('vi-VN')}</TableCell>
-                      <TableCell className="text-xs text-right font-semibold text-emerald-700">{formatNumber(c.fyp)}</TableCell>
-                      <TableCell className="text-xs text-right">{formatNumber(c.afyp)}</TableCell>
-                    </>
-                  )}
+              {sortedContracts.slice(0, 200).map(c => (
+                <TableRow key={c.id} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+                  {!syncEnabled ? (<>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.contractNumber} onSave={(v) => updateContract(c.id, 'contractNumber', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.agentCode} onSave={(v) => updateContract(c.id, 'agentCode', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.agentName} onSave={(v) => updateContract(c.id, 'agentName', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.position} onSave={(v) => updateContract(c.id, 'position', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.ban} onSave={(v) => updateContract(c.id, 'ban', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.nhom} onSave={(v) => updateContract(c.id, 'nhom', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.maNhom} onSave={(v) => updateContract(c.id, 'maNhom', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.effectiveDate ? new Date(c.effectiveDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateContract(c.id, 'effectiveDate', v)} type="date" /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.fyp} onSave={(v) => updateContract(c.id, 'fyp', v)} type="number" className="text-right" /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={c.afyp} onSave={(v) => updateContract(c.id, 'afyp', v)} type="number" className="text-right" /></TableCell>
+                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  </>) : (<>
+                    <TableCell className="text-xs text-gray-900">{c.contractNumber}</TableCell>
+                    <TableCell className="text-xs text-gray-900 font-mono">{c.agentCode}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{c.agentName}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{c.position}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{c.ban}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{c.nhom}</TableCell>
+                    <TableCell className="text-xs text-gray-900 font-mono">{c.maNhom}</TableCell>
+                    <TableCell className="text-xs text-gray-900">{new Date(c.effectiveDate).toLocaleDateString('vi-VN')}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right font-semibold text-emerald-700">{formatNumber(c.fyp)}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(c.afyp)}</TableCell>
+                  </>)}
                 </TableRow>
               ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>
-              )}
+              {sortedContracts.length === 0 && <TableRow><TableCell colSpan={syncEnabled ? 10 : 11} className="text-center text-gray-500 text-sm py-6">Chưa có HĐ</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng {filtered.length > 200 && '(hiển thị tối đa 200)'} • {canEdit ? 'Nháy đúp ô để chỉnh sửa' : 'Dữ liệu chỉ xem'}</p>
       </div>
     );
   };
 
-  // ========== Render Staff (editable when sync OFF) ==========
-  const renderStaff = () => {
-    const filtered = getFiltered(getSorted(staff), ['agentCode', 'agentName', 'nhom', 'position']);
-    const canEdit = !syncEnabled;
-
-    return (
-      <div>
-        {/* Sync status banner */}
-        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
-          {canEdit ? (
-            <>
-              <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
-              <span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span>
-              <span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa, thêm, xóa, import. Bật đồng bộ lại sẽ ghi đè dữ liệu từ Google Sheets.</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-              <span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span>
-              <span className="text-emerald-200/60 text-xs">— Dữ liệu từ Google Sheets (chỉ xem). Tắt đồng bộ để chỉnh sửa.</span>
-            </>
-          )}
-          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">
-            {syncEnabled ? (
-              <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer hover:text-emerald-300" />
-            ) : (
-              <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer hover:text-amber-300" />
-            )}
-          </button>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {canEdit && (
-            <>
-              <Button onClick={addStaffMember} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
-              <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
-                <Upload className="w-3.5 h-3.5" /> Import
-                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('staff', e)} />
-              </label>
-            </>
-          )}
-          <Button onClick={() => handleDownloadTemplate('staff')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
-          <Button onClick={() => handleExport('staff')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
-        </div>
-        <div className="overflow-x-auto border border-emerald-600">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {[
-                  { f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' },
-                  { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' },
-                ].map(col => (
-                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
-                    {col.l} <SortIcon field={col.f} />
-                  </TableHead>
-                ))}
-                {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(s => (
-                <TableRow key={s.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  {canEdit ? (
-                    <>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.agentCode} onSave={(v) => updateStaffMember(s.id, 'agentCode', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.agentName} onSave={(v) => updateStaffMember(s.id, 'agentName', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.position} onSave={(v) => updateStaffMember(s.id, 'position', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.nhom} onSave={(v) => updateStaffMember(s.id, 'nhom', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.maNhom} onSave={(v) => updateStaffMember(s.id, 'maNhom', v)} /></TableCell>
-                      <TableCell className="text-xs p-0"><EditableCell value={s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateStaffMember(s.id, 'startDate', v)} type="date" /></TableCell>
-                      <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteStaffMember(s.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell className="text-xs font-mono">{s.agentCode}</TableCell>
-                      <TableCell className="text-xs">{s.agentName}</TableCell>
-                      <TableCell className="text-xs">{s.position}</TableCell>
-                      <TableCell className="text-xs">{s.nhom}</TableCell>
-                      <TableCell className="text-xs font-mono">{s.maNhom}</TableCell>
-                      <TableCell className="text-xs">{s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
-                    </>
-                  )}
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng • {canEdit ? 'Nháy đúp ô để chỉnh sửa' : 'Dữ liệu chỉ xem'}</p>
+  // ========== RENDER: Structure (placeholder) ==========
+  const renderStructure = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
+      <div className="bg-amber-900 border border-amber-600 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-300" /><span className="text-amber-200 font-bold">Đang xây dựng</span></div>
+        <p className="text-amber-200/70 text-sm">Mục này sẽ chứa sơ đồ ban nhóm, nhân viên quản lý, ánh xạ NV-Nhóm, và chỉ số được giao. Đây là nền tảng để trích xuất số liệu theo nhóm hoặc theo nhân viên.</p>
       </div>
-    );
-  };
 
+      {/* Show current structure from leaders */}
+      <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
+        <h3 className="text-base font-bold text-emerald-300 mb-3">Sơ đồ Trưởng Ban/Nhóm hiện tại</h3>
+        {leaders.length === 0 ? <p className="text-white/40 text-sm">Chưa có dữ liệu</p> : (
+          <div className="space-y-1">
+            {/* Group by ban */}
+            {Array.from(new Set(leaders.map(l => l.ban || '(Chưa phân ban)'))).map(ban => {
+              const banLeaders = leaders.filter(l => (l.ban || '(Chưa phân ban)') === ban);
+              return (
+                <div key={ban} className="bg-emerald-800 rounded-md p-3 mb-2">
+                  <h4 className="text-emerald-200 font-bold text-sm mb-2">{ban}</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {banLeaders.map(l => (
+                      <div key={l.id} className="bg-emerald-700 rounded-md p-2 border border-emerald-600">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-emerald-300" />
+                          <div>
+                            <p className="text-white text-xs font-bold">{l.agentName}</p>
+                            <p className="text-emerald-300/60 text-[10px]">{l.position} • {l.nhom || '(Chưa có nhóm)'} • {l.maNhom}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Staff count by group */}
+      <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
+        <h3 className="text-base font-bold text-emerald-300 mb-3">Nhân sự theo Nhóm</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {Array.from(new Set(staff.map(s => s.nhom || '(Chưa phân)'))).sort().map(nhom => {
+            const count = staff.filter(s => (s.nhom || '(Chưa phân)') === nhom).length;
+            const maNhom = staff.find(s => s.nhom === nhom)?.maNhom || '';
+            return (
+              <div key={nhom} className="bg-emerald-800 rounded-md p-2 flex items-center justify-between">
+                <div><p className="text-white text-xs font-bold">{nhom}</p><p className="text-emerald-300/50 text-[10px]">{maNhom}</p></div>
+                <span className="text-emerald-200 font-extrabold text-sm">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ========== RENDER SHEET DISPATCHER ==========
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
       case 'overview': return renderOverview();
       case 'leaders': return renderLeaders();
+      case 'recruiters': return renderRecruiters();
       case 'revenue': return renderRevenue();
-      case 'contracts': return renderContracts();
-      case 'staff': return renderStaff();
+      case 'structure': return renderStructure();
+      case 'spreadsheet': return <SpreadsheetSheet />;
     }
   };
 
@@ -921,78 +980,72 @@ export default function QuanLyPage() {
     <div className="h-screen flex flex-col bg-[#0a0a1a]">
       {/* Header */}
       <header className="bg-emerald-900 border-b border-emerald-700 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
+        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
-          {/* Sync toggle in header */}
-          <button
-            onClick={handleSyncToggle}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold transition-colors"
-            title={syncEnabled ? 'Đồng bộ tự động: BẬT (nhấn để tắt)' : 'Đồng bộ tự động: TẮT (nhấn để bật)'}
-          >
-            {syncEnabled ? (
-              <span className="flex items-center gap-1.5 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md">
-                <ToggleRight className="w-4 h-4" /> Auto-Sync
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-amber-300 hover:text-amber-200 bg-amber-800 px-2 py-1 rounded-md">
-                <ToggleLeft className="w-4 h-4" /> Thủ công
-              </span>
-            )}
+          <button onClick={handleSyncToggle} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
+            {syncEnabled ? <span className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md"><ToggleRight className="w-4 h-4" /> Auto</span>
+              : <span className="flex items-center gap-1 text-amber-300 hover:text-amber-200 bg-amber-800 px-2 py-1 rounded-md"><ToggleLeft className="w-4 h-4" /> Thủ công</span>}
           </button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm..."
-              className="h-7 w-[180px] pl-7 text-xs bg-emerald-800 border-emerald-600 text-white placeholder-emerald-400"
-            />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-emerald-800 border-emerald-600 text-white placeholder-emerald-400" />
             {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
           </div>
-          <Button variant="ghost" onClick={() => loadSheet(activeSheet)} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0">
-            <RefreshCw className="w-3.5 h-3.5" />
-          </Button>
+          <Button variant="ghost" onClick={() => loadSheet(activeSheet)} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <nav className="w-[180px] bg-emerald-900 border-r border-emerald-700 flex-shrink-0 overflow-y-auto">
-          <div className="p-2 space-y-1">
+        <nav className="w-[200px] bg-emerald-900 border-r border-emerald-700 flex-shrink-0 overflow-y-auto">
+          <div className="p-2 space-y-0.5">
             {SHEETS.map(sheet => {
               const isActive = activeSheet === sheet.key;
+              const isExpanded = sheet.hasSub && revenueExpanded && activeSheet === 'revenue';
               return (
-                <button
-                  key={sheet.key}
-                  onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm font-bold rounded-md transition-colors ${
-                    isActive ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-emerald-800 hover:text-white'
-                  }`}
-                >
-                  <sheet.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate flex-1 text-left">{sheet.label}</span>
-                  {/* Show sync icon for synced sheets */}
-                  {sheet.synced && syncEnabled && (
-                    <RefreshCw className="w-3 h-3 text-emerald-400 flex-shrink-0" title="Đồng bộ tự động" />
+                <div key={sheet.key}>
+                  <button
+                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                      isActive ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-emerald-800 hover:text-white'
+                    }`}
+                  >
+                    <sheet.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate flex-1 text-left">{sheet.label}</span>
+                    {sheet.synced && syncEnabled && <RefreshCw className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
+                    {sheet.synced && !syncEnabled && <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                    {sheet.hasSub && (revenueExpanded && activeSheet === 'revenue' ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
+                  </button>
+                  {/* Revenue sub-items */}
+                  {sheet.hasSub && isExpanded && (
+                    <div className="ml-6 mt-0.5 space-y-0.5">
+                      {MONTHS.map(m => (
+                        <button
+                          key={m.key}
+                          onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); }}
+                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
+                            revenueSub === m.key ? 'bg-emerald-500 text-white' : 'text-emerald-300/70 hover:bg-emerald-700 hover:text-white'
+                          }`}
+                        >
+                          {m.key === 'all' ? <TrendingUp className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
+                          <span>{m.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                  {sheet.synced && !syncEnabled && (
-                    <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" title="Chế độ thủ công" />
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>
-          {/* File menu info */}
+          {/* File menu */}
           <div className="p-2 mt-4 border-t border-emerald-700">
             <div className="text-emerald-400 text-xs font-bold mb-2 px-2">MENU FILE</div>
-            {SHEETS.filter(s => s.key !== 'overview').map(sheet => (
-              <div key={sheet.key} className="px-2 py-1.5 text-emerald-300/60 text-xs flex items-center gap-1.5">
+            {SHEETS.filter(s => s.key !== 'overview' && s.key !== 'spreadsheet').map(sheet => (
+              <div key={sheet.key} className="px-2 py-1 text-emerald-300/50 text-[11px] flex items-center gap-1.5">
                 <sheet.icon className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{sheet.label}</span>
-                {sheet.synced && <span className="text-amber-400/50 text-[10px]">{syncEnabled ? 'sync' : 'edit'}</span>}
+                {sheet.synced && <span className="text-[9px] text-amber-400/50">{syncEnabled ? 'sync' : 'edit'}</span>}
               </div>
             ))}
           </div>

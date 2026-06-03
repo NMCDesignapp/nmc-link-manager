@@ -1,43 +1,33 @@
-import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 
-// PATCH /api/recruiters/[id]
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { nhom, agentName, position, startDate } = body;
+    const body = await req.json();
 
-    const recruiter = await db.recruiter.update({
-      where: { id },
-      data: {
-        ...(nhom !== undefined && { nhom }),
-        ...(agentName !== undefined && { agentName }),
-        ...(position !== undefined && { position }),
-        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
-      },
-    });
+    const data: Record<string, unknown> = {};
+    if (body.nhom !== undefined) data.nhom = body.nhom;
+    if (body.agentCode !== undefined) data.agentCode = body.agentCode;
+    if (body.agentName !== undefined) data.agentName = body.agentName;
+    if (body.position !== undefined) data.position = body.position;
+    if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
+
+    const recruiter = await db.recruiter.update({ where: { id }, data });
     return NextResponse.json(recruiter);
   } catch (error) {
-    console.error('Error updating recruiter:', error);
-    return NextResponse.json({ error: 'Không thể cập nhật' }, { status: 500 });
+    console.error('PATCH /api/recruiters/[id] error:', error);
+    return NextResponse.json({ error: 'Không thể cập nhật người tuyển dụng' }, { status: 500 });
   }
 }
 
-// DELETE /api/recruiters/[id]
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     await db.recruiter.delete({ where: { id } });
-    return NextResponse.json({ message: 'Đã xóa thành công' });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting recruiter:', error);
-    return NextResponse.json({ error: 'Không thể xóa' }, { status: 500 });
+    console.error('DELETE /api/recruiters/[id] error:', error);
+    return NextResponse.json({ error: 'Không thể xóa người tuyển dụng' }, { status: 500 });
   }
 }
