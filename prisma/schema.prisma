@@ -118,11 +118,11 @@ model Contest {
   secondaryLuotHDCMin  Float @default(0)
   secondaryLuotHDFilter String @default("all")
   secondaryLuotHDCFilter String @default("all")
-  hideNotAchieved  Boolean @default(false)
+  hideNotAchieved  Boolean  @default(false)
   includeIndividualNTD Boolean @default(false)
   includeIndividualTN  Boolean @default(false)
   luotHDThreshold  Float  @default(3000000)
-  luotHDCTThreshold Float @default(12000000)
+  luotHDCTThreshold Float  @default(12000000)
   tvv90MaxMonths   Float  @default(3)
   tvv90MinIP       Float  @default(12000000)
   csvContractUrl   String   @default("")
@@ -130,4 +130,37 @@ model Contest {
   csvRecruiterUrl  String   @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model LeaderInfo {
+  id            String    @id @default(uuid())
+  agentCode     String    @unique
+  agentName     String
+  position      String    @default("")
+  ban           String    @default("")
+  nhom          String    @default("")
+  maNhom        String    @default("")
+  salary        Float     @default(0)
+  phone         String    @default("")
+  email         String    @default("")
+  note          String    @default("")
+  startDate     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model MonthlyRevenue {
+  id            String   @id @default(uuid())
+  month         String
+  maNhom        String   @default("")
+  nhom          String   @default("")
+  agentCode     String   @default("")
+  agentName     String   @default("")
+  totalFYP      Float    @default(0)
+  totalAFYP     Float    @default(0)
+  contractCount Int      @default(0)
+  activityRounds Int     @default(0)
+  note          String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
