@@ -160,3 +160,31 @@ Stage Summary:
 - Professional formal styling with gold/amber theme
 - Draggable text on poster + image pan/zoom
 - Deployed to Vercel via GitHub push
+
+---
+Task ID: 1
+Agent: full-stack-developer
+Task: Add per-section settings, link configuration, and KPI calculations to quan-ly page
+
+Work Log:
+- Added Settings, Link2, ExternalLink icons to lucide-react imports
+- Added Popover component import from shadcn/ui
+- Created reusable SettingsPopover component with link nguồn input and đồng bộ toggle per section, persisted to localStorage with keys `nmc-link-{key}` and `nmc-sync-{key}`
+- Added per-section settings state management (sectionLinks, sectionSyncs, settingsVersion) with localStorage persistence
+- Added KPI summary cards to Leaders section: Tổng TB/TN count + Tổng lương sum
+- Added KPI summary cards to Recruiters section: Tổng NTD count + Đang hoạt động count
+- Added SettingsPopover button to Leaders, Recruiters, and Structure toolbars
+- Added per-month SettingsPopover to Revenue sub-tabs (revenue-{monthKey} pattern)
+- Added Link2 icon indicators to sidebar items when links are configured
+- Added Link2 icon to revenue month sub-items when links are configured
+- Added SettingsPopover to Structure section header
+- Kept global sync toggle in Overview as master switch
+- Build succeeded with no errors
+- Pushed to GitHub: feat: add per-section settings, link config, and KPI calculations
+
+Stage Summary:
+- Each section now has its own configurable Google Sheets link and sync toggle
+- KPI summary indicators auto-calculate from visible table data
+- Sidebar and revenue tabs show link icons when configured
+- All settings persisted in localStorage
+- No existing functionality broken
