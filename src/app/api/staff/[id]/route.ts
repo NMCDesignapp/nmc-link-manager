@@ -1,75 +1,34 @@
-import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 
-// GET /api/staff/[id] - Get single staff member
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const staff = await db.staff.findUnique({ where: { id } });
-    if (!staff) {
-      return NextResponse.json(
-        { error: 'Không tìm thấy nhân sự' },
-        { status: 404 }
-      );
-    }
+    const body = await req.json();
+
+    const data: Record<string, unknown> = {};
+    if (body.nhom !== undefined) data.nhom = body.nhom;
+    if (body.maNhom !== undefined) data.maNhom = body.maNhom;
+    if (body.agentCode !== undefined) data.agentCode = body.agentCode;
+    if (body.agentName !== undefined) data.agentName = body.agentName;
+    if (body.position !== undefined) data.position = body.position;
+    if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
+
+    const staff = await db.staff.update({ where: { id }, data });
     return NextResponse.json(staff);
   } catch (error) {
-    console.error('Error fetching staff:', error);
-    return NextResponse.json(
-      { error: 'Không thể tải thông tin nhân sự' },
-      { status: 500 }
-    );
+    console.error('PATCH /api/staff/[id] error:', error);
+    return NextResponse.json({ error: 'Không thể cập nhật nhân sự' }, { status: 500 });
   }
 }
 
-// PATCH /api/staff/[id] - Update staff member
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    const { nhom, maNhom, agentName, position, startDate } = body;
-
-    const staff = await db.staff.update({
-      where: { id },
-      data: {
-        ...(nhom !== undefined && { nhom }),
-        ...(maNhom !== undefined && { maNhom }),
-        ...(agentName !== undefined && { agentName }),
-        ...(position !== undefined && { position }),
-        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
-      },
-    });
-
-    return NextResponse.json(staff);
-  } catch (error) {
-    console.error('Error updating staff:', error);
-    return NextResponse.json(
-      { error: 'Không thể cập nhật nhân sự' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/staff/[id] - Delete single staff member
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     await db.staff.delete({ where: { id } });
-    return NextResponse.json({ message: 'Đã xóa nhân sự thành công' });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting staff:', error);
-    return NextResponse.json(
-      { error: 'Không thể xóa nhân sự' },
-      { status: 500 }
-    );
+    console.error('DELETE /api/staff/[id] error:', error);
+    return NextResponse.json({ error: 'Không thể xóa nhân sự' }, { status: 500 });
   }
 }

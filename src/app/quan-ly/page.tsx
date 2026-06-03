@@ -9,7 +9,8 @@ import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
   LayoutDashboard, Users, DollarSign, FileText, UserCircle, Loader2,
-  RefreshCw, CheckCircle2, X,
+  RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
+  AlertTriangle, Info,
 } from 'lucide-react';
 
 // Types
@@ -39,13 +40,41 @@ interface StaffMember {
 
 type SheetKey = 'overview' | 'leaders' | 'revenue' | 'contracts' | 'staff';
 
-const SHEETS: { key: SheetKey; label: string; icon: React.ElementType }[] = [
-  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
-  { key: 'leaders', label: 'Trưởng Ban/Nhóm', icon: Users },
-  { key: 'revenue', label: 'Doanh thu tháng', icon: DollarSign },
-  { key: 'contracts', label: 'Hợp đồng', icon: FileText },
-  { key: 'staff', label: 'Nhân sự', icon: UserCircle },
+const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean }[] = [
+  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
+  { key: 'leaders', label: 'Trưởng Ban/Nhóm', icon: Users, synced: false },
+  { key: 'revenue', label: 'Doanh thu tháng', icon: DollarSign, synced: false },
+  { key: 'contracts', label: 'Hợp đồng', icon: FileText, synced: true },
+  { key: 'staff', label: 'Nhân sự', icon: UserCircle, synced: true },
 ];
+
+// Template definitions for each sheet
+const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, string>[] }> = {
+  leaders: {
+    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Tiền/tháng', 'SĐT', 'Email', 'Ghi chú'],
+    sampleData: [
+      { 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ghi chú': '' },
+    ],
+  },
+  revenue: {
+    headers: ['Tháng', 'Mã nhóm', 'Nhóm', 'Mã TVV', 'Tên TVV', 'Tổng IP', 'Tổng AFYP', 'Số HĐ', 'Lượt HĐ', 'Ghi chú'],
+    sampleData: [
+      { 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' },
+    ],
+  },
+  contracts: {
+    headers: ['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Mã TN', 'Mã NTD', 'Ngày bắt đầu', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Tính lượt'],
+    sampleData: [
+      { 'Số HĐ': 'HD001', 'Mã TVV': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Mã TN': 'TN001', 'Mã NTD': 'NTD001', 'Ngày bắt đầu': '01/01/2026', 'Ngày hiệu lực': '15/01/2026', 'Ngày cấp': '20/01/2026', 'IP': '5000000', 'AFYP': '6500000', 'Tính lượt': '1' },
+    ],
+  },
+  staff: {
+    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'],
+    sampleData: [
+      { 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Ngày bắt đầu': '01/01/2026' },
+    ],
+  },
+};
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
@@ -107,12 +136,28 @@ export default function QuanLyPage() {
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
+  // Sync toggle state - stored in localStorage
+  const [syncEnabled, setSyncEnabled] = useState(true);
+
   // Data states
   const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
   const [revenue, setRevenue] = useState<MonthlyRevenue[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load sync preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nmc-sync-enabled');
+      if (saved !== null) setSyncEnabled(saved === 'true');
+    } catch {}
+  }, []);
+
+  // Save sync preference to localStorage
+  useEffect(() => {
+    try { localStorage.setItem('nmc-sync-enabled', String(syncEnabled)); } catch {}
+  }, [syncEnabled]);
 
   // Fetch functions
   const fetchLeaders = useCallback(async () => {
@@ -149,7 +194,7 @@ export default function QuanLyPage() {
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
 
-  // CRUD handlers
+  // ========== CRUD: Leaders ==========
   const updateLeader = useCallback(async (id: string, field: string, value: any) => {
     try {
       const res = await fetch(`/api/leaders/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
@@ -172,6 +217,7 @@ export default function QuanLyPage() {
     } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
   }, []);
 
+  // ========== CRUD: Revenue ==========
   const updateRevenue = useCallback(async (id: string, field: string, value: any) => {
     try {
       const res = await fetch(`/api/revenue/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
@@ -195,7 +241,79 @@ export default function QuanLyPage() {
     } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
   }, []);
 
-  // Export to Excel
+  // ========== CRUD: Contracts (only when sync OFF) ==========
+  const updateContract = useCallback(async (id: string, field: string, value: any) => {
+    try {
+      const res = await fetch(`/api/contracts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
+      if (res.ok) { setContracts(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c)); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật hợp đồng', variant: 'destructive' }); }
+  }, []);
+
+  const addContract = useCallback(async () => {
+    try {
+      const now = new Date().toISOString().slice(0, 10);
+      const res = await fetch('/api/contracts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập', effectiveDate: now }),
+      });
+      if (res.ok) { const newC = await res.json(); setContracts(prev => [newC, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
+      else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể thêm', variant: 'destructive' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm hợp đồng', variant: 'destructive' }); }
+  }, []);
+
+  const deleteContract = useCallback(async (id: string) => {
+    if (!confirm('Xóa hợp đồng này?')) return;
+    try {
+      const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' });
+      if (res.ok) { setContracts(prev => prev.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+  }, []);
+
+  // ========== CRUD: Staff (only when sync OFF) ==========
+  const updateStaffMember = useCallback(async (id: string, field: string, value: any) => {
+    try {
+      const res = await fetch(`/api/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
+      if (res.ok) { setStaff(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s)); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật nhân sự', variant: 'destructive' }); }
+  }, []);
+
+  const addStaffMember = useCallback(async () => {
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }),
+      });
+      if (res.ok) { const newS = await res.json(); setStaff(prev => [newS, ...prev]); toast({ title: 'Đã thêm', description: 'Nháy đúp ô để chỉnh sửa' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể thêm nhân sự', variant: 'destructive' }); }
+  }, []);
+
+  const deleteStaffMember = useCallback(async (id: string) => {
+    if (!confirm('Xóa nhân sự này?')) return;
+    try {
+      const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+      if (res.ok) { setStaff(prev => prev.filter(s => s.id !== id)); toast({ title: 'Đã xóa' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+  }, []);
+
+  // ========== Download Template ==========
+  const handleDownloadTemplate = useCallback(async (sheetName: string) => {
+    try {
+      const XLSX = await import('xlsx');
+      const template = TEMPLATES[sheetName];
+      if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu cho bảng này', variant: 'destructive' }); return; }
+
+      const data = [template.sampleData.length > 0 ? template.sampleData[0] : Object.fromEntries(template.headers.map(h => [h, '']))];
+      const ws = XLSX.utils.json_to_sheet(data, { header: template.headers });
+      // Set column widths
+      ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `Mau_${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast({ title: 'Tải mẫu thành công', description: 'Điền dữ liệu theo mẫu rồi import vào ứng dụng' });
+    } catch { toast({ title: 'Lỗi', description: 'Không thể tạo mẫu Excel', variant: 'destructive' }); }
+  }, []);
+
+  // ========== Export to Excel ==========
   const handleExport = useCallback(async (sheetName: string) => {
     try {
       const XLSX = await import('xlsx');
@@ -215,13 +333,16 @@ export default function QuanLyPage() {
       else if (sheetName === 'contracts') data = contracts.map(c => ({
         'Số HĐ': c.contractNumber, 'Mã TVV': c.agentCode, 'Họ tên': c.agentName,
         'Chức vụ': c.position, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã nhóm': c.maNhom,
+        'Mã TN': c.leaderAgentCode, 'Mã NTD': c.recruiterCode,
+        'Ngày bắt đầu': c.startDate ? new Date(c.startDate).toLocaleDateString('vi-VN') : '',
         'Ngày HL': new Date(c.effectiveDate).toLocaleDateString('vi-VN'),
         'Ngày cấp': new Date(c.issueDate).toLocaleDateString('vi-VN'),
-        'IP': c.fyp, 'AFYP': c.afyp,
+        'IP': c.fyp, 'AFYP': c.afyp, 'Tính lượt': c.tinhLuot,
       }));
       else if (sheetName === 'staff') data = staff.map(s => ({
         'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position,
         'Nhóm': s.nhom, 'Mã nhóm': s.maNhom,
+        'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '',
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -232,7 +353,7 @@ export default function QuanLyPage() {
     } catch { toast({ title: 'Lỗi', description: 'Không thể xuất Excel', variant: 'destructive' }); }
   }, [leaders, revenue, contracts, staff]);
 
-  // Import from Excel/CSV
+  // ========== Import from Excel/CSV ==========
   const handleImport = useCallback(async (sheetName: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -242,6 +363,12 @@ export default function QuanLyPage() {
       const wb = XLSX.read(arrayBuffer);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(ws);
+
+      if (data.length === 0) {
+        toast({ title: 'Lỗi', description: 'File không có dữ liệu', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
 
       if (sheetName === 'leaders') {
         const rows = data.map((r: any) => ({
@@ -255,7 +382,7 @@ export default function QuanLyPage() {
           phone: String(r['SĐT'] || r['phone'] || ''),
           email: String(r['Email'] || r['email'] || ''),
           note: String(r['Ghi chú'] || r['note'] || ''),
-        }));
+        })).filter(r => r.agentCode || r.agentName);
         for (const row of rows) {
           await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
         }
@@ -275,11 +402,53 @@ export default function QuanLyPage() {
         }));
         await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
         fetchRevenue();
+      } else if (sheetName === 'contracts') {
+        for (const r of data) {
+          const row = r as any;
+          await fetch('/api/contracts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contractNumber: String(row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now() + Math.random().toString(36).slice(2, 6)),
+              agentCode: String(row['Mã TVV'] || row['agentCode'] || ''),
+              agentName: String(row['Họ tên'] || row['agentName'] || 'Chưa nhập'),
+              position: String(row['Chức vụ'] || row['position'] || ''),
+              ban: String(row['Ban'] || row['ban'] || ''),
+              nhom: String(row['Nhóm'] || row['nhom'] || ''),
+              maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
+              leaderAgentCode: String(row['Mã TN'] || row['leaderAgentCode'] || ''),
+              recruiterCode: String(row['Mã NTD'] || row['recruiterCode'] || ''),
+              startDate: row['Ngày bắt đầu'] || row['startDate'] || null,
+              effectiveDate: row['Ngày hiệu lực'] || row['Ngày HL'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10),
+              issueDate: row['Ngày cấp'] || row['issueDate'] || null,
+              fyp: parseFloat(row['IP'] || row['fyp'] || 0) || 0,
+              afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0,
+              tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0,
+            }),
+          });
+        }
+        fetchContracts();
+      } else if (sheetName === 'staff') {
+        const members = data.map((r: any) => ({
+          agentCode: String(r['Mã số'] || r['agentCode'] || ''),
+          agentName: String(r['Họ tên'] || r['agentName'] || ''),
+          position: String(r['Chức vụ'] || r['position'] || ''),
+          nhom: String(r['Nhóm'] || r['nhom'] || ''),
+          maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
+          startDate: r['Ngày bắt đầu'] || r['startDate'] || null,
+        })).filter(m => m.agentCode || m.agentName);
+
+        if (members.length > 0) {
+          await fetch('/api/staff', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ members }),
+          });
+        }
+        fetchStaff();
       }
       toast({ title: 'Import thành công', description: `${data.length} dòng đã được thêm` });
-    } catch { toast({ title: 'Lỗi', description: 'Không thể import file', variant: 'destructive' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể import file. Kiểm tra đúng định dạng mẫu.', variant: 'destructive' }); }
     e.target.value = '';
-  }, [fetchLeaders, fetchRevenue]);
+  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff]);
 
   // Sort & filter
   const sortData = useCallback((data: any[], field: string) => {
@@ -307,14 +476,27 @@ export default function QuanLyPage() {
   const totalStaff = staff.length;
   const totalContracts = contracts.length;
   const totalFYP = contracts.reduce((sum, c) => sum + c.fyp, 0);
-  const totalRevenue = revenue.reduce((sum, r) => sum + r.totalFYP, 0);
   const totalSalary = leaders.reduce((sum, l) => sum + l.salary, 0);
 
   const SortIcon = ({ field }: { field: string }) => (
     <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-white/40'}`} />
   );
 
-  // Render overview
+  // Sync toggle handler
+  const handleSyncToggle = useCallback(() => {
+    if (syncEnabled) {
+      // Turning OFF sync - warn user
+      const confirmed = confirm('Tắt đồng bộ tự động?\n\nKhi tắt: Bảng Hợp đồng & Nhân sự sẽ chuyển sang chế độ thủ công (có thể chỉnh sửa, thêm, xóa, import file).\n\nDữ liệu hiện tại sẽ được giữ nguyên cho đến khi bạn bật lại đồng bộ.');
+      if (!confirmed) return;
+      setSyncEnabled(false);
+      toast({ title: 'Đã tắt đồng bộ tự động', description: 'Các bảng Hợp đồng & Nhân sự giờ có thể chỉnh sửa' });
+    } else {
+      setSyncEnabled(true);
+      toast({ title: 'Đã bật đồng bộ tự động', description: 'Bảng Hợp đồng & Nhân sự sẽ tự động cập nhật từ Google Sheets' });
+    }
+  }, [syncEnabled]);
+
+  // ========== Render Overview ==========
   const renderOverview = () => (
     <div className="space-y-4">
       <h2 className="text-xl font-extrabold text-emerald-400">Tổng quan hệ thống</h2>
@@ -334,6 +516,39 @@ export default function QuanLyPage() {
             <p className="text-2xl font-extrabold text-white">{stat.isText ? stat.value : formatNumber(stat.value as number)}</p>
           </div>
         ))}
+      </div>
+      {/* Sync Status Card */}
+      <div className={`rounded-lg p-4 border ${syncEnabled ? 'bg-emerald-900 border-emerald-700' : 'bg-amber-900 border-amber-700'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {syncEnabled ? (
+              <CheckCircle2 className="w-6 h-6 text-emerald-300" />
+            ) : (
+              <AlertTriangle className="w-6 h-6 text-amber-300" />
+            )}
+            <div>
+              <h3 className={`text-base font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>
+                {syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}
+              </h3>
+              <p className="text-white/60 text-sm">
+                {syncEnabled
+                  ? 'Hợp đồng & Nhân sự tự động cập nhật từ Google Sheets (chỉ xem)'
+                  : 'Chế độ thủ công: Có thể chỉnh sửa, thêm, xóa, import file'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleSyncToggle}
+            className="flex items-center gap-2"
+            title={syncEnabled ? 'Tắt đồng bộ' : 'Bật đồng bộ'}
+          >
+            {syncEnabled ? (
+              <ToggleRight className="w-10 h-10 text-emerald-400 cursor-pointer hover:text-emerald-300 transition-colors" />
+            ) : (
+              <ToggleLeft className="w-10 h-10 text-amber-400 cursor-pointer hover:text-amber-300 transition-colors" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
@@ -374,7 +589,7 @@ export default function QuanLyPage() {
     </div>
   );
 
-  // Render leaders table
+  // ========== Render Leaders ==========
   const renderLeaders = () => {
     const filtered = getFiltered(getSorted(leaders), ['agentCode', 'agentName', 'position', 'nhom', 'ban']);
     return (
@@ -385,6 +600,7 @@ export default function QuanLyPage() {
             <Upload className="w-3.5 h-3.5" /> Import
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} />
           </label>
+          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
           <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
@@ -431,7 +647,7 @@ export default function QuanLyPage() {
     );
   };
 
-  // Render revenue table
+  // ========== Render Revenue ==========
   const renderRevenue = () => {
     const filtered = getFiltered(getSorted(revenue), ['month', 'maNhom', 'nhom', 'agentCode', 'agentName']);
     return (
@@ -442,6 +658,7 @@ export default function QuanLyPage() {
             <Upload className="w-3.5 h-3.5" /> Import
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} />
           </label>
+          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
           <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
@@ -488,80 +705,203 @@ export default function QuanLyPage() {
     );
   };
 
-  // Render contracts (read-only)
+  // ========== Render Contracts (editable when sync OFF) ==========
   const renderContracts = () => {
-    const filtered = getFiltered(getSorted(contracts), ['contractNumber', 'agentCode', 'agentName', 'nhom']);
+    const filtered = getFiltered(getSorted(contracts), ['contractNumber', 'agentCode', 'agentName', 'nhom', 'ban']);
+    const canEdit = !syncEnabled;
+
     return (
       <div>
-        <div className="flex items-center gap-2 mb-3">
+        {/* Sync status banner */}
+        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
+          {canEdit ? (
+            <>
+              <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
+              <span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span>
+              <span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa, thêm, xóa, import. Bật đồng bộ lại sẽ ghi đè dữ liệu từ Google Sheets.</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+              <span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span>
+              <span className="text-emerald-200/60 text-xs">— Dữ liệu từ Google Sheets (chỉ xem). Tắt đồng bộ để chỉnh sửa.</span>
+            </>
+          )}
+          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">
+            {syncEnabled ? (
+              <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer hover:text-emerald-300" />
+            ) : (
+              <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer hover:text-amber-300" />
+            )}
+          </button>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {canEdit && (
+            <>
+              <Button onClick={addContract} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
+              <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
+                <Upload className="w-3.5 h-3.5" /> Import
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} />
+              </label>
+            </>
+          )}
+          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
           <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
-          <span className="text-xs text-gray-400 ml-2">Dữ liệu từ auto-sync Google Sheets (chỉ xem)</span>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
             <TableHeader>
               <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {['Số HĐ', 'Mã TVV', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Ngày HL', 'IP', 'AFYP'].map((h, i) => (
-                  <TableHead key={i} className="text-white text-xs font-bold whitespace-nowrap">{h}</TableHead>
+                {[
+                  { f: 'contractNumber', l: 'Số HĐ' }, { f: 'agentCode', l: 'Mã TVV' }, { f: 'agentName', l: 'Họ tên' },
+                  { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' },
+                  { f: 'effectiveDate', l: 'Ngày HL' }, { f: 'fyp', l: 'IP' }, { f: 'afyp', l: 'AFYP' },
+                ].map(col => (
+                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
+                    {col.l} <SortIcon field={col.f} />
+                  </TableHead>
                 ))}
+                {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.slice(0, 200).map(c => (
                 <TableRow key={c.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  <TableCell className="text-xs">{c.contractNumber}</TableCell>
-                  <TableCell className="text-xs font-mono">{c.agentCode}</TableCell>
-                  <TableCell className="text-xs">{c.agentName}</TableCell>
-                  <TableCell className="text-xs">{c.position}</TableCell>
-                  <TableCell className="text-xs">{c.ban}</TableCell>
-                  <TableCell className="text-xs">{c.nhom}</TableCell>
-                  <TableCell className="text-xs font-mono">{c.maNhom}</TableCell>
-                  <TableCell className="text-xs">{new Date(c.effectiveDate).toLocaleDateString('vi-VN')}</TableCell>
-                  <TableCell className="text-xs text-right font-semibold text-emerald-700">{formatNumber(c.fyp)}</TableCell>
-                  <TableCell className="text-xs text-right">{formatNumber(c.afyp)}</TableCell>
+                  {canEdit ? (
+                    <>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.contractNumber} onSave={(v) => updateContract(c.id, 'contractNumber', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.agentCode} onSave={(v) => updateContract(c.id, 'agentCode', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.agentName} onSave={(v) => updateContract(c.id, 'agentName', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.position} onSave={(v) => updateContract(c.id, 'position', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.ban} onSave={(v) => updateContract(c.id, 'ban', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.nhom} onSave={(v) => updateContract(c.id, 'nhom', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.maNhom} onSave={(v) => updateContract(c.id, 'maNhom', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.effectiveDate ? new Date(c.effectiveDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateContract(c.id, 'effectiveDate', v)} type="date" /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.fyp} onSave={(v) => updateContract(c.id, 'fyp', v)} type="number" className="text-right" /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={c.afyp} onSave={(v) => updateContract(c.id, 'afyp', v)} type="number" className="text-right" /></TableCell>
+                      <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="text-xs">{c.contractNumber}</TableCell>
+                      <TableCell className="text-xs font-mono">{c.agentCode}</TableCell>
+                      <TableCell className="text-xs">{c.agentName}</TableCell>
+                      <TableCell className="text-xs">{c.position}</TableCell>
+                      <TableCell className="text-xs">{c.ban}</TableCell>
+                      <TableCell className="text-xs">{c.nhom}</TableCell>
+                      <TableCell className="text-xs font-mono">{c.maNhom}</TableCell>
+                      <TableCell className="text-xs">{new Date(c.effectiveDate).toLocaleDateString('vi-VN')}</TableCell>
+                      <TableCell className="text-xs text-right font-semibold text-emerald-700">{formatNumber(c.fyp)}</TableCell>
+                      <TableCell className="text-xs text-right">{formatNumber(c.afyp)}</TableCell>
+                    </>
+                  )}
                 </TableRow>
               ))}
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={canEdit ? 11 : 10} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng {filtered.length > 200 && '(hiển thị tối đa 200)'} • Dữ liệu chỉ xem</p>
+        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng {filtered.length > 200 && '(hiển thị tối đa 200)'} • {canEdit ? 'Nháy đúp ô để chỉnh sửa' : 'Dữ liệu chỉ xem'}</p>
       </div>
     );
   };
 
-  // Render staff (read-only)
+  // ========== Render Staff (editable when sync OFF) ==========
   const renderStaff = () => {
     const filtered = getFiltered(getSorted(staff), ['agentCode', 'agentName', 'nhom', 'position']);
+    const canEdit = !syncEnabled;
+
     return (
       <div>
-        <div className="flex items-center gap-2 mb-3">
+        {/* Sync status banner */}
+        <div className={`rounded-md px-3 py-2 mb-3 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
+          {canEdit ? (
+            <>
+              <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
+              <span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span>
+              <span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa, thêm, xóa, import. Bật đồng bộ lại sẽ ghi đè dữ liệu từ Google Sheets.</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+              <span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span>
+              <span className="text-emerald-200/60 text-xs">— Dữ liệu từ Google Sheets (chỉ xem). Tắt đồng bộ để chỉnh sửa.</span>
+            </>
+          )}
+          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">
+            {syncEnabled ? (
+              <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer hover:text-emerald-300" />
+            ) : (
+              <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer hover:text-amber-300" />
+            )}
+          </button>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {canEdit && (
+            <>
+              <Button onClick={addStaffMember} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng</Button>
+              <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer">
+                <Upload className="w-3.5 h-3.5" /> Import
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('staff', e)} />
+              </label>
+            </>
+          )}
+          <Button onClick={() => handleDownloadTemplate('staff')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu Excel</Button>
           <Button onClick={() => handleExport('staff')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất Excel</Button>
-          <span className="text-xs text-gray-400 ml-2">Dữ liệu từ auto-sync Google Sheets (chỉ xem)</span>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
             <TableHeader>
               <TableRow className="bg-emerald-800 hover:bg-emerald-800">
-                {['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'].map((h, i) => (
-                  <TableHead key={i} className="text-white text-xs font-bold whitespace-nowrap">{h}</TableHead>
+                {[
+                  { f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' },
+                  { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' },
+                ].map(col => (
+                  <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>
+                    {col.l} <SortIcon field={col.f} />
+                  </TableHead>
                 ))}
+                {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map(s => (
                 <TableRow key={s.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  <TableCell className="text-xs font-mono">{s.agentCode}</TableCell>
-                  <TableCell className="text-xs">{s.agentName}</TableCell>
-                  <TableCell className="text-xs">{s.position}</TableCell>
-                  <TableCell className="text-xs">{s.nhom}</TableCell>
-                  <TableCell className="text-xs font-mono">{s.maNhom}</TableCell>
-                  <TableCell className="text-xs">{s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
+                  {canEdit ? (
+                    <>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.agentCode} onSave={(v) => updateStaffMember(s.id, 'agentCode', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.agentName} onSave={(v) => updateStaffMember(s.id, 'agentName', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.position} onSave={(v) => updateStaffMember(s.id, 'position', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.nhom} onSave={(v) => updateStaffMember(s.id, 'nhom', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.maNhom} onSave={(v) => updateStaffMember(s.id, 'maNhom', v)} /></TableCell>
+                      <TableCell className="text-xs p-0"><EditableCell value={s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateStaffMember(s.id, 'startDate', v)} type="date" /></TableCell>
+                      <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteStaffMember(s.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="text-xs font-mono">{s.agentCode}</TableCell>
+                      <TableCell className="text-xs">{s.agentName}</TableCell>
+                      <TableCell className="text-xs">{s.position}</TableCell>
+                      <TableCell className="text-xs">{s.nhom}</TableCell>
+                      <TableCell className="text-xs font-mono">{s.maNhom}</TableCell>
+                      <TableCell className="text-xs">{s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
+                    </>
+                  )}
                 </TableRow>
               ))}
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-gray-400 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng • Dữ liệu chỉ xem</p>
+        <p className="text-xs text-gray-400 mt-2">{filtered.length} dòng • {canEdit ? 'Nháy đúp ô để chỉnh sửa' : 'Dữ liệu chỉ xem'}</p>
       </div>
     );
   };
@@ -586,6 +926,22 @@ export default function QuanLyPage() {
         </Button>
         <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
+          {/* Sync toggle in header */}
+          <button
+            onClick={handleSyncToggle}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+            title={syncEnabled ? 'Đồng bộ tự động: BẬT (nhấn để tắt)' : 'Đồng bộ tự động: TẮT (nhấn để bật)'}
+          >
+            {syncEnabled ? (
+              <span className="flex items-center gap-1.5 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md">
+                <ToggleRight className="w-4 h-4" /> Auto-Sync
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-amber-300 hover:text-amber-200 bg-amber-800 px-2 py-1 rounded-md">
+                <ToggleLeft className="w-4 h-4" /> Thủ công
+              </span>
+            )}
+          </button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
             <Input
@@ -617,10 +973,28 @@ export default function QuanLyPage() {
                   }`}
                 >
                   <sheet.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{sheet.label}</span>
+                  <span className="truncate flex-1 text-left">{sheet.label}</span>
+                  {/* Show sync icon for synced sheets */}
+                  {sheet.synced && syncEnabled && (
+                    <RefreshCw className="w-3 h-3 text-emerald-400 flex-shrink-0" title="Đồng bộ tự động" />
+                  )}
+                  {sheet.synced && !syncEnabled && (
+                    <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" title="Chế độ thủ công" />
+                  )}
                 </button>
               );
             })}
+          </div>
+          {/* File menu info */}
+          <div className="p-2 mt-4 border-t border-emerald-700">
+            <div className="text-emerald-400 text-xs font-bold mb-2 px-2">MENU FILE</div>
+            {SHEETS.filter(s => s.key !== 'overview').map(sheet => (
+              <div key={sheet.key} className="px-2 py-1.5 text-emerald-300/60 text-xs flex items-center gap-1.5">
+                <sheet.icon className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{sheet.label}</span>
+                {sheet.synced && <span className="text-amber-400/50 text-[10px]">{syncEnabled ? 'sync' : 'edit'}</span>}
+              </div>
+            ))}
           </div>
         </nav>
 
