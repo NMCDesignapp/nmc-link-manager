@@ -296,19 +296,19 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 
   if (isWhite) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-white overflow-hidden">
+      <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-800 overflow-hidden">
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg flex-shrink-0">
-              <Trophy className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+              <Trophy className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-base sm:text-lg font-extrabold text-emerald-700 tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <div className="flex items-center gap-1 text-emerald-600 text-xs"><CalendarRange className="w-3 h-3" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><Target className="w-3 h-3" />{conditionLabel}</span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                  {targetType === 'tvv' ? <Users className="w-3 h-3" /> : targetType === 'nyd' ? <UserPlus className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-600 text-white">
+                  {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                   {' '}{targetLabel}
                 </span>
               </div>
@@ -316,20 +316,20 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
             {sortedTiers.map((tier, i) => (
-              <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[70px] shadow-md`}>
-                <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3 h-3 opacity-80" /><span className="text-[9px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
-                <div className="text-[10px] font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
-                <div className="text-xs font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
+              <div key={tier.id} className={`flex-shrink-0 rounded-lg px-3 py-2 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[80px] shadow-md`}>
+                <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 opacity-80" /><span className="text-[10px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
+                <div className="text-xs font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
+                <div className="text-sm font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-            <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100"><div className="flex items-center justify-center gap-1 mb-0.5"><FileText className="w-3 h-3 text-emerald-600" /><span className="text-[9px] text-emerald-600 uppercase">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-lg font-extrabold text-gray-800">{hasData ? rowCount : '—'}</p></div>
-            <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100"><div className="flex items-center justify-center gap-1 mb-0.5"><Banknote className="w-3 h-3 text-amber-600" /><span className="text-[9px] text-amber-600 uppercase">Tổng IP</span></div><p className="text-sm font-extrabold text-amber-700">{hasData ? fc(totalFYP) : '—'}</p></div>
-            <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100"><div className="flex items-center justify-center gap-1 mb-0.5"><Users className="w-3 h-3 text-sky-600" /><span className="text-[9px] text-sky-600 uppercase">Đạt/Chưa</span></div><p className="text-lg font-extrabold">{hasData ? <><span className="text-emerald-600">{achievedCount}</span><span className="text-gray-300 mx-0.5">/</span><span className="text-red-500">{notAchievedCount}</span></> : <span className="text-gray-300">—</span>}</p></div>
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-2 text-center border border-amber-200"><div className="flex items-center justify-center gap-1 mb-0.5"><Award className="w-3 h-3 text-amber-600" /><span className="text-[9px] text-amber-600 uppercase">Tổng Thưởng</span></div><p className="text-sm font-extrabold text-amber-700">{hasData ? fc(totalBonus) : '—'}</p></div>
+            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
+            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+            <div className="bg-amber-700 rounded-lg p-3 text-center border border-amber-500"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
           </div>
-          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-xs"><span className="text-emerald-600 font-medium">Tỷ lệ đạt</span><span className="text-gray-800 font-bold">{achievementPercent}%</span></div><div className="relative h-2.5 bg-gray-100 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[8px] font-bold text-gray-600 drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-900 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
         </div>
       </div>
     );
@@ -337,23 +337,20 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 
   // Original gradient variant
   return (
-    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border-2 border-emerald-500/40' : ''}`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-900" />
-      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 40%)' }} />
-      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-amber-400/20 to-transparent rounded-bl-full" />
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-teal-300/15 to-transparent rounded-tr-full" />
+    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border-2 border-emerald-500' : ''}`}>
+      <div className="absolute inset-0 bg-emerald-800" />
       <div className="relative z-10 p-4 sm:p-5">
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg flex-shrink-0">
-            <Trophy className="w-5 h-5 text-white" />
+          <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+            <Trophy className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base sm:text-lg font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <div className="flex items-center gap-1 text-emerald-200 text-xs"><CalendarRange className="w-3 h-3" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-emerald-100"><Target className="w-3 h-3" />{conditionLabel}</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-sky-100">
-                {targetType === 'tvv' ? <Users className="w-3 h-3" /> : targetType === 'nyd' ? <UserPlus className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+            <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-600 text-white">
+                {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                 {' '}{targetLabel}
               </span>
             </div>
@@ -361,21 +358,21 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
           {sortedTiers.map((tier, i) => (
-            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[70px] shadow-md`}>
-              <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3 h-3 opacity-80" /><span className="text-[9px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
-              <div className="text-[10px] font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
-              <div className="text-xs font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
+            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-3 py-2 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[80px] shadow-md`}>
+              <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 opacity-80" /><span className="text-[10px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
+              <div className="text-xs font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
+              <div className="text-sm font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
             </div>
           ))}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10"><div className="flex items-center justify-center gap-1 mb-0.5"><FileText className="w-3 h-3 text-emerald-300" /><span className="text-[9px] text-emerald-300 uppercase">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-lg font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10"><div className="flex items-center justify-center gap-1 mb-0.5"><Banknote className="w-3 h-3 text-amber-300" /><span className="text-[9px] text-amber-300 uppercase">Tổng IP</span></div><p className="text-sm font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center border border-white/10"><div className="flex items-center justify-center gap-1 mb-0.5"><Users className="w-3 h-3 text-sky-300" /><span className="text-[9px] text-sky-300 uppercase">Đạt/Chưa</span></div><p className="text-lg font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white/40 mx-0.5">/</span><span className="text-red-300">{notAchievedCount}</span></> : <span className="text-white/40">—</span>}</p></div>
-          <div className="bg-gradient-to-br from-amber-500/30 to-orange-500/20 backdrop-blur-sm rounded-lg p-2 text-center border border-amber-400/30"><div className="flex items-center justify-center gap-1 mb-0.5"><Award className="w-3 h-3 text-amber-200" /><span className="text-[9px] text-amber-200 uppercase">Tổng Thưởng</span></div><p className="text-sm font-extrabold text-amber-100">{hasData ? fc(totalBonus) : '—'}</p></div>
+          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
+          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+          <div className="bg-amber-700 rounded-lg p-3 text-center border border-amber-500"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
         </div>
-        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-xs"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold">{achievementPercent}%</span></div><div className="relative h-2.5 bg-white/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[8px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
-        {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200/60 text-xs italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
+        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-900 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+        {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200 text-sm italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
       </div>
     </div>
   );
@@ -2261,9 +2258,9 @@ export default function ThiDuaPage() {
       <Dialog open={isResultDialogOpen} onOpenChange={(open) => { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); }}>
         <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-200 p-0 transition-all duration-300`}>
           {/* Action bar */}
-          <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-emerald-100 px-3 py-2 flex items-center justify-between">
-            <DialogTitle className="text-emerald-700 text-sm font-bold flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-emerald-600" />
+          <div className="sticky top-0 z-10 bg-white border-b border-emerald-100 px-3 py-2 flex items-center justify-between">
+            <DialogTitle className="text-emerald-700 text-base font-bold flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-emerald-600" />
               Kết quả chi tiết
             </DialogTitle>
             <div className="flex items-center gap-1">
@@ -2283,14 +2280,14 @@ export default function ThiDuaPage() {
           <div ref={resultContentRef} className="px-3 py-2">
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
-              {posterUrl && <div className="mb-3 w-full overflow-hidden rounded-lg" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill rounded-lg shadow-md" /></div>}
+              {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
               {!posterUrl && (
                 <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}
 
               {/* Result Table */}
-              <div className="overflow-x-auto rounded-lg border border-emerald-200 shadow-sm mt-3">
-                <Table className="text-[11px]">
+              <div className="overflow-x-auto border border-emerald-200 shadow-sm mt-3">
+                <Table className="text-xs">
                   <TableHeader>
                     <TableRow className="bg-emerald-700 hover:bg-emerald-700">
                       <TableHead className="text-white text-center w-[40px] font-bold">STT</TableHead>
@@ -2307,24 +2304,24 @@ export default function ThiDuaPage() {
                             <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2342,24 +2339,24 @@ export default function ThiDuaPage() {
                           </TableHead>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2376,24 +2373,24 @@ export default function ThiDuaPage() {
                             <TableHead className="text-white min-w-[70px] font-bold text-center">AFYP</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2409,24 +2406,24 @@ export default function ThiDuaPage() {
                             {startDate && endDate && <div className="text-[9px] font-normal text-white/60 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-600/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-white/60 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-600/30">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-600/30">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2481,7 +2478,7 @@ export default function ThiDuaPage() {
                         return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
                       })() : null;
                       return (
-                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700">{nyd.nhom || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{nyd.nydCode}</TableCell>
@@ -2520,7 +2517,7 @@ export default function ThiDuaPage() {
                     }).map(({ group, tier, remaining, groupPhase }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
-                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{group.leader?.agentCode || '—'}</TableCell>
@@ -2556,7 +2553,7 @@ export default function ThiDuaPage() {
                     }).sort((a, b) => b.contract.fyp - a.contract.fyp).map(({ contract, tier, remaining, phaseInfo }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
-                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
                           <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-700">{contract.nhom || contract.maNhom}</TableCell>
                           <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
@@ -2586,7 +2583,7 @@ export default function ThiDuaPage() {
                       return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
                         if (hideNotAchieved && !tier) return null;
                         return (
-                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-50/50'} hover:bg-emerald-50/50 border-b border-gray-100`}>
+                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
                             <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
                             <TableCell className="text-xs text-gray-700">{agent.nhom || agent.maNhom}</TableCell>
                             <TableCell className="text-xs text-gray-700 font-mono">{agent.agentCode}</TableCell>
