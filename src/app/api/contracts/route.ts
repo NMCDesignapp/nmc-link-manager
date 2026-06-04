@@ -68,9 +68,10 @@ export async function POST(request: NextRequest) {
       chucVu2, recruiterCode, startDate,
     } = body;
 
-    if (!contractNumber || !agentName || !effectiveDate || fyp === undefined) {
+    // Relaxed validation: allow imports with minimal data (defaults will be provided)
+    if (!contractNumber && !agentName) {
       return NextResponse.json(
-        { error: 'Vui lòng điền đầy đủ thông tin hợp đồng' },
+        { error: 'Vui lòng cung cấp ít nhất số hợp đồng hoặc tên' },
         { status: 400 }
       );
     }
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     const contract = await db.contract.create({
       data: {
         stt: parseInt(stt) || 0,
-        contractNumber,
+        contractNumber: contractNumber || 'HD_' + Date.now(),
         agentCode: agentCode || '',
         agentName,
         position: position || '',
@@ -91,8 +92,8 @@ export async function POST(request: NextRequest) {
         maNhom: maNhom || '',
         leaderAgentCode: leaderAgentCode || '',
         ngayBatDauLamViec: ngayBatDauLamViec ? new Date(ngayBatDauLamViec) : null,
-        effectiveDate: new Date(effectiveDate),
-        issueDate: new Date(issueDate || effectiveDate),
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : new Date(),
+        issueDate: (issueDate || effectiveDate) ? new Date(issueDate || effectiveDate) : new Date(),
         pdt10DT: parseFloat(pdt10DT) || 0,
         fyp: parseFloat(fyp) || 0,
         nguonDuLieu: nguonDuLieu || '',

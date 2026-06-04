@@ -109,12 +109,12 @@ interface KPIDataSource {
 }
 
 const KPI_COLORS: Record<string, string> = {
-  emerald: 'bg-emerald-700',
-  amber: 'bg-amber-700',
-  sky: 'bg-sky-700',
-  violet: 'bg-violet-700',
-  rose: 'bg-rose-700',
-  orange: 'bg-orange-700',
+  emerald: 'bg-emerald-600',
+  amber: 'bg-amber-600',
+  sky: 'bg-sky-600',
+  violet: 'bg-violet-600',
+  rose: 'bg-rose-600',
+  orange: 'bg-orange-600',
 };
 
 // ==================== CONSTANTS ====================
@@ -379,6 +379,16 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
   const calculateKPI = useCallback((config: KPIConfig): number => {
     const ds = dataSources.find(d => d.key === config.dataSourceKey);
     if (!ds) return 0;
+
+    // For 'count' calculation, count items that have a non-empty value for the field
+    if (config.calculation === 'count') {
+      return ds.data.filter(item => {
+        const val = item[config.field];
+        return val !== undefined && val !== null && val !== '';
+      }).length;
+    }
+
+    // For other calculations, parse numeric values
     const values = ds.data
       .map(item => parseFloat(item[config.field]) || 0)
       .filter(v => !isNaN(v));
@@ -387,7 +397,6 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
     switch (config.calculation) {
       case 'sum': return values.reduce((a, b) => a + b, 0);
       case 'average': return values.reduce((a, b) => a + b, 0) / values.length;
-      case 'count': return values.length;
       case 'min': return Math.min(...values);
       case 'max': return Math.max(...values);
       default: return 0;
@@ -401,10 +410,10 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
     return val.toFixed(val % 1 === 0 ? 0 : 1);
   };
 
-  // Get fields for a specific data source
+  // Get fields for a specific data source (include string fields for 'count' calculation)
   const getFieldsForSource = useCallback((sourceKey: string) => {
     const ds = dataSources.find(d => d.key === sourceKey);
-    return ds ? ds.fields.filter(f => f.type === 'number') : [];
+    return ds ? ds.fields : [];
   }, [dataSources]);
 
   return (
@@ -420,7 +429,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
             const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
             const colorClass = KPI_COLORS[config.color] || 'bg-emerald-700';
             return (
-              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-emerald-600`}>
+              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-white/20`}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-emerald-100 text-[9px] font-bold">{config.label || fieldLabel}</p>
                   <span className="text-gray-300 text-[8px]">{calcLabel} {fieldLabel}</span>
@@ -656,24 +665,65 @@ function SpreadsheetSheet() {
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load cells and merges from localStorage
+  // Load cells and merges from online API
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('nmc-spreadsheet');
-      if (saved) setCells(JSON.parse(saved));
-      const savedMerges = localStorage.getItem('nmc-spreadsheet-merges');
-      if (savedMerges) setMerges(JSON.parse(savedMerges));
-    } catch {}
+    const loadOnline = async () => {
+      try {
+        const r = await fetch('/api/settings');
+        if (r.ok) {
+          const settings = await r.json();
+          const cellsData = settings['nmc-spreadsheet-cells'];
+          const mergesData = settings['nmc-spreadsheet-merges'];
+          if (cellsData) setCells(JSON.parse(cellsData));
+          if (mergesData) setMerges(JSON.parse(mergesData));
+        }
+      } catch {
+        // Fallback to localStorage
+        try {
+          const saved = localStorage.getItem('nmc-spreadsheet');
+          if (saved) setCells(JSON.parse(saved));
+          const savedMerges = localStorage.getItem('nmc-spreadsheet-merges');
+          if (savedMerges) setMerges(JSON.parse(savedMerges));
+        } catch {}
+      }
+    };
+    loadOnline();
   }, []);
 
-  // Save cells to localStorage
+  // Save cells to online API (debounced)
+  const saveCellsTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    try { localStorage.setItem('nmc-spreadsheet', JSON.stringify(cells)); } catch {}
+    if (Object.keys(cells).length === 0) return; // Don't save empty initial state
+    if (saveCellsTimeout.current) clearTimeout(saveCellsTimeout.current);
+    saveCellsTimeout.current = setTimeout(async () => {
+      try {
+        await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 'nmc-spreadsheet-cells': JSON.stringify(cells) }),
+        });
+      } catch {
+        try { localStorage.setItem('nmc-spreadsheet', JSON.stringify(cells)); } catch {}
+      }
+    }, 1000);
   }, [cells]);
 
-  // Save merges to localStorage
+  // Save merges to online API (debounced)
+  const saveMergesTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    try { localStorage.setItem('nmc-spreadsheet-merges', JSON.stringify(merges)); } catch {}
+    if (merges.length === 0) return; // Don't save empty initial state
+    if (saveMergesTimeout.current) clearTimeout(saveMergesTimeout.current);
+    saveMergesTimeout.current = setTimeout(async () => {
+      try {
+        await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 'nmc-spreadsheet-merges': JSON.stringify(merges) }),
+        });
+      } catch {
+        try { localStorage.setItem('nmc-spreadsheet-merges', JSON.stringify(merges)); } catch {}
+      }
+    }, 1000);
   }, [merges]);
 
   useEffect(() => {
@@ -794,7 +844,16 @@ function SpreadsheetSheet() {
   };
 
   const clearSheet = () => {
-    if (confirm('Xóa toàn bộ trang tính?')) { setCells({}); setMerges([]); }
+    if (confirm('Xóa toàn bộ trang tính?')) {
+      setCells({});
+      setMerges([]);
+      // Also clear online
+      fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'nmc-spreadsheet-cells': '', 'nmc-spreadsheet-merges': '[]' }),
+      }).catch(() => {});
+    }
   };
 
   const activeCellValue = editingCell ? editVal : (activeCell ? (cells[activeCell] || '') : '');
@@ -1198,80 +1257,141 @@ export default function QuanLyPage() {
   }, [leaders, revenue, contracts, staff, recruiters]);
 
   // ========== Import ==========
+  // Helper: convert various date formats to ISO string (yyyy-mm-dd)
+  const parseDateValue = useCallback((val: any): string | null => {
+    if (!val || val === '' || val === '—') return null;
+    // Already a Date object
+    if (val instanceof Date) return val.toISOString().slice(0, 10);
+    // String date formats
+    if (typeof val === 'string') {
+      // yyyy-mm-dd
+      if (/^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10);
+      // dd/mm/yyyy (Vietnamese format)
+      const dmy = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+      if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+      // Try native parse
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+    // Excel serial number (days since 1899-12-30)
+    if (typeof val === 'number' && val > 1000) {
+      const d = new Date((val - 25569) * 86400 * 1000);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+    return null;
+  }, []);
+
   const handleImport = useCallback(async (sheetName: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const XLSX = await import('xlsx');
-      const wb = XLSX.read(await file.arrayBuffer());
-      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+      // Use raw:false + dateNF to get formatted date strings instead of serial numbers
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, dateNF: 'yyyy-mm-dd' });
       if (!data.length) { toast({ title: 'File trống', variant: 'destructive' }); e.target.value = ''; return; }
 
+      let successCount = 0;
+      let failCount = 0;
+
       if (sheetName === 'leaders') {
-        const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(r['Tiền/tháng'] || r['salary'] || 0) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || '') })).filter(r => r.agentCode || r.agentName);
-        for (const row of rows) await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
+        const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(String(r['Tiền/tháng'] || r['salary'] || '0').replace(/,/g, '')) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(r => r.agentCode || r.agentName);
+        for (const row of rows) {
+          const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
+          if (r.ok) successCount++; else failCount++;
+        }
         fetchLeaders();
       } else if (sheetName === 'revenue') {
-        const rows = data.map((r: any) => ({ month: String(r['Tháng'] || r['month'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã TVV'] || r['agentCode'] || ''), agentName: String(r['Tên TVV'] || r['agentName'] || ''), totalFYP: parseFloat(r['Tổng IP'] || r['totalFYP'] || 0) || 0, totalAFYP: parseFloat(r['Tổng AFYP'] || r['totalAFYP'] || 0) || 0, contractCount: parseInt(r['Số HĐ'] || r['contractCount'] || 0) || 0, activityRounds: parseInt(r['Lượt HĐ'] || r['activityRounds'] || 0) || 0, note: String(r['Ghi chú'] || r['note'] || '') }));
-        await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
+        const rows = data.map((r: any) => ({ month: String(r['Tháng'] || r['month'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã TVV'] || r['agentCode'] || ''), agentName: String(r['Tên TVV'] || r['agentName'] || ''), totalFYP: parseFloat(String(r['Tổng IP'] || r['totalFYP'] || '0').replace(/,/g, '')) || 0, totalAFYP: parseFloat(String(r['Tổng AFYP'] || r['totalAFYP'] || '0').replace(/,/g, '')) || 0, contractCount: parseInt(String(r['Số HĐ'] || r['contractCount'] || '0').replace(/,/g, '')) || 0, activityRounds: parseInt(String(r['Lượt HĐ'] || r['activityRounds'] || '0').replace(/,/g, '')) || 0, note: String(r['Ghi chú'] || r['note'] || '') }));
+        const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
+        if (r.ok) successCount = rows.length; else failCount = rows.length;
         fetchRevenue();
       } else if (sheetName === 'contracts') {
         for (const r of data) {
           const row = r as any;
-          await fetch('/api/contracts', {
+          const effectiveDate = parseDateValue(row['Ngày hiệu lực'] || row['effectiveDate']);
+          const contractNumber = String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || '');
+          const agentName = String(row['Tên'] || row['Họ tên'] || row['agentName'] || '');
+          const fyp = parseFloat(String(row['FYP'] || row['IP'] || row['fyp'] || '0').replace(/,/g, '')) || 0;
+
+          // Skip rows without minimum required data
+          if (!contractNumber && !agentName) { failCount++; continue; }
+
+          const payload = {
+            stt: parseInt(String(row['STT'] || row['stt'] || '0').replace(/,/g, '')) || 0,
+            ban: String(row['Ban'] || row['ban'] || ''),
+            maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || ''),
+            nhom: String(row['Nhóm'] || row['nhom'] || ''),
+            maBanNhom: String(row['Mã Ban/Nhóm'] || row['maBanNhom'] || ''),
+            maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || ''),
+            maDL: String(row['Mã ĐL'] || row['maDL'] || ''),
+            agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || ''),
+            agentName: agentName || 'Chưa nhập',
+            position: String(row['Chức vụ'] || row['position'] || ''),
+            ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['ngayBatDauLamViec']),
+            contractNumber: contractNumber || 'HD_' + Date.now() + '_' + successCount,
+            effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
+            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
+            pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
+            fyp: fyp,
+            nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || ''),
+            hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || ''),
+            dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || ''),
+            phiDongThem: parseFloat(String(row['PHÍ ĐÓNG THÊM'] || row['phiDongThem'] || '0').replace(/,/g, '')) || 0,
+            afypChuaTru10DT: parseFloat(String(row['AFYP chưa trừ 10% ĐT'] || row['afypChuaTru10DT'] || '0').replace(/,/g, '')) || 0,
+            afyp: parseFloat(String(row['AFYP'] || row['afyp'] || '0').replace(/,/g, '')) || 0,
+            ad: String(row['AD'] || row['ad'] || ''),
+            nhom2: String(row['NHÓM'] || row['nhom2'] || ''),
+            ngayBatDauLamViec2: parseDateValue(row['NGÀY BẮT ĐẦU LÀM VIỆC'] || row['ngayBatDauLamViec2']),
+            thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
+            namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
+            thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot: parseFloat(String(row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
+            maDaiLyTD: String(row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['maDaiLyTD'] || ''),
+            danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || ''),
+            chucVu2: String(row['Chức vụ'] || row['chucVu2'] || ''),
+            maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
+          };
+          const resp = await fetch('/api/contracts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              stt: parseInt(row['STT'] || row['stt'] || 0) || 0,
-              ban: String(row['Ban'] || row['ban'] || ''),
-              maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || ''),
-              nhom: String(row['Nhóm'] || row['nhom'] || ''),
-              maBanNhom: String(row['Mã Ban/Nhóm'] || row['maBanNhom'] || ''),
-              maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || ''),
-              maDL: String(row['Mã ĐL'] || row['maDL'] || ''),
-              agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || ''),
-              agentName: String(row['Tên'] || row['Họ tên'] || row['agentName'] || ''),
-              position: String(row['Chức vụ'] || row['position'] || ''),
-              ngayBatDauLamViec: row['Ngày bắt đầu làm việc'] || row['ngayBatDauLamViec'] || null,
-              contractNumber: String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || 'HD_' + Date.now()),
-              effectiveDate: row['Ngày hiệu lực'] || row['effectiveDate'] || new Date().toISOString().slice(0, 10),
-              issueDate: row['Ngày phát hành'] || row['Ngày cấp'] || row['issueDate'] || null,
-              pdt10DT: parseFloat(row['PĐT + 10% ĐT'] || row['pdt10DT'] || 0) || 0,
-              fyp: parseFloat(row['FYP'] || row['IP'] || row['fyp'] || 0) || 0,
-              nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || ''),
-              hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || ''),
-              dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || ''),
-              phiDongThem: parseFloat(row['PHÍ ĐÓNG THÊM'] || row['phiDongThem'] || 0) || 0,
-              afypChuaTru10DT: parseFloat(row['AFYP chưa trừ 10% ĐT'] || row['afypChuaTru10DT'] || 0) || 0,
-              afyp: parseFloat(row['AFYP'] || row['afyp'] || 0) || 0,
-              ad: String(row['AD'] || row['ad'] || ''),
-              nhom2: String(row['NHÓM'] || row['nhom2'] || ''),
-              ngayBatDauLamViec2: row['NGÀY BẮT ĐẦU LÀM VIỆC'] || row['ngayBatDauLamViec2'] || null,
-              thangTD: parseInt(row['THÁNG TD'] || row['thangTD'] || 0) || 0,
-              namTD: parseInt(row['NĂM TD'] || row['namTD'] || 0) || 0,
-              thangHL: parseInt(row['THÁNG HL'] || row['thangHL'] || 0) || 0,
-              tinhLuot: parseFloat(row['Tính lượt'] || row['tinhLuot'] || 0) || 0,
-              tinhLuot3tr: parseFloat(row['TÍNH LƯỢT 3 tr'] || row['tinhLuot3tr'] || 0) || 0,
-              maDaiLyTD: String(row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['maDaiLyTD'] || ''),
-              danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || ''),
-              chucVu2: String(row['Chức vụ'] || row['chucVu2'] || ''),
-              maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
-            })
+            body: JSON.stringify(payload)
           });
+          if (resp.ok) {
+            successCount++;
+          } else {
+            failCount++;
+            const errData = await resp.json().catch(() => ({}));
+            console.warn('[Import contract] Row failed:', errData.error, payload.contractNumber);
+          }
         }
         fetchContracts();
       } else if (sheetName === 'staff') {
-        const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: r['Ngày bắt đầu'] || r['startDate'] || null })).filter(m => m.agentCode || m.agentName);
-        if (members.length) await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+        const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
+        if (members.length) {
+          const r = await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+          if (r.ok) successCount = members.length; else failCount = members.length;
+        }
         fetchStaff();
       } else if (sheetName === 'recruiters') {
-        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: r['Ngày bắt đầu'] || r['startDate'] || null })).filter(m => m.agentCode || m.agentName);
-        if (members.length) await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
+        if (members.length) {
+          const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+          if (r.ok) successCount = members.length; else failCount = members.length;
+        }
         fetchRecruiters();
       }
-      toast({ title: 'Import thành công', description: `${data.length} dòng` });
-    } catch { toast({ title: 'Lỗi import', variant: 'destructive' }); }
+      if (failCount > 0) {
+        toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
+      } else {
+        toast({ title: 'Import thành công', description: `${successCount} dòng` });
+      }
+    } catch (err) {
+      console.error('[handleImport] Error:', err);
+      toast({ title: 'Lỗi import', description: String(err), variant: 'destructive' });
+    }
     e.target.value = '';
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
+  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, parseDateValue]);
 
   // Sort & filter
   const sortData = useCallback((field: string) => {
@@ -1303,28 +1423,77 @@ export default function QuanLyPage() {
   const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
   const totalRecruiters = recruiters.length;
   const totalRevenue = revenue.reduce((s, r) => s + r.totalFYP, 0);
+  const totalAFYP = contracts.reduce((s, c) => s + c.afyp, 0);
+
+  // Overview KPI data sources
+  const overviewDataSources: KPIDataSource[] = [
+    {
+      key: 'leaders', label: 'TB/TN', data: leaders,
+      fields: [
+        { key: 'salary', label: 'Tiền/tháng', type: 'number' },
+        { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
+      ],
+    },
+    {
+      key: 'staff', label: 'TVV', data: staff,
+      fields: [
+        { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
+      ],
+    },
+    {
+      key: 'contracts', label: 'Hợp đồng', data: contracts,
+      fields: [
+        { key: 'fyp', label: 'FYP', type: 'number' },
+        { key: 'afyp', label: 'AFYP', type: 'number' },
+        { key: 'pdt10DT', label: 'PĐT + 10% ĐT', type: 'number' },
+        { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' },
+        { key: 'tinhLuot3tr', label: 'Tính lượt 3tr', type: 'number' },
+        { key: 'stt', label: 'STT', type: 'number' },
+      ],
+    },
+    {
+      key: 'revenue', label: 'Doanh số', data: revenue,
+      fields: [
+        { key: 'totalFYP', label: 'Tổng IP', type: 'number' },
+        { key: 'totalAFYP', label: 'Tổng AFYP', type: 'number' },
+        { key: 'contractCount', label: 'Số HĐ', type: 'number' },
+        { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
+      ],
+    },
+    {
+      key: 'recruiters', label: 'NTD', data: recruiters,
+      fields: [
+        { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
+      ],
+    },
+  ];
+
+  const overviewDefaultKPIs: KPIConfig[] = [
+    { id: 'ov-tb-tn', label: 'Trưởng Ban/Nhóm', dataSourceKey: 'leaders', field: 'salary', calculation: 'count', color: 'emerald' },
+    { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'staff', field: 'agentCode', calculation: 'count', color: 'sky' },
+    { id: 'ov-ntd', label: 'Người TD', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
+    { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'contracts', field: 'stt', calculation: 'count', color: 'amber' },
+    { id: 'ov-fyp', label: 'Tổng IP (HĐ)', dataSourceKey: 'contracts', field: 'fyp', calculation: 'sum', color: 'rose' },
+    { id: 'ov-dt', label: 'Tổng DT', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'emerald' },
+    { id: 'ov-luong', label: 'Tổng lương TN', dataSourceKey: 'leaders', field: 'salary', calculation: 'sum', color: 'sky' },
+  ];
 
   const renderOverview = () => (
     <div className="space-y-4">
-      <h2 className="text-xl font-extrabold text-emerald-400">Tổng quan hệ thống</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Trưởng Ban/Nhóm', value: totalLeaders, icon: Users, color: 'bg-emerald-700' },
-          { label: 'Tổng TVV', value: totalStaff, icon: UserCircle, color: 'bg-sky-700' },
-          { label: 'Người TD', value: totalRecruiters, icon: UserCircle, color: 'bg-violet-700' },
-          { label: 'Tổng HĐ', value: totalContracts, icon: FileText, color: 'bg-amber-700' },
-          { label: 'Tổng IP (HĐ)', value: formatCurrency(totalFYP), isText: true, icon: DollarSign, color: 'bg-rose-700' },
-          { label: 'Tổng DT', value: formatCurrency(totalRevenue), isText: true, icon: TrendingUp, color: 'bg-emerald-700' },
-          { label: 'Tổng lương TN', value: formatCurrency(totalSalary), isText: true, icon: DollarSign, color: 'bg-sky-700' },
-        ].map((stat, i) => (
-          <div key={i} className={`${stat.color} rounded-lg p-4 border border-emerald-600`}>
-            <div className="flex items-center gap-2 mb-2"><stat.icon className="w-5 h-5 text-gray-200" /><span className="text-sm text-gray-100 font-bold">{stat.label}</span></div>
-            <p className="text-2xl font-extrabold text-white">{stat.isText ? stat.value : formatNumber(stat.value as number)}</p>
-          </div>
-        ))}
+      <div className="flex items-center gap-3">
+        <h2 className="text-xl font-extrabold text-emerald-400">Tổng quan hệ thống</h2>
       </div>
+      {/* Custom KPI for Overview */}
+      <KPISettingsPopover
+        sectionKey="overview"
+        sectionLabel="Tổng quan"
+        dataSources={overviewDataSources}
+        defaultConfigs={overviewDefaultKPIs}
+        onlineSettings={onlineSettings}
+        saveSetting={saveSetting}
+      />
       {/* Sync Status */}
-      <div className={`rounded-lg p-4 border ${syncEnabled ? 'bg-emerald-900 border-emerald-700' : 'bg-amber-900 border-amber-700'}`}>
+      <div className={`rounded-lg p-4 border-2 ${syncEnabled ? 'bg-emerald-700 border-emerald-500' : 'bg-amber-700 border-amber-500'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {syncEnabled ? <CheckCircle2 className="w-6 h-6 text-emerald-300" /> : <AlertTriangle className="w-6 h-6 text-amber-300" />}
@@ -1354,11 +1523,11 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-700', icon: Users },
-            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-700', icon: DollarSign },
+            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-600', icon: Users },
+            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-600', icon: DollarSign },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-emerald-600`}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-emerald-100" /><p className="text-emerald-100 text-[10px] font-bold">{kpi.label}</p></div>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/20`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
           ))}
@@ -1368,7 +1537,7 @@ export default function QuanLyPage() {
         <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
           <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
           <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
@@ -1417,11 +1586,11 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-700', icon: UserCircle },
-            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-700', icon: CheckCircle2 },
+            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-600', icon: UserCircle },
+            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-600', icon: CheckCircle2 },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-emerald-600`}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-emerald-100" /><p className="text-emerald-100 text-[10px] font-bold">{kpi.label}</p></div>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/20`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
           ))}
@@ -1436,7 +1605,7 @@ export default function QuanLyPage() {
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
+            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
           <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
@@ -1566,7 +1735,7 @@ export default function QuanLyPage() {
         <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng chi tiết — {monthLabel} ({sortedContracts.length} HĐ)</h3>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {!syncEnabled && <><Button onClick={addContract} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm HĐ</Button>
-            <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
+            <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
           <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu HĐ</Button>
           <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất HĐ</Button>
         </div>
@@ -1698,9 +1867,9 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-950">
+    <div className="h-screen flex flex-col bg-emerald-900">
       {/* Header */}
-      <header className="bg-emerald-900 border-b border-emerald-700 px-4 py-2 flex items-center gap-3 flex-shrink-0">
+      <header className="bg-emerald-800 border-b-2 border-emerald-600 px-4 py-2 flex items-center gap-3 flex-shrink-0">
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
@@ -1719,7 +1888,7 @@ export default function QuanLyPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <nav className="w-[200px] bg-emerald-900 border-r border-emerald-700 flex-shrink-0 overflow-y-auto">
+        <nav className="w-[200px] bg-emerald-800 border-r-2 border-emerald-600 flex-shrink-0 overflow-y-auto">
           <div className="p-2 space-y-0.5">
             {SHEETS.map(sheet => {
               const isActive = activeSheet === sheet.key;
@@ -1762,8 +1931,8 @@ export default function QuanLyPage() {
             })}
           </div>
           {/* File menu */}
-          <div className="p-2 mt-4 border-t border-emerald-700">
-            <div className="text-emerald-400 text-xs font-bold mb-2 px-2">MENU FILE</div>
+          <div className="p-2 mt-4 border-t border-emerald-600">
+            <div className="text-white/70 text-xs font-bold mb-2 px-2">MENU FILE</div>
             {SHEETS.filter(s => s.key !== 'overview' && s.key !== 'spreadsheet').map(sheet => (
               <div key={sheet.key} className="px-2 py-1 text-emerald-200 text-[11px] flex items-center gap-1.5">
                 <sheet.icon className="w-3 h-3 flex-shrink-0" />
