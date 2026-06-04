@@ -118,7 +118,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet' | 'settings';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
@@ -138,6 +138,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
   { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
+  { key: 'settings', label: 'Cài đặt', icon: Settings, synced: false },
 ];
 
 // Templates
@@ -1142,6 +1143,7 @@ export default function QuanLyPage() {
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff()]); },
       spreadsheet: async () => {},
+      settings: async () => {},
     };
     loaders[sheet]().then(() => {
       loadedSheets.current.add(sheet);
@@ -1279,11 +1281,13 @@ export default function QuanLyPage() {
   // Helper: convert various date formats to ISO string (yyyy-mm-dd) - timezone safe
   const parseDateValue = useCallback((val: any): string | null => {
     if (!val || val === '' || val === '—') return null;
-    // Already a Date object - use local date methods to avoid timezone shift
+    // Already a Date object - XLSX with cellDates:true creates UTC Date objects
     if (val instanceof Date) {
-      const y = val.getFullYear();
-      const m = String(val.getMonth() + 1).padStart(2, '0');
-      const d = String(val.getDate()).padStart(2, '0');
+      const y = val.getUTCFullYear();
+      const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(val.getUTCDate()).padStart(2, '0');
+      // Validate: reasonable year range
+      if (y < 1900 || y > 2100) return null;
       return `${y}-${m}-${d}`;
     }
     // String date formats
@@ -1293,12 +1297,13 @@ export default function QuanLyPage() {
       // dd/mm/yyyy (Vietnamese format)
       const dmy = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
       if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-      // Try native parse - use local date to avoid timezone shift
+      // Try native parse - use UTC to avoid timezone shift
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        if (y < 1900 || y > 2100) return null;
         return `${y}-${m}-${day}`;
       }
     }
@@ -1306,9 +1311,10 @@ export default function QuanLyPage() {
     if (typeof val === 'number' && val > 1000) {
       const d = new Date((val - 25569) * 86400 * 1000);
       if (!isNaN(d.getTime())) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        if (y < 1900 || y > 2100) return null;
         return `${y}-${m}-${day}`;
       }
     }
@@ -1321,8 +1327,7 @@ export default function QuanLyPage() {
     try {
       const XLSX = await import('xlsx');
       const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
-      // Use raw:false + dateNF to get formatted date strings instead of serial numbers
-      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false, dateNF: 'yyyy-mm-dd' });
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
       if (!data.length) { toast({ title: 'File trống', variant: 'destructive' }); e.target.value = ''; return; }
 
       let successCount = 0;
@@ -1426,8 +1431,11 @@ export default function QuanLyPage() {
       console.error('[handleImport] Error:', err);
       toast({ title: 'Lỗi import', description: String(err), variant: 'destructive' });
     }
+    // Invalidate cache and reload all data after import
+    loadedSheets.current.clear();
+    fetchAllData();
     e.target.value = '';
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, parseDateValue]);
+  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, parseDateValue, fetchAllData]);
 
   // Sort & filter
   const sortData = useCallback((field: string) => {
@@ -1515,9 +1523,9 @@ export default function QuanLyPage() {
   ];
 
   const renderOverview = () => (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <h2 className="text-xl font-extrabold text-emerald-400">Tổng quan hệ thống</h2>
+        <h2 className="text-lg font-extrabold text-emerald-400">Tổng quan</h2>
       </div>
       {/* Custom KPI for Overview */}
       <KPISettingsPopover
@@ -1528,21 +1536,6 @@ export default function QuanLyPage() {
         onlineSettings={onlineSettings}
         saveSetting={saveSetting}
       />
-      {/* Sync Status */}
-      <div className={`rounded-lg p-4 border-2 ${syncEnabled ? 'bg-emerald-700 border-emerald-500' : 'bg-amber-700 border-amber-500'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {syncEnabled ? <CheckCircle2 className="w-6 h-6 text-emerald-300" /> : <AlertTriangle className="w-6 h-6 text-amber-300" />}
-            <div>
-              <h3 className={`text-base font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
-              <p className="text-gray-300 text-sm">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
-            </div>
-          </div>
-          <button onClick={handleSyncToggle}>
-            {syncEnabled ? <ToggleRight className="w-10 h-10 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-10 h-10 text-amber-400 cursor-pointer" />}
-          </button>
-        </div>
-      </div>
     </div>
   );
 
@@ -1634,11 +1627,6 @@ export default function QuanLyPage() {
         </div>
         {/* Custom KPI */}
         <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-        <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-700 border border-emerald-500'}`}>
-          {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200 text-xs">— Có thể chỉnh sửa</span></>
-            : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-100 text-xs">— Chỉ xem</span></>}
-          <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
-        </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
@@ -1890,6 +1878,83 @@ export default function QuanLyPage() {
     </div>
   );
 
+  // ========== RENDER: Settings ==========
+  const renderSettings = () => (
+    <div className="space-y-4">
+      <h2 className="text-lg font-extrabold text-emerald-400">Cài đặt hệ thống</h2>
+
+      {/* Sync toggle */}
+      <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500' : 'bg-amber-700/50 border-amber-500'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}
+            <div>
+              <h3 className={`text-sm font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
+              <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
+            </div>
+          </div>
+          <button onClick={handleSyncToggle}>
+            {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Per-section settings */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold text-emerald-300">Cài đặt theo mục</h3>
+        {[
+          { key: 'leaders', label: 'DS Trưởng Ban/Nhóm' },
+          { key: 'recruiters', label: 'DS Người TD' },
+          { key: 'revenue', label: 'Doanh thu' },
+          { key: 'structure', label: 'Cấu trúc' },
+          { key: 'spreadsheet', label: 'Trang tính' },
+          ...MONTHS.map(m => ({ key: `revenue-${m.key}`, label: `Doanh thu - ${m.label}` })),
+        ].map(section => {
+          const link = onlineSettings[`nmc-link-${section.key}`] || '';
+          const sync = onlineSettings[`nmc-sync-${section.key}`];
+          const syncOn = sync === undefined || sync === '' || sync === 'true';
+          return (
+            <div key={section.key} className="bg-emerald-800/60 rounded-md p-2.5 border border-emerald-600/50">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-white text-xs font-bold">{section.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold ${syncOn ? 'text-emerald-300' : 'text-amber-300'}`}>
+                    {syncOn ? 'Auto' : 'Thủ công'}
+                  </span>
+                  <button
+                    onClick={() => saveSetting(`nmc-sync-${section.key}`, String(!syncOn))}
+                    className="flex items-center"
+                  >
+                    {syncOn
+                      ? <ToggleRight className="w-6 h-6 text-emerald-400 cursor-pointer" />
+                      : <ToggleLeft className="w-6 h-6 text-amber-400 cursor-pointer" />}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Input
+                  value={link}
+                  onChange={(e) => {
+                    // Don't save on every keystroke, just update local state
+                    setOnlineSettings(prev => ({ ...prev, [`nmc-link-${section.key}`]: e.target.value }));
+                  }}
+                  onBlur={() => saveSetting(`nmc-link-${section.key}`, link)}
+                  placeholder="Google Sheets URL..."
+                  className="h-6 text-[10px] bg-gray-800 border-gray-600 text-white placeholder-gray-500 flex-1"
+                />
+                {link && (
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 flex-shrink-0">
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   // ========== RENDER SHEET DISPATCHER ==========
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
@@ -1900,6 +1965,7 @@ export default function QuanLyPage() {
       case 'revenue': return renderRevenue();
       case 'structure': return renderStructure();
       case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
+      case 'settings': return renderSettings();
     }
   };
 
@@ -1910,9 +1976,8 @@ export default function QuanLyPage() {
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={handleSyncToggle} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
-            {syncEnabled ? <span className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md"><ToggleRight className="w-4 h-4" /> Auto</span>
-              : <span className="flex items-center gap-1 text-amber-300 hover:text-amber-200 bg-amber-800 px-2 py-1 rounded-md"><ToggleLeft className="w-4 h-4" /> Thủ công</span>}
+          <button onClick={() => setActiveSheet('settings')} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
+            <span className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md"><Settings className="w-4 h-4" /> Cài đặt</span>
           </button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
