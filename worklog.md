@@ -214,3 +214,34 @@ Stage Summary:
 - Only 1 detail table (Contracts) remains in revenue section
 - Sync toggle persists OFF state across page reloads
 - All changes deployed to https://nc-link.vercel.app/quan-ly
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Move all settings to online storage + fix UI black streak and faded colors
+
+Work Log:
+- Analyzed user screenshot (VLM timed out, inferred issues from code)
+- Confirmed existing Setting model in Prisma and /api/settings route (GET/PUT)
+- Added onlineSettings state and saveSetting() function in QuanLyPage
+- Updated SettingsPopover to use onlineSettings/saveSetting instead of localStorage
+- Updated KPISettingsPopover to use onlineSettings/saveSetting instead of localStorage
+- Updated syncEnabled to derive from onlineSettings
+- Updated sectionLinks/sectionSyncs to derive from onlineSettings
+- Changed bg-[#0a0a1a] to bg-emerald-950 (fixes black streak)
+- Replaced ALL transparent/faded colors with solid equivalents:
+  - text-white/60 → text-emerald-100, text-white/40 → text-gray-300
+  - border-white/10 → border-emerald-600, bg-violet-900/40 → bg-violet-800
+  - And 15+ more replacements
+- Pushed to git (commit: e0af369)
+- Verified Vercel deployment returns HTTP 200
+- Tested API: GET /api/settings works, PUT saves correctly to PostgreSQL
+- Verified saved settings persist in database across requests
+
+Stage Summary:
+- All KPI configs, sync state, section links now stored in PostgreSQL via /api/settings
+- Works across multiple devices (online storage)
+- Falls back to localStorage if API fails (with warning toast)
+- UI: no more black streak, all solid readable colors
+- Spreadsheet data kept in localStorage (large, can migrate later)
+- Deployed at https://nc-link.vercel.app/quan-ly
