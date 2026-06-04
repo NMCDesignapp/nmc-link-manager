@@ -262,22 +262,12 @@ export default function Home() {
   const categories = useMemo(() => Array.isArray(categoriesData) ? categoriesData : [], [categoriesData])
   const { settings } = useSettings()
 
-  // Load neon color from localStorage immediately on mount
+  // Apply neon color from server settings (no localStorage)
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('nmc-app-settings')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          if (parsed.neon_color) {
-            document.documentElement.style.setProperty('--primary', parsed.neon_color)
-          }
-        }
-      }
-    } catch {
-      // ignore
+    if (settings?.neon_color) {
+      document.documentElement.style.setProperty('--primary', settings.neon_color)
     }
-  }, [])
+  }, [settings?.neon_color])
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [editingLink, setEditingLink] = useState<Link | null>(null)

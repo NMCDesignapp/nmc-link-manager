@@ -280,7 +280,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-800`}
+          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-700`}
           title="Cài đặt"
         >
           <Settings className="w-3.5 h-3.5" />
@@ -441,7 +441,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
                       <span className="text-gray-300">Mục tiêu: {formatKPIValue(config.target)}</span>
                       <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
                     </div>
-                    <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-900 [&>div]:bg-emerald-400" />
+                    <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
                   </div>
                 )}
               </div>
@@ -455,7 +455,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-800"
+            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-700"
             title="Cài đặt KPI"
           >
             <BarChart3 className="w-3 h-3" />
@@ -678,13 +678,7 @@ function SpreadsheetSheet() {
           if (mergesData) setMerges(JSON.parse(mergesData));
         }
       } catch {
-        // Fallback to localStorage
-        try {
-          const saved = localStorage.getItem('nmc-spreadsheet');
-          if (saved) setCells(JSON.parse(saved));
-          const savedMerges = localStorage.getItem('nmc-spreadsheet-merges');
-          if (savedMerges) setMerges(JSON.parse(savedMerges));
-        } catch {}
+        // Server unavailable - no localStorage fallback
       }
     };
     loadOnline();
@@ -703,7 +697,7 @@ function SpreadsheetSheet() {
           body: JSON.stringify({ 'nmc-spreadsheet-cells': JSON.stringify(cells) }),
         });
       } catch {
-        try { localStorage.setItem('nmc-spreadsheet', JSON.stringify(cells)); } catch {}
+        // Server save failed - no localStorage fallback
       }
     }, 1000);
   }, [cells]);
@@ -721,7 +715,7 @@ function SpreadsheetSheet() {
           body: JSON.stringify({ 'nmc-spreadsheet-merges': JSON.stringify(merges) }),
         });
       } catch {
-        try { localStorage.setItem('nmc-spreadsheet-merges', JSON.stringify(merges)); } catch {}
+        // Server save failed - no localStorage fallback
       }
     }, 1000);
   }, [merges]);
@@ -1017,20 +1011,8 @@ export default function QuanLyPage() {
       .then(r => r.ok ? r.json() : {})
       .then(data => setOnlineSettings(data))
       .catch(() => {
-        // Fallback: try to read from localStorage
-        const fallback: Record<string, string> = {};
-        const knownKeys = ['nmc-sync-enabled',
-          'nmc-link-leaders', 'nmc-link-recruiters', 'nmc-link-revenue', 'nmc-link-structure', 'nmc-link-spreadsheet',
-          'nmc-sync-leaders', 'nmc-sync-recruiters', 'nmc-sync-revenue', 'nmc-sync-structure', 'nmc-sync-spreadsheet',
-          'nmc-kpi-leaders', 'nmc-kpi-recruiters', 'nmc-kpi-revenue',
-        ];
-        try {
-          knownKeys.forEach(key => {
-            const v = localStorage.getItem(key);
-            if (v !== null) fallback[key] = v;
-          });
-        } catch {}
-        setOnlineSettings(fallback);
+        // Server unavailable - no localStorage fallback
+        setOnlineSettings({});
       });
   }, []);
 
@@ -1044,9 +1026,7 @@ export default function QuanLyPage() {
         body: JSON.stringify({ [key]: value }),
       });
     } catch {
-      toast({ title: 'Lỗi lưu online', description: 'Đang dùng bộ nhớ tạm', variant: 'destructive' });
-      // Fallback to localStorage
-      try { localStorage.setItem(key, value); } catch {}
+      toast({ title: 'Lỗi lưu online', description: 'Không thể kết nối máy chủ', variant: 'destructive' });
     }
   }, []);
 
@@ -1541,9 +1521,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-x-auto border border-emerald-500">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
+            <TableHeader><TableRow className="bg-emerald-700 hover:bg-emerald-700">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'note', l: 'Ghi chú' }].map(col => (
                 <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -1597,7 +1577,7 @@ export default function QuanLyPage() {
         </div>
         {/* Custom KPI */}
         <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-        <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
+        <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-700 border border-emerald-500'}`}>
           {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200 text-xs">— Có thể chỉnh sửa</span></>
             : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-100 text-xs">— Chỉ xem</span></>}
           <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
@@ -1609,9 +1589,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-x-auto border border-emerald-500">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
+            <TableHeader><TableRow className="bg-emerald-700 hover:bg-emerald-700">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
                 <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -1678,7 +1658,7 @@ export default function QuanLyPage() {
               className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
                 revenueSub === m.key
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-900 text-emerald-300 hover:bg-emerald-700 hover:text-white'
+                  : 'bg-emerald-800 text-emerald-300 hover:bg-emerald-700 hover:text-white'
               }`}
             >
               {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
@@ -1804,7 +1784,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Show current structure from leaders */}
-      <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
+      <div className="bg-emerald-800 rounded-lg p-4 border border-emerald-500">
         <h3 className="text-base font-bold text-emerald-300 mb-3">Sơ đồ Trưởng Ban/Nhóm hiện tại</h3>
         {leaders.length === 0 ? <p className="text-gray-300 text-sm">Chưa có dữ liệu</p> : (
           <div className="space-y-1">
@@ -1812,11 +1792,11 @@ export default function QuanLyPage() {
             {Array.from(new Set(leaders.map(l => l.ban || '(Chưa phân ban)'))).map(ban => {
               const banLeaders = leaders.filter(l => (l.ban || '(Chưa phân ban)') === ban);
               return (
-                <div key={ban} className="bg-emerald-800 rounded-md p-3 mb-2">
+                <div key={ban} className="bg-emerald-700 rounded-md p-3 mb-2">
                   <h4 className="text-emerald-200 font-bold text-sm mb-2">{ban}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {banLeaders.map(l => (
-                      <div key={l.id} className="bg-emerald-700 rounded-md p-2 border border-emerald-600">
+                      <div key={l.id} className="bg-emerald-600 rounded-md p-2 border border-emerald-500">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-emerald-300" />
                           <div>
@@ -1835,14 +1815,14 @@ export default function QuanLyPage() {
       </div>
 
       {/* Staff count by group */}
-      <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
+      <div className="bg-emerald-800 rounded-lg p-4 border border-emerald-500">
         <h3 className="text-base font-bold text-emerald-300 mb-3">Nhân sự theo Nhóm</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {Array.from(new Set(staff.map(s => s.nhom || '(Chưa phân)'))).sort().map(nhom => {
             const count = staff.filter(s => (s.nhom || '(Chưa phân)') === nhom).length;
             const maNhom = staff.find(s => s.nhom === nhom)?.maNhom || '';
             return (
-              <div key={nhom} className="bg-emerald-800 rounded-md p-2 flex items-center justify-between">
+              <div key={nhom} className="bg-emerald-700 rounded-md p-2 flex items-center justify-between">
                 <div><p className="text-white text-xs font-bold">{nhom}</p><p className="text-emerald-200 text-[10px]">{maNhom}</p></div>
                 <span className="text-emerald-200 font-extrabold text-sm">{count}</span>
               </div>
@@ -1867,10 +1847,10 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50">
+    <div className="h-screen flex flex-col bg-emerald-800 fixed inset-0 z-50">
       {/* Header */}
-      <header className="bg-emerald-800 border-b-2 border-emerald-600 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
+      <header className="bg-emerald-700 border-b-2 border-emerald-500 px-4 py-2 flex items-center gap-3 flex-shrink-0">
+        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={handleSyncToggle} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
@@ -1879,16 +1859,16 @@ export default function QuanLyPage() {
           </button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-emerald-800 border-emerald-600 text-white placeholder-emerald-400" />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-emerald-700 border-emerald-500 text-white placeholder-emerald-400" />
             {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
           </div>
-          <Button variant="ghost" onClick={() => loadSheet(activeSheet)} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" onClick={() => loadSheet(activeSheet)} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <nav className="w-[200px] bg-emerald-800 border-r-2 border-emerald-600 flex-shrink-0 overflow-y-auto">
+        <nav className="w-[200px] bg-emerald-700 border-r-2 border-emerald-500 flex-shrink-0 overflow-y-auto">
           <div className="p-2 space-y-0.5">
             {SHEETS.map(sheet => {
               const isActive = activeSheet === sheet.key;
@@ -1898,7 +1878,7 @@ export default function QuanLyPage() {
                   <button
                     onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
-                      isActive ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-emerald-800 hover:text-white'
+                      isActive ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-emerald-700 hover:text-white'
                     }`}
                   >
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
@@ -1931,7 +1911,7 @@ export default function QuanLyPage() {
             })}
           </div>
           {/* File menu */}
-          <div className="p-2 mt-4 border-t border-emerald-600">
+          <div className="p-2 mt-4 border-t border-emerald-500">
             <div className="text-white/70 text-xs font-bold mb-2 px-2">MENU FILE</div>
             {SHEETS.filter(s => s.key !== 'overview' && s.key !== 'spreadsheet').map(sheet => (
               <div key={sheet.key} className="px-2 py-1 text-emerald-200 text-[11px] flex items-center gap-1.5">

@@ -140,15 +140,8 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
   const handleColorChange = (color: string) => {
     handleChange('neon_color', color)
     document.documentElement.style.setProperty('--primary', color)
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('nmc-app-settings')
-        const current = stored ? JSON.parse(stored) : {}
-        localStorage.setItem('nmc-app-settings', JSON.stringify({ ...current, neon_color: color }))
-      }
-    } catch {
-      // ignore
-    }
+    // Save directly to server (no localStorage)
+    updateSettings({ neon_color: color })
   }
 
   const handleDeleteLink = async (id: number) => {
