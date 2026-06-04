@@ -188,3 +188,29 @@ Stage Summary:
 - Sidebar and revenue tabs show link icons when configured
 - All settings persisted in localStorage
 - No existing functionality broken
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix revenue section - customizable KPI cards, remove duplicate table, persist sync toggle
+
+Work Log:
+- Analyzed user screenshot and identified 3 issues in Doanh thu section
+- Read full page.tsx (~1700 lines) to understand current structure
+- Enhanced KPIConfig interface with dataSourceKey and color fields
+- Added KPIDataSource interface and KPI_COLORS constant
+- Rewrote KPISettingsPopover to support multiple data sources (revenue + contracts)
+- Added data source selector, color picker, and dynamic field dropdown in KPI settings
+- Provided 7 default KPI configs matching original hardcoded cards
+- Removed hardcoded KPI cards grid from renderRevenue
+- Removed "Doanh số chi tiết" (emerald) MonthlyRevenue table
+- Renamed "Hợp đồng" heading to "Bảng chi tiết"
+- Fixed sync toggle persistence by using lazy useState initializer from localStorage
+- Pushed changes to GitHub (commit: 24aaa62)
+- Verified Vercel deployment returns HTTP 200
+
+Stage Summary:
+- KPI cards now fully customizable: name, data source, field, calculation method, color, target
+- Only 1 detail table (Contracts) remains in revenue section
+- Sync toggle persists OFF state across page reloads
+- All changes deployed to https://nc-link.vercel.app/quan-ly
