@@ -93,10 +93,29 @@ interface MergeRange {
 interface KPIConfig {
   id: string;
   label: string;
+  dataSourceKey: string;
   field: string;
   calculation: 'sum' | 'average' | 'count' | 'min' | 'max';
   target?: number;
+  color: 'emerald' | 'amber' | 'sky' | 'violet' | 'rose' | 'orange';
 }
+
+// KPI data source
+interface KPIDataSource {
+  key: string;
+  label: string;
+  data: Record<string, any>[];
+  fields: { key: string; label: string; type: 'number' | 'string' }[];
+}
+
+const KPI_COLORS: Record<string, string> = {
+  emerald: 'bg-emerald-700',
+  amber: 'bg-amber-700',
+  sky: 'bg-sky-700',
+  violet: 'bg-violet-700',
+  rose: 'bg-rose-700',
+  orange: 'bg-orange-700',
+};
 
 // ==================== CONSTANTS ====================
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet';
@@ -313,10 +332,10 @@ function SettingsPopover({ sectionKey, sectionLabel }: { sectionKey: string; sec
 }
 
 // ==================== KPI SETTINGS POPOVER ====================
-function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }: {
+function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs }: {
   sectionKey: string; sectionLabel: string;
-  data: Record<string, any>[];
-  availableFields: { key: string; label: string; type: 'number' | 'string' }[];
+  dataSources: KPIDataSource[];
+  defaultConfigs?: KPIConfig[];
 }) {
   const [configs, setConfigs] = useState<KPIConfig[]>([]);
   const [open, setOpen] = useState(false);
@@ -324,9 +343,14 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`nmc-kpi-${sectionKey}`);
-      if (saved) setConfigs(JSON.parse(saved));
+      if (saved) {
+        setConfigs(JSON.parse(saved));
+      } else if (defaultConfigs && defaultConfigs.length > 0) {
+        setConfigs(defaultConfigs);
+        localStorage.setItem(`nmc-kpi-${sectionKey}`, JSON.stringify(defaultConfigs));
+      }
     } catch {}
-  }, [sectionKey, open]);
+  }, [sectionKey, open, defaultConfigs]);
 
   const saveConfigs = useCallback((newConfigs: KPIConfig[]) => {
     setConfigs(newConfigs);
@@ -335,16 +359,21 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
     } catch {}
   }, [sectionKey]);
 
+  const firstSourceKey = dataSources[0]?.key || '';
+  const firstFieldKey = dataSources[0]?.fields[0]?.key || '';
+
   const addConfig = useCallback(() => {
     const newConfig: KPIConfig = {
       id: `kpi-${Date.now()}`,
       label: 'KPI mới',
-      field: availableFields[0]?.key || '',
+      dataSourceKey: firstSourceKey,
+      field: firstFieldKey,
       calculation: 'sum',
       target: undefined,
+      color: 'emerald',
     };
     saveConfigs([...configs, newConfig]);
-  }, [configs, saveConfigs, availableFields]);
+  }, [configs, saveConfigs, firstSourceKey, firstFieldKey]);
 
   const updateConfig = useCallback((id: string, updates: Partial<KPIConfig>) => {
     saveConfigs(configs.map(c => c.id === id ? { ...c, ...updates } : c));
@@ -354,9 +383,11 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
     saveConfigs(configs.filter(c => c.id !== id));
   }, [configs, saveConfigs]);
 
-  // Calculate KPI values from data
+  // Calculate KPI values from the correct data source
   const calculateKPI = useCallback((config: KPIConfig): number => {
-    const values = data
+    const ds = dataSources.find(d => d.key === config.dataSourceKey);
+    if (!ds) return 0;
+    const values = ds.data
       .map(item => parseFloat(item[config.field]) || 0)
       .filter(v => !isNaN(v));
 
@@ -369,7 +400,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
       case 'max': return Math.max(...values);
       default: return 0;
     }
-  }, [data]);
+  }, [dataSources]);
 
   const formatKPIValue = (val: number): string => {
     if (Math.abs(val) >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)} tỷ`;
@@ -378,7 +409,11 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
     return val.toFixed(val % 1 === 0 ? 0 : 1);
   };
 
-  const numFields = availableFields.filter(f => f.type === 'number');
+  // Get fields for a specific data source
+  const getFieldsForSource = useCallback((sourceKey: string) => {
+    const ds = dataSources.find(d => d.key === sourceKey);
+    return ds ? ds.fields.filter(f => f.type === 'number') : [];
+  }, [dataSources]);
 
   return (
     <div className="space-y-2">
@@ -388,10 +423,12 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
           {configs.map(config => {
             const actual = calculateKPI(config);
             const pct = config.target ? Math.min((actual / config.target) * 100, 100) : undefined;
-            const fieldLabel = availableFields.find(f => f.key === config.field)?.label || config.field;
+            const ds = dataSources.find(d => d.key === config.dataSourceKey);
+            const fieldLabel = ds?.fields.find(f => f.key === config.field)?.label || config.field;
             const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
+            const colorClass = KPI_COLORS[config.color] || 'bg-emerald-700';
             return (
-              <div key={config.id} className="bg-emerald-800 rounded-lg p-2.5 border border-white/10">
+              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-white/10`}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-white/60 text-[9px] font-bold">{config.label || fieldLabel}</p>
                   <span className="text-white/40 text-[8px]">{calcLabel} {fieldLabel}</span>
@@ -431,53 +468,80 @@ function KPISettingsPopover({ sectionKey, sectionLabel, data, availableFields }:
             </h4>
             <p className="text-[10px] text-gray-400">Tự động tính toán từ dữ liệu bảng. Thêm chỉ số KPI và đặt mục tiêu.</p>
 
-            {configs.map(config => (
-              <div key={config.id} className="bg-gray-800 rounded-md p-2 space-y-1.5 border border-gray-700">
-                <div className="flex items-center gap-1">
-                  <Input
-                    value={config.label}
-                    onChange={(e) => updateConfig(config.id, { label: e.target.value })}
-                    className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
-                    placeholder="Tên KPI"
-                  />
-                  <Button variant="ghost" size="sm" onClick={() => removeConfig(config.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300">
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <select
-                    value={config.field}
-                    onChange={(e) => updateConfig(config.id, { field: e.target.value })}
-                    className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
-                  >
-                    {numFields.map(f => (
-                      <option key={f.key} value={f.key}>{f.label}</option>
+            {configs.map(config => {
+              const currentFields = getFieldsForSource(config.dataSourceKey);
+              return (
+                <div key={config.id} className="bg-gray-800 rounded-md p-2 space-y-1.5 border border-gray-700">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={config.label}
+                      onChange={(e) => updateConfig(config.id, { label: e.target.value })}
+                      className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+                      placeholder="Tên KPI"
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => removeConfig(config.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <select
+                      value={config.dataSourceKey}
+                      onChange={(e) => {
+                        const newSourceKey = e.target.value;
+                        const newFields = getFieldsForSource(newSourceKey);
+                        updateConfig(config.id, { dataSourceKey: newSourceKey, field: newFields[0]?.key || '' });
+                      }}
+                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+                    >
+                      {dataSources.map(ds => (
+                        <option key={ds.key} value={ds.key}>{ds.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={config.field}
+                      onChange={(e) => updateConfig(config.id, { field: e.target.value })}
+                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+                    >
+                      {currentFields.map(f => (
+                        <option key={f.key} value={f.key}>{f.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={config.calculation}
+                      onChange={(e) => updateConfig(config.id, { calculation: e.target.value as KPIConfig['calculation'] })}
+                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+                    >
+                      <option value="sum">Tổng</option>
+                      <option value="average">TB</option>
+                      <option value="count">SL</option>
+                      <option value="min">Min</option>
+                      <option value="max">Max</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Target className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                    <Input
+                      type="number"
+                      value={config.target || ''}
+                      onChange={(e) => updateConfig(config.id, { target: e.target.value ? parseFloat(e.target.value) : undefined })}
+                      className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+                      placeholder="Mục tiêu (để trống = không có)"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-gray-400">Màu:</span>
+                    {(['emerald', 'amber', 'sky', 'violet', 'rose', 'orange'] as const).map(c => (
+                      <button
+                        key={c}
+                        onClick={() => updateConfig(config.id, { color: c })}
+                        className={`w-5 h-5 rounded-full ${KPI_COLORS[c]} border-2 ${config.color === c ? 'border-white' : 'border-transparent'} hover:border-white/50 transition-colors`}
+                        title={c}
+                      />
                     ))}
-                  </select>
-                  <select
-                    value={config.calculation}
-                    onChange={(e) => updateConfig(config.id, { calculation: e.target.value as KPIConfig['calculation'] })}
-                    className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
-                  >
-                    <option value="sum">Tổng (sum)</option>
-                    <option value="average">Trung bình (avg)</option>
-                    <option value="count">Số lượng (count)</option>
-                    <option value="min">Nhỏ nhất (min)</option>
-                    <option value="max">Lớn nhất (max)</option>
-                  </select>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Target className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                  <Input
-                    type="number"
-                    value={config.target || ''}
-                    onChange={(e) => updateConfig(config.id, { target: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
-                    placeholder="Mục tiêu (để trống = không có)"
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             <Button onClick={addConfig} className="w-full bg-emerald-700 hover:bg-emerald-600 text-white h-7 text-xs">
               <Plus className="w-3 h-3 mr-1" /> Thêm chỉ số KPI
@@ -892,7 +956,12 @@ export default function QuanLyPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [syncEnabled, setSyncEnabled] = useState(true);
+  const [syncEnabled, setSyncEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { const s = localStorage.getItem('nmc-sync-enabled'); return s !== null ? s === 'true' : true; } catch { return true; }
+    }
+    return true;
+  });
 
   // Data
   const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
@@ -907,10 +976,7 @@ export default function QuanLyPage() {
   const [sectionSyncs, setSectionSyncs] = useState<Record<string, boolean>>({});
   const [settingsVersion, setSettingsVersion] = useState(0);
 
-  // Load sync preference & section settings
-  useEffect(() => {
-    try { const s = localStorage.getItem('nmc-sync-enabled'); if (s !== null) setSyncEnabled(s === 'true'); } catch {}
-  }, []);
+  // Persist sync preference
   useEffect(() => {
     try { localStorage.setItem('nmc-sync-enabled', String(syncEnabled)); } catch {}
   }, [syncEnabled]);
@@ -1262,7 +1328,7 @@ export default function QuanLyPage() {
           ))}
         </div>
         {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" data={filtered} availableFields={leaderFields} />
+        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" dataSources={[{ key: 'leaders', label: 'TB/TN', data: filtered, fields: leaderFields }]} />
         <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
           <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" />
           <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
@@ -1325,7 +1391,7 @@ export default function QuanLyPage() {
           ))}
         </div>
         {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" data={filtered} availableFields={recruiterFields} />
+        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} />
         <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
           {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa</span></>
             : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-200/60 text-xs">— Chỉ xem</span></>}
@@ -1391,22 +1457,8 @@ export default function QuanLyPage() {
           return mm === revenueSub;
         });
 
-    // Aggregate KPIs
-    const aggFYP = filteredRevenue.reduce((s, r) => s + r.totalFYP, 0);
-    const aggAFYP = filteredRevenue.reduce((s, r) => s + r.totalAFYP, 0);
-    const aggContracts = filteredRevenue.reduce((s, r) => s + r.contractCount, 0);
-    const aggRounds = filteredRevenue.reduce((s, r) => s + r.activityRounds, 0);
-    const contractFYP = filteredContracts.reduce((s, c) => s + c.fyp, 0);
-    const contractAFYP = filteredContracts.reduce((s, c) => s + c.afyp, 0);
-    const contractPDT = filteredContracts.reduce((s, c) => s + c.pdt10DT, 0);
-    const contractPhiDongThem = filteredContracts.reduce((s, c) => s + c.phiDongThem, 0);
-    const contractAFYPChuaTru = filteredContracts.reduce((s, c) => s + c.afypChuaTru10DT, 0);
-    const contractTinhLuot3tr = filteredContracts.reduce((s, c) => s + c.tinhLuot3tr, 0);
-    const contractCount = filteredContracts.length;
-
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
-    const sortedRev = getSorted(getFiltered(filteredRevenue, ['month', 'maNhom', 'nhom', 'agentCode', 'agentName']));
     const sortedContracts = getSorted(getFiltered(filteredContracts, ['contractNumber', 'agentCode', 'agentName', 'nhom']));
 
     return (
@@ -1430,76 +1482,50 @@ export default function QuanLyPage() {
           ))}
         </div>
 
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mb-4">
-          {[
-            { label: 'Tổng FYP', value: formatCurrency(contractFYP), color: 'bg-amber-700' },
-            { label: 'Tổng AFYP', value: formatCurrency(contractAFYP), color: 'bg-amber-700' },
-            { label: 'Tổng PĐT + 10% ĐT', value: formatCurrency(contractPDT), color: 'bg-sky-700' },
-            { label: 'Tổng Phí đóng thêm', value: formatCurrency(contractPhiDongThem), color: 'bg-sky-700' },
-            { label: 'Tổng AFYP chưa trừ 10% ĐT', value: formatCurrency(contractAFYPChuaTru), color: 'bg-violet-700' },
-            { label: 'Tổng Tính lượt 3tr', value: formatCurrency(contractTinhLuot3tr), color: 'bg-violet-700' },
-            { label: 'Số HĐ', value: formatNumber(contractCount), color: 'bg-emerald-700' },
-          ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
-              <p className="text-white/60 text-[10px] font-bold">{kpi.label}</p>
-              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Custom KPI for Revenue */}
         <KPISettingsPopover
           sectionKey={`revenue-${revenueSub}`}
           sectionLabel={`Doanh thu - ${monthLabel}`}
-          data={filteredRevenue}
-          availableFields={[
-            { key: 'totalFYP', label: 'Tổng IP', type: 'number' },
-            { key: 'totalAFYP', label: 'Tổng AFYP', type: 'number' },
-            { key: 'contractCount', label: 'Số HĐ', type: 'number' },
-            { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
+          dataSources={[
+            {
+              key: 'revenue',
+              label: 'Doanh số',
+              data: filteredRevenue,
+              fields: [
+                { key: 'totalFYP', label: 'Tổng IP', type: 'number' },
+                { key: 'totalAFYP', label: 'Tổng AFYP', type: 'number' },
+                { key: 'contractCount', label: 'Số HĐ', type: 'number' },
+                { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
+              ],
+            },
+            {
+              key: 'contracts',
+              label: 'Hợp đồng',
+              data: filteredContracts,
+              fields: [
+                { key: 'fyp', label: 'FYP', type: 'number' },
+                { key: 'afyp', label: 'AFYP', type: 'number' },
+                { key: 'pdt10DT', label: 'PĐT + 10% ĐT', type: 'number' },
+                { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' },
+                { key: 'afypChuaTru10DT', label: 'AFYP chưa trừ 10% ĐT', type: 'number' },
+                { key: 'tinhLuot3tr', label: 'Tính lượt 3tr', type: 'number' },
+                { key: 'stt', label: 'STT', type: 'number' },
+              ],
+            },
+          ]}
+          defaultConfigs={[
+            { id: 'kpi-default-fyp', label: 'Tổng IP (FYP)', dataSourceKey: 'contracts', field: 'fyp', calculation: 'sum', color: 'amber' },
+            { id: 'kpi-default-afyp', label: 'Tổng AFYP', dataSourceKey: 'contracts', field: 'afyp', calculation: 'sum', color: 'amber' },
+            { id: 'kpi-default-pdt', label: 'Tổng PĐT + 10% ĐT', dataSourceKey: 'contracts', field: 'pdt10DT', calculation: 'sum', color: 'sky' },
+            { id: 'kpi-default-phidongthem', label: 'Tổng Phí đóng thêm', dataSourceKey: 'contracts', field: 'phiDongThem', calculation: 'sum', color: 'sky' },
+            { id: 'kpi-default-afypchutru', label: 'Tổng AFYP chưa trừ 10% ĐT', dataSourceKey: 'contracts', field: 'afypChuaTru10DT', calculation: 'sum', color: 'violet' },
+            { id: 'kpi-default-tinhluot', label: 'Tổng Tính lượt 3tr', dataSourceKey: 'contracts', field: 'tinhLuot3tr', calculation: 'sum', color: 'violet' },
+            { id: 'kpi-default-count', label: 'Số HĐ', dataSourceKey: 'contracts', field: 'stt', calculation: 'count', color: 'emerald' },
           ]}
         />
 
-        {/* Revenue detail table */}
-        <h3 className="text-sm font-bold text-emerald-300 mb-2">Doanh số chi tiết — {monthLabel}</h3>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <Button onClick={addRevenue} className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm DT</Button>
-          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DT<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
-          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DT</Button>
-        </div>
-        <div className="overflow-x-auto border border-emerald-600 mb-4">
-          <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800">
-              {[{ f: 'month', l: 'Tháng' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'nhom', l: 'Nhóm' }, { f: 'agentCode', l: 'Mã TVV' }, { f: 'agentName', l: 'Tên TVV' }, { f: 'totalFYP', l: 'Tổng IP' }, { f: 'totalAFYP', l: 'Tổng AFYP' }, { f: 'contractCount', l: 'Số HĐ' }, { f: 'activityRounds', l: 'Lượt HĐ' }, { f: 'note', l: 'Ghi chú' }].map(col => (
-                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
-              ))}
-              <TableHead className="text-white text-xs w-[36px]"></TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {sortedRev.map(r => (
-                <TableRow key={r.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  <TableCell className="text-xs p-0"><EditableCell value={r.month} onSave={(v) => updateRevenue(r.id, 'month', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.maNhom} onSave={(v) => updateRevenue(r.id, 'maNhom', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.nhom} onSave={(v) => updateRevenue(r.id, 'nhom', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.agentCode} onSave={(v) => updateRevenue(r.id, 'agentCode', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.agentName} onSave={(v) => updateRevenue(r.id, 'agentName', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.totalFYP} onSave={(v) => updateRevenue(r.id, 'totalFYP', v)} type="number" className="text-right" /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.totalAFYP} onSave={(v) => updateRevenue(r.id, 'totalAFYP', v)} type="number" className="text-right" /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.contractCount} onSave={(v) => updateRevenue(r.id, 'contractCount', v)} type="number" className="text-right" /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.activityRounds} onSave={(v) => updateRevenue(r.id, 'activityRounds', v)} type="number" className="text-right" /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={r.note} onSave={(v) => updateRevenue(r.id, 'note', v)} /></TableCell>
-                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                </TableRow>
-              ))}
-              {sortedRev.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Contracts for this month */}
-        <h3 className="text-sm font-bold text-amber-300 mb-2">Hợp đồng — {monthLabel} ({sortedContracts.length} HĐ)</h3>
+        {/* Detail table */}
+        <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng chi tiết — {monthLabel} ({sortedContracts.length} HĐ)</h3>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {!syncEnabled && <><Button onClick={addContract} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm HĐ</Button>
             <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
