@@ -10,7 +10,9 @@ export async function GET() {
       return acc
     }, {})
 
-    return NextResponse.json(settingsObject)
+    return NextResponse.json(settingsObject, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     console.error('Error fetching settings:', error)
     return NextResponse.json({}, { status: 500 })
@@ -20,14 +22,22 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const data = await request.json()
+    const entries = Object.entries(data)
 
-    for (const [key, value] of Object.entries(data)) {
-      await db.setting.upsert({
-        where: { key },
-        update: { value: String(value), updated_at: new Date() },
-        create: { key, value: String(value) },
-      })
+    if (entries.length === 0) {
+      return NextResponse.json({ success: true })
     }
+
+    // Batch upsert using $transaction for better performance
+    await db.$transaction(
+      entries.map(([key, value]) =>
+        db.setting.upsert({
+          where: { key },
+          update: { value: String(value), updated_at: new Date() },
+          create: { key, value: String(value) },
+        })
+      )
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -14,6 +14,34 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Bulk import mode (array of leaders)
+    if (Array.isArray(body)) {
+      const data = body
+        .filter((r: any) => r.agentCode || r.agentName)
+        .map((r: any) => ({
+          agentCode: r.agentCode || '',
+          agentName: r.agentName || '',
+          position: r.position || '',
+          ban: r.ban || '',
+          nhom: r.nhom || '',
+          maNhom: r.maNhom || '',
+          salary: parseFloat(r.salary) || 0,
+          phone: r.phone || '',
+          email: r.email || '',
+          note: r.note || '',
+          startDate: r.startDate ? new Date(r.startDate) : null,
+        }));
+
+      if (data.length === 0) {
+        return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
+      }
+
+      const result = await db.leaderInfo.createMany({ data, skipDuplicates: true });
+      return NextResponse.json({ count: result.count }, { status: 201 });
+    }
+
+    // Single create mode
     const leader = await db.leaderInfo.create({
       data: {
         agentCode: body.agentCode || '',

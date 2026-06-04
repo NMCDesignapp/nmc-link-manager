@@ -655,7 +655,7 @@ function evaluateFormula(formula: string, cells: CellMap): string {
   }
 }
 
-function SpreadsheetSheet() {
+function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Record<string, string>; saveSetting: (key: string, value: string) => Promise<void> }) {
   const [cells, setCells] = useState<CellMap>({});
   const [merges, setMerges] = useState<MergeRange[]>([]);
   const [activeCell, setActiveCell] = useState<string | null>(null);
@@ -664,61 +664,37 @@ function SpreadsheetSheet() {
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const initializedRef = useRef(false);
 
-  // Load cells and merges from online API
+  // Load cells and merges from parent's onlineSettings (no extra API call)
   useEffect(() => {
-    const loadOnline = async () => {
-      try {
-        const r = await fetch('/api/settings');
-        if (r.ok) {
-          const settings = await r.json();
-          const cellsData = settings['nmc-spreadsheet-cells'];
-          const mergesData = settings['nmc-spreadsheet-merges'];
-          if (cellsData) setCells(JSON.parse(cellsData));
-          if (mergesData) setMerges(JSON.parse(mergesData));
-        }
-      } catch {
-        // Server unavailable - no localStorage fallback
-      }
-    };
-    loadOnline();
-  }, []);
+    if (initializedRef.current) return;
+    const cellsData = onlineSettings['nmc-spreadsheet-cells'];
+    const mergesData = onlineSettings['nmc-spreadsheet-merges'];
+    if (cellsData) { try { setCells(JSON.parse(cellsData)); } catch {} }
+    if (mergesData) { try { setMerges(JSON.parse(mergesData)); } catch {} }
+    if (Object.keys(onlineSettings).length > 0) initializedRef.current = true;
+  }, [onlineSettings]);
 
   // Save cells to online API (debounced)
   const saveCellsTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (Object.keys(cells).length === 0) return; // Don't save empty initial state
+    if (Object.keys(cells).length === 0 || !initializedRef.current) return;
     if (saveCellsTimeout.current) clearTimeout(saveCellsTimeout.current);
-    saveCellsTimeout.current = setTimeout(async () => {
-      try {
-        await fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 'nmc-spreadsheet-cells': JSON.stringify(cells) }),
-        });
-      } catch {
-        // Server save failed - no localStorage fallback
-      }
+    saveCellsTimeout.current = setTimeout(() => {
+      saveSetting('nmc-spreadsheet-cells', JSON.stringify(cells));
     }, 1000);
-  }, [cells]);
+  }, [cells, saveSetting]);
 
   // Save merges to online API (debounced)
   const saveMergesTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (merges.length === 0) return; // Don't save empty initial state
+    if (merges.length === 0 || !initializedRef.current) return;
     if (saveMergesTimeout.current) clearTimeout(saveMergesTimeout.current);
-    saveMergesTimeout.current = setTimeout(async () => {
-      try {
-        await fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 'nmc-spreadsheet-merges': JSON.stringify(merges) }),
-        });
-      } catch {
-        // Server save failed - no localStorage fallback
-      }
+    saveMergesTimeout.current = setTimeout(() => {
+      saveSetting('nmc-spreadsheet-merges', JSON.stringify(merges));
     }, 1000);
-  }, [merges]);
+  }, [merges, saveSetting]);
 
   useEffect(() => {
     if (editingCell && inputRef.current) inputRef.current.focus();
@@ -842,11 +818,8 @@ function SpreadsheetSheet() {
       setCells({});
       setMerges([]);
       // Also clear online
-      fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'nmc-spreadsheet-cells': '', 'nmc-spreadsheet-merges': '[]' }),
-      }).catch(() => {});
+      saveSetting('nmc-spreadsheet-cells', '');
+      saveSetting('nmc-spreadsheet-merges', '[]');
     }
   };
 
@@ -1055,31 +1028,38 @@ export default function QuanLyPage() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Per-section settings state (derived from onlineSettings)
-  const [sectionLinks, setSectionLinks] = useState<Record<string, string>>({});
-  const [sectionSyncs, setSectionSyncs] = useState<Record<string, boolean>>({});
+  // Data cache: track which sheets have been loaded to avoid re-fetch on tab switch
+  const loadedSheets = useRef<Set<SheetKey>>(new Set());
 
-  // Load section links & syncs from onlineSettings
-  useEffect(() => {
+  // Per-section settings state (derived from onlineSettings) - use useMemo for efficiency
+  const sectionLinks = useMemo(() => {
     const links: Record<string, string> = {};
-    const syncs: Record<string, boolean> = {};
     const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
       'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
       'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
     allKeys.forEach(key => {
       const l = onlineSettings[`nmc-link-${key}`];
       if (l) links[key] = l;
+    });
+    return links;
+  }, [onlineSettings]);
+
+  const sectionSyncs = useMemo(() => {
+    const syncs: Record<string, boolean> = {};
+    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+      'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
+      'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
+    allKeys.forEach(key => {
       const s = onlineSettings[`nmc-sync-${key}`];
       if (s !== undefined && s !== '') syncs[key] = s === 'true';
     });
-    setSectionLinks(links);
-    setSectionSyncs(syncs);
+    return syncs;
   }, [onlineSettings]);
 
   const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
   const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
 
-  // Fetch
+  // Fetch individual (for refresh or single-tab loads after initial load)
   const fetchLeaders = useCallback(async () => {
     try { const r = await fetch('/api/leaders'); if (r.ok) setLeaders(await r.json()); } catch {}
   }, []);
@@ -1096,18 +1076,40 @@ export default function QuanLyPage() {
     try { const r = await fetch('/api/recruiters'); if (r.ok) setRecruiters(await r.json()); } catch {}
   }, []);
 
-  const loadSheet = useCallback((sheet: SheetKey) => {
+  // Fetch all data in one request (for initial page load)
+  const fetchAllData = useCallback(async () => {
+    try {
+      const r = await fetch('/api/quan-ly/all');
+      if (r.ok) {
+        const data = await r.json();
+        setLeaders(data.leaders || []);
+        setRevenue(data.revenue || []);
+        setContracts(data.contracts || []);
+        setStaff(data.staff || []);
+        setRecruiters(data.recruiters || []);
+      }
+    } catch {}
+  }, []);
+
+  const loadSheet = useCallback((sheet: SheetKey, force = false) => {
+    // Skip if already loaded and not forcing refresh
+    if (!force && loadedSheets.current.has(sheet)) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
-      overview: async () => { await Promise.all([fetchLeaders(), fetchRevenue(), fetchContracts(), fetchStaff(), fetchRecruiters()]); },
+      overview: async () => { await fetchAllData(); }, // Single request for all data
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff()]); },
       spreadsheet: async () => {},
     };
-    loaders[sheet]().finally(() => setIsLoading(false));
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
+    loaders[sheet]().then(() => {
+      loadedSheets.current.add(sheet);
+    }).finally(() => setIsLoading(false));
+  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
 
@@ -1276,10 +1278,9 @@ export default function QuanLyPage() {
 
       if (sheetName === 'leaders') {
         const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(String(r['Tiền/tháng'] || r['salary'] || '0').replace(/,/g, '')) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(r => r.agentCode || r.agentName);
-        for (const row of rows) {
-          const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(row) });
-          if (r.ok) successCount++; else failCount++;
-        }
+        // Batch import - send all rows in one API call
+        const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
+        if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; } else { failCount = rows.length; }
         fetchLeaders();
       } else if (sheetName === 'revenue') {
         const rows = data.map((r: any) => ({ month: String(r['Tháng'] || r['month'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã TVV'] || r['agentCode'] || ''), agentName: String(r['Tên TVV'] || r['agentName'] || ''), totalFYP: parseFloat(String(r['Tổng IP'] || r['totalFYP'] || '0').replace(/,/g, '')) || 0, totalAFYP: parseFloat(String(r['Tổng AFYP'] || r['totalAFYP'] || '0').replace(/,/g, '')) || 0, contractCount: parseInt(String(r['Số HĐ'] || r['contractCount'] || '0').replace(/,/g, '')) || 0, activityRounds: parseInt(String(r['Lượt HĐ'] || r['activityRounds'] || '0').replace(/,/g, '')) || 0, note: String(r['Ghi chú'] || r['note'] || '') }));
@@ -1287,6 +1288,8 @@ export default function QuanLyPage() {
         if (r.ok) successCount = rows.length; else failCount = rows.length;
         fetchRevenue();
       } else if (sheetName === 'contracts') {
+        // Batch import - prepare all rows then send in one API call
+        const contractRows = [];
         for (const r of data) {
           const row = r as any;
           const effectiveDate = parseDateValue(row['Ngày hiệu lực'] || row['effectiveDate']);
@@ -1297,7 +1300,7 @@ export default function QuanLyPage() {
           // Skip rows without minimum required data
           if (!contractNumber && !agentName) { failCount++; continue; }
 
-          const payload = {
+          contractRows.push({
             stt: parseInt(String(row['STT'] || row['stt'] || '0').replace(/,/g, '')) || 0,
             ban: String(row['Ban'] || row['ban'] || ''),
             maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || ''),
@@ -1309,7 +1312,7 @@ export default function QuanLyPage() {
             agentName: agentName || 'Chưa nhập',
             position: String(row['Chức vụ'] || row['position'] || ''),
             ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['ngayBatDauLamViec']),
-            contractNumber: contractNumber || 'HD_' + Date.now() + '_' + successCount,
+            contractNumber: contractNumber || 'HD_' + Date.now() + '_' + contractRows.length,
             effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
             issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
             pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
@@ -1332,17 +1335,18 @@ export default function QuanLyPage() {
             danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || ''),
             chucVu2: String(row['Chức vụ'] || row['chucVu2'] || ''),
             maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
-          };
+          });
+        }
+        if (contractRows.length > 0) {
           const resp = await fetch('/api/contracts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(contractRows)
           });
-          if (resp.ok) {
-            successCount++;
-          } else {
-            failCount++;
+          if (resp.ok) { const result = await resp.json(); successCount = result.count || contractRows.length; }
+          else {
+            failCount = contractRows.length;
             const errData = await resp.json().catch(() => ({}));
-            console.warn('[Import contract] Row failed:', errData.error, payload.contractNumber);
+            console.warn('[Import contracts] Batch failed:', errData.error);
           }
         }
         fetchContracts();
@@ -1842,12 +1846,12 @@ export default function QuanLyPage() {
       case 'recruiters': return renderRecruiters();
       case 'revenue': return renderRevenue();
       case 'structure': return renderStructure();
-      case 'spreadsheet': return <SpreadsheetSheet />;
+      case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-800 fixed inset-0 z-50">
+    <div className="h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50">
       {/* Header */}
       <header className="bg-emerald-700 border-b-2 border-emerald-500 px-4 py-2 flex items-center gap-3 flex-shrink-0">
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
@@ -1862,7 +1866,7 @@ export default function QuanLyPage() {
             <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-emerald-700 border-emerald-500 text-white placeholder-emerald-400" />
             {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
           </div>
-          <Button variant="ghost" onClick={() => loadSheet(activeSheet)} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
 
@@ -1924,7 +1928,7 @@ export default function QuanLyPage() {
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-4 bg-emerald-800">
           {renderSheet()}
         </main>
       </div>

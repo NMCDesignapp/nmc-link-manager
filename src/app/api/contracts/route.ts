@@ -54,10 +54,64 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/contracts - Create a new contract
+// POST /api/contracts - Create a new contract or batch import
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Bulk import mode (array of contracts)
+    if (Array.isArray(body)) {
+      const data = body
+        .filter((c: any) => c.contractNumber || c.agentName)
+        .map((c: any, i: number) => ({
+          stt: parseInt(c.stt) || 0,
+          contractNumber: c.contractNumber || 'HD_' + Date.now() + '_' + i,
+          agentCode: c.agentCode || '',
+          agentName: c.agentName || 'Chưa nhập',
+          position: c.position || '',
+          ban: c.ban || '',
+          maTruongBan: c.maTruongBan || '',
+          nhom: c.nhom || '',
+          maBanNhom: c.maBanNhom || '',
+          maTruongBanNhom: c.maTruongBanNhom || '',
+          maDL: c.maDL || '',
+          maNhom: c.maNhom || '',
+          leaderAgentCode: c.leaderAgentCode || '',
+          ngayBatDauLamViec: c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec) : null,
+          effectiveDate: c.effectiveDate ? new Date(c.effectiveDate) : new Date(),
+          issueDate: (c.issueDate || c.effectiveDate) ? new Date(c.issueDate || c.effectiveDate) : new Date(),
+          pdt10DT: parseFloat(c.pdt10DT) || 0,
+          fyp: parseFloat(c.fyp) || 0,
+          nguonDuLieu: c.nguonDuLieu || '',
+          hopDongToChuc: c.hopDongToChuc || '',
+          dkDongPhi: c.dkDongPhi || '',
+          phiDongThem: parseFloat(c.phiDongThem) || 0,
+          afypChuaTru10DT: parseFloat(c.afypChuaTru10DT) || 0,
+          afyp: parseFloat(c.afyp) || 0,
+          ad: c.ad || '',
+          nhom2: c.nhom2 || '',
+          ngayBatDauLamViec2: c.ngayBatDauLamViec2 ? new Date(c.ngayBatDauLamViec2) : null,
+          thangTD: parseInt(c.thangTD) || 0,
+          namTD: parseInt(c.namTD) || 0,
+          thangHL: parseInt(c.thangHL) || 0,
+          tinhLuot: parseFloat(c.tinhLuot) || 0,
+          tinhLuot3tr: parseFloat(c.tinhLuot3tr) || 0,
+          maDaiLyTD: c.maDaiLyTD || '',
+          danhDauTVV: c.danhDauTVV || '',
+          chucVu2: c.chucVu2 || '',
+          recruiterCode: c.recruiterCode || '',
+          startDate: c.startDate ? new Date(c.startDate) : null,
+        }));
+
+      if (data.length === 0) {
+        return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
+      }
+
+      const result = await db.contract.createMany({ data, skipDuplicates: true });
+      return NextResponse.json({ count: result.count }, { status: 201 });
+    }
+
+    // Single create mode
     const {
       stt, contractNumber, agentCode, agentName, position, ban, maTruongBan,
       nhom, maBanNhom, maTruongBanNhom, maDL, maNhom, leaderAgentCode,
