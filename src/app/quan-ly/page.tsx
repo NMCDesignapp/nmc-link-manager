@@ -254,32 +254,26 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
 }
 
 // ==================== SETTINGS POPOVER ====================
-function SettingsPopover({ sectionKey, sectionLabel }: { sectionKey: string; sectionLabel: string }) {
+function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting }: { sectionKey: string; sectionLabel: string; onlineSettings: Record<string, string>; saveSetting: (key: string, value: string) => Promise<void> }) {
   const [link, setLink] = useState('');
   const [syncOn, setSyncOn] = useState(true);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedLink = localStorage.getItem(`nmc-link-${sectionKey}`) || '';
-      const savedSync = localStorage.getItem(`nmc-sync-${sectionKey}`);
-      setLink(savedLink);
-      if (savedSync !== null) setSyncOn(savedSync === 'true');
-    } catch {}
-  }, [sectionKey, open]);
+    const savedLink = onlineSettings[`nmc-link-${sectionKey}`] || '';
+    const savedSync = onlineSettings[`nmc-sync-${sectionKey}`];
+    setLink(savedLink);
+    if (savedSync !== undefined && savedSync !== '') setSyncOn(savedSync === 'true');
+  }, [sectionKey, open, onlineSettings]);
 
   const handleSave = useCallback(() => {
-    try {
-      localStorage.setItem(`nmc-link-${sectionKey}`, link);
-      localStorage.setItem(`nmc-sync-${sectionKey}`, String(syncOn));
-      toast({ title: 'Đã lưu cài đặt', description: `${sectionLabel}: ${link ? 'Đã thiết lập link' : 'Chưa có link'} • Đồng bộ: ${syncOn ? 'BẬT' : 'TẮT'}` });
-    } catch {
-      toast({ title: 'Lỗi lưu cài đặt', variant: 'destructive' });
-    }
+    saveSetting(`nmc-link-${sectionKey}`, link);
+    saveSetting(`nmc-sync-${sectionKey}`, String(syncOn));
+    toast({ title: 'Đã lưu cài đặt', description: `${sectionLabel}: ${link ? 'Đã thiết lập link' : 'Chưa có link'} • Đồng bộ: ${syncOn ? 'BẬT' : 'TẮT'}` });
     setOpen(false);
-  }, [link, syncOn, sectionKey, sectionLabel]);
+  }, [link, syncOn, sectionKey, sectionLabel, saveSetting]);
 
-  const hasLink = !!(localStorage.getItem(`nmc-link-${sectionKey}`));
+  const hasLink = !!(onlineSettings[`nmc-link-${sectionKey}`]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -332,32 +326,30 @@ function SettingsPopover({ sectionKey, sectionLabel }: { sectionKey: string; sec
 }
 
 // ==================== KPI SETTINGS POPOVER ====================
-function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs }: {
+function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs, onlineSettings, saveSetting }: {
   sectionKey: string; sectionLabel: string;
   dataSources: KPIDataSource[];
   defaultConfigs?: KPIConfig[];
+  onlineSettings: Record<string, string>;
+  saveSetting: (key: string, value: string) => Promise<void>;
 }) {
   const [configs, setConfigs] = useState<KPIConfig[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`nmc-kpi-${sectionKey}`);
-      if (saved) {
-        setConfigs(JSON.parse(saved));
-      } else if (defaultConfigs && defaultConfigs.length > 0) {
-        setConfigs(defaultConfigs);
-        localStorage.setItem(`nmc-kpi-${sectionKey}`, JSON.stringify(defaultConfigs));
-      }
-    } catch {}
-  }, [sectionKey, open, defaultConfigs]);
+    const saved = onlineSettings[`nmc-kpi-${sectionKey}`];
+    if (saved) {
+      try { setConfigs(JSON.parse(saved)); } catch { setConfigs([]); }
+    } else if (defaultConfigs && defaultConfigs.length > 0) {
+      setConfigs(defaultConfigs);
+      saveSetting(`nmc-kpi-${sectionKey}`, JSON.stringify(defaultConfigs));
+    }
+  }, [sectionKey, open, defaultConfigs, onlineSettings, saveSetting]);
 
   const saveConfigs = useCallback((newConfigs: KPIConfig[]) => {
     setConfigs(newConfigs);
-    try {
-      localStorage.setItem(`nmc-kpi-${sectionKey}`, JSON.stringify(newConfigs));
-    } catch {}
-  }, [sectionKey]);
+    saveSetting(`nmc-kpi-${sectionKey}`, JSON.stringify(newConfigs));
+  }, [sectionKey, saveSetting]);
 
   const firstSourceKey = dataSources[0]?.key || '';
   const firstFieldKey = dataSources[0]?.fields[0]?.key || '';
@@ -428,16 +420,16 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
             const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
             const colorClass = KPI_COLORS[config.color] || 'bg-emerald-700';
             return (
-              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-white/10`}>
+              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-emerald-600`}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-white/60 text-[9px] font-bold">{config.label || fieldLabel}</p>
-                  <span className="text-white/40 text-[8px]">{calcLabel} {fieldLabel}</span>
+                  <p className="text-emerald-100 text-[9px] font-bold">{config.label || fieldLabel}</p>
+                  <span className="text-gray-300 text-[8px]">{calcLabel} {fieldLabel}</span>
                 </div>
                 <p className="text-white text-sm font-extrabold truncate">{formatKPIValue(actual)}</p>
                 {config.target && config.target > 0 && (
                   <div className="mt-1">
                     <div className="flex items-center justify-between text-[9px]">
-                      <span className="text-white/50">Mục tiêu: {formatKPIValue(config.target)}</span>
+                      <span className="text-gray-300">Mục tiêu: {formatKPIValue(config.target)}</span>
                       <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
                     </div>
                     <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-900 [&>div]:bg-emerald-400" />
@@ -534,7 +526,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
                       <button
                         key={c}
                         onClick={() => updateConfig(config.id, { color: c })}
-                        className={`w-5 h-5 rounded-full ${KPI_COLORS[c]} border-2 ${config.color === c ? 'border-white' : 'border-transparent'} hover:border-white/50 transition-colors`}
+                        className={`w-5 h-5 rounded-full ${KPI_COLORS[c]} border-2 ${config.color === c ? 'border-white' : 'border-transparent'} hover:border-white transition-colors`}
                         title={c}
                       />
                     ))}
@@ -823,7 +815,7 @@ function SpreadsheetSheet() {
           className="flex-1 bg-gray-700 text-white text-xs px-2 py-1 border border-gray-600 outline-none focus:border-emerald-500"
           placeholder="Nhập giá trị hoặc công thức (vd: =SUM(A1:A10))"
         />
-        <Button onClick={clearSheet} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 text-xs px-2">Xóa hết</Button>
+        <Button onClick={clearSheet} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-800 h-7 text-xs px-2">Xóa hết</Button>
       </div>
 
       {/* Quick functions toolbar */}
@@ -863,7 +855,7 @@ function SpreadsheetSheet() {
 
       {/* Selection info */}
       {selectionStart && selectionEnd && (
-        <div className="mb-2 px-2 py-1 bg-violet-900/40 border border-violet-600 rounded text-[10px] text-violet-200">
+        <div className="mb-2 px-2 py-1 bg-violet-800 border border-violet-600 rounded text-[10px] text-violet-200">
           Đã chọn: {selectionStart}:{selectionEnd} — Nhấn "Gộp ô" để gộp
         </div>
       )}
@@ -956,12 +948,65 @@ export default function QuanLyPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [syncEnabled, setSyncEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try { const s = localStorage.getItem('nmc-sync-enabled'); return s !== null ? s === 'true' : true; } catch { return true; }
+
+  // Online settings state (fetched from API instead of localStorage)
+  const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
+
+  // Fetch all settings from API on mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : {})
+      .then(data => setOnlineSettings(data))
+      .catch(() => {
+        // Fallback: try to read from localStorage
+        const fallback: Record<string, string> = {};
+        const knownKeys = ['nmc-sync-enabled',
+          'nmc-link-leaders', 'nmc-link-recruiters', 'nmc-link-revenue', 'nmc-link-structure', 'nmc-link-spreadsheet',
+          'nmc-sync-leaders', 'nmc-sync-recruiters', 'nmc-sync-revenue', 'nmc-sync-structure', 'nmc-sync-spreadsheet',
+          'nmc-kpi-leaders', 'nmc-kpi-recruiters', 'nmc-kpi-revenue',
+        ];
+        try {
+          knownKeys.forEach(key => {
+            const v = localStorage.getItem(key);
+            if (v !== null) fallback[key] = v;
+          });
+        } catch {}
+        setOnlineSettings(fallback);
+      });
+  }, []);
+
+  const saveSetting = useCallback(async (key: string, value: string) => {
+    // Optimistic update
+    setOnlineSettings(prev => ({ ...prev, [key]: value }));
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+    } catch {
+      toast({ title: 'Lỗi lưu online', description: 'Đang dùng bộ nhớ tạm', variant: 'destructive' });
+      // Fallback to localStorage
+      try { localStorage.setItem(key, value); } catch {}
     }
-    return true;
-  });
+  }, []);
+
+  // syncEnabled now derived from onlineSettings
+  const [syncEnabled, setSyncEnabled] = useState(true);
+
+  // Update syncEnabled when onlineSettings loads
+  useEffect(() => {
+    const saved = onlineSettings['nmc-sync-enabled'];
+    if (saved !== undefined && saved !== '') setSyncEnabled(saved === 'true');
+  }, [onlineSettings['nmc-sync-enabled']]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist sync preference online
+  useEffect(() => {
+    // Only save after initial load (skip the default true)
+    if (onlineSettings['nmc-sync-enabled'] !== undefined || syncEnabled !== true) {
+      saveSetting('nmc-sync-enabled', String(syncEnabled));
+    }
+  }, [syncEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Data
   const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
@@ -971,36 +1016,27 @@ export default function QuanLyPage() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Per-section settings state
+  // Per-section settings state (derived from onlineSettings)
   const [sectionLinks, setSectionLinks] = useState<Record<string, string>>({});
   const [sectionSyncs, setSectionSyncs] = useState<Record<string, boolean>>({});
-  const [settingsVersion, setSettingsVersion] = useState(0);
 
-  // Persist sync preference
+  // Load section links & syncs from onlineSettings
   useEffect(() => {
-    try { localStorage.setItem('nmc-sync-enabled', String(syncEnabled)); } catch {}
-  }, [syncEnabled]);
+    const links: Record<string, string> = {};
+    const syncs: Record<string, boolean> = {};
+    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+      'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
+      'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
+    allKeys.forEach(key => {
+      const l = onlineSettings[`nmc-link-${key}`];
+      if (l) links[key] = l;
+      const s = onlineSettings[`nmc-sync-${key}`];
+      if (s !== undefined && s !== '') syncs[key] = s === 'true';
+    });
+    setSectionLinks(links);
+    setSectionSyncs(syncs);
+  }, [onlineSettings]);
 
-  // Load section links & syncs from localStorage
-  useEffect(() => {
-    try {
-      const links: Record<string, string> = {};
-      const syncs: Record<string, boolean> = {};
-      const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
-        'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
-        'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
-      allKeys.forEach(key => {
-        const l = localStorage.getItem(`nmc-link-${key}`);
-        if (l) links[key] = l;
-        const s = localStorage.getItem(`nmc-sync-${key}`);
-        if (s !== null) syncs[key] = s === 'true';
-      });
-      setSectionLinks(links);
-      setSectionSyncs(syncs);
-    } catch {}
-  }, [settingsVersion]);
-
-  const refreshSettings = useCallback(() => setSettingsVersion(v => v + 1), []);
   const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
   const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
 
@@ -1251,7 +1287,7 @@ export default function QuanLyPage() {
   }, [searchTerm]);
 
   const SortIcon = ({ field }: { field: string }) => (
-    <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-emerald-300/40'}`} />
+    <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-emerald-200'}`} />
   );
 
   const handleSyncToggle = useCallback(() => {
@@ -1281,8 +1317,8 @@ export default function QuanLyPage() {
           { label: 'Tổng DT', value: formatCurrency(totalRevenue), isText: true, icon: TrendingUp, color: 'bg-emerald-700' },
           { label: 'Tổng lương TN', value: formatCurrency(totalSalary), isText: true, icon: DollarSign, color: 'bg-sky-700' },
         ].map((stat, i) => (
-          <div key={i} className={`${stat.color} rounded-lg p-4 border border-white/10`}>
-            <div className="flex items-center gap-2 mb-2"><stat.icon className="w-5 h-5 text-white/70" /><span className="text-sm text-white/80 font-bold">{stat.label}</span></div>
+          <div key={i} className={`${stat.color} rounded-lg p-4 border border-emerald-600`}>
+            <div className="flex items-center gap-2 mb-2"><stat.icon className="w-5 h-5 text-gray-200" /><span className="text-sm text-gray-100 font-bold">{stat.label}</span></div>
             <p className="text-2xl font-extrabold text-white">{stat.isText ? stat.value : formatNumber(stat.value as number)}</p>
           </div>
         ))}
@@ -1294,7 +1330,7 @@ export default function QuanLyPage() {
             {syncEnabled ? <CheckCircle2 className="w-6 h-6 text-emerald-300" /> : <AlertTriangle className="w-6 h-6 text-amber-300" />}
             <div>
               <h3 className={`text-base font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
-              <p className="text-white/50 text-sm">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
+              <p className="text-gray-300 text-sm">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
             </div>
           </div>
           <button onClick={handleSyncToggle}>
@@ -1321,20 +1357,20 @@ export default function QuanLyPage() {
             { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-700', icon: Users },
             { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-700', icon: DollarSign },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/60" /><p className="text-white/60 text-[10px] font-bold">{kpi.label}</p></div>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-emerald-600`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-emerald-100" /><p className="text-emerald-100 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
           ))}
         </div>
         {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" dataSources={[{ key: 'leaders', label: 'TB/TN', data: filtered, fields: leaderFields }]} />
+        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" dataSources={[{ key: 'leaders', label: 'TB/TN', data: filtered, fields: leaderFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
         <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
-          <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" />
+          <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
           <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
-          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
@@ -1384,25 +1420,25 @@ export default function QuanLyPage() {
             { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-700', icon: UserCircle },
             { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-700', icon: CheckCircle2 },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/10`}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/60" /><p className="text-white/60 text-[10px] font-bold">{kpi.label}</p></div>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-emerald-600`}>
+              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-emerald-100" /><p className="text-emerald-100 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
           ))}
         </div>
         {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} />
+        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
         <div className={`rounded-md px-3 py-2 mb-3 mt-2 flex items-center gap-2 ${canEdit ? 'bg-amber-800 border border-amber-600' : 'bg-emerald-800 border border-emerald-600'}`}>
-          {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200/60 text-xs">— Có thể chỉnh sửa</span></>
-            : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-200/60 text-xs">— Chỉ xem</span></>}
+          {canEdit ? <><AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" /><span className="text-amber-200 text-xs font-bold">Chế độ thủ công</span><span className="text-amber-200 text-xs">— Có thể chỉnh sửa</span></>
+            : <><CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" /><span className="text-emerald-200 text-xs font-bold">Đồng bộ tự động</span><span className="text-emerald-100 text-xs">— Chỉ xem</span></>}
           <button onClick={handleSyncToggle} className="ml-auto flex-shrink-0">{syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}</button>
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" />
+          <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
             <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
-          <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+          <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
@@ -1465,7 +1501,7 @@ export default function QuanLyPage() {
       <div>
         {/* Sub-tabs for months */}
         <div className="flex items-center gap-1 mb-3 flex-wrap">
-          <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} />
+          <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
           {MONTHS.map(m => (
             <button
               key={m.key}
@@ -1486,6 +1522,8 @@ export default function QuanLyPage() {
         <KPISettingsPopover
           sectionKey={`revenue-${revenueSub}`}
           sectionLabel={`Doanh thu - ${monthLabel}`}
+          onlineSettings={onlineSettings}
+          saveSetting={saveSetting}
           dataSources={[
             {
               key: 'revenue',
@@ -1529,8 +1567,8 @@ export default function QuanLyPage() {
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {!syncEnabled && <><Button onClick={addContract} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm HĐ</Button>
             <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-700 hover:bg-sky-600 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
-          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700/20 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu HĐ</Button>
-          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700/20 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất HĐ</Button>
+          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu HĐ</Button>
+          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất HĐ</Button>
         </div>
         <div className="overflow-x-auto border border-amber-600">
           <Table>
@@ -1589,17 +1627,17 @@ export default function QuanLyPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
-        <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" />
+        <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" onlineSettings={onlineSettings} saveSetting={saveSetting} />
       </div>
       <div className="bg-amber-900 border border-amber-600 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-300" /><span className="text-amber-200 font-bold">Đang xây dựng</span></div>
-        <p className="text-amber-200/70 text-sm">Mục này sẽ chứa sơ đồ ban nhóm, nhân viên quản lý, ánh xạ NV-Nhóm, và chỉ số được giao. Đây là nền tảng để trích xuất số liệu theo nhóm hoặc theo nhân viên.</p>
+        <p className="text-amber-100 text-sm">Mục này sẽ chứa sơ đồ ban nhóm, nhân viên quản lý, ánh xạ NV-Nhóm, và chỉ số được giao. Đây là nền tảng để trích xuất số liệu theo nhóm hoặc theo nhân viên.</p>
       </div>
 
       {/* Show current structure from leaders */}
       <div className="bg-emerald-900 rounded-lg p-4 border border-emerald-700">
         <h3 className="text-base font-bold text-emerald-300 mb-3">Sơ đồ Trưởng Ban/Nhóm hiện tại</h3>
-        {leaders.length === 0 ? <p className="text-white/40 text-sm">Chưa có dữ liệu</p> : (
+        {leaders.length === 0 ? <p className="text-gray-300 text-sm">Chưa có dữ liệu</p> : (
           <div className="space-y-1">
             {/* Group by ban */}
             {Array.from(new Set(leaders.map(l => l.ban || '(Chưa phân ban)'))).map(ban => {
@@ -1614,7 +1652,7 @@ export default function QuanLyPage() {
                           <Users className="w-4 h-4 text-emerald-300" />
                           <div>
                             <p className="text-white text-xs font-bold">{l.agentName}</p>
-                            <p className="text-emerald-300/60 text-[10px]">{l.position} • {l.nhom || '(Chưa có nhóm)'} • {l.maNhom}</p>
+                            <p className="text-emerald-200 text-[10px]">{l.position} • {l.nhom || '(Chưa có nhóm)'} • {l.maNhom}</p>
                           </div>
                         </div>
                       </div>
@@ -1636,7 +1674,7 @@ export default function QuanLyPage() {
             const maNhom = staff.find(s => s.nhom === nhom)?.maNhom || '';
             return (
               <div key={nhom} className="bg-emerald-800 rounded-md p-2 flex items-center justify-between">
-                <div><p className="text-white text-xs font-bold">{nhom}</p><p className="text-emerald-300/50 text-[10px]">{maNhom}</p></div>
+                <div><p className="text-white text-xs font-bold">{nhom}</p><p className="text-emerald-200 text-[10px]">{maNhom}</p></div>
                 <span className="text-emerald-200 font-extrabold text-sm">{count}</span>
               </div>
             );
@@ -1660,7 +1698,7 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#0a0a1a]">
+    <div className="h-screen flex flex-col bg-emerald-950">
       {/* Header */}
       <header className="bg-emerald-900 border-b border-emerald-700 px-4 py-2 flex items-center gap-3 flex-shrink-0">
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
@@ -1709,7 +1747,7 @@ export default function QuanLyPage() {
                           key={m.key}
                           onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); }}
                           className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
-                            revenueSub === m.key ? 'bg-emerald-500 text-white' : 'text-emerald-300/70 hover:bg-emerald-700 hover:text-white'
+                            revenueSub === m.key ? 'bg-emerald-500 text-white' : 'text-emerald-200 hover:bg-emerald-700 hover:text-white'
                           }`}
                         >
                           {m.key === 'all' ? <TrendingUp className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
@@ -1727,10 +1765,10 @@ export default function QuanLyPage() {
           <div className="p-2 mt-4 border-t border-emerald-700">
             <div className="text-emerald-400 text-xs font-bold mb-2 px-2">MENU FILE</div>
             {SHEETS.filter(s => s.key !== 'overview' && s.key !== 'spreadsheet').map(sheet => (
-              <div key={sheet.key} className="px-2 py-1 text-emerald-300/50 text-[11px] flex items-center gap-1.5">
+              <div key={sheet.key} className="px-2 py-1 text-emerald-200 text-[11px] flex items-center gap-1.5">
                 <sheet.icon className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{sheet.label}</span>
-                {sheet.synced && <span className="text-[9px] text-amber-400/50">{syncEnabled ? 'sync' : 'edit'}</span>}
+                {sheet.synced && <span className="text-[9px] text-amber-300">{syncEnabled ? 'sync' : 'edit'}</span>}
               </div>
             ))}
           </div>
