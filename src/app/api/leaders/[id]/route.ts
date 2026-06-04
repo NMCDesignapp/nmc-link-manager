@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+// Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO)
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr || dateStr.trim() === '') return null;
+  const parts = dateStr.trim().split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts.map(Number);
+    if (day && month && year) return new Date(year, month - 1, day);
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -18,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(body.phone !== undefined && { phone: body.phone }),
         ...(body.email !== undefined && { email: body.email }),
         ...(body.note !== undefined && { note: body.note }),
-        ...(body.startDate !== undefined && { startDate: body.startDate ? new Date(body.startDate) : null }),
+        ...(body.startDate !== undefined && { startDate: body.startDate ? parseDate(body.startDate) : null }),
       },
     });
     return NextResponse.json(leader);

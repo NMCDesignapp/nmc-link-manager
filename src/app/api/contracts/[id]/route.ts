@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+// Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO)
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr || dateStr.trim() === '') return null;
+  const parts = dateStr.trim().split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts.map(Number);
+    if (day && month && year) return new Date(year, month - 1, day);
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -20,9 +32,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.maDL !== undefined) data.maDL = body.maDL;
     if (body.maNhom !== undefined) data.maNhom = body.maNhom;
     if (body.leaderAgentCode !== undefined) data.leaderAgentCode = body.leaderAgentCode;
-    if (body.ngayBatDauLamViec !== undefined) data.ngayBatDauLamViec = body.ngayBatDauLamViec ? new Date(body.ngayBatDauLamViec) : null;
-    if (body.effectiveDate !== undefined) data.effectiveDate = new Date(body.effectiveDate);
-    if (body.issueDate !== undefined) data.issueDate = body.issueDate ? new Date(body.issueDate) : new Date(body.effectiveDate || Date.now());
+    if (body.ngayBatDauLamViec !== undefined) data.ngayBatDauLamViec = body.ngayBatDauLamViec ? parseDate(body.ngayBatDauLamViec) : null;
+    if (body.effectiveDate !== undefined) data.effectiveDate = body.effectiveDate ? parseDate(body.effectiveDate) : new Date();
+    if (body.issueDate !== undefined) data.issueDate = body.issueDate ? parseDate(body.issueDate) : (body.effectiveDate ? parseDate(body.effectiveDate) : new Date());
     if (body.pdt10DT !== undefined) data.pdt10DT = parseFloat(body.pdt10DT) || 0;
     if (body.fyp !== undefined) data.fyp = parseFloat(body.fyp) || 0;
     if (body.nguonDuLieu !== undefined) data.nguonDuLieu = body.nguonDuLieu;
@@ -33,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.afyp !== undefined) data.afyp = parseFloat(body.afyp) || 0;
     if (body.ad !== undefined) data.ad = body.ad;
     if (body.nhom2 !== undefined) data.nhom2 = body.nhom2;
-    if (body.ngayBatDauLamViec2 !== undefined) data.ngayBatDauLamViec2 = body.ngayBatDauLamViec2 ? new Date(body.ngayBatDauLamViec2) : null;
+    if (body.ngayBatDauLamViec2 !== undefined) data.ngayBatDauLamViec2 = body.ngayBatDauLamViec2 ? parseDate(body.ngayBatDauLamViec2) : null;
     if (body.thangTD !== undefined) data.thangTD = parseInt(body.thangTD) || 0;
     if (body.namTD !== undefined) data.namTD = parseInt(body.namTD) || 0;
     if (body.thangHL !== undefined) data.thangHL = parseInt(body.thangHL) || 0;
@@ -43,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.danhDauTVV !== undefined) data.danhDauTVV = body.danhDauTVV;
     if (body.chucVu2 !== undefined) data.chucVu2 = body.chucVu2;
     if (body.recruiterCode !== undefined) data.recruiterCode = body.recruiterCode;
-    if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
+    if (body.startDate !== undefined) data.startDate = body.startDate ? parseDate(body.startDate) : null;
 
     const contract = await db.contract.update({ where: { id }, data });
     return NextResponse.json(contract);

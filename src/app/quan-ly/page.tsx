@@ -207,15 +207,52 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('vi-VN').format(n);
 }
 
+// Helper: convert any date value to yyyy-mm-dd for <input type="date">
+function toInputDate(val: any): string {
+  if (!val) return '';
+  const s = String(val);
+  // Already yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // ISO string: take first 10 chars
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  // dd/mm/yyyy Vietnamese format
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  // Try native parse
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return '';
+}
+
+// Helper: format date value for display (Vietnamese format)
+function formatDateDisplay(val: any): string {
+  if (!val) return '—';
+  const d = new Date(String(val));
+  if (isNaN(d.getTime())) return String(val || '—');
+  return d.toLocaleDateString('vi-VN');
+}
+
 // ==================== EDITABLE CELL ====================
 function EditableCell({ value, onSave, type = 'text', className = '' }: {
   value: string | number; onSave: (val: any) => void; type?: 'text' | 'number' | 'date'; className?: string;
 }) {
   const [editing, setEditing] = useState(false);
-  const [editVal, setEditVal] = useState(String(value ?? ''));
+  const [editVal, setEditVal] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setEditVal(String(value ?? '')); }, [value]);
+  // Sync editVal with value, converting dates properly
+  useEffect(() => {
+    if (type === 'date') {
+      setEditVal(toInputDate(value));
+    } else {
+      setEditVal(String(value ?? ''));
+    }
+  }, [value, type]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
 
   const handleSave = useCallback(() => {
@@ -246,8 +283,8 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
     >
       {type === 'number' && typeof value === 'number'
         ? formatNumber(value)
-        : type === 'date' && value
-          ? new Date(String(value)).toLocaleDateString('vi-VN')
+        : type === 'date'
+          ? formatDateDisplay(value)
           : String(value || '—')}
     </div>
   );
@@ -1203,7 +1240,7 @@ export default function QuanLyPage() {
   const handleExport = useCallback(async (sheetName: string) => {
     try {
       let data: any[] = [];
-      if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ghi chú': l.note }));
+      if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
       else if (sheetName === 'contracts') data = contracts.map(c => ({ 'STT': c.stt, 'Ban': c.ban, 'Mã trưởng ban': c.maTruongBan, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maBanNhom, 'Mã trưởng Ban/Nhóm': c.maTruongBanNhom, 'Mã ĐL': c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'FYP': c.fyp, 'Nguồn dữ liệu': c.nguonDuLieu, 'Hợp đồng tổ chức': c.hopDongToChuc, 'ĐK ĐÓNG PHÍ': c.dkDongPhi, 'PHÍ ĐÓNG THÊM': c.phiDongThem, 'AFYP chưa trừ 10% ĐT': c.afypChuaTru10DT, 'AFYP': c.afyp, 'AD': c.ad, 'NHÓM': c.nhom2, 'NGÀY BẮT ĐẦU LÀM VIỆC': c.ngayBatDauLamViec2 ? new Date(c.ngayBatDauLamViec2).toLocaleDateString('vi-VN') : '', 'THÁNG TD': c.thangTD, 'NĂM TD': c.namTD, 'THÁNG HL': c.thangHL, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'Mã đại lý tuyển dụng': c.maDaiLyTD, 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1': c.danhDauTVV, 'Chức vụ': c.chucVu2 }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
@@ -1239,11 +1276,16 @@ export default function QuanLyPage() {
   }, [leaders, revenue, contracts, staff, recruiters]);
 
   // ========== Import ==========
-  // Helper: convert various date formats to ISO string (yyyy-mm-dd)
+  // Helper: convert various date formats to ISO string (yyyy-mm-dd) - timezone safe
   const parseDateValue = useCallback((val: any): string | null => {
     if (!val || val === '' || val === '—') return null;
-    // Already a Date object
-    if (val instanceof Date) return val.toISOString().slice(0, 10);
+    // Already a Date object - use local date methods to avoid timezone shift
+    if (val instanceof Date) {
+      const y = val.getFullYear();
+      const m = String(val.getMonth() + 1).padStart(2, '0');
+      const d = String(val.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
     // String date formats
     if (typeof val === 'string') {
       // yyyy-mm-dd
@@ -1251,14 +1293,24 @@ export default function QuanLyPage() {
       // dd/mm/yyyy (Vietnamese format)
       const dmy = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
       if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-      // Try native parse
+      // Try native parse - use local date to avoid timezone shift
       const d = new Date(val);
-      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
     }
     // Excel serial number (days since 1899-12-30)
     if (typeof val === 'number' && val > 1000) {
       const d = new Date((val - 25569) * 86400 * 1000);
-      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
     }
     return null;
   }, []);
@@ -1528,7 +1580,7 @@ export default function QuanLyPage() {
         <div className="overflow-x-auto border border-emerald-500">
           <Table>
             <TableHeader><TableRow className="bg-emerald-700 hover:bg-emerald-700">
-              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'note', l: 'Ghi chú' }].map(col => (
+              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'startDate', l: 'Ngày bắt đầu' }, { f: 'note', l: 'Ghi chú' }].map(col => (
                 <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
               <TableHead className="text-white text-xs w-[40px]"></TableHead>
@@ -1545,11 +1597,12 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={l.salary} onSave={(v) => updateLeader(l.id, 'salary', v)} type="number" className="text-right" /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.phone} onSave={(v) => updateLeader(l.id, 'phone', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.email} onSave={(v) => updateLeader(l.id, 'email', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={l.startDate || ''} onSave={(v) => updateLeader(l.id, 'startDate', v)} type="date" /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.note} onSave={(v) => updateLeader(l.id, 'note', v)} /></TableCell>
                   <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteLeader(l.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
@@ -1609,7 +1662,7 @@ export default function QuanLyPage() {
                     <TableCell className="text-xs p-0"><EditableCell value={r.agentName} onSave={(v) => updateRecruiter(r.id, 'agentName', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.position} onSave={(v) => updateRecruiter(r.id, 'position', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.nhom} onSave={(v) => updateRecruiter(r.id, 'nhom', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={r.startDate || ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
                     <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
                   </>) : (<>
                     <TableCell className="text-xs text-gray-900 font-mono">{r.agentCode}</TableCell>
