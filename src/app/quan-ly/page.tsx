@@ -1867,7 +1867,7 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-900">
+    <div className="h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50">
       {/* Header */}
       <header className="bg-emerald-800 border-b-2 border-emerald-600 px-4 py-2 flex items-center gap-3 flex-shrink-0">
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-800 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>

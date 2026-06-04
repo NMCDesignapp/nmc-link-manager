@@ -1,16 +1,21 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { useSettings } from '@/hooks/use-settings'
 
 export function SpaceBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { settings } = useSettings()
   const neonColor = settings.neon_color || '#00ff88'
+  const pathname = usePathname()
+
+  // Disable space background on quan-ly page (it has its own solid background)
+  const isQuanLy = pathname?.startsWith('/quan-ly')
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || isQuanLy) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -365,7 +370,9 @@ export function SpaceBackground() {
       cancelAnimationFrame(animationId)
       window.removeEventListener('resize', resize)
     }
-  }, [neonColor])
+  }, [neonColor, isQuanLy])
+
+  if (isQuanLy) return null
 
   return (
     <canvas
