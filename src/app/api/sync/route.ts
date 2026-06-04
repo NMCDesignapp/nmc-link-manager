@@ -1,16 +1,18 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO) - UTC safe
 function parseDate(dateStr: string): Date | null {
   if (!dateStr || dateStr.trim() === '') return null;
-  const parts = dateStr.trim().split('/');
-  if (parts.length !== 3) {
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  const [day, month, year] = parts.map(Number);
-  if (!day || !month || !year) return null;
-  return new Date(year, month - 1, day);
+  const s = dateStr.trim();
+  // yyyy-mm-dd → UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
+  // dd/mm/yyyy → UTC
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) return new Date(Date.UTC(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1])));
+  // Fallback
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function parseCSV(csv: string): string[][] {

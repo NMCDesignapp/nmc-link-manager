@@ -54,6 +54,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper: safe number parse for both raw numbers and formatted strings
+function safeFloat(v: any): number {
+  if (typeof v === 'number') return v;
+  return parseFloat(String(v || '0').replace(/,/g, '')) || 0;
+}
+function safeInt(v: any): number {
+  if (typeof v === 'number') return Math.round(v);
+  return parseInt(String(v || '0').replace(/,/g, '')) || 0;
+}
+// Helper: safe date parse - ensures date string is treated as UTC midnight
+function safeDate(v: any): Date | null {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v);
+  // yyyy-mm-dd format → append T00:00:00Z for UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
+  // dd/mm/yyyy → construct UTC
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) return new Date(Date.UTC(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1])));
+  // Fallback
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 // POST /api/contracts - Create a new contract or batch import
 export async function POST(request: NextRequest) {
   try {
@@ -64,43 +88,43 @@ export async function POST(request: NextRequest) {
       const data = body
         .filter((c: any) => c.contractNumber || c.agentName)
         .map((c: any, i: number) => ({
-          stt: parseInt(c.stt) || 0,
+          stt: safeInt(c.stt),
           contractNumber: c.contractNumber || 'HD_' + Date.now() + '_' + i,
-          agentCode: c.agentCode || '',
+          agentCode: String(c.agentCode || ''),
           agentName: c.agentName || 'Chưa nhập',
-          position: c.position || '',
-          ban: c.ban || '',
-          maTruongBan: c.maTruongBan || '',
-          nhom: c.nhom || '',
-          maBanNhom: c.maBanNhom || '',
-          maTruongBanNhom: c.maTruongBanNhom || '',
-          maDL: c.maDL || '',
-          maNhom: c.maNhom || '',
-          leaderAgentCode: c.leaderAgentCode || '',
-          ngayBatDauLamViec: c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec) : null,
-          effectiveDate: c.effectiveDate ? new Date(c.effectiveDate) : new Date(),
-          issueDate: (c.issueDate || c.effectiveDate) ? new Date(c.issueDate || c.effectiveDate) : new Date(),
-          pdt10DT: parseFloat(c.pdt10DT) || 0,
-          fyp: parseFloat(c.fyp) || 0,
-          nguonDuLieu: c.nguonDuLieu || '',
-          hopDongToChuc: c.hopDongToChuc || '',
-          dkDongPhi: c.dkDongPhi || '',
-          phiDongThem: parseFloat(c.phiDongThem) || 0,
-          afypChuaTru10DT: parseFloat(c.afypChuaTru10DT) || 0,
-          afyp: parseFloat(c.afyp) || 0,
-          ad: c.ad || '',
-          nhom2: c.nhom2 || '',
-          ngayBatDauLamViec2: c.ngayBatDauLamViec2 ? new Date(c.ngayBatDauLamViec2) : null,
-          thangTD: parseInt(c.thangTD) || 0,
-          namTD: parseInt(c.namTD) || 0,
-          thangHL: parseInt(c.thangHL) || 0,
-          tinhLuot: parseFloat(c.tinhLuot) || 0,
-          tinhLuot3tr: parseFloat(c.tinhLuot3tr) || 0,
-          maDaiLyTD: c.maDaiLyTD || '',
-          danhDauTVV: c.danhDauTVV || '',
-          chucVu2: c.chucVu2 || '',
-          recruiterCode: c.recruiterCode || '',
-          startDate: c.startDate ? new Date(c.startDate) : null,
+          position: String(c.position || ''),
+          ban: String(c.ban || ''),
+          maTruongBan: String(c.maTruongBan || ''),
+          nhom: String(c.nhom || ''),
+          maBanNhom: String(c.maBanNhom || ''),
+          maTruongBanNhom: String(c.maTruongBanNhom || ''),
+          maDL: String(c.maDL || ''),
+          maNhom: String(c.maNhom || ''),
+          leaderAgentCode: String(c.leaderAgentCode || ''),
+          ngayBatDauLamViec: safeDate(c.ngayBatDauLamViec),
+          effectiveDate: safeDate(c.effectiveDate) || new Date(),
+          issueDate: safeDate(c.issueDate) || safeDate(c.effectiveDate) || new Date(),
+          pdt10DT: safeFloat(c.pdt10DT),
+          fyp: safeFloat(c.fyp),
+          nguonDuLieu: String(c.nguonDuLieu || ''),
+          hopDongToChuc: String(c.hopDongToChuc || ''),
+          dkDongPhi: String(c.dkDongPhi || ''),
+          phiDongThem: safeFloat(c.phiDongThem),
+          afypChuaTru10DT: safeFloat(c.afypChuaTru10DT),
+          afyp: safeFloat(c.afyp),
+          ad: String(c.ad || ''),
+          nhom2: String(c.nhom2 || ''),
+          ngayBatDauLamViec2: safeDate(c.ngayBatDauLamViec2),
+          thangTD: safeInt(c.thangTD),
+          namTD: safeInt(c.namTD),
+          thangHL: safeInt(c.thangHL),
+          tinhLuot: safeFloat(c.tinhLuot),
+          tinhLuot3tr: safeFloat(c.tinhLuot3tr),
+          maDaiLyTD: String(c.maDaiLyTD || ''),
+          danhDauTVV: String(c.danhDauTVV || ''),
+          chucVu2: String(c.chucVu2 || ''),
+          recruiterCode: String(c.recruiterCode || ''),
+          startDate: safeDate(c.startDate),
         }));
 
       if (data.length === 0) {
@@ -132,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     const contract = await db.contract.create({
       data: {
-        stt: parseInt(stt) || 0,
+        stt: safeInt(stt),
         contractNumber: contractNumber || 'HD_' + Date.now(),
         agentCode: agentCode || '',
         agentName,
@@ -145,30 +169,30 @@ export async function POST(request: NextRequest) {
         maDL: maDL || '',
         maNhom: maNhom || '',
         leaderAgentCode: leaderAgentCode || '',
-        ngayBatDauLamViec: ngayBatDauLamViec ? new Date(ngayBatDauLamViec) : null,
-        effectiveDate: effectiveDate ? new Date(effectiveDate) : new Date(),
-        issueDate: (issueDate || effectiveDate) ? new Date(issueDate || effectiveDate) : new Date(),
-        pdt10DT: parseFloat(pdt10DT) || 0,
-        fyp: parseFloat(fyp) || 0,
+        ngayBatDauLamViec: safeDate(ngayBatDauLamViec),
+        effectiveDate: safeDate(effectiveDate) || new Date(),
+        issueDate: safeDate(issueDate) || safeDate(effectiveDate) || new Date(),
+        pdt10DT: safeFloat(pdt10DT),
+        fyp: safeFloat(fyp),
         nguonDuLieu: nguonDuLieu || '',
         hopDongToChuc: hopDongToChuc || '',
         dkDongPhi: dkDongPhi || '',
-        phiDongThem: parseFloat(phiDongThem) || 0,
-        afypChuaTru10DT: parseFloat(afypChuaTru10DT) || 0,
-        afyp: parseFloat(afyp) || 0,
+        phiDongThem: safeFloat(phiDongThem),
+        afypChuaTru10DT: safeFloat(afypChuaTru10DT),
+        afyp: safeFloat(afyp),
         ad: ad || '',
         nhom2: nhom2 || '',
-        ngayBatDauLamViec2: ngayBatDauLamViec2 ? new Date(ngayBatDauLamViec2) : null,
-        thangTD: parseInt(thangTD) || 0,
-        namTD: parseInt(namTD) || 0,
-        thangHL: parseInt(thangHL) || 0,
-        tinhLuot: parseFloat(tinhLuot) || 0,
-        tinhLuot3tr: parseFloat(tinhLuot3tr) || 0,
+        ngayBatDauLamViec2: safeDate(ngayBatDauLamViec2),
+        thangTD: safeInt(thangTD),
+        namTD: safeInt(namTD),
+        thangHL: safeInt(thangHL),
+        tinhLuot: safeFloat(tinhLuot),
+        tinhLuot3tr: safeFloat(tinhLuot3tr),
         maDaiLyTD: maDaiLyTD || '',
         danhDauTVV: danhDauTVV || '',
         chucVu2: chucVu2 || '',
         recruiterCode: recruiterCode || '',
-        startDate: startDate ? new Date(startDate) : null,
+        startDate: safeDate(startDate),
       },
     });
 
@@ -182,7 +206,7 @@ export async function POST(request: NextRequest) {
     }
     console.error('Error creating contract:', error);
     return NextResponse.json(
-      { error: 'Không thể tạo hợp đồng mới' },
+      { error: 'Không thể tạo hợp đồng mới: ' + String(error) },
       { status: 500 }
     );
   }

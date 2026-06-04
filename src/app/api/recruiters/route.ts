@@ -1,16 +1,16 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr || dateStr.trim() === '') return null;
-  const parts = dateStr.trim().split('/');
-  if (parts.length !== 3) {
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  const [day, month, year] = parts.map(Number);
-  if (!day || !month || !year) return null;
-  return new Date(year, month - 1, day);
+// Helper: safe date parse - ensures date string is treated as UTC midnight
+function safeDate(v: any): Date | null {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) return new Date(Date.UTC(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1])));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // GET /api/recruiters - List all recruiters (NTD)
@@ -56,7 +56,14 @@ export async function POST(request: NextRequest) {
       const lines = csvData.split('\n').filter((line: string) => line.trim() !== '');
       const dataLines = lines.slice(1); // Skip header
 
-      const recruiters = [];
+      const recruiters: Array<{
+        nhom: string;
+        agentCode: string;
+        agentName: string;
+        position: string;
+        startDate: Date | null;
+      }> = [];
+
       for (const line of dataLines) {
         const columns: string[] = [];
         let current = '';
@@ -84,7 +91,7 @@ export async function POST(request: NextRequest) {
           agentCode,
           agentName,
           position,
-          startDate: parseDate(startDateStr),
+          startDate: safeDate(startDateStr),
         });
       }
 
@@ -116,7 +123,7 @@ export async function POST(request: NextRequest) {
           agentCode: m.agentCode,
           agentName: m.agentName,
           position: m.position || '',
-          startDate: m.startDate ? parseDate(m.startDate) : null,
+          startDate: safeDate(m.startDate),
         }));
 
       if (data.length === 0) {
@@ -142,14 +149,14 @@ export async function POST(request: NextRequest) {
         agentCode,
         agentName,
         position: position || '',
-        startDate: startDate ? parseDate(startDate) : null,
+        startDate: safeDate(startDate),
       },
     });
 
     return NextResponse.json(recruiter, { status: 201 });
   } catch (error) {
     console.error('Error creating recruiter:', error);
-    return NextResponse.json({ error: 'Không thể thêm người tuyển dụng' }, { status: 500 });
+    return NextResponse.json({ error: 'Không thể thêm người tuyển dụng: ' + String(error) }, { status: 500 });
   }
 }
 

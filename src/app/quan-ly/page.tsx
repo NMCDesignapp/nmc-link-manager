@@ -1337,12 +1337,41 @@ export default function QuanLyPage() {
         const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(String(r['Tiền/tháng'] || r['salary'] || '0').replace(/,/g, '')) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(r => r.agentCode || r.agentName);
         // Batch import - send all rows in one API call
         const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
-        if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; } else { failCount = rows.length; }
+        if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; } else {
+          failCount = rows.length;
+          const errData = await r.json().catch(() => ({}));
+          toast({ title: 'Lỗi import TB/TN', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+        }
         fetchLeaders();
       } else if (sheetName === 'revenue') {
-        const rows = data.map((r: any) => ({ month: String(r['Tháng'] || r['month'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã TVV'] || r['agentCode'] || ''), agentName: String(r['Tên TVV'] || r['agentName'] || ''), totalFYP: parseFloat(String(r['Tổng IP'] || r['totalFYP'] || '0').replace(/,/g, '')) || 0, totalAFYP: parseFloat(String(r['Tổng AFYP'] || r['totalAFYP'] || '0').replace(/,/g, '')) || 0, contractCount: parseInt(String(r['Số HĐ'] || r['contractCount'] || '0').replace(/,/g, '')) || 0, activityRounds: parseInt(String(r['Lượt HĐ'] || r['activityRounds'] || '0').replace(/,/g, '')) || 0, note: String(r['Ghi chú'] || r['note'] || '') }));
-        const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
-        if (r.ok) successCount = rows.length; else failCount = rows.length;
+        const rows = data.map((r: any) => {
+          // With raw:true, numbers come as numbers. Handle both types.
+          const parseNum = (v: any) => typeof v === 'number' ? v : parseFloat(String(v || '0').replace(/,/g, '')) || 0;
+          const parseIntVal = (v: any) => typeof v === 'number' ? Math.round(v) : parseInt(String(v || '0').replace(/,/g, '')) || 0;
+          return {
+            month: String(r['Tháng'] || r['Month'] || r['month'] || ''),
+            maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
+            nhom: String(r['Nhóm'] || r['nhom'] || ''),
+            agentCode: String(r['Mã TVV'] || r['agentCode'] || ''),
+            agentName: String(r['Tên TVV'] || r['agentName'] || ''),
+            totalFYP: parseNum(r['Tổng IP'] || r['totalFYP']),
+            totalAFYP: parseNum(r['Tổng AFYP'] || r['totalAFYP']),
+            contractCount: parseIntVal(r['Số HĐ'] || r['contractCount']),
+            activityRounds: parseIntVal(r['Lượt HĐ'] || r['activityRounds']),
+            note: String(r['Ghi chú'] || r['note'] || ''),
+          };
+        }).filter(r => r.month || r.agentCode || r.agentName);
+        if (rows.length === 0) { toast({ title: 'Không có dữ liệu hợp lệ', description: 'Kiểm tra lại cột Tháng, Mã TVV, Tên TVV', variant: 'destructive' }); }
+        else {
+          const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members: rows }) });
+          if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; }
+          else {
+            failCount = rows.length;
+            const errData = await r.json().catch(() => ({}));
+            console.warn('[Import revenue] Failed:', errData.error);
+            toast({ title: 'Lỗi import doanh số', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+          }
+        }
         fetchRevenue();
       } else if (sheetName === 'contracts') {
         // Batch import - prepare all rows then send in one API call
@@ -1411,14 +1440,22 @@ export default function QuanLyPage() {
         const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
           const r = await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
-          if (r.ok) successCount = members.length; else failCount = members.length;
+          if (r.ok) successCount = members.length; else {
+            failCount = members.length;
+            const errData = await r.json().catch(() => ({}));
+            toast({ title: 'Lỗi import nhân sự', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+          }
         }
         fetchStaff();
       } else if (sheetName === 'recruiters') {
         const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
           const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
-          if (r.ok) successCount = members.length; else failCount = members.length;
+          if (r.ok) successCount = members.length; else {
+            failCount = members.length;
+            const errData = await r.json().catch(() => ({}));
+            toast({ title: 'Lỗi import người TD', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+          }
         }
         fetchRecruiters();
       }

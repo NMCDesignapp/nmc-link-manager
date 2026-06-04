@@ -1,6 +1,18 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Helper: safe date parse - ensures date string is treated as UTC midnight
+function safeDate(v: any): Date | null {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) return new Date(Date.UTC(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1])));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 // GET /api/staff - List all staff members
 export async function GET() {
   try {
@@ -51,7 +63,7 @@ export async function POST(request: NextRequest) {
           agentCode: m.agentCode,
           agentName: m.agentName,
           position: m.position || '',
-          startDate: m.startDate ? new Date(m.startDate) : null,
+          startDate: safeDate(m.startDate),
         }));
 
       if (staffData.length === 0) {
@@ -96,7 +108,7 @@ export async function POST(request: NextRequest) {
         maNhom: maNhom || '',
         agentName,
         position: position || '',
-        startDate: startDate ? new Date(startDate) : null,
+        startDate: safeDate(startDate),
       },
       create: {
         nhom: nhom || '',
@@ -104,7 +116,7 @@ export async function POST(request: NextRequest) {
         agentCode,
         agentName,
         position: position || '',
-        startDate: startDate ? new Date(startDate) : null,
+        startDate: safeDate(startDate),
       },
     });
 
@@ -118,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
     console.error('Error creating staff:', error);
     return NextResponse.json(
-      { error: 'Không thể thêm nhân sự' },
+      { error: 'Không thể thêm nhân sự: ' + String(error) },
       { status: 500 }
     );
   }

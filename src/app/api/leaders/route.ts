@@ -20,17 +20,17 @@ export async function POST(req: NextRequest) {
       const data = body
         .filter((r: any) => r.agentCode || r.agentName)
         .map((r: any) => ({
-          agentCode: r.agentCode || '',
-          agentName: r.agentName || '',
-          position: r.position || '',
-          ban: r.ban || '',
-          nhom: r.nhom || '',
-          maNhom: r.maNhom || '',
-          salary: parseFloat(r.salary) || 0,
-          phone: r.phone || '',
-          email: r.email || '',
-          note: r.note || '',
-          startDate: r.startDate ? new Date(r.startDate) : null,
+          agentCode: String(r.agentCode || ''),
+          agentName: String(r.agentName || ''),
+          position: String(r.position || ''),
+          ban: String(r.ban || ''),
+          nhom: String(r.nhom || ''),
+          maNhom: String(r.maNhom || ''),
+          salary: typeof r.salary === 'number' ? r.salary : (parseFloat(String(r.salary || '0').replace(/,/g, '')) || 0),
+          phone: String(r.phone || ''),
+          email: String(r.email || ''),
+          note: String(r.note || ''),
+          startDate: r.startDate ? new Date(r.startDate + 'T00:00:00Z') : null,
         }));
 
       if (data.length === 0) {
@@ -50,11 +50,11 @@ export async function POST(req: NextRequest) {
         ban: body.ban || '',
         nhom: body.nhom || '',
         maNhom: body.maNhom || '',
-        salary: parseFloat(body.salary) || 0,
+        salary: typeof body.salary === 'number' ? body.salary : (parseFloat(body.salary) || 0),
         phone: body.phone || '',
         email: body.email || '',
         note: body.note || '',
-        startDate: body.startDate ? new Date(body.startDate) : null,
+        startDate: body.startDate ? new Date(body.startDate + 'T00:00:00Z') : null,
       },
     });
     return NextResponse.json(leader, { status: 201 });
@@ -63,6 +63,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mã số đã tồn tại' }, { status: 400 });
     }
     console.error('POST /api/leaders error:', error);
-    return NextResponse.json({ error: 'Failed to create leader' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create leader: ' + String(error) }, { status: 500 });
   }
 }
