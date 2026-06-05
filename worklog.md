@@ -294,3 +294,25 @@ Stage Summary:
 - Contest page uses MonthlyRevenue as data source instead of calculating from contracts
 - DS TB/TN and DS NTD already come from database (no change needed)
 - App URL: https://nc-link.vercel.app
+---
+Task ID: 1
+Agent: Main
+Task: Đồng bộ giao diện trang thi đua với trang chính
+
+Work Log:
+- Đọc và so sánh giao diện 2 trang (thi-dua-chau vs quan-ly)
+- Xác định các khác biệt chính: nền honeycomb tối vs emerald đặc, header blur vs emerald đặc, card glassmorphic vs emerald đặc
+- Thay đổi outer layout: min-h-screen → h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50
+- Thay đổi header: bg-[#0e0e18]/80 backdrop-blur-md → bg-emerald-700 border-b-2 border-emerald-500
+- Thay đổi main content: max-w-5xl mx-auto → flex-1 overflow-y-auto p-4 bg-emerald-800
+- Thay đổi tất cả Cards: bg-white/5 backdrop-blur-sm → bg-emerald-800/50
+- Thay đổi Inputs: bg-white/5 border-emerald-500/20 → bg-emerald-700 border-emerald-500
+- Thay đổi Labels: text-white/70 → text-emerald-200
+- Loại bỏ neon glow effects (drop-shadow, neonBorder glow)
+- PopoverContent: bg-[#1a1a2e] → bg-gray-900 border-emerald-700
+- Push lên GitHub, Vercel auto-deploy
+
+Stage Summary:
+- Giao diện trang thi đua đã đồng bộ với theme emerald đặc của trang chính
+- Đã commit và push: "sync: đồng bộ giao diện trang thi đua với trang chính (emerald theme)"
+- Mục Cấu trúc 4 tầng đã được xây dựng sẵn từ trước (Phòng → AD → Ban/Nhóm → TVV với CRUD + import)
