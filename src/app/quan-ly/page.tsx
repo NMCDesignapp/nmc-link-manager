@@ -1548,11 +1548,29 @@ export default function QuanLyPage() {
           });
         }
         if (contractRows.length > 0) {
+          // Extract unique months from effectiveDate to replace existing data
+          const importMonths = new Set<string>();
+          for (const row of contractRows) {
+            if (row.effectiveDate) {
+              const d = new Date(row.effectiveDate);
+              if (!isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                importMonths.add(`${y}-${m}`);
+              }
+            }
+          }
+          const replaceMonths = Array.from(importMonths);
           const resp = await fetch('/api/contracts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(contractRows)
+            body: JSON.stringify({ contracts: contractRows, replaceMonths })
           });
-          if (resp.ok) { const result = await resp.json(); successCount = result.count || contractRows.length; }
+          if (resp.ok) { 
+            const result = await resp.json(); 
+            successCount = result.count || contractRows.length;
+            const deletedInfo = result.deleted ? ` (Đã thay thế ${result.deleted} HĐ cũ tháng ${replaceMonths.join(', ')})` : '';
+            toast({ title: 'Import thành công', description: `${successCount} HĐ${deletedInfo}` });
+          }
           else {
             failCount = contractRows.length;
             const errData = await resp.json().catch(() => ({}));
@@ -1585,7 +1603,8 @@ export default function QuanLyPage() {
       }
       if (failCount > 0) {
         toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
-      } else {
+      } else if (sheetName !== 'contracts') {
+        // Contracts already shows its own toast with replace info
         toast({ title: 'Import thành công', description: `${successCount} dòng` });
       }
     } catch (err) {

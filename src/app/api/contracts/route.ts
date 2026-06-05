@@ -83,9 +83,25 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Bulk import mode (array of contracts)
+    // Bulk import mode with replace option
+    // If body has { contracts: [...], replaceMonths: ["2026-04", "2026-05"] },
+    // delete existing contracts for those months first, then insert new ones
+    let contractsArray: any[];
+    let replaceMonths: string[] = [];
+
     if (Array.isArray(body)) {
-      const data = body
+      contractsArray = body;
+    } else if (body.contracts && Array.isArray(body.contracts)) {
+      contractsArray = body.contracts;
+      replaceMonths = body.replaceMonths || [];
+    } else {
+      // Single create mode
+      contractsArray = null;
+    }
+
+    // Bulk import mode
+    if (contractsArray) {
+      const data = contractsArray
         .filter((c: any) => c.contractNumber || c.agentName)
         .map((c: any, i: number) => ({
           stt: safeInt(c.stt),
@@ -131,8 +147,37 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
+      // If replaceMonths is specified, delete existing contracts for those months first
+      let deletedCount = 0;
+      if (replaceMonths.length > 0) {
+        for (const month of replaceMonths) {
+          const [yearStr, monthStr] = month.split('-');
+          const year = parseInt(yearStr);
+          const m = parseInt(monthStr);
+          if (isNaN(year) || isNaN(m)) continue;
+          
+          const startDate = new Date(Date.UTC(year, m - 1, 1));
+          const endDate = new Date(Date.UTC(year, m, 1)); // first day of next month
+          
+          const result = await db.contract.deleteMany({
+            where: {
+              effectiveDate: {
+                gte: startDate,
+                lt: endDate,
+              },
+            },
+          });
+          deletedCount += result.count;
+        }
+        console.log(`[Contracts] Deleted ${deletedCount} existing contracts for months: ${replaceMonths.join(', ')}`);
+      }
+
       const result = await db.contract.createMany({ data, skipDuplicates: true });
-      return NextResponse.json({ count: result.count }, { status: 201 });
+      return NextResponse.json({ 
+        count: result.count, 
+        deleted: deletedCount,
+        replaced: replaceMonths.length > 0 
+      }, { status: 201 });
     }
 
     // Single create mode
