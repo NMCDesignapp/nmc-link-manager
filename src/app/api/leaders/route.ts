@@ -37,8 +37,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
-      const result = await db.leaderInfo.createMany({ data, skipDuplicates: true });
-      return NextResponse.json({ count: result.count }, { status: 201 });
+      // Use upsert to update existing leaders and create new ones
+      let created = 0;
+      let updated = 0;
+      for (const item of data) {
+        if (!item.agentCode) continue;
+        try {
+          const existing = await db.leaderInfo.findUnique({ where: { agentCode: item.agentCode } });
+          if (existing) {
+            await db.leaderInfo.update({ where: { agentCode: item.agentCode }, data: item });
+            updated++;
+          } else {
+            await db.leaderInfo.create({ data: item });
+            created++;
+          }
+        } catch {
+          // Skip errors silently
+        }
+      }
+      return NextResponse.json({ count: created + updated, created, updated }, { status: 201 });
     }
 
     // Single create mode

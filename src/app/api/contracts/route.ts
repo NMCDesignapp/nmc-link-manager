@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(contracts, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('Error fetching contracts:', error);
@@ -147,66 +147,61 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
-      // If replaceMonths is specified, delete existing contracts for those months first
-      let deletedCount = 0;
-      if (replaceMonths.length > 0) {
-        for (const month of replaceMonths) {
-          const [yearStr, monthStr] = month.split('-');
-          const year = parseInt(yearStr);
-          const m = parseInt(monthStr);
-          if (isNaN(year) || isNaN(m)) continue;
-          
-          const startDate = new Date(Date.UTC(year, m - 1, 1));
-          const endDate = new Date(Date.UTC(year, m, 1)); // first day of next month
-          
-          const result = await db.contract.deleteMany({
-            where: {
-              effectiveDate: {
-                gte: startDate,
-                lt: endDate,
+      // Use transaction: delete old + upsert new in one atomic operation
+      const result = await db.$transaction(async (tx) => {
+        let deletedCount = 0;
+        // If replaceMonths is specified, delete existing contracts for those months first
+        if (replaceMonths.length > 0) {
+          for (const month of replaceMonths) {
+            const [yearStr, monthStr] = month.split('-');
+            const year = parseInt(yearStr);
+            const m = parseInt(monthStr);
+            if (isNaN(year) || isNaN(m)) continue;
+            
+            const startDate = new Date(Date.UTC(year, m - 1, 1));
+            const endDate = new Date(Date.UTC(year, m, 1)); // first day of next month
+            
+            const delResult = await tx.contract.deleteMany({
+              where: {
+                effectiveDate: {
+                  gte: startDate,
+                  lt: endDate,
+                },
               },
-            },
-          });
-          deletedCount += result.count;
-        }
-        console.log(`[Contracts] Deleted ${deletedCount} existing contracts for months: ${replaceMonths.join(', ')}`);
-      }
-
-      // Try bulk insert first; if unique constraint fails, fall back to individual inserts
-      let insertedCount = 0;
-      let skippedCount = 0;
-      let skippedContracts: string[] = [];
-      try {
-        const result = await db.contract.createMany({ data });
-        insertedCount = result.count;
-      } catch (bulkError: any) {
-        if (bulkError?.code === 'P2002') {
-          // Unique constraint violation - fall back to individual inserts
-          console.log('[Contracts] Bulk insert failed due to unique constraint, falling back to individual inserts');
-          for (let i = 0; i < data.length; i++) {
-            try {
-              await db.contract.create({ data: data[i] });
-              insertedCount++;
-            } catch (singleError: any) {
-              if (singleError?.code === 'P2002') {
-                skippedCount++;
-                skippedContracts.push(data[i].contractNumber || `row_${i}`);
-              } else {
-                console.error(`[Contracts] Error inserting row ${i}:`, singleError.message);
-                skippedCount++;
-              }
-            }
+            });
+            deletedCount += delResult.count;
           }
-        } else {
-          throw bulkError;
+          console.log(`[Contracts] Deleted ${deletedCount} existing contracts for months: ${replaceMonths.join(', ')}`);
         }
-      }
+
+        // Upsert each contract - update if exists, create if new
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errorCount = 0;
+        for (let i = 0; i < data.length; i++) {
+          try {
+            const existing = await tx.contract.findUnique({ where: { contractNumber: data[i].contractNumber } });
+            if (existing) {
+              await tx.contract.update({ where: { contractNumber: data[i].contractNumber }, data: data[i] });
+              updatedCount++;
+            } else {
+              await tx.contract.create({ data: data[i] });
+              insertedCount++;
+            }
+          } catch (rowError: any) {
+            console.error(`[Contracts] Error upserting row ${i} (${data[i].contractNumber}):`, rowError.message);
+            errorCount++;
+          }
+        }
+        return { insertedCount, updatedCount, deletedCount, errorCount };
+      }, { timeout: 30000 }); // 30s timeout for large imports
+
       return NextResponse.json({ 
-        count: insertedCount, 
-        deleted: deletedCount,
+        count: result.insertedCount, 
+        updated: result.updatedCount,
+        deleted: result.deletedCount,
         replaced: replaceMonths.length > 0,
-        skipped: skippedCount,
-        skippedContracts: skippedContracts.slice(0, 20), // Limit to first 20 for response size
+        errors: result.errorCount,
       }, { status: 201 });
     }
 

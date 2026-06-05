@@ -141,7 +141,7 @@ const MONTHS: { key: RevenueSubKey; label: string }[] = [
 const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
   { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
-  { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: true },
+  { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
   { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
@@ -168,6 +168,22 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   recruiters: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu'],
     sampleData: [{ 'Mã số': 'NTD001', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'NTD', 'Nhóm': 'Nhóm 1', 'Ngày bắt đầu': '01/01/2026' }],
+  },
+  'structure-phong': {
+    headers: ['Mã Phòng', 'Tên Phòng', 'Ghi chú'],
+    sampleData: [{ 'Mã Phòng': 'P001', 'Tên Phòng': 'Phòng Kinh doanh', 'Ghi chú': '' }],
+  },
+  'structure-ad': {
+    headers: ['Mã AD', 'Tên AD', 'Mã Phòng', 'Ghi chú'],
+    sampleData: [{ 'Mã AD': 'AD001', 'Tên AD': 'Nguyễn Văn AD', 'Mã Phòng': 'P001', 'Ghi chú': '' }],
+  },
+  'structure-bannhom': {
+    headers: ['Mã Ban/Nhóm', 'Tên Ban/Nhóm', 'Mã AD', 'Ghi chú'],
+    sampleData: [{ 'Mã Ban/Nhóm': 'BN001', 'Tên Ban/Nhóm': 'Nhóm Hiệp Tiến', 'Mã AD': 'AD001', 'Ghi chú': '' }],
+  },
+  'structure-tvv': {
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu', 'Ghi chú'],
+    sampleData: [{ 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn TVV', 'Mã Ban/Nhóm': 'BN001', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu': '01/01/2026', 'Ghi chú': '' }],
   },
 };
 
@@ -1023,9 +1039,12 @@ export default function QuanLyPage() {
   }, []);
 
   const saveSetting = useCallback(async (key: string, value: string) => {
-    // Optimistic update
-    const prevValue = onlineSettings[key];
-    setOnlineSettings(prev => ({ ...prev, [key]: value }));
+    // Optimistic update using functional state to avoid dependency on onlineSettings
+    let prevValue = '';
+    setOnlineSettings(prev => {
+      prevValue = prev[key];
+      return { ...prev, [key]: value };
+    });
     try {
       const r = await fetch('/api/settings', {
         method: 'PUT',
@@ -1042,7 +1061,7 @@ export default function QuanLyPage() {
       setOnlineSettings(prev => ({ ...prev, [key]: prevValue }));
       toast({ title: 'Lỗi lưu online', description: 'Không thể kết nối máy chủ', variant: 'destructive' });
     }
-  }, [onlineSettings]);
+  }, []); // STABLE - no dependency on onlineSettings
 
   // syncEnabled now derived from onlineSettings
   const [syncEnabled, setSyncEnabled] = useState(true);
@@ -1471,7 +1490,6 @@ export default function QuanLyPage() {
           const errData = await r.json().catch(() => ({}));
           toast({ title: 'Lỗi import TB/TN', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
         }
-        fetchLeaders();
       } else if (sheetName === 'revenue') {
         const rows = data.map((r: any) => {
           // With raw:true, numbers come as numbers. Handle both types.
@@ -1501,7 +1519,6 @@ export default function QuanLyPage() {
             toast({ title: 'Lỗi import doanh số', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
-        fetchRevenue();
       } else if (sheetName === 'contracts') {
         // Batch import - prepare all rows then send in one API call
         const contractRows = [];
@@ -1585,7 +1602,6 @@ export default function QuanLyPage() {
             toast({ title: 'Lỗi import HĐ', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
-        fetchContracts();
       } else if (sheetName === 'staff') {
         const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
@@ -1596,7 +1612,6 @@ export default function QuanLyPage() {
             toast({ title: 'Lỗi import nhân sự', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
-        fetchStaff();
       } else if (sheetName === 'recruiters') {
         const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
@@ -1607,7 +1622,6 @@ export default function QuanLyPage() {
             toast({ title: 'Lỗi import người TD', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
-        fetchRecruiters();
       }
       if (failCount > 0) {
         toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
@@ -1619,11 +1633,11 @@ export default function QuanLyPage() {
       console.error('[handleImport] Error:', err);
       toast({ title: 'Lỗi import', description: String(err), variant: 'destructive' });
     }
-    // Invalidate cache and reload all data after import
+    // Invalidate cache and reload all data after import (await to prevent race conditions)
     loadedSheets.current.clear();
-    fetchAllData();
+    await fetchAllData();
     e.target.value = '';
-  }, [fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, parseDateValue, fetchAllData]);
+  }, [parseDateValue, fetchAllData]);
 
   // Sort & filter
   const sortData = useCallback((field: string) => {
@@ -1885,6 +1899,65 @@ export default function QuanLyPage() {
           );
         })}
       </div>
+
+      {/* Monthly AFYP Progress Chart */}
+      {(() => {
+        const monthlyTarget = targetTongAFYP > 0 ? targetTongAFYP / 12 : 0;
+        const monthlyData = Array.from({ length: 12 }, (_, i) => {
+          const m = String(i + 1).padStart(2, '0');
+          const mc = yearContracts.filter(c => {
+            const d = new Date(c.effectiveDate);
+            return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
+          });
+          return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length };
+        });
+        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), monthlyTarget || 1);
+        return (
+          <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4" /> Tiến độ AFYP hàng tháng
+              </h3>
+              {monthlyTarget > 0 && (
+                <span className="text-[10px] text-gray-400">Mục tiêu/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
+              )}
+            </div>
+            <div className="flex items-end gap-1.5 h-[180px]">
+              {monthlyData.map(d => {
+                const barHeight = maxAfyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
+                const targetLine = monthlyTarget > 0 ? (monthlyTarget / maxAfyp) * 100 : 0;
+                const isComplete = d.afyp > 0;
+                const reached = monthlyTarget > 0 && d.afyp >= monthlyTarget;
+                return (
+                  <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
+                    {monthlyTarget > 0 && (
+                      <div className="absolute w-full border-t border-dashed border-amber-400/60 z-10" style={{ bottom: `${targetLine}%` }} title={`CT: ${formatCurrency(Math.round(monthlyTarget))}`}></div>
+                    )}
+                    <div className="flex-1 w-full flex items-end justify-center">
+                      <div
+                        className={`w-full max-w-[32px] rounded-t-sm transition-all ${reached ? 'bg-emerald-500/70' : isComplete ? 'bg-sky-500/60' : 'bg-gray-700/30'}`}
+                        style={{ height: `${Math.max(barHeight, 1)}%` }}
+                        title={`T${d.index + 1}: AFYP ${formatCurrency(d.afyp)} | IP ${formatCurrency(d.ip)} | ${d.count} HĐ${monthlyTarget > 0 ? ` | CT: ${formatCurrency(Math.round(monthlyTarget))}` : ''}`}
+                      ></div>
+                    </div>
+                    <p className="text-[9px] text-gray-400 mt-1 font-bold">T{d.index + 1}</p>
+                    {isComplete && (
+                      <p className={`text-[8px] font-bold ${reached ? 'text-emerald-300' : 'text-sky-300'}`}>
+                        {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-2 text-[9px] text-gray-500">
+              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-sky-500/60 rounded-sm inline-block"></span> AFYP</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block"></span> Đạt chỉ tiêu</span>
+              {monthlyTarget > 0 && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 
@@ -2236,6 +2309,19 @@ export default function QuanLyPage() {
         <h2 className="text-xl font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => setImportTier('phong')} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
+          <div className="relative group">
+            <Button variant="ghost" size="sm" className="h-7 text-[10px] text-violet-300 hover:text-violet-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+            <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+              {[
+                { key: 'structure-phong', label: 'Mẫu Phòng' },
+                { key: 'structure-ad', label: 'Mẫu AD' },
+                { key: 'structure-bannhom', label: 'Mẫu Ban/Nhóm' },
+                { key: 'structure-tvv', label: 'Mẫu TVV' },
+              ].map(t => (
+                <button key={t.key} onClick={() => handleDownloadTemplate(t.key)} className="w-full text-left text-[10px] text-emerald-300 hover:bg-emerald-500/10 px-2 py-1 rounded">{t.label}</button>
+              ))}
+            </div>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Plus className="w-3 h-3 mr-1" /> Thêm Phòng</Button>
         </div>
       </div>
@@ -2580,8 +2666,6 @@ export default function QuanLyPage() {
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate flex-1 text-left">{sheet.label}</span>
                     {hasSectionLink(sheet.key) && <Link2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
-                    {sheet.synced && syncEnabled && <RefreshCw className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
-                    {sheet.synced && !syncEnabled && <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />}
                     {sheet.hasSub && (revenueExpanded && activeSheet === 'revenue' ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
                   </button>
                   {/* Revenue sub-items */}

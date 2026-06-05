@@ -101,29 +101,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Only insert NEW recruiters — do NOT update existing ones to preserve manual edits
+      // Upsert recruiters — update existing, create new
       let created = 0;
-      try {
-        const result = await db.recruiter.createMany({
-          data: recruiters,
-          skipDuplicates: true,
-        });
-        created = result.count;
-      } catch {
-        // Fallback: try individual creates
-        for (const r of recruiters) {
-          try {
+      let updated = 0;
+      for (const r of recruiters) {
+        try {
+          const existing = await db.recruiter.findUnique({ where: { agentCode: r.agentCode } });
+          if (existing) {
+            await db.recruiter.update({ where: { agentCode: r.agentCode }, data: r });
+            updated++;
+          } else {
             await db.recruiter.create({ data: r });
             created++;
-          } catch {
-            // Skip duplicates or errors
           }
+        } catch {
+          // Skip errors
         }
       }
 
       return NextResponse.json({
-        message: `Đã nhập ${created} người tuyển dụng mới (bỏ qua đã tồn tại)`,
-        count: created,
+        message: `Đã nhập ${created} mới, cập nhật ${updated} người tuyển dụng`,
+        count: created + updated,
+        created,
+        updated,
       });
     }
 
@@ -143,29 +143,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
-      // Only insert NEW recruiters — do NOT update existing ones to preserve manual edits
+      // Upsert recruiters — update existing, create new
       let created = 0;
-      try {
-        const result = await db.recruiter.createMany({
-          data,
-          skipDuplicates: true,
-        });
-        created = result.count;
-      } catch {
-        // Fallback: try individual creates
-        for (const item of data) {
-          try {
+      let updated = 0;
+      for (const item of data) {
+        try {
+          const existing = await db.recruiter.findUnique({ where: { agentCode: item.agentCode } });
+          if (existing) {
+            await db.recruiter.update({ where: { agentCode: item.agentCode }, data: item });
+            updated++;
+          } else {
             await db.recruiter.create({ data: item });
             created++;
-          } catch {
-            // Skip duplicates or errors
           }
+        } catch {
+          // Skip errors
         }
       }
 
       return NextResponse.json({
-        message: `Đã nhập ${created} người tuyển dụng mới (bỏ qua đã tồn tại)`,
-        count: created,
+        message: `Đã nhập ${created} mới, cập nhật ${updated} người tuyển dụng`,
+        count: created + updated,
+        created,
+        updated,
       });
     }
 
