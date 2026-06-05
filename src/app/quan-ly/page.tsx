@@ -4,9 +4,11 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
@@ -14,7 +16,7 @@ import {
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
-  Merge, Split, Target, BarChart3,
+  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -80,6 +82,11 @@ interface Recruiter {
   id: string; nhom: string; agentCode: string; agentName: string;
   position: string; startDate: string | null;
 }
+
+interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
+interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
+interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; note: string; }
+interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
 
 // Merge range for spreadsheet
 interface MergeRange {
@@ -1066,6 +1073,35 @@ export default function QuanLyPage() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Structure state
+  const [phongList, setPhongList] = useState<PhongItem[]>([]);
+  const [adList, setAdList] = useState<ADItem[]>([]);
+  const [banNhomList, setBanNhomList] = useState<BanNhomItem[]>([]);
+  const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
+  const [selectedPhong, setSelectedPhong] = useState<string>('');
+  const [selectedAD, setSelectedAD] = useState<string>('');
+  const [selectedBanNhom, setSelectedBanNhom] = useState<string>('');
+
+  // Add dialog state per tier
+  const [addPhongOpen, setAddPhongOpen] = useState(false);
+  const [addADOpen, setAddADOpen] = useState(false);
+  const [addBanNhomOpen, setAddBanNhomOpen] = useState(false);
+  const [addTvvOpen, setAddTvvOpen] = useState(false);
+  const [newPhong, setNewPhong] = useState({ maPhong: '', tenPhong: '', note: '' });
+  const [newAD, setNewAD] = useState({ maAD: '', tenAD: '', maPhong: '', note: '' });
+  const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', note: '' });
+  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' });
+
+  // Edit state
+  const [editingPhong, setEditingPhong] = useState<PhongItem | null>(null);
+  const [editingAD, setEditingAD] = useState<ADItem | null>(null);
+  const [editingBanNhom, setEditingBanNhom] = useState<BanNhomItem | null>(null);
+  const [editingTvv, setEditingTvv] = useState<TVVStructItem | null>(null);
+
+  // Import dialog
+  const [importTier, setImportTier] = useState<string>('');
+  const [importData, setImportData] = useState<string>('');
+
   // Data cache: track which sheets have been loaded to avoid re-fetch on tab switch
   const loadedSheets = useRef<Set<SheetKey>>(new Set());
 
@@ -1114,6 +1150,20 @@ export default function QuanLyPage() {
     try { const r = await fetch('/api/recruiters'); if (r.ok) setRecruiters(await r.json()); } catch {}
   }, []);
 
+  // Fetch structure data
+  const fetchPhong = useCallback(async () => {
+    try { const res = await fetch('/api/structure/phong'); if (res.ok) { const data = await res.json(); setPhongList(data); } } catch {}
+  }, []);
+  const fetchAD = useCallback(async () => {
+    try { const res = await fetch('/api/structure/ad'); if (res.ok) { const data = await res.json(); setAdList(data); } } catch {}
+  }, []);
+  const fetchBanNhom = useCallback(async () => {
+    try { const res = await fetch('/api/structure/bannhom'); if (res.ok) { const data = await res.json(); setBanNhomList(data); } } catch {}
+  }, []);
+  const fetchTvvStruct = useCallback(async () => {
+    try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch {}
+  }, []);
+
   // Fetch all data in one request (for initial page load)
   const fetchAllData = useCallback(async () => {
     try {
@@ -1141,14 +1191,14 @@ export default function QuanLyPage() {
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
-      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff()]); },
+      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
       spreadsheet: async () => {},
       settings: async () => {},
     };
     loaders[sheet]().then(() => {
       loadedSheets.current.add(sheet);
     }).finally(() => setIsLoading(false));
-  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters]);
+  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
 
@@ -1224,6 +1274,84 @@ export default function QuanLyPage() {
   const deleteRecruiter = useCallback(async (id: string) => {
     if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); if (r.ok) { setRecruiters(p => p.filter(rc => rc.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
+
+  // ========== CRUD: Structure (4-tier) ==========
+  const handleAddPhong = useCallback(async () => {
+    if (!newPhong.maPhong || !newPhong.tenPhong) return;
+    try { const res = await fetch('/api/structure/phong', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newPhong) }); if (res.ok) { setAddPhongOpen(false); setNewPhong({ maPhong: '', tenPhong: '', note: '' }); fetchPhong(); toast({ title: 'Đã thêm Phòng' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [newPhong, fetchPhong]);
+  const handleAddAD = useCallback(async () => {
+    if (!newAD.maAD || !newAD.tenAD) return;
+    try { const res = await fetch('/api/structure/ad', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAD) }); if (res.ok) { setAddADOpen(false); setNewAD({ maAD: '', tenAD: '', maPhong: '', note: '' }); fetchAD(); toast({ title: 'Đã thêm AD' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [newAD, fetchAD]);
+  const handleAddBanNhom = useCallback(async () => {
+    if (!newBanNhom.maBanNhom || !newBanNhom.tenBanNhom) return;
+    try { const res = await fetch('/api/structure/bannhom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newBanNhom) }); if (res.ok) { setAddBanNhomOpen(false); setNewBanNhom({ maBanNhom: '', tenBanNhom: '', maAD: '', note: '' }); fetchBanNhom(); toast({ title: 'Đã thêm Ban/Nhóm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [newBanNhom, fetchBanNhom]);
+  const handleAddTvv = useCallback(async () => {
+    if (!newTvv.agentCode || !newTvv.agentName) return;
+    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [newTvv, fetchTvvStruct]);
+
+  const handleDeletePhong = useCallback(async (id: string) => {
+    if (!confirm('Xóa Phòng này?')) return;
+    try { const res = await fetch(`/api/structure/phong/${id}`, { method: 'DELETE' }); if (res.ok) { fetchPhong(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [fetchPhong]);
+  const handleDeleteAD = useCallback(async (id: string) => {
+    if (!confirm('Xóa AD này?')) return;
+    try { const res = await fetch(`/api/structure/ad/${id}`, { method: 'DELETE' }); if (res.ok) { fetchAD(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [fetchAD]);
+  const handleDeleteBanNhom = useCallback(async (id: string) => {
+    if (!confirm('Xóa Ban/Nhóm này?')) return;
+    try { const res = await fetch(`/api/structure/bannhom/${id}`, { method: 'DELETE' }); if (res.ok) { fetchBanNhom(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [fetchBanNhom]);
+  const handleDeleteTvv = useCallback(async (id: string) => {
+    if (!confirm('Xóa TVV này?')) return;
+    try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [fetchTvvStruct]);
+
+  const handleEditPhong = useCallback(async () => {
+    if (!editingPhong) return;
+    try { const res = await fetch(`/api/structure/phong/${editingPhong.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maPhong: editingPhong.maPhong, tenPhong: editingPhong.tenPhong, note: editingPhong.note }) }); if (res.ok) { setEditingPhong(null); fetchPhong(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [editingPhong, fetchPhong]);
+  const handleEditAD = useCallback(async () => {
+    if (!editingAD) return;
+    try { const res = await fetch(`/api/structure/ad/${editingAD.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maAD: editingAD.maAD, tenAD: editingAD.tenAD, maPhong: editingAD.maPhong, note: editingAD.note }) }); if (res.ok) { setEditingAD(null); fetchAD(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [editingAD, fetchAD]);
+  const handleEditBanNhom = useCallback(async () => {
+    if (!editingBanNhom) return;
+    try { const res = await fetch(`/api/structure/bannhom/${editingBanNhom.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maBanNhom: editingBanNhom.maBanNhom, tenBanNhom: editingBanNhom.tenBanNhom, maAD: editingBanNhom.maAD, note: editingBanNhom.note }) }); if (res.ok) { setEditingBanNhom(null); fetchBanNhom(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [editingBanNhom, fetchBanNhom]);
+  const handleEditTvv = useCallback(async () => {
+    if (!editingTvv) return;
+    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, [editingTvv, fetchTvvStruct]);
+
+  const handleImportStructure = useCallback(async () => {
+    if (!importData || !importTier) return;
+    try {
+      const lines = importData.trim().split('\n');
+      const header = lines[0].split('\t');
+      const rows = lines.slice(1);
+      const records = rows.map(line => {
+        const cols = line.split('\t');
+        const record: any = {};
+        header.forEach((h, i) => { record[h.trim()] = (cols[i] || '').trim(); });
+        return record;
+      });
+      let endpoint = '';
+      if (importTier === 'phong') endpoint = '/api/structure/phong';
+      else if (importTier === 'ad') endpoint = '/api/structure/ad';
+      else if (importTier === 'bannhom') endpoint = '/api/structure/bannhom';
+      else if (importTier === 'tvv') endpoint = '/api/structure/tvv';
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(records) });
+      if (res.ok) {
+        fetchPhong(); fetchAD(); fetchBanNhom(); fetchTvvStruct();
+        setImportData(''); setImportTier('');
+        toast({ title: 'Import thành công' });
+      }
+    } catch (e) { console.error('Import error', e); toast({ title: 'Lỗi import', variant: 'destructive' }); }
+  }, [importData, importTier, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
   // ========== Download Template (server-side) ==========
   const handleDownloadTemplate = useCallback((sheetName: string) => {
@@ -1988,65 +2116,323 @@ export default function QuanLyPage() {
     );
   };
 
-  // ========== RENDER: Structure (placeholder) ==========
+  // ========== RENDER: Structure (4-tier cascading) ==========
   const renderStructure = () => (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
         <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" onlineSettings={onlineSettings} saveSetting={saveSetting} />
       </div>
-      <div className="bg-amber-900 border border-amber-600 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5 text-amber-300" /><span className="text-amber-200 font-bold">Đang xây dựng</span></div>
-        <p className="text-amber-100 text-sm">Mục này sẽ chứa sơ đồ ban nhóm, nhân viên quản lý, ánh xạ NV-Nhóm, và chỉ số được giao. Đây là nền tảng để trích xuất số liệu theo nhóm hoặc theo nhân viên.</p>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-white/60 bg-emerald-800 rounded-lg p-2 border border-emerald-500/30">
+        <Building2 className="w-4 h-4 text-emerald-400" />
+        {selectedPhong ? (
+          <>
+            <button onClick={() => { setSelectedPhong(''); setSelectedAD(''); setSelectedBanNhom(''); }} className="text-emerald-400 hover:underline cursor-pointer">
+              {phongList.find(p => p.id === selectedPhong)?.tenPhong || '...'}
+            </button>
+            {selectedAD && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <button onClick={() => { setSelectedAD(''); setSelectedBanNhom(''); }} className="text-amber-400 hover:underline cursor-pointer">
+                  {adList.find(a => a.id === selectedAD)?.tenAD || '...'}
+                </button>
+                {selectedBanNhom && (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <button onClick={() => setSelectedBanNhom('')} className="text-sky-400 hover:underline cursor-pointer">
+                      {banNhomList.find(b => b.id === selectedBanNhom)?.tenBanNhom || '...'}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-white/40 italic">Chọn Phòng để xem cấu trúc</span>
+        )}
       </div>
 
-      {/* Show current structure from leaders */}
-      <div className="bg-emerald-800 rounded-lg p-4 border border-emerald-500">
-        <h3 className="text-base font-bold text-emerald-300 mb-3">Sơ đồ Trưởng Ban/Nhóm hiện tại</h3>
-        {leaders.length === 0 ? <p className="text-gray-300 text-sm">Chưa có dữ liệu</p> : (
-          <div className="space-y-1">
-            {/* Group by ban */}
-            {Array.from(new Set(leaders.map(l => l.ban || '(Chưa phân ban)'))).map(ban => {
-              const banLeaders = leaders.filter(l => (l.ban || '(Chưa phân ban)') === ban);
+      {/* 4-tier cascading panels */}
+      <div className="grid grid-cols-4 gap-2" style={{ minHeight: '400px' }}>
+        {/* Tier 1: Phòng */}
+        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
+            <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1"><Building2 className="w-4 h-4" /> Phòng</h3>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setImportTier('phong')} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300"><Plus className="w-3 h-3" /></Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
+            {phongList.map(p => {
+              const childCount = adList.filter(a => a.maPhong === p.maPhong).length;
+              const isSelected = selectedPhong === p.id;
               return (
-                <div key={ban} className="bg-emerald-700 rounded-md p-3 mb-2">
-                  <h4 className="text-emerald-200 font-bold text-sm mb-2">{ban}</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {banLeaders.map(l => (
-                      <div key={l.id} className="bg-emerald-600 rounded-md p-2 border border-emerald-500">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-emerald-300" />
-                          <div>
-                            <p className="text-white text-xs font-bold">{l.agentName}</p>
-                            <p className="text-emerald-200 text-[10px]">{l.position} • {l.nhom || '(Chưa có nhóm)'} • {l.maNhom}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
+                    <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-emerald-300 bg-emerald-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingPhong(p); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeletePhong(p.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
                   </div>
                 </div>
               );
             })}
+            {phongList.length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có phòng</p>}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Staff count by group */}
-      <div className="bg-emerald-800 rounded-lg p-4 border border-emerald-500">
-        <h3 className="text-base font-bold text-emerald-300 mb-3">Nhân sự theo Nhóm</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {Array.from(new Set(staff.map(s => s.nhom || '(Chưa phân)'))).sort().map(nhom => {
-            const count = staff.filter(s => (s.nhom || '(Chưa phân)') === nhom).length;
-            const maNhom = staff.find(s => s.nhom === nhom)?.maNhom || '';
-            return (
-              <div key={nhom} className="bg-emerald-700 rounded-md p-2 flex items-center justify-between">
-                <div><p className="text-white text-xs font-bold">{nhom}</p><p className="text-emerald-200 text-[10px]">{maNhom}</p></div>
-                <span className="text-emerald-200 font-extrabold text-sm">{count}</span>
+        {/* Tier 2: AD */}
+        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
+            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-1"><UserCog className="w-4 h-4" /> AD</h3>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setImportTier('ad')} className="h-6 w-6 p-0 text-amber-400 hover:text-amber-300"><Upload className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: selectedPhong ? phongList.find(p => p.id === selectedPhong)?.maPhong || '' : '' })); setAddADOpen(true); }} className="h-6 w-6 p-0 text-amber-400 hover:text-amber-300"><Plus className="w-3 h-3" /></Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
+            {adList.filter(a => {
+              if (!selectedPhong) return true;
+              const phong = phongList.find(p => p.id === selectedPhong);
+              return phong && a.maPhong === phong.maPhong;
+            }).map(a => {
+              const childCount = banNhomList.filter(b => b.maAD === a.maAD).length;
+              const isSelected = selectedAD === a.id;
+              return (
+                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
+                    <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-amber-300 bg-amber-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingAD(a); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteAD(a.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                  </div>
+                </div>
+              );
+            })}
+            {adList.filter(a => {
+              if (!selectedPhong) return true;
+              const phong = phongList.find(p => p.id === selectedPhong);
+              return phong && a.maPhong === phong.maPhong;
+            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có AD</p>}
+          </div>
+        </div>
+
+        {/* Tier 3: Ban/Nhóm */}
+        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
+            <h3 className="text-sm font-bold text-sky-300 flex items-center gap-1"><Network className="w-4 h-4" /> Ban/Nhóm</h3>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setImportTier('bannhom')} className="h-6 w-6 p-0 text-sky-400 hover:text-sky-300"><Upload className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: selectedAD ? adList.find(a => a.id === selectedAD)?.maAD || '' : '' })); setAddBanNhomOpen(true); }} className="h-6 w-6 p-0 text-sky-400 hover:text-sky-300"><Plus className="w-3 h-3" /></Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
+            {banNhomList.filter(b => {
+              if (!selectedAD) return true;
+              const ad = adList.find(a => a.id === selectedAD);
+              return ad && b.maAD === ad.maAD;
+            }).map(b => {
+              const childCount = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom).length;
+              const isSelected = selectedBanNhom === b.id;
+              return (
+                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
+                    <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                  </div>
+                </div>
+              );
+            })}
+            {banNhomList.filter(b => {
+              if (!selectedAD) return true;
+              const ad = adList.find(a => a.id === selectedAD);
+              return ad && b.maAD === ad.maAD;
+            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có Ban/Nhóm</p>}
+          </div>
+        </div>
+
+        {/* Tier 4: TVV */}
+        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
+            <h3 className="text-sm font-bold text-violet-300 flex items-center gap-1"><Users className="w-4 h-4" /> TVV</h3>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setImportTier('tvv')} className="h-6 w-6 p-0 text-violet-400 hover:text-violet-300"><Upload className="w-3 h-3" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => { setNewTvv(prev => ({ ...prev, maBanNhom: selectedBanNhom ? banNhomList.find(b => b.id === selectedBanNhom)?.maBanNhom || '' : '' })); setAddTvvOpen(true); }} className="h-6 w-6 p-0 text-violet-400 hover:text-violet-300"><Plus className="w-3 h-3" /></Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
+            {tvvStructList.filter(t => {
+              if (!selectedBanNhom) return true;
+              const bn = banNhomList.find(b => b.id === selectedBanNhom);
+              return bn && t.maBanNhom === bn.maBanNhom;
+            }).map(t => (
+              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent">
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
+                  <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                </div>
               </div>
-            );
-          })}
+            ))}
+            {tvvStructList.filter(t => {
+              if (!selectedBanNhom) return true;
+              const bn = banNhomList.find(b => b.id === selectedBanNhom);
+              return bn && t.maBanNhom === bn.maBanNhom;
+            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có TVV</p>}
+          </div>
         </div>
       </div>
+
+      {/* Add Phong Dialog */}
+      <Dialog open={addPhongOpen} onOpenChange={setAddPhongOpen}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-emerald-400">Thêm Phòng</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={newPhong.maPhong} onChange={e => setNewPhong(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Tên Phòng</Label><Input value={newPhong.tenPhong} onChange={e => setNewPhong(p => ({ ...p, tenPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newPhong.note} onChange={e => setNewPhong(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddPhong} className="bg-emerald-600 hover:bg-emerald-500">Thêm</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add AD Dialog */}
+      <Dialog open={addADOpen} onOpenChange={setAddADOpen}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-amber-400">Thêm AD</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Tên AD</Label><Input value={newAD.tenAD} onChange={e => setNewAD(p => ({ ...p, tenAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
+            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddAD} className="bg-amber-600 hover:bg-amber-500">Thêm</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add BanNhom Dialog */}
+      <Dialog open={addBanNhomOpen} onOpenChange={setAddBanNhomOpen}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-sky-400">Thêm Ban/Nhóm</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Tên Ban/Nhóm</Label><Input value={newBanNhom.tenBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, tenBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
+            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-600 hover:bg-sky-500">Thêm</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add TVV Dialog */}
+      <Dialog open={addTvvOpen} onOpenChange={setAddTvvOpen}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-violet-400">Thêm TVV</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div><Label className="text-xs text-white/60">Mã TVV</Label><Input value={newTvv.agentCode} onChange={e => setNewTvv(p => ({ ...p, agentCode: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Tên TVV</Label><Input value={newTvv.agentName} onChange={e => setNewTvv(p => ({ ...p, agentName: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={newTvv.maBanNhom} onChange={e => setNewTvv(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: BN001" /></div>
+            <div><Label className="text-xs text-white/60">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-600 hover:bg-violet-500">Thêm</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Phong Dialog */}
+      <Dialog open={!!editingPhong} onOpenChange={(open) => { if (!open) setEditingPhong(null); }}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-emerald-400">Sửa Phòng</DialogTitle></DialogHeader>
+          {editingPhong && (
+            <div className="space-y-2">
+              <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={editingPhong.maPhong} onChange={e => setEditingPhong(p => p ? { ...p, maPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Tên Phòng</Label><Input value={editingPhong.tenPhong} onChange={e => setEditingPhong(p => p ? { ...p, tenPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingPhong.note} onChange={e => setEditingPhong(p => p ? { ...p, note: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={handleEditPhong} className="bg-emerald-600 hover:bg-emerald-500">Lưu</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit AD Dialog */}
+      <Dialog open={!!editingAD} onOpenChange={(open) => { if (!open) setEditingAD(null); }}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-amber-400">Sửa AD</DialogTitle></DialogHeader>
+          {editingAD && (
+            <div className="space-y-2">
+              <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={editingAD.maAD} onChange={e => setEditingAD(a => a ? { ...a, maAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Tên AD</Label><Input value={editingAD.tenAD} onChange={e => setEditingAD(a => a ? { ...a, tenAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={editingAD.maPhong} onChange={e => setEditingAD(a => a ? { ...a, maPhong: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingAD.note} onChange={e => setEditingAD(a => a ? { ...a, note: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={handleEditAD} className="bg-amber-600 hover:bg-amber-500">Lưu</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit BanNhom Dialog */}
+      <Dialog open={!!editingBanNhom} onOpenChange={(open) => { if (!open) setEditingBanNhom(null); }}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-sky-400">Sửa Ban/Nhóm</DialogTitle></DialogHeader>
+          {editingBanNhom && (
+            <div className="space-y-2">
+              <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={handleEditBanNhom} className="bg-sky-600 hover:bg-sky-500">Lưu</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit TVV Dialog */}
+      <Dialog open={!!editingTvv} onOpenChange={(open) => { if (!open) setEditingTvv(null); }}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-violet-400">Sửa TVV</DialogTitle></DialogHeader>
+          {editingTvv && (
+            <div className="space-y-2">
+              <div><Label className="text-xs text-white/60">Mã TVV</Label><Input value={editingTvv.agentCode} onChange={e => setEditingTvv(t => t ? { ...t, agentCode: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Tên TVV</Label><Input value={editingTvv.agentName} onChange={e => setEditingTvv(t => t ? { ...t, agentName: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? editingTvv.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-600 hover:bg-violet-500">Lưu</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) setImportTier(''); }}>
+        <DialogContent className="bg-emerald-900 border-emerald-500">
+          <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <p className="text-white/50 text-xs">Dán dữ liệu từ Excel (Tab-separated). Dòng đầu tiên là header.</p>
+            <textarea value={importData} onChange={e => setImportData(e.target.value)} className="w-full h-40 bg-white/5 border border-emerald-500/20 rounded-md p-2 text-white text-xs font-mono" placeholder="maPhong&#9;tenPhong&#9;note&#10;P001&#9;Phòng KD&#9;Ghi chú" />
+          </div>
+          <DialogFooter><Button onClick={handleImportStructure} className="bg-emerald-600 hover:bg-emerald-500">Import</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

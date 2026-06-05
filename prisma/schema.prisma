@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model Link {
@@ -185,4 +184,45 @@ model MonthlyRevenue {
   note          String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Phong {
+  id          String   @id @default(uuid())
+  maPhong     String   @unique
+  tenPhong    String
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AD {
+  id          String   @id @default(uuid())
+  maAD        String   @unique
+  tenAD       String
+  maPhong     String   @default("")
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BanNhom {
+  id          String   @id @default(uuid())
+  maBanNhom   String   @unique
+  tenBanNhom  String
+  maAD        String   @default("")
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TVVStruct {
+  id          String   @id @default(uuid())
+  agentCode   String   @unique
+  agentName   String
+  maBanNhom   String   @default("")
+  chucVu      String   @default("")
+  ngayBatDau  DateTime?
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
