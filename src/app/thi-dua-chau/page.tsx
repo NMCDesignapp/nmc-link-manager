@@ -1810,7 +1810,7 @@ export default function ThiDuaPage() {
   };
 
   // Neon border style like main page
-  const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)]';
+  const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)] neon-card';
 
   // Phase 2 per-row bonus calculation helper
   const getRowPhaseBonus = useCallback((fyp: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
@@ -1935,14 +1935,14 @@ export default function ThiDuaPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative">
+      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                <CardTitle className="text-sm text-emerald-300 whitespace-nowrap">Thông tin chương trình</CardTitle>
+                <CardTitle className="text-sm text-emerald-400 neon-text whitespace-nowrap">Thông tin chương trình</CardTitle>
               </div>
               <div className="flex items-center gap-1.5 ml-auto">
                 <Popover open={contestListOpen} onOpenChange={setContestListOpen}>
@@ -2004,7 +2004,7 @@ export default function ThiDuaPage() {
             <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                <CardTitle className="text-sm text-emerald-300 whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
+                <CardTitle className="text-sm text-emerald-400 neon-text whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
               </div>
               {showConfig ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>

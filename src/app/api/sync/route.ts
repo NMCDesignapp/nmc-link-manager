@@ -87,14 +87,13 @@ export async function POST(request: NextRequest) {
 
     const results = { contracts: 0, staff: 0, recruiters: 0, errors: [] as string[] };
 
-    // 1. Import Contracts
+    // 1. Import Contracts — upsert by contractNumber to preserve manual edits
     if (contractCsv) {
       try {
-        await db.contract.deleteMany();
         const rows = parseCSV(contractCsv);
         const dataRows = rows.slice(1); // Skip header
-        const contracts = [];
         const seenContractNumbers = new Set<string>();
+        let upserted = 0;
 
         for (const columns of dataRows) {
           const stt = columns[0] || '';
@@ -147,49 +146,76 @@ export async function POST(request: NextRequest) {
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
 
-          contracts.push({
-            stt: parseInt(stt) || 0,
-            contractNumber: finalContractNumber,
-            agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
-            maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
-            ngayBatDauLamViec: startDate,
-            recruiterCode: recruiterCode || '',
-            startDate,
-            effectiveDate,
-            issueDate: issueDate || effectiveDate,
-            pdt10DT: parseNumber(pdt10DTStr),
-            fyp,
-            nguonDuLieu, hopDongToChuc, dkDongPhi,
-            phiDongThem: parseNumber(phiDongThemStr),
-            afypChuaTru10DT: parseNumber(afypChuaTru10DTStr),
-            afyp,
-            ad, nhom2,
-            ngayBatDauLamViec2,
-            thangTD: parseInt(thangTDStr) || 0,
-            namTD: parseInt(namTDStr) || 0,
-            thangHL: parseInt(thangHLStr) || 0,
-            tinhLuot,
-            tinhLuot3tr: parseNumber(tinhLuot3trStr),
-            maDaiLyTD, danhDauTVV, chucVu2,
-          });
+          try {
+            await db.contract.upsert({
+              where: { contractNumber: finalContractNumber },
+              update: {
+                stt: parseInt(stt) || 0,
+                agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
+                maTruongBan, ngayBatDauLamViec: startDate,
+                recruiterCode: recruiterCode || '',
+                startDate,
+                effectiveDate,
+                issueDate: issueDate || effectiveDate,
+                pdt10DT: parseNumber(pdt10DTStr),
+                fyp,
+                nguonDuLieu, hopDongToChuc, dkDongPhi,
+                phiDongThem: parseNumber(phiDongThemStr),
+                afypChuaTru10DT: parseNumber(afypChuaTru10DTStr),
+                afyp,
+                ad, nhom2,
+                ngayBatDauLamViec2,
+                thangTD: parseInt(thangTDStr) || 0,
+                namTD: parseInt(namTDStr) || 0,
+                thangHL: parseInt(thangHLStr) || 0,
+                tinhLuot,
+                tinhLuot3tr: parseNumber(tinhLuot3trStr),
+                maDaiLyTD, danhDauTVV, chucVu2,
+              },
+              create: {
+                stt: parseInt(stt) || 0,
+                contractNumber: finalContractNumber,
+                agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
+                maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
+                ngayBatDauLamViec: startDate,
+                recruiterCode: recruiterCode || '',
+                startDate,
+                effectiveDate,
+                issueDate: issueDate || effectiveDate,
+                pdt10DT: parseNumber(pdt10DTStr),
+                fyp,
+                nguonDuLieu, hopDongToChuc, dkDongPhi,
+                phiDongThem: parseNumber(phiDongThemStr),
+                afypChuaTru10DT: parseNumber(afypChuaTru10DTStr),
+                afyp,
+                ad, nhom2,
+                ngayBatDauLamViec2,
+                thangTD: parseInt(thangTDStr) || 0,
+                namTD: parseInt(namTDStr) || 0,
+                thangHL: parseInt(thangHLStr) || 0,
+                tinhLuot,
+                tinhLuot3tr: parseNumber(tinhLuot3trStr),
+                maDaiLyTD, danhDauTVV, chucVu2,
+              },
+            });
+            upserted++;
+          } catch {
+            // Skip duplicate or error on individual record
+          }
         }
 
-        if (contracts.length > 0) {
-          const result = await db.contract.createMany({ data: contracts });
-          results.contracts = result.count;
-        }
+        results.contracts = upserted;
         // KHÔNG upsert Staff từ contracts — Staff chỉ từ Staff CSV
       } catch (err) {
         results.errors.push(`HĐ: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
     }
 
-    // 2. Import Staff CSV (6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu)
+    // 2. Import Staff CSV — upsert by agentCode to preserve manual edits
     // DS Nhóm — chỉ chứa trưởng nhóm/trưởng ban
     // CSV KHÔNG có cột Mã nhóm → phải lookup từ contracts
     if (staffCsv) {
       try {
-        await db.staff.deleteMany();
         const rows = parseCSV(staffCsv);
         const header = rows[0] || [];
         const dataRows = rows.slice(1); // Skip header
@@ -208,7 +234,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const staffRecords = [];
+        let upserted = 0;
         for (const columns of dataRows) {
           let nhom: string, maNhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
 
@@ -232,31 +258,33 @@ export async function POST(request: NextRequest) {
 
           if (!agentCode || !agentName) continue;
 
-          staffRecords.push({
-            nhom, maNhom, agentCode, agentName, position,
-            startDate: parseDate(startDateStr),
-          });
+          try {
+            await db.staff.upsert({
+              where: { agentCode },
+              update: { nhom, maNhom, agentName, position, startDate: parseDate(startDateStr) },
+              create: { nhom, maNhom, agentCode, agentName, position, startDate: parseDate(startDateStr) },
+            });
+            upserted++;
+          } catch {
+            // Skip individual errors
+          }
         }
 
-        if (staffRecords.length > 0) {
-          const result = await db.staff.createMany({ data: staffRecords });
-          results.staff = result.count;
-        }
+        results.staff = upserted;
       } catch (err) {
         results.errors.push(`NV: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
     }
 
-    // 3. Import Recruiter CSV (7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu)
+    // 3. Import Recruiter CSV — upsert by agentCode to preserve manual edits
     if (recruiterCsv) {
       try {
-        await db.recruiter.deleteMany();
         const rows = parseCSV(recruiterCsv);
         const header = rows[0] || [];
         const dataRows = rows.slice(1); // Skip header
 
         const colCount = header.length;
-        const recruiters = [];
+        let upserted = 0;
 
         for (const columns of dataRows) {
           let nhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
@@ -279,25 +307,25 @@ export async function POST(request: NextRequest) {
 
           if (!agentCode || !agentName) continue;
 
-          recruiters.push({
-            nhom,
-            agentCode,
-            agentName,
-            position,
-            startDate: parseDate(startDateStr),
-          });
+          try {
+            await db.recruiter.upsert({
+              where: { agentCode },
+              update: { nhom, agentName, position, startDate: parseDate(startDateStr) },
+              create: { nhom, agentCode, agentName, position, startDate: parseDate(startDateStr) },
+            });
+            upserted++;
+          } catch {
+            // Skip individual errors
+          }
         }
 
-        if (recruiters.length > 0) {
-          const result = await db.recruiter.createMany({ data: recruiters });
-          results.recruiters = result.count;
-        }
+        results.recruiters = upserted;
       } catch (err) {
         results.errors.push(`NYD: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
     }
 
-    const message = `Đã nhập: ${results.contracts} HĐ | ${results.staff} NV | ${results.recruiters} NYD-TVV${results.errors.length > 0 ? ` | Lỗi: ${results.errors.join('; ')}` : ''}`;
+    const message = `Đã đồng bộ: ${results.contracts} HĐ | ${results.staff} NV | ${results.recruiters} NTD${results.errors.length > 0 ? ` | Lỗi: ${results.errors.join('; ')}` : ''}`;
     return NextResponse.json({ message, ...results });
   } catch (error) {
     console.error('Error syncing data:', error);

@@ -278,14 +278,14 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
         onChange={(e) => setEditVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full h-full px-1 py-0.5 text-xs bg-white text-black border-2 border-emerald-500 outline-none"
+        className="w-full h-full px-1 py-0.5 text-xs bg-[#0e0e18] text-white border-2 border-emerald-500 outline-none"
       />
     );
   }
 
   return (
     <div
-      className={`cursor-pointer hover:bg-emerald-50 hover:outline hover:outline-1 hover:outline-emerald-300 px-1 py-0.5 min-h-[22px] text-gray-900 ${className}`}
+      className={`cursor-pointer hover:bg-emerald-500/10 hover:outline hover:outline-1 hover:outline-emerald-300 px-1 py-0.5 min-h-[22px] text-white ${className}`}
       onDoubleClick={() => setEditing(true)}
       title="Nháy đúp để sửa"
     >
@@ -332,7 +332,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
           {hasLink && <Link2 className="w-3 h-3 ml-1 text-emerald-400" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="bg-gray-900 border-emerald-700 w-80 p-3" align="end" sideOffset={4}>
+      <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-80 p-3" align="end" sideOffset={4}>
         <div className="space-y-3">
           <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
             <Settings className="w-3.5 h-3.5" /> Cài đặt: {sectionLabel}
@@ -507,7 +507,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
             <span className="ml-1">KPI</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="bg-gray-900 border-emerald-700 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
+        <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5" /> KPI: {sectionLabel}
@@ -1690,7 +1690,7 @@ export default function QuanLyPage() {
   const renderOverview = () => (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-extrabold text-emerald-400">Tổng quan</h2>
+        <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan</h2>
       </div>
       {/* Custom KPI for Overview */}
       <KPISettingsPopover
@@ -2120,12 +2120,12 @@ export default function QuanLyPage() {
   const renderStructure = () => (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h2 className="text-xl font-extrabold text-emerald-400">Cấu trúc tổ chức</h2>
+        <h2 className="text-xl font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
         <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" onlineSettings={onlineSettings} saveSetting={saveSetting} />
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-sm text-white/60 bg-emerald-800 rounded-lg p-2 border border-emerald-500/30">
+      <div className="flex items-center gap-1 text-sm text-emerald-200/70 bg-emerald-800 rounded-lg p-2 border border-emerald-500/30">
         <Building2 className="w-4 h-4 text-emerald-400" />
         {selectedPhong ? (
           <>
@@ -2170,7 +2170,7 @@ export default function QuanLyPage() {
               const childCount = adList.filter(a => a.maPhong === p.maPhong).length;
               const isSelected = selectedPhong === p.id;
               return (
-                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
+                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
                     <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
@@ -2205,7 +2205,7 @@ export default function QuanLyPage() {
               const childCount = banNhomList.filter(b => b.maAD === a.maAD).length;
               const isSelected = selectedAD === a.id;
               return (
-                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
+                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
                     <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
@@ -2244,7 +2244,7 @@ export default function QuanLyPage() {
               const childCount = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom).length;
               const isSelected = selectedBanNhom === b.id;
               return (
-                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
+                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
                     <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
@@ -2280,7 +2280,7 @@ export default function QuanLyPage() {
               const bn = banNhomList.find(b => b.id === selectedBanNhom);
               return bn && t.maBanNhom === bn.maBanNhom;
             }).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent">
+              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent neon-sweep">
                 <div className="min-w-0 flex-1">
                   <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
                   <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
@@ -2302,12 +2302,12 @@ export default function QuanLyPage() {
 
       {/* Add Phong Dialog */}
       <Dialog open={addPhongOpen} onOpenChange={setAddPhongOpen}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Thêm Phòng</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={newPhong.maPhong} onChange={e => setNewPhong(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Tên Phòng</Label><Input value={newPhong.tenPhong} onChange={e => setNewPhong(p => ({ ...p, tenPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newPhong.note} onChange={e => setNewPhong(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newPhong.maPhong} onChange={e => setNewPhong(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Tên Phòng</Label><Input value={newPhong.tenPhong} onChange={e => setNewPhong(p => ({ ...p, tenPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newPhong.note} onChange={e => setNewPhong(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddPhong} className="bg-emerald-600 hover:bg-emerald-500">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -2315,13 +2315,13 @@ export default function QuanLyPage() {
 
       {/* Add AD Dialog */}
       <Dialog open={addADOpen} onOpenChange={setAddADOpen}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-amber-400">Thêm AD</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Tên AD</Label><Input value={newAD.tenAD} onChange={e => setNewAD(p => ({ ...p, tenAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
-            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Tên AD</Label><Input value={newAD.tenAD} onChange={e => setNewAD(p => ({ ...p, tenAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddAD} className="bg-amber-600 hover:bg-amber-500">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -2329,13 +2329,13 @@ export default function QuanLyPage() {
 
       {/* Add BanNhom Dialog */}
       <Dialog open={addBanNhomOpen} onOpenChange={setAddBanNhomOpen}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-sky-400">Thêm Ban/Nhóm</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Tên Ban/Nhóm</Label><Input value={newBanNhom.tenBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, tenBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
-            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={newBanNhom.tenBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, tenBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-600 hover:bg-sky-500">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -2343,15 +2343,15 @@ export default function QuanLyPage() {
 
       {/* Add TVV Dialog */}
       <Dialog open={addTvvOpen} onOpenChange={setAddTvvOpen}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-violet-400">Thêm TVV</DialogTitle></DialogHeader>
           <div className="space-y-2">
-            <div><Label className="text-xs text-white/60">Mã TVV</Label><Input value={newTvv.agentCode} onChange={e => setNewTvv(p => ({ ...p, agentCode: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Tên TVV</Label><Input value={newTvv.agentName} onChange={e => setNewTvv(p => ({ ...p, agentName: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={newTvv.maBanNhom} onChange={e => setNewTvv(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: BN001" /></div>
-            <div><Label className="text-xs text-white/60">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-            <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã TVV</Label><Input value={newTvv.agentCode} onChange={e => setNewTvv(p => ({ ...p, agentCode: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Tên TVV</Label><Input value={newTvv.agentName} onChange={e => setNewTvv(p => ({ ...p, agentName: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newTvv.maBanNhom} onChange={e => setNewTvv(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: BN001" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-600 hover:bg-violet-500">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -2359,13 +2359,13 @@ export default function QuanLyPage() {
 
       {/* Edit Phong Dialog */}
       <Dialog open={!!editingPhong} onOpenChange={(open) => { if (!open) setEditingPhong(null); }}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Sửa Phòng</DialogTitle></DialogHeader>
           {editingPhong && (
             <div className="space-y-2">
-              <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={editingPhong.maPhong} onChange={e => setEditingPhong(p => p ? { ...p, maPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Tên Phòng</Label><Input value={editingPhong.tenPhong} onChange={e => setEditingPhong(p => p ? { ...p, tenPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingPhong.note} onChange={e => setEditingPhong(p => p ? { ...p, note: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={editingPhong.maPhong} onChange={e => setEditingPhong(p => p ? { ...p, maPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Tên Phòng</Label><Input value={editingPhong.tenPhong} onChange={e => setEditingPhong(p => p ? { ...p, tenPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingPhong.note} onChange={e => setEditingPhong(p => p ? { ...p, note: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditPhong} className="bg-emerald-600 hover:bg-emerald-500">Lưu</Button></DialogFooter>
@@ -2374,14 +2374,14 @@ export default function QuanLyPage() {
 
       {/* Edit AD Dialog */}
       <Dialog open={!!editingAD} onOpenChange={(open) => { if (!open) setEditingAD(null); }}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-amber-400">Sửa AD</DialogTitle></DialogHeader>
           {editingAD && (
             <div className="space-y-2">
-              <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={editingAD.maAD} onChange={e => setEditingAD(a => a ? { ...a, maAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Tên AD</Label><Input value={editingAD.tenAD} onChange={e => setEditingAD(a => a ? { ...a, tenAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Mã Phòng</Label><Input value={editingAD.maPhong} onChange={e => setEditingAD(a => a ? { ...a, maPhong: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingAD.note} onChange={e => setEditingAD(a => a ? { ...a, note: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingAD.maAD} onChange={e => setEditingAD(a => a ? { ...a, maAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Tên AD</Label><Input value={editingAD.tenAD} onChange={e => setEditingAD(a => a ? { ...a, tenAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={editingAD.maPhong} onChange={e => setEditingAD(a => a ? { ...a, maPhong: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingAD.note} onChange={e => setEditingAD(a => a ? { ...a, note: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditAD} className="bg-amber-600 hover:bg-amber-500">Lưu</Button></DialogFooter>
@@ -2390,14 +2390,14 @@ export default function QuanLyPage() {
 
       {/* Edit BanNhom Dialog */}
       <Dialog open={!!editingBanNhom} onOpenChange={(open) => { if (!open) setEditingBanNhom(null); }}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-sky-400">Sửa Ban/Nhóm</DialogTitle></DialogHeader>
           {editingBanNhom && (
             <div className="space-y-2">
-              <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditBanNhom} className="bg-sky-600 hover:bg-sky-500">Lưu</Button></DialogFooter>
@@ -2406,16 +2406,16 @@ export default function QuanLyPage() {
 
       {/* Edit TVV Dialog */}
       <Dialog open={!!editingTvv} onOpenChange={(open) => { if (!open) setEditingTvv(null); }}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-violet-400">Sửa TVV</DialogTitle></DialogHeader>
           {editingTvv && (
             <div className="space-y-2">
-              <div><Label className="text-xs text-white/60">Mã TVV</Label><Input value={editingTvv.agentCode} onChange={e => setEditingTvv(t => t ? { ...t, agentCode: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Tên TVV</Label><Input value={editingTvv.agentName} onChange={e => setEditingTvv(t => t ? { ...t, agentName: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? editingTvv.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-white/60">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã TVV</Label><Input value={editingTvv.agentCode} onChange={e => setEditingTvv(t => t ? { ...t, agentCode: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Tên TVV</Label><Input value={editingTvv.agentName} onChange={e => setEditingTvv(t => t ? { ...t, agentName: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? editingTvv.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-600 hover:bg-violet-500">Lưu</Button></DialogFooter>
@@ -2424,7 +2424,7 @@ export default function QuanLyPage() {
 
       {/* Import Dialog */}
       <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) setImportTier(''); }}>
-        <DialogContent className="bg-emerald-900 border-emerald-500">
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <p className="text-white/50 text-xs">Dán dữ liệu từ Excel (Tab-separated). Dòng đầu tiên là header.</p>
@@ -2439,7 +2439,7 @@ export default function QuanLyPage() {
   // ========== RENDER: Settings ==========
   const renderSettings = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-extrabold text-emerald-400">Cài đặt hệ thống</h2>
+      <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cài đặt hệ thống</h2>
 
       {/* Sync toggle */}
       <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500' : 'bg-amber-700/50 border-amber-500'}`}>
@@ -2528,37 +2528,37 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50">
+    <div className="h-screen flex flex-col fixed inset-0 z-50">
       {/* Header */}
-      <header className="bg-emerald-700 border-b-2 border-emerald-500 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        <h1 className="text-lg font-extrabold text-white">Quản Lý Dữ Liệu</h1>
+      <header className="border-b border-emerald-500/30 bg-[#0e0e18]/80 backdrop-blur-md px-4 py-2 flex items-center gap-3 flex-shrink-0">
+        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
+        <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => setActiveSheet('settings')} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
-            <span className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 bg-emerald-800 px-2 py-1 rounded-md"><Settings className="w-4 h-4" /> Cài đặt</span>
+            <span className="flex items-center gap-1 text-emerald-300/70 hover:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-md"><Settings className="w-4 h-4" /> Cài đặt</span>
           </button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-emerald-700 border-emerald-500 text-white placeholder-emerald-400" />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
             {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
           </div>
-          <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-300 hover:text-white hover:bg-emerald-700 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <nav className="w-[200px] bg-emerald-700 border-r-2 border-emerald-500 flex-shrink-0 overflow-y-auto">
+        <nav className="w-[200px] bg-[#0e0e18]/90 backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto">
           <div className="p-2 space-y-0.5">
-            {SHEETS.map(sheet => {
+            {SHEETS.map((sheet, index) => {
               const isActive = activeSheet === sheet.key;
               const isExpanded = sheet.hasSub && revenueExpanded && activeSheet === 'revenue';
               return (
-                <div key={sheet.key}>
+                <div key={sheet.key} className="stagger-item" style={{ animationDelay: `${index * 0.05}s` }}>
                   <button
                     onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
-                      isActive ? 'bg-emerald-600 text-white' : 'text-emerald-300 hover:bg-emerald-700 hover:text-white'
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors neon-sweep glow-hover ${
+                      isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 neon-glow' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                     }`}
                   >
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
@@ -2575,8 +2575,8 @@ export default function QuanLyPage() {
                         <button
                           key={m.key}
                           onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); }}
-                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
-                            revenueSub === m.key ? 'bg-emerald-500 text-white' : 'text-emerald-200 hover:bg-emerald-700 hover:text-white'
+                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors neon-sweep glow-hover ${
+                            revenueSub === m.key ? 'bg-emerald-500/20 text-emerald-300' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                           }`}
                         >
                           {m.key === 'all' ? <TrendingUp className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
@@ -2590,21 +2590,11 @@ export default function QuanLyPage() {
               );
             })}
           </div>
-          {/* File menu */}
-          <div className="p-2 mt-4 border-t border-emerald-500">
-            <div className="text-white/70 text-xs font-bold mb-2 px-2">MENU FILE</div>
-            {SHEETS.filter(s => s.key !== 'overview' && s.key !== 'spreadsheet').map(sheet => (
-              <div key={sheet.key} className="px-2 py-1 text-emerald-200 text-[11px] flex items-center gap-1.5">
-                <sheet.icon className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{sheet.label}</span>
-                {sheet.synced && <span className="text-[9px] text-amber-300">{syncEnabled ? 'sync' : 'edit'}</span>}
-              </div>
-            ))}
-          </div>
+
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 bg-emerald-800">
+        <main className="flex-1 overflow-y-auto p-4 page-transition">
           {renderSheet()}
         </main>
       </div>
