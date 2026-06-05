@@ -1677,7 +1677,10 @@ export default function QuanLyPage() {
   const tvvAchieved3M = tvv3trSet.size;
   const tvvAchieved12M = tvv12trSet.size;
 
-  // Năng suất = tổng số lượng HĐ / tổng số lượt TVV hoạt được 3 triệu
+  // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
+  const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
+
+  // Năng suất = tổng số lượng HĐ / tổng số TVV đạt 3 triệu
   const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
 
   // Lượt HĐ chuẩn
@@ -1696,8 +1699,7 @@ export default function QuanLyPage() {
   const targetTongSLHD = parseFloat(onlineSettings['nmc-target-tong-sl-hd'] || '0') || 0;
   const targetLuotHDChuan = parseFloat(onlineSettings['nmc-target-luot-hd-chuan'] || '0') || 0;
   const targetNangSuat = parseFloat(onlineSettings['nmc-target-nang-suat'] || '0') || 0;
-  const targetTVV3M = parseFloat(onlineSettings['nmc-target-tvv-3tr'] || '0') || 0;
-  const targetTVV12M = parseFloat(onlineSettings['nmc-target-tvv-12tr'] || '0') || 0;
+  const targetIpAfyp = parseFloat(onlineSettings['nmc-target-ip-afyp'] || '0') || 0;
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
@@ -1900,17 +1902,18 @@ export default function QuanLyPage() {
         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5">
           <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm {currentYear}
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2">
           <IndicatorCard label="SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
+          <IndicatorCard label="IP + 10% PĐT" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
+          <IndicatorCard label="AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
           <IndicatorCard label="Lượt hoạt động" value={luotHoatDong} target={0} settingKey="nmc-target-luot-hd" formatType="number" icon={Hash} />
           <IndicatorCard label="Lượt chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={CheckCircle2} />
-          <IndicatorCard label="TVV đạt 3tr" value={tvvAchieved3M} target={targetTVV3M} settingKey="nmc-target-tvv-3tr" formatType="number" icon={Users} />
-          <IndicatorCard label="TVV đạt 12tr" value={tvvAchieved12M} target={targetTVV12M} settingKey="nmc-target-tvv-12tr" formatType="number" icon={Users} />
+          <IndicatorCard label="IP/AFYP (%)" value={ipAfypRatio} target={targetIpAfyp} settingKey="nmc-target-ip-afyp" formatType="decimal" icon={TrendingUp} />
           <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
           <IndicatorCard label="NTD hoạt động" value={activeNTDCount.size} target={0} settingKey="nmc-target-ntd" formatType="number" icon={UserCircle} />
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          IP + 10% PĐT: {formatCurrency(totalRevenue)} • AFYP: {formatCurrency(totalRevenueAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV 3tr: {tvvAchieved3M} • TVV 12tr: {tvvAchieved12M} • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
+          Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = ({formatCurrency(totalRevenue)} / {formatCurrency(totalRevenueAFYP)}) × 100 = {ipAfypRatio.toFixed(1)}% • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
         </p>
       </div>
 
@@ -2115,6 +2118,8 @@ export default function QuanLyPage() {
     const tvvDat12tr = tvv12trSet.size;
     // Năng suất = Tổng SL HĐ / Tổng TVV hoạt được 3 triệu
     const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
+    // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
+    const ipAfypMonth = tongAFYP > 0 ? (tongIP / tongAFYP) * 100 : 0;
 
     // NTD count: count unique maDaiLyTD that exist in recruiters
     const ntdCodes = new Set(recruiters.map(r => r.agentCode));
@@ -2146,13 +2151,14 @@ export default function QuanLyPage() {
 
     // KPI summary cards
     const kpiCards = (
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2 mb-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2 mb-3">
         {[
           { label: 'Số lượng HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
+          { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
+          { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
           { label: 'Lượt hoạt động', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
           { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
-          { label: 'TVV đạt 3tr', value: formatNumber(tvvDat3tr), color: 'bg-emerald-500/20 border-emerald-500/30', icon: Users },
-          { label: 'TVV đạt 12tr', value: formatNumber(tvvDat12tr), color: 'bg-amber-500/20 border-amber-500/30', icon: Users },
+          { label: 'IP/AFYP (%)', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30', icon: TrendingUp },
           { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
           { label: 'NTD hoạt động', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30', icon: UserCircle },
         ].map((kpi, i) => (
@@ -2250,7 +2256,7 @@ export default function QuanLyPage() {
           </table>
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV 3tr: {tvvDat3tr} • TVV 12tr: {tvvDat12tr} • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
