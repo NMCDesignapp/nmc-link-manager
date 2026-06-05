@@ -116,12 +116,12 @@ interface KPIDataSource {
 }
 
 const KPI_COLORS: Record<string, string> = {
-  emerald: 'bg-emerald-600',
-  amber: 'bg-amber-600',
-  sky: 'bg-sky-600',
-  violet: 'bg-violet-600',
-  rose: 'bg-rose-600',
-  orange: 'bg-orange-600',
+  emerald: 'bg-emerald-500/20',
+  amber: 'bg-amber-500/20',
+  sky: 'bg-sky-500/20',
+  violet: 'bg-violet-500/20',
+  rose: 'bg-rose-500/20',
+  orange: 'bg-orange-500/20',
 };
 
 // ==================== CONSTANTS ====================
@@ -278,7 +278,7 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
         onChange={(e) => setEditVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full h-full px-1 py-0.5 text-xs bg-[#0e0e18] text-white border-2 border-emerald-500 outline-none"
+        className="w-full h-full px-1 py-0.5 text-xs bg-[#0e0e18] text-white border-2 border-emerald-500/50 outline-none"
       />
     );
   }
@@ -325,7 +325,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-700`}
+          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-500/10`}
           title="Cài đặt"
         >
           <Settings className="w-3.5 h-3.5" />
@@ -361,7 +361,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
                 : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
             </button>
           </div>
-          <Button onClick={handleSave} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+          <Button onClick={handleSave} className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-7 text-xs">
             Lưu cài đặt
           </Button>
         </div>
@@ -475,9 +475,9 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
             const ds = dataSources.find(d => d.key === config.dataSourceKey);
             const fieldLabel = ds?.fields.find(f => f.key === config.field)?.label || config.field;
             const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
-            const colorClass = KPI_COLORS[config.color] || 'bg-emerald-700';
+            const colorClass = KPI_COLORS[config.color] || 'bg-emerald-500/20';
             return (
-              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-white/20`}>
+              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-emerald-500/30 backdrop-blur-sm`} style={{ boxShadow: `0 0 12px rgba(0, 255, 136, 0.1)` }}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-emerald-100 text-[9px] font-bold">{config.label || fieldLabel}</p>
                   <span className="text-gray-300 text-[8px]">{calcLabel} {fieldLabel}</span>
@@ -503,7 +503,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-700"
+            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-500/10"
             title="Cài đặt KPI"
           >
             <BarChart3 className="w-3 h-3" />
@@ -592,7 +592,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
               );
             })}
 
-            <Button onClick={addConfig} className="w-full bg-emerald-700 hover:bg-emerald-600 text-white h-7 text-xs">
+            <Button onClick={addConfig} className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-7 text-xs">
               <Plus className="w-3 h-3 mr-1" /> Thêm chỉ số KPI
             </Button>
           </div>
@@ -904,7 +904,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
           <button
             key={f.label}
             onClick={() => { if (activeCell) { setEditingCell(activeCell); setEditVal('=' + f.fn); } }}
-            className="px-2 py-0.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold rounded"
+            className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold rounded"
           >
             {f.label}
           </button>
@@ -912,14 +912,14 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
         <div className="border-l border-gray-600 h-4 mx-1" />
         <button
           onClick={handleMergeCells}
-          className="px-2 py-0.5 bg-violet-700 hover:bg-violet-600 text-white text-[10px] font-bold rounded flex items-center gap-1"
+          className="px-2 py-0.5 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded flex items-center gap-1"
           title="Gộp các ô đã chọn (Click → Shift+Click)"
         >
           <Merge className="w-3 h-3" /> Gộp ô
         </button>
         <button
           onClick={handleUnmergeCells}
-          className="px-2 py-0.5 bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-bold rounded flex items-center gap-1"
+          className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold rounded flex items-center gap-1"
           title="Tách ô gộp tại ô đang chọn"
         >
           <Split className="w-3 h-3" /> Tách ô
@@ -929,19 +929,19 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
 
       {/* Selection info */}
       {selectionStart && selectionEnd && (
-        <div className="mb-2 px-2 py-1 bg-violet-800 border border-violet-600 rounded text-[10px] text-violet-200">
+        <div className="mb-2 px-2 py-1 bg-violet-800/50 border border-violet-500/30 rounded text-[10px] text-violet-200">
           Đã chọn: {selectionStart}:{selectionEnd} — Nhấn "Gộp ô" để gộp
         </div>
       )}
 
       {/* Spreadsheet grid */}
-      <div className="flex-1 overflow-auto border border-gray-600 bg-white">
+      <div className="flex-1 overflow-auto border border-gray-600 bg-[#0e0e18]/80">
         <table className="border-collapse w-max">
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="bg-gray-700 text-gray-300 text-[10px] font-bold w-[40px] min-w-[40px] border border-gray-600 sticky left-0 z-20">#</th>
+              <th className="bg-gray-800 text-gray-300 text-[10px] font-bold w-[40px] min-w-[40px] border border-gray-600 sticky left-0 z-20">#</th>
               {COL_LABELS.map(col => (
-                <th key={col} className="bg-gray-700 text-gray-300 text-[10px] font-bold min-w-[80px] border border-gray-600 px-1 py-0.5">{col}</th>
+                <th key={col} className="bg-gray-800 text-gray-300 text-[10px] font-bold min-w-[80px] border border-gray-600 px-1 py-0.5">{col}</th>
               ))}
             </tr>
           </thead>
@@ -950,7 +950,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
               const rowNum = rowIdx + 1;
               return (
                 <tr key={rowNum}>
-                  <td className="bg-gray-100 text-gray-500 text-[10px] text-center border border-gray-300 font-mono sticky left-0">{rowNum}</td>
+                  <td className="bg-gray-800/80 text-gray-400 text-[10px] text-center border border-gray-600 font-mono sticky left-0">{rowNum}</td>
                   {COL_LABELS.map(col => {
                     const cellId = col + rowNum;
                     // Skip hidden cells (part of a merge but not top-left)
@@ -969,12 +969,12 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
                         key={cellId}
                         rowSpan={span.rowSpan}
                         colSpan={span.colSpan}
-                        className={`border border-gray-300 px-1 py-0 text-[11px] cursor-cell min-w-[80px] ${
-                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-50' : ''
-                        } ${isSelected && !isActive ? 'bg-violet-100 outline outline-1 outline-violet-400' : ''
-                        } ${!isActive && !isSelected ? 'hover:bg-gray-50' : ''
-                        } ${isFormula ? 'text-blue-800 font-medium' : 'text-gray-900'
-                        } ${isMerged ? 'bg-emerald-50 border-emerald-400' : ''}`}
+                        className={`border border-gray-600 px-1 py-0 text-[11px] cursor-cell min-w-[80px] bg-[#0e0e18]/40 ${
+                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-500/10' : ''
+                        } ${isSelected && !isActive ? 'bg-violet-500/10 outline outline-1 outline-violet-400' : ''
+                        } ${!isActive && !isSelected ? 'hover:bg-emerald-500/5' : ''
+                        } ${isFormula ? 'text-sky-300 font-medium' : 'text-gray-200'
+                        } ${isMerged ? 'bg-emerald-500/10 border-emerald-400' : ''}`}
                         onClick={(e) => {
                           if (e.shiftKey && selectionStart) {
                             setSelectionEnd(cellId);
@@ -994,7 +994,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
                             onChange={(e) => setEditVal(e.target.value)}
                             onBlur={handleCellSave}
                             onKeyDown={handleKeyDown}
-                            className="w-full h-full px-0 py-0 text-[11px] bg-white text-black border-none outline-none"
+                            className="w-full h-full px-0 py-0 text-[11px] bg-[#0e0e18] text-white border-none outline-none"
                           />
                         ) : (
                           <span className="block truncate">{display}</span>
@@ -1732,7 +1732,7 @@ export default function QuanLyPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSaveAnnualTarget(); if (e.key === 'Escape') setEditingAnnualTarget(false); }}
                   autoFocus
                 />
-                <Button onClick={handleSaveAnnualTarget} className="h-7 bg-amber-600 hover:bg-amber-700 text-white text-xs px-3">Lưu</Button>
+                <Button onClick={handleSaveAnnualTarget} className="h-7 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs px-3">Lưu</Button>
                 <Button onClick={() => setEditingAnnualTarget(false)} variant="ghost" className="h-7 text-gray-400 text-xs px-2">Hủy</Button>
               </div>
             ) : (
@@ -1793,10 +1793,10 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-600', icon: Users },
-            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-600', icon: DollarSign },
+            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-500/20 border border-emerald-500/30', icon: Users },
+            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-500/20 border border-sky-500/30', icon: DollarSign },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/20`}>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
               <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
@@ -1806,14 +1806,14 @@ export default function QuanLyPage() {
         <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" dataSources={[{ key: 'leaders', label: 'TB/TN', data: filtered, fields: leaderFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
         <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
           <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" onlineSettings={onlineSettings} saveSetting={saveSetting} />
-          <Button onClick={addLeader} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
-          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+          <Button onClick={addLeader} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-500">
+        <div className="overflow-x-auto border border-emerald-500/30">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-700 hover:bg-emerald-700">
+            <TableHeader><TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20 border-b border-emerald-500/30">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'startDate', l: 'Ngày bắt đầu' }, { f: 'note', l: 'Ghi chú' }].map(col => (
                 <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -1821,7 +1821,7 @@ export default function QuanLyPage() {
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(l => (
-                <TableRow key={l.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                <TableRow key={l.id} className="bg-[#0e0e18]/60 hover:bg-emerald-500/10 border-b border-emerald-500/20">
                   <TableCell className="text-xs p-0"><EditableCell value={l.agentCode} onSave={(v) => updateLeader(l.id, 'agentCode', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.agentName} onSave={(v) => updateLeader(l.id, 'agentName', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.position} onSave={(v) => updateLeader(l.id, 'position', v)} /></TableCell>
@@ -1833,7 +1833,7 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={l.email} onSave={(v) => updateLeader(l.id, 'email', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.startDate || ''} onSave={(v) => updateLeader(l.id, 'startDate', v)} type="date" /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.note} onSave={(v) => updateLeader(l.id, 'note', v)} /></TableCell>
-                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteLeader(l.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteLeader(l.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
@@ -1857,10 +1857,10 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-600', icon: UserCircle },
-            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-600', icon: CheckCircle2 },
+            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-500/20 border border-violet-500/30', icon: UserCircle },
+            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-500/20 border border-emerald-500/30', icon: CheckCircle2 },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 border border-white/20`}>
+            <div key={i} className={`${kpi.color} rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
               <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
               <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
             </div>
@@ -1870,14 +1870,14 @@ export default function QuanLyPage() {
         <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" onlineSettings={onlineSettings} saveSetting={saveSetting} />
-          {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
-          <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+          {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
+          <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-500">
+        <div className="overflow-x-auto border border-emerald-500/30">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-700 hover:bg-emerald-700">
+            <TableHeader><TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20 border-b border-emerald-500/30">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
                 <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -1885,20 +1885,20 @@ export default function QuanLyPage() {
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(r => (
-                <TableRow key={r.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                <TableRow key={r.id} className="bg-[#0e0e18]/60 hover:bg-emerald-500/10 border-b border-emerald-500/20">
                   {canEdit ? (<>
                     <TableCell className="text-xs p-0"><EditableCell value={r.agentCode} onSave={(v) => updateRecruiter(r.id, 'agentCode', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.agentName} onSave={(v) => updateRecruiter(r.id, 'agentName', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.position} onSave={(v) => updateRecruiter(r.id, 'position', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.nhom} onSave={(v) => updateRecruiter(r.id, 'nhom', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.startDate || ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
-                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                   </>) : (<>
-                    <TableCell className="text-xs text-gray-900 font-mono">{r.agentCode}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{r.agentName}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{r.position}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{r.nhom}</TableCell>
-                    <TableCell className="text-xs text-gray-900">{r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
+                    <TableCell className="text-xs text-emerald-300/80 font-mono">{r.agentCode}</TableCell>
+                    <TableCell className="text-xs text-white">{r.agentName}</TableCell>
+                    <TableCell className="text-xs text-white/70">{r.position}</TableCell>
+                    <TableCell className="text-xs text-white/70">{r.nhom}</TableCell>
+                    <TableCell className="text-xs text-white/70">{r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
                   </>)}
                 </TableRow>
               ))}
@@ -1983,8 +1983,8 @@ export default function QuanLyPage() {
                 onClick={() => setRevenueSub(m.key)}
                 className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
                   revenueSub === m.key
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-800 text-emerald-300 hover:bg-emerald-700 hover:text-white'
+                    ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
                 }`}
               >
                 {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
@@ -1994,7 +1994,7 @@ export default function QuanLyPage() {
           </div>
 
           {/* Auto-aggregate notice */}
-          <div className="bg-emerald-800 border border-emerald-500 rounded-lg p-3 mb-3 flex items-center gap-2">
+          <div className="bg-emerald-800/60 backdrop-blur-sm border border-emerald-500/30 rounded-lg p-3 mb-3 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-300 flex-shrink-0" />
             <div>
               <p className="text-emerald-200 text-xs font-bold">Tổng hợp tự động từ 12 tháng</p>
@@ -2004,19 +2004,19 @@ export default function QuanLyPage() {
 
           {/* Summary KPI cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            <div className="bg-amber-800 rounded-lg p-3 text-center border border-amber-600">
+            <div className="bg-amber-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-amber-500/30">
               <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng IP</span></div>
               <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllFYP)}</p>
             </div>
-            <div className="bg-amber-800 rounded-lg p-3 text-center border border-amber-600">
+            <div className="bg-amber-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-amber-500/30">
               <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng AFYP</span></div>
               <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllAFYP)}</p>
             </div>
-            <div className="bg-emerald-800 rounded-lg p-3 text-center border border-emerald-600">
+            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-emerald-500/30">
               <div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Số HĐ</span></div>
               <p className="text-sm font-extrabold text-white">{formatNumber(totalAllContracts)}</p>
             </div>
-            <div className="bg-emerald-800 rounded-lg p-3 text-center border border-emerald-600">
+            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-emerald-500/30">
               <div className="flex items-center justify-center gap-1 mb-1"><Hash className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Lượt HĐ</span></div>
               <p className="text-sm font-extrabold text-white">{formatNumber(totalAllRounds)}</p>
             </div>
@@ -2046,10 +2046,10 @@ export default function QuanLyPage() {
 
           {/* Aggregated summary table by TVV */}
           <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng tổng hợp theo TVV — Cả năm ({aggregatedAgents.length} TVV)</h3>
-          <div className="overflow-x-auto border border-amber-600">
+          <div className="overflow-x-auto border border-amber-500/30">
             <Table>
               <TableHeader>
-                <TableRow className="bg-amber-800 hover:bg-amber-800">
+                <TableRow className="bg-amber-500/20 hover:bg-amber-500/20 border-b border-amber-500/30">
                   <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã TVV</TableHead>
                   <TableHead className="text-white text-xs font-bold whitespace-nowrap">Tên TVV</TableHead>
                   <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã nhóm</TableHead>
@@ -2062,15 +2062,15 @@ export default function QuanLyPage() {
               </TableHeader>
               <TableBody>
                 {aggregatedAgents.map(a => (
-                  <TableRow key={a.agentCode || a.agentName} className="bg-white hover:bg-amber-50 border-b border-gray-200">
-                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.agentCode || '—'}</TableCell>
-                    <TableCell className="text-xs text-gray-900 whitespace-nowrap font-medium">{a.agentName || '—'}</TableCell>
-                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.maNhom || '—'}</TableCell>
-                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.nhom || '—'}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right font-semibold">{formatNumber(a.totalFYP)}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.totalAFYP)}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.contractCount)}</TableCell>
-                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.activityRounds)}</TableCell>
+                  <TableRow key={a.agentCode || a.agentName} className="bg-[#0e0e18]/60 hover:bg-amber-500/10 border-b border-amber-500/20">
+                    <TableCell className="text-xs text-emerald-300/80 whitespace-nowrap">{a.agentCode || '—'}</TableCell>
+                    <TableCell className="text-xs text-white whitespace-nowrap font-medium">{a.agentName || '—'}</TableCell>
+                    <TableCell className="text-xs text-white/70 whitespace-nowrap">{a.maNhom || '—'}</TableCell>
+                    <TableCell className="text-xs text-white/70 whitespace-nowrap">{a.nhom || '—'}</TableCell>
+                    <TableCell className="text-xs text-amber-300 text-right font-semibold">{formatNumber(a.totalFYP)}</TableCell>
+                    <TableCell className="text-xs text-amber-300/80 text-right">{formatNumber(a.totalAFYP)}</TableCell>
+                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(a.contractCount)}</TableCell>
+                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(a.activityRounds)}</TableCell>
                   </TableRow>
                 ))}
                 {aggregatedAgents.length === 0 && (
@@ -2078,12 +2078,12 @@ export default function QuanLyPage() {
                 )}
                 {/* Totals row */}
                 {aggregatedAgents.length > 0 && (
-                  <TableRow className="bg-amber-100 font-bold border-t-2 border-amber-400">
-                    <TableCell className="text-xs" colSpan={4}>TỔNG CỘNG</TableCell>
-                    <TableCell className="text-xs text-right">{formatNumber(totalAllFYP)}</TableCell>
-                    <TableCell className="text-xs text-right">{formatNumber(totalAllAFYP)}</TableCell>
-                    <TableCell className="text-xs text-right">{formatNumber(totalAllContracts)}</TableCell>
-                    <TableCell className="text-xs text-right">{formatNumber(totalAllRounds)}</TableCell>
+                  <TableRow className="bg-amber-500/10 font-bold border-t-2 border-amber-500/30">
+                    <TableCell className="text-xs text-amber-300" colSpan={4}>TỔNG CỘNG</TableCell>
+                    <TableCell className="text-xs text-amber-300 text-right">{formatNumber(totalAllFYP)}</TableCell>
+                    <TableCell className="text-xs text-amber-300 text-right">{formatNumber(totalAllAFYP)}</TableCell>
+                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(totalAllContracts)}</TableCell>
+                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(totalAllRounds)}</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -2107,8 +2107,8 @@ export default function QuanLyPage() {
               onClick={() => setRevenueSub(m.key)}
               className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
                 revenueSub === m.key
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-800 text-emerald-300 hover:bg-emerald-700 hover:text-white'
+                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                  : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
               }`}
             >
               {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
@@ -2147,15 +2147,15 @@ export default function QuanLyPage() {
         {/* MonthlyRevenue table */}
         <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng doanh thu — {monthLabel} ({sortedRevenue.length} dòng)</h3>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <Button onClick={addRevenue} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm dòng</Button>
-          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DS<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
-          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DS</Button>
+          <Button onClick={addRevenue} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm dòng</Button>
+          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DS<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DS</Button>
         </div>
-        <div className="overflow-x-auto border border-amber-600">
+        <div className="overflow-x-auto border border-amber-500/30">
           <Table>
             <TableHeader>
-              <TableRow className="bg-amber-800 hover:bg-amber-800">
+              <TableRow className="bg-amber-500/20 hover:bg-amber-500/20 border-b border-amber-500/30">
                 {REVENUE_COLUMNS.map(col => (
                   <TableHead key={col.f} className="text-white text-[10px] font-bold whitespace-nowrap cursor-pointer hover:text-amber-300" onClick={() => sortData(col.f)}>
                     {col.l} <SortIcon field={col.f} />
@@ -2166,7 +2166,7 @@ export default function QuanLyPage() {
             </TableHeader>
             <TableBody>
               {sortedRevenue.slice(0, 200).map(r => (
-                <TableRow key={r.id} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+                <TableRow key={r.id} className="bg-[#0e0e18]/60 hover:bg-amber-500/10 border-b border-amber-500/20">
                   {REVENUE_COLUMNS.map(col => (
                     <TableCell key={col.f} className="text-xs p-0">
                       <EditableCell
@@ -2178,7 +2178,7 @@ export default function QuanLyPage() {
                     </TableCell>
                   ))}
                   <TableCell className="text-xs p-1">
-                    <Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                    <Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </TableCell>
@@ -2201,7 +2201,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-sm text-emerald-200/70 bg-emerald-800 rounded-lg p-2 border border-emerald-500/30">
+      <div className="flex items-center gap-1 text-sm text-emerald-200/70 bg-emerald-800/60 backdrop-blur-sm rounded-lg p-2 border border-emerald-500/30">
         <Building2 className="w-4 h-4 text-emerald-400" />
         {selectedPhong ? (
           <>
@@ -2233,7 +2233,7 @@ export default function QuanLyPage() {
       {/* 4-tier cascading panels */}
       <div className="grid grid-cols-4 gap-2" style={{ minHeight: '400px' }}>
         {/* Tier 1: Phòng */}
-        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
             <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1"><Building2 className="w-4 h-4" /> Phòng</h3>
             <div className="flex items-center gap-1">
@@ -2246,7 +2246,7 @@ export default function QuanLyPage() {
               const childCount = adList.filter(a => a.maPhong === p.maPhong).length;
               const isSelected = selectedPhong === p.id;
               return (
-                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
+                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-emerald-700/50 hover:bg-emerald-500/10 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
                     <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
@@ -2264,7 +2264,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Tier 2: AD */}
-        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
             <h3 className="text-sm font-bold text-amber-300 flex items-center gap-1"><UserCog className="w-4 h-4" /> AD</h3>
             <div className="flex items-center gap-1">
@@ -2281,7 +2281,7 @@ export default function QuanLyPage() {
               const childCount = banNhomList.filter(b => b.maAD === a.maAD).length;
               const isSelected = selectedAD === a.id;
               return (
-                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
+                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-amber-700/30 hover:bg-amber-500/10 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
                     <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
@@ -2303,7 +2303,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Tier 3: Ban/Nhóm */}
-        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
             <h3 className="text-sm font-bold text-sky-300 flex items-center gap-1"><Network className="w-4 h-4" /> Ban/Nhóm</h3>
             <div className="flex items-center gap-1">
@@ -2320,7 +2320,7 @@ export default function QuanLyPage() {
               const childCount = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom).length;
               const isSelected = selectedBanNhom === b.id;
               return (
-                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
+                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-500/20 border border-sky-500/30' : 'bg-sky-700/30 hover:bg-sky-500/10 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
                     <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
@@ -2342,7 +2342,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Tier 4: TVV */}
-        <div className="bg-emerald-800 rounded-lg border border-emerald-500/30 flex flex-col">
+        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
             <h3 className="text-sm font-bold text-violet-300 flex items-center gap-1"><Users className="w-4 h-4" /> TVV</h3>
             <div className="flex items-center gap-1">
@@ -2356,7 +2356,7 @@ export default function QuanLyPage() {
               const bn = banNhomList.find(b => b.id === selectedBanNhom);
               return bn && t.maBanNhom === bn.maBanNhom;
             }).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent">
+              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-500/10 hover:bg-violet-500/20 border border-transparent">
                 <div className="min-w-0 flex-1">
                   <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
                   <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
@@ -2385,7 +2385,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Tên Phòng</Label><Input value={newPhong.tenPhong} onChange={e => setNewPhong(p => ({ ...p, tenPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newPhong.note} onChange={e => setNewPhong(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
-          <DialogFooter><Button onClick={handleAddPhong} className="bg-emerald-600 hover:bg-emerald-500">Thêm</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAddPhong} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Thêm</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2399,7 +2399,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
-          <DialogFooter><Button onClick={handleAddAD} className="bg-amber-600 hover:bg-amber-500">Thêm</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAddAD} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300">Thêm</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2413,7 +2413,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
-          <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-600 hover:bg-sky-500">Thêm</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300">Thêm</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2429,7 +2429,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
-          <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-600 hover:bg-violet-500">Thêm</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Thêm</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2444,7 +2444,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingPhong.note} onChange={e => setEditingPhong(p => p ? { ...p, note: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
-          <DialogFooter><Button onClick={handleEditPhong} className="bg-emerald-600 hover:bg-emerald-500">Lưu</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleEditPhong} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Lưu</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2460,7 +2460,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingAD.note} onChange={e => setEditingAD(a => a ? { ...a, note: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
-          <DialogFooter><Button onClick={handleEditAD} className="bg-amber-600 hover:bg-amber-500">Lưu</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleEditAD} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300">Lưu</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2476,7 +2476,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
-          <DialogFooter><Button onClick={handleEditBanNhom} className="bg-sky-600 hover:bg-sky-500">Lưu</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleEditBanNhom} className="bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300">Lưu</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2494,7 +2494,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
-          <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-600 hover:bg-violet-500">Lưu</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Lưu</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2506,7 +2506,7 @@ export default function QuanLyPage() {
             <p className="text-white/50 text-xs">Dán dữ liệu từ Excel (Tab-separated). Dòng đầu tiên là header.</p>
             <textarea value={importData} onChange={e => setImportData(e.target.value)} className="w-full h-40 bg-white/5 border border-emerald-500/20 rounded-md p-2 text-white text-xs font-mono" placeholder="maPhong&#9;tenPhong&#9;note&#10;P001&#9;Phòng KD&#9;Ghi chú" />
           </div>
-          <DialogFooter><Button onClick={handleImportStructure} className="bg-emerald-600 hover:bg-emerald-500">Import</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleImportStructure} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Import</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -2518,7 +2518,7 @@ export default function QuanLyPage() {
       <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cài đặt hệ thống</h2>
 
       {/* Sync toggle */}
-      <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500' : 'bg-amber-700/50 border-amber-500'}`}>
+      <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500/30' : 'bg-amber-700/50 border-amber-500/30'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}

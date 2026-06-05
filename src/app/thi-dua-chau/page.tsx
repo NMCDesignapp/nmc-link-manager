@@ -275,7 +275,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 
   if (isWhite) {
     return (
-      <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-800 overflow-hidden">
+      <div className="rounded-2xl border border-emerald-500/30 bg-[rgba(14,14,30,0.85)] backdrop-blur overflow-hidden shadow-[0_0_15px_rgba(0,255,136,0.1)]">
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -285,8 +285,8 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
               <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-600 text-white">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                   {' '}{targetLabel}
                 </span>
@@ -303,12 +303,12 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
-            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
-            <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
-            <div className="bg-amber-700 rounded-lg p-3 text-center border border-amber-500"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
+            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
+            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+            <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
           </div>
-          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-900 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
         </div>
       </div>
     );
@@ -316,8 +316,8 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 
   // Original gradient variant
   return (
-    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border-2 border-emerald-500' : ''}`}>
-      <div className="absolute inset-0 bg-emerald-800" />
+    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border border-emerald-500/30' : ''} shadow-[0_0_15px_rgba(0,255,136,0.1)]`}>
+      <div className="absolute inset-0 bg-[rgba(14,14,30,0.85)] backdrop-blur" />
       <div className="relative z-10 p-4 sm:p-5">
         <div className="flex items-start gap-3 mb-3">
           <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -327,8 +327,8 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
             <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-600 text-white">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                 {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                 {' '}{targetLabel}
               </span>
@@ -345,12 +345,12 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
           ))}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
-          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
-          <div className="bg-emerald-900 rounded-lg p-3 text-center border border-emerald-600"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
-          <div className="bg-amber-700 rounded-lg p-3 text-center border border-amber-500"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
+          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200">{hasData ? fc(totalFYP) : '—'}</p></div>
+          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+          <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white">{hasData ? fc(totalBonus) : '—'}</p></div>
         </div>
-        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-900 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
         {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200 text-sm italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
       </div>
     </div>
@@ -394,18 +394,18 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
                   <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
                 ))}
               </div>
-              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-2.5 h-2.5" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-2.5 h-2.5" /></Button>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {isAR ? (
                 <>
-                  <div><Label className="text-[9px] text-emerald-300/70">Lượt từ</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" /></div>
-                  <div><Label className="text-[9px] text-emerald-300/70">Lượt đến</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" /></div>
+                  <div><Label className="text-[9px] text-emerald-300/70">Lượt từ</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+                  <div><Label className="text-[9px] text-emerald-300/70">Lượt đến</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
                 </>
               ) : (
                 <>
-                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} từ (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" /></div>
-                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" /></div>
+                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} từ (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
                 </>
               )}
               <div>
@@ -413,10 +413,10 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
                   {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
                 </Label>
                 {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
-                  ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" />
+                  ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
                   : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
-                    ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" />
-                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-emerald-500 bg-emerald-700 text-white" />}
+                    ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
               </div>
             </div>
           </div>
@@ -1968,7 +1968,7 @@ export default function ThiDuaPage() {
                             <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDeleteContest(sc.id)}>
                               <CheckCircle2 className="w-3 h-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-emerald-300/70 hover:text-emerald-200/70 hover:bg-emerald-700" onClick={() => setDeleteConfirmId(null)}>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-emerald-300/70 hover:text-emerald-200/70 hover:bg-gray-800" onClick={() => setDeleteConfirmId(null)}>
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
@@ -1988,7 +1988,7 @@ export default function ThiDuaPage() {
           <CardContent className="px-4 pb-4 space-y-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-emerald-200">Tên chương trình thi đua</Label>
-              <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-emerald-500 bg-emerald-700 text-white h-9 text-sm w-full" />
+              <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-gray-600 bg-gray-800 text-white h-9 text-sm w-full" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <NeonDatePicker label="Hiệu lực từ" value={startDate} onChange={setStartDate} />
@@ -2021,7 +2021,7 @@ export default function ThiDuaPage() {
                     className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
                       targetType === 'tvv'
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300/50'
-                        : 'bg-emerald-700/50 text-emerald-300/60 hover:bg-emerald-700 hover:text-emerald-200'
+                        : 'bg-emerald-500/10 text-emerald-300/60 hover:bg-emerald-500/20 hover:text-emerald-200'
                     }`}
                   >
                     <Users className="w-4 h-4" />
@@ -2096,16 +2096,16 @@ export default function ThiDuaPage() {
                     <div className="space-y-1.5 pl-3 border-l-2 border-amber-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
                         <button type="button" onClick={() => setConditionType('activity_round')}
-                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-emerald-700 text-emerald-300/60 hover:text-emerald-200'}`}
+                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
                         ><span>Tất cả TVV</span></button>
                         <button type="button" onClick={() => setConditionType('activity_round_tvvm')}
-                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_tvvm' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-emerald-700 text-emerald-300/60 hover:text-emerald-200'}`}
+                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_tvvm' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
                         ><span>TVVm (≤12t)</span></button>
                       </div>
                       <div className="grid grid-cols-1 gap-1.5">
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-amber-400/70">Ngưỡng IP/tháng (nđ) cho Lượt HĐ</Label>
-                          <Input type="number" inputMode="decimal" placeholder="3" value={vndToNgan(luotHDThreshold) || ''} onChange={(e) => setLuotHDThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-amber-500/30 bg-emerald-700 text-white" />
+                          <Input type="number" inputMode="decimal" placeholder="3" value={vndToNgan(luotHDThreshold) || ''} onChange={(e) => setLuotHDThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-amber-500/30 bg-gray-800 text-white" />
                         </div>
                       </div>
                     </div>
@@ -2120,16 +2120,16 @@ export default function ThiDuaPage() {
                     <div className="space-y-1.5 pl-3 border-l-2 border-orange-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
                         <button type="button" onClick={() => setConditionType('activity_round_standard')}
-                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-emerald-700 text-emerald-300/60 hover:text-emerald-200'}`}
+                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
                         ><span>Tất cả TVV</span></button>
                         <button type="button" onClick={() => setConditionType('activity_round_standard_tvvm')}
-                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-emerald-700 text-emerald-300/60 hover:text-emerald-200'}`}
+                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
                         ><span>TVVm (≤12t)</span></button>
                       </div>
                       <div className="grid grid-cols-1 gap-1.5">
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-orange-400/70">Ngưỡng IP/tháng (nđ) cho Lượt HĐC</Label>
-                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(luotHDCTThreshold) || ''} onChange={(e) => setLuotHDCTThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-orange-500/30 bg-emerald-700 text-white" />
+                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(luotHDCTThreshold) || ''} onChange={(e) => setLuotHDCTThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-orange-500/30 bg-gray-800 text-white" />
                         </div>
                       </div>
                     </div>
@@ -2145,11 +2145,11 @@ export default function ThiDuaPage() {
                       <div className="grid grid-cols-2 gap-1.5">
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-rose-400/70">Thời gian tối đa (tháng)</Label>
-                          <Input type="number" inputMode="numeric" placeholder="3" value={tvv90MaxMonths || ''} onChange={(e) => setTvv90MaxMonths(parseInt(e.target.value) || 3)} className="h-6 text-xs border-rose-500/30 bg-emerald-700 text-white" />
+                          <Input type="number" inputMode="numeric" placeholder="3" value={tvv90MaxMonths || ''} onChange={(e) => setTvv90MaxMonths(parseInt(e.target.value) || 3)} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
                         </div>
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-rose-400/70">IP/tháng tối thiểu (nđ)</Label>
-                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(tvv90MinIP) || ''} onChange={(e) => setTvv90MinIP(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-rose-500/30 bg-emerald-700 text-white" />
+                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(tvv90MinIP) || ''} onChange={(e) => setTvv90MinIP(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
                         </div>
                       </div>
                     </div>
@@ -2209,24 +2209,24 @@ export default function ThiDuaPage() {
                 {useSecondaryCondition && (
                   <div className="space-y-2 pl-4 border-l-2 border-orange-500/30">
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-emerald-700 text-white" /></div>
-                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-emerald-700 text-white" /></div>
+                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
+                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-orange-400/70">Lượt HĐ từ</Label>
-                        <Input type="number" placeholder="0" value={secondaryLuotHDMin || ''} onChange={(e) => setSecondaryLuotHDMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-emerald-700 text-white" />
+                        <Input type="number" placeholder="0" value={secondaryLuotHDMin || ''} onChange={(e) => setSecondaryLuotHDMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
                         <div className="flex gap-1">
-                          <button type="button" onClick={() => setSecondaryLuotHDFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-emerald-700 text-emerald-300/70'}`}>Tất cả</button>
-                          <button type="button" onClick={() => setSecondaryLuotHDFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-emerald-700 text-emerald-300/70'}`}>TVVm</button>
+                          <button type="button" onClick={() => setSecondaryLuotHDFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
+                          <button type="button" onClick={() => setSecondaryLuotHDFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] text-orange-400/70">Lượt HĐC từ</Label>
-                        <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-emerald-700 text-white" />
+                        <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
                         <div className="flex gap-1">
-                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-emerald-700 text-emerald-300/70'}`}>Tất cả</button>
-                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-emerald-700 text-emerald-300/70'}`}>TVVm</button>
+                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
+                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
                         </div>
                       </div>
                     </div>
@@ -2240,7 +2240,7 @@ export default function ThiDuaPage() {
                 <Label className="text-xs font-medium text-emerald-200">Tùy chọn</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Hide not achieved */}
-                  <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/20 bg-emerald-800/30">
+                  <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10">
                     <Checkbox id="hideNotAchieved" checked={hideNotAchieved} onCheckedChange={(v) => setHideNotAchieved(!!v)} />
                     <Label htmlFor="hideNotAchieved" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
                       <EyeOff className="w-3 h-3 text-gray-400" /> Ẩn chưa đạt mức
@@ -2248,7 +2248,7 @@ export default function ThiDuaPage() {
                   </div>
                   {/* Include Individual NTD - for nhóm and NTD targets */}
                   {(targetType === 'nhom' || targetType === 'nyd') && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-violet-500/30 bg-emerald-800/30">
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-violet-500/30 bg-emerald-500/10">
                       <Checkbox id="includeIndividualNTD" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
                       <Label htmlFor="includeIndividualNTD" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
                         <UserPlus className="w-3 h-3 text-violet-400" /> Tính cá nhân NTD vào chương trình
@@ -2257,7 +2257,7 @@ export default function ThiDuaPage() {
                   )}
                   {/* Include Individual TN - for nhóm and NTD targets */}
                   {(targetType === 'nhom' || targetType === 'nyd') && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-800/30">
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-500/10">
                       <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(v) => setIncludeIndividualTN(!!v)} />
                       <Label htmlFor="includeIndividualTN" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
                         <UserCheck className="w-3 h-3 text-sky-400" /> Tính cá nhân TN vào chương trình
@@ -2275,8 +2275,8 @@ export default function ThiDuaPage() {
                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh poster
                   <input type="file" accept="image/*" onChange={handlePosterUpload} className="hidden" />
                 </label>
-                {posterUrl && <Button variant="outline" size="sm" onClick={() => setPosterUrl('')} className="text-red-400 border-emerald-500 bg-transparent h-7 text-xs"><X className="w-3 h-3 mr-0.5" />Xóa</Button>}
-                {posterUrl && <img src={posterUrl} alt="Preview" className="h-8 rounded border border-emerald-500" />}
+                {posterUrl && <Button variant="outline" size="sm" onClick={() => setPosterUrl('')} className="text-red-400 border-emerald-500/30 bg-transparent h-7 text-xs"><X className="w-3 h-3 mr-0.5" />Xóa</Button>}
+                {posterUrl && <img src={posterUrl} alt="Preview" className="h-8 rounded border border-emerald-500/30" />}
               </div>
             </CardContent>
           )}
@@ -2284,14 +2284,14 @@ export default function ThiDuaPage() {
 
         {/* Action Buttons - Same Row, equal width */}
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="outline" className="border-emerald-600 text-emerald-400 hover:bg-emerald-600 h-10 text-[11px] bg-transparent" onClick={handleImportFromUrl} disabled={isImporting}>
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 h-10 text-[11px] bg-transparent" onClick={handleImportFromUrl} disabled={isImporting}>
             {isImporting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1" />} Đồng bộ
           </Button>
           <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
             <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
             {subjectCodes.length > 0 && <Badge className="ml-1 bg-sky-500 text-white text-[9px] h-4 px-1">{subjectCodes.length}</Badge>}
           </Button>
-          <Button onClick={handleCalculate} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-600">
+          <Button onClick={handleCalculate} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
             <Trophy className="w-4 h-4 mr-1" /> Tính thi đua
           </Button>
         </div>
@@ -2338,10 +2338,10 @@ export default function ThiDuaPage() {
               {contracts.length === 0 ? (
                 <div className="text-center py-6 text-emerald-400/50"><Database className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Chưa có dữ liệu</p><p className="text-xs">Nhấn &ldquo;Nhập HD&rdquo; để tải từ Google Sheets</p></div>
               ) : (
-                <div className="rounded-lg border border-emerald-500 overflow-x-auto max-h-48 overflow-y-auto">
-                  <Table><TableHeader><TableRow className="bg-emerald-700 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
+                <div className="rounded-lg border border-emerald-500/30 overflow-x-auto max-h-48 overflow-y-auto">
+                  <Table><TableHeader><TableRow className="bg-emerald-500/20 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
                     <TableBody>{contracts.map((c, idx) => (
-                      <TableRow key={c.id} className="hover:bg-emerald-700 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+                      <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
                     ))}</TableBody>
                   </Table>
                 </div>
@@ -2353,24 +2353,24 @@ export default function ThiDuaPage() {
 
       {/* Result Dialog Popup - White theme, only poster + detail table */}
       <Dialog open={isResultDialogOpen} onOpenChange={(open) => { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); }}>
-        <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-200 p-0 transition-all duration-300`}>
+        <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-[#1a1a2e] border-emerald-500/30 p-0 transition-all duration-300`}>
           {/* Action bar */}
-          <div className="sticky top-0 z-10 bg-white border-b border-emerald-100 px-3 py-2 flex items-center justify-between">
-            <DialogTitle className="text-emerald-700 text-base font-bold flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-emerald-600" />
+          <div className="sticky top-0 z-10 bg-[#1a1a2e] border-b border-emerald-500/20 px-3 py-2 flex items-center justify-between">
+            <DialogTitle className="text-emerald-400 text-base font-bold flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-emerald-400" />
               Kết quả chi tiết
             </DialogTitle>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-emerald-200 text-emerald-600 h-7 w-7 p-0 hover:bg-emerald-50">
+              <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-emerald-500/30 text-emerald-400 h-7 w-7 p-0 hover:bg-emerald-500/10">
                 {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
+              <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10">
                 {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-200 text-emerald-600 h-7 text-xs hover:bg-emerald-50">
+              <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10">
                 {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-200 text-gray-600 h-7 text-xs hover:bg-gray-50"><Download className="w-3 h-3 mr-1" />XLSX</Button>
+              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-600 text-gray-300 h-7 text-xs hover:bg-gray-800"><Download className="w-3 h-3 mr-1" />XLSX</Button>
             </div>
           </div>
 
@@ -2383,10 +2383,10 @@ export default function ThiDuaPage() {
               )}
 
               {/* Result Table */}
-              <div className="overflow-x-auto border border-emerald-200 shadow-sm mt-3">
+              <div className="overflow-x-auto border border-emerald-500/20 shadow-sm mt-3">
                 <Table className="text-xs">
                   <TableHeader>
-                    <TableRow className="bg-emerald-700 hover:bg-emerald-700">
+                    <TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20">
                       <TableHead className="text-white text-center w-[40px] font-bold">STT</TableHead>
                       {targetType === 'nyd' ? (
                         <>
@@ -2401,24 +2401,24 @@ export default function ThiDuaPage() {
                             <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2436,24 +2436,24 @@ export default function ThiDuaPage() {
                           </TableHead>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2470,24 +2470,24 @@ export default function ThiDuaPage() {
                             <TableHead className="text-white min-w-[70px] font-bold text-center">AFYP</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2503,24 +2503,24 @@ export default function ThiDuaPage() {
                             {startDate && endDate && <div className="text-[9px] font-normal text-emerald-200/70 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-700"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-800">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-700">
+                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-800">
+                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
@@ -2575,31 +2575,31 @@ export default function ThiDuaPage() {
                         return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
                       })() : null;
                       return (
-                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
-                          <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{nyd.nhom || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{nyd.nydCode}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{nyd.nydName}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{nyd.position || '—'}</TableCell>
-                          <TableCell className="text-right text-xs text-violet-600">
+                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
+                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white">{nyd.nhom || '—'}</TableCell>
+                          <TableCell className="text-xs text-white font-mono">{nyd.nydCode}</TableCell>
+                          <TableCell className="text-xs text-white">{nyd.nydName}</TableCell>
+                          <TableCell className="text-xs text-white">{nyd.position || '—'}</TableCell>
+                          <TableCell className="text-right text-xs text-violet-400">
                             {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
                           </TableCell>
                           {includeIndividualTN && (
-                            <TableCell className="text-right text-xs text-gray-600">{formatNumber(nyd.ownFYP)}</TableCell>
+                            <TableCell className="text-right text-xs text-emerald-300/70">{formatNumber(nyd.ownFYP)}</TableCell>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 && phaseBonus ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-700 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell>{!tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : targetType === 'nhom' ? [...groupedData].map((g) => {
@@ -2614,32 +2614,32 @@ export default function ThiDuaPage() {
                     }).map(({ group, tier, remaining, groupPhase }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
-                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
-                          <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{group.leader?.agentCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-gray-700"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
-                          <TableCell className="text-xs text-gray-700">{group.leader?.position || '—'}</TableCell>
+                        <TableRow key={group.maNhom} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
+                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white"><span className="font-semibold text-emerald-400">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-white font-mono">{group.leader?.agentCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-white"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
+                          <TableCell className="text-xs text-white">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs">
                             {isActivityRoundMode(conditionType)
-                              ? <span className="text-orange-600">{group.activityRounds} Lượt</span>
-                              : <span className="text-gray-700">{formatNumber(group.totalFYP)}</span>
+                              ? <span className="text-orange-400">{group.activityRounds} Lượt</span>
+                              : <span className="text-white">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-700 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
@@ -2650,29 +2650,29 @@ export default function ThiDuaPage() {
                     }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).map(({ contract, tier, remaining, phaseInfo }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       return (
-                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
-                          <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.nhom || contract.maNhom}</TableCell>
-                          <TableCell className="text-xs text-gray-700 font-mono">{contract.agentCode}</TableCell>
-                          <TableCell className="text-xs text-gray-700">{contract.agentName}</TableCell>
-                          <TableCell className="text-center text-xs text-gray-500">{formatDate(contract.effectiveDate)}</TableCell>
-                          <TableCell className="text-right text-xs text-gray-700">{formatNumber(contract.pdt10DT)}</TableCell>
+                        <TableRow key={contract.id} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
+                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white">{contract.nhom || contract.maNhom}</TableCell>
+                          <TableCell className="text-xs text-white font-mono">{contract.agentCode}</TableCell>
+                          <TableCell className="text-xs text-white">{contract.agentName}</TableCell>
+                          <TableCell className="text-center text-xs text-emerald-300/50">{formatDate(contract.effectiveDate)}</TableCell>
+                          <TableCell className="text-right text-xs text-white">{formatNumber(contract.pdt10DT)}</TableCell>
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableCell className="text-right text-xs text-gray-600">{formatNumber(contract.afyp)}</TableCell>
+                            <TableCell className="text-right text-xs text-emerald-300/70">{formatNumber(contract.afyp)}</TableCell>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50/80">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-700 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : (() => {
@@ -2680,25 +2680,25 @@ export default function ThiDuaPage() {
                       return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
                         if (hideNotAchieved && !tier) return null;
                         return (
-                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-100'} hover:bg-emerald-50 border-b border-gray-100`}>
-                            <TableCell className="text-center text-gray-500 text-xs">{idx + 1}</TableCell>
-                            <TableCell className="text-xs text-gray-700">{agent.nhom || agent.maNhom}</TableCell>
-                            <TableCell className="text-xs text-gray-700 font-mono">{agent.agentCode}</TableCell>
-                            <TableCell className="text-xs text-gray-700">{agent.agentName}</TableCell>
-                            <TableCell className="text-right text-xs text-gray-700">{formatNumber(value)}</TableCell>
+                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
+                            <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
+                            <TableCell className="text-xs text-white">{agent.nhom || agent.maNhom}</TableCell>
+                            <TableCell className="text-xs text-white font-mono">{agent.agentCode}</TableCell>
+                            <TableCell className="text-xs text-white">{agent.agentName}</TableCell>
+                            <TableCell className="text-right text-xs text-white">{formatNumber(value)}</TableCell>
                             {showRateColumn && !usePhase2 && (
-                              <TableCell className="text-center bg-violet-50/80 text-xs">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                             )}
                             {usePhase2 ? (
                               <>
-                                <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                                <TableCell className="text-right bg-emerald-50/80 text-xs font-semibold text-emerald-600">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                                <TableCell className="text-right bg-amber-50/80 text-xs font-bold text-amber-700">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-50/80">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-700 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                             )}
-                            <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                            <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
                         );
                       });
@@ -2724,7 +2724,7 @@ export default function ThiDuaPage() {
                 value={thiDuaSubjects}
                 onChange={(e) => setThiDuaSubjects(e.target.value)}
                 placeholder={targetType === 'tvv' ? 'D104142435\nD104142436\n...' : targetType === 'nyd' ? 'D104142435\nD104142436\n...' : 'MC001\nMC002\n...'}
-                className="w-full h-32 text-xs bg-emerald-700 border border-emerald-500 text-white rounded-lg p-2 font-mono resize-none focus:outline-none focus:border-sky-500/50"
+                className="w-full h-32 text-xs bg-gray-800 border border-gray-600 text-white rounded-lg p-2 font-mono resize-none focus:outline-none focus:border-sky-500/50"
               />
             </div>
             {thiDuaSubjects.trim() && (
@@ -2735,18 +2735,18 @@ export default function ThiDuaPage() {
             {(targetType === 'tvv' ? contracts.length > 0 : targetType === 'nyd' ? recruiterList.length > 0 : staffList.length > 0) && (
               <div className="space-y-1">
                 <Label className="text-xs text-emerald-300/70">Đối tượng có sẵn ({targetType === 'tvv' ? 'TVV' : targetType === 'nyd' ? 'NTD' : 'Nhóm'}):</Label>
-                <div className="max-h-24 overflow-y-auto rounded-lg border border-emerald-500 p-1.5">
+                <div className="max-h-24 overflow-y-auto rounded-lg border border-gray-600/50 p-1.5">
                   <div className="flex flex-wrap gap-1">
                     {targetType === 'tvv'
                       ? [...new Set(contracts.map(c => c.agentCode))].map(code => (
-                          <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-emerald-700 hover:bg-sky-500/10 border border-emerald-500 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
+                          <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
                         ))
                       : targetType === 'nyd'
                         ? recruiterList.map(r => (
-                            <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-emerald-700 hover:bg-sky-500/10 border border-emerald-500 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
+                            <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
                           ))
                         : [...new Map(staffList.filter(s => s.maNhom).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
-                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-emerald-700 hover:bg-sky-500/10 border border-emerald-500 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
+                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
                           ))
                     }
                   </div>
@@ -2756,8 +2756,8 @@ export default function ThiDuaPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setThiDuaSubjects(''); }} className="h-8 border-red-500/30 text-red-400 bg-transparent hover:bg-red-500/10"><Trash2 className="w-3 h-3 mr-1" /> Xóa tất cả</Button>
-            <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)} className="h-8 border-emerald-500 bg-transparent text-emerald-200">Đóng</Button>
-            <Button onClick={() => { setIsSubjectDialogOpen(false); toast({ title: 'Đã áp dụng', description: subjectCodes.length > 0 ? `Lọc theo ${subjectCodes.length} đối tượng` : 'Hiển thị tất cả' }); }} className="bg-sky-600 hover:bg-sky-700 h-8">Áp dụng</Button>
+            <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)} className="h-8 border-emerald-500/30 bg-transparent text-emerald-200">Đóng</Button>
+            <Button onClick={() => { setIsSubjectDialogOpen(false); toast({ title: 'Đã áp dụng', description: subjectCodes.length > 0 ? `Lọc theo ${subjectCodes.length} đối tượng` : 'Hiển thị tất cả' }); }} className="bg-sky-500/80 hover:bg-sky-600 h-8 border border-sky-500/30">Áp dụng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
