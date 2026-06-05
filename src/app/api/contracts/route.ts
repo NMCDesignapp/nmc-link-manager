@@ -172,11 +172,41 @@ export async function POST(request: NextRequest) {
         console.log(`[Contracts] Deleted ${deletedCount} existing contracts for months: ${replaceMonths.join(', ')}`);
       }
 
-      const result = await db.contract.createMany({ data, skipDuplicates: true });
+      // Try bulk insert first; if unique constraint fails, fall back to individual inserts
+      let insertedCount = 0;
+      let skippedCount = 0;
+      let skippedContracts: string[] = [];
+      try {
+        const result = await db.contract.createMany({ data });
+        insertedCount = result.count;
+      } catch (bulkError: any) {
+        if (bulkError?.code === 'P2002') {
+          // Unique constraint violation - fall back to individual inserts
+          console.log('[Contracts] Bulk insert failed due to unique constraint, falling back to individual inserts');
+          for (let i = 0; i < data.length; i++) {
+            try {
+              await db.contract.create({ data: data[i] });
+              insertedCount++;
+            } catch (singleError: any) {
+              if (singleError?.code === 'P2002') {
+                skippedCount++;
+                skippedContracts.push(data[i].contractNumber || `row_${i}`);
+              } else {
+                console.error(`[Contracts] Error inserting row ${i}:`, singleError.message);
+                skippedCount++;
+              }
+            }
+          }
+        } else {
+          throw bulkError;
+        }
+      }
       return NextResponse.json({ 
-        count: result.count, 
+        count: insertedCount, 
         deleted: deletedCount,
-        replaced: replaceMonths.length > 0 
+        replaced: replaceMonths.length > 0,
+        skipped: skippedCount,
+        skippedContracts: skippedContracts.slice(0, 20), // Limit to first 20 for response size
       }, { status: 201 });
     }
 

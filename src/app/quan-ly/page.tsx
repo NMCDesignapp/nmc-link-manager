@@ -1502,49 +1502,49 @@ export default function QuanLyPage() {
         const contractRows = [];
         for (const r of data) {
           const row = r as any;
-          const effectiveDate = parseDateValue(row['Ngày hiệu lực'] || row['effectiveDate']);
-          const contractNumber = String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || '');
-          const agentName = String(row['Tên'] || row['Họ tên'] || row['agentName'] || '');
-          const fyp = parseFloat(String(row['FYP'] || row['IP'] || row['fyp'] || '0').replace(/,/g, '')) || 0;
+          const effectiveDate = parseDateValue(row['Ngày hiệu lực'] || row['Ngày hl'] || row['effectiveDate']);
+          const contractNumber = String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || '').trim();
+          const agentName = String(row['Tên'] || row['Họ tên'] || row['Tên TVV'] || row['agentName'] || '').trim();
+          const fyp = parseFloat(String(row['FYP'] || row['IP'] || row['PĐT + 10% ĐT'] || row['fyp'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0;
 
           // Skip rows without minimum required data
           if (!contractNumber && !agentName) { failCount++; continue; }
 
           contractRows.push({
             stt: parseInt(String(row['STT'] || row['stt'] || '0').replace(/,/g, '')) || 0,
-            ban: String(row['Ban'] || row['ban'] || ''),
-            maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || ''),
-            nhom: String(row['Nhóm'] || row['nhom'] || ''),
-            maBanNhom: String(row['Mã Ban/Nhóm'] || row['maBanNhom'] || ''),
-            maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || ''),
-            maDL: String(row['Mã ĐL'] || row['maDL'] || ''),
-            agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || ''),
+            ban: String(row['Ban'] || row['ban'] || '').trim(),
+            maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || '').trim(),
+            nhom: String(row['Nhóm'] || row['nhom'] || '').trim(),
+            maBanNhom: String(row['Mã Ban/Nhóm'] || row['Mã ban/nhóm'] || row['maBanNhom'] || '').trim(),
+            maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || '').trim(),
+            maDL: String(row['Mã ĐL'] || row['Mã đại lý'] || row['maDL'] || '').trim(),
+            agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || row['Mã đại lý'] || '').trim(),
             agentName: agentName || 'Chưa nhập',
-            position: String(row['Chức vụ'] || row['position'] || ''),
-            ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['ngayBatDauLamViec']),
+            position: String(row['Chức vụ'] || row['position'] || '').trim(),
+            ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['Ngày bắt đầu LV'] || row['Ngày BĐLV'] || row['ngayBatDauLamViec']),
             contractNumber: contractNumber || 'HD_' + Date.now() + '_' + contractRows.length,
             effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
-            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
-            pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
-            fyp: fyp,
-            nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || ''),
-            hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || ''),
-            dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || ''),
+            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['Ngày PH'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
+            pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['PĐT+10%ĐT'] || row['IP+10%PĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
+            fyp: fyp || parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
+            nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || '').trim(),
+            hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || '').trim(),
+            dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || '').trim(),
             phiDongThem: parseFloat(String(row['PHÍ ĐÓNG THÊM'] || row['phiDongThem'] || '0').replace(/,/g, '')) || 0,
             afypChuaTru10DT: parseFloat(String(row['AFYP chưa trừ 10% ĐT'] || row['afypChuaTru10DT'] || '0').replace(/,/g, '')) || 0,
             afyp: parseFloat(String(row['AFYP'] || row['afyp'] || '0').replace(/,/g, '')) || 0,
-            ad: String(row['AD'] || row['ad'] || ''),
-            nhom2: String(row['NHÓM'] || row['nhom2'] || ''),
+            ad: String(row['AD'] || row['ad'] || '').trim(),
+            nhom2: String(row['NHÓM'] || row['nhom2'] || '').trim(),
             ngayBatDauLamViec2: parseDateValue(row['NGÀY BẮT ĐẦU LÀM VIỆC'] || row['ngayBatDauLamViec2']),
             thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
             namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
             tinhLuot: parseFloat(String(row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
-            maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['maDaiLyTD'] || ''),
-            danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || ''),
-            chucVu2: String(row['Chức vụ'] || row['chucVu2'] || ''),
-            maNhom: String(row['Mã nhóm'] || row['maNhom'] || ''),
+            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
+            maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
+            danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
+            chucVu2: String(row['Chức vụ'] || row['chucVu2'] || '').trim(),
+            maNhom: String(row['Mã nhóm'] || row['maNhom'] || row['Mã Ban/Nhóm'] || '').trim(),
           });
         }
         if (contractRows.length > 0) {
@@ -1552,15 +1552,16 @@ export default function QuanLyPage() {
           const importMonths = new Set<string>();
           for (const row of contractRows) {
             if (row.effectiveDate) {
-              const d = new Date(row.effectiveDate);
+              const d = new Date(row.effectiveDate + 'T00:00:00Z'); // Ensure UTC parsing
               if (!isNaN(d.getTime())) {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const y = d.getUTCFullYear();
+                const m = String(d.getUTCMonth() + 1).padStart(2, '0');
                 importMonths.add(`${y}-${m}`);
               }
             }
           }
           const replaceMonths = Array.from(importMonths);
+          console.log(`[Import contracts] ${contractRows.length} rows, replaceMonths:`, replaceMonths);
           const resp = await fetch('/api/contracts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contracts: contractRows, replaceMonths })
@@ -1569,12 +1570,14 @@ export default function QuanLyPage() {
             const result = await resp.json(); 
             successCount = result.count || contractRows.length;
             const deletedInfo = result.deleted ? ` (Đã thay thế ${result.deleted} HĐ cũ tháng ${replaceMonths.join(', ')})` : '';
-            toast({ title: 'Import thành công', description: `${successCount} HĐ${deletedInfo}` });
+            const skippedInfo = result.skipped > 0 ? ` | Bỏ qua ${result.skipped} HĐ trùng (Số HĐ: ${result.skippedContracts?.slice(0, 5).join(', ')}${result.skipped > 5 ? '...' : ''})` : '';
+            toast({ title: 'Import thành công', description: `${successCount} HĐ${deletedInfo}${skippedInfo}` });
           }
           else {
             failCount = contractRows.length;
             const errData = await resp.json().catch(() => ({}));
             console.warn('[Import contracts] Batch failed:', errData.error);
+            toast({ title: 'Lỗi import HĐ', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
         fetchContracts();
@@ -1694,6 +1697,7 @@ export default function QuanLyPage() {
   const targetLuotHDChuan = parseFloat(onlineSettings['nmc-target-luot-hd-chuan'] || '0') || 0;
   const targetNangSuat = parseFloat(onlineSettings['nmc-target-nang-suat'] || '0') || 0;
   const targetTVV3M = parseFloat(onlineSettings['nmc-target-tvv-3tr'] || '0') || 0;
+  const targetTVV12M = parseFloat(onlineSettings['nmc-target-tvv-12tr'] || '0') || 0;
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
@@ -1896,19 +1900,17 @@ export default function QuanLyPage() {
         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5">
           <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm {currentYear}
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
           <IndicatorCard label="SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
-          <IndicatorCard label="IP + 10% PĐT" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
-          <IndicatorCard label="AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
           <IndicatorCard label="Lượt hoạt động" value={luotHoatDong} target={0} settingKey="nmc-target-luot-hd" formatType="number" icon={Hash} />
           <IndicatorCard label="Lượt chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={CheckCircle2} />
           <IndicatorCard label="TVV đạt 3tr" value={tvvAchieved3M} target={targetTVV3M} settingKey="nmc-target-tvv-3tr" formatType="number" icon={Users} />
-          <IndicatorCard label="TVV đạt 12tr" value={tvvAchieved12M} target={0} settingKey="nmc-target-tvv-12tr" formatType="number" icon={Users} />
+          <IndicatorCard label="TVV đạt 12tr" value={tvvAchieved12M} target={targetTVV12M} settingKey="nmc-target-tvv-12tr" formatType="number" icon={Users} />
           <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
           <IndicatorCard label="NTD hoạt động" value={activeNTDCount.size} target={0} settingKey="nmc-target-ntd" formatType="number" icon={UserCircle} />
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          Lượt hoạt động: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
+          IP + 10% PĐT: {formatCurrency(totalRevenue)} • AFYP: {formatCurrency(totalRevenueAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV 3tr: {tvvAchieved3M} • TVV 12tr: {tvvAchieved12M} • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
         </p>
       </div>
 
@@ -2144,11 +2146,9 @@ export default function QuanLyPage() {
 
     // KPI summary cards
     const kpiCards = (
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 mb-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2 mb-3">
         {[
           { label: 'Số lượng HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
-          { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
-          { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
           { label: 'Lượt hoạt động', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
           { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
           { label: 'TVV đạt 3tr', value: formatNumber(tvvDat3tr), color: 'bg-emerald-500/20 border-emerald-500/30', icon: Users },
@@ -2250,7 +2250,7 @@ export default function QuanLyPage() {
           </table>
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          Lượt hoạt động: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV đạt 3tr: {tvvDat3tr} • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV 3tr: {tvvDat3tr} • TVV 12tr: {tvvDat12tr} • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
