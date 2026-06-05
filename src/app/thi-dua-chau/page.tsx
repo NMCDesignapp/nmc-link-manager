@@ -119,10 +119,10 @@ function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   const start = new Date(startDate);
   const now = new Date();
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths >= maxMonths;
+  return diffMonths <= maxMonths;
 }
 
-// TVV90: TVV có thời gian làm việc từ N tháng trở lên
+// TVV90: TVV có thời gian làm việc không quá N tháng
 function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: number = 3, _minIP?: number): boolean {
   const agentContract = contracts.find(c => c.agentCode === agentCode);
   if (!agentContract) return false;
@@ -131,7 +131,7 @@ function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: numbe
   const start = new Date(startDate);
   const now = new Date();
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths >= maxMonths;
+  return diffMonths <= maxMonths;
 }
 
 // Helper: calculate lượt for a group of contracts based on tinhLuot3tr
