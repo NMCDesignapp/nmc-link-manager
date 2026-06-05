@@ -4,17 +4,36 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Ensure we use the Neon PostgreSQL URL, not any SQLite override from env
-const databaseUrl = process.env.DATABASE_URL?.startsWith('file:') 
-  ? process.env.DIRECT_URL || process.env.DATABASE_URL 
-  : process.env.DATABASE_URL
+// Resolve the correct database URL for PostgreSQL
+// Priority: 1) DATABASE_URL if it starts with postgres, 2) DIRECT_URL if postgres, 3) fallback Neon URL
+function resolveDatabaseUrl(): string {
+  const databaseUrl = process.env.DATABASE_URL || ''
+  const directUrl = process.env.DIRECT_URL || ''
+  
+  // If DATABASE_URL is already PostgreSQL, use it
+  if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
+    return databaseUrl
+  }
+  
+  // If DATABASE_URL points to SQLite/LibSQL, fall back to DIRECT_URL
+  if (directUrl.startsWith('postgresql://') || directUrl.startsWith('postgres://')) {
+    console.warn('[DB] DATABASE_URL is not PostgreSQL, using DIRECT_URL instead')
+    return directUrl
+  }
+  
+  // Last resort: use DATABASE_URL as-is (will error but at least try)
+  console.error('[DB] No PostgreSQL URL found! DATABASE_URL:', databaseUrl.substring(0, 30), 'DIRECT_URL:', directUrl.substring(0, 30))
+  return databaseUrl
+}
+
+const resolvedUrl = resolveDatabaseUrl()
 
 // Create Prisma client with proper settings for Neon PostgreSQL
 export const db = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   datasources: {
     db: {
-      url: databaseUrl,
+      url: resolvedUrl,
     },
   },
 })
