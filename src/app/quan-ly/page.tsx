@@ -1003,6 +1003,7 @@ export default function QuanLyPage() {
   const router = useRouter();
   const [activeSheet, setActiveSheet] = useState<SheetKey>('overview');
   const [revenueSub, setRevenueSub] = useState<RevenueSubKey>('all');
+  const [revenueNhomFilter, setRevenueNhomFilter] = useState<string>('');
   const [revenueExpanded, setRevenueExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
@@ -1680,6 +1681,9 @@ export default function QuanLyPage() {
   // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
   const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
 
+  // Độ lớn hợp đồng (ĐLHĐ) = Tổng doanh thu / Tổng số lượng HĐ
+  const doLonHD = totalRevenueContractCount > 0 ? totalRevenue / totalRevenueContractCount : 0;
+
   // Năng suất = tổng số lượng HĐ / tổng số TVV đạt 3 triệu
   const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
 
@@ -1697,9 +1701,12 @@ export default function QuanLyPage() {
   const targetTongIP = parseFloat(onlineSettings['nmc-target-tong-ip'] || '0') || 0;
   const targetTongAFYP = parseFloat(onlineSettings['nmc-target-tong-afyp'] || '0') || 0;
   const targetTongSLHD = parseFloat(onlineSettings['nmc-target-tong-sl-hd'] || '0') || 0;
+  const targetLuotHD = parseFloat(onlineSettings['nmc-target-luot-hd'] || '0') || 0;
   const targetLuotHDChuan = parseFloat(onlineSettings['nmc-target-luot-hd-chuan'] || '0') || 0;
   const targetNangSuat = parseFloat(onlineSettings['nmc-target-nang-suat'] || '0') || 0;
-  const targetIpAfyp = parseFloat(onlineSettings['nmc-target-ip-afyp'] || '0') || 0;
+  const targetDLHD = parseFloat(onlineSettings['nmc-target-dlhd'] || '0') || 0;
+  const targetSLTBTN = parseFloat(onlineSettings['nmc-target-sl-tb-tn'] || '0') || 0;
+  const targetSLNTD = parseFloat(onlineSettings['nmc-target-sl-ntd'] || '0') || 0;
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
@@ -1841,92 +1848,109 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan</h2>
-      </div>
-      {/* Annual Revenue Target */}
-      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-amber-500/30 rounded-lg p-3">
-        <div className="flex items-center gap-3">
-          <Target className="w-5 h-5 text-amber-400" />
-          <div className="flex-1">
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Mục doanh số năm</p>
-            {editingAnnualTarget ? (
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  type="number"
-                  value={annualTargetInput}
-                  onChange={(e) => setAnnualTargetInput(e.target.value)}
-                  placeholder="Nhập mục doanh số năm..."
-                  className="h-7 text-sm bg-gray-800 border-amber-500/50 text-white flex-1"
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveAnnualTarget(); if (e.key === 'Escape') setEditingAnnualTarget(false); }}
-                  autoFocus
-                />
-                <Button onClick={handleSaveAnnualTarget} className="h-7 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs px-3">Lưu</Button>
-                <Button onClick={() => setEditingAnnualTarget(false)} variant="ghost" className="h-7 text-gray-400 text-xs px-2">Hủy</Button>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" className="text-gray-400 hover:text-white h-8 w-8 p-0"><Settings className="w-4 h-4" /></Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 bg-[#0e0e18] border-emerald-500/30" align="end">
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-emerald-300">Cài đặt chỉ tiêu</p>
+              {[
+                { label: 'Tổng IP', key: 'nmc-target-tong-ip', val: targetTongIP, fmt: (v: number) => formatCurrency(v) },
+                { label: 'Tổng AFYP', key: 'nmc-target-tong-afyp', val: targetTongAFYP, fmt: (v: number) => formatCurrency(v) },
+                { label: 'SL HĐ', key: 'nmc-target-tong-sl-hd', val: targetTongSLHD, fmt: (v: number) => formatNumber(v) },
+                { label: 'Lượt HĐ', key: 'nmc-target-luot-hd', val: targetLuotHD, fmt: (v: number) => formatNumber(v) },
+                { label: 'Lượt HĐ chuẩn', key: 'nmc-target-luot-hd-chuan', val: targetLuotHDChuan, fmt: (v: number) => formatNumber(v) },
+                { label: 'Năng suất', key: 'nmc-target-nang-suat', val: targetNangSuat, fmt: (v: number) => v.toFixed(1) },
+                { label: 'ĐLHĐ', key: 'nmc-target-dlhd', val: targetDLHD, fmt: (v: number) => formatCurrency(v) },
+                { label: 'SL TB/TN', key: 'nmc-target-sl-tb-tn', val: targetSLTBTN, fmt: (v: number) => formatNumber(v) },
+                { label: 'SL NTD', key: 'nmc-target-sl-ntd', val: targetSLNTD, fmt: (v: number) => formatNumber(v) },
+              ].map(item => (
+                <div key={item.key} className="flex items-center gap-2">
+                  <Label className="text-[10px] text-gray-400 w-24 shrink-0">{item.label}</Label>
+                  <Input
+                    type="number"
+                    defaultValue={item.val || ''}
+                    placeholder="Chỉ tiêu..."
+                    className="h-6 text-[10px] bg-gray-800 border-emerald-500/30 text-white flex-1"
+                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(item.key, String(v)); } }}
+                  />
+                  <span className="text-[9px] text-gray-500 w-16 text-right truncate">{item.val > 0 ? item.fmt(item.val) : '—'}</span>
+                </div>
+              ))}
+              <div className="border-t border-emerald-500/20 pt-2">
+                <p className="text-[10px] text-gray-400 mb-1">Mục doanh số năm</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    defaultValue={annualRevenueTarget || ''}
+                    placeholder="Mục doanh số..."
+                    className="h-6 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
+                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); } }}
+                  />
+                  <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
+                </div>
               </div>
-            ) : (
-              <div
-                className="cursor-pointer mt-1 flex items-center gap-2"
-                onDoubleClick={() => { setEditingAnnualTarget(true); setAnnualTargetInput(String(annualRevenueTarget || '')); }}
-                title="Nháy đúp để sửa"
-              >
-                <p className="text-xl font-extrabold text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
-                  {annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : 'Chưa đặt mục tiêu'}
-                </p>
-                <Edit2 className="w-3 h-3 text-amber-400/50" />
-              </div>
-            )}
-          </div>
-          {annualRevenueTarget > 0 && totalRevenue > 0 && (
-            <div className="text-right">
-              <p className="text-[10px] text-gray-400">Đạt được</p>
-              <p className={`text-lg font-extrabold ${(totalRevenue / annualRevenueTarget) >= 1 ? 'text-emerald-300' : (totalRevenue / annualRevenueTarget) >= 0.7 ? 'text-amber-300' : 'text-rose-300'}`}>
-                {((totalRevenue / annualRevenueTarget) * 100).toFixed(1)}%
-              </p>
             </div>
-          )}
-        </div>
-        {annualRevenueTarget > 0 && (
-          <div className="mt-2">
-            <Progress value={Math.min((totalRevenue / annualRevenueTarget) * 100, 100)} className="h-2 bg-gray-800 [&>div]:bg-gradient-to-r [&>div]:from-amber-500 [&>div]:to-emerald-400" />
-            <div className="flex justify-between text-[9px] text-gray-500 mt-1">
-              <span>Thực tế: {formatCurrency(totalRevenue)}</span>
-              <span>Mục tiêu: {formatCurrency(annualRevenueTarget)}</span>
-            </div>
-          </div>
-        )}
+          </PopoverContent>
+        </Popover>
       </div>
 
-      {/* Revenue-based Indicators from doanh thu năm */}
-      <div>
-        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm {currentYear}
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2">
-          <IndicatorCard label="SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
-          <IndicatorCard label="IP + 10% PĐT" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
-          <IndicatorCard label="AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
-          <IndicatorCard label="Lượt hoạt động" value={luotHoatDong} target={0} settingKey="nmc-target-luot-hd" formatType="number" icon={Hash} />
-          <IndicatorCard label="Lượt chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={CheckCircle2} />
-          <IndicatorCard label="IP/AFYP (%)" value={ipAfypRatio} target={targetIpAfyp} settingKey="nmc-target-ip-afyp" formatType="decimal" icon={TrendingUp} />
-          <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
-          <IndicatorCard label="NTD hoạt động" value={activeNTDCount.size} target={0} settingKey="nmc-target-ntd" formatType="number" icon={UserCircle} />
-        </div>
-        <p className="text-[9px] text-gray-500 mt-1.5">
-          Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = ({formatCurrency(totalRevenue)} / {formatCurrency(totalRevenueAFYP)}) × 100 = {ipAfypRatio.toFixed(1)}% • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
-        </p>
+      {/* Summary Cards - 9 indicators */}
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+        {[
+          { label: 'TỔNG AFYP', value: formatCurrency(totalRevenueAFYP), target: targetTongAFYP, targetFmt: formatCurrency(targetTongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
+          { label: 'TỔNG IP', value: formatCurrency(totalRevenue), target: targetTongIP, targetFmt: formatCurrency(targetTongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
+          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
+          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
+          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
+          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
+          { label: 'ĐLHĐ', value: formatCurrency(doLonHD), target: targetDLHD, targetFmt: formatCurrency(targetDLHD), color: 'bg-emerald-500/20 border-emerald-500/30', icon: BarChart3 },
+          { label: 'SL TB/TN', value: formatNumber(totalLeaders), target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-violet-500/20 border-violet-500/30', icon: Users },
+          { label: 'SL NTD', value: formatNumber(totalRecruiters), target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-amber-500/20 border-amber-500/30', icon: UserCircle },
+        ].map((kpi, i) => {
+          const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
+          return (
+            <div key={i} className={`${kpi.color} border rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+              <div className="flex items-center gap-1 mb-0.5"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[8px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
+              {kpi.target > 0 && (
+                <div className="mt-1">
+                  <div className="flex items-center justify-between text-[8px]">
+                    <span className="text-gray-300">CT: {kpi.targetFmt}</span>
+                    <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Custom KPI for Overview */}
-      <KPISettingsPopover
-        sectionKey="overview"
-        sectionLabel="Tổng quan"
-        dataSources={overviewDataSources}
-        defaultConfigs={overviewDefaultKPIs}
-        onlineSettings={onlineSettings}
-        saveSetting={saveSetting}
-        annualTarget={annualRevenueTarget}
-      />
+      {/* Annual Revenue Progress */}
+      {annualRevenueTarget > 0 && (
+        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-amber-500/30 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-amber-400" />
+              <p className="text-[10px] text-gray-400 font-bold uppercase">Mục doanh số năm</p>
+            </div>
+            <p className={`text-sm font-extrabold ${(totalRevenue / annualRevenueTarget) >= 1 ? 'text-emerald-300' : (totalRevenue / annualRevenueTarget) >= 0.7 ? 'text-amber-300' : 'text-rose-300'}`}>
+              {((totalRevenue / annualRevenueTarget) * 100).toFixed(1)}%
+            </p>
+          </div>
+          <Progress value={Math.min((totalRevenue / annualRevenueTarget) * 100, 100)} className="h-2 bg-gray-800 [&>div]:bg-gradient-to-r [&>div]:from-amber-500 [&>div]:to-emerald-400" />
+          <div className="flex justify-between text-[9px] text-gray-500 mt-1">
+            <span>Thực tế: {formatCurrency(totalRevenue)}</span>
+            <span>Mục tiêu: {formatCurrency(annualRevenueTarget)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 
