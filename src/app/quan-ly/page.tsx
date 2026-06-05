@@ -1642,8 +1642,45 @@ export default function QuanLyPage() {
   const totalFYP = contracts.reduce((s, c) => s + c.fyp, 0);
   const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
   const totalRecruiters = recruiters.length;
+
+  // Computed values from Revenue data (file doanh thu năm)
   const totalRevenue = revenue.reduce((s, r) => s + r.totalFYP, 0);
-  const totalAFYP = contracts.reduce((s, c) => s + c.afyp, 0);
+  const totalRevenueAFYP = revenue.reduce((s, r) => s + r.totalAFYP, 0);
+  const totalRevenueContractCount = revenue.reduce((s, r) => s + r.contractCount, 0);
+  const totalActivityRounds = revenue.reduce((s, r) => s + r.activityRounds, 0);
+
+  // Count unique TVV who achieved >= 3,000,000 in revenue (tổng lượt TVV hoạt được 3 triệu)
+  const tvvRevenueMap = new Map<string, number>();
+  for (const r of revenue) {
+    const current = tvvRevenueMap.get(r.agentCode) || 0;
+    tvvRevenueMap.set(r.agentCode, current + r.totalFYP);
+  }
+  const tvvAchieved3M = Array.from(tvvRevenueMap.values()).filter(v => v >= 3000000).length;
+
+  // Năng suất = tổng số lượng HĐ / tổng số lượt TVV hoạt được 3 triệu
+  const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
+
+  // Lượt HĐ chuẩn = tổng lượt HĐ từ file doanh thu
+  const luotHDChuan = totalActivityRounds;
+
+  // Target values from settings
+  const targetTongIP = parseFloat(onlineSettings['nmc-target-tong-ip'] || '0') || 0;
+  const targetTongAFYP = parseFloat(onlineSettings['nmc-target-tong-afyp'] || '0') || 0;
+  const targetTongSLHD = parseFloat(onlineSettings['nmc-target-tong-sl-hd'] || '0') || 0;
+  const targetLuotHDChuan = parseFloat(onlineSettings['nmc-target-luot-hd-chuan'] || '0') || 0;
+  const targetNangSuat = parseFloat(onlineSettings['nmc-target-nang-suat'] || '0') || 0;
+  const targetTVV3M = parseFloat(onlineSettings['nmc-target-tvv-3tr'] || '0') || 0;
+
+  // Edit state for indicator targets
+  const [editingTarget, setEditingTarget] = useState<string | null>(null);
+  const [targetInput, setTargetInput] = useState('');
+
+  const handleSaveTarget = useCallback((key: string) => {
+    const val = parseFloat(targetInput) || 0;
+    saveSetting(key, String(val));
+    setEditingTarget(null);
+    toast({ title: 'Đã lưu chỉ tiêu', description: `Mục tiêu: ${val > 0 ? formatNumber(val) : 'Chưa đặt'}` });
+  }, [targetInput, saveSetting]);
 
   // Overview KPI data sources
   const overviewDataSources: KPIDataSource[] = [
@@ -1692,8 +1729,7 @@ export default function QuanLyPage() {
     { id: 'ov-tb-tn', label: 'Trưởng Ban/Nhóm', dataSourceKey: 'leaders', field: 'salary', calculation: 'count', color: 'emerald' },
     { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'staff', field: 'agentCode', calculation: 'count', color: 'sky' },
     { id: 'ov-ntd', label: 'Người TD', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
-    { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'contracts', field: 'stt', calculation: 'count', color: 'amber' },
-    { id: 'ov-fyp', label: 'Tổng IP (HĐ)', dataSourceKey: 'contracts', field: 'fyp', calculation: 'sum', color: 'rose' },
+    { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'amber' },
     { id: 'ov-dt', label: 'Tổng DT', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'emerald' },
     { id: 'ov-luong', label: 'Tổng lương TN', dataSourceKey: 'leaders', field: 'salary', calculation: 'sum', color: 'sky' },
   ];
@@ -1710,13 +1746,76 @@ export default function QuanLyPage() {
     toast({ title: 'Đã lưu mục doanh số năm', description: formatCurrency(val) });
   }, [annualTargetInput, saveSetting]);
 
+  // Indicator card component for revenue-based KPIs
+  const IndicatorCard = ({ label, value, target, settingKey, formatType, icon }: {
+    label: string; value: number; target: number; settingKey: string;
+    formatType: 'currency' | 'number' | 'decimal'; icon: React.ElementType;
+  }) => {
+    const Icon = icon;
+    const isEditing = editingTarget === settingKey;
+    const pct = target > 0 ? Math.min((value / target) * 100, 100) : undefined;
+    const formatVal = () => {
+      if (formatType === 'currency') return formatCurrency(value);
+      if (formatType === 'decimal') return nangSuat.toFixed(1);
+      return formatNumber(value);
+    };
+    const formatTarget = () => {
+      if (formatType === 'currency') return formatCurrency(target);
+      if (formatType === 'decimal') return target.toFixed(1);
+      return formatNumber(target);
+    };
+
+    return (
+      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3" style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1.5">
+            <Icon className="w-3.5 h-3.5 text-white/80" />
+            <p className="text-white/80 text-[10px] font-bold">{label}</p>
+          </div>
+          <button
+            className="text-amber-400/60 hover:text-amber-300 text-[9px]"
+            onDoubleClick={() => { setEditingTarget(settingKey); setTargetInput(String(target || '')); }}
+            title="Nháy đúp để sửa chỉ tiêu"
+          >
+            <Edit2 className="w-2.5 h-2.5" />
+          </button>
+        </div>
+        <p className="text-white text-sm font-extrabold truncate">{formatVal()}</p>
+        {isEditing ? (
+          <div className="flex items-center gap-1 mt-1">
+            <Input
+              type="number"
+              value={targetInput}
+              onChange={(e) => setTargetInput(e.target.value)}
+              placeholder="Chỉ tiêu..."
+              className="h-5 text-[10px] bg-gray-800 border-amber-500/50 text-white flex-1"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }}
+              autoFocus
+            />
+            <Button onClick={() => handleSaveTarget(settingKey)} className="h-5 bg-amber-500/20 text-amber-300 text-[9px] px-1.5 py-0">Lưu</Button>
+          </div>
+        ) : target > 0 ? (
+          <div className="mt-1">
+            <div className="flex items-center justify-between text-[9px]">
+              <span className="text-gray-300">CT: {formatTarget()}</span>
+              <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
+            </div>
+            <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
+          </div>
+        ) : (
+          <p className="text-[9px] text-gray-500 mt-1">Nháy đúp ✏️ để đặt chỉ tiêu</p>
+        )}
+      </div>
+    );
+  };
+
   const renderOverview = () => (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan</h2>
       </div>
       {/* Annual Revenue Target */}
-      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3">
+      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-amber-500/30 rounded-lg p-3">
         <div className="flex items-center gap-3">
           <Target className="w-5 h-5 text-amber-400" />
           <div className="flex-1">
@@ -1767,6 +1866,25 @@ export default function QuanLyPage() {
           </div>
         )}
       </div>
+
+      {/* Revenue-based Indicators from doanh thu năm */}
+      <div>
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <IndicatorCard label="Tổng IP" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
+          <IndicatorCard label="Tổng AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
+          <IndicatorCard label="Tổng SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
+          <IndicatorCard label="Lượt HĐ chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={Hash} />
+          <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
+          <IndicatorCard label="TVV đạt 3tr" value={tvvAchieved3M} target={targetTVV3M} settingKey="nmc-target-tvv-3tr" formatType="number" icon={Users} />
+        </div>
+        <p className="text-[9px] text-gray-500 mt-1.5">
+          Năng suất = Tổng SL HĐ / Tổng lượt TVV hoạt được 3 triệu ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • Nháy đúp ✏️ để đặt chỉ tiêu
+        </p>
+      </div>
+
       {/* Custom KPI for Overview */}
       <KPISettingsPopover
         sectionKey="overview"

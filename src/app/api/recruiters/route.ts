@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Batch insert new recruiters, then update existing ones
+      // Only insert NEW recruiters — do NOT update existing ones to preserve manual edits
       let created = 0;
       try {
         const result = await db.recruiter.createMany({
@@ -110,33 +110,20 @@ export async function POST(request: NextRequest) {
         });
         created = result.count;
       } catch {
-        // Fallback if createMany fails
-      }
-
-      // Update existing records that were skipped
-      const existingCodes = new Set(
-        (await db.recruiter.findMany({
-          where: { agentCode: { in: recruiters.map(d => d.agentCode) } },
-          select: { agentCode: true },
-        })).map(r => r.agentCode)
-      );
-      let updated = 0;
-      for (const r of recruiters.filter(d => existingCodes.has(d.agentCode))) {
-        try {
-          await db.recruiter.update({
-            where: { agentCode: r.agentCode },
-            data: { nhom: r.nhom, agentName: r.agentName, position: r.position, startDate: r.startDate },
-          });
-          updated++;
-        } catch {
-          // Skip individual errors
+        // Fallback: try individual creates
+        for (const r of recruiters) {
+          try {
+            await db.recruiter.create({ data: r });
+            created++;
+          } catch {
+            // Skip duplicates or errors
+          }
         }
       }
 
-      const total = created + updated;
       return NextResponse.json({
-        message: `Đã nhập ${total} người tuyển dụng (mới: ${created}, cập nhật: ${updated})`,
-        count: total,
+        message: `Đã nhập ${created} người tuyển dụng mới (bỏ qua đã tồn tại)`,
+        count: created,
       });
     }
 
@@ -156,7 +143,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
-      // Step 1: Insert new records in one batch (skip existing agentCodes)
+      // Only insert NEW recruiters — do NOT update existing ones to preserve manual edits
       let created = 0;
       try {
         const result = await db.recruiter.createMany({
@@ -165,36 +152,20 @@ export async function POST(request: NextRequest) {
         });
         created = result.count;
       } catch {
-        // Fallback if createMany fails
-      }
-
-      // Step 2: Update existing records individually (only those that were skipped)
-      // Get existing agentCodes to find which need updating
-      const existingCodes = new Set(
-        (await db.recruiter.findMany({
-          where: { agentCode: { in: data.map(d => d.agentCode) } },
-          select: { agentCode: true },
-        })).map(r => r.agentCode)
-      );
-
-      let updated = 0;
-      const itemsToUpdate = data.filter(d => existingCodes.has(d.agentCode));
-      for (const item of itemsToUpdate) {
-        try {
-          await db.recruiter.update({
-            where: { agentCode: item.agentCode },
-            data: { nhom: item.nhom, agentName: item.agentName, position: item.position, startDate: item.startDate },
-          });
-          updated++;
-        } catch {
-          // Skip individual errors
+        // Fallback: try individual creates
+        for (const item of data) {
+          try {
+            await db.recruiter.create({ data: item });
+            created++;
+          } catch {
+            // Skip duplicates or errors
+          }
         }
       }
 
-      const total = created + updated;
       return NextResponse.json({
-        message: `Đã nhập ${total} người tuyển dụng (mới: ${created}, cập nhật: ${updated})`,
-        count: total,
+        message: `Đã nhập ${created} người tuyển dụng mới (bỏ qua đã tồn tại)`,
+        count: created,
       });
     }
 
