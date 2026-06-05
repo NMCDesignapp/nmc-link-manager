@@ -733,11 +733,18 @@ export default function ThiDuaPage() {
   }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
 
   // Filter MonthlyRevenue by contest date range (month range)
+  // Lấy TOÀN BỘ doanh số từ MonthlyRevenue (cả năm) — không lọc theo ngày thi đua
+  // Vì có chương trình dài hạn, doanh số phải lấy từ file doanh thu cả năm
   const filteredRevenueData = useMemo(() => {
-    if (!startDate && !endDate) return [];
-    const startMonth = startDate ? startDate.slice(0, 7) : '0000-00'; // "YYYY-MM"
-    const endMonth = endDate ? endDate.slice(0, 7) : '9999-99';
-    return revenueData.filter(r => r.month >= startMonth && r.month <= endMonth);
+    if (revenueData.length === 0) return [];
+    // Nếu có ngày thi đua, lọc theo tháng trong khoảng thi đua
+    if (startDate && endDate) {
+      const startMonth = startDate.slice(0, 7); // "YYYY-MM"
+      const endMonth = endDate.slice(0, 7);
+      return revenueData.filter(r => r.month >= startMonth && r.month <= endMonth);
+    }
+    // Không có ngày → lấy tất cả doanh số cả năm
+    return revenueData;
   }, [revenueData, startDate, endDate]);
 
   // Display revenue data with subject filter applied (for contest revenue calculations)
