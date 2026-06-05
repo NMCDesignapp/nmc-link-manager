@@ -245,3 +245,24 @@ Stage Summary:
 - UI: no more black streak, all solid readable colors
 - Spreadsheet data kept in localStorage (large, can migrate later)
 - Deployed at https://nc-link.vercel.app/quan-ly
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix sync error on thi-dua page - "column does not exist" when syncing doanh số
+
+Work Log:
+- Analyzed screenshot showing error: "prisma.contract.createMany() invocation: The column si does not exist in the current database"
+- Compared Prisma schema with actual database migrations
+- Found 22 columns in Prisma Contract model that were never migrated to the Neon database
+- Created migration 20260605000000_add_contract_columns with all missing columns
+- Applied migration directly to Neon database
+- Updated /api/sync route to map all CSV columns to new Contract fields (was only mapping ~15 columns, now maps all 33)
+- Pushed to GitHub - Vercel will auto-deploy with prisma migrate deploy in postinstall
+
+Stage Summary:
+- Root cause: Prisma schema was updated with new columns but database was never migrated
+- When Prisma tried createMany(), it generated SQL with columns that didn't exist in DB
+- Fixed by adding migration and applying it to Neon database
+- Migration columns: stt, maTruongBan, maBanNhom, maTruongBanNhom, maDL, ngayBatDauLamViec, pdt10DT, nguonDuLieu, hopDongToChuc, dkDongPhi, phiDongThem, afypChuaTru10DT, ad, nhom2, ngayBatDauLamViec2, thangTD, namTD, thangHL, tinhLuot3tr, maDaiLyTD, danhDauTVV, chucVu2
+- App URL: https://nc-link.vercel.app
