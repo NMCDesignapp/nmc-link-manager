@@ -1643,25 +1643,45 @@ export default function QuanLyPage() {
   const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
   const totalRecruiters = recruiters.length;
 
-  // Computed values from Revenue data (file doanh thu năm)
-  const totalRevenue = revenue.reduce((s, r) => s + r.totalFYP, 0);
-  const totalRevenueAFYP = revenue.reduce((s, r) => s + r.totalAFYP, 0);
-  const totalRevenueContractCount = revenue.reduce((s, r) => s + r.contractCount, 0);
-  const totalActivityRounds = revenue.reduce((s, r) => s + r.activityRounds, 0);
+  // Computed values from Contract data (file doanh thu năm)
+  // Use current year contracts for all calculations
+  const currentYear = new Date().getFullYear();
+  const yearContracts = contracts.filter(c => {
+    const d = new Date(c.effectiveDate);
+    return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+  });
 
-  // Count unique TVV who achieved >= 3,000,000 in revenue (tổng lượt TVV hoạt được 3 triệu)
-  const tvvRevenueMap = new Map<string, number>();
-  for (const r of revenue) {
-    const current = tvvRevenueMap.get(r.agentCode) || 0;
-    tvvRevenueMap.set(r.agentCode, current + r.totalFYP);
+  const totalRevenue = yearContracts.reduce((s, c) => s + c.pdt10DT, 0); // IP + 10% PĐT
+  const totalRevenueAFYP = yearContracts.reduce((s, c) => s + c.afyp, 0);
+  const totalRevenueContractCount = yearContracts.length; // Số lượng HĐ = số dòng
+
+  // Lượt hoạt động = số HĐ có TÍNH LƯỢT 3tr >= 3,000,000
+  const luotHoatDong = yearContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+  // Lượt chuẩn = số HĐ có TÍNH LƯỢT 3tr >= 12,000,000
+  const luotChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+
+  // TVV đạt 3tr = count unique agentCodes with tinhLuot3tr >= 3,000,000
+  const tvv3trSet = new Set<string>();
+  const tvv12trSet = new Set<string>();
+  for (const c of yearContracts) {
+    if (c.tinhLuot3tr >= 3000000 && c.agentCode) tvv3trSet.add(c.agentCode);
+    if (c.tinhLuot3tr >= 12000000 && c.agentCode) tvv12trSet.add(c.agentCode);
   }
-  const tvvAchieved3M = Array.from(tvvRevenueMap.values()).filter(v => v >= 3000000).length;
+  const tvvAchieved3M = tvv3trSet.size;
+  const tvvAchieved12M = tvv12trSet.size;
 
   // Năng suất = tổng số lượng HĐ / tổng số lượt TVV hoạt được 3 triệu
   const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
 
-  // Lượt HĐ chuẩn = tổng lượt HĐ từ file doanh thu
-  const luotHDChuan = totalActivityRounds;
+  // Lượt HĐ chuẩn
+  const luotHDChuan = luotChuan;
+
+  // NTD hoạt động: count unique maDaiLyTD that exist in recruiters
+  const ntdCodes = new Set(recruiters.map(r => r.agentCode));
+  const activeNTDCount = new Set<string>();
+  for (const c of yearContracts) {
+    if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTDCount.add(c.maDaiLyTD);
+  }
 
   // Target values from settings
   const targetTongIP = parseFloat(onlineSettings['nmc-target-tong-ip'] || '0') || 0;
@@ -1756,7 +1776,7 @@ export default function QuanLyPage() {
     const pct = target > 0 ? Math.min((value / target) * 100, 100) : undefined;
     const formatVal = () => {
       if (formatType === 'currency') return formatCurrency(value);
-      if (formatType === 'decimal') return nangSuat.toFixed(1);
+      if (formatType === 'decimal') return value.toFixed(1);
       return formatNumber(value);
     };
     const formatTarget = () => {
@@ -1870,18 +1890,21 @@ export default function QuanLyPage() {
       {/* Revenue-based Indicators from doanh thu năm */}
       <div>
         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm
+          <TrendingUp className="w-3 h-3" /> Chỉ tiêu từ doanh thu năm {currentYear}
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          <IndicatorCard label="Tổng IP" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
-          <IndicatorCard label="Tổng AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
-          <IndicatorCard label="Tổng SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
-          <IndicatorCard label="Lượt HĐ chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={Hash} />
-          <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2">
+          <IndicatorCard label="SL HĐ" value={totalRevenueContractCount} target={targetTongSLHD} settingKey="nmc-target-tong-sl-hd" formatType="number" icon={FileText} />
+          <IndicatorCard label="IP + 10% PĐT" value={totalRevenue} target={targetTongIP} settingKey="nmc-target-tong-ip" formatType="currency" icon={DollarSign} />
+          <IndicatorCard label="AFYP" value={totalRevenueAFYP} target={targetTongAFYP} settingKey="nmc-target-tong-afyp" formatType="currency" icon={DollarSign} />
+          <IndicatorCard label="Lượt hoạt động" value={luotHoatDong} target={0} settingKey="nmc-target-luot-hd" formatType="number" icon={Hash} />
+          <IndicatorCard label="Lượt chuẩn" value={luotHDChuan} target={targetLuotHDChuan} settingKey="nmc-target-luot-hd-chuan" formatType="number" icon={CheckCircle2} />
           <IndicatorCard label="TVV đạt 3tr" value={tvvAchieved3M} target={targetTVV3M} settingKey="nmc-target-tvv-3tr" formatType="number" icon={Users} />
+          <IndicatorCard label="TVV đạt 12tr" value={tvvAchieved12M} target={0} settingKey="nmc-target-tvv-12tr" formatType="number" icon={Users} />
+          <IndicatorCard label="Năng suất" value={nangSuat} target={targetNangSuat} settingKey="nmc-target-nang-suat" formatType="decimal" icon={TrendingUp} />
+          <IndicatorCard label="NTD hoạt động" value={activeNTDCount.size} target={0} settingKey="nmc-target-ntd" formatType="number" icon={UserCircle} />
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          Năng suất = Tổng SL HĐ / Tổng lượt TVV hoạt được 3 triệu ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • Nháy đúp ✏️ để đặt chỉ tiêu
+          Lượt hoạt động: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • Năng suất = SL HĐ / TVV 3tr ({formatNumber(totalRevenueContractCount)} / {formatNumber(tvvAchieved3M)} = {nangSuat.toFixed(2)}) • NTD: {activeNTDCount.size} • Nháy đúp ✏️ để đặt chỉ tiêu
         </p>
       </div>
 
@@ -2029,300 +2052,203 @@ export default function QuanLyPage() {
     );
   };
 
-  // ========== RENDER: Revenue with sub-tabs ==========
-  const REVENUE_COLUMNS = [
-    { f: 'month', l: 'Tháng', type: 'text' as const },
-    { f: 'maNhom', l: 'Mã nhóm', type: 'text' as const },
+  // ========== RENDER: Revenue with sub-tabs (Contract-based, matching Excel template) ==========
+  // Columns matching the uploaded "Tháng 1.xlsx" template
+  const CONTRACT_TABLE_COLUMNS = [
+    { f: 'ban', l: 'Ban', type: 'text' as const },
+    { f: 'maTruongBan', l: 'Mã trưởng ban', type: 'text' as const },
     { f: 'nhom', l: 'Nhóm', type: 'text' as const },
-    { f: 'agentCode', l: 'Mã TVV', type: 'text' as const },
-    { f: 'agentName', l: 'Tên TVV', type: 'text' as const },
-    { f: 'totalFYP', l: 'Tổng IP', type: 'number' as const },
-    { f: 'totalAFYP', l: 'Tổng AFYP', type: 'number' as const },
-    { f: 'contractCount', l: 'Số HĐ', type: 'number' as const },
-    { f: 'activityRounds', l: 'Lượt HĐ', type: 'number' as const },
-    { f: 'note', l: 'Ghi chú', type: 'text' as const },
+    { f: 'maBanNhom', l: 'Mã Ban/Nhóm', type: 'text' as const },
+    { f: 'maTruongBanNhom', l: 'Mã trưởng Ban/Nhóm', type: 'text' as const },
+    { f: 'maDL', l: 'Mã ĐL', type: 'text' as const },
+    { f: 'agentName', l: 'Tên', type: 'text' as const },
+    { f: 'position', l: 'Chức vụ', type: 'text' as const },
+    { f: 'ngayBatDauLamViec', l: 'Ngày bắt đầu LV', type: 'date' as const },
+    { f: 'contractNumber', l: 'Số HĐ', type: 'text' as const },
+    { f: 'effectiveDate', l: 'Ngày hiệu lực', type: 'date' as const },
+    { f: 'issueDate', l: 'Ngày phát hành', type: 'date' as const },
+    { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
+    { f: 'afyp', l: 'AFYP', type: 'number' as const },
+    { f: 'ad', l: 'AD', type: 'text' as const },
+    { f: 'ngayBatDauLamViec2', l: 'Ngày bắt đầu LV 2', type: 'date' as const },
+    { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3tr', type: 'number' as const },
+    { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
+    { f: 'chucVu2', l: 'Chức vụ 2', type: 'text' as const },
   ];
 
   const renderRevenue = () => {
     const currentYear = new Date().getFullYear();
-    // Filter revenue by selected month
-    const filteredRevenue = revenueSub === 'all'
-      ? revenue
-      : revenue.filter(r => r.month === `${currentYear}-${revenueSub}` || r.month.endsWith(`-${revenueSub}`));
-
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
-    if (revenueSub === 'all') {
-      // ========== CẢ NĂM: Auto-aggregate from all months ==========
-      // Aggregate by agentCode
-      const agentAgg = new Map<string, { agentCode: string; agentName: string; maNhom: string; nhom: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number }>();
-      for (const r of revenue) {
-        const key = r.agentCode || r.agentName;
-        if (!key) continue;
-        const existing = agentAgg.get(key);
-        if (existing) {
-          existing.totalFYP += r.totalFYP;
-          existing.totalAFYP += r.totalAFYP;
-          existing.contractCount += r.contractCount;
-          existing.activityRounds += r.activityRounds;
-        } else {
-          agentAgg.set(key, { agentCode: r.agentCode, agentName: r.agentName, maNhom: r.maNhom, nhom: r.nhom, totalFYP: r.totalFYP, totalAFYP: r.totalAFYP, contractCount: r.contractCount, activityRounds: r.activityRounds });
-        }
-      }
-      const aggregatedAgents = Array.from(agentAgg.values()).sort((a, b) => b.totalFYP - a.totalFYP);
+    // Filter contracts by selected month (based on effectiveDate)
+    const filteredContracts = revenueSub === 'all'
+      ? contracts.filter(c => {
+          const d = new Date(c.effectiveDate);
+          return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+        })
+      : contracts.filter(c => {
+          const d = new Date(c.effectiveDate);
+          if (isNaN(d.getTime())) return false;
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          return d.getFullYear() === currentYear && m === revenueSub;
+        });
 
-      // Monthly breakdown summary
-      const monthlyFYP = new Map<string, number>();
-      const monthlyAFYP = new Map<string, number>();
-      const monthlyContracts = new Map<string, number>();
-      const monthlyRounds = new Map<string, number>();
-      for (const r of revenue) {
-        const m = r.month;
-        monthlyFYP.set(m, (monthlyFYP.get(m) || 0) + r.totalFYP);
-        monthlyAFYP.set(m, (monthlyAFYP.get(m) || 0) + r.totalAFYP);
-        monthlyContracts.set(m, (monthlyContracts.get(m) || 0) + r.contractCount);
-        monthlyRounds.set(m, (monthlyRounds.get(m) || 0) + r.activityRounds);
-      }
-      const sortedMonths = Array.from(monthlyFYP.keys()).sort();
+    const sortedContracts = getFiltered(getSorted(filteredContracts), ['agentCode', 'agentName', 'nhom', 'ban', 'contractNumber', 'maDaiLyTD']);
 
-      const totalAllFYP = aggregatedAgents.reduce((s, a) => s + a.totalFYP, 0);
-      const totalAllAFYP = aggregatedAgents.reduce((s, a) => s + a.totalAFYP, 0);
-      const totalAllContracts = aggregatedAgents.reduce((s, a) => s + a.contractCount, 0);
-      const totalAllRounds = aggregatedAgents.reduce((s, a) => s + a.activityRounds, 0);
+    // Calculate KPIs from contracts (TÍNH LƯỢT 3tr column)
+    const soLuongHD = sortedContracts.length;
+    const tongIP = sortedContracts.reduce((s, c) => s + c.pdt10DT, 0);
+    const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
+    const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+    const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+    // TVV đạt 3tr: count unique agentCodes with tinhLuot3tr >= 3,000,000
+    const tvv3trSet = new Set<string>();
+    const tvv12trSet = new Set<string>();
+    for (const c of sortedContracts) {
+      if (c.tinhLuot3tr >= 3000000 && c.agentCode) tvv3trSet.add(c.agentCode);
+      if (c.tinhLuot3tr >= 12000000 && c.agentCode) tvv12trSet.add(c.agentCode);
+    }
+    const tvvDat3tr = tvv3trSet.size;
+    const tvvDat12tr = tvv12trSet.size;
+    // Năng suất = Tổng SL HĐ / Tổng TVV hoạt được 3 triệu
+    const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
 
-      return (
-        <div>
-          {/* Sub-tabs for months */}
-          <div className="flex items-center gap-1 mb-3 flex-wrap">
-            <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-            {MONTHS.map(m => (
-              <button
-                key={m.key}
-                onClick={() => setRevenueSub(m.key)}
-                className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
-                  revenueSub === m.key
-                    ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
-                    : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
-                }`}
-              >
-                {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
-                {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Auto-aggregate notice */}
-          <div className="bg-emerald-800/60 backdrop-blur-sm border border-emerald-500/30 rounded-lg p-3 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-            <div>
-              <p className="text-emerald-200 text-xs font-bold">Tổng hợp tự động từ 12 tháng</p>
-              <p className="text-emerald-300 text-[10px]">Dữ liệu chỉ đọc — được tính tự động từ bảng Doanh thu hàng tháng</p>
-            </div>
-          </div>
-
-          {/* Summary KPI cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            <div className="bg-amber-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-amber-500/30">
-              <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng IP</span></div>
-              <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllFYP)}</p>
-            </div>
-            <div className="bg-amber-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-amber-500/30">
-              <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng AFYP</span></div>
-              <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllAFYP)}</p>
-            </div>
-            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-emerald-500/30">
-              <div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Số HĐ</span></div>
-              <p className="text-sm font-extrabold text-white">{formatNumber(totalAllContracts)}</p>
-            </div>
-            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-lg p-3 text-center border border-emerald-500/30">
-              <div className="flex items-center justify-center gap-1 mb-1"><Hash className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Lượt HĐ</span></div>
-              <p className="text-sm font-extrabold text-white">{formatNumber(totalAllRounds)}</p>
-            </div>
-          </div>
-
-          {/* Monthly breakdown cards */}
-          {sortedMonths.length > 0 && (
-            <div className="mb-3">
-              <h3 className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Tổng hợp theo tháng</h3>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
-                {sortedMonths.map(m => {
-                  const fyp = monthlyFYP.get(m) || 0;
-                  const afyp = monthlyAFYP.get(m) || 0;
-                  const cc = monthlyContracts.get(m) || 0;
-                  const ar = monthlyRounds.get(m) || 0;
-                  return (
-                    <div key={m} className="bg-emerald-800/60 rounded-md p-2 border border-emerald-600/40 text-center">
-                      <p className="text-[10px] font-bold text-emerald-300 mb-1">{m}</p>
-                      <p className="text-xs font-extrabold text-amber-200">{formatCurrency(fyp)}</p>
-                      <p className="text-[9px] text-gray-400">{formatNumber(cc)} HĐ • {formatNumber(ar)} lượt</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Aggregated summary table by TVV */}
-          <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng tổng hợp theo TVV — Cả năm ({aggregatedAgents.length} TVV)</h3>
-          <div className="overflow-auto max-h-[calc(100vh-280px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
-            <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full">
-              <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
-                <tr>
-                  {[
-                    { label: 'Mã TVV', align: 'left' },
-                    { label: 'Tên TVV', align: 'left' },
-                    { label: 'Mã nhóm', align: 'left' },
-                    { label: 'Nhóm', align: 'left' },
-                    { label: 'Tổng IP', align: 'right' },
-                    { label: 'Tổng AFYP', align: 'right' },
-                    { label: 'Tổng Số HĐ', align: 'right' },
-                    { label: 'Tổng Lượt HĐ', align: 'right' },
-                  ].map((h, i) => (
-                    <th
-                      key={i}
-                      className={`px-3 py-2.5 whitespace-nowrap text-[11px] font-bold text-white ${h.align === 'right' ? 'text-right' : 'text-left'}`}
-                      style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}
-                    >
-                      {h.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {aggregatedAgents.map((a, idx) => (
-                  <tr key={a.agentCode || a.agentName} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
-                    <td className="text-xs py-2 px-3 text-emerald-300/80 whitespace-nowrap font-mono">{a.agentCode || '—'}</td>
-                    <td className="text-xs py-2 px-3 text-white whitespace-nowrap font-medium">{a.agentName || '—'}</td>
-                    <td className="text-xs py-2 px-3 text-white/70 whitespace-nowrap">{a.maNhom || '—'}</td>
-                    <td className="text-xs py-2 px-3 text-white/70 whitespace-nowrap">{a.nhom || '—'}</td>
-                    <td className="text-xs py-2 px-3 text-amber-300 text-right font-mono font-semibold">{formatNumber(a.totalFYP)}</td>
-                    <td className="text-xs py-2 px-3 text-amber-300/80 text-right font-mono">{formatNumber(a.totalAFYP)}</td>
-                    <td className="text-xs py-2 px-3 text-white/70 text-right font-mono">{formatNumber(a.contractCount)}</td>
-                    <td className="text-xs py-2 px-3 text-white/70 text-right font-mono">{formatNumber(a.activityRounds)}</td>
-                  </tr>
-                ))}
-                {aggregatedAgents.length === 0 && (
-                  <tr><td colSpan={8} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu hàng tháng</td></tr>
-                )}
-                {/* Totals row — sticky at bottom */}
-                {aggregatedAgents.length > 0 && (
-                  <tr className="sticky bottom-0 bg-emerald-500/10 font-bold border-t-2 border-emerald-500/30">
-                    <td className="text-xs py-2.5 px-3 text-amber-300 font-bold" colSpan={4} style={{ textShadow: '0 0 6px rgba(251,191,36,0.3)' }}>TỔNG CỘNG</td>
-                    <td className="text-xs py-2.5 px-3 text-amber-300 text-right font-mono font-bold">{formatNumber(totalAllFYP)}</td>
-                    <td className="text-xs py-2.5 px-3 text-amber-300 text-right font-mono font-bold">{formatNumber(totalAllAFYP)}</td>
-                    <td className="text-xs py-2.5 px-3 text-white/70 text-right font-mono font-bold">{formatNumber(totalAllContracts)}</td>
-                    <td className="text-xs py-2.5 px-3 text-white/70 text-right font-mono font-bold">{formatNumber(totalAllRounds)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
+    // NTD count: count unique maDaiLyTD that exist in recruiters
+    const ntdCodes = new Set(recruiters.map(r => r.agentCode));
+    const activeNTD = new Set<string>();
+    for (const c of sortedContracts) {
+      if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTD.add(c.maDaiLyTD);
     }
 
-    // ========== MONTHLY TAB: Show editable MonthlyRevenue table ==========
-    const sortedRevenue = getSorted(getFiltered(filteredRevenue, ['agentCode', 'agentName', 'nhom', 'maNhom', 'month']));
+    // Month sub-tabs component
+    const monthTabs = (
+      <div className="flex items-center gap-1 mb-3 flex-wrap">
+        <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
+        {MONTHS.map(m => (
+          <button
+            key={m.key}
+            onClick={() => setRevenueSub(m.key)}
+            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
+              revenueSub === m.key
+                ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
+            }`}
+          >
+            {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+            {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
+          </button>
+        ))}
+      </div>
+    );
+
+    // KPI summary cards
+    const kpiCards = (
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 mb-3">
+        {[
+          { label: 'Số lượng HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
+          { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
+          { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
+          { label: 'Lượt hoạt động', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
+          { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
+          { label: 'TVV đạt 3tr', value: formatNumber(tvvDat3tr), color: 'bg-emerald-500/20 border-emerald-500/30', icon: Users },
+          { label: 'TVV đạt 12tr', value: formatNumber(tvvDat12tr), color: 'bg-amber-500/20 border-amber-500/30', icon: Users },
+          { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
+          { label: 'NTD hoạt động', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30', icon: UserCircle },
+        ].map((kpi, i) => (
+          <div key={i} className={`${kpi.color} rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+            <div className="flex items-center gap-1 mb-0.5"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[9px] font-bold">{kpi.label}</p></div>
+            <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
+          </div>
+        ))}
+      </div>
+    );
 
     return (
       <div>
-        {/* Sub-tabs for months */}
-        <div className="flex items-center gap-1 mb-3 flex-wrap">
-          <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-          {MONTHS.map(m => (
-            <button
-              key={m.key}
-              onClick={() => setRevenueSub(m.key)}
-              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
-                revenueSub === m.key
-                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
-                  : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
-              }`}
-            >
-              {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
-              {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
-            </button>
-          ))}
-        </div>
+        {monthTabs}
+        {kpiCards}
 
-        {/* Custom KPI for Revenue */}
-        <KPISettingsPopover
-          sectionKey={`revenue-${revenueSub}`}
-          sectionLabel={`Doanh thu - ${monthLabel}`}
-          onlineSettings={onlineSettings}
-          saveSetting={saveSetting}
-          dataSources={[
-            {
-              key: 'revenue',
-              label: 'Doanh số',
-              data: filteredRevenue,
-              fields: [
-                { key: 'totalFYP', label: 'Tổng IP', type: 'number' },
-                { key: 'totalAFYP', label: 'Tổng AFYP', type: 'number' },
-                { key: 'contractCount', label: 'Số HĐ', type: 'number' },
-                { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
-              ],
-            },
-          ]}
-          defaultConfigs={[
-            { id: 'kpi-default-fyp', label: 'Tổng IP (FYP)', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'amber' },
-            { id: 'kpi-default-afyp', label: 'Tổng AFYP', dataSourceKey: 'revenue', field: 'totalAFYP', calculation: 'sum', color: 'amber' },
-            { id: 'kpi-default-count', label: 'Số HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'emerald' },
-            { id: 'kpi-default-rounds', label: 'Lượt HĐ', dataSourceKey: 'revenue', field: 'activityRounds', calculation: 'sum', color: 'emerald' },
-          ]}
-        />
-
-        {/* MonthlyRevenue table */}
-        <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng doanh thu — {monthLabel} ({sortedRevenue.length} dòng)</h3>
+        {/* Contract table matching Excel template */}
+        <h3 className="text-sm font-bold text-amber-300 mb-2">
+          {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
+        </h3>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <Button onClick={addRevenue} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm dòng</Button>
-          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DS<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
-          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DS</Button>
+          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-auto max-h-[calc(100vh-280px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
-          <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full">
+        <div className="overflow-auto max-h-[calc(100vh-320px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+          <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full min-w-[1800px]">
             <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
               <tr>
-                {REVENUE_COLUMNS.map(col => (
+                {/* STT column - auto-numbered */}
+                <th className="px-2 py-2 text-[10px] font-bold text-white text-center whitespace-nowrap w-[40px]" style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}>STT</th>
+                {CONTRACT_TABLE_COLUMNS.map(col => (
                   <th
                     key={col.f}
-                    className="px-3 py-2.5 whitespace-nowrap text-[11px] font-bold text-white cursor-pointer hover:text-amber-300 transition-colors"
+                    className="px-2 py-2 whitespace-nowrap text-[10px] font-bold text-white cursor-pointer hover:text-amber-300 transition-colors"
                     style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}
                     onClick={() => sortData(col.f)}
                   >
                     {col.l} <SortIcon field={col.f} />
                   </th>
                 ))}
-                <th className="px-1 py-2.5 w-[36px]"></th>
+                <th className="px-1 py-2 w-[36px]"></th>
               </tr>
             </thead>
             <tbody>
-              {sortedRevenue.slice(0, 200).map((r, idx) => (
-                <tr key={r.id} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
-                  {REVENUE_COLUMNS.map(col => (
-                    <td key={col.f} className="text-xs py-1 px-0">
-                      <EditableCell
-                        value={col.type === 'number' ? (r as any)[col.f] : (r as any)[col.f] || ''}
-                        onSave={(v) => updateRevenue(r.id, col.f, v)}
-                        type={col.type}
-                        className={col.type === 'number' ? 'text-right' : ''}
-                      />
+              {sortedContracts.slice(0, 500).map((c, idx) => (
+                <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
+                  {/* Auto STT */}
+                  <td className="text-[10px] py-1 px-2 text-gray-400 text-center">{idx + 1}</td>
+                  {CONTRACT_TABLE_COLUMNS.map(col => (
+                    <td key={col.f} className="text-[10px] py-1 px-1">
+                      {col.type === 'number' ? (
+                        <span className={`block px-1 text-right font-mono ${(c as any)[col.f] > 0 ? 'text-amber-300' : 'text-gray-600'}`}>
+                          {(c as any)[col.f] > 0 ? formatNumber((c as any)[col.f]) : '—'}
+                        </span>
+                      ) : col.type === 'date' ? (
+                        <span className="block px-1 text-white/70 whitespace-nowrap">{formatDateDisplay((c as any)[col.f])}</span>
+                      ) : (
+                        <span className="block px-1 text-white/90 whitespace-nowrap truncate max-w-[120px]" title={String((c as any)[col.f] || '')}>{String((c as any)[col.f] || '—')}</span>
+                      )}
                     </td>
                   ))}
-                  <td className="text-xs py-1 px-1">
-                    <Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                  <td className="text-[10px] py-1 px-1">
+                    <Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </td>
                 </tr>
               ))}
-              {sortedRevenue.length === 0 && (
-                <tr><td colSpan={REVENUE_COLUMNS.length + 1} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu tháng này</td></tr>
+              {sortedContracts.length === 0 && (
+                <tr><td colSpan={CONTRACT_TABLE_COLUMNS.length + 2} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu hợp đồng tháng này</td></tr>
+              )}
+              {/* Totals row - sticky bottom */}
+              {sortedContracts.length > 0 && (
+                <tr className="sticky bottom-0 bg-emerald-500/10 font-bold border-t-2 border-emerald-500/30">
+                  <td className="text-[10px] py-2 px-2 text-amber-300 font-bold text-center" colSpan={1}>Σ</td>
+                  <td className="text-[10px] py-2 px-2 text-amber-300 font-bold" colSpan={6}>TỔNG CỘNG ({soLuongHD} HĐ)</td>
+                  <td className="text-[10px] py-2 px-2 text-gray-400" colSpan={5}></td>
+                  {/* IP + 10% PĐT total */}
+                  <td className="text-[10px] py-2 px-1 text-amber-300 text-right font-mono font-bold">{formatNumber(tongIP)}</td>
+                  {/* AFYP total */}
+                  <td className="text-[10px] py-2 px-1 text-amber-300 text-right font-mono font-bold">{formatNumber(tongAFYP)}</td>
+                  <td className="text-[10px] py-2 px-2 text-gray-400" colSpan={2}></td>
+                  {/* TÍNH LƯỢT 3tr summary */}
+                  <td className="text-[10px] py-2 px-1 text-violet-300 text-right font-mono font-bold" title={`HD: ${luotHoatDong} | Chuẩn: ${luotChuan}`}>
+                    {luotHoatDong}/{luotChuan}
+                  </td>
+                  <td className="text-[10px] py-2 px-2 text-gray-400" colSpan={2}></td>
+                  <td className="text-[10px] py-2 px-1"></td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
+        <p className="text-[9px] text-gray-500 mt-1.5">
+          Lượt hoạt động: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • TVV đạt 3tr: {tvvDat3tr} • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
+        </p>
       </div>
     );
   };
