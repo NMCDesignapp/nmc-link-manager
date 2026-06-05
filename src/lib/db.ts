@@ -4,12 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+// Ensure we use the Neon PostgreSQL URL, not any SQLite override from env
+const databaseUrl = process.env.DATABASE_URL?.startsWith('file:') 
+  ? process.env.DIRECT_URL || process.env.DATABASE_URL 
+  : process.env.DATABASE_URL
+
 // Create Prisma client with proper settings for Neon PostgreSQL
 export const db = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: databaseUrl,
     },
   },
 })
