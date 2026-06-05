@@ -371,12 +371,13 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
 }
 
 // ==================== KPI SETTINGS POPOVER ====================
-function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs, onlineSettings, saveSetting }: {
+function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs, onlineSettings, saveSetting, annualTarget }: {
   sectionKey: string; sectionLabel: string;
   dataSources: KPIDataSource[];
   defaultConfigs?: KPIConfig[];
   onlineSettings: Record<string, string>;
   saveSetting: (key: string, value: string) => Promise<void>;
+  annualTarget?: number; // Shared annual revenue target for all KPIs in this section
 }) {
   const [configs, setConfigs] = useState<KPIConfig[]>([]);
   const [open, setOpen] = useState(false);
@@ -468,7 +469,9 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {configs.map(config => {
             const actual = calculateKPI(config);
-            const pct = config.target ? Math.min((actual / config.target) * 100, 100) : undefined;
+            // Use annualTarget as fallback target if provided, otherwise use per-KPI target
+            const effectiveTarget = (annualTarget && annualTarget > 0) ? annualTarget : (config.target && config.target > 0 ? config.target : undefined);
+            const pct = effectiveTarget ? Math.min((actual / effectiveTarget) * 100, 100) : undefined;
             const ds = dataSources.find(d => d.key === config.dataSourceKey);
             const fieldLabel = ds?.fields.find(f => f.key === config.field)?.label || config.field;
             const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
@@ -480,10 +483,10 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
                   <span className="text-gray-300 text-[8px]">{calcLabel} {fieldLabel}</span>
                 </div>
                 <p className="text-white text-sm font-extrabold truncate">{formatKPIValue(actual)}</p>
-                {config.target && config.target > 0 && (
+                {effectiveTarget && effectiveTarget > 0 && (
                   <div className="mt-1">
                     <div className="flex items-center justify-between text-[9px]">
-                      <span className="text-gray-300">Mục tiêu: {formatKPIValue(config.target)}</span>
+                      <span className="text-gray-300">Mục tiêu: {formatKPIValue(effectiveTarget)}{(annualTarget && annualTarget > 0) ? ' (năm)' : ''}</span>
                       <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
                     </div>
                     <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
@@ -1036,17 +1039,25 @@ export default function QuanLyPage() {
 
   const saveSetting = useCallback(async (key: string, value: string) => {
     // Optimistic update
+    const prevValue = onlineSettings[key];
     setOnlineSettings(prev => ({ ...prev, [key]: value }));
     try {
-      await fetch('/api/settings', {
+      const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value }),
       });
+      if (!r.ok) {
+        // Revert on server error
+        setOnlineSettings(prev => ({ ...prev, [key]: prevValue }));
+        toast({ title: 'Lỗi lưu cài đặt', description: `Máy chủ trả về lỗi ${r.status}`, variant: 'destructive' });
+      }
     } catch {
+      // Revert on network error
+      setOnlineSettings(prev => ({ ...prev, [key]: prevValue }));
       toast({ title: 'Lỗi lưu online', description: 'Không thể kết nối máy chủ', variant: 'destructive' });
     }
-  }, []);
+  }, [onlineSettings]);
 
   // syncEnabled now derived from onlineSettings
   const [syncEnabled, setSyncEnabled] = useState(true);
@@ -1687,10 +1698,74 @@ export default function QuanLyPage() {
     { id: 'ov-luong', label: 'Tổng lương TN', dataSourceKey: 'leaders', field: 'salary', calculation: 'sum', color: 'sky' },
   ];
 
+  // Annual revenue target (Mục doanh số năm) — shared across all overview KPIs
+  const annualRevenueTarget = parseFloat(onlineSettings['nmc-annual-revenue-target'] || '0') || 0;
+  const [editingAnnualTarget, setEditingAnnualTarget] = useState(false);
+  const [annualTargetInput, setAnnualTargetInput] = useState('');
+
+  const handleSaveAnnualTarget = useCallback(() => {
+    const val = parseFloat(annualTargetInput) || 0;
+    saveSetting('nmc-annual-revenue-target', String(val));
+    setEditingAnnualTarget(false);
+    toast({ title: 'Đã lưu mục doanh số năm', description: formatCurrency(val) });
+  }, [annualTargetInput, saveSetting]);
+
   const renderOverview = () => (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan</h2>
+      </div>
+      {/* Annual Revenue Target */}
+      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3">
+        <div className="flex items-center gap-3">
+          <Target className="w-5 h-5 text-amber-400" />
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Mục doanh số năm</p>
+            {editingAnnualTarget ? (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  value={annualTargetInput}
+                  onChange={(e) => setAnnualTargetInput(e.target.value)}
+                  placeholder="Nhập mục doanh số năm..."
+                  className="h-7 text-sm bg-gray-800 border-amber-500/50 text-white flex-1"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveAnnualTarget(); if (e.key === 'Escape') setEditingAnnualTarget(false); }}
+                  autoFocus
+                />
+                <Button onClick={handleSaveAnnualTarget} className="h-7 bg-amber-600 hover:bg-amber-700 text-white text-xs px-3">Lưu</Button>
+                <Button onClick={() => setEditingAnnualTarget(false)} variant="ghost" className="h-7 text-gray-400 text-xs px-2">Hủy</Button>
+              </div>
+            ) : (
+              <div
+                className="cursor-pointer mt-1 flex items-center gap-2"
+                onDoubleClick={() => { setEditingAnnualTarget(true); setAnnualTargetInput(String(annualRevenueTarget || '')); }}
+                title="Nháy đúp để sửa"
+              >
+                <p className="text-xl font-extrabold text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
+                  {annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : 'Chưa đặt mục tiêu'}
+                </p>
+                <Edit2 className="w-3 h-3 text-amber-400/50" />
+              </div>
+            )}
+          </div>
+          {annualRevenueTarget > 0 && totalRevenue > 0 && (
+            <div className="text-right">
+              <p className="text-[10px] text-gray-400">Đạt được</p>
+              <p className={`text-lg font-extrabold ${(totalRevenue / annualRevenueTarget) >= 1 ? 'text-emerald-300' : (totalRevenue / annualRevenueTarget) >= 0.7 ? 'text-amber-300' : 'text-rose-300'}`}>
+                {((totalRevenue / annualRevenueTarget) * 100).toFixed(1)}%
+              </p>
+            </div>
+          )}
+        </div>
+        {annualRevenueTarget > 0 && (
+          <div className="mt-2">
+            <Progress value={Math.min((totalRevenue / annualRevenueTarget) * 100, 100)} className="h-2 bg-gray-800 [&>div]:bg-gradient-to-r [&>div]:from-amber-500 [&>div]:to-emerald-400" />
+            <div className="flex justify-between text-[9px] text-gray-500 mt-1">
+              <span>Thực tế: {formatCurrency(totalRevenue)}</span>
+              <span>Mục tiêu: {formatCurrency(annualRevenueTarget)}</span>
+            </div>
+          </div>
+        )}
       </div>
       {/* Custom KPI for Overview */}
       <KPISettingsPopover
@@ -1700,6 +1775,7 @@ export default function QuanLyPage() {
         defaultConfigs={overviewDefaultKPIs}
         onlineSettings={onlineSettings}
         saveSetting={saveSetting}
+        annualTarget={annualRevenueTarget}
       />
     </div>
   );
@@ -2170,7 +2246,7 @@ export default function QuanLyPage() {
               const childCount = adList.filter(a => a.maPhong === p.maPhong).length;
               const isSelected = selectedPhong === p.id;
               return (
-                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
+                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-600 border border-emerald-400' : 'bg-emerald-700/50 hover:bg-emerald-600/50 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
                     <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
@@ -2205,7 +2281,7 @@ export default function QuanLyPage() {
               const childCount = banNhomList.filter(b => b.maAD === a.maAD).length;
               const isSelected = selectedAD === a.id;
               return (
-                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
+                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-600 border border-amber-400' : 'bg-amber-700/30 hover:bg-amber-600/30 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
                     <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
@@ -2244,7 +2320,7 @@ export default function QuanLyPage() {
               const childCount = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom).length;
               const isSelected = selectedBanNhom === b.id;
               return (
-                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all neon-sweep ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
+                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-600 border border-sky-400' : 'bg-sky-700/30 hover:bg-sky-600/30 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
                     <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
@@ -2280,7 +2356,7 @@ export default function QuanLyPage() {
               const bn = banNhomList.find(b => b.id === selectedBanNhom);
               return bn && t.maBanNhom === bn.maBanNhom;
             }).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent neon-sweep">
+              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-700/30 hover:bg-violet-600/30 border border-transparent">
                 <div className="min-w-0 flex-1">
                   <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
                   <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
@@ -2554,10 +2630,10 @@ export default function QuanLyPage() {
               const isActive = activeSheet === sheet.key;
               const isExpanded = sheet.hasSub && revenueExpanded && activeSheet === 'revenue';
               return (
-                <div key={sheet.key} className="stagger-item" style={{ animationDelay: `${index * 0.05}s` }}>
+                <div key={sheet.key}>
                   <button
                     onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors neon-sweep glow-hover ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                       isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 neon-glow' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                     }`}
                   >
@@ -2575,7 +2651,7 @@ export default function QuanLyPage() {
                         <button
                           key={m.key}
                           onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); }}
-                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors neon-sweep glow-hover ${
+                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
                             revenueSub === m.key ? 'bg-emerald-500/20 text-emerald-300' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                           }`}
                         >
@@ -2594,7 +2670,7 @@ export default function QuanLyPage() {
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 page-transition">
+        <main className="flex-1 overflow-y-auto p-4">
           {renderSheet()}
         </main>
       </div>

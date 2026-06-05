@@ -24,7 +24,7 @@ export async function GET() {
       orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
     });
     return NextResponse.json(recruiters, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('Error fetching recruiters:', error);
@@ -50,9 +50,8 @@ export async function POST(request: NextRequest) {
       csvData?: string;
     };
 
-    // CSV import mode
+    // CSV import mode — use upsert by agentCode to preserve manual edits
     if (csvData) {
-      await db.recruiter.deleteMany();
       const lines = csvData.split('\n').filter((line: string) => line.trim() !== '');
       const dataLines = lines.slice(1); // Skip header
 
@@ -102,20 +101,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await db.recruiter.createMany({
-        data: recruiters,
-        skipDuplicates: true,
-      });
+      // Upsert each recruiter by agentCode to preserve manual edits
+      let upserted = 0;
+      for (const r of recruiters) {
+        try {
+          await db.recruiter.upsert({
+            where: { agentCode: r.agentCode },
+            update: { nhom: r.nhom, agentName: r.agentName, position: r.position, startDate: r.startDate },
+            create: r,
+          });
+          upserted++;
+        } catch {
+          // Skip individual errors
+        }
+      }
 
       return NextResponse.json({
-        message: `Đã nhập ${result.count} người tuyển dụng`,
-        count: result.count,
+        message: `Đã nhập ${upserted} người tuyển dụng`,
+        count: upserted,
       });
     }
 
-    // Bulk upsert mode (from members array)
+    // Bulk upsert mode (from members array) — preserves manual edits
     if (members && Array.isArray(members)) {
-      await db.recruiter.deleteMany();
       const data = members
         .filter((m) => m.agentCode && m.agentName)
         .map((m) => ({
@@ -130,10 +138,24 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       }
 
-      const result = await db.recruiter.createMany({ data, skipDuplicates: true });
+      // Use upsert-by-agentCode to preserve manual edits instead of deleteMany+createMany
+      let upserted = 0;
+      for (const item of data) {
+        try {
+          await db.recruiter.upsert({
+            where: { agentCode: item.agentCode },
+            update: { nhom: item.nhom, agentName: item.agentName, position: item.position, startDate: item.startDate },
+            create: item,
+          });
+          upserted++;
+        } catch {
+          // Skip individual errors
+        }
+      }
+
       return NextResponse.json({
-        message: `Đã nhập ${result.count} người tuyển dụng`,
-        count: result.count,
+        message: `Đã nhập ${upserted} người tuyển dụng`,
+        count: upserted,
       });
     }
 
