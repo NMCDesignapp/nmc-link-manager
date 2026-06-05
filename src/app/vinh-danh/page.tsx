@@ -7,37 +7,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import {
-  ArrowLeft, Download, Upload, Award, Image as ImageIcon,
-  User, Move, Type, RotateCcw, ChevronUp, ChevronDown,
-  Sparkles, Camera, Layout, Minus, Plus, Crop,
-  GripVertical, AlignCenter, AlignLeft, AlignRight,
-  Building2,
+  ArrowLeft, Download, Award, Image as ImageIcon,
+  User, Move, Type, RotateCcw,
+  Sparkles, Layout, Minus, Plus,
+  Building2, FontFamily,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
-// ===== GOOGLE FONTS =====
-// Load professional fonts matching the template designs
-const FONT_FAMILIES = {
-  serifDisplay: '"Noto Serif Display", "Playfair Display", Georgia, serif',
-  script: '"Great Vibes", "Dancing Script", cursive',
-  scriptAlt: '"Alex Brush", "Sacramento", cursive',
-  sansSerif: '"Montserrat", "Noto Sans", sans-serif',
-};
+// ===== FONT OPTIONS =====
+const FONT_OPTIONS = [
+  { id: 'serif', name: 'Serif', value: '"Noto Serif Display", "Playfair Display", Georgia, serif' },
+  { id: 'sans', name: 'Sans Serif', value: '"Montserrat", "Noto Sans", sans-serif' },
+  { id: 'dm-serif', name: 'DM Serif', value: '"DM Serif Display", serif' },
+  { id: 'script', name: 'Script', value: '"Great Vibes", "Dancing Script", cursive' },
+  { id: 'dancing', name: 'Dancing', value: '"Dancing Script", cursive' },
+  { id: 'alex', name: 'Alex Brush', value: '"Alex Brush", "Sacramento", cursive' },
+  { id: 'anton', name: 'Anton', value: '"Anton", "Noto Sans", sans-serif' },
+  { id: 'paytone', name: 'Paytone', value: '"Paytone One", "Noto Sans", sans-serif' },
+  { id: 'lora', name: 'Lora', value: '"Lora", serif' },
+];
 
 // ===== TEMPLATE CONFIGURATION =====
-export interface ImageSlot {
-  id: string;
-  label: string;
-  left: number;         // % position from left of poster
-  top: number;          // % position from top of poster
-  width: number;        // % width
-  height: number;       // % height
-  borderRadius: string; // CSS border-radius for the slot shape
-  objectFit: 'cover' | 'contain';
-  borderWidth?: number; // Optional border around image slot (px)
-  borderColor?: string; // Border color
-}
-
 export interface TextField {
   id: string;
   label: string;
@@ -53,7 +43,6 @@ export interface TextField {
   textTransform: string;
   textShadow: string;
   letterSpacing: string;
-  fontStyle?: string;
   textAlign?: string;
   lineHeight?: string;
 }
@@ -65,18 +54,12 @@ export interface PosterTemplate {
   group: 'canhan' | 'phong' | 'ad';
   backgroundImage: string;
   aspectRatio: string;
-  imageSlots: ImageSlot[];
   textFields: TextField[];
 }
 
-// ===== ALL 5 TEMPLATES =====
-// Positions are derived from PDF analysis (PyMuPDF) of the actual template files
-// Image slots are positioned to match the decorative frames in each template
+// ===== ALL TEMPLATES =====
 const TEMPLATES: PosterTemplate[] = [
-  // MẪU 1 - Chúc mừng tháng
-  // PDF analysis: outer frame at (2.5%, 18.2%) size=(41.5% x 78.6%), inner photo area at (2.9%, 26.9%) size=(40.8% x 35.5%)
-  // Company name "CÔNG TY BẢO VIỆT..." at ~49% left, 7.5% top, #f5d182 gold
-  // "Congratulations!" in Fineday-StyleTwo script at ~54% left, 16.6% top, #f8d210
+  // ===== CÁ NHÂN =====
   {
     id: 'mau-1',
     name: 'Mẫu 1',
@@ -84,61 +67,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'canhan',
     backgroundImage: '/posters/template-thang.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên',
-        left: 3.5,
-        top: 27,
-        width: 39,
-        height: 34,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 58,
-        top: 48,
-        fontSize: 30,
-        width: 55,
-        color: '#f5d182',
-        fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 30px rgba(245,209,130,0.4)',
-        letterSpacing: '0.12em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch tháng',
         defaultValue: '',
-        left: 58,
-        top: 62,
-        fontSize: 15,
-        width: 50,
-        color: '#e2cc87',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
+        left: 58, top: 62, fontSize: 15, width: 50,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
         textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.04em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // MẪU 2 - 2 ảnh bên trái, nội dung bên phải
-  // PDF analysis: photo-1 frame at (3.3%, 6.7%) size=(25.0% x 50.0%), photo-2 frame at (10.4%, 32.9%) size=(25.8% x 51.6%)
-  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
   {
     id: 'mau-2',
     name: 'Mẫu 2',
@@ -146,72 +90,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'canhan',
     backgroundImage: '/posters/template-mau2.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên 1',
-        left: 4,
-        top: 8,
-        width: 24,
-        height: 48,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-      {
-        id: 'photo-2',
-        label: 'Hình nhân viên 2',
-        left: 11,
-        top: 35,
-        width: 24,
-        height: 48,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: PHÒNG PTKD 3',
-        defaultValue: '',
-        left: 66,
-        top: 48,
-        fontSize: 28,
-        width: 50,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: '"DM Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch quý',
         defaultValue: '',
-        left: 66,
-        top: 62,
-        fontSize: 14,
-        width: 45,
-        color: '#e2cc87',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
+        left: 66, top: 62, fontSize: 14, width: 45,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
         textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // MẪU 3 - Ảnh lớn bên trái, nội dung bên phải
-  // PDF analysis: main frame at (-2.7%, 4.9%) size=(42.6% x 85.1%), inner photo area at (0%, 26.4%) size=(29.8% x 85.5%)
-  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
   {
     id: 'mau-3',
     name: 'Mẫu 3',
@@ -219,61 +113,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'canhan',
     backgroundImage: '/posters/template-mau3.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên',
-        left: 1,
-        top: 6,
-        width: 40,
-        height: 82,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 66,
-        top: 48,
-        fontSize: 28,
-        width: 50,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: '"DM Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
         defaultValue: '',
-        left: 66,
-        top: 62,
-        fontSize: 14,
-        width: 45,
-        color: '#e2cc87',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
+        left: 66, top: 62, fontSize: 14, width: 45,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
         textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // MẪU 4 - Nội dung bên trái, 1 ảnh lớn bên phải
-  // PDF analysis: main photo image at (55.3%, 10.0%) size=(42.6% x 85.2%)
-  // Company name in NotoSerifDisplay #f5d182, "Congratulations!" in Amoresa #ffffff
   {
     id: 'mau-4',
     name: 'Mẫu 4',
@@ -281,61 +136,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'canhan',
     backgroundImage: '/posters/template-mau4.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên',
-        left: 56,
-        top: 12,
-        width: 40,
-        height: 80,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 28,
-        top: 52,
-        fontSize: 28,
-        width: 40,
-        color: '#f5d182',
-        fontWeight: '700',
-        fontFamily: FONT_FAMILIES.serifDisplay,
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(245,209,130,0.3)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
         defaultValue: '',
-        left: 28,
-        top: 66,
-        fontSize: 14,
-        width: 35,
-        color: '#e2cc87',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
+        left: 28, top: 66, fontSize: 14, width: 35,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
         textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // MẪU 5 - Ảnh bên trái có viền trang trí, nội dung bên phải
-  // PDF analysis: outer frame at (4.9%, 16.8%) size=(30.8% x 61.5%), inner photo at (5.8%, 18.4%) size=(29.1% x 58.2%)
-  // Company name #f5d182, "Congratulations!" in EDLavonia-Regular #e2cc87
   {
     id: 'mau-5',
     name: 'Mẫu 5',
@@ -343,59 +159,23 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'canhan',
     backgroundImage: '/posters/template-mau5.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình nhân viên',
-        left: 6,
-        top: 19,
-        width: 28,
-        height: 56,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên nhân viên / Phòng ban',
-        placeholder: 'VD: NGUYỄN MINH CHÂU',
-        defaultValue: '',
-        left: 66,
-        top: 48,
-        fontSize: 28,
-        width: 50,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: '"DM Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung vinh danh',
         placeholder: 'VD: Hoàn thành xuất sắc kế hoạch',
         defaultValue: '',
-        left: 66,
-        top: 62,
-        fontSize: 14,
-        width: 45,
-        color: '#e2cc87',
-        fontWeight: '400',
-        fontFamily: FONT_FAMILIES.sansSerif,
+        left: 66, top: 62, fontSize: 14, width: 45,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
         textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.03em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // PHÒNG 1 - Ảnh lớn bên trái, nội dung bên phải (Tập thể phòng)
+  // ===== PHÒNG =====
   {
     id: 'phong-1',
     name: 'Phòng 1',
@@ -403,59 +183,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'phong',
     backgroundImage: '/posters/template-MAUU-PHONG.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình tập thể phòng',
-        left: 1,
-        top: 6,
-        width: 44,
-        height: 88,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
-      {
-        id: 'name',
-        label: 'Tên phòng ban',
-        placeholder: 'VD: TẬP THỂ PHÒNG PTKD',
-        defaultValue: 'TẬP THỂ PHÒNG PTKD',
-        left: 55,
-        top: 45,
-        fontSize: 28,
-        width: 50,
-        color: '#f5d182',
-        fontWeight: '700',
-        fontFamily: '"Noto Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 30px rgba(245,209,130,0.4)',
-        letterSpacing: '0.08em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
       {
         id: 'content',
         label: 'Nội dung chúc mừng',
-        placeholder: 'VD: Chúc mừng',
-        defaultValue: 'Chúc mừng',
-        left: 59,
-        top: 32,
-        fontSize: 20,
-        width: 45,
-        color: '#fef3d5',
-        fontWeight: '400',
-        fontFamily: '"Dancing Script", cursive',
+        placeholder: 'VD: Chúc mừng phòng đạt chỉ tiêu tháng',
+        defaultValue: '',
+        left: 55, top: 70, fontSize: 14, width: 45,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
         textTransform: 'none',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
         letterSpacing: '0.04em',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // PHÒNG 2 - Ảnh nền toàn khung, chữ ở giữa (Tập thể phòng)
   {
     id: 'phong-2',
     name: 'Phòng 2',
@@ -463,59 +206,23 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'phong',
     backgroundImage: '/posters/template-MAUU-PHONG-2.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình tập thể phòng',
-        left: 5,
-        top: 5,
-        width: 90,
-        height: 90,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
       {
-        id: 'prefix',
-        label: 'Tiền tố (TẬP THỂ)',
-        placeholder: 'VD: TẬP THỂ',
-        defaultValue: 'TẬP THỂ',
-        left: 63,
-        top: 32,
-        fontSize: 18,
-        width: 40,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: '"DM Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
-        letterSpacing: '0.1em',
-        textAlign: 'center',
-        lineHeight: '1.3',
-      },
-      {
-        id: 'name',
-        label: 'Tên phòng ban',
-        placeholder: 'VD: PHÒNG PTKD',
-        defaultValue: 'PHÒNG PTKD',
-        left: 50,
-        top: 42,
-        fontSize: 32,
-        width: 60,
-        color: '#f3e4af',
-        fontWeight: '700',
-        fontFamily: '"DM Serif Display", serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
-        letterSpacing: '0.08em',
-        textAlign: 'center',
-        lineHeight: '1.3',
+        id: 'content',
+        label: 'Nội dung chúc mừng',
+        placeholder: 'VD: Chúc mừng phòng đạt chỉ tiêu quý',
+        defaultValue: '',
+        left: 50, top: 58, fontSize: 16, width: 55,
+        color: '#ffffff', fontWeight: '400',
+        fontFamily: '"Lora", serif',
+        textTransform: 'none',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        letterSpacing: '0.04em',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // AD 1 - Ảnh bên phải, chữ bên trái
+  // ===== AD =====
   {
     id: 'ad-1',
     name: 'AD 1',
@@ -523,41 +230,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'ad',
     backgroundImage: '/posters/template-AD-1.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình AD',
-        left: 55,
-        top: 10,
-        width: 43,
-        height: 85,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
       {
-        id: 'name',
-        label: 'Tên AD / Chức danh',
-        placeholder: 'VD: ADM NGUYỄN VĂN CÓ',
-        defaultValue: 'ADM NGUYỄN VĂN CÓ',
-        left: 22,
-        top: 48,
-        fontSize: 22,
-        width: 40,
-        color: '#ffffff',
-        fontWeight: '700',
-        fontFamily: '"Anton", "Noto Sans", sans-serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
-        letterSpacing: '0.08em',
-        textAlign: 'center',
-        lineHeight: '1.3',
+        id: 'content',
+        label: 'Nội dung vinh danh',
+        placeholder: 'VD: Hoàn thành xuất sắc chỉ tiêu tháng',
+        defaultValue: '',
+        left: 22, top: 62, fontSize: 14, width: 40,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
+        textTransform: 'none',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+        letterSpacing: '0.04em',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // AD 2 - Ảnh nền bên trái, chữ bên trái
   {
     id: 'ad-2',
     name: 'AD 2',
@@ -565,41 +253,22 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'ad',
     backgroundImage: '/posters/template-AD-2.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình AD',
-        left: 1,
-        top: 5,
-        width: 48,
-        height: 90,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
       {
-        id: 'name',
-        label: 'Tên AD / Chức danh',
-        placeholder: 'VD: ADO LÊ QUANG TRỌNG TRÍ',
-        defaultValue: 'ADO LÊ QUANG TRỌNG TRÍ',
-        left: 20,
-        top: 48,
-        fontSize: 18,
-        width: 45,
-        color: '#ffffff',
-        fontWeight: '700',
-        fontFamily: '"Paytone One", "Noto Sans", sans-serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
-        letterSpacing: '0.06em',
-        textAlign: 'center',
-        lineHeight: '1.3',
+        id: 'content',
+        label: 'Nội dung vinh danh',
+        placeholder: 'VD: Đạt top AD xuất sắc nhất',
+        defaultValue: '',
+        left: 20, top: 62, fontSize: 14, width: 45,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
+        textTransform: 'none',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+        letterSpacing: '0.04em',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
-  // AD 3 - Ảnh bên trái, chữ bên phải
   {
     id: 'ad-3',
     name: 'AD 3',
@@ -607,37 +276,19 @@ const TEMPLATES: PosterTemplate[] = [
     group: 'ad',
     backgroundImage: '/posters/template-AD-3.png',
     aspectRatio: '2/1',
-    imageSlots: [
-      {
-        id: 'photo-1',
-        label: 'Hình AD',
-        left: 1,
-        top: 5,
-        width: 42,
-        height: 90,
-        borderRadius: '4px',
-        objectFit: 'cover',
-        borderWidth: 0,
-      },
-    ],
     textFields: [
       {
-        id: 'name',
-        label: 'Tên AD / Chức danh',
-        placeholder: 'VD: ADO LÊ QUANG TRỌNG TRÍ',
-        defaultValue: 'ADO LÊ QUANG TRỌNG TRÍ',
-        left: 68,
-        top: 48,
-        fontSize: 18,
-        width: 40,
-        color: '#ffffff',
-        fontWeight: '700',
-        fontFamily: '"Paytone One", "Noto Sans", sans-serif',
-        textTransform: 'uppercase',
-        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
-        letterSpacing: '0.06em',
-        textAlign: 'center',
-        lineHeight: '1.3',
+        id: 'content',
+        label: 'Nội dung vinh danh',
+        placeholder: 'VD: Hoàn thành xuất sắc chỉ tiêu quý',
+        defaultValue: '',
+        left: 68, top: 62, fontSize: 14, width: 40,
+        color: '#e2cc87', fontWeight: '400',
+        fontFamily: '"Montserrat", "Noto Sans", sans-serif',
+        textTransform: 'none',
+        textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+        letterSpacing: '0.04em',
+        textAlign: 'center', lineHeight: '1.5',
       },
     ],
   },
@@ -658,11 +309,7 @@ export default function VinhDanhPage() {
   const [activeGroup, setActiveGroup] = useState<'canhan' | 'phong' | 'ad'>('canhan');
   const [activeTemplateId, setActiveTemplateId] = useState(TEMPLATES[0].id);
   const activeTemplate = TEMPLATES.find(t => t.id === activeTemplateId) || TEMPLATES[0];
-
   const filteredTemplates = TEMPLATES.filter(t => t.group === activeGroup);
-
-  // Image uploads keyed by templateId-slotId
-  const [imageUploads, setImageUploads] = useState<Record<string, string>>({});
 
   // Text field values keyed by templateId-fieldId
   const [textValues, setTextValues] = useState<Record<string, string>>(() => {
@@ -675,24 +322,15 @@ export default function VinhDanhPage() {
     return vals;
   });
 
+  // Font override keyed by templateId-fieldId
+  const [fontOverrides, setFontOverrides] = useState<Record<string, string>>({});
+
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showPositionControl, setShowPositionControl] = useState(false);
 
   // Position overrides per field keyed by templateId-fieldId
   const [positionOverrides, setPositionOverrides] = useState<Record<string, {
     left: number; top: number; fontSize: number;
   }>>({});
-
-  // Image pan/zoom keyed by templateId-slotId
-  const [imagePanZoom, setImagePanZoom] = useState<Record<string, {
-    panX: number; panY: number; zoom: number;
-  }>>({});
-
-  // Dragging state for images (pan within frame)
-  const [draggingImage, setDraggingImage] = useState<string | null>(null);
-  const [imgDragStart, setImgDragStart] = useState<{
-    clientX: number; clientY: number; panX: number; panY: number;
-  } | null>(null);
 
   // Dragging state for text fields
   const [draggingText, setDraggingText] = useState<string | null>(null);
@@ -700,14 +338,27 @@ export default function VinhDanhPage() {
     clientX: number; clientY: number; left: number; top: number;
   } | null>(null);
 
-  // Selected text field for controls
+  // Selected text field
   const [selectedTextField, setSelectedTextField] = useState<string | null>(null);
+
+  const contentField = activeTemplate.textFields.find(f => f.id === 'content');
+  const contentValue = contentField ? (textValues[`${activeTemplateId}-${contentField.id}`] ?? contentField.defaultValue) : '';
 
   const getTextValue = (field: TextField) =>
     textValues[`${activeTemplateId}-${field.id}`] ?? field.defaultValue;
 
   const setTextValue = (field: TextField, value: string) => {
     setTextValues(prev => ({ ...prev, [`${activeTemplateId}-${field.id}`]: value }));
+  };
+
+  const getFont = (field: TextField) => {
+    const key = `${activeTemplateId}-${field.id}`;
+    return fontOverrides[key] ?? field.fontFamily;
+  };
+
+  const setFont = (field: TextField, fontValue: string) => {
+    const key = `${activeTemplateId}-${field.id}`;
+    setFontOverrides(prev => ({ ...prev, [key]: fontValue }));
   };
 
   const getPos = (field: TextField) => {
@@ -728,21 +379,7 @@ export default function VinhDanhPage() {
     }));
   };
 
-  const getImgPZ = (slotId: string) => {
-    const key = `${activeTemplateId}-${slotId}`;
-    const pz = imagePanZoom[key];
-    return { panX: pz?.panX ?? 0, panY: pz?.panY ?? 0, zoom: pz?.zoom ?? 1 };
-  };
-
-  const setImgPZ = (slotId: string, prop: 'panX' | 'panY' | 'zoom', value: number) => {
-    const key = `${activeTemplateId}-${slotId}`;
-    setImagePanZoom(prev => ({
-      ...prev,
-      [key]: { ...prev[key], ...{ [prop]: value } },
-    }));
-  };
-
-  // ===== DRAG HANDLERS FOR TEXT ON POSTER =====
+  // ===== DRAG HANDLER FOR TEXT ON POSTER =====
   const handleTextMouseDown = useCallback((fieldId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -752,15 +389,6 @@ export default function VinhDanhPage() {
     setDraggingText(fieldId);
     setSelectedTextField(fieldId);
     setTextDragStart({ clientX: e.clientX, clientY: e.clientY, left: pos.left, top: pos.top });
-  }, [activeTemplateId]);
-
-  // ===== DRAG HANDLERS FOR IMAGE PAN WITHIN FRAME =====
-  const handleImgMouseDown = useCallback((slotId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const pz = getImgPZ(slotId);
-    setDraggingImage(slotId);
-    setImgDragStart({ clientX: e.clientX, clientY: e.clientY, panX: pz.panX, panY: pz.panY });
   }, [activeTemplateId]);
 
   // Global mouse move/up
@@ -777,22 +405,7 @@ export default function VinhDanhPage() {
             ...prev[key],
             left: Math.max(5, Math.min(95, textDragStart.left + dx)),
             top: Math.max(5, Math.min(95, textDragStart.top + dy)),
-            fontSize: prev[key]?.fontSize ?? activeTemplate.textFields.find(f => f.id === draggingText)?.fontSize ?? 20,
-          },
-        }));
-      }
-      if (draggingImage && imgDragStart && posterRef.current) {
-        const rect = posterRef.current.getBoundingClientRect();
-        const dx = ((e.clientX - imgDragStart.clientX) / rect.width) * 100;
-        const dy = ((e.clientY - imgDragStart.clientY) / rect.height) * 100;
-        const key = `${activeTemplateId}-${draggingImage}`;
-        setImagePanZoom(prev => ({
-          ...prev,
-          [key]: {
-            ...prev[key],
-            panX: imgDragStart.panX + dx * 2,
-            panY: imgDragStart.panY + dy * 2,
-            zoom: prev[key]?.zoom ?? 1,
+            fontSize: prev[key]?.fontSize ?? activeTemplate.textFields.find(f => f.id === draggingText)?.fontSize ?? 14,
           },
         }));
       }
@@ -801,8 +414,6 @@ export default function VinhDanhPage() {
     const handleMouseUp = () => {
       setDraggingText(null);
       setTextDragStart(null);
-      setDraggingImage(null);
-      setImgDragStart(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -811,48 +422,24 @@ export default function VinhDanhPage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggingText, textDragStart, draggingImage, imgDragStart, activeTemplateId]);
-
-  // ===== IMAGE UPLOAD =====
-  const handleImageUpload = useCallback((slotId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setImageUploads(prev => ({ ...prev, [`${activeTemplateId}-${slotId}`]: ev.target?.result as string }));
-      // Reset pan/zoom for this slot
-      setImagePanZoom(prev => ({
-        ...prev,
-        [`${activeTemplateId}-${slotId}`]: { panX: 0, panY: 0, zoom: 1 },
-      }));
-    };
-    reader.readAsDataURL(file);
-  }, [activeTemplateId]);
+  }, [draggingText, textDragStart, activeTemplateId]);
 
   // ===== DOWNLOAD =====
   const handleDownload = useCallback(async () => {
-    const nameField = activeTemplate.textFields.find(f => f.id === 'name');
-    const nameValue = nameField ? getTextValue(nameField) : '';
-    if (!nameValue.trim()) {
-      toast({ title: 'Chưa nhập tên', description: 'Vui lòng nhập tên nhân viên hoặc phòng ban', variant: 'destructive' });
-      return;
-    }
-
     setIsDownloading(true);
     try {
       if (!posterRef.current) return;
-      // Hide selection borders before capture
       const dataUrl = await toPng(posterRef.current, {
         quality: 1.0,
         pixelRatio: 3,
         cacheBust: true,
       });
       const link = document.createElement('a');
-      const safeName = nameValue.trim().replace(/\s+/g, '_');
+      const safeName = activeTemplate.id.replace(/[^a-zA-Z0-9]/g, '_');
       link.download = `VinhDanh_${safeName}.png`;
       link.href = dataUrl;
       link.click();
-      toast({ title: 'Tải thành công!', description: `Đã tải poster vinh danh ${nameValue}` });
+      toast({ title: 'Tải thành công!', description: 'Đã tải poster vinh danh' });
     } catch (err) {
       console.error(err);
       toast({ title: 'Lỗi tải', description: 'Không thể tạo ảnh, vui lòng thử lại', variant: 'destructive' });
@@ -868,16 +455,14 @@ export default function VinhDanhPage() {
       newOvr[key] = { left: f.left, top: f.top, fontSize: f.fontSize };
     });
     setPositionOverrides(prev => ({ ...prev, ...newOvr }));
-    const newPZ: Record<string, { panX: number; panY: number; zoom: number }> = {};
-    activeTemplate.imageSlots.forEach(s => {
-      const key = `${activeTemplateId}-${s.id}`;
-      newPZ[key] = { panX: 0, panY: 0, zoom: 1 };
+    // Reset font overrides for current template
+    const newFonts = { ...fontOverrides };
+    activeTemplate.textFields.forEach(f => {
+      const key = `${activeTemplateId}-${f.id}`;
+      delete newFonts[key];
     });
-    setImagePanZoom(prev => ({ ...prev, ...newPZ }));
+    setFontOverrides(newFonts);
   };
-
-  const nameField = activeTemplate.textFields.find(f => f.id === 'name');
-  const nameValue = nameField ? getTextValue(nameField) : '';
 
   return (
     <>
@@ -946,9 +531,7 @@ export default function VinhDanhPage() {
                     onClick={() => {
                       setActiveGroup(group.id);
                       const firstInGroup = TEMPLATES.find(t => t.group === group.id);
-                      if (firstInGroup) {
-                        setActiveTemplateId(firstInGroup.id);
-                      }
+                      if (firstInGroup) setActiveTemplateId(firstInGroup.id);
                       setSelectedTextField(null);
                     }}
                     className={`px-4 py-2.5 text-sm font-bold rounded-lg border transition-all duration-200 ${
@@ -1004,247 +587,121 @@ export default function VinhDanhPage() {
             {/* LEFT: Controls Panel */}
             <div className="lg:w-[380px] flex-shrink-0 space-y-3">
 
-              {/* Image Upload Slots */}
-              {activeTemplate.imageSlots.map((slot, idx) => {
-                const imageKey = `${activeTemplateId}-${slot.id}`;
-                const imageUrl = imageUploads[imageKey] || null;
-                const pz = getImgPZ(slot.id);
-
-                return (
-                  <div key={slot.id} className="rounded-xl border border-amber-500/15 bg-[#0f0f1a]/90 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-amber-400/70" />
-                        <Label className="text-sm font-semibold text-amber-300/80">{slot.label}</Label>
-                        {activeTemplate.imageSlots.length > 1 && (
-                          <span className="text-[9px] text-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 rounded">Hình {idx + 1}</span>
-                        )}
-                      </div>
-                      {imageUrl && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-red-400/70 hover:text-red-300" onClick={() => {
-                          setImageUploads(prev => {
-                            const copy = { ...prev };
-                            delete copy[imageKey];
-                            return copy;
-                          });
-                          setImagePanZoom(prev => {
-                            const copy = { ...prev };
-                            delete copy[imageKey];
-                            return copy;
-                          });
-                        }}>
-                          Xóa
-                        </Button>
-                      )}
+              {/* Content Text Field */}
+              {activeTemplate.textFields.map((field) => (
+                <div key={field.id} className="rounded-xl border border-amber-500/15 bg-[#0f0f1a]/90 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Type className="w-4 h-4 text-amber-400/70" />
+                      <Label className="text-sm font-semibold text-amber-300/80">{field.label}</Label>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          const pos = getPos(field);
+                          setPos(field, 'fontSize', Math.max(6, pos.fontSize - 1));
+                        }}
+                        className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 text-xs"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-[10px] text-amber-400/50 font-mono w-8 text-center">{getPos(field).fontSize}px</span>
+                      <button
+                        onClick={() => {
+                          const pos = getPos(field);
+                          setPos(field, 'fontSize', Math.min(80, pos.fontSize + 1));
+                        }}
+                        className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 text-xs"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <Input
+                    value={getTextValue(field)}
+                    onChange={(e) => setTextValue(field, e.target.value)}
+                    onFocus={() => setSelectedTextField(field.id)}
+                    placeholder={field.placeholder}
+                    className="h-10 text-sm bg-white/5 text-white placeholder:text-white/20 border-amber-500/20 focus:border-amber-500/40"
+                    style={{ fontFamily: getFont(field) }}
+                  />
 
-                    {imageUrl ? (
-                      <div className="space-y-2">
-                        <div className="relative group">
-                          <div className="flex justify-center">
-                            <div
-                              className="w-24 h-24 overflow-hidden border-2 border-amber-500/30"
-                              style={{ borderRadius: slot.borderRadius }}
-                            >
-                              <img src={imageUrl} alt={slot.label} className="w-full h-full object-cover" />
-                            </div>
-                          </div>
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                            <label className="cursor-pointer">
-                              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(slot.id, e)} className="hidden" />
-                              <div className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-medium hover:bg-white/30 transition-colors">
-                                <Upload className="w-3 h-3 inline mr-1" /> Thay hình
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                        {/* Image pan/zoom controls */}
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] text-white/25">Dịch chuyển ảnh</span>
-                            <span className="text-[9px] text-amber-400/50 font-mono">X:{pz.panX.toFixed(0)} Y:{pz.panY.toFixed(0)}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <input type="range" min="-50" max="50" step="1" value={pz.panX}
-                              onChange={(e) => setImgPZ(slot.id, 'panX', parseFloat(e.target.value))}
-                              className="w-full h-1 accent-amber-500" />
-                            <input type="range" min="-50" max="50" step="1" value={pz.panY}
-                              onChange={(e) => setImgPZ(slot.id, 'panY', parseFloat(e.target.value))}
-                              className="w-full h-1 accent-amber-500" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] text-white/25">Phóng to / Thu nhỏ</span>
-                            <span className="text-[9px] text-amber-400/50 font-mono">{pz.zoom.toFixed(2)}x</span>
-                          </div>
-                          <input type="range" min="0.5" max="3" step="0.05" value={pz.zoom}
-                            onChange={(e) => setImgPZ(slot.id, 'zoom', parseFloat(e.target.value))}
-                            className="w-full h-1 accent-amber-500" />
-                          <button className="text-[9px] text-white/25 hover:text-white/50"
-                            onClick={() => setImgPZ(slot.id, 'panX', 0) || setImgPZ(slot.id, 'panY', 0) || setImgPZ(slot.id, 'zoom', 1)}>
-                            Reset vị trí ảnh
+                  {/* Font Selector */}
+                  <div className="mt-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[9px] text-white/25 uppercase tracking-wider">Font chữ</span>
+                    </div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {FONT_OPTIONS.map((font) => {
+                        const currentFont = getFont(field);
+                        const isActive = currentFont === font.value;
+                        return (
+                          <button
+                            key={font.id}
+                            onClick={() => setFont(field, font.value)}
+                            className={`px-2.5 py-1.5 text-[10px] rounded-lg border transition-all ${
+                              isActive
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                : 'bg-white/5 text-white/30 border-white/10 hover:bg-white/10 hover:text-white/50'
+                            }`}
+                            style={{ fontFamily: font.value }}
+                          >
+                            {font.name}
                           </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="block cursor-pointer">
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(slot.id, e)} className="hidden" />
-                        <div className="border-2 border-dashed border-amber-500/20 rounded-xl p-5 text-center hover:border-amber-500/40 transition-colors">
-                          <Upload className="w-7 h-7 text-amber-500/30 mx-auto mb-2" />
-                          <p className="text-xs text-white/30">Nhấn để upload {slot.label.toLowerCase()}</p>
-                          <p className="text-[10px] text-white/15 mt-1">JPG, PNG</p>
-                        </div>
-                      </label>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
-                );
-              })}
 
-              {/* Text Field Inputs */}
-              {activeTemplate.textFields.map((field) => {
-                const isSelected = selectedTextField === field.id;
-                return (
-                  <div key={field.id} className={`rounded-xl border p-4 transition-colors ${
-                    isSelected
-                      ? 'border-amber-500/40 bg-[#0f0f1a]/90'
-                      : field.id === 'name' ? 'border-amber-500/15 bg-[#0f0f1a]/90' : 'border-yellow-500/15 bg-[#0f0f1a]/90'
-                  }`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {field.id === 'name' ? (
-                          <User className="w-4 h-4 text-amber-400/70" />
-                        ) : (
-                          <Type className="w-4 h-4 text-yellow-400/70" />
-                        )}
-                        <Label className={`text-sm font-semibold ${field.id === 'name' ? 'text-amber-300/80' : 'text-yellow-300/80'}`}>
-                          {field.label}
-                        </Label>
+                  {/* Position Controls */}
+                  <div className="mt-3 space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[8px] text-white/20">X</span>
+                          <span className="text-[8px] text-amber-400/40 font-mono">{getPos(field).left}%</span>
+                        </div>
+                        <input type="range" min="5" max="95" value={getPos(field).left}
+                          onChange={(e) => setPos(field, 'left', parseInt(e.target.value))}
+                          className="w-full h-1 accent-amber-500" />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            const pos = getPos(field);
-                            setPos(field, 'fontSize', Math.max(8, pos.fontSize - 1));
-                          }}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 text-xs"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-[10px] text-amber-400/50 font-mono w-8 text-center">{getPos(field).fontSize}px</span>
-                        <button
-                          onClick={() => {
-                            const pos = getPos(field);
-                            setPos(field, 'fontSize', Math.min(60, pos.fontSize + 1));
-                          }}
-                          className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 text-xs"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[8px] text-white/20">Y</span>
+                          <span className="text-[8px] text-amber-400/40 font-mono">{getPos(field).top}%</span>
+                        </div>
+                        <input type="range" min="5" max="95" value={getPos(field).top}
+                          onChange={(e) => setPos(field, 'top', parseInt(e.target.value))}
+                          className="w-full h-1 accent-amber-500" />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[8px] text-white/20">Cỡ</span>
+                          <span className="text-[8px] text-amber-400/40 font-mono">{getPos(field).fontSize}px</span>
+                        </div>
+                        <input type="range" min="6" max="80" value={getPos(field).fontSize}
+                          onChange={(e) => setPos(field, 'fontSize', parseInt(e.target.value))}
+                          className="w-full h-1 accent-amber-500" />
                       </div>
                     </div>
-                    <Input
-                      value={getTextValue(field)}
-                      onChange={(e) => setTextValue(field, e.target.value)}
-                      onFocus={() => setSelectedTextField(field.id)}
-                      placeholder={field.placeholder}
-                      className={`h-10 text-sm bg-white/5 text-white placeholder:text-white/20 border-amber-500/20 focus:border-amber-500/40 ${
-                        field.id === 'name' ? 'font-semibold uppercase' : ''
-                      }`}
-                      style={{ fontFamily: field.fontFamily }}
-                    />
-                    {/* Quick font size & position for selected text */}
-                    {isSelected && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] text-white/20">X:</span>
-                          <input type="range" min="5" max="95" value={getPos(field).left}
-                            onChange={(e) => setPos(field, 'left', parseInt(e.target.value))}
-                            className="w-16 h-1 accent-amber-500" />
-                          <span className="text-[9px] text-amber-400/40 font-mono w-6">{getPos(field).left}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] text-white/20">Y:</span>
-                          <input type="range" min="5" max="95" value={getPos(field).top}
-                            onChange={(e) => setPos(field, 'top', parseInt(e.target.value))}
-                            className="w-16 h-1 accent-amber-500" />
-                          <span className="text-[9px] text-amber-400/40 font-mono w-6">{getPos(field).top}</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                );
-              })}
+                </div>
+              ))}
 
-              {/* Advanced Position Control (collapsible) */}
-              <div className="rounded-xl border border-white/5 bg-[#0f0f1a]/90 p-4">
-                <button
-                  className="flex items-center justify-between w-full"
-                  onClick={() => setShowPositionControl(!showPositionControl)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Move className="w-4 h-4 text-white/30" />
-                    <Label className="text-sm font-semibold text-white/40">Điều chỉnh chi tiết</Label>
-                  </div>
-                  {showPositionControl ? <ChevronUp className="w-4 h-4 text-white/20" /> : <ChevronDown className="w-4 h-4 text-white/20" />}
-                </button>
-
-                {showPositionControl && (
-                  <div className="mt-3 space-y-4">
-                    {activeTemplate.textFields.map((field) => {
-                      const pos = getPos(field);
-                      return (
-                        <div key={field.id}>
-                          <div className={`text-[10px] font-bold uppercase mb-1 ${field.id === 'name' ? 'text-amber-400/40' : 'text-yellow-400/40'}`}>
-                            {field.label}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[8px] text-white/20">X</span>
-                                <span className="text-[8px] text-amber-400/40 font-mono">{pos.left}%</span>
-                              </div>
-                              <input type="range" min="5" max="95" value={pos.left}
-                                onChange={(e) => setPos(field, 'left', parseInt(e.target.value))}
-                                className="w-full h-1 accent-amber-500" />
-                            </div>
-                            <div>
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[8px] text-white/20">Y</span>
-                                <span className="text-[8px] text-amber-400/40 font-mono">{pos.top}%</span>
-                              </div>
-                              <input type="range" min="5" max="95" value={pos.top}
-                                onChange={(e) => setPos(field, 'top', parseInt(e.target.value))}
-                                className="w-full h-1 accent-amber-500" />
-                            </div>
-                            <div>
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[8px] text-white/20">Cỡ</span>
-                                <span className="text-[8px] text-amber-400/40 font-mono">{pos.fontSize}px</span>
-                              </div>
-                              <input type="range" min="8" max="60" value={pos.fontSize}
-                                onChange={(e) => setPos(field, 'fontSize', parseInt(e.target.value))}
-                                className="w-full h-1 accent-amber-500" />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-7 text-[10px] text-white/30 hover:text-white/50 border border-white/5 mt-1"
-                      onClick={resetPositions}
-                    >
-                      <RotateCcw className="w-3 h-3 mr-1" /> Reset mặc định
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Reset Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full h-8 text-[10px] text-white/30 hover:text-white/50 border border-white/5"
+                onClick={resetPositions}
+              >
+                <RotateCcw className="w-3 h-3 mr-1" /> Reset mặc định
+              </Button>
 
               {/* Download Button */}
               <Button
                 onClick={handleDownload}
-                disabled={isDownloading || !nameValue.trim()}
+                disabled={isDownloading}
                 className="w-full h-12 text-sm font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 hover:from-amber-500 hover:via-yellow-500 hover:to-amber-500 text-white disabled:opacity-30 disabled:cursor-not-allowed shadow-lg rounded-xl"
                 style={{ boxShadow: '0 4px 25px rgba(245,158,11,0.3)' }}
               >
@@ -1255,17 +712,11 @@ export default function VinhDanhPage() {
                 )}
               </Button>
 
-              {!nameValue.trim() && (
-                <div className="text-center py-2 px-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                  <p className="text-[10px] text-amber-400/50">Nhập tên nhân viên hoặc phòng ban để tải poster</p>
-                </div>
-              )}
-
               {/* Tips */}
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3">
                 <p className="text-[10px] text-white/20 leading-relaxed">
                   <Sparkles className="w-3 h-3 inline text-amber-500/30 mr-1" />
-                  <b className="text-white/30">Hướng dẫn:</b> Chọn mẫu &rarr; Upload hình &rarr; Nhập tên &amp; nội dung &rarr; Kéo chữ trên poster để điều chỉnh vị trí &rarr; Bấm tải. Dùng thanh trượt để căn chỉnh chi tiết.
+                  <b className="text-white/30">Hướng dẫn:</b> Chọn mẫu &rarr; Nhập nội dung &rarr; Chọn font, chỉnh kích thước và vị trí &rarr; Kéo chữ trên poster để di chuyển &rarr; Bấm tải.
                 </p>
               </div>
             </div>
@@ -1276,145 +727,78 @@ export default function VinhDanhPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <ImageIcon className="w-4 h-4 text-amber-500/30" />
                   <span className="text-xs text-white/30 font-medium">Xem trước - {activeTemplate.name}</span>
-                  {nameValue.trim() && (
-                    <span className="text-[10px] text-emerald-400/50 ml-auto">Sẵn sàng tải</span>
-                  )}
                 </div>
 
-                {/* Poster Preview Container */}
                 <div
-                  ref={posterContainerRef}
-                  className="relative bg-[#080810] rounded-xl border border-amber-500/10 overflow-hidden shadow-2xl shadow-amber-500/5"
+                  className="relative w-full border-2 border-amber-500/15 rounded-xl overflow-hidden shadow-2xl shadow-amber-500/5"
                   style={{ aspectRatio: activeTemplate.aspectRatio }}
                 >
                   <div ref={posterRef} className="relative w-full h-full select-none">
-                    {/* Background Template Image */}
+                    {/* Background Image */}
                     <img
                       src={activeTemplate.backgroundImage}
-                      alt="Template"
+                      alt={activeTemplate.name}
                       className="absolute inset-0 w-full h-full object-fill"
-                      crossOrigin="anonymous"
                       draggable={false}
                     />
 
-                    {/* Image Slot Overlays - positioned to match template frames exactly */}
-                    {activeTemplate.imageSlots.map((slot) => {
-                      const imageKey = `${activeTemplateId}-${slot.id}`;
-                      const imageUrl = imageUploads[imageKey];
-                      const pz = getImgPZ(slot.id);
-
-                      return (
-                        <div
-                          key={slot.id}
-                          className="absolute"
-                          style={{
-                            left: `${slot.left}%`,
-                            top: `${slot.top}%`,
-                            width: `${slot.width}%`,
-                            height: `${slot.height}%`,
-                            borderRadius: slot.borderRadius,
-                            overflow: 'hidden',
-                            border: slot.borderWidth ? `${slot.borderWidth}px solid ${slot.borderColor || 'rgba(245,209,130,0.5)'}` : 'none',
-                          }}
-                        >
-                          {imageUrl ? (
-                            <div
-                              className="w-full h-full cursor-move relative"
-                              onMouseDown={(e) => handleImgMouseDown(slot.id, e)}
-                              style={{ overflow: 'hidden' }}
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={slot.label}
-                                crossOrigin="anonymous"
-                                draggable={false}
-                                style={{
-                                  position: 'absolute',
-                                  top: '50%',
-                                  left: '50%',
-                                  transform: `translate(-50%, -50%) translate(${pz.panX}%, ${pz.panY}%) scale(${pz.zoom})`,
-                                  minWidth: '100%',
-                                  minHeight: '100%',
-                                  objectFit: 'cover',
-                                  maxWidth: 'none',
-                                  maxHeight: 'none',
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-black/30 cursor-pointer hover:bg-black/40 transition-colors">
-                              <div className="text-center">
-                                <Camera className="w-6 h-6 text-white/20 mx-auto mb-1" />
-                                <p className="text-[8px] text-white/20">Upload hình</p>
-                              </div>
-                            </div>
-                          )}
-                          {imageUrl && !draggingImage && (
-                            <div className="absolute bottom-0.5 right-0.5 bg-black/60 text-white/40 text-[6px] px-1 py-0.5 rounded pointer-events-none z-10">
-                              Kéo để di chuyển
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {/* Text Field Overlays - DRAGGABLE */}
+                    {/* Text Fields Overlay */}
                     {activeTemplate.textFields.map((field) => {
-                      const value = getTextValue(field);
-                      if (!value.trim()) return null;
-
                       const pos = getPos(field);
+                      const value = getTextValue(field);
+                      const fontFam = getFont(field);
                       const isSelected = selectedTextField === field.id;
 
                       return (
                         <div
                           key={field.id}
-                          className={`absolute text-center cursor-move group ${isSelected ? 'z-20' : 'z-10'}`}
+                          className="absolute"
                           style={{
                             left: `${pos.left}%`,
                             top: `${pos.top}%`,
                             transform: 'translate(-50%, -50%)',
                             width: `${field.width}%`,
+                            zIndex: 10,
                           }}
                           onMouseDown={(e) => handleTextMouseDown(field.id, e)}
                         >
-                          <p
-                            className="leading-tight transition-shadow duration-150"
-                            style={{
-                              fontSize: `${pos.fontSize}px`,
-                              color: field.color,
-                              fontWeight: field.fontWeight,
-                              fontFamily: field.fontFamily,
-                              textTransform: field.textTransform as React.CSSProperties['textTransform'],
-                              textShadow: field.textShadow,
-                              letterSpacing: field.letterSpacing,
-                              fontStyle: field.fontStyle || 'normal',
-                              textAlign: (field.textAlign as React.CSSProperties['textAlign']) || 'center',
-                              lineHeight: field.lineHeight || '1.3',
-                            }}
-                          >
-                            {field.id === 'name' ? value.trim().toUpperCase() : value.trim()}
-                          </p>
-                          {/* Selection indicator */}
-                          {isSelected && (
-                            <div className="absolute -inset-1 border border-dashed border-amber-400/50 rounded pointer-events-none" />
+                          {value ? (
+                            <div
+                              className={`cursor-move text-center transition-all ${isSelected ? 'ring-2 ring-amber-400/50 ring-offset-2 ring-offset-transparent rounded' : ''}`}
+                              style={{
+                                color: field.color,
+                                fontWeight: field.fontWeight as any,
+                                fontFamily: fontFam,
+                                textTransform: field.textTransform as any,
+                                textShadow: field.textShadow,
+                                letterSpacing: field.letterSpacing,
+                                fontStyle: field.fontStyle as any,
+                                textAlign: field.textAlign as any,
+                                lineHeight: field.lineHeight,
+                                fontSize: `${pos.fontSize}px`,
+                              }}
+                            >
+                              {value}
+                            </div>
+                          ) : (
+                            <div
+                              className={`cursor-move text-center border-2 border-dashed rounded-lg p-2 transition-all ${isSelected ? 'border-amber-400/50 bg-amber-400/5' : 'border-white/10 hover:border-white/20'}`}
+                              style={{
+                                color: 'rgba(255,255,255,0.15)',
+                                fontFamily: fontFam,
+                                fontSize: `${Math.min(pos.fontSize, 14)}px`,
+                              }}
+                            >
+                              {field.placeholder}
+                            </div>
                           )}
-                          {/* Drag handle hint */}
-                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <GripVertical className="w-3 h-3 text-amber-400/40" />
-                          </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Interaction tips below poster */}
-                <div className="mt-3 flex items-center justify-center gap-4 text-[9px] text-white/15">
-                  <span className="flex items-center gap-1"><Move className="w-3 h-3" /> Kéo chữ trên poster</span>
-                  <span className="flex items-center gap-1"><Crop className="w-3 h-3" /> Kéo ảnh trong khung</span>
-                  <span className="flex items-center gap-1"><Type className="w-3 h-3" /> Thanh trượt chỉnh chi tiết</span>
-                </div>
+                <p className="text-[9px] text-white/15 mt-2 text-center">Kéo chữ trên poster để di chuyển vị trí</p>
               </div>
             </div>
           </div>
