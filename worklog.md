@@ -343,3 +343,29 @@ Stage Summary:
 - Trang quản lý đã chuyển sang neon dark theme
 - Menu File vô dụng đã xóa
 - Push lên GitHub thành công
+---
+Task ID: 1
+Agent: Main
+Task: Fix NTD (recruiter) data persistence bug - data keeps reverting to old version
+
+Work Log:
+- Investigated the full data flow: quan-ly page → API recruiters → Neon PostgreSQL
+- Checked all API endpoints: /api/recruiters, /api/sync, /api/staff, /api/quan-ly/all
+- Found root causes:
+  1. Staff API still used deleteMany()+createMany() (was supposed to be fixed)
+  2. Recruiter bulk import used individual upserts (90 separate DB queries → Vercel timeout risk)
+  3. Sync API used upsert for recruiters (overwrites manual edits with Google Sheets data)
+  4. Import success count showed members.length instead of actual upserted count
+  5. Staff GET endpoint had s-maxage=60 cache (could show stale data)
+- Fixed recruiter bulk import: createMany + selective update (batch insert first, then update existing)
+- Fixed sync API: changed to createMany with skipDuplicates (only adds NEW recruiters, never overwrites)
+- Fixed staff API: removed deleteMany+createMany, now uses same batch create + update pattern
+- Removed staff GET caching
+- Fixed import success count to use actual API response count
+- Pushed to GitHub, Vercel auto-deployed
+
+Stage Summary:
+- Current database has 26 NTD (from Google Sheets sync)
+- User needs to re-import their 90 NTD data after this fix
+- The sync will no longer overwrite manual NTD edits
+- Import is now much faster (batch insert instead of 90 individual queries)
