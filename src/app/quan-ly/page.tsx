@@ -1708,6 +1708,19 @@ export default function QuanLyPage() {
   };
 
   // ========== RENDER: Revenue with sub-tabs ==========
+  const REVENUE_COLUMNS = [
+    { f: 'month', l: 'Tháng', type: 'text' as const },
+    { f: 'maNhom', l: 'Mã nhóm', type: 'text' as const },
+    { f: 'nhom', l: 'Nhóm', type: 'text' as const },
+    { f: 'agentCode', l: 'Mã TVV', type: 'text' as const },
+    { f: 'agentName', l: 'Tên TVV', type: 'text' as const },
+    { f: 'totalFYP', l: 'Tổng IP', type: 'number' as const },
+    { f: 'totalAFYP', l: 'Tổng AFYP', type: 'number' as const },
+    { f: 'contractCount', l: 'Số HĐ', type: 'number' as const },
+    { f: 'activityRounds', l: 'Lượt HĐ', type: 'number' as const },
+    { f: 'note', l: 'Ghi chú', type: 'text' as const },
+  ];
+
   const renderRevenue = () => {
     const currentYear = new Date().getFullYear();
     // Filter revenue by selected month
@@ -1715,18 +1728,169 @@ export default function QuanLyPage() {
       ? revenue
       : revenue.filter(r => r.month === `${currentYear}-${revenueSub}` || r.month.endsWith(`-${revenueSub}`));
 
-    // Filter contracts by month
-    const filteredContracts = revenueSub === 'all'
-      ? contracts
-      : contracts.filter(c => {
-          const d = new Date(c.effectiveDate);
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          return mm === revenueSub;
-        });
-
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
-    const sortedContracts = getSorted(getFiltered(filteredContracts, ['contractNumber', 'agentCode', 'agentName', 'nhom']));
+    if (revenueSub === 'all') {
+      // ========== CẢ NĂM: Auto-aggregate from all months ==========
+      // Aggregate by agentCode
+      const agentAgg = new Map<string, { agentCode: string; agentName: string; maNhom: string; nhom: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number }>();
+      for (const r of revenue) {
+        const key = r.agentCode || r.agentName;
+        if (!key) continue;
+        const existing = agentAgg.get(key);
+        if (existing) {
+          existing.totalFYP += r.totalFYP;
+          existing.totalAFYP += r.totalAFYP;
+          existing.contractCount += r.contractCount;
+          existing.activityRounds += r.activityRounds;
+        } else {
+          agentAgg.set(key, { agentCode: r.agentCode, agentName: r.agentName, maNhom: r.maNhom, nhom: r.nhom, totalFYP: r.totalFYP, totalAFYP: r.totalAFYP, contractCount: r.contractCount, activityRounds: r.activityRounds });
+        }
+      }
+      const aggregatedAgents = Array.from(agentAgg.values()).sort((a, b) => b.totalFYP - a.totalFYP);
+
+      // Monthly breakdown summary
+      const monthlyFYP = new Map<string, number>();
+      const monthlyAFYP = new Map<string, number>();
+      const monthlyContracts = new Map<string, number>();
+      const monthlyRounds = new Map<string, number>();
+      for (const r of revenue) {
+        const m = r.month;
+        monthlyFYP.set(m, (monthlyFYP.get(m) || 0) + r.totalFYP);
+        monthlyAFYP.set(m, (monthlyAFYP.get(m) || 0) + r.totalAFYP);
+        monthlyContracts.set(m, (monthlyContracts.get(m) || 0) + r.contractCount);
+        monthlyRounds.set(m, (monthlyRounds.get(m) || 0) + r.activityRounds);
+      }
+      const sortedMonths = Array.from(monthlyFYP.keys()).sort();
+
+      const totalAllFYP = aggregatedAgents.reduce((s, a) => s + a.totalFYP, 0);
+      const totalAllAFYP = aggregatedAgents.reduce((s, a) => s + a.totalAFYP, 0);
+      const totalAllContracts = aggregatedAgents.reduce((s, a) => s + a.contractCount, 0);
+      const totalAllRounds = aggregatedAgents.reduce((s, a) => s + a.activityRounds, 0);
+
+      return (
+        <div>
+          {/* Sub-tabs for months */}
+          <div className="flex items-center gap-1 mb-3 flex-wrap">
+            <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
+            {MONTHS.map(m => (
+              <button
+                key={m.key}
+                onClick={() => setRevenueSub(m.key)}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
+                  revenueSub === m.key
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-800 text-emerald-300 hover:bg-emerald-700 hover:text-white'
+                }`}
+              >
+                {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+                {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
+              </button>
+            ))}
+          </div>
+
+          {/* Auto-aggregate notice */}
+          <div className="bg-emerald-800 border border-emerald-500 rounded-lg p-3 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+            <div>
+              <p className="text-emerald-200 text-xs font-bold">Tổng hợp tự động từ 12 tháng</p>
+              <p className="text-emerald-300 text-[10px]">Dữ liệu chỉ đọc — được tính tự động từ bảng Doanh thu hàng tháng</p>
+            </div>
+          </div>
+
+          {/* Summary KPI cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div className="bg-amber-800 rounded-lg p-3 text-center border border-amber-600">
+              <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng IP</span></div>
+              <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllFYP)}</p>
+            </div>
+            <div className="bg-amber-800 rounded-lg p-3 text-center border border-amber-600">
+              <div className="flex items-center justify-center gap-1 mb-1"><DollarSign className="w-4 h-4 text-amber-300" /><span className="text-[10px] text-amber-300 font-bold uppercase">Tổng AFYP</span></div>
+              <p className="text-sm font-extrabold text-white">{formatCurrency(totalAllAFYP)}</p>
+            </div>
+            <div className="bg-emerald-800 rounded-lg p-3 text-center border border-emerald-600">
+              <div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Số HĐ</span></div>
+              <p className="text-sm font-extrabold text-white">{formatNumber(totalAllContracts)}</p>
+            </div>
+            <div className="bg-emerald-800 rounded-lg p-3 text-center border border-emerald-600">
+              <div className="flex items-center justify-center gap-1 mb-1"><Hash className="w-4 h-4 text-emerald-300" /><span className="text-[10px] text-emerald-300 font-bold uppercase">Tổng Lượt HĐ</span></div>
+              <p className="text-sm font-extrabold text-white">{formatNumber(totalAllRounds)}</p>
+            </div>
+          </div>
+
+          {/* Monthly breakdown cards */}
+          {sortedMonths.length > 0 && (
+            <div className="mb-3">
+              <h3 className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Tổng hợp theo tháng</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+                {sortedMonths.map(m => {
+                  const fyp = monthlyFYP.get(m) || 0;
+                  const afyp = monthlyAFYP.get(m) || 0;
+                  const cc = monthlyContracts.get(m) || 0;
+                  const ar = monthlyRounds.get(m) || 0;
+                  return (
+                    <div key={m} className="bg-emerald-800/60 rounded-md p-2 border border-emerald-600/40 text-center">
+                      <p className="text-[10px] font-bold text-emerald-300 mb-1">{m}</p>
+                      <p className="text-xs font-extrabold text-amber-200">{formatCurrency(fyp)}</p>
+                      <p className="text-[9px] text-gray-400">{formatNumber(cc)} HĐ • {formatNumber(ar)} lượt</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Aggregated summary table by TVV */}
+          <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng tổng hợp theo TVV — Cả năm ({aggregatedAgents.length} TVV)</h3>
+          <div className="overflow-x-auto border border-amber-600">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-amber-800 hover:bg-amber-800">
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã TVV</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Tên TVV</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã nhóm</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Nhóm</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng IP</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng AFYP</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng Số HĐ</TableHead>
+                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng Lượt HĐ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {aggregatedAgents.map(a => (
+                  <TableRow key={a.agentCode || a.agentName} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.agentCode || '—'}</TableCell>
+                    <TableCell className="text-xs text-gray-900 whitespace-nowrap font-medium">{a.agentName || '—'}</TableCell>
+                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.maNhom || '—'}</TableCell>
+                    <TableCell className="text-xs text-gray-900 whitespace-nowrap">{a.nhom || '—'}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right font-semibold">{formatNumber(a.totalFYP)}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.totalAFYP)}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.contractCount)}</TableCell>
+                    <TableCell className="text-xs text-gray-900 text-right">{formatNumber(a.activityRounds)}</TableCell>
+                  </TableRow>
+                ))}
+                {aggregatedAgents.length === 0 && (
+                  <TableRow><TableCell colSpan={8} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu hàng tháng</TableCell></TableRow>
+                )}
+                {/* Totals row */}
+                {aggregatedAgents.length > 0 && (
+                  <TableRow className="bg-amber-100 font-bold border-t-2 border-amber-400">
+                    <TableCell className="text-xs" colSpan={4}>TỔNG CỘNG</TableCell>
+                    <TableCell className="text-xs text-right">{formatNumber(totalAllFYP)}</TableCell>
+                    <TableCell className="text-xs text-right">{formatNumber(totalAllAFYP)}</TableCell>
+                    <TableCell className="text-xs text-right">{formatNumber(totalAllContracts)}</TableCell>
+                    <TableCell className="text-xs text-right">{formatNumber(totalAllRounds)}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      );
+    }
+
+    // ========== MONTHLY TAB: Show editable MonthlyRevenue table ==========
+    const sortedRevenue = getSorted(getFiltered(filteredRevenue, ['agentCode', 'agentName', 'nhom', 'maNhom', 'month']));
 
     return (
       <div>
@@ -1767,85 +1931,56 @@ export default function QuanLyPage() {
                 { key: 'activityRounds', label: 'Lượt HĐ', type: 'number' },
               ],
             },
-            {
-              key: 'contracts',
-              label: 'Hợp đồng',
-              data: filteredContracts,
-              fields: [
-                { key: 'fyp', label: 'FYP', type: 'number' },
-                { key: 'afyp', label: 'AFYP', type: 'number' },
-                { key: 'pdt10DT', label: 'PĐT + 10% ĐT', type: 'number' },
-                { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' },
-                { key: 'afypChuaTru10DT', label: 'AFYP chưa trừ 10% ĐT', type: 'number' },
-                { key: 'tinhLuot3tr', label: 'Tính lượt 3tr', type: 'number' },
-                { key: 'stt', label: 'STT', type: 'number' },
-              ],
-            },
           ]}
           defaultConfigs={[
-            { id: 'kpi-default-fyp', label: 'Tổng IP (FYP)', dataSourceKey: 'contracts', field: 'fyp', calculation: 'sum', color: 'amber' },
-            { id: 'kpi-default-afyp', label: 'Tổng AFYP', dataSourceKey: 'contracts', field: 'afyp', calculation: 'sum', color: 'amber' },
-            { id: 'kpi-default-pdt', label: 'Tổng PĐT + 10% ĐT', dataSourceKey: 'contracts', field: 'pdt10DT', calculation: 'sum', color: 'sky' },
-            { id: 'kpi-default-phidongthem', label: 'Tổng Phí đóng thêm', dataSourceKey: 'contracts', field: 'phiDongThem', calculation: 'sum', color: 'sky' },
-            { id: 'kpi-default-afypchutru', label: 'Tổng AFYP chưa trừ 10% ĐT', dataSourceKey: 'contracts', field: 'afypChuaTru10DT', calculation: 'sum', color: 'violet' },
-            { id: 'kpi-default-tinhluot', label: 'Tổng Tính lượt 3tr', dataSourceKey: 'contracts', field: 'tinhLuot3tr', calculation: 'sum', color: 'violet' },
-            { id: 'kpi-default-count', label: 'Số HĐ', dataSourceKey: 'contracts', field: 'stt', calculation: 'count', color: 'emerald' },
+            { id: 'kpi-default-fyp', label: 'Tổng IP (FYP)', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'amber' },
+            { id: 'kpi-default-afyp', label: 'Tổng AFYP', dataSourceKey: 'revenue', field: 'totalAFYP', calculation: 'sum', color: 'amber' },
+            { id: 'kpi-default-count', label: 'Số HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'emerald' },
+            { id: 'kpi-default-rounds', label: 'Lượt HĐ', dataSourceKey: 'revenue', field: 'activityRounds', calculation: 'sum', color: 'emerald' },
           ]}
         />
 
-        {/* Detail table */}
-        <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng chi tiết — {monthLabel} ({sortedContracts.length} HĐ)</h3>
+        {/* MonthlyRevenue table */}
+        <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng doanh thu — {monthLabel} ({sortedRevenue.length} dòng)</h3>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          {!syncEnabled && <><Button onClick={addContract} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm HĐ</Button>
-            <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label></>}
-          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu HĐ</Button>
-          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất HĐ</Button>
+          <Button onClick={addRevenue} className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"><Plus className="w-3 h-3 mr-1" /> Thêm dòng</Button>
+          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import DS<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('revenue', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-600 text-violet-300 hover:bg-violet-700 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-600 text-amber-300 hover:bg-amber-700 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DS</Button>
         </div>
         <div className="overflow-x-auto border border-amber-600">
           <Table>
             <TableHeader>
               <TableRow className="bg-amber-800 hover:bg-amber-800">
-                {CONTRACT_COLUMNS.map(col => (
+                {REVENUE_COLUMNS.map(col => (
                   <TableHead key={col.f} className="text-white text-[10px] font-bold whitespace-nowrap cursor-pointer hover:text-amber-300" onClick={() => sortData(col.f)}>
                     {col.l} <SortIcon field={col.f} />
                   </TableHead>
                 ))}
-                {!syncEnabled && <TableHead className="text-white text-xs w-[36px]"></TableHead>}
+                <TableHead className="text-white text-xs w-[36px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedContracts.slice(0, 200).map(c => (
-                <TableRow key={c.id} className="bg-white hover:bg-amber-50 border-b border-gray-200">
-                  {CONTRACT_COLUMNS.map(col => (
+              {sortedRevenue.slice(0, 200).map(r => (
+                <TableRow key={r.id} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+                  {REVENUE_COLUMNS.map(col => (
                     <TableCell key={col.f} className="text-xs p-0">
-                      {!syncEnabled ? (
-                        <EditableCell
-                          value={col.type === 'number' ? (c as any)[col.f] : (c as any)[col.f] || ''}
-                          onSave={(v) => updateContract(c.id, col.f, v)}
-                          type={col.type}
-                          className={col.type === 'number' ? 'text-right' : ''}
-                        />
-                      ) : (
-                        <span className="px-1 py-0.5 block text-gray-900 text-xs">
-                          {col.type === 'number' && typeof (c as any)[col.f] === 'number'
-                            ? formatNumber((c as any)[col.f])
-                            : col.type === 'date' && (c as any)[col.f]
-                              ? new Date(String((c as any)[col.f])).toLocaleDateString('vi-VN')
-                              : String((c as any)[col.f] || '—')}
-                        </span>
-                      )}
+                      <EditableCell
+                        value={col.type === 'number' ? (r as any)[col.f] : (r as any)[col.f] || ''}
+                        onSave={(v) => updateRevenue(r.id, col.f, v)}
+                        type={col.type}
+                        className={col.type === 'number' ? 'text-right' : ''}
+                      />
                     </TableCell>
                   ))}
-                  {!syncEnabled && (
-                    <TableCell className="text-xs p-1">
-                      <Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-xs p-1">
+                    <Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
-              {sortedContracts.length === 0 && <TableRow><TableCell colSpan={CONTRACT_COLUMNS.length + (syncEnabled ? 0 : 1)} className="text-center text-gray-500 text-sm py-6">Chưa có HĐ</TableCell></TableRow>}
+              {sortedRevenue.length === 0 && <TableRow><TableCell colSpan={REVENUE_COLUMNS.length + 1} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu tháng này</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
