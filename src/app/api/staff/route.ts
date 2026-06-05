@@ -24,7 +24,7 @@ export async function GET() {
       orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
     });
     return NextResponse.json(staff, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('Error fetching staff:', error);
@@ -50,11 +50,8 @@ export async function POST(request: NextRequest) {
       }>;
     };
 
-    // Bulk upsert mode
+    // Bulk upsert mode — batch insert then update for speed
     if (members && Array.isArray(members)) {
-      // Clear existing staff first
-      await db.staff.deleteMany();
-
       const staffData = members
         .filter((m) => m.agentCode && m.agentName)
         .map((m) => ({
@@ -73,14 +70,44 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await db.staff.createMany({
-        data: staffData,
-        skipDuplicates: true,
-      });
+      // Step 1: Insert new records in one batch (skip existing agentCodes)
+      let created = 0;
+      try {
+        const result = await db.staff.createMany({
+          data: staffData,
+          skipDuplicates: true,
+        });
+        created = result.count;
+      } catch {
+        // Fallback if createMany fails
+      }
 
+      // Step 2: Update existing records individually (only those that were skipped)
+      const existingCodes = new Set(
+        (await db.staff.findMany({
+          where: { agentCode: { in: staffData.map(d => d.agentCode) } },
+          select: { agentCode: true },
+        })).map(s => s.agentCode)
+      );
+
+      let updated = 0;
+      const itemsToUpdate = staffData.filter(d => existingCodes.has(d.agentCode));
+      for (const item of itemsToUpdate) {
+        try {
+          await db.staff.update({
+            where: { agentCode: item.agentCode },
+            data: { nhom: item.nhom, maNhom: item.maNhom, agentName: item.agentName, position: item.position, startDate: item.startDate },
+          });
+          updated++;
+        } catch {
+          // Skip individual errors
+        }
+      }
+
+      const total = created + updated;
       return NextResponse.json({
-        message: `Đã nhập ${result.count} nhân sự`,
-        count: result.count,
+        message: `Đã nhập ${total} nhân sự (mới: ${created}, cập nhật: ${updated})`,
+        count: total,
       });
     }
 

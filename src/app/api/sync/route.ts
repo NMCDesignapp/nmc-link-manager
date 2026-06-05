@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Import Recruiter CSV — upsert by agentCode to preserve manual edits
+    // 3. Import Recruiter CSV — createMany with skipDuplicates to NOT overwrite manual edits
     if (recruiterCsv) {
       try {
         const rows = parseCSV(recruiterCsv);
@@ -284,7 +284,13 @@ export async function POST(request: NextRequest) {
         const dataRows = rows.slice(1); // Skip header
 
         const colCount = header.length;
-        let upserted = 0;
+        const recruitersData: Array<{
+          nhom: string;
+          agentCode: string;
+          agentName: string;
+          position: string;
+          startDate: Date | null;
+        }> = [];
 
         for (const columns of dataRows) {
           let nhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
@@ -307,19 +313,38 @@ export async function POST(request: NextRequest) {
 
           if (!agentCode || !agentName) continue;
 
+          recruitersData.push({
+            nhom,
+            agentCode,
+            agentName,
+            position,
+            startDate: parseDate(startDateStr),
+          });
+        }
+
+        // Use createMany with skipDuplicates — only adds NEW recruiters, preserves manual edits
+        let synced = 0;
+        if (recruitersData.length > 0) {
           try {
-            await db.recruiter.upsert({
-              where: { agentCode },
-              update: { nhom, agentName, position, startDate: parseDate(startDateStr) },
-              create: { nhom, agentCode, agentName, position, startDate: parseDate(startDateStr) },
+            const result = await db.recruiter.createMany({
+              data: recruitersData,
+              skipDuplicates: true,
             });
-            upserted++;
+            synced = result.count;
           } catch {
-            // Skip individual errors
+            // Fallback: try individual creates
+            for (const r of recruitersData) {
+              try {
+                await db.recruiter.create({ data: r });
+                synced++;
+              } catch {
+                // Skip duplicates or errors
+              }
+            }
           }
         }
 
-        results.recruiters = upserted;
+        results.recruiters = synced;
       } catch (err) {
         results.errors.push(`NYD: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
