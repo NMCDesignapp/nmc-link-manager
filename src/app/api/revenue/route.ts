@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Support bulk create with members array (replace mode - like staff/recruiters)
+    // Support bulk create with members array (per-month replace mode)
+    // Chỉ xóa dữ liệu của tháng đang import, giữ nguyên các tháng khác
     if (body.members && Array.isArray(body.members)) {
       const members = body.members as Array<{
         month?: string;
@@ -36,9 +37,6 @@ export async function POST(req: NextRequest) {
         activityRounds?: number | string;
         note?: string;
       }>;
-
-      // Clear existing revenue first (replace mode)
-      await db.monthlyRevenue.deleteMany();
 
       const data = members
         .filter((m) => m.month || m.agentCode || m.agentName)
@@ -59,8 +57,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Không có dữ liệu doanh số hợp lệ' }, { status: 400 });
       }
 
+      // Tìm tất cả các tháng trong data import
+      const monthsInData = [...new Set(data.map(d => d.month).filter(Boolean))];
+      if (monthsInData.length > 0) {
+        // Chỉ xóa dữ liệu của các tháng đang import (thay thế tháng đó, giữ tháng khác)
+        await db.monthlyRevenue.deleteMany({
+          where: { month: { in: monthsInData } }
+        });
+      }
+
       const result = await db.monthlyRevenue.createMany({ data, skipDuplicates: true });
-      return NextResponse.json({ count: result.count, message: `Đã nhập ${result.count} dòng doanh số` }, { status: 201 });
+      return NextResponse.json({
+        count: result.count,
+        months: monthsInData,
+        message: `Đã nhập ${result.count} dòng doanh số cho tháng: ${monthsInData.join(', ')}`
+      }, { status: 201 });
     }
 
     // Support bulk create (plain array - append mode)
