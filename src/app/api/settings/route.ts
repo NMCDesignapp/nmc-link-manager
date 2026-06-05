@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, withRetry } from '@/lib/db'
 
 export async function GET() {
   try {
-    const settings = await db.setting.findMany({ orderBy: { key: 'asc' } })
+    const settings = await withRetry(() => db.setting.findMany({ orderBy: { key: 'asc' } }))
 
     const settingsObject = settings.reduce((acc: Record<string, string>, setting: { key: string; value: string | null }) => {
       acc[setting.key] = setting.value || ''
@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
     }
 
     // Batch upsert using $transaction for better performance
-    await db.$transaction(
+    await withRetry(() => db.$transaction(
       entries.map(([key, value]) =>
         db.setting.upsert({
           where: { key },
@@ -37,7 +37,7 @@ export async function PUT(request: Request) {
           create: { key, value: String(value) },
         })
       )
-    )
+    ))
 
     return NextResponse.json({ success: true })
   } catch (error) {

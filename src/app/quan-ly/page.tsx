@@ -2046,48 +2046,58 @@ export default function QuanLyPage() {
 
           {/* Aggregated summary table by TVV */}
           <h3 className="text-sm font-bold text-amber-300 mb-2">Bảng tổng hợp theo TVV — Cả năm ({aggregatedAgents.length} TVV)</h3>
-          <div className="overflow-x-auto border border-amber-500/30">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-amber-500/20 hover:bg-amber-500/20 border-b border-amber-500/30">
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã TVV</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Tên TVV</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Mã nhóm</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap">Nhóm</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng IP</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng AFYP</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng Số HĐ</TableHead>
-                  <TableHead className="text-white text-xs font-bold whitespace-nowrap text-right">Tổng Lượt HĐ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {aggregatedAgents.map(a => (
-                  <TableRow key={a.agentCode || a.agentName} className="bg-[#0e0e18]/60 hover:bg-amber-500/10 border-b border-amber-500/20">
-                    <TableCell className="text-xs text-emerald-300/80 whitespace-nowrap">{a.agentCode || '—'}</TableCell>
-                    <TableCell className="text-xs text-white whitespace-nowrap font-medium">{a.agentName || '—'}</TableCell>
-                    <TableCell className="text-xs text-white/70 whitespace-nowrap">{a.maNhom || '—'}</TableCell>
-                    <TableCell className="text-xs text-white/70 whitespace-nowrap">{a.nhom || '—'}</TableCell>
-                    <TableCell className="text-xs text-amber-300 text-right font-semibold">{formatNumber(a.totalFYP)}</TableCell>
-                    <TableCell className="text-xs text-amber-300/80 text-right">{formatNumber(a.totalAFYP)}</TableCell>
-                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(a.contractCount)}</TableCell>
-                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(a.activityRounds)}</TableCell>
-                  </TableRow>
+          <div className="overflow-auto max-h-[calc(100vh-280px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full">
+              <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
+                <tr>
+                  {[
+                    { label: 'Mã TVV', align: 'left' },
+                    { label: 'Tên TVV', align: 'left' },
+                    { label: 'Mã nhóm', align: 'left' },
+                    { label: 'Nhóm', align: 'left' },
+                    { label: 'Tổng IP', align: 'right' },
+                    { label: 'Tổng AFYP', align: 'right' },
+                    { label: 'Tổng Số HĐ', align: 'right' },
+                    { label: 'Tổng Lượt HĐ', align: 'right' },
+                  ].map((h, i) => (
+                    <th
+                      key={i}
+                      className={`px-3 py-2.5 whitespace-nowrap text-[11px] font-bold text-white ${h.align === 'right' ? 'text-right' : 'text-left'}`}
+                      style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}
+                    >
+                      {h.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {aggregatedAgents.map((a, idx) => (
+                  <tr key={a.agentCode || a.agentName} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
+                    <td className="text-xs py-2 px-3 text-emerald-300/80 whitespace-nowrap font-mono">{a.agentCode || '—'}</td>
+                    <td className="text-xs py-2 px-3 text-white whitespace-nowrap font-medium">{a.agentName || '—'}</td>
+                    <td className="text-xs py-2 px-3 text-white/70 whitespace-nowrap">{a.maNhom || '—'}</td>
+                    <td className="text-xs py-2 px-3 text-white/70 whitespace-nowrap">{a.nhom || '—'}</td>
+                    <td className="text-xs py-2 px-3 text-amber-300 text-right font-mono font-semibold">{formatNumber(a.totalFYP)}</td>
+                    <td className="text-xs py-2 px-3 text-amber-300/80 text-right font-mono">{formatNumber(a.totalAFYP)}</td>
+                    <td className="text-xs py-2 px-3 text-white/70 text-right font-mono">{formatNumber(a.contractCount)}</td>
+                    <td className="text-xs py-2 px-3 text-white/70 text-right font-mono">{formatNumber(a.activityRounds)}</td>
+                  </tr>
                 ))}
                 {aggregatedAgents.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu hàng tháng</TableCell></TableRow>
+                  <tr><td colSpan={8} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu hàng tháng</td></tr>
                 )}
-                {/* Totals row */}
+                {/* Totals row — sticky at bottom */}
                 {aggregatedAgents.length > 0 && (
-                  <TableRow className="bg-amber-500/10 font-bold border-t-2 border-amber-500/30">
-                    <TableCell className="text-xs text-amber-300" colSpan={4}>TỔNG CỘNG</TableCell>
-                    <TableCell className="text-xs text-amber-300 text-right">{formatNumber(totalAllFYP)}</TableCell>
-                    <TableCell className="text-xs text-amber-300 text-right">{formatNumber(totalAllAFYP)}</TableCell>
-                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(totalAllContracts)}</TableCell>
-                    <TableCell className="text-xs text-white/70 text-right">{formatNumber(totalAllRounds)}</TableCell>
-                  </TableRow>
+                  <tr className="sticky bottom-0 bg-emerald-500/10 font-bold border-t-2 border-emerald-500/30">
+                    <td className="text-xs py-2.5 px-3 text-amber-300 font-bold" colSpan={4} style={{ textShadow: '0 0 6px rgba(251,191,36,0.3)' }}>TỔNG CỘNG</td>
+                    <td className="text-xs py-2.5 px-3 text-amber-300 text-right font-mono font-bold">{formatNumber(totalAllFYP)}</td>
+                    <td className="text-xs py-2.5 px-3 text-amber-300 text-right font-mono font-bold">{formatNumber(totalAllAFYP)}</td>
+                    <td className="text-xs py-2.5 px-3 text-white/70 text-right font-mono font-bold">{formatNumber(totalAllContracts)}</td>
+                    <td className="text-xs py-2.5 px-3 text-white/70 text-right font-mono font-bold">{formatNumber(totalAllRounds)}</td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </div>
       );
@@ -2152,41 +2162,48 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('revenue')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('revenue')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất DS</Button>
         </div>
-        <div className="overflow-x-auto border border-amber-500/30">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-amber-500/20 hover:bg-amber-500/20 border-b border-amber-500/30">
+        <div className="overflow-auto max-h-[calc(100vh-280px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+          <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full">
+            <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
+              <tr>
                 {REVENUE_COLUMNS.map(col => (
-                  <TableHead key={col.f} className="text-white text-[10px] font-bold whitespace-nowrap cursor-pointer hover:text-amber-300" onClick={() => sortData(col.f)}>
+                  <th
+                    key={col.f}
+                    className="px-3 py-2.5 whitespace-nowrap text-[11px] font-bold text-white cursor-pointer hover:text-amber-300 transition-colors"
+                    style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}
+                    onClick={() => sortData(col.f)}
+                  >
                     {col.l} <SortIcon field={col.f} />
-                  </TableHead>
+                  </th>
                 ))}
-                <TableHead className="text-white text-xs w-[36px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedRevenue.slice(0, 200).map(r => (
-                <TableRow key={r.id} className="bg-[#0e0e18]/60 hover:bg-amber-500/10 border-b border-amber-500/20">
+                <th className="px-1 py-2.5 w-[36px]"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRevenue.slice(0, 200).map((r, idx) => (
+                <tr key={r.id} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
                   {REVENUE_COLUMNS.map(col => (
-                    <TableCell key={col.f} className="text-xs p-0">
+                    <td key={col.f} className="text-xs py-1 px-0">
                       <EditableCell
                         value={col.type === 'number' ? (r as any)[col.f] : (r as any)[col.f] || ''}
                         onSave={(v) => updateRevenue(r.id, col.f, v)}
                         type={col.type}
                         className={col.type === 'number' ? 'text-right' : ''}
                       />
-                    </TableCell>
+                    </td>
                   ))}
-                  <TableCell className="text-xs p-1">
+                  <td className="text-xs py-1 px-1">
                     <Button variant="ghost" size="sm" onClick={() => deleteRevenue(r.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10">
                       <Trash2 className="w-3 h-3" />
                     </Button>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-              {sortedRevenue.length === 0 && <TableRow><TableCell colSpan={REVENUE_COLUMNS.length + 1} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu tháng này</TableCell></TableRow>}
-            </TableBody>
-          </Table>
+              {sortedRevenue.length === 0 && (
+                <tr><td colSpan={REVENUE_COLUMNS.length + 1} className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu doanh thu tháng này</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     );
