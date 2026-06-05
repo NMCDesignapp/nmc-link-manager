@@ -97,21 +97,39 @@ export async function POST(request: NextRequest) {
         const seenContractNumbers = new Set<string>();
 
         for (const columns of dataRows) {
-          const contractNumber = columns[10] || '';
-          const agentCode = columns[6] || '';
-          const agentName = columns[7] || '';
-          const position = columns[8] || '';
+          const stt = columns[0] || '';
           const ban = columns[1] || '';
+          const maTruongBan = columns[2] || '';
           const nhom = columns[3] || '';
           const maNhom = columns[4] || '';
           const leaderAgentCode = columns[5] || '';
-          const recruiterCode = columns[28] || ''; // Mã đại lý tuyển dụng (MÃ ĐL TD - cột 28)
+          const agentCode = columns[6] || '';
+          const agentName = columns[7] || '';
+          const position = columns[8] || '';
           const startDateStr = columns[9] || '';
+          const contractNumber = columns[10] || '';
           const effectiveDateStr = columns[11] || '';
           const issueDateStr = columns[12] || '';
           const fypStr = columns[13] || '';
+          const pdt10DTStr = columns[14] || '';
+          const nguonDuLieu = columns[15] || '';
+          const hopDongToChuc = columns[16] || '';
+          const dkDongPhi = columns[17] || '';
+          const phiDongThemStr = columns[18] || '';
+          const afypChuaTru10DTStr = columns[19] || '';
           const afypStr = columns[20] || '';
-          const tinhLuotStr = columns[27] || '0'; // TÍNH LƯỢT (cột 27, không phải col 26 THÁNG HL)
+          const ad = columns[21] || '';
+          const nhom2 = columns[22] || '';
+          const ngayBatDauLamViec2Str = columns[23] || '';
+          const thangTDStr = columns[24] || '';
+          const namTDStr = columns[25] || '';
+          const thangHLStr = columns[26] || '';
+          const tinhLuotStr = columns[27] || '0';
+          const tinhLuot3trStr = columns[28] || '0';
+          const maDaiLyTD = columns[29] || '';
+          const danhDauTVV = columns[30] || '';
+          const chucVu2 = columns[31] || '';
+          const recruiterCode = columns[32] || '';
 
           if (!effectiveDateStr) continue;
           // Auto-generate contract number if missing
@@ -122,13 +140,38 @@ export async function POST(request: NextRequest) {
           const effectiveDate = parseDate(effectiveDateStr);
           const issueDate = parseDate(issueDateStr);
           const startDate = parseDate(startDateStr);
+          const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
           if (!effectiveDate) continue;
 
           const fyp = parseNumber(fypStr);
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
 
-          contracts.push({ contractNumber: finalContractNumber, agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode, recruiterCode: recruiterCode || '', startDate, effectiveDate, issueDate: issueDate || effectiveDate, fyp, afyp, tinhLuot });
+          contracts.push({
+            stt: parseInt(stt) || 0,
+            contractNumber: finalContractNumber,
+            agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
+            maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
+            ngayBatDauLamViec: startDate,
+            recruiterCode: recruiterCode || '',
+            startDate,
+            effectiveDate,
+            issueDate: issueDate || effectiveDate,
+            pdt10DT: parseNumber(pdt10DTStr),
+            fyp,
+            nguonDuLieu, hopDongToChuc, dkDongPhi,
+            phiDongThem: parseNumber(phiDongThemStr),
+            afypChuaTru10DT: parseNumber(afypChuaTru10DTStr),
+            afyp,
+            ad, nhom2,
+            ngayBatDauLamViec2,
+            thangTD: parseInt(thangTDStr) || 0,
+            namTD: parseInt(namTDStr) || 0,
+            thangHL: parseInt(thangHLStr) || 0,
+            tinhLuot,
+            tinhLuot3tr: parseNumber(tinhLuot3trStr),
+            maDaiLyTD, danhDauTVV, chucVu2,
+          });
         }
 
         if (contracts.length > 0) {
