@@ -11,6 +11,7 @@ import {
   User, Move, Type, RotateCcw, ChevronUp, ChevronDown,
   Sparkles, Camera, Layout, Minus, Plus, Crop,
   GripVertical, AlignCenter, AlignLeft, AlignRight,
+  Building2,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
@@ -61,6 +62,7 @@ export interface PosterTemplate {
   id: string;
   name: string;
   description: string;
+  group: 'canhan' | 'phong' | 'ad';
   backgroundImage: string;
   aspectRatio: string;
   imageSlots: ImageSlot[];
@@ -79,6 +81,7 @@ const TEMPLATES: PosterTemplate[] = [
     id: 'mau-1',
     name: 'Mẫu 1',
     description: 'Chúc mừng tháng - Trang trọng',
+    group: 'canhan',
     backgroundImage: '/posters/template-thang.png',
     aspectRatio: '2/1',
     imageSlots: [
@@ -140,6 +143,7 @@ const TEMPLATES: PosterTemplate[] = [
     id: 'mau-2',
     name: 'Mẫu 2',
     description: 'Chúc mừng - 2 hình ảnh',
+    group: 'canhan',
     backgroundImage: '/posters/template-mau2.png',
     aspectRatio: '2/1',
     imageSlots: [
@@ -212,6 +216,7 @@ const TEMPLATES: PosterTemplate[] = [
     id: 'mau-3',
     name: 'Mẫu 3',
     description: 'Chúc mừng - Ảnh lớn bên trái',
+    group: 'canhan',
     backgroundImage: '/posters/template-mau3.png',
     aspectRatio: '2/1',
     imageSlots: [
@@ -273,6 +278,7 @@ const TEMPLATES: PosterTemplate[] = [
     id: 'mau-4',
     name: 'Mẫu 4',
     description: 'Nội dung trái - Ảnh lớn phải',
+    group: 'canhan',
     backgroundImage: '/posters/template-mau4.png',
     aspectRatio: '2/1',
     imageSlots: [
@@ -334,6 +340,7 @@ const TEMPLATES: PosterTemplate[] = [
     id: 'mau-5',
     name: 'Mẫu 5',
     description: 'Ảnh viền trang trí - Nội dung phải',
+    group: 'canhan',
     backgroundImage: '/posters/template-mau5.png',
     aspectRatio: '2/1',
     imageSlots: [
@@ -388,6 +395,259 @@ const TEMPLATES: PosterTemplate[] = [
       },
     ],
   },
+  // PHÒNG 1 - Ảnh lớn bên trái, nội dung bên phải (Tập thể phòng)
+  {
+    id: 'phong-1',
+    name: 'Phòng 1',
+    description: 'Vinh danh Phòng - Mẫu 1',
+    group: 'phong',
+    backgroundImage: '/posters/template-MAUU-PHONG.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình tập thể phòng',
+        left: 1,
+        top: 6,
+        width: 44,
+        height: 88,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên phòng ban',
+        placeholder: 'VD: TẬP THỂ PHÒNG PTKD',
+        defaultValue: 'TẬP THỂ PHÒNG PTKD',
+        left: 55,
+        top: 45,
+        fontSize: 28,
+        width: 50,
+        color: '#f5d182',
+        fontWeight: '700',
+        fontFamily: '"Noto Serif Display", serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 30px rgba(245,209,130,0.4)',
+        letterSpacing: '0.08em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+      {
+        id: 'content',
+        label: 'Nội dung chúc mừng',
+        placeholder: 'VD: Chúc mừng',
+        defaultValue: 'Chúc mừng',
+        left: 59,
+        top: 32,
+        fontSize: 20,
+        width: 45,
+        color: '#fef3d5',
+        fontWeight: '400',
+        fontFamily: '"Dancing Script", cursive',
+        textTransform: 'none',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        letterSpacing: '0.04em',
+        textAlign: 'center',
+        lineHeight: '1.5',
+      },
+    ],
+  },
+  // PHÒNG 2 - Ảnh nền toàn khung, chữ ở giữa (Tập thể phòng)
+  {
+    id: 'phong-2',
+    name: 'Phòng 2',
+    description: 'Vinh danh Phòng - Mẫu 2',
+    group: 'phong',
+    backgroundImage: '/posters/template-MAUU-PHONG-2.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình tập thể phòng',
+        left: 5,
+        top: 5,
+        width: 90,
+        height: 90,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'prefix',
+        label: 'Tiền tố (TẬP THỂ)',
+        placeholder: 'VD: TẬP THỂ',
+        defaultValue: 'TẬP THỂ',
+        left: 63,
+        top: 32,
+        fontSize: 18,
+        width: 40,
+        color: '#f3e4af',
+        fontWeight: '700',
+        fontFamily: '"DM Serif Display", serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
+        letterSpacing: '0.1em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+      {
+        id: 'name',
+        label: 'Tên phòng ban',
+        placeholder: 'VD: PHÒNG PTKD',
+        defaultValue: 'PHÒNG PTKD',
+        left: 50,
+        top: 42,
+        fontSize: 32,
+        width: 60,
+        color: '#f3e4af',
+        fontWeight: '700',
+        fontFamily: '"DM Serif Display", serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 25px rgba(243,228,175,0.3)',
+        letterSpacing: '0.08em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+    ],
+  },
+  // AD 1 - Ảnh bên phải, chữ bên trái
+  {
+    id: 'ad-1',
+    name: 'AD 1',
+    description: 'Vinh danh AD - Mẫu 1 (Ảnh phải)',
+    group: 'ad',
+    backgroundImage: '/posters/template-AD-1.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình AD',
+        left: 55,
+        top: 10,
+        width: 43,
+        height: 85,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên AD / Chức danh',
+        placeholder: 'VD: ADM NGUYỄN VĂN CÓ',
+        defaultValue: 'ADM NGUYỄN VĂN CÓ',
+        left: 22,
+        top: 48,
+        fontSize: 22,
+        width: 40,
+        color: '#ffffff',
+        fontWeight: '700',
+        fontFamily: '"Anton", "Noto Sans", sans-serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        letterSpacing: '0.08em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+    ],
+  },
+  // AD 2 - Ảnh nền bên trái, chữ bên trái
+  {
+    id: 'ad-2',
+    name: 'AD 2',
+    description: 'Vinh danh AD - Mẫu 2 (Ảnh trái)',
+    group: 'ad',
+    backgroundImage: '/posters/template-AD-2.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình AD',
+        left: 1,
+        top: 5,
+        width: 48,
+        height: 90,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên AD / Chức danh',
+        placeholder: 'VD: ADO LÊ QUANG TRỌNG TRÍ',
+        defaultValue: 'ADO LÊ QUANG TRỌNG TRÍ',
+        left: 20,
+        top: 48,
+        fontSize: 18,
+        width: 45,
+        color: '#ffffff',
+        fontWeight: '700',
+        fontFamily: '"Paytone One", "Noto Sans", sans-serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        letterSpacing: '0.06em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+    ],
+  },
+  // AD 3 - Ảnh bên trái, chữ bên phải
+  {
+    id: 'ad-3',
+    name: 'AD 3',
+    description: 'Vinh danh AD - Mẫu 3 (Ảnh trái - Chữ phải)',
+    group: 'ad',
+    backgroundImage: '/posters/template-AD-3.png',
+    aspectRatio: '2/1',
+    imageSlots: [
+      {
+        id: 'photo-1',
+        label: 'Hình AD',
+        left: 1,
+        top: 5,
+        width: 42,
+        height: 90,
+        borderRadius: '4px',
+        objectFit: 'cover',
+        borderWidth: 0,
+      },
+    ],
+    textFields: [
+      {
+        id: 'name',
+        label: 'Tên AD / Chức danh',
+        placeholder: 'VD: ADO LÊ QUANG TRỌNG TRÍ',
+        defaultValue: 'ADO LÊ QUANG TRỌNG TRÍ',
+        left: 68,
+        top: 48,
+        fontSize: 18,
+        width: 40,
+        color: '#ffffff',
+        fontWeight: '700',
+        fontFamily: '"Paytone One", "Noto Sans", sans-serif',
+        textTransform: 'uppercase',
+        textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+        letterSpacing: '0.06em',
+        textAlign: 'center',
+        lineHeight: '1.3',
+      },
+    ],
+  },
+];
+
+// ===== TEMPLATE GROUP DEFINITIONS =====
+const TEMPLATE_GROUPS = [
+  { id: 'canhan' as const, name: 'CÁ NHÂN', icon: User, color: 'amber' },
+  { id: 'phong' as const, name: 'PHÒNG', icon: Building2, color: 'blue' },
+  { id: 'ad' as const, name: 'AD', icon: Award, color: 'purple' },
 ];
 
 export default function VinhDanhPage() {
@@ -395,8 +655,11 @@ export default function VinhDanhPage() {
   const posterRef = useRef<HTMLDivElement>(null);
   const posterContainerRef = useRef<HTMLDivElement>(null);
 
+  const [activeGroup, setActiveGroup] = useState<'canhan' | 'phong' | 'ad'>('canhan');
   const [activeTemplateId, setActiveTemplateId] = useState(TEMPLATES[0].id);
   const activeTemplate = TEMPLATES.find(t => t.id === activeTemplateId) || TEMPLATES[0];
+
+  const filteredTemplates = TEMPLATES.filter(t => t.group === activeGroup);
 
   // Image uploads keyed by templateId-slotId
   const [imageUploads, setImageUploads] = useState<Record<string, string>>({});
@@ -622,7 +885,7 @@ export default function VinhDanhPage() {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Noto+Serif+Display:wght@400;600;700&family=Playfair+Display:wght@400;700;800&family=Alex+Brush&family=Dancing+Script:wght@400;700&family=Montserrat:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Noto+Serif+Display:wght@400;600;700&family=Playfair+Display:wght@400;700;800&family=Alex+Brush&family=Dancing+Script:wght@400;700&family=Montserrat:wght@300;400;500;600;700&family=DM+Serif+Display&family=Anton&family=Paytone+One&family=Lora:wght@400;700&display=swap"
         rel="stylesheet"
       />
 
@@ -654,8 +917,58 @@ export default function VinhDanhPage() {
               <Layout className="w-4 h-4 text-amber-400/70" />
               <span className="text-sm font-semibold text-amber-300/80 tracking-wide">Chọn mẫu poster</span>
             </div>
+
+            {/* Group Tabs */}
+            <div className="flex gap-2 mb-3">
+              {TEMPLATE_GROUPS.map((group) => {
+                const Icon = group.icon;
+                const isActive = activeGroup === group.id;
+                const colorClasses = {
+                  amber: {
+                    active: 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white border-amber-500 shadow-lg shadow-amber-500/25',
+                    inactive: 'bg-white/5 text-white/40 border-white/10 hover:bg-amber-500/10 hover:text-white/60 hover:border-amber-500/20',
+                    iconBg: isActive ? 'bg-white/25' : 'bg-amber-500/10',
+                  },
+                  blue: {
+                    active: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-500 shadow-lg shadow-cyan-500/25',
+                    inactive: 'bg-white/5 text-white/40 border-white/10 hover:bg-cyan-500/10 hover:text-white/60 hover:border-cyan-500/20',
+                    iconBg: isActive ? 'bg-white/25' : 'bg-cyan-500/10',
+                  },
+                  purple: {
+                    active: 'bg-gradient-to-r from-purple-600 to-violet-600 text-white border-purple-500 shadow-lg shadow-purple-500/25',
+                    inactive: 'bg-white/5 text-white/40 border-white/10 hover:bg-purple-500/10 hover:text-white/60 hover:border-purple-500/20',
+                    iconBg: isActive ? 'bg-white/25' : 'bg-purple-500/10',
+                  },
+                }[group.color];
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => {
+                      setActiveGroup(group.id);
+                      const firstInGroup = TEMPLATES.find(t => t.group === group.id);
+                      if (firstInGroup) {
+                        setActiveTemplateId(firstInGroup.id);
+                      }
+                      setSelectedTextField(null);
+                    }}
+                    className={`px-4 py-2.5 text-sm font-bold rounded-lg border transition-all duration-200 ${
+                      isActive ? colorClasses.active : colorClasses.inactive
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center ${colorClasses.iconBg}`}>
+                        <Icon className="w-3 h-3" />
+                      </div>
+                      <span>{group.name}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Templates within selected group */}
             <div className="flex gap-2 flex-wrap">
-              {TEMPLATES.map((template, idx) => (
+              {filteredTemplates.map((template, idx) => (
                 <button
                   key={template.id}
                   onClick={() => {
@@ -664,8 +977,12 @@ export default function VinhDanhPage() {
                   }}
                   className={`px-4 py-2.5 text-sm font-bold rounded-lg border transition-all duration-200 ${
                     activeTemplateId === template.id
-                      ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white border-amber-500 shadow-lg shadow-amber-500/25'
-                      : 'bg-white/5 text-white/40 border-white/10 hover:bg-amber-500/10 hover:text-white/60 hover:border-amber-500/20'
+                      ? activeGroup === 'phong'
+                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-500 shadow-lg shadow-cyan-500/25'
+                        : activeGroup === 'ad'
+                          ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white border-purple-500 shadow-lg shadow-purple-500/25'
+                          : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white border-amber-500 shadow-lg shadow-amber-500/25'
+                      : 'bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white/60 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-2">
