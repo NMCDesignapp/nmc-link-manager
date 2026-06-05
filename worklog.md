@@ -266,3 +266,31 @@ Stage Summary:
 - Fixed by adding migration and applying it to Neon database
 - Migration columns: stt, maTruongBan, maBanNhom, maTruongBanNhom, maDL, ngayBatDauLamViec, pdt10DT, nguonDuLieu, hopDongToChuc, dkDongPhi, phiDongThem, afypChuaTru10DT, ad, nhom2, ngayBatDauLamViec2, thangTD, namTD, thangHL, tinhLuot3tr, maDaiLyTD, danhDauTVV, chucVu2
 - App URL: https://nc-link.vercel.app
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Restructure Revenue section and thi-dua data flow
+
+Work Log:
+- Analyzed user requirements: monthly revenue input, yearly auto-aggregation, thi-dua uses MonthlyRevenue
+- Modified /quan-ly/page.tsx renderRevenue():
+  - Monthly tabs (T1-T12): Show ONLY editable MonthlyRevenue table (no contracts table)
+  - "Cả năm" tab: Auto-aggregate from all 12 months, show KPI cards, monthly breakdown, summary by TVV
+  - Yearly data is READ-ONLY (auto-calculated)
+- Modified /thi-dua-chau/page.tsx:
+  - Added MonthlyRevenueRow interface
+  - Added revenueData state and fetchRevenue() function
+  - Added filteredRevenueData (filtered by contest date range)
+  - Added displayRevenueData (filtered by subject codes and target type)
+  - groupedData now uses MonthlyRevenue for FYP/AFYP/contractCount/activityRounds
+  - tvvTotalRows uses MonthlyRevenue aggregated by agentCode
+  - nydData keeps contracts for recruiterCode mapping but gets FYP from MonthlyRevenue
+  - Auto-sync now also refreshes revenue data after CSV sync
+- Build successful, pushed to GitHub
+
+Stage Summary:
+- Revenue section in /quan-ly now properly separates monthly input from yearly aggregation
+- Contest page uses MonthlyRevenue as data source instead of calculating from contracts
+- DS TB/TN and DS NTD already come from database (no change needed)
+- App URL: https://nc-link.vercel.app
