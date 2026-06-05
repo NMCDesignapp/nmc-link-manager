@@ -316,3 +316,30 @@ Stage Summary:
 - Giao diện trang thi đua đã đồng bộ với theme emerald đặc của trang chính
 - Đã commit và push: "sync: đồng bộ giao diện trang thi đua với trang chính (emerald theme)"
 - Mục Cấu trúc 4 tầng đã được xây dựng sẵn từ trước (Phòng → AD → Ban/Nhóm → TVV với CRUD + import)
+
+---
+Task ID: 2
+Agent: Main
+Task: Thêm hiệu ứng động + fix NTD + redesign neon dark + xóa Menu File
+
+Work Log:
+- Thêm class neon-card vào neonBorder (thi đua page) cho hover glow effect
+- Thêm class page-transition vào main content (thi đua page) cho fade-in
+- Thêm class neon-text vào CardTitle headings (thi đua page)
+- Thêm neon-sweep, glow-hover, stagger-item, neon-glow vào sidebar buttons (quan-ly page)
+- Thêm page-transition vào main content (quan-ly page)
+- Thêm neon-text vào section headings (quan-ly page)
+- Redesign trang /quan-ly từ solid emerald sang neon dark theme (header blur, sidebar blur, main no bg)
+- Xóa MENU FILE vô dụng ở sidebar
+- Fix API /api/sync: đổi từ deleteMany+createMany sang upsert cho cả 3 bảng (Contract, Staff, Recruiter)
+  - Contract: upsert theo contractNumber
+  - Staff: upsert theo agentCode  
+  - Recruiter: upsert theo agentCode
+  - Điều này bảo toàn các chỉnh sửa thủ công khi auto-sync chạy
+
+Stage Summary:
+- Hiệu ứng động đã thêm: neon-card, neon-sweep, neon-text, glow-hover, stagger-item, page-transition
+- Lỗi NTD bị mất dữ liệu: FIXED - upsert thay vì deleteMany
+- Trang quản lý đã chuyển sang neon dark theme
+- Menu File vô dụng đã xóa
+- Push lên GitHub thành công
