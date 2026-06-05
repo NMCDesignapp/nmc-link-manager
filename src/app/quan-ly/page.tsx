@@ -125,7 +125,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet' | 'settings';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
@@ -145,7 +145,6 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
   { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
-  { key: 'settings', label: 'Cài đặt', icon: Settings, synced: false },
 ];
 
 // Templates
@@ -1098,6 +1097,12 @@ export default function QuanLyPage() {
   // Import dialog
   const [importTier, setImportTier] = useState<string>('');
   const [importData, setImportData] = useState<string>('');
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [settingsNhomFilter, setSettingsNhomFilter] = useState<string>('');
+  // Accordion expand state for structure tree
+  const [expandedPhongs, setExpandedPhongs] = useState<Set<string>>(new Set());
+  const [expandedADs, setExpandedADs] = useState<Set<string>>(new Set());
+  const [expandedBanNhoms, setExpandedBanNhoms] = useState<Set<string>>(new Set());
 
   // Data cache: track which sheets have been loaded to avoid re-fetch on tab switch
   const loadedSheets = useRef<Set<SheetKey>>(new Set());
@@ -1190,7 +1195,6 @@ export default function QuanLyPage() {
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
       spreadsheet: async () => {},
-      settings: async () => {},
     };
     loaders[sheet]().then(() => {
       loadedSheets.current.add(sheet);
@@ -1847,61 +1851,11 @@ export default function QuanLyPage() {
   };
 
   const renderOverview = () => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" className="text-gray-400 hover:text-white h-8 w-8 p-0"><Settings className="w-4 h-4" /></Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 bg-[#0e0e18] border-emerald-500/30" align="end">
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-emerald-300">Cài đặt chỉ tiêu</p>
-              {[
-                { label: 'Tổng IP', key: 'nmc-target-tong-ip', val: targetTongIP, fmt: (v: number) => formatCurrency(v) },
-                { label: 'Tổng AFYP', key: 'nmc-target-tong-afyp', val: targetTongAFYP, fmt: (v: number) => formatCurrency(v) },
-                { label: 'SL HĐ', key: 'nmc-target-tong-sl-hd', val: targetTongSLHD, fmt: (v: number) => formatNumber(v) },
-                { label: 'Lượt HĐ', key: 'nmc-target-luot-hd', val: targetLuotHD, fmt: (v: number) => formatNumber(v) },
-                { label: 'Lượt HĐ chuẩn', key: 'nmc-target-luot-hd-chuan', val: targetLuotHDChuan, fmt: (v: number) => formatNumber(v) },
-                { label: 'Năng suất', key: 'nmc-target-nang-suat', val: targetNangSuat, fmt: (v: number) => v.toFixed(1) },
-                { label: 'ĐLHĐ', key: 'nmc-target-dlhd', val: targetDLHD, fmt: (v: number) => formatCurrency(v) },
-                { label: 'SL TB/TN', key: 'nmc-target-sl-tb-tn', val: targetSLTBTN, fmt: (v: number) => formatNumber(v) },
-                { label: 'SL NTD', key: 'nmc-target-sl-ntd', val: targetSLNTD, fmt: (v: number) => formatNumber(v) },
-              ].map(item => (
-                <div key={item.key} className="flex items-center gap-2">
-                  <Label className="text-[10px] text-gray-400 w-24 shrink-0">{item.label}</Label>
-                  <Input
-                    type="number"
-                    defaultValue={item.val || ''}
-                    placeholder="Chỉ tiêu..."
-                    className="h-6 text-[10px] bg-gray-800 border-emerald-500/30 text-white flex-1"
-                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(item.key, String(v)); } }}
-                  />
-                  <span className="text-[9px] text-gray-500 w-16 text-right truncate">{item.val > 0 ? item.fmt(item.val) : '—'}</span>
-                </div>
-              ))}
-              <div className="border-t border-emerald-500/20 pt-2">
-                <p className="text-[10px] text-gray-400 mb-1">Mục doanh số năm</p>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    defaultValue={annualRevenueTarget || ''}
-                    placeholder="Mục doanh số..."
-                    className="h-6 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
-                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); } }}
-                  />
-                  <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
 
       {/* Summary Cards - 9 indicators */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
         {[
           { label: 'TỔNG AFYP', value: formatCurrency(totalRevenueAFYP), target: targetTongAFYP, targetFmt: formatCurrency(targetTongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
           { label: 'TỔNG IP', value: formatCurrency(totalRevenue), target: targetTongIP, targetFmt: formatCurrency(targetTongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
@@ -1915,42 +1869,22 @@ export default function QuanLyPage() {
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} border rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1 mb-0.5"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[8px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
+            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+              <div className="flex items-center gap-1 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[9px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
               {kpi.target > 0 && (
-                <div className="mt-1">
+                <div className="mt-1.5">
                   <div className="flex items-center justify-between text-[8px]">
                     <span className="text-gray-300">CT: {kpi.targetFmt}</span>
                     <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
                   </div>
-                  <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* Annual Revenue Progress */}
-      {annualRevenueTarget > 0 && (
-        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-amber-500/30 rounded-lg p-3">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-amber-400" />
-              <p className="text-[10px] text-gray-400 font-bold uppercase">Mục doanh số năm</p>
-            </div>
-            <p className={`text-sm font-extrabold ${(totalRevenue / annualRevenueTarget) >= 1 ? 'text-emerald-300' : (totalRevenue / annualRevenueTarget) >= 0.7 ? 'text-amber-300' : 'text-rose-300'}`}>
-              {((totalRevenue / annualRevenueTarget) * 100).toFixed(1)}%
-            </p>
-          </div>
-          <Progress value={Math.min((totalRevenue / annualRevenueTarget) * 100, 100)} className="h-2 bg-gray-800 [&>div]:bg-gradient-to-r [&>div]:from-amber-500 [&>div]:to-emerald-400" />
-          <div className="flex justify-between text-[9px] text-gray-500 mt-1">
-            <span>Thực tế: {formatCurrency(totalRevenue)}</span>
-            <span>Mục tiêu: {formatCurrency(annualRevenueTarget)}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -1976,10 +1910,7 @@ export default function QuanLyPage() {
             </div>
           ))}
         </div>
-        {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" dataSources={[{ key: 'leaders', label: 'TB/TN', data: filtered, fields: leaderFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-        <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
-          <SettingsPopover sectionKey="leaders" sectionLabel="DS TB/TN" onlineSettings={onlineSettings} saveSetting={saveSetting} />
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button onClick={addLeader} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
           <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('leaders', e)} /></label>
           <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
@@ -2040,10 +1971,7 @@ export default function QuanLyPage() {
             </div>
           ))}
         </div>
-        {/* Custom KPI */}
-        <KPISettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" dataSources={[{ key: 'recruiters', label: 'Người TD', data: filtered, fields: recruiterFields }]} onlineSettings={onlineSettings} saveSetting={saveSetting} />
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <SettingsPopover sectionKey="recruiters" sectionLabel="DS Người TD" onlineSettings={onlineSettings} saveSetting={saveSetting} />
           {canEdit && <><Button onClick={addRecruiter} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
             <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('recruiters', e)} /></label></>}
           <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
@@ -2111,7 +2039,7 @@ export default function QuanLyPage() {
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
     // Filter contracts by selected month (based on effectiveDate)
-    const filteredContracts = revenueSub === 'all'
+    const monthFilteredContracts = revenueSub === 'all'
       ? contracts.filter(c => {
           const d = new Date(c.effectiveDate);
           return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
@@ -2123,7 +2051,15 @@ export default function QuanLyPage() {
           return d.getFullYear() === currentYear && m === revenueSub;
         });
 
-    const sortedContracts = getFiltered(getSorted(filteredContracts), ['agentCode', 'agentName', 'nhom', 'ban', 'contractNumber', 'maDaiLyTD']);
+    // Get unique Nhóm values for the filter
+    const uniqueNhoms = Array.from(new Set(monthFilteredContracts.map(c => c.nhom).filter(Boolean))).sort();
+
+    // Apply Nhóm filter
+    const nhomFilteredContracts = settingsNhomFilter
+      ? monthFilteredContracts.filter(c => c.nhom === settingsNhomFilter)
+      : monthFilteredContracts;
+
+    const sortedContracts = getFiltered(getSorted(nhomFilteredContracts), ['agentCode', 'agentName', 'nhom', 'ban', 'contractNumber', 'maDaiLyTD']);
 
     // Calculate KPIs from contracts (TÍNH LƯỢT 3tr column)
     const soLuongHD = sortedContracts.length;
@@ -2144,6 +2080,8 @@ export default function QuanLyPage() {
     const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
     // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
     const ipAfypMonth = tongAFYP > 0 ? (tongIP / tongAFYP) * 100 : 0;
+    // ĐLHĐ = tổng doanh thu / tổng SL HĐ
+    const dlhdMonth = soLuongHD > 0 ? tongIP / soLuongHD : 0;
 
     // NTD count: count unique maDaiLyTD that exist in recruiters
     const ntdCodes = new Set(recruiters.map(r => r.agentCode));
@@ -2152,58 +2090,63 @@ export default function QuanLyPage() {
       if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTD.add(c.maDaiLyTD);
     }
 
-    // Month sub-tabs component
-    const monthTabs = (
-      <div className="flex items-center gap-1 mb-3 flex-wrap">
-        <SettingsPopover sectionKey={`revenue-${revenueSub}`} sectionLabel={`Doanh thu - ${monthLabel}`} onlineSettings={onlineSettings} saveSetting={saveSetting} />
-        {MONTHS.map(m => (
-          <button
-            key={m.key}
-            onClick={() => setRevenueSub(m.key)}
-            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
-              revenueSub === m.key
-                ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
-                : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
-            }`}
-          >
-            {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
-            {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
-          </button>
-        ))}
-      </div>
-    );
-
-    // KPI summary cards
-    const kpiCards = (
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2 mb-3">
-        {[
-          { label: 'Số lượng HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
-          { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
-          { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
-          { label: 'Lượt hoạt động', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
-          { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
-          { label: 'IP/AFYP (%)', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30', icon: TrendingUp },
-          { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
-          { label: 'NTD hoạt động', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30', icon: UserCircle },
-        ].map((kpi, i) => (
-          <div key={i} className={`${kpi.color} rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-            <div className="flex items-center gap-1 mb-0.5"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[9px] font-bold">{kpi.label}</p></div>
-            <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
-          </div>
-        ))}
-      </div>
-    );
-
     return (
       <div>
-        {monthTabs}
-        {kpiCards}
+        {/* Month sub-tabs */}
+        <div className="flex items-center gap-1 mb-3 flex-wrap">
+          {MONTHS.map(m => (
+            <button
+              key={m.key}
+              onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); }}
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
+                revenueSub === m.key
+                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+                  : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
+              }`}
+            >
+              {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+              {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
+            </button>
+          ))}
+        </div>
 
-        {/* Contract table matching Excel template */}
-        <h3 className="text-sm font-bold text-amber-300 mb-2">
-          {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
-        </h3>
+        {/* Compact KPI strip */}
+        <div className="flex items-stretch gap-1.5 mb-3 flex-wrap">
+          {[
+            { label: 'SL HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30' },
+            { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30' },
+            { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30' },
+            { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30' },
+            { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30' },
+            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30' },
+            { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30' },
+            { label: 'ĐLHĐ', value: formatCurrency(dlhdMonth), color: 'bg-emerald-500/20 border-emerald-500/30' },
+            { label: 'NTD HĐ', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30' },
+          ].map((kpi, i) => (
+            <div key={i} className={`${kpi.color} border rounded-md px-2.5 py-1.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 8px rgba(0, 255, 136, 0.08)' }}>
+              <p className="text-white/70 text-[8px] font-bold leading-tight">{kpi.label}</p>
+              <p className="text-white text-[11px] font-extrabold truncate">{kpi.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Nhóm filter + table header */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <h3 className="text-sm font-bold text-amber-300">
+            {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
+          </h3>
+          {uniqueNhoms.length > 0 && (
+            <select
+              value={settingsNhomFilter}
+              onChange={(e) => setSettingsNhomFilter(e.target.value)}
+              className="h-7 text-[10px] bg-gray-800 border border-emerald-500/30 text-white rounded px-2"
+            >
+              <option value="">Tất cả Nhóm</option>
+              {uniqueNhoms.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          )}
           <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
           <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
@@ -2280,7 +2223,7 @@ export default function QuanLyPage() {
           </table>
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
@@ -2289,185 +2232,168 @@ export default function QuanLyPage() {
   // ========== RENDER: Structure (4-tier cascading) ==========
   const renderStructure = () => (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
-        <SettingsPopover sectionKey="structure" sectionLabel="Cấu trúc" onlineSettings={onlineSettings} saveSetting={saveSetting} />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setImportTier('phong')} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
+          <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Plus className="w-3 h-3 mr-1" /> Thêm Phòng</Button>
+        </div>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-sm text-emerald-200/70 bg-emerald-800/60 backdrop-blur-sm rounded-lg p-2 border border-emerald-500/30">
-        <Building2 className="w-4 h-4 text-emerald-400" />
-        {selectedPhong ? (
-          <>
-            <button onClick={() => { setSelectedPhong(''); setSelectedAD(''); setSelectedBanNhom(''); }} className="text-emerald-400 hover:underline cursor-pointer">
-              {phongList.find(p => p.id === selectedPhong)?.tenPhong || '...'}
-            </button>
-            {selectedAD && (
-              <>
-                <ChevronRight className="w-3 h-3" />
-                <button onClick={() => { setSelectedAD(''); setSelectedBanNhom(''); }} className="text-amber-400 hover:underline cursor-pointer">
-                  {adList.find(a => a.id === selectedAD)?.tenAD || '...'}
-                </button>
-                {selectedBanNhom && (
-                  <>
-                    <ChevronRight className="w-3 h-3" />
-                    <button onClick={() => setSelectedBanNhom('')} className="text-sky-400 hover:underline cursor-pointer">
-                      {banNhomList.find(b => b.id === selectedBanNhom)?.tenBanNhom || '...'}
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </>
-        ) : (
-          <span className="text-white/40 italic">Chọn Phòng để xem cấu trúc</span>
-        )}
-      </div>
-
-      {/* 4-tier cascading panels */}
-      <div className="grid grid-cols-4 gap-2" style={{ minHeight: '400px' }}>
-        {/* Tier 1: Phòng */}
-        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
-            <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1"><Building2 className="w-4 h-4" /> Phòng</h3>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => setImportTier('phong')} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300"><Plus className="w-3 h-3" /></Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
-            {phongList.map(p => {
-              const childCount = adList.filter(a => a.maPhong === p.maPhong).length;
-              const isSelected = selectedPhong === p.id;
-              return (
-                <div key={p.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-emerald-700/50 hover:bg-emerald-500/10 border border-transparent'}`} onClick={() => { setSelectedPhong(isSelected ? '' : p.id); setSelectedAD(''); setSelectedBanNhom(''); }}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
-                    <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-emerald-300 bg-emerald-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingPhong(p); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeletePhong(p.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
-                  </div>
-                </div>
-              );
-            })}
-            {phongList.length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có phòng</p>}
-          </div>
-        </div>
-
-        {/* Tier 2: AD */}
-        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
-            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-1"><UserCog className="w-4 h-4" /> AD</h3>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => setImportTier('ad')} className="h-6 w-6 p-0 text-amber-400 hover:text-amber-300"><Upload className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: selectedPhong ? phongList.find(p => p.id === selectedPhong)?.maPhong || '' : '' })); setAddADOpen(true); }} className="h-6 w-6 p-0 text-amber-400 hover:text-amber-300"><Plus className="w-3 h-3" /></Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
-            {adList.filter(a => {
-              if (!selectedPhong) return true;
-              const phong = phongList.find(p => p.id === selectedPhong);
-              return phong && a.maPhong === phong.maPhong;
-            }).map(a => {
-              const childCount = banNhomList.filter(b => b.maAD === a.maAD).length;
-              const isSelected = selectedAD === a.id;
-              return (
-                <div key={a.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-amber-700/30 hover:bg-amber-500/10 border border-transparent'}`} onClick={() => { setSelectedAD(isSelected ? '' : a.id); setSelectedBanNhom(''); }}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
-                    <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-amber-300 bg-amber-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingAD(a); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteAD(a.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
-                  </div>
-                </div>
-              );
-            })}
-            {adList.filter(a => {
-              if (!selectedPhong) return true;
-              const phong = phongList.find(p => p.id === selectedPhong);
-              return phong && a.maPhong === phong.maPhong;
-            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có AD</p>}
-          </div>
-        </div>
-
-        {/* Tier 3: Ban/Nhóm */}
-        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
-            <h3 className="text-sm font-bold text-sky-300 flex items-center gap-1"><Network className="w-4 h-4" /> Ban/Nhóm</h3>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => setImportTier('bannhom')} className="h-6 w-6 p-0 text-sky-400 hover:text-sky-300"><Upload className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: selectedAD ? adList.find(a => a.id === selectedAD)?.maAD || '' : '' })); setAddBanNhomOpen(true); }} className="h-6 w-6 p-0 text-sky-400 hover:text-sky-300"><Plus className="w-3 h-3" /></Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
-            {banNhomList.filter(b => {
-              if (!selectedAD) return true;
-              const ad = adList.find(a => a.id === selectedAD);
-              return ad && b.maAD === ad.maAD;
-            }).map(b => {
-              const childCount = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom).length;
-              const isSelected = selectedBanNhom === b.id;
-              return (
-                <div key={b.id} className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${isSelected ? 'bg-sky-500/20 border border-sky-500/30' : 'bg-sky-700/30 hover:bg-sky-500/10 border border-transparent'}`} onClick={() => setSelectedBanNhom(isSelected ? '' : b.id)}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
-                    <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{childCount}</span>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
-                  </div>
-                </div>
-              );
-            })}
-            {banNhomList.filter(b => {
-              if (!selectedAD) return true;
-              const ad = adList.find(a => a.id === selectedAD);
-              return ad && b.maAD === ad.maAD;
-            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có Ban/Nhóm</p>}
-          </div>
-        </div>
-
-        {/* Tier 4: TVV */}
-        <div className="bg-emerald-800/60 backdrop-blur-sm rounded-lg border border-emerald-500/30 flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20">
-            <h3 className="text-sm font-bold text-violet-300 flex items-center gap-1"><Users className="w-4 h-4" /> TVV</h3>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => setImportTier('tvv')} className="h-6 w-6 p-0 text-violet-400 hover:text-violet-300"><Upload className="w-3 h-3" /></Button>
-              <Button variant="ghost" size="sm" onClick={() => { setNewTvv(prev => ({ ...prev, maBanNhom: selectedBanNhom ? banNhomList.find(b => b.id === selectedBanNhom)?.maBanNhom || '' : '' })); setAddTvvOpen(true); }} className="h-6 w-6 p-0 text-violet-400 hover:text-violet-300"><Plus className="w-3 h-3" /></Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-1 space-y-1 max-h-96">
-            {tvvStructList.filter(t => {
-              if (!selectedBanNhom) return true;
-              const bn = banNhomList.find(b => b.id === selectedBanNhom);
-              return bn && t.maBanNhom === bn.maBanNhom;
-            }).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-2 rounded-md bg-violet-500/10 hover:bg-violet-500/20 border border-transparent">
+      {/* Hierarchical tree/accordion */}
+      <div className="space-y-1">
+        {phongList.map(p => {
+          const isPhongExpanded = expandedPhongs.has(p.id);
+          const phongADs = adList.filter(a => a.maPhong === p.maPhong);
+          return (
+            <div key={p.id} className="border border-emerald-500/30 rounded-lg overflow-hidden">
+              {/* Phòng level */}
+              <div
+                className={`flex items-center gap-2 p-2.5 cursor-pointer transition-colors ${isPhongExpanded ? 'bg-emerald-500/20' : 'bg-emerald-800/40 hover:bg-emerald-500/10'}`}
+                onClick={() => {
+                  setExpandedPhongs(prev => {
+                    const next = new Set(prev);
+                    if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                    return next;
+                  });
+                }}
+              >
+                {isPhongExpanded ? <ChevronDown className="w-4 h-4 text-emerald-400" /> : <ChevronRight className="w-4 h-4 text-emerald-400" />}
+                <Building2 className="w-4 h-4 text-emerald-300" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
-                  <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
+                  <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
+                  <p className="text-emerald-200/60 text-[10px]">{p.maPhong}</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
-                </div>
+                <span className="text-[10px] text-emerald-300 bg-emerald-900 px-1.5 py-0.5 rounded-full">{phongADs.length} AD</span>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingPhong(p); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeletePhong(p.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
               </div>
-            ))}
-            {tvvStructList.filter(t => {
-              if (!selectedBanNhom) return true;
-              const bn = banNhomList.find(b => b.id === selectedBanNhom);
-              return bn && t.maBanNhom === bn.maBanNhom;
-            }).length === 0 && <p className="text-white/30 text-xs text-center py-4">Chưa có TVV</p>}
+
+              {/* Expanded ADs */}
+              {isPhongExpanded && phongADs.length > 0 && (
+                <div className="border-t border-emerald-500/20">
+                  {phongADs.map(a => {
+                    const isADExpanded = expandedADs.has(a.id);
+                    const adBanNhoms = banNhomList.filter(b => b.maAD === a.maAD);
+                    return (
+                      <div key={a.id} className="ml-4 border-l-2 border-amber-500/30">
+                        <div
+                          className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${isADExpanded ? 'bg-amber-500/15' : 'hover:bg-amber-500/10'}`}
+                          onClick={() => {
+                            setExpandedADs(prev => {
+                              const next = new Set(prev);
+                              if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                              return next;
+                            });
+                          }}
+                        >
+                          {isADExpanded ? <ChevronDown className="w-3.5 h-3.5 text-amber-400" /> : <ChevronRight className="w-3.5 h-3.5 text-amber-400" />}
+                          <UserCog className="w-3.5 h-3.5 text-amber-300" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-xs font-bold truncate">{a.tenAD}</p>
+                            <p className="text-amber-200/60 text-[10px]">{a.maAD}</p>
+                          </div>
+                          <span className="text-[10px] text-amber-300 bg-amber-900 px-1.5 py-0.5 rounded-full">{adBanNhoms.length} nhóm</span>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-amber-400 hover:text-amber-300"><Plus className="w-2.5 h-2.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingAD(a); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteAD(a.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                        </div>
+
+                        {/* Expanded BanNhoms */}
+                        {isADExpanded && adBanNhoms.length > 0 && (
+                          <div className="border-t border-amber-500/10">
+                            {adBanNhoms.map(b => {
+                              const isBanNhomExpanded = expandedBanNhoms.has(b.id);
+                              const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom);
+                              return (
+                                <div key={b.id} className="ml-4 border-l-2 border-sky-500/30">
+                                  <div
+                                    className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${isBanNhomExpanded ? 'bg-sky-500/15' : 'hover:bg-sky-500/10'}`}
+                                    onClick={() => {
+                                      setExpandedBanNhoms(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    {isBanNhomExpanded ? <ChevronDown className="w-3.5 h-3.5 text-sky-400" /> : <ChevronRight className="w-3.5 h-3.5 text-sky-400" />}
+                                    <Network className="w-3.5 h-3.5 text-sky-300" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
+                                      <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
+                                    </div>
+                                    <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{bnTVVs.length} TVV</span>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-5 w-5 p-0 text-sky-400 hover:text-sky-300"><Plus className="w-2.5 h-2.5" /></Button>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                                  </div>
+
+                                  {/* Expanded TVVs */}
+                                  {isBanNhomExpanded && bnTVVs.length > 0 && (
+                                    <div className="border-t border-sky-500/10">
+                                      {bnTVVs.map(t => (
+                                        <div key={t.id} className="ml-4 border-l-2 border-violet-500/30 flex items-center justify-between p-2 hover:bg-violet-500/10 transition-colors">
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <Users className="w-3 h-3 text-violet-400" />
+                                            <div className="min-w-0">
+                                              <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
+                                              <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-5 w-5 p-0 text-violet-400 hover:text-violet-300"><Plus className="w-2.5 h-2.5" /></Button>
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Empty TVV state */}
+                                  {isBanNhomExpanded && bnTVVs.length === 0 && (
+                                    <div className="ml-4 p-2 flex items-center gap-2">
+                                      <p className="text-white/30 text-[10px] italic">Chưa có TVV</p>
+                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-5 text-[10px] text-violet-400 hover:text-violet-300 p-0"><Plus className="w-2.5 h-2.5 mr-0.5" /> Thêm</Button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Empty BanNhom state */}
+                        {isADExpanded && adBanNhoms.length === 0 && (
+                          <div className="ml-4 p-2 flex items-center gap-2">
+                            <p className="text-white/30 text-[10px] italic">Chưa có Ban/Nhóm</p>
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-5 text-[10px] text-sky-400 hover:text-sky-300 p-0"><Plus className="w-2.5 h-2.5 mr-0.5" /> Thêm</Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Empty AD state */}
+              {isPhongExpanded && phongADs.length === 0 && (
+                <div className="ml-4 p-2 flex items-center gap-2 border-t border-emerald-500/20">
+                  <p className="text-white/30 text-[10px] italic">Chưa có AD</p>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 text-[10px] text-amber-400 hover:text-amber-300 p-0"><Plus className="w-2.5 h-2.5 mr-0.5" /> Thêm</Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {phongList.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-white/30 text-sm">Chưa có Phòng nào</p>
+            <Button variant="ghost" onClick={() => setAddPhongOpen(true)} className="text-emerald-400 hover:text-emerald-300 mt-2"><Plus className="w-4 h-4 mr-1" /> Thêm Phòng</Button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Add Phong Dialog */}
@@ -2606,83 +2532,6 @@ export default function QuanLyPage() {
     </div>
   );
 
-  // ========== RENDER: Settings ==========
-  const renderSettings = () => (
-    <div className="space-y-4">
-      <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cài đặt hệ thống</h2>
-
-      {/* Sync toggle */}
-      <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500/30' : 'bg-amber-700/50 border-amber-500/30'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}
-            <div>
-              <h3 className={`text-sm font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
-              <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
-            </div>
-          </div>
-          <button onClick={handleSyncToggle}>
-            {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Per-section settings */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-bold text-emerald-300">Cài đặt theo mục</h3>
-        {[
-          { key: 'leaders', label: 'DS Trưởng Ban/Nhóm' },
-          { key: 'recruiters', label: 'DS Người TD' },
-          { key: 'revenue', label: 'Doanh thu' },
-          { key: 'structure', label: 'Cấu trúc' },
-          { key: 'spreadsheet', label: 'Trang tính' },
-          ...MONTHS.map(m => ({ key: `revenue-${m.key}`, label: `Doanh thu - ${m.label}` })),
-        ].map(section => {
-          const link = onlineSettings[`nmc-link-${section.key}`] || '';
-          const sync = onlineSettings[`nmc-sync-${section.key}`];
-          const syncOn = sync === undefined || sync === '' || sync === 'true';
-          return (
-            <div key={section.key} className="bg-emerald-800/60 rounded-md p-2.5 border border-emerald-600/50">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-white text-xs font-bold">{section.label}</span>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold ${syncOn ? 'text-emerald-300' : 'text-amber-300'}`}>
-                    {syncOn ? 'Auto' : 'Thủ công'}
-                  </span>
-                  <button
-                    onClick={() => saveSetting(`nmc-sync-${section.key}`, String(!syncOn))}
-                    className="flex items-center"
-                  >
-                    {syncOn
-                      ? <ToggleRight className="w-6 h-6 text-emerald-400 cursor-pointer" />
-                      : <ToggleLeft className="w-6 h-6 text-amber-400 cursor-pointer" />}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Input
-                  value={link}
-                  onChange={(e) => {
-                    // Don't save on every keystroke, just update local state
-                    setOnlineSettings(prev => ({ ...prev, [`nmc-link-${section.key}`]: e.target.value }));
-                  }}
-                  onBlur={() => saveSetting(`nmc-link-${section.key}`, link)}
-                  placeholder="Google Sheets URL..."
-                  className="h-6 text-[10px] bg-gray-800 border-gray-600 text-white placeholder-gray-500 flex-1"
-                />
-                {link && (
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 flex-shrink-0">
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
   // ========== RENDER SHEET DISPATCHER ==========
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
@@ -2693,7 +2542,6 @@ export default function QuanLyPage() {
       case 'revenue': return renderRevenue();
       case 'structure': return renderStructure();
       case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
-      case 'settings': return renderSettings();
     }
   };
 
@@ -2704,9 +2552,7 @@ export default function QuanLyPage() {
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Quản Lý Dữ Liệu</h1>
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => setActiveSheet('settings')} className="flex items-center gap-1.5 text-xs font-bold transition-colors">
-            <span className="flex items-center gap-1 text-emerald-300/70 hover:text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-md"><Settings className="w-4 h-4" /> Cài đặt</span>
-          </button>
+          <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
             <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
@@ -2768,6 +2614,142 @@ export default function QuanLyPage() {
           {renderSheet()}
         </main>
       </div>
+
+      {/* ========== Settings Dialog ========== */}
+      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-400 flex items-center gap-2">
+              <Settings className="w-5 h-5" /> Cài đặt hệ thống
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 mt-2">
+            {/* Section 1: Chỉ tiêu (Targets) */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-amber-400" /> Chỉ tiêu
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Tổng IP', key: 'nmc-target-tong-ip', val: targetTongIP, fmt: (v: number) => formatCurrency(v) },
+                  { label: 'Tổng AFYP', key: 'nmc-target-tong-afyp', val: targetTongAFYP, fmt: (v: number) => formatCurrency(v) },
+                  { label: 'SL HĐ', key: 'nmc-target-tong-sl-hd', val: targetTongSLHD, fmt: (v: number) => formatNumber(v) },
+                  { label: 'Lượt HĐ', key: 'nmc-target-luot-hd', val: targetLuotHD, fmt: (v: number) => formatNumber(v) },
+                  { label: 'Lượt HĐ chuẩn', key: 'nmc-target-luot-hd-chuan', val: targetLuotHDChuan, fmt: (v: number) => formatNumber(v) },
+                  { label: 'Năng suất', key: 'nmc-target-nang-suat', val: targetNangSuat, fmt: (v: number) => v.toFixed(1) },
+                  { label: 'ĐLHĐ', key: 'nmc-target-dlhd', val: targetDLHD, fmt: (v: number) => formatCurrency(v) },
+                  { label: 'SL TB/TN', key: 'nmc-target-sl-tb-tn', val: targetSLTBTN, fmt: (v: number) => formatNumber(v) },
+                  { label: 'SL NTD', key: 'nmc-target-sl-ntd', val: targetSLNTD, fmt: (v: number) => formatNumber(v) },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center gap-2">
+                    <Label className="text-[10px] text-gray-400 w-24 shrink-0">{item.label}</Label>
+                    <Input
+                      type="number"
+                      defaultValue={item.val || ''}
+                      placeholder="Chỉ tiêu..."
+                      className="h-7 text-[10px] bg-gray-800 border-emerald-500/30 text-white flex-1"
+                      onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(item.key, String(v)); } }}
+                    />
+                    <span className="text-[9px] text-gray-500 w-20 text-right truncate">{item.val > 0 ? item.fmt(item.val) : '—'}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-emerald-500/20 pt-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-gray-400 w-24 shrink-0">Mục DS năm</Label>
+                  <Input
+                    type="number"
+                    defaultValue={annualRevenueTarget || ''}
+                    placeholder="Mục doanh số..."
+                    className="h-7 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
+                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); } }}
+                  />
+                  <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Đồng bộ & Nguồn dữ liệu */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+                <RefreshCw className="w-4 h-4" /> Đồng bộ & Nguồn dữ liệu
+              </h3>
+              {/* Sync toggle */}
+              <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500/30' : 'bg-amber-700/50 border-amber-500/30'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}
+                    <div>
+                      <h3 className={`text-sm font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
+                      <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
+                    </div>
+                  </div>
+                  <button onClick={handleSyncToggle}>
+                    {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Per-section settings */}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+                {[
+                  { key: 'leaders', label: 'DS Trưởng Ban/Nhóm' },
+                  { key: 'recruiters', label: 'DS Người TD' },
+                  { key: 'revenue', label: 'Doanh thu' },
+                  { key: 'structure', label: 'Cấu trúc' },
+                  { key: 'spreadsheet', label: 'Trang tính' },
+                  ...MONTHS.map(m => ({ key: `revenue-${m.key}`, label: `Doanh thu - ${m.label}` })),
+                ].map(section => {
+                  const link = onlineSettings[`nmc-link-${section.key}`] || '';
+                  const sync = onlineSettings[`nmc-sync-${section.key}`];
+                  const syncOn = sync === undefined || sync === '' || sync === 'true';
+                  return (
+                    <div key={section.key} className="bg-emerald-800/60 rounded-md p-2.5 border border-emerald-600/50">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-white text-xs font-bold">{section.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold ${syncOn ? 'text-emerald-300' : 'text-amber-300'}`}>
+                            {syncOn ? 'Auto' : 'Thủ công'}
+                          </span>
+                          <button
+                            onClick={() => saveSetting(`nmc-sync-${section.key}`, String(!syncOn))}
+                            className="flex items-center"
+                          >
+                            {syncOn
+                              ? <ToggleRight className="w-6 h-6 text-emerald-400 cursor-pointer" />
+                              : <ToggleLeft className="w-6 h-6 text-amber-400 cursor-pointer" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={link}
+                          onChange={(e) => {
+                            setOnlineSettings(prev => ({ ...prev, [`nmc-link-${section.key}`]: e.target.value }));
+                          }}
+                          onBlur={() => saveSetting(`nmc-link-${section.key}`, link)}
+                          placeholder="Google Sheets URL..."
+                          className="h-6 text-[10px] bg-gray-800 border-gray-600 text-white placeholder-gray-500 flex-1"
+                        />
+                        {link && (
+                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 flex-shrink-0">
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setSettingsDialogOpen(false)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
