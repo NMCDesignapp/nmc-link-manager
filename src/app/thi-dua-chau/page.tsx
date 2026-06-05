@@ -391,7 +391,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
               <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
                 {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
-                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-600/30 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
+                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
                 ))}
               </div>
               <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-2.5 h-2.5" /></Button>
@@ -1810,7 +1810,7 @@ export default function ThiDuaPage() {
   };
 
   // Neon border style like main page
-  const neonBorder = 'border border-emerald-600';
+  const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)]';
 
   // Phase 2 per-row bonus calculation helper
   const getRowPhaseBonus = useCallback((fyp: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
@@ -1893,19 +1893,19 @@ export default function ThiDuaPage() {
   }, [nydData, conditionType, includeIndividualTN, calculateBonus]);
 
   return (
-    <div className="h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50">
+    <div className="min-h-screen">
 
       {/* Header */}
-      <header className="bg-emerald-700 border-b-2 border-emerald-500 px-4 py-2 flex items-center gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2 flex-1">
+      <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
           <button
             onClick={() => router.push('/')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-300 hover:text-white hover:bg-emerald-700"
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 hover:bg-white/10 border border-emerald-500/20 text-emerald-400 hover:text-emerald-300"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
-          <h1 className="text-lg font-extrabold text-white">Tính Thưởng Thi Đua</h1>
+          <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
           {/* Sync status icon */}
           <div className="ml-auto flex items-center gap-1.5">
             {syncStatus === 'syncing' && (
@@ -1935,9 +1935,9 @@ export default function ThiDuaPage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 bg-emerald-800 space-y-4">
+      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative">
         {/* STEP 1: Info */}
-        <Card className={`${neonBorder} bg-emerald-800/50`}>
+        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -1947,12 +1947,12 @@ export default function ThiDuaPage() {
               <div className="flex items-center gap-1.5 ml-auto">
                 <Popover open={contestListOpen} onOpenChange={setContestListOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-[160px] h-7 text-xs bg-emerald-700 border-emerald-500 text-white hover:bg-emerald-600 justify-start">
+                    <Button variant="outline" size="sm" className="w-[160px] h-7 text-xs bg-white/5 border-emerald-500/20 text-white hover:bg-emerald-600 justify-start">
                       <BookmarkPlus className="w-3 h-3 mr-1 text-emerald-400 shrink-0" />
                       <span className="truncate">{selectedContestId ? savedContests.find(sc => sc.id === selectedContestId)?.title || 'Đã lưu...' : 'Đã lưu...'}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[220px] p-1 bg-gray-900 border-emerald-700" align="end">
+                  <PopoverContent className="w-[220px] p-1 bg-[#1a1a2e] border-emerald-500/20" align="end">
                     {savedContests.length === 0 ? (
                       <div className="text-xs text-emerald-300/70 text-center py-2">Chưa có chương trình nào</div>
                     ) : savedContests.map((sc) => (
@@ -1999,7 +1999,7 @@ export default function ThiDuaPage() {
         </Card>
 
         {/* STEP 2: Config - Collapsible */}
-        <Card className={`${neonBorder} bg-emerald-800/50` + (!showConfig ? ' py-0' : '')}>
+        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm` + (!showConfig ? ' py-0' : '')}>
           <CardHeader className={!showConfig ? 'py-1.5 px-4' : 'pb-2 pt-3 px-4'}>
             <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
               <div className="flex items-center gap-2">
@@ -2057,7 +2057,7 @@ export default function ThiDuaPage() {
                 </p>
               </div>
 
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
 
               {/* 2. Điều kiện thi đua */}
               <div className="space-y-2">
@@ -2157,7 +2157,7 @@ export default function ThiDuaPage() {
                 </div>
               </div>
 
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
 
               {/* Bonus Tiers - Phase 1 */}
               <BonusTierEditor
@@ -2170,7 +2170,7 @@ export default function ThiDuaPage() {
               />
 
               {/* Phase 2 Section */}
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox id="usePhase2" checked={usePhase2} onCheckedChange={(v) => setUsePhase2(!!v)} />
@@ -2198,7 +2198,7 @@ export default function ThiDuaPage() {
               </div>
 
               {/* Chỉ tiêu bổ sung (Secondary Condition) */}
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox id="useSecondaryCondition" checked={useSecondaryCondition} onCheckedChange={(v) => setUseSecondaryCondition(!!v)} />
@@ -2235,12 +2235,12 @@ export default function ThiDuaPage() {
               </div>
 
               {/* Tùy chọn */}
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-emerald-200">Tùy chọn</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Hide not achieved */}
-                  <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-600/30 bg-emerald-800/30">
+                  <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/20 bg-emerald-800/30">
                     <Checkbox id="hideNotAchieved" checked={hideNotAchieved} onCheckedChange={(v) => setHideNotAchieved(!!v)} />
                     <Label htmlFor="hideNotAchieved" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
                       <EyeOff className="w-3 h-3 text-gray-400" /> Ẩn chưa đạt mức
@@ -2267,7 +2267,7 @@ export default function ThiDuaPage() {
                 </div>
               </div>
 
-              <Separator className="bg-emerald-600/30" />
+              <Separator className="bg-emerald-500/20" />
 
               {/* Poster upload inside config */}
               <div className="flex items-center gap-2">
@@ -2314,7 +2314,7 @@ export default function ThiDuaPage() {
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
               <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/30 p-3">
-                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-600/30 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-600/30 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-500/20 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-500/20 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
               </div>
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
@@ -2326,7 +2326,7 @@ export default function ThiDuaPage() {
         )}
 
         {/* Source Data - collapsible */}
-        <Card className={`${neonBorder} bg-emerald-800/50`}>
+        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <button className="flex items-center justify-between w-full" onClick={() => setShowSourceData(!showSourceData)}>
               <div className="flex items-center gap-2"><Database className="w-4 h-4 text-emerald-400/60" /><CardTitle className="text-sm text-emerald-200">Dữ liệu nguồn</CardTitle><Badge variant="secondary" className="text-[10px]">{contracts.length} HĐ</Badge></div>
@@ -2341,7 +2341,7 @@ export default function ThiDuaPage() {
                 <div className="rounded-lg border border-emerald-500 overflow-x-auto max-h-48 overflow-y-auto">
                   <Table><TableHeader><TableRow className="bg-emerald-700 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
                     <TableBody>{contracts.map((c, idx) => (
-                      <TableRow key={c.id} className="hover:bg-emerald-700 border-emerald-600/30"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+                      <TableRow key={c.id} className="hover:bg-emerald-700 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
                     ))}</TableBody>
                   </Table>
                 </div>
@@ -2713,7 +2713,7 @@ export default function ThiDuaPage() {
 
       {/* Subject Dialog - Nhập đối tượng thi đua */}
       <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-gray-900 border-emerald-700">
+        <DialogContent className="sm:max-w-lg bg-[#1a1a2e] border-emerald-500/20">
           <DialogHeader><DialogTitle className="text-white flex items-center gap-2"><Users className="w-4 h-4 text-sky-400" /> Nhập đối tượng thi đua</DialogTitle><DialogDescription className="text-emerald-300/60">Khi có danh sách, kết quả chỉ tính cho các đối tượng này</DialogDescription></DialogHeader>
           <div className="space-y-3 py-3">
             <div className="space-y-1">
