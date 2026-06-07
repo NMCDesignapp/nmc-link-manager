@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
 
       const fyp = parseNumber(fypStr);
       const afyp = parseNumber(afypStr);
-      const tinhLuot = parseNumber(tinhLuotStr);
 
       contracts.push({
         contractNumber: finalContractNumber,
@@ -114,7 +113,7 @@ export async function POST(request: NextRequest) {
         issueDate: issueDate || effectiveDate,
         fyp,
         afyp,
-        tinhLuot,
+        tinhLuot: 0, // Cột không có trong file - giữ 0
         tinhLuot3tr: 0, // Seed route CSV không có cột TÍNH LƯỢT 3 TR → giữ 0
       });
     }

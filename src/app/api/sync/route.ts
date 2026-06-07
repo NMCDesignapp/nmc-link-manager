@@ -141,8 +141,7 @@ export async function POST(request: NextRequest) {
           const thangTDStr = getVal(row, 'THÁNG TD', 'thangTD');
           const namTDStr = getVal(row, 'NĂM TD', 'namTD');
           const thangHLStr = getVal(row, 'THÁNG HL', 'thangHL');
-          const tinhLuotStr = getVal(row, 'TÍNH LƯỢT', 'Tính lượt', 'tinhLuot');
-          // Cột "TÍNH LƯỢT 3 tr" — tên chính xác trong file user
+          // Cột "TÍNH LƯỢT 3 tr" — cột duy nhất trong file user
           const tinhLuot3trStr = getVal(row, 'TÍNH LƯỢT 3 tr', 'TÍNH LƯỢT 3TR', 'TÍNH LƯỢT 3tr', 'Tính lượt 3tr', 'Tính lượt 3 tr', 'tinhLuot3tr');
           const maDaiLyTD = getVal(row, 'MÃ ĐL TD', 'Mã đại lý tuyển dụng', 'Mã NTD', 'MÃ ĐLTD', 'maDaiLyTD');
           const danhDauTVV = getVal(row, 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1', 'danhDauTVV');
@@ -163,8 +162,6 @@ export async function POST(request: NextRequest) {
 
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
-          const tinhLuot = parseNumber(tinhLuotStr);
-          // TÍNH LƯỢT 3 tr: chỉ đọc từ cột này, KHÔNG fallback
           const tinhLuot3tr = parseNumber(tinhLuot3trStr);
 
           try {
@@ -189,7 +186,7 @@ export async function POST(request: NextRequest) {
                 thangTD: parseInt(thangTDStr) || 0,
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
-                tinhLuot,
+                tinhLuot: 0, // Cột không có trong file - giữ 0
                 tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
@@ -214,7 +211,7 @@ export async function POST(request: NextRequest) {
                 thangTD: parseInt(thangTDStr) || 0,
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
-                tinhLuot,
+                tinhLuot: 0, // Cột không có trong file - giữ 0
                 tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },

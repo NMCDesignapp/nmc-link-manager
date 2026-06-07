@@ -30,7 +30,7 @@ interface Contract {
   position: string; ban: string; nhom: string; maNhom: string;
   leaderAgentCode: string; recruiterCode: string;
   startDate: string | null; effectiveDate: string; issueDate: string;
-  fyp: number; afyp: number; tinhLuot: number;
+  fyp: number; afyp: number; tinhLuot: number; // DB field - không dùng
   pdt10DT: number; tinhLuot3tr: number; maDaiLyTD: string; ngayBatDauLamViec: string | null;
 }
 
@@ -135,10 +135,9 @@ function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: numbe
 }
 
 // Helper: calculate lượt for a group of contracts based on tinhLuot3tr
-// Count how many UNIQUE TVVs have tinhLuot3tr >= threshold
-// Each TVV counts as at most 1 lượt (not per month)
+// Đếm SỐ DÒNG hợp đồng có tinhLuot3tr >= threshold (không phải unique TVV)
 function calculateLuot(contracts: Contract[], luotThreshold: number, conditionType: ConditionType, tvv90MaxMonths?: number, tvv90MinIP?: number): number {
-  const countedAgents = new Set<string>();
+  let count = 0;
   for (const c of contracts) {
     // Apply TVVm filter if condition is tvvm mode
     if (isTVVmMode(conditionType)) {
@@ -148,12 +147,12 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
     if (conditionType === 'activity_round_tvv90') {
       if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
     }
-    // Check if this TVV's tinhLuot3tr >= threshold
-    if (c.tinhLuot3tr >= luotThreshold && !countedAgents.has(c.agentCode)) {
-      countedAgents.add(c.agentCode);
+    // Đếm số dòng hợp đồng có tinhLuot3tr >= threshold
+    if (c.tinhLuot3tr >= luotThreshold) {
+      count++;
     }
   }
-  return countedAgents.size;
+  return count;
 }
 
 const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv';

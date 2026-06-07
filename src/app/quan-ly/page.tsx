@@ -63,7 +63,7 @@ interface Contract {
   thangTD: number;
   namTD: number;
   thangHL: number;
-  tinhLuot: number;
+  tinhLuot: number; // DB field - không dùng, giữ cho type compat
   tinhLuot3tr: number;
   maDaiLyTD: string;
   danhDauTVV: string;
@@ -160,8 +160,8 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
     sampleData: [{ 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' }],
   },
   contracts: {
-    headers: ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT', 'MÃ ĐL TD'],
-    sampleData: [{ 'STT': '1', 'Ban': 'Hiệp Tiến', 'Nhóm': 'Nhiệt An', 'Mã Ban/Nhóm': 'U1041A3L6E', 'Mã ĐL': 'D104132784', 'Tên': 'Dương Thị Hồng Nga', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/10/2017', 'Số hợp đồng': '10000017167449', 'Ngày hiệu lực': '01/01/2026', 'Ngày phát hành': '09/01/2026', 'PĐT + 10% ĐT': '12651118', 'AFYP': '12643612', 'AD': 'Trương Quốc Uy', 'TÍNH LƯỢT': '12651118', 'MÃ ĐL TD': 'D104102154' }],
+    headers: ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD'],
+    sampleData: [{ 'STT': '1', 'Ban': 'Hiệp Tiến', 'Nhóm': 'Nhiệt An', 'Mã Ban/Nhóm': 'U1041A3L6E', 'Mã ĐL': 'D104132784', 'Tên': 'Dương Thị Hồng Nga', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/10/2017', 'Số hợp đồng': '10000017167449', 'Ngày hiệu lực': '01/01/2026', 'Ngày phát hành': '09/01/2026', 'PĐT + 10% ĐT': '12651118', 'AFYP': '12643612', 'AD': 'Trương Quốc Uy', 'TÍNH LƯỢT 3 tr': '12651118', 'MÃ ĐL TD': 'D104102154' }],
   },
   staff: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'],
@@ -205,7 +205,7 @@ const CONTRACT_COLUMNS = [
   { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
   { f: 'afyp', l: 'AFYP', type: 'number' as const },
   { f: 'ad', l: 'AD', type: 'text' as const },
-  { f: 'tinhLuot', l: 'TÍNH LƯỢT', type: 'number' as const },
+  { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3 tr', type: 'number' as const },
   { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
 ];
 
@@ -1558,7 +1558,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT': c.tinhLuot3tr || c.tinhLuot, 'MÃ ĐL TD': c.maDaiLyTD }));
+      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
 
@@ -1734,7 +1734,7 @@ export default function QuanLyPage() {
             thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
             namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot: parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot: 0, // Cột không có trong file - giữ 0
             tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
             maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
             danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
@@ -2342,7 +2342,7 @@ export default function QuanLyPage() {
     { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
     { f: 'afyp', l: 'AFYP', type: 'number' as const },
     { f: 'ad', l: 'AD', type: 'text' as const },
-    { f: 'tinhLuot', l: 'TÍNH LƯỢT', type: 'number' as const },
+    { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3 tr', type: 'number' as const },
     { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
   ];
 
@@ -2363,7 +2363,7 @@ export default function QuanLyPage() {
       { key: 'pdt10DT', label: 'IP (PĐT + 10% ĐT)', type: 'number' as const },
       { key: 'afyp', label: 'AFYP', type: 'number' as const },
       { key: 'fyp', label: 'FYP', type: 'number' as const },
-      { key: 'tinhLuot3tr', label: 'Giá trị TÍNH LƯỢT', type: 'number' as const },
+      { key: 'tinhLuot3tr', label: 'TÍNH LƯỢT 3 tr', type: 'number' as const },
       { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' as const },
       { key: 'ngayBatDauLamViec', label: 'Ngày bắt đầu làm việc', type: 'date' as const },
       { key: 'ngayBatDauLamViec2', label: 'Ngày BĐLV 2', type: 'date' as const },
