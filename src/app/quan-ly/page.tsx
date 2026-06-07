@@ -16,7 +16,8 @@ import {
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
-  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, UserPlus,
+  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
+  Menu, ChevronLeft, UserPlus,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -85,7 +86,7 @@ interface Recruiter {
 
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
-interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; note: string; }
+interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
 interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
 
 // Merge range for spreadsheet
@@ -125,7 +126,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet' | 'report';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
@@ -143,6 +144,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
   { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
+  { key: 'report', label: 'Báo cáo', icon: BarChart3, synced: false },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
   { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
 ];
@@ -1023,6 +1025,7 @@ export default function QuanLyPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Online settings state (fetched from API instead of localStorage)
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -1072,6 +1075,104 @@ export default function QuanLyPage() {
     if (saved !== undefined && saved !== '') setSyncEnabled(saved === 'true');
   }, [onlineSettings['nmc-sync-enabled']]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Ref to fetchAllData to avoid circular dependency issues
+  const fetchAllDataRef = useRef<() => Promise<void>>(async () => {});
+
+  // Auto-sync: khi settings load xong và syncEnabled, tự động fetch CSV từ Google Sheets links
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const autoSyncFromLinks = useCallback(async () => {
+    if (!syncEnabled) return;
+    const monthKeys = ['revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
+      'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
+    // Thu thập CSV từ các link đã lưu
+    let contractCsvData = ''; // data rows only (no header)
+    let contractHeader = '';  // header row from first revenue link
+    let staffCsv = '';
+    let recruiterCsv = '';
+    let syncedCount = 0;
+    const syncErrors: string[] = [];
+    for (const key of ['leaders', 'recruiters', ...monthKeys]) {
+      const link = onlineSettings[`nmc-link-${key}`];
+      const autoOn = onlineSettings[`nmc-sync-${key}`];
+      if (!link || autoOn === 'false') continue;
+      try {
+        const r = await fetch(`/api/import-csv?url=${encodeURIComponent(link)}`);
+        if (!r.ok) {
+          syncErrors.push(`${key}: HTTP ${r.status}`);
+          continue;
+        }
+        const data = await r.json();
+        if (!data.csvData) {
+          syncErrors.push(`${key}: CSV trống`);
+          continue;
+        }
+        if (key === 'leaders') { staffCsv = data.csvData; syncedCount++; }
+        else if (key === 'recruiters') { recruiterCsv = data.csvData; syncedCount++; }
+        else if (key.startsWith('revenue-')) {
+          const lines = data.csvData.split('\n');
+          // Save header from first revenue link
+          if (!contractHeader && lines.length > 0) {
+            contractHeader = lines[0];
+          }
+          // Append data rows (skip header) — avoid duplicate headers when merging
+          const dataOnly = lines.slice(1).join('\n');
+          if (dataOnly.trim()) {
+            contractCsvData += (contractCsvData ? '\n' : '') + dataOnly;
+            syncedCount++;
+          }
+        }
+      } catch (e) {
+        syncErrors.push(`${key}: lỗi kết nối`);
+      }
+    }
+    // Combine header + data for contractCsv
+    const contractCsv = contractHeader ? contractHeader + '\n' + contractCsvData : '';
+    // Gọi sync API nếu có dữ liệu
+    if (contractCsv || staffCsv || recruiterCsv) {
+      try {
+        const r = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+        });
+        if (r.ok) {
+          const result = await r.json();
+          console.log('[Auto-sync] Đã đồng bộ:', result);
+          setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
+          // Backfill: fix existing contracts with missing tinhLuot3tr/maBanNhom/maDL
+          try {
+            const bf = await fetch('/api/backfill', { method: 'POST' });
+            if (bf.ok) { const bfr = await bf.json(); console.log('[Backfill]', bfr.message); }
+          } catch { /* silent */ }
+          // Refresh UI data after sync
+          await fetchAllDataRef.current();
+          const errMsg = syncErrors.length > 0 ? ` | Lỗi: ${syncErrors.join(', ')}` : '';
+          toast({ title: 'Đồng bộ thành công', description: result.message + errMsg });
+        }
+      } catch { /* silent */ }
+    } else if (syncedCount === 0) {
+      console.log('[Auto-sync] Không có link nào để đồng bộ');
+      if (syncErrors.length > 0) {
+        toast({ title: 'Lỗi đồng bộ', description: syncErrors.join('; '), variant: 'destructive' });
+      }
+    }
+  }, [syncEnabled, onlineSettings]);
+
+  // Track which links have been synced to avoid re-syncing on every render
+  const syncedLinksRef = useRef<string>('');
+  useEffect(() => {
+    // Build a fingerprint of all current links to detect changes
+    const linkKeys = ['leaders', 'recruiters', 
+      'revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
+      'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
+    const fingerprint = linkKeys.map(k => `${k}:${onlineSettings[`nmc-link-${k}`] || ''}`).join('|');
+    
+    if (Object.keys(onlineSettings).length > 0 && syncEnabled && fingerprint !== syncedLinksRef.current) {
+      syncedLinksRef.current = fingerprint;
+      autoSyncFromLinks();
+    }
+  }, [syncEnabled, onlineSettings, autoSyncFromLinks]);
+
   // Persist sync preference online
   useEffect(() => {
     // Only save after initial load (skip the default true)
@@ -1104,7 +1205,7 @@ export default function QuanLyPage() {
   const [addTvvOpen, setAddTvvOpen] = useState(false);
   const [newPhong, setNewPhong] = useState({ maPhong: '', tenPhong: '', note: '' });
   const [newAD, setNewAD] = useState({ maAD: '', tenAD: '', maPhong: '', note: '' });
-  const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', note: '' });
+  const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' });
   const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' });
 
   // Edit state
@@ -1116,15 +1217,35 @@ export default function QuanLyPage() {
   // Import dialog
   const [importTier, setImportTier] = useState<string>('');
   const [importData, setImportData] = useState<string>('');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<Array<Record<string, string>>>([]);
+  const [importLoading, setImportLoading] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [settingsNhomFilter, setSettingsNhomFilter] = useState<string>('');
+
+  // Report state
+  const [reportSubject, setReportSubject] = useState<'phong' | 'ad' | 'nhom' | 'ntd'>('nhom');
+  const [reportColumn, setReportColumn] = useState<string>('pdt10DT');
+  const [reportColumn2, setReportColumn2] = useState<string>('');
+  const [reportTVVm, setReportTVVm] = useState<boolean>(false);
+  const [reportTVVm2, setReportTVVm2] = useState<boolean>(false);
+  const [reportTarget, setReportTarget] = useState<string>('');
+  const [reportMonthFrom, setReportMonthFrom] = useState<string>('');
+  const [reportMonthTo, setReportMonthTo] = useState<string>('');
+  const [reportTitle, setReportTitle] = useState<string>('');
+  const [reportNote, setReportNote] = useState<string>('');
+  // Report conditions: multiple filter rows
+  const [reportConditions, setReportConditions] = useState<Array<{ column: string; operator: string; value: string }>>([]);
+  const [reportIncludeNTDOwn, setReportIncludeNTDOwn] = useState<boolean>(true);
+  const [reportRowNotes, setReportRowNotes] = useState<Record<string, string>>({});
+  const [reportPopupOpen, setReportPopupOpen] = useState(false);
+  const reportPopupRef = useRef<HTMLDivElement>(null);
   // Accordion expand state for structure tree
   const [expandedPhongs, setExpandedPhongs] = useState<Set<string>>(new Set());
   const [expandedADs, setExpandedADs] = useState<Set<string>>(new Set());
   const [expandedBanNhoms, setExpandedBanNhoms] = useState<Set<string>>(new Set());
 
-  // Data cache: track which sheets have been loaded to avoid re-fetch on tab switch
-  const loadedSheets = useRef<Set<SheetKey>>(new Set());
+  // Data cache removed - always fetch fresh data to prevent stale data / missing records
 
   // Per-section settings state (derived from onlineSettings) - use useMemo for efficiency
   const sectionLinks = useMemo(() => {
@@ -1200,24 +1321,21 @@ export default function QuanLyPage() {
     } catch {}
   }, []);
 
-  const loadSheet = useCallback((sheet: SheetKey, force = false) => {
-    // Skip if already loaded and not forcing refresh
-    if (!force && loadedSheets.current.has(sheet)) {
-      setIsLoading(false);
-      return;
-    }
+  // Keep ref in sync so auto-sync can call it
+  fetchAllDataRef.current = fetchAllData;
+
+  const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
       overview: async () => { await fetchAllData(); }, // Single request for all data
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
+      report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
       spreadsheet: async () => {},
     };
-    loaders[sheet]().then(() => {
-      loadedSheets.current.add(sheet);
-    }).finally(() => setIsLoading(false));
+    loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
@@ -1306,7 +1424,7 @@ export default function QuanLyPage() {
   }, [newAD, fetchAD]);
   const handleAddBanNhom = useCallback(async () => {
     if (!newBanNhom.maBanNhom || !newBanNhom.tenBanNhom) return;
-    try { const res = await fetch('/api/structure/bannhom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newBanNhom) }); if (res.ok) { setAddBanNhomOpen(false); setNewBanNhom({ maBanNhom: '', tenBanNhom: '', maAD: '', note: '' }); fetchBanNhom(); toast({ title: 'Đã thêm Ban/Nhóm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch('/api/structure/bannhom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newBanNhom) }); if (res.ok) { setAddBanNhomOpen(false); setNewBanNhom({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' }); fetchBanNhom(); toast({ title: 'Đã thêm Ban/Nhóm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [newBanNhom, fetchBanNhom]);
   const handleAddTvv = useCallback(async () => {
     if (!newTvv.agentCode || !newTvv.agentName) return;
@@ -1340,25 +1458,56 @@ export default function QuanLyPage() {
   }, [editingAD, fetchAD]);
   const handleEditBanNhom = useCallback(async () => {
     if (!editingBanNhom) return;
-    try { const res = await fetch(`/api/structure/bannhom/${editingBanNhom.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maBanNhom: editingBanNhom.maBanNhom, tenBanNhom: editingBanNhom.tenBanNhom, maAD: editingBanNhom.maAD, note: editingBanNhom.note }) }); if (res.ok) { setEditingBanNhom(null); fetchBanNhom(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch(`/api/structure/bannhom/${editingBanNhom.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maBanNhom: editingBanNhom.maBanNhom, tenBanNhom: editingBanNhom.tenBanNhom, maAD: editingBanNhom.maAD, ngayBatDau: editingBanNhom.ngayBatDau, note: editingBanNhom.note }) }); if (res.ok) { setEditingBanNhom(null); fetchBanNhom(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [editingBanNhom, fetchBanNhom]);
   const handleEditTvv = useCallback(async () => {
     if (!editingTvv) return;
     try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [editingTvv, fetchTvvStruct]);
 
-  const handleImportStructure = useCallback(async () => {
-    if (!importData || !importTier) return;
+  const handleImportFile = useCallback(async (file: File) => {
     try {
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      // Convert all values to string
+      const records = jsonData.map(row => {
+        const obj: Record<string, string> = {};
+        Object.entries(row).forEach(([k, v]) => { obj[k] = String(v ?? ''); });
+        return obj;
+      });
+      setImportPreview(records);
+      setImportFile(file);
+    } catch (e) {
+      console.error('File parse error', e);
+      toast({ title: 'Lỗi đọc file', description: 'File không hợp lệ. Dùng file .xlsx hoặc .csv', variant: 'destructive' });
+    }
+  }, []);
+
+  const handleImportStructure = useCallback(async () => {
+    let records: Array<Record<string, string>> = [];
+    // If file was uploaded, use parsed preview data
+    if (importPreview.length > 0) {
+      records = importPreview;
+    } else if (importData) {
+      // Fallback: paste tab-separated data
       const lines = importData.trim().split('\n');
       const header = lines[0].split('\t');
       const rows = lines.slice(1);
-      const records = rows.map(line => {
+      records = rows.map(line => {
         const cols = line.split('\t');
-        const record: any = {};
+        const record: Record<string, string> = {};
         header.forEach((h, i) => { record[h.trim()] = (cols[i] || '').trim(); });
         return record;
       });
+    } else {
+      return;
+    }
+    if (!importTier || records.length === 0) return;
+    setImportLoading(true);
+    try {
       let endpoint = '';
       if (importTier === 'phong') endpoint = '/api/structure/phong';
       else if (importTier === 'ad') endpoint = '/api/structure/ad';
@@ -1367,11 +1516,15 @@ export default function QuanLyPage() {
       const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(records) });
       if (res.ok) {
         fetchPhong(); fetchAD(); fetchBanNhom(); fetchTvvStruct();
-        setImportData(''); setImportTier('');
-        toast({ title: 'Import thành công' });
+        setImportData(''); setImportTier(''); setImportFile(null); setImportPreview([]);
+        toast({ title: 'Import thành công', description: `Đã import ${records.length} bản ghi` });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: 'Lỗi import', description: err.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
       }
     } catch (e) { console.error('Import error', e); toast({ title: 'Lỗi import', variant: 'destructive' }); }
-  }, [importData, importTier, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
+    finally { setImportLoading(false); }
+  }, [importData, importTier, importPreview, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
   // ========== Download Template (server-side) ==========
   const handleDownloadTemplate = useCallback((sheetName: string) => {
@@ -1392,7 +1545,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maBanNhom, 'Mã ĐL': c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
+      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT': c.tinhLuot, 'TÍNH LƯỢT 3tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
 
@@ -1427,13 +1580,19 @@ export default function QuanLyPage() {
 
   // ========== Import ==========
   // Helper: convert various date formats to ISO string (yyyy-mm-dd) - timezone safe
+  // CRITICAL FIX: XLSX cellDates:true creates Date in LOCAL timezone (UTC+7),
+  // but previous code used getUTC* methods → dates shifted back 1 day
+  // (e.g. May 1 local = April 30 17:00 UTC → getUTCDate returns 30 = April!)
+  // Fix: use LOCAL get* methods for XLSX Date objects, UTC for everything else
   const parseDateValue = useCallback((val: any): string | null => {
     if (!val || val === '' || val === '—') return null;
-    // Already a Date object - XLSX with cellDates:true creates UTC Date objects
+    // Already a Date object - XLSX with cellDates:true creates LOCAL timezone Date objects
+    // MUST use getFullYear/getMonth/getDate (NOT getUTC*) because XLSX creates dates in local tz
+    // Example: 01/05/2026 in Excel → new Date(2026,4,1) → local midnight → getUTCDate()=30 (wrong!)
     if (val instanceof Date) {
-      const y = val.getUTCFullYear();
-      const m = String(val.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(val.getUTCDate()).padStart(2, '0');
+      const y = val.getFullYear();
+      const m = String(val.getMonth() + 1).padStart(2, '0');
+      const d = String(val.getDate()).padStart(2, '0');
       // Validate: reasonable year range
       if (y < 1900 || y > 2100) return null;
       return `${y}-${m}-${d}`;
@@ -1445,17 +1604,18 @@ export default function QuanLyPage() {
       // dd/mm/yyyy (Vietnamese format)
       const dmy = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
       if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-      // Try native parse - use UTC to avoid timezone shift
+      // Try native parse - use local methods since non-ISO strings create local tz Dates
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
-        const y = d.getUTCFullYear();
-        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(d.getUTCDate()).padStart(2, '0');
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
         if (y < 1900 || y > 2100) return null;
         return `${y}-${m}-${day}`;
       }
     }
     // Excel serial number (days since 1899-12-30)
+    // Serial numbers are timezone-neutral, use UTC conversion
     if (typeof val === 'number' && val > 1000) {
       const d = new Date((val - 25569) * 86400 * 1000);
       if (!isNaN(d.getTime())) {
@@ -1561,8 +1721,8 @@ export default function QuanLyPage() {
             thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
             namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot: parseFloat(String(row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot: parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
             maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
             danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
             chucVu2: String(row['Chức vụ'] || row['chucVu2'] || '').trim(),
@@ -1570,30 +1730,26 @@ export default function QuanLyPage() {
           });
         }
         if (contractRows.length > 0) {
-          // Extract unique months from effectiveDate to replace existing data
-          const importMonths = new Set<string>();
-          for (const row of contractRows) {
-            if (row.effectiveDate) {
-              const d = new Date(row.effectiveDate + 'T00:00:00Z'); // Ensure UTC parsing
-              if (!isNaN(d.getTime())) {
-                const y = d.getUTCFullYear();
-                const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-                importMonths.add(`${y}-${m}`);
-              }
-            }
-          }
-          const replaceMonths = Array.from(importMonths);
-          console.log(`[Import contracts] ${contractRows.length} rows, replaceMonths:`, replaceMonths);
+          // Upsert mode: chỉ cập nhật HĐ theo số HĐ, không xóa HĐ cũ
+          console.log(`[Import contracts] ${contractRows.length} rows (upsert mode)`);
           const resp = await fetch('/api/contracts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contracts: contractRows, replaceMonths })
+            body: JSON.stringify({ contracts: contractRows })
           });
           if (resp.ok) { 
             const result = await resp.json(); 
             successCount = result.count || contractRows.length;
-            const deletedInfo = result.deleted ? ` (Đã thay thế ${result.deleted} HĐ cũ tháng ${replaceMonths.join(', ')})` : '';
-            const skippedInfo = result.skipped > 0 ? ` | Bỏ qua ${result.skipped} HĐ trùng (Số HĐ: ${result.skippedContracts?.slice(0, 5).join(', ')}${result.skipped > 5 ? '...' : ''})` : '';
-            toast({ title: 'Import thành công', description: `${successCount} HĐ${deletedInfo}${skippedInfo}` });
+            const updatedInfo = result.updated > 0 ? ` | Cập nhật ${result.updated} HĐ` : '';
+            const errorInfo = result.errors > 0 ? ` | ${result.errors} lỗi` : '';
+            toast({ title: 'Import thành công', description: `${result.count} HĐ mới${updatedInfo}${errorInfo}` });
+            // Auto-sync revenue from contracts after successful import
+            try {
+              const syncRes = await fetch('/api/revenue/sync-from-contracts', { method: 'POST' });
+              if (syncRes.ok) {
+                const syncData = await syncRes.json();
+                console.log('[Auto-sync revenue]', syncData.message);
+              }
+            } catch { /* silent - revenue sync is optional */ }
           }
           else {
             failCount = contractRows.length;
@@ -1633,8 +1789,7 @@ export default function QuanLyPage() {
       console.error('[handleImport] Error:', err);
       toast({ title: 'Lỗi import', description: String(err), variant: 'destructive' });
     }
-    // Invalidate cache and reload all data after import (await to prevent race conditions)
-    loadedSheets.current.clear();
+    // Reload all data after import (await to prevent race conditions)
     await fetchAllData();
     e.target.value = '';
   }, [parseDateValue, fetchAllData]);
@@ -1681,20 +1836,14 @@ export default function QuanLyPage() {
   const totalRevenueAFYP = yearContracts.reduce((s, c) => s + c.afyp, 0);
   const totalRevenueContractCount = yearContracts.length; // Số lượng HĐ = số dòng
 
-  // Lượt hoạt động = số HĐ có TÍNH LƯỢT 3tr >= 3,000,000
+  // Lượt HĐ = đếm số hợp đồng có tinhLuot3tr >= 3,000,000
   const luotHoatDong = yearContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
-  // Lượt chuẩn = số HĐ có TÍNH LƯỢT 3tr >= 12,000,000
-  const luotChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+  // Lượt HĐ chuẩn = đếm số hợp đồng có tinhLuot3tr >= 12,000,000
+  const luotHDChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
 
-  // TVV đạt 3tr = count unique agentCodes with tinhLuot3tr >= 3,000,000
-  const tvv3trSet = new Set<string>();
-  const tvv12trSet = new Set<string>();
-  for (const c of yearContracts) {
-    if (c.tinhLuot3tr >= 3000000 && c.agentCode) tvv3trSet.add(c.agentCode);
-    if (c.tinhLuot3tr >= 12000000 && c.agentCode) tvv12trSet.add(c.agentCode);
-  }
-  const tvvAchieved3M = tvv3trSet.size;
-  const tvvAchieved12M = tvv12trSet.size;
+  // TVV đạt 3tr = same as luotHoatDong (unique TVV count)
+  const tvvAchieved3M = luotHoatDong;
+  const tvvAchieved12M = luotHDChuan;
 
   // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
   const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
@@ -1705,11 +1854,8 @@ export default function QuanLyPage() {
   // Năng suất = tổng số lượng HĐ / tổng số TVV đạt 3 triệu
   const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
 
-  // Lượt HĐ chuẩn
-  const luotHDChuan = luotChuan;
-
-  // SL Tuyển dụng = count TVV from structure where ngayBatDau falls in current year
-  const slTuyenDungYear = tvvStructList.filter(t => {
+  // SL tuyển dụng = đếm TVV có ngày bắt đầu làm việc trong năm hiện tại (từ cấu trúc)
+  const slTuyenDungNam = tvvStructList.filter(t => {
     if (!t.ngayBatDau) return false;
     const d = new Date(t.ngayBatDau);
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
@@ -1733,15 +1879,6 @@ export default function QuanLyPage() {
   const targetSLTBTN = parseFloat(onlineSettings['nmc-target-sl-tb-tn'] || '0') || 0;
   const targetSLNTD = parseFloat(onlineSettings['nmc-target-sl-ntd'] || '0') || 0;
   const targetSLTuyenDung = parseFloat(onlineSettings['nmc-target-sl-tuyen-dung'] || '0') || 0;
-  const targetIPAFYP = parseFloat(onlineSettings['nmc-target-ip-afyp'] || '0') || 0;
-
-  // Monthly plan targets (tháng 1-12)
-  const monthlyTargets = Array.from({ length: 12 }, (_, i) => {
-    const m = String(i + 1).padStart(2, '0');
-    return parseFloat(onlineSettings[`nmc-target-month-${m}`] || '0') || 0;
-  });
-  const [editingMonthlyTarget, setEditingMonthlyTarget] = useState<number | null>(null);
-  const [monthlyTargetInput, setMonthlyTargetInput] = useState('');
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
@@ -1776,7 +1913,7 @@ export default function QuanLyPage() {
         { key: 'afyp', label: 'AFYP', type: 'number' },
         { key: 'pdt10DT', label: 'PĐT + 10% ĐT', type: 'number' },
         { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' },
-        { key: 'tinhLuot3tr', label: 'Tính lượt 3tr', type: 'number' },
+        { key: 'tinhLuot3tr', label: 'Lượt HĐ (≥3tr)', type: 'number' },
         { key: 'stt', label: 'STT', type: 'number' },
       ],
     },
@@ -1860,7 +1997,7 @@ export default function QuanLyPage() {
               value={targetInput}
               onChange={(e) => setTargetInput(e.target.value)}
               placeholder="Chỉ tiêu..."
-              className="h-8 text-sm bg-gray-800 border-amber-500/50 text-white flex-1 min-w-[100px]"
+              className="h-5 text-[10px] bg-gray-800 border-amber-500/50 text-white flex-1"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }}
               autoFocus
             />
@@ -1883,104 +2020,107 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
+      {/* Header with sync status */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
+        {lastSyncTime && (
+          <span className="text-[10px] text-emerald-400/60 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" /> Đồng bộ lúc {lastSyncTime}
+          </span>
+        )}
+      </div>
 
-      {/* Summary Cards - 11 indicators */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-2">
+      {/* Row 1: Core Revenue KPIs - 5 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: 'TỔNG AFYP', value: formatCurrency(totalRevenueAFYP), target: targetTongAFYP, targetFmt: formatCurrency(targetTongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
           { label: 'TỔNG IP', value: formatCurrency(totalRevenue), target: targetTongIP, targetFmt: formatCurrency(targetTongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
-          { label: 'IP/AFYP', value: ipAfypRatio.toFixed(1) + '%', target: targetIPAFYP, targetFmt: targetIPAFYP.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30', icon: TrendingUp },
+          { label: 'TỶ TRONG IP', value: ipAfypRatio.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30', icon: Percent },
           { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
           { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
-          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
-          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungYear), target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-pink-500/20 border-pink-500/30', icon: UserPlus },
-          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
-          { label: 'ĐLHĐ', value: formatCurrency(doLonHD), target: targetDLHD, targetFmt: formatCurrency(targetDLHD), color: 'bg-emerald-500/20 border-emerald-500/30', icon: BarChart3 },
-          { label: 'SL TB/TN', value: formatNumber(totalLeaders), target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-violet-500/20 border-violet-500/30', icon: Users },
-          { label: 'SL NTD', value: formatNumber(totalRecruiters), target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-amber-500/20 border-amber-500/30', icon: UserCircle },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} border rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1 mb-1"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[8px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
-              {kpi.target > 0 && (
-                <div className="mt-1">
-                  <div className="flex items-center justify-between text-[7px]">
+            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+              <div className="flex items-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-white/80" /><p className="text-white/80 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-white text-base font-extrabold truncate">{kpi.value}</p>
+              {kpi.target > 0 ? (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[9px]">
                     <span className="text-gray-300">CT: {kpi.targetFmt}</span>
                     <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
                   </div>
-                  <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
                 </div>
+              ) : (
+                <div className="mt-2 h-[22px]"></div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Monthly Plan Targets (Kế hoạch từng tháng) */}
+      {/* Row 2: Secondary KPIs - 6 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
+          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
+          { label: 'ĐLHĐ', value: formatCurrency(doLonHD), target: targetDLHD, targetFmt: formatCurrency(targetDLHD), color: 'bg-emerald-500/20 border-emerald-500/30', icon: BarChart3 },
+          { label: 'SL TB/TN', value: formatNumber(totalLeaders), target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-violet-500/20 border-violet-500/30', icon: Users },
+          { label: 'SL NTD', value: formatNumber(totalRecruiters), target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-amber-500/20 border-amber-500/30', icon: UserCircle },
+          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-emerald-500/20 border-emerald-500/30', icon: UserPlus },
+        ].map((kpi, i) => {
+          const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
+          return (
+            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+              <div className="flex items-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-white/80" /><p className="text-white/80 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-white text-base font-extrabold truncate">{kpi.value}</p>
+              {kpi.target > 0 ? (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-gray-300">CT: {kpi.targetFmt}</span>
+                    <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                </div>
+              ) : (
+                <div className="mt-2 h-[22px]"></div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Monthly Plan Targets Overview (Kế hoạch AFYP từng tháng) */}
       <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3">
-        <h3 className="text-sm font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
-          <Calendar className="w-4 h-4" /> Kế hoạch doanh số AFYP từng tháng
+        <h3 className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5" /> Kế hoạch AFYP từng tháng
         </h3>
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
-          {monthlyTargets.map((target, i) => {
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
+          {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
+            const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
             const mc = yearContracts.filter(c => {
               const d = new Date(c.effectiveDate);
               return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
             });
             const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
-            const isEditing = editingMonthlyTarget === i;
             const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
+            const isCurrent = i + 1 === new Date().getMonth() + 1;
             return (
-              <div key={i} className="bg-gray-800/60 border border-emerald-500/20 rounded-md p-2 text-center">
-                <p className="text-[10px] font-bold text-emerald-300 mb-1">T{i + 1}</p>
-                {isEditing ? (
-                  <div className="space-y-1">
-                    <Input
-                      type="number"
-                      value={monthlyTargetInput}
-                      onChange={(e) => setMonthlyTargetInput(e.target.value)}
-                      placeholder="KH..."
-                      className="h-7 text-xs bg-gray-700 border-amber-500/50 text-white text-center"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const val = parseFloat(monthlyTargetInput) || 0;
-                          saveSetting(`nmc-target-month-${m}`, String(val));
-                          setEditingMonthlyTarget(null);
-                          toast({ title: `Đã lưu KH T${i + 1}`, description: formatCurrency(val) });
-                        }
-                        if (e.key === 'Escape') setEditingMonthlyTarget(null);
-                      }}
-                      autoFocus
-                    />
-                    <Button onClick={() => {
-                      const val = parseFloat(monthlyTargetInput) || 0;
-                      saveSetting(`nmc-target-month-${m}`, String(val));
-                      setEditingMonthlyTarget(null);
-                      toast({ title: `Đã lưu KH T${i + 1}`, description: formatCurrency(val) });
-                    }} className="h-5 bg-amber-500/20 text-amber-300 text-[8px] px-1.5 py-0 w-full">Lưu</Button>
-                  </div>
-                ) : (
-                  <div
-                    className="cursor-pointer hover:bg-emerald-500/10 rounded p-0.5"
-                    onDoubleClick={() => { setEditingMonthlyTarget(i); setMonthlyTargetInput(String(target || '')); }}
-                    title="Nháy đúp để sửa kế hoạch"
-                  >
-                    <p className="text-[9px] text-amber-300 font-bold">{target > 0 ? formatCurrency(target) : '—'}</p>
-                  </div>
-                )}
-                <p className={`text-[9px] font-bold mt-0.5 ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : actualAFYP > 0 ? 'text-sky-300' : 'text-gray-500'}`}>
+              <div key={i} className={`bg-gray-800/60 border rounded-md p-1.5 text-center ${isCurrent ? 'border-emerald-500/50 ring-1 ring-emerald-400/30' : 'border-emerald-500/20'}`}>
+                <p className={`text-[9px] font-bold mb-0.5 ${isCurrent ? 'text-emerald-300' : 'text-gray-400'}`}>T{i + 1}</p>
+                <p className="text-[8px] text-amber-300 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
+                <p className={`text-[8px] font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : actualAFYP > 0 ? 'text-sky-300' : 'text-gray-600'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
-                {target > 0 && <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />}
+                {target > 0 && <Progress value={pct} className="h-0.5 mt-0.5 bg-gray-700 [&>div]:bg-emerald-400" />}
+                {pct >= 100 && <p className="text-[7px] text-emerald-300 font-bold">✓</p>}
               </div>
             );
           })}
         </div>
-        <p className="text-[9px] text-gray-500 mt-1.5">Nháy đúp vào ô kế hoạch để sửa. Tổng KH năm: {formatCurrency(monthlyTargets.reduce((s, t) => s + t, 0))}</p>
+        <p className="text-[8px] text-gray-500 mt-1">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart */}
@@ -1994,7 +2134,7 @@ export default function QuanLyPage() {
           });
           return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length };
         });
-        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), ...monthlyTargets.filter(t => t > 0), monthlyTarget || 1);
+        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), ...Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).filter(v => v > 0), monthlyTarget || 1);
         return (
           <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -2002,16 +2142,18 @@ export default function QuanLyPage() {
                 <BarChart3 className="w-4 h-4" /> Tiến độ AFYP hàng tháng
               </h3>
               {monthlyTarget > 0 && (
-                <span className="text-[10px] text-gray-400">Mục tiêu TB/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
+                <span className="text-[10px] text-gray-400">Mục tiêu/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
               )}
             </div>
             <div className="flex items-end gap-1.5 h-[180px]">
               {monthlyData.map(d => {
                 const barHeight = maxAfyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
-                const specificTarget = monthlyTargets[d.index] || monthlyTarget;
+                const specificTarget = parseFloat(onlineSettings[`nmc-target-afyp-month-${d.month}`] || '0') || monthlyTarget;
                 const targetLine = specificTarget > 0 ? (specificTarget / maxAfyp) * 100 : 0;
                 const isComplete = d.afyp > 0;
                 const reached = specificTarget > 0 && d.afyp >= specificTarget;
+                const currentMonth = new Date().getMonth() + 1;
+                const isCurrent = d.index + 1 === currentMonth;
                 return (
                   <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
                     {specificTarget > 0 && (
@@ -2019,12 +2161,12 @@ export default function QuanLyPage() {
                     )}
                     <div className="flex-1 w-full flex items-end justify-center">
                       <div
-                        className={`w-full max-w-[32px] rounded-t-sm transition-all ${reached ? 'bg-emerald-500/70' : isComplete ? 'bg-sky-500/60' : 'bg-gray-700/30'}`}
+                        className={`w-full max-w-[32px] rounded-t-sm transition-all ${reached ? 'bg-emerald-500/70' : isComplete ? 'bg-sky-500/60' : 'bg-gray-700/30'} ${isCurrent ? 'ring-1 ring-emerald-400/50' : ''}`}
                         style={{ height: `${Math.max(barHeight, 1)}%` }}
                         title={`T${d.index + 1}: AFYP ${formatCurrency(d.afyp)} | IP ${formatCurrency(d.ip)} | ${d.count} HĐ${specificTarget > 0 ? ` | CT: ${formatCurrency(Math.round(specificTarget))}` : ''}`}
                       ></div>
                     </div>
-                    <p className="text-[9px] text-gray-400 mt-1 font-bold">T{d.index + 1}</p>
+                    <p className={`text-[9px] mt-1 font-bold ${isCurrent ? 'text-emerald-300' : 'text-gray-400'}`}>T{d.index + 1}</p>
                     {isComplete && (
                       <p className={`text-[8px] font-bold ${reached ? 'text-emerald-300' : 'text-sky-300'}`}>
                         {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
@@ -2036,8 +2178,8 @@ export default function QuanLyPage() {
             </div>
             <div className="flex items-center gap-4 mt-2 text-[9px] text-gray-500">
               <span className="flex items-center gap-1"><span className="w-3 h-2 bg-sky-500/60 rounded-sm inline-block"></span> AFYP</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block"></span> Đạt chỉ tiêu</span>
-              {(monthlyTarget > 0 || monthlyTargets.some(t => t > 0)) && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
+              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block"></span> Đạt CT</span>
+              {monthlyTarget > 0 && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
             </div>
           </div>
         );
@@ -2176,8 +2318,8 @@ export default function QuanLyPage() {
   const CONTRACT_TABLE_COLUMNS = [
     { f: 'ban', l: 'Ban', type: 'text' as const },
     { f: 'nhom', l: 'Nhóm', type: 'text' as const },
-    { f: 'maBanNhom', l: 'Mã Ban/Nhóm', type: 'text' as const },
-    { f: 'maDL', l: 'Mã ĐL', type: 'text' as const },
+    { f: 'maNhom', l: 'Mã nhóm', type: 'text' as const },
+    { f: 'agentCode', l: 'Mã ĐL', type: 'text' as const },
     { f: 'agentName', l: 'Tên', type: 'text' as const },
     { f: 'position', l: 'Chức vụ', type: 'text' as const },
     { f: 'ngayBatDauLamViec', l: 'Ngày bắt đầu LV', type: 'date' as const },
@@ -2187,9 +2329,821 @@ export default function QuanLyPage() {
     { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
     { f: 'afyp', l: 'AFYP', type: 'number' as const },
     { f: 'ad', l: 'AD', type: 'text' as const },
+    { f: 'tinhLuot', l: 'TÍNH LƯỢT', type: 'number' as const },
     { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3tr', type: 'number' as const },
     { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
   ];
+
+  // ========== RENDER: Report ==========
+  const renderReport = () => {
+    // Available columns for calculation — chỉ tiêu theo quy tắc
+    const calcColumns = [
+      { key: 'pdt10DT', label: 'Tổng IP', type: 'sum_field' as const },
+      { key: 'afyp', label: 'Tổng AFYP', type: 'sum_field' as const },
+      { key: '_luotHoatDong', label: 'Lượt HĐ', type: 'count_condition' as const },
+      { key: '_luotHoatDongChuan', label: 'Lượt HĐ chuẩn', type: 'count_condition' as const },
+      { key: '_soLuotHD', label: 'Số lượt HĐ', type: 'count_rows' as const },
+      { key: '_slTuyenDung', label: 'SL tuyển dụng', type: 'count_condition' as const },
+    ];
+
+    // Available columns for conditions (includes date & text fields)
+    const conditionColumns = [
+      { key: 'pdt10DT', label: 'IP (PĐT + 10% ĐT)', type: 'number' as const },
+      { key: 'afyp', label: 'AFYP', type: 'number' as const },
+      { key: 'fyp', label: 'FYP', type: 'number' as const },
+      { key: 'tinhLuot3tr', label: 'Giá trị TÍNH LƯỢT 3tr', type: 'number' as const },
+      { key: 'tinhLuot', label: 'Giá trị TÍNH LƯỢT', type: 'number' as const },
+      { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' as const },
+      { key: 'ngayBatDauLamViec', label: 'Ngày bắt đầu làm việc', type: 'date' as const },
+      { key: 'ngayBatDauLamViec2', label: 'Ngày BĐLV 2', type: 'date' as const },
+      { key: 'effectiveDate', label: 'Ngày hiệu lực', type: 'date' as const },
+      { key: 'issueDate', label: 'Ngày phát hành', type: 'date' as const },
+      { key: 'thangTD', label: 'Tháng TD', type: 'number' as const },
+      { key: 'namTD', label: 'Năm TD', type: 'number' as const },
+      { key: 'thangHL', label: 'Tháng HL', type: 'number' as const },
+      { key: 'agentCode', label: 'Mã TVV', type: 'text' as const },
+      { key: 'agentName', label: 'Tên TVV', type: 'text' as const },
+      { key: 'nhom', label: 'Nhóm', type: 'text' as const },
+      { key: 'ad', label: 'AD', type: 'text' as const },
+      { key: 'ban', label: 'Phòng/Ban', type: 'text' as const },
+      { key: 'maNhom', label: 'Mã nhóm', type: 'text' as const },
+      { key: 'position', label: 'Chức vụ', type: 'text' as const },
+      { key: 'dkDongPhi', label: 'ĐK đóng phí', type: 'text' as const },
+      { key: 'hopDongToChuc', label: 'HĐ tổ chức', type: 'text' as const },
+      { key: 'maDaiLyTD', label: 'Mã ĐL TD (NTD)', type: 'text' as const },
+    ];
+
+    // Helper: evaluate a condition on a contract item
+    const evaluateCondition = (item: any, cond: { column: string; operator: string; value: string }): boolean => {
+      if (!cond.column || !cond.operator || !cond.value) return true;
+      const colDef = conditionColumns.find(c => c.key === cond.column);
+      if (!colDef) return true;
+
+      const rawVal = item[cond.column];
+
+      if (colDef.type === 'number') {
+        const numVal = parseFloat(String(rawVal || 0)) || 0;
+        const numCond = parseFloat(cond.value) || 0;
+        switch (cond.operator) {
+          case '>=': return numVal >= numCond;
+          case '<=': return numVal <= numCond;
+          case '>': return numVal > numCond;
+          case '<': return numVal < numCond;
+          case '=': return numVal === numCond;
+          case '!=': return numVal !== numCond;
+          default: return true;
+        }
+      } else if (colDef.type === 'date') {
+        const dateVal = rawVal ? new Date(rawVal) : null;
+        if (!dateVal || isNaN(dateVal.getTime())) return false;
+        // For date conditions, value is in months (số tháng)
+        const monthsNum = parseFloat(cond.value) || 0;
+        const now = new Date();
+        const diffMs = now.getTime() - dateVal.getTime();
+        const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44);
+        switch (cond.operator) {
+          case '>=': return diffMonths >= monthsNum;
+          case '<=': return diffMonths <= monthsNum;
+          case '>': return diffMonths > monthsNum;
+          case '<': return diffMonths < monthsNum;
+          case '=': return Math.abs(diffMonths - monthsNum) < 1;
+          case '!=': return Math.abs(diffMonths - monthsNum) >= 1;
+          default: return true;
+        }
+      } else {
+        // text
+        const strVal = String(rawVal || '').toLowerCase();
+        const strCond = cond.value.toLowerCase();
+        switch (cond.operator) {
+          case '=': return strVal === strCond;
+          case '!=': return strVal !== strCond;
+          case 'contains': return strVal.includes(strCond);
+          case 'not_contains': return !strVal.includes(strCond);
+          case 'starts': return strVal.startsWith(strCond);
+          default: return true;
+        }
+      }
+    };
+
+    // Filter contracts by date range (use issueDate for revenue grouping)
+    const currentYear = new Date().getFullYear();
+    let filteredData = contracts.filter(c => {
+      const d = new Date(c.issueDate || c.effectiveDate);
+      if (isNaN(d.getTime())) return false;
+      if (d.getFullYear() !== currentYear) return false;
+      if (reportMonthFrom) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m < reportMonthFrom) return false; }
+      if (reportMonthTo) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m > reportMonthTo) return false; }
+      return true;
+    });
+
+    // Apply conditions
+    if (reportConditions.length > 0) {
+      filteredData = filteredData.filter(c =>
+        reportConditions.every(cond => evaluateCondition(c, cond))
+      );
+    }
+
+    // Also use revenue data for revenue-based columns
+    const isRevenueColumn = ['totalFYP', 'totalAFYP', 'contractCount', 'activityRounds'].includes(reportColumn);
+
+    // Group by subject — use structure lists as the base (like thi-đua page)
+    // Build mapping: contract → which AD / BanNhom it belongs to
+    const grouped = new Map<string, { key: string; label: string; items: any[]; extra1: string; extra2: string; extra3?: string }>();
+
+    if (reportSubject === 'nhom') {
+      // Use banNhomList from structure as the base list
+      for (const bn of banNhomList) {
+        // Find parent AD for this bannhom
+        const parentAD = adList.find(a => a.maAD === bn.maAD);
+        grouped.set(bn.maBanNhom, {
+          key: bn.maBanNhom,
+          label: bn.tenBanNhom,
+          items: [],
+          extra1: '', // will fill with TN name
+          extra2: parentAD?.tenAD || '',
+          extra3: '', // will fill with TN agent code
+        });
+        // Look up Trưởng Nhóm from leaders or TVVStruct
+        const tnLeader = leaders.find(l => l.maNhom === bn.maBanNhom || l.nhom === bn.tenBanNhom);
+        if (tnLeader) {
+          grouped.get(bn.maBanNhom)!.extra1 = tnLeader.agentName;
+          (grouped.get(bn.maBanNhom) as any).extra3 = tnLeader.agentCode;
+        } else {
+          const tnTVV = tvvStructList.find(t => t.maBanNhom === bn.maBanNhom && (t.chucVu?.toLowerCase().includes('trưởng') || t.chucVu?.toLowerCase().includes('tn')));
+          if (tnTVV) {
+            grouped.get(bn.maBanNhom)!.extra1 = tnTVV.agentName;
+            (grouped.get(bn.maBanNhom) as any).extra3 = tnTVV.agentCode;
+          }
+        }
+      }
+      // Map contracts to their nhóm using maBanNhom or nhom/maNhom
+      for (const c of filteredData) {
+        // Try maBanNhom first, then maNhom, then nhom name match
+        let matchedKey = c.maBanNhom && grouped.has(c.maBanNhom) ? c.maBanNhom
+          : c.maNhom && grouped.has(c.maNhom) ? c.maNhom
+          : '';
+        if (!matchedKey) {
+          // Try matching by tên nhóm
+          const found = banNhomList.find(bn => bn.tenBanNhom === c.nhom);
+          if (found) matchedKey = found.maBanNhom;
+        }
+        if (matchedKey && grouped.has(matchedKey)) {
+          grouped.get(matchedKey)!.items.push(c);
+        } else {
+          // Unmatched — put in a catch-all group
+          const catchKey = '__unmatched__';
+          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.nhom || '(Chưa phân nhóm)', items: [], extra1: '', extra2: '' });
+          grouped.get(catchKey)!.items.push(c);
+        }
+      }
+    } else if (reportSubject === 'ad') {
+      // Use adList from structure as the base list
+      for (const ad of adList) {
+        // Find parent Phong for this AD
+        const parentPhong = phongList.find(p => p.maPhong === ad.maPhong);
+        grouped.set(ad.maAD, {
+          key: ad.maAD,
+          label: ad.tenAD,
+          items: [],
+          extra1: parentPhong?.tenPhong || '',
+          extra2: '',
+        });
+      }
+      // Map contracts to their AD
+      // Build a mapping: maBanNhom → maAD (from structure)
+      const bnToAD = new Map<string, string>();
+      for (const bn of banNhomList) {
+        if (bn.maAD) bnToAD.set(bn.maBanNhom, bn.maAD);
+      }
+      for (const c of filteredData) {
+        // Try to find AD via maBanNhom → structure mapping
+        let matchedADKey = '';
+        if (c.maBanNhom && bnToAD.has(c.maBanNhom)) {
+          matchedADKey = bnToAD.get(c.maBanNhom)!;
+        }
+        // Fallback: try matching by ad name against adList
+        if (!matchedADKey && c.ad) {
+          const found = adList.find(a => a.tenAD === c.ad);
+          if (found) matchedADKey = found.maAD;
+        }
+        if (matchedADKey && grouped.has(matchedADKey)) {
+          grouped.get(matchedADKey)!.items.push(c);
+        } else {
+          // Unmatched
+          const catchKey = '__unmatched__';
+          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.ad || '(Chưa có AD)', items: [], extra1: '', extra2: '' });
+          grouped.get(catchKey)!.items.push(c);
+        }
+      }
+    } else if (reportSubject === 'ntd') {
+      // ntd — group by maDaiLyTD (Người tuyển dụng)
+      // Build NTD groups from contracts' maDaiLyTD field
+      const ntdSet = new Map<string, string>(); // code → name
+      for (const c of filteredData) {
+        const ntdCode = c.maDaiLyTD;
+        if (!ntdCode) continue;
+        if (!ntdSet.has(ntdCode)) {
+          // Try to find name from recruiters list
+          const rec = recruiters.find(r => r.agentCode === ntdCode);
+          ntdSet.set(ntdCode, rec?.agentName || ntdCode);
+        }
+      }
+      for (const [code, name] of ntdSet) {
+        grouped.set(code, { key: code, label: name, items: [], extra1: '', extra2: '' });
+      }
+      for (const c of filteredData) {
+        const ntdCode = c.maDaiLyTD;
+        if (!ntdCode) {
+          // Contracts without NTD go to unmatched
+          const catchKey = '__unmatched__';
+          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: '(Chưa có NTD)', items: [], extra1: '', extra2: '' });
+          grouped.get(catchKey)!.items.push(c);
+          continue;
+        }
+        // Skip NTD's own contracts if toggle is off
+        if (!reportIncludeNTDOwn && c.agentCode === ntdCode) continue;
+        if (grouped.has(ntdCode)) {
+          grouped.get(ntdCode)!.items.push(c);
+        }
+      }
+    } else if (reportSubject === 'phong') {
+      // phong - use phongList from structure
+      for (const p of phongList) {
+        grouped.set(p.maPhong, {
+          key: p.maPhong,
+          label: p.tenPhong,
+          items: [],
+          extra1: '',
+          extra2: '',
+        });
+      }
+      // Map contracts to their phòng
+      const adToPhong = new Map<string, string>();
+      for (const ad of adList) {
+        if (ad.maPhong) adToPhong.set(ad.maAD, ad.maPhong);
+      }
+      const bnToAD = new Map<string, string>();
+      for (const bn of banNhomList) {
+        if (bn.maAD) bnToAD.set(bn.maBanNhom, bn.maAD);
+      }
+      for (const c of filteredData) {
+        let matchedPhongKey = '';
+        // Try: maBanNhom → AD → Phong
+        if (c.maBanNhom && bnToAD.has(c.maBanNhom)) {
+          const adKey = bnToAD.get(c.maBanNhom)!;
+          if (adToPhong.has(adKey)) matchedPhongKey = adToPhong.get(adKey)!;
+        }
+        // Fallback: ban name match
+        if (!matchedPhongKey && c.ban) {
+          const found = phongList.find(p => p.tenPhong === c.ban);
+          if (found) matchedPhongKey = found.maPhong;
+        }
+        if (matchedPhongKey && grouped.has(matchedPhongKey)) {
+          grouped.get(matchedPhongKey)!.items.push(c);
+        } else {
+          const catchKey = '__unmatched__';
+          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.ban || '(Chưa có phòng)', items: [], extra1: '', extra2: '' });
+          grouped.get(catchKey)!.items.push(c);
+        }
+      }
+    }
+
+    // Use revenue data if needed
+    if (isRevenueColumn && revenue.length > 0) {
+      const revFiltered = revenue.filter(r => {
+        if (reportMonthFrom && r.month < `${currentYear}-${reportMonthFrom}`) return false;
+        if (reportMonthTo && r.month > `${currentYear}-${reportMonthTo}`) return false;
+        return r.month.startsWith(String(currentYear));
+      });
+      // Keep structure-based groups, map revenue into them
+      for (const r of revFiltered) {
+        let matchedKey = '';
+        if (reportSubject === 'nhom') {
+          matchedKey = r.maNhom && grouped.has(r.maNhom) ? r.maNhom : '';
+          if (!matchedKey) {
+            const found = banNhomList.find(bn => bn.tenBanNhom === r.nhom);
+            if (found) matchedKey = found.maBanNhom;
+          }
+        } else if (reportSubject === 'ad') {
+          // revenue doesn't have maAD, try to find via maNhom → bannhom → AD
+          if (r.maNhom) {
+            const bn = banNhomList.find(b => b.maBanNhom === r.maNhom);
+            if (bn && bn.maAD && grouped.has(bn.maAD)) matchedKey = bn.maAD;
+          }
+        } else {
+          // phong — revenue doesn't directly map to phong
+        }
+        if (matchedKey && grouped.has(matchedKey)) {
+          grouped.get(matchedKey)!.items.push(r);
+        }
+      }
+    }
+
+    // Calculate values
+    const colLabel = calcColumns.find(c => c.key === reportColumn)?.label || reportColumn;
+
+    // Helper: check if a TVV is "mới" (≤12 months) based on ngayBatDauLamViec
+    const isTVVm = (item: any): boolean => {
+      const sd = item.ngayBatDauLamViec;
+      if (!sd) return true; // no start date = new TVV, ≤12 months
+      const diff = (Date.now() - new Date(sd).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+      return diff <= 12;
+    };
+
+    // Helper: compute a metric for a group of contracts
+    const computeMetric = (items: any[], metric: string, tvvmOnly: boolean): number => {
+      // Filter by TVVm if checkbox is checked
+      const filtered = tvvmOnly ? items.filter(isTVVm) : items;
+
+      if (metric === 'pdt10DT') {
+        return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.pdt10DT || 0)) || 0), 0);
+      } else if (metric === 'afyp') {
+        return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.afyp || 0)) || 0), 0);
+      } else if (metric === '_luotHoatDong') {
+        // Đếm số lượt giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
+        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).length;
+      } else if (metric === '_luotHoatDongChuan') {
+        // Đếm số lượt giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
+        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).length;
+      } else if (metric === '_soLuotHD') {
+        // Đếm số dòng có dữ liệu
+        return filtered.length;
+      } else if (metric === '_slTuyenDung') {
+        // SL tuyển dụng: đếm TVV trong nhóm/đối tượng có ngày bắt đầu làm việc trong khoảng thời gian
+        // Lấy danh sách agentCode từ items (contracts)
+        const agentCodes = new Set(filtered.map((item: any) => item.agentCode).filter(Boolean));
+        // Đếm từ tvvStructList những TVV thuộc nhóm này và có ngày bắt đầu trong khoảng
+        return tvvStructList.filter(t => {
+          if (!agentCodes.has(t.agentCode) && !items.some((item: any) => item.maBanNhom === t.maBanNhom)) return false;
+          if (!t.ngayBatDau) return false;
+          const d = new Date(t.ngayBatDau);
+          if (isNaN(d.getTime())) return false;
+          if (d.getFullYear() !== currentYear) return false;
+          if (reportMonthFrom) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m < reportMonthFrom) return false; }
+          if (reportMonthTo) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m > reportMonthTo) return false; }
+          return true;
+        }).length;
+      }
+      return 0;
+    };
+
+    // Helper: check if metric is a count type (not currency)
+    const isCountMetric = (key: string) => ['_luotHoatDong', '_luotHoatDongChuan', '_soLuotHD', '_slTuyenDung'].includes(key);
+
+    const results = Array.from(grouped.entries()).map(([key, group]) => {
+      const value = computeMetric(group.items, reportColumn, reportTVVm);
+
+      // Optional 2nd column
+      let value2: number | null = null;
+      if (reportColumn2) {
+        value2 = computeMetric(group.items, reportColumn2, reportTVVm2);
+      }
+
+      const target = parseFloat(reportTarget) || 0;
+      const pct = target > 0 ? (value / target) * 100 : 0;
+      return { key, label: group.label, value, value2, target, pct, extra1: group.extra1, extra2: group.extra2, extra3: (group as any).extra3 || '', hasData: group.items.length > 0 };
+    })
+    // Chỉ hiện những đối tượng có trong cấu trúc (không hiện dòng ngoài đối tượng)
+    .filter(r => r.key !== '__unmatched__' && r.hasData)
+    .sort((a, b) => b.value - a.value);
+
+    const totalValue = results.reduce((s, r) => s + r.value, 0);
+    const totalTarget = parseFloat(reportTarget) || 0;
+    const totalPct = totalTarget > 0 ? (totalValue / totalTarget) * 100 : 0;
+    const col2Label = (calcColumns.find(c => c.key === reportColumn2)?.label || '') + (reportTVVm2 && reportColumn2 ? ' TVVm' : '');
+    const col1DisplayLabel = colLabel + (reportTVVm ? ' TVVm' : '');
+
+    const subjectLabel = reportSubject === 'nhom' ? 'Nhóm' : reportSubject === 'ad' ? 'AD' : reportSubject === 'ntd' ? 'NTD' : 'Phòng';
+    const title = reportTitle || `${col1DisplayLabel}${reportColumn2 ? ` / ${col2Label}` : ''} theo ${subjectLabel}${reportSubject === 'ntd' && !reportIncludeNTDOwn ? ' (không tính HĐ cá nhân)' : ''}`;
+
+    // Build condition description for display
+    const condDescParts = reportConditions.filter(c => c.column && c.operator && c.value).map(c => {
+      const colName = conditionColumns.find(cc => cc.key === c.column)?.label || c.column;
+      const opLabel = { '>=': '≥', '<=': '≤', '>': '>', '<': '<', '=': '=', '!=': '≠', 'contains': 'chứa', 'not_contains': 'không chứa', 'starts': 'bắt đầu bằng' }[c.operator] || c.operator;
+      const colType = conditionColumns.find(cc => cc.key === c.column)?.type;
+      const valLabel = colType === 'date' ? `${c.value} tháng` : c.value;
+      return `${colName} ${opLabel} ${valLabel}`;
+    });
+    const condDesc = condDescParts.length > 0 ? condDescParts.join(' ∧ ') : '';
+
+    return (
+      <div className="space-y-4">
+        {/* Config panel */}
+        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
+          <h3 className="text-sm font-bold text-emerald-300 mb-3 flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4" /> Cấu hình báo cáo
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* 1. Đối tượng */}
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Đối tượng</label>
+              <select value={reportSubject} onChange={e => setReportSubject(e.target.value as any)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
+                <option value="phong">Phòng</option>
+                <option value="ad">AD</option>
+                <option value="nhom">Nhóm</option>
+                <option value="ntd">Người TD</option>
+              </select>
+            </div>
+            {/* NTD toggle */}
+            {reportSubject === 'ntd' && (
+              <div>
+                <label className="text-[10px] font-bold text-white/70 mb-1 block">NTD tính cả HĐ cá nhân?</label>
+                <button
+                  onClick={() => setReportIncludeNTDOwn(!reportIncludeNTDOwn)}
+                  className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2 flex items-center gap-1.5"
+                >
+                  {reportIncludeNTDOwn ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5 text-amber-400" />}
+                  {reportIncludeNTDOwn ? 'Có' : 'Không'}
+                </button>
+              </div>
+            )}
+            {/* 2. Cột tính chính */}
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Cột tính</label>
+              <select value={reportColumn} onChange={e => setReportColumn(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
+                {calcColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              <button
+                onClick={() => setReportTVVm(!reportTVVm)}
+                className="mt-1 flex items-center gap-1 text-[10px] font-medium"
+              >
+                {reportTVVm ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-gray-500" />}
+                <span className={reportTVVm ? 'text-emerald-300' : 'text-white/40'}>Chỉ TVVm (≤12 tháng)</span>
+              </button>
+            </div>
+            {/* 3. Cột thứ 2 */}
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Cột thứ 2 (tuỳ chọn)</label>
+              <select value={reportColumn2} onChange={e => setReportColumn2(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
+                <option value="">— Không —</option>
+                {calcColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              {reportColumn2 && (
+                <button
+                  onClick={() => setReportTVVm2(!reportTVVm2)}
+                  className="mt-1 flex items-center gap-1 text-[10px] font-medium"
+                >
+                  {reportTVVm2 ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-gray-500" />}
+                  <span className={reportTVVm2 ? 'text-emerald-300' : 'text-white/40'}>Chỉ TVVm (≤12 tháng)</span>
+                </button>
+              )}
+            </div>
+            {/* 5. Kế hoạch */}
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Kế hoạch (CT)</label>
+              <input type="text" value={reportTarget} onChange={e => setReportTarget(e.target.value)} placeholder="Nhập số..." className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
+            </div>
+            {/* 6. Thời gian */}
+            <div className="flex gap-1">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-white/70 mb-1 block">Từ tháng</label>
+                <select value={reportMonthFrom} onChange={e => setReportMonthFrom(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
+                  <option value="">T1</option><option value="01">T1</option><option value="02">T2</option><option value="03">T3</option><option value="04">T4</option><option value="05">T5</option><option value="06">T6</option><option value="07">T7</option><option value="08">T8</option><option value="09">T9</option><option value="10">T10</option><option value="11">T11</option><option value="12">T12</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-white/70 mb-1 block">Đến</label>
+                <select value={reportMonthTo} onChange={e => setReportMonthTo(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
+                  <option value="">T12</option><option value="01">T1</option><option value="02">T2</option><option value="03">T3</option><option value="04">T4</option><option value="05">T5</option><option value="06">T6</option><option value="07">T7</option><option value="08">T8</option><option value="09">T9</option><option value="10">T10</option><option value="11">T11</option><option value="12">T12</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Conditions */}
+          <div className="mt-3 border border-amber-500/20 rounded-lg p-3 bg-amber-500/5">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
+                <Target className="w-3 h-3" /> Điều kiện lọc
+              </label>
+              <button
+                onClick={() => setReportConditions(prev => [...prev, { column: '', operator: '>=', value: '' }])}
+                className="text-[10px] font-bold text-amber-300 hover:text-amber-200 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
+              >
+                <Plus className="w-3 h-3" /> Thêm điều kiện
+              </button>
+            </div>
+            {reportConditions.length === 0 && (
+              <p className="text-[10px] text-white/30 italic">Chưa có điều kiện. Nhấn "Thêm điều kiện" để lọc dữ liệu (VD: Ngày BĐLV ≥ 3 tháng, IP &gt; 3.000.000...)</p>
+            )}
+            <div className="space-y-1.5">
+              {reportConditions.map((cond, idx) => {
+                const colDef = conditionColumns.find(c => c.key === cond.column);
+                const colType = colDef?.type || 'number';
+                const isDate = colType === 'date';
+                const isText = colType === 'text';
+                return (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    <select
+                      value={cond.column}
+                      onChange={e => {
+                        const newCol = e.target.value;
+                        const newType = conditionColumns.find(c => c.key === newCol)?.type || 'number';
+                        setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, column: newCol, operator: newType === 'text' ? 'contains' : '>=' } : c));
+                      }}
+                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-1.5 flex-shrink-0 w-[160px]"
+                    >
+                      <option value="">— Chọn cột —</option>
+                      {conditionColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    </select>
+                    <select
+                      value={cond.operator}
+                      onChange={e => setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, operator: e.target.value } : c))}
+                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-1.5 w-[60px]"
+                    >
+                      {isText ? (
+                        <>
+                          <option value="=">=</option>
+                          <option value="!=">≠</option>
+                          <option value="contains">Chứa</option>
+                          <option value="not_contains">Không chứa</option>
+                          <option value="starts">Bắt đầu</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value=">=">≥</option>
+                          <option value="<=">≤</option>
+                          <option value=">">&gt;</option>
+                          <option value="<">&lt;</option>
+                          <option value="=">=</option>
+                          <option value="!=">≠</option>
+                        </>
+                      )}
+                    </select>
+                    <input
+                      type={isText ? 'text' : 'number'}
+                      value={cond.value}
+                      onChange={e => setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, value: e.target.value } : c))}
+                      placeholder={isDate ? 'Số tháng...' : isText ? 'Nội dung...' : 'Giá trị...'}
+                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-2 flex-1 min-w-[80px]"
+                    />
+                    {isDate && <span className="text-[9px] text-amber-300/60 shrink-0">tháng</span>}
+                    <button
+                      onClick={() => setReportConditions(prev => prev.filter((_, i) => i !== idx))}
+                      className="h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Row 3: Title + Note */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Tiêu đề báo cáo</label>
+              <input type="text" value={reportTitle} onChange={e => setReportTitle(e.target.value)} placeholder={title} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-white/70 mb-1 block">Ghi chú</label>
+              <input type="text" value={reportNote} onChange={e => setReportNote(e.target.value)} placeholder="Nội dung ghi chú..." className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
+            </div>
+          </div>
+        </div>
+
+        {/* Report result - light theme table */}
+        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4" id="report-content">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-extrabold text-emerald-300 neon-text">{title}</h3>
+              {reportNote && <p className="text-[10px] text-white/50 mt-0.5">{reportNote}</p>}
+              <p className="text-[10px] text-white/40 mt-0.5">
+                Năm {currentYear}{reportMonthFrom || reportMonthTo ? ` | Tháng ${reportMonthFrom || '01'} - ${reportMonthTo || '12'}` : ''} | {results.length} đối tượng | {filteredData.length} HĐ
+              </p>
+              {condDesc && <p className="text-[10px] text-amber-300/60 mt-0.5">Điều kiện: {condDesc}</p>}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setReportPopupOpen(true)} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><BarChart3 className="w-3 h-3 mr-1" /> Xem popup</Button>
+              <Button onClick={() => {
+                const el = document.getElementById('report-content');
+                if (!el) return;
+                import('html-to-image').then(mod => {
+                  mod.toPng(el, { backgroundColor: '#0e0e18', pixelRatio: 2 }).then((dataUrl: string) => {
+                    const a = document.createElement('a'); a.href = dataUrl; a.download = `bao-cao-${Date.now()}.png`; a.click();
+                  });
+                }).catch(() => toast({ title: 'Lỗi xuất ảnh', variant: 'destructive' }));
+              }} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Tải ảnh</Button>
+            </div>
+          </div>
+
+          {/* Total bar */}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-3">
+            <div className="flex items-center justify-between">
+              <span className="text-white/80 text-xs font-bold">TỔNG CỘNG</span>
+              <div className="flex items-center gap-4">
+                <span className="text-emerald-300 text-sm font-extrabold">{isCountMetric(reportColumn) ? formatNumber(totalValue) : formatCurrency(totalValue)}</span>
+                {reportColumn2 && <span className="text-sky-300 text-sm font-extrabold">{isCountMetric(reportColumn2) ? formatNumber(results.reduce((s, r) => s + (r.value2 || 0), 0)) : formatCurrency(results.reduce((s, r) => s + (r.value2 || 0), 0))}</span>}
+                {totalTarget > 0 && (
+                  <span className={`text-sm font-extrabold ${totalPct >= 100 ? 'text-emerald-300' : totalPct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>
+                    {totalPct.toFixed(1)}% / {formatCurrency(totalTarget)}
+                  </span>
+                )}
+              </div>
+            </div>
+            {totalTarget > 0 && <Progress value={Math.min(totalPct, 100)} className="h-2 mt-2 bg-gray-800 [&>div]:bg-emerald-400" />}
+          </div>
+
+          {/* Results table - LIGHT THEME */}
+          <div className="overflow-auto max-h-[calc(100vh-520px)] bg-white rounded-lg border border-green-200" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+            <table className="w-full">
+              <thead className="sticky top-0 z-10 bg-green-50 border-b border-green-200">
+                <tr>
+                  <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">STT</th>
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã AD</th>}
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng KD</th>}
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên nhóm</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã ĐL TN</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên TN</th>}
+                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã phòng</th>}
+                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng</th>}
+                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã NTD</th>}
+                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Người TD</th>}
+                  <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col1DisplayLabel}</th>
+                  {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col2Label}</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Kế hoạch</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Tỷ lệ</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Tiến độ</th>}
+                  <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => (
+                  <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
+                    <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{i + 1}</td>
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1}</td>}
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra2}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.extra3 || '—'}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1 || '—'}</td>}
+                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                    <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
+                    {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
+                    {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200">{formatCurrency(r.target)}</td>}
+                    {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
+                    {totalTarget > 0 && <td className="px-3 py-2 border border-green-200"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
+                    <td className="px-1 py-1 border border-green-200">
+                      <input
+                        type="text"
+                        value={reportRowNotes[r.key] || ''}
+                        onChange={e => setReportRowNotes(prev => ({ ...prev, [r.key]: e.target.value }))}
+                        className="w-full h-6 text-[10px] bg-white border border-green-200 rounded px-1.5 text-gray-800 focus:outline-none focus:border-green-400"
+                        placeholder="Ghi chú..."
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ========== Report Popup Dialog ========== */}
+        <Dialog open={reportPopupOpen} onOpenChange={setReportPopupOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a2e] border-emerald-500/30 p-0">
+            {/* Action bar */}
+            <div className="sticky top-0 z-10 bg-[#1a1a2e] border-b border-emerald-500/20 px-3 py-2 flex items-center justify-between">
+              <DialogTitle className="text-emerald-400 text-sm font-bold">Báo cáo - Popup</DialogTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const XLSX = await import('xlsx');
+                    const headers: string[] = ['STT'];
+                    if (reportSubject === 'ad') headers.push('Mã AD', 'Phòng KD', 'AD');
+                    if (reportSubject === 'nhom') headers.push('AD', 'Tên nhóm', 'Mã ĐL TN', 'Tên TN');
+                    if (reportSubject === 'phong') headers.push('Mã phòng', 'Phòng');
+                    if (reportSubject === 'ntd') headers.push('Mã NTD', 'Người TD');
+                    headers.push(col1DisplayLabel);
+                    if (reportColumn2) headers.push(col2Label);
+                    if (totalTarget > 0) headers.push('Kế hoạch', 'Tỷ lệ');
+                    headers.push('Ghi chú');
+                    const rows = results.map((r, i) => {
+                      const row: (string | number)[] = [i + 1];
+                      if (reportSubject === 'ad') { row.push(r.key, r.extra1 || '', r.label); }
+                      if (reportSubject === 'nhom') { row.push(r.extra2 || '', r.label, r.extra3 || '', r.extra1 || ''); }
+                      if (reportSubject === 'phong') { row.push(r.key, r.label); }
+                      if (reportSubject === 'ntd') { row.push(r.key, r.label); }
+                      row.push(isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value));
+                      if (reportColumn2) row.push(isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0));
+                      if (totalTarget > 0) { row.push(formatCurrency(r.target), r.pct.toFixed(1) + '%'); }
+                      row.push(reportRowNotes[r.key] || '');
+                      return row;
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                    const colWidths = headers.map((h, ci) => {
+                      const maxLen = Math.max(h.length, ...rows.map(r => String(r[ci] || '').length));
+                      return { wch: Math.min(maxLen + 2, 30) };
+                    });
+                    ws['!cols'] = colWidths;
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo');
+                    XLSX.writeFile(wb, `bao-cao-${Date.now()}.xlsx`);
+                  } catch { toast({ title: 'Lỗi xuất Excel', variant: 'destructive' }); }
+                }} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10"><FileSpreadsheet className="w-3 h-3 mr-1" />XLSX</Button>
+                <Button variant="outline" size="sm" onClick={async () => {
+                  const el = reportPopupRef.current;
+                  if (!el) return;
+                  try {
+                    const { toPng } = await import('html-to-image');
+                    const dataUrl = await toPng(el, { backgroundColor: '#ffffff', pixelRatio: 2 });
+                    const a = document.createElement('a'); a.href = dataUrl; a.download = `bao-cao-${Date.now()}.png`; a.click();
+                  } catch { toast({ title: 'Lỗi xuất ảnh', variant: 'destructive' }); }
+                }} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10"><Download className="w-3 h-3 mr-1" />Tải ảnh</Button>
+              </div>
+            </div>
+
+            <div ref={reportPopupRef} className="px-3 py-2 bg-white">
+              {/* Report header in popup */}
+              <div className="mb-3">
+                <h3 className="text-base font-extrabold text-green-700">{title}</h3>
+                {reportNote && <p className="text-[10px] text-gray-500 mt-0.5">{reportNote}</p>}
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  Năm {currentYear}{reportMonthFrom || reportMonthTo ? ` | Tháng ${reportMonthFrom || '01'} - ${reportMonthTo || '12'}` : ''} | {results.length} đối tượng | {filteredData.length} HĐ
+                </p>
+              </div>
+
+              {/* Total bar in popup */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700 text-xs font-bold">TỔNG CỘNG</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-green-700 text-sm font-extrabold">{isCountMetric(reportColumn) ? formatNumber(totalValue) : formatCurrency(totalValue)}</span>
+                    {reportColumn2 && <span className="text-blue-700 text-sm font-extrabold">{isCountMetric(reportColumn2) ? formatNumber(results.reduce((s, r) => s + (r.value2 || 0), 0)) : formatCurrency(results.reduce((s, r) => s + (r.value2 || 0), 0))}</span>}
+                    {totalTarget > 0 && (
+                      <span className={`text-sm font-extrabold ${totalPct >= 100 ? 'text-green-700' : totalPct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>
+                        {totalPct.toFixed(1)}% / {formatCurrency(totalTarget)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {totalTarget > 0 && <Progress value={Math.min(totalPct, 100)} className="h-2 mt-2 bg-gray-200 [&>div]:bg-green-600" />}
+              </div>
+
+              {/* Table in popup - light theme */}
+              <div className="overflow-auto border border-green-200 rounded-lg">
+                <table className="w-full">
+                  <thead className="bg-green-50 border-b border-green-200">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">STT</th>
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã AD</th>}
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng KD</th>}
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên nhóm</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã ĐL TN</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên TN</th>}
+                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã phòng</th>}
+                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng</th>}
+                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã NTD</th>}
+                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Người TD</th>}
+                      <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col1DisplayLabel}</th>
+                      {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col2Label}</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Kế hoạch</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Tỷ lệ</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Tiến độ</th>}
+                      <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((r, i) => (
+                      <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
+                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{i + 1}</td>
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1}</td>}
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra2}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.extra3 || '—'}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1 || '—'}</td>}
+                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
+                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
+                        <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
+                        {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
+                        {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200">{formatCurrency(r.target)}</td>}
+                        {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
+                        {totalTarget > 0 && <td className="px-3 py-2 border border-green-200"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
+                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{reportRowNotes[r.key] || ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
 
   const renderRevenue = () => {
     const currentYear = new Date().getFullYear();
@@ -2216,7 +3170,7 @@ export default function QuanLyPage() {
       ? monthFilteredContracts.filter(c => c.nhom === settingsNhomFilter)
       : monthFilteredContracts;
 
-    const sortedContracts = getFiltered(getSorted(nhomFilteredContracts), ['agentCode', 'agentName', 'nhom', 'ban', 'contractNumber', 'maDaiLyTD']);
+    const sortedContracts = getFiltered(getSorted(nhomFilteredContracts), ['agentCode', 'agentName', 'nhom', 'ban', 'contractNumber', 'maDaiLyTD', 'maNhom']);
 
     // Calculate KPIs from contracts (TÍNH LƯỢT 3tr column)
     const soLuongHD = sortedContracts.length;
@@ -2224,15 +3178,22 @@ export default function QuanLyPage() {
     const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
     const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
     const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
-    // TVV đạt 3tr: count unique agentCodes with tinhLuot3tr >= 3,000,000
-    const tvv3trSet = new Set<string>();
-    const tvv12trSet = new Set<string>();
-    for (const c of sortedContracts) {
-      if (c.tinhLuot3tr >= 3000000 && c.agentCode) tvv3trSet.add(c.agentCode);
-      if (c.tinhLuot3tr >= 12000000 && c.agentCode) tvv12trSet.add(c.agentCode);
-    }
-    const tvvDat3tr = tvv3trSet.size;
-    const tvvDat12tr = tvv12trSet.size;
+    // SL tuyển dụng trong tháng/năm (từ cấu trúc TVV)
+    const slTuyenDungPeriod = revenueSub === 'all'
+      ? tvvStructList.filter(t => {
+          if (!t.ngayBatDau) return false;
+          const d = new Date(t.ngayBatDau);
+          return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+        }).length
+      : tvvStructList.filter(t => {
+          if (!t.ngayBatDau) return false;
+          const d = new Date(t.ngayBatDau);
+          if (isNaN(d.getTime())) return false;
+          return d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === revenueSub;
+        }).length;
+    // TVV đạt 3tr = same as luotHoatDong (unique TVV count)
+    const tvvDat3tr = luotHoatDong;
+    const tvvDat12tr = luotChuan;
     // Năng suất = Tổng SL HĐ / Tổng TVV hoạt được 3 triệu
     const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
     // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
@@ -2247,25 +3208,15 @@ export default function QuanLyPage() {
       if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTD.add(c.maDaiLyTD);
     }
 
-    // SL Tuyển dụng for this month/year: count TVV from structure where ngayBatDau falls in the period
-    const slTuyenDungMonth = tvvStructList.filter(t => {
-      if (!t.ngayBatDau) return false;
-      const d = new Date(t.ngayBatDau);
-      if (isNaN(d.getTime())) return false;
-      if (d.getFullYear() !== currentYear) return false;
-      if (revenueSub === 'all') return true;
-      return String(d.getMonth() + 1).padStart(2, '0') === revenueSub;
-    }).length;
-
     return (
       <div>
-        {/* Month sub-tabs */}
-        <div className="flex items-center gap-1 mb-3 flex-wrap">
+        {/* Month sub-tabs — horizontally scrollable on mobile */}
+        <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 md:flex-wrap" style={{ scrollbarWidth: 'none' }}>
           {MONTHS.map(m => (
             <button
               key={m.key}
               onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); }}
-              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 revenueSub === m.key
                   ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
                   : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
@@ -2277,30 +3228,30 @@ export default function QuanLyPage() {
           ))}
         </div>
 
-        {/* Compact KPI strip */}
-        <div className="flex items-stretch gap-1.5 mb-3 flex-wrap">
+        {/* Compact KPI strip — grid on mobile, flex on desktop */}
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:flex gap-1.5 sm:gap-1.5 mb-3">
           {[
             { label: 'SL HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30' },
             { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30' },
             { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30' },
             { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30' },
             { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30' },
-            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30' },
-            { label: 'SL Tuyển dụng', value: formatNumber(slTuyenDungMonth), color: 'bg-pink-500/20 border-pink-500/30' },
+            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30' },
             { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30' },
             { label: 'ĐLHĐ', value: formatCurrency(dlhdMonth), color: 'bg-emerald-500/20 border-emerald-500/30' },
             { label: 'NTD HĐ', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30' },
+            { label: 'SL TD', value: formatNumber(slTuyenDungPeriod), color: 'bg-emerald-500/20 border-emerald-500/30' },
           ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} border rounded-md px-2.5 py-1.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 8px rgba(0, 255, 136, 0.08)' }}>
-              <p className="text-white/70 text-[8px] font-bold leading-tight">{kpi.label}</p>
-              <p className="text-white text-[11px] font-extrabold truncate">{kpi.value}</p>
+            <div key={i} className={`${kpi.color} border rounded-md px-2 sm:px-2.5 py-1.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 8px rgba(0, 255, 136, 0.08)' }}>
+              <p className="text-white/70 text-[8px] sm:text-[8px] font-bold leading-tight">{kpi.label}</p>
+              <p className="text-white text-[11px] sm:text-[11px] font-extrabold truncate">{kpi.value}</p>
             </div>
           ))}
         </div>
 
         {/* Nhóm filter + table header */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <h3 className="text-sm font-bold text-amber-300">
+          <h3 className="text-xs sm:text-sm font-bold text-amber-300">
             {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
           </h3>
           {uniqueNhoms.length > 0 && (
@@ -2316,10 +3267,64 @@ export default function QuanLyPage() {
             </select>
           )}
           <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
+          <Button onClick={async () => {
+            if (!confirm('Tính lại doanh thu từ tất cả HĐ?\nSẽ xóa doanh thu cũ và tính lại từ đầu.')) return;
+            try {
+              const r = await fetch('/api/revenue/sync-from-contracts', { method: 'POST' });
+              if (r.ok) { const data = await r.json(); toast({ title: 'Đã tính doanh thu', description: data.message }); await fetchAllData(); }
+              else { const err = await r.json().catch(() => ({})); toast({ title: 'Lỗi', description: err.error || 'Không thể tính doanh thu', variant: 'destructive' }); }
+            } catch { toast({ title: 'Lỗi', description: 'Không thể kết nối', variant: 'destructive' }); }
+          }} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><Calculator className="w-3 h-3 mr-1" /> Tính doanh thu</Button>
           <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-auto max-h-[calc(100vh-320px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+
+        {/* ===== Mobile card view (hidden on md+) ===== */}
+        <div className="md:hidden space-y-2 max-h-[calc(100vh-380px)] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+          {sortedContracts.length === 0 && (
+            <div className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu hợp đồng tháng này</div>
+          )}
+          {sortedContracts.slice(0, 200).map((c, idx) => (
+            <div key={c.id} className="bg-[#0e0e18]/80 border border-emerald-500/20 rounded-lg p-2.5 space-y-1.5">
+              {/* Header row: name + position */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-xs font-bold truncate">{c.agentName || '—'}</p>
+                  <p className="text-emerald-300/60 text-[10px]">{c.position || '—'} • {c.nhom || '—'}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => deleteContract(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 flex-shrink-0">
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+              {/* Key info grid */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                <div><span className="text-white/50">Mã ĐL:</span> <span className="text-white/90 font-mono">{c.agentCode || '—'}</span></div>
+                <div><span className="text-white/50">Số HĐ:</span> <span className="text-white/90 font-mono">{c.contractNumber || '—'}</span></div>
+                <div><span className="text-white/50">Ngày HL:</span> <span className="text-white/70">{formatDateDisplay(c.effectiveDate)}</span></div>
+                <div><span className="text-white/50">Ngày PH:</span> <span className="text-white/70">{formatDateDisplay(c.issueDate)}</span></div>
+                <div><span className="text-white/50">PĐT+10%:</span> <span className="text-amber-300 font-mono">{c.pdt10DT > 0 ? formatNumber(c.pdt10DT) : '—'}</span></div>
+                <div><span className="text-white/50">AFYP:</span> <span className="text-amber-300 font-mono">{c.afyp > 0 ? formatNumber(c.afyp) : '—'}</span></div>
+                <div><span className="text-white/50">Tính lượt 3tr:</span> <span className={`font-mono ${c.tinhLuot3tr >= 3000000 ? 'text-emerald-300' : 'text-gray-500'}`}>{c.tinhLuot3tr > 0 ? formatNumber(c.tinhLuot3tr) : '—'}</span></div>
+                <div><span className="text-white/50">Mã ĐL TD:</span> <span className="text-white/70 font-mono">{c.maDaiLyTD || '—'}</span></div>
+              </div>
+            </div>
+          ))}
+          {/* Mobile totals */}
+          {sortedContracts.length > 0 && (
+            <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-lg p-2.5 space-y-1">
+              <p className="text-amber-300 text-xs font-bold">TỔNG CỘNG ({soLuongHD} HĐ)</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                <div><span className="text-white/50">IP + 10% PĐT:</span> <span className="text-amber-300 font-mono font-bold">{formatNumber(tongIP)}</span></div>
+                <div><span className="text-white/50">AFYP:</span> <span className="text-amber-300 font-mono font-bold">{formatNumber(tongAFYP)}</span></div>
+                <div><span className="text-white/50">Lượt HĐ (≥3tr):</span> <span className="text-violet-300 font-mono font-bold">{luotHoatDong}</span></div>
+                <div><span className="text-white/50">Lượt chuẩn (≥12tr):</span> <span className="text-violet-300 font-mono font-bold">{luotChuan}</span></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Desktop table view (hidden below md) ===== */}
+        <div className="hidden md:block overflow-auto max-h-[calc(100vh-320px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
           <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full min-w-[1400px]">
             <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
               <tr>
@@ -2390,8 +3395,10 @@ export default function QuanLyPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-[9px] text-gray-500 mt-1.5">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • SL Tuyển dụng: {slTuyenDungMonth} • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
+
+        {/* Footer summary */}
+        <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
@@ -2403,7 +3410,19 @@ export default function QuanLyPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setImportTier('phong')} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
+          <div className="relative group">
+            <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
+            <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+              {[
+                { tier: 'phong', label: 'Import Phòng' },
+                { tier: 'ad', label: 'Import AD' },
+                { tier: 'bannhom', label: 'Import Ban/Nhóm' },
+                { tier: 'tvv', label: 'Import TVV' },
+              ].map(t => (
+                <button key={t.tier} onClick={() => setImportTier(t.tier)} className="w-full text-left text-[10px] text-emerald-300 hover:bg-emerald-500/10 px-2 py-1 rounded">{t.label}</button>
+              ))}
+            </div>
+          </div>
           <div className="relative group">
             <Button variant="ghost" size="sm" className="h-7 text-[10px] text-violet-300 hover:text-violet-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
             <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
@@ -2502,16 +3521,16 @@ export default function QuanLyPage() {
                                     <Network className="w-3.5 h-3.5 text-sky-300" />
                                     <div className="min-w-0 flex-1">
                                       <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
-                                      <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
+                                      <p className="text-sky-200/60 text-[10px]">{b.maBanNhom} {b.ngayBatDau ? `• BĐ: ${new Date(b.ngayBatDau).toLocaleDateString('vi-VN')}` : ''}</p>
                                     </div>
                                     <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{bnTVVs.length} TVV</span>
                                     {(() => {
-                                      const newTvvThisYear = bnTVVs.filter(t => {
+                                      const tdCount = bnTVVs.filter(t => {
                                         if (!t.ngayBatDau) return false;
                                         const d = new Date(t.ngayBatDau);
-                                        return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+                                        return !isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear();
                                       }).length;
-                                      return newTvvThisYear > 0 ? <span className="text-[9px] text-pink-300 bg-pink-900/50 px-1.5 py-0.5 rounded-full">{newTvvThisYear} mới</span> : null;
+                                      return tdCount > 0 ? <span className="text-[10px] text-emerald-300 bg-emerald-900 px-1.5 py-0.5 rounded-full">{tdCount} TD</span> : null;
                                     })()}
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-5 w-5 p-0 text-sky-400 hover:text-sky-300"><Plus className="w-2.5 h-2.5" /></Button>
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
@@ -2620,6 +3639,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={newBanNhom.tenBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, tenBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newBanNhom.ngayBatDau} onChange={e => setNewBanNhom(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300">Thêm</Button></DialogFooter>
@@ -2682,6 +3702,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingBanNhom.ngayBatDau ? editingBanNhom.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingBanNhom(b => b ? { ...b, ngayBatDau: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
@@ -2708,14 +3729,82 @@ export default function QuanLyPage() {
       </Dialog>
 
       {/* Import Dialog */}
-      <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) setImportTier(''); }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+      <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); } }}>
+        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 max-w-lg">
           <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <p className="text-white/50 text-xs">Dán dữ liệu từ Excel (Tab-separated). Dòng đầu tiên là header.</p>
-            <textarea value={importData} onChange={e => setImportData(e.target.value)} className="w-full h-40 bg-white/5 border border-emerald-500/20 rounded-md p-2 text-white text-xs font-mono" placeholder="maPhong&#9;tenPhong&#9;note&#10;P001&#9;Phòng KD&#9;Ghi chú" />
+          <div className="space-y-3">
+            {/* File upload zone */}
+            <div
+              className="border-2 border-dashed border-emerald-500/30 rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400/60 hover:bg-emerald-500/5 transition-all"
+              onClick={() => { const inp = document.getElementById('import-file-input'); if (inp) inp.click(); }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={e => {
+                e.preventDefault(); e.stopPropagation();
+                const file = e.dataTransfer.files[0];
+                if (file) handleImportFile(file);
+              }}
+            >
+              <input id="import-file-input" type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) handleImportFile(file); }} />
+              {importFile ? (
+                <div className="space-y-1">
+                  <FileSpreadsheet className="w-8 h-8 text-emerald-400 mx-auto" />
+                  <p className="text-emerald-300 text-xs font-bold">{importFile.name}</p>
+                  <p className="text-emerald-200/50 text-[10px]">{(importFile.size / 1024).toFixed(1)} KB — Nhấn để đổi file</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Upload className="w-8 h-8 text-emerald-400/50 mx-auto" />
+                  <p className="text-emerald-300 text-xs font-bold">Kéo thả file hoặc nhấn chọn</p>
+                  <p className="text-emerald-200/50 text-[10px]">Hỗ trợ .xlsx, .xls, .csv</p>
+                </div>
+              )}
+            </div>
+
+            {/* Preview table */}
+            {importPreview.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-emerald-300 text-[10px] font-bold">Xem trước ({importPreview.length} bản ghi)</p>
+                <div className="max-h-40 overflow-auto border border-emerald-500/20 rounded-md">
+                  <table className="w-full text-[10px]">
+                    <thead className="bg-emerald-500/10 sticky top-0">
+                      <tr>
+                        {Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1 text-left text-emerald-300 whitespace-nowrap">{k}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.slice(0, 5).map((row, i) => (
+                        <tr key={i} className="border-t border-emerald-500/10">
+                          {Object.values(row).map((v, j) => <td key={j} className="px-2 py-1 text-white/80 whitespace-nowrap">{v}</td>)}
+                        </tr>
+                      ))}
+                      {importPreview.length > 5 && (
+                        <tr className="border-t border-emerald-500/10">
+                          <td colSpan={Object.keys(importPreview[0]).length} className="px-2 py-1 text-emerald-400/60 text-center">... còn {importPreview.length - 5} bản ghi</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Fallback: paste data */}
+            <details className="group">
+              <summary className="text-white/40 text-[10px] cursor-pointer hover:text-white/60">Hoặc dán dữ liệu từ Excel (Tab-separated)</summary>
+              <textarea value={importData} onChange={e => { setImportData(e.target.value); setImportFile(null); setImportPreview([]); }} className="w-full h-28 bg-white/5 border border-emerald-500/20 rounded-md p-2 text-white text-xs font-mono mt-2" placeholder={
+                importTier === 'phong' ? 'maPhong\ttenPhong\tnote\nP001\tPhòng KD\tGhi chú'
+                : importTier === 'ad' ? 'maAD\ttenAD\tmaPhong\tnote\nAD001\tNguyễn Văn A\tP001\tGhi chú'
+                : importTier === 'bannhom' ? 'maBanNhom\ttenBanNhom\tmaAD\tnote\nBN001\tBan 1\tAD001\tGhi chú'
+                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tGhi chú'
+              } />
+            </details>
           </div>
-          <DialogFooter><Button onClick={handleImportStructure} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Import</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); }} className="text-white/50">Huỷ</Button>
+            <Button onClick={handleImportStructure} disabled={importLoading || (importPreview.length === 0 && !importData)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 disabled:opacity-50">
+              {importLoading ? 'Đang import...' : `Import${importPreview.length > 0 ? ` (${importPreview.length} bản ghi)` : ''}`}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -2729,31 +3818,46 @@ export default function QuanLyPage() {
       case 'leaders': return renderLeaders();
       case 'recruiters': return renderRecruiters();
       case 'revenue': return renderRevenue();
+      case 'report': return renderReport();
       case 'structure': return renderStructure();
       case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
     }
   };
 
   return (
-    <div className="h-screen flex flex-col fixed inset-0 z-50">
+    <div className="h-screen flex flex-col fixed inset-0 z-50 bg-[#0e0e18]/80">
       {/* Header */}
-      <header className="border-b border-emerald-500/30 bg-[#0e0e18]/80 backdrop-blur-md px-4 py-2 flex items-center gap-3 flex-shrink-0">
+      <header className="border-b border-emerald-500/30 bg-[#0e0e18]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Mobile hamburger */}
+        <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Quản Lý Dữ Liệu</h1>
-        <div className="ml-auto flex items-center gap-2">
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] truncate">Quản Lý Dữ Liệu</h1>
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
             <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
             {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
+          </div>
+          <div className="relative sm:hidden">
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm..." className="h-7 w-[80px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
+            {searchTerm && <X className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
           </div>
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
+        {/* Mobile overlay */}
+        {sidebarOpen && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
         {/* Sidebar */}
-        <nav className="w-[200px] bg-[#0e0e18]/90 backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto">
+        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] bg-[#0e0e18]/95 md:bg-[#0e0e18]/90 backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+          {/* Mobile close button */}
+          <div className="flex items-center justify-between p-2 border-b border-emerald-500/20 md:hidden">
+            <span className="text-xs font-bold text-emerald-300">Menu</span>
+            <Button variant="ghost" onClick={() => setSidebarOpen(false)} className="h-7 w-7 p-0 text-emerald-400 hover:text-emerald-300"><ChevronLeft className="w-4 h-4" /></Button>
+          </div>
           <div className="p-2 space-y-0.5">
             {SHEETS.map((sheet, index) => {
               const isActive = activeSheet === sheet.key;
@@ -2761,7 +3865,7 @@ export default function QuanLyPage() {
               return (
                 <div key={sheet.key}>
                   <button
-                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); }}
+                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); setSidebarOpen(false); }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                       isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 neon-glow' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                     }`}
@@ -2777,7 +3881,7 @@ export default function QuanLyPage() {
                       {MONTHS.map(m => (
                         <button
                           key={m.key}
-                          onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); }}
+                          onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); setSidebarOpen(false); }}
                           className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
                             revenueSub === m.key ? 'bg-emerald-500/20 text-emerald-300' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                           }`}
@@ -2797,7 +3901,7 @@ export default function QuanLyPage() {
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-2 sm:p-4">
           {renderSheet()}
         </main>
       </div>
@@ -2827,6 +3931,7 @@ export default function QuanLyPage() {
                   { label: 'ĐLHĐ', key: 'nmc-target-dlhd', val: targetDLHD, fmt: (v: number) => formatCurrency(v) },
                   { label: 'SL TB/TN', key: 'nmc-target-sl-tb-tn', val: targetSLTBTN, fmt: (v: number) => formatNumber(v) },
                   { label: 'SL NTD', key: 'nmc-target-sl-ntd', val: targetSLNTD, fmt: (v: number) => formatNumber(v) },
+                  { label: 'SL Tuyển dụng', key: 'nmc-target-sl-tuyen-dung', val: targetSLTuyenDung, fmt: (v: number) => formatNumber(v) },
                 ].map(item => (
                   <div key={item.key} className="flex items-center gap-2">
                     <Label className="text-[10px] text-gray-400 w-24 shrink-0">{item.label}</Label>
@@ -2856,28 +3961,57 @@ export default function QuanLyPage() {
                   <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
                 </div>
               </div>
-              {/* Monthly plan targets */}
-              <div className="border-t border-emerald-500/20 pt-2">
-                <Label className="text-[10px] text-gray-400 block mb-1.5">Kế hoạch AFYP từng tháng</Label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                  {monthlyTargets.map((target, i) => {
+              {/* Kế hoạch từng tháng */}
+              <div className="border-t border-emerald-500/20 pt-2 mt-2">
+                <h4 className="text-[10px] font-bold text-amber-300 mb-2 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Kế hoạch từng tháng
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {Array.from({length: 12}, (_, i) => {
                     const m = String(i + 1).padStart(2, '0');
+                    const keys = {
+                      ip: `nmc-target-ip-month-${m}`,
+                      afyp: `nmc-target-afyp-month-${m}`,
+                      luotHD: `nmc-target-luot-hd-month-${m}`,
+                      slHD: `nmc-target-sl-hd-month-${m}`,
+                      tyTrong: `nmc-target-ty-trong-month-${m}`,
+                      slTD: `nmc-target-sl-td-month-${m}`,
+                    };
+                    const vals = {
+                      ip: parseFloat(onlineSettings[keys.ip] || '0') || 0,
+                      afyp: parseFloat(onlineSettings[keys.afyp] || '0') || 0,
+                      luotHD: parseFloat(onlineSettings[keys.luotHD] || '0') || 0,
+                      slHD: parseFloat(onlineSettings[keys.slHD] || '0') || 0,
+                      tyTrong: parseFloat(onlineSettings[keys.tyTrong] || '0') || 0,
+                      slTD: parseFloat(onlineSettings[keys.slTD] || '0') || 0,
+                    };
                     return (
-                      <div key={i} className="flex items-center gap-1">
-                        <Label className="text-[9px] text-gray-500 w-6 shrink-0">T{i + 1}</Label>
-                        <Input
-                          type="number"
-                          defaultValue={target || ''}
-                          placeholder="KH..."
-                          className="h-7 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
-                          onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(`nmc-target-month-${m}`, String(v)); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(`nmc-target-month-${m}`, String(v)); } }}
-                        />
+                      <div key={m} className="bg-gray-800 rounded-md p-2 border border-emerald-500/20 space-y-1">
+                        <p className="text-[10px] font-bold text-emerald-300">Tháng {i + 1}</p>
+                        {[
+                          { label: 'IP', key: keys.ip, val: vals.ip },
+                          { label: 'AFYP', key: keys.afyp, val: vals.afyp },
+                          { label: 'Lượt HĐ', key: keys.luotHD, val: vals.luotHD },
+                          { label: 'SL HĐ', key: keys.slHD, val: vals.slHD },
+                          { label: 'Tỷ trọng%', key: keys.tyTrong, val: vals.tyTrong },
+                          { label: 'SL TD', key: keys.slTD, val: vals.slTD },
+                        ].map(item => (
+                          <div key={item.key} className="flex items-center gap-1">
+                            <Label className="text-[8px] text-gray-400 w-14 shrink-0">{item.label}</Label>
+                            <Input
+                              type="number"
+                              defaultValue={item.val || ''}
+                              placeholder="0"
+                              className="h-5 text-[9px] bg-gray-700 border-gray-600 text-white flex-1 px-1"
+                              onBlur={(e: any) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
+                              onKeyDown={(e: any) => { if (e.key === 'Enter') { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); } }}
+                            />
+                          </div>
+                        ))}
                       </div>
                     );
                   })}
                 </div>
-                <p className="text-[9px] text-gray-500 mt-1">Tổng KH: {formatCurrency(monthlyTargets.reduce((s, t) => s + t, 0))}</p>
               </div>
             </div>
 
@@ -2893,12 +4027,19 @@ export default function QuanLyPage() {
                     {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}
                     <div>
                       <h3 className={`text-sm font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
-                      <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}</p>
+                      <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}{lastSyncTime ? ` — Cập nhật ${lastSyncTime}` : ''}</p>
                     </div>
                   </div>
-                  <button onClick={handleSyncToggle}>
-                    {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {syncEnabled && (
+                      <Button variant="ghost" size="sm" onClick={() => { syncedLinksRef.current = ''; autoSyncFromLinks(); }} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300" title="Đồng bộ ngay">
+                        <RefreshCw className="w-3 h-3 mr-1" /> Sync
+                      </Button>
+                    )}
+                    <button onClick={handleSyncToggle}>
+                      {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2960,6 +4101,7 @@ export default function QuanLyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
