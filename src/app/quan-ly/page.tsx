@@ -16,7 +16,7 @@ import {
   RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
-  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2,
+  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, UserPlus,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -1708,6 +1708,13 @@ export default function QuanLyPage() {
   // Lượt HĐ chuẩn
   const luotHDChuan = luotChuan;
 
+  // SL Tuyển dụng = count TVV from structure where ngayBatDau falls in current year
+  const slTuyenDungYear = tvvStructList.filter(t => {
+    if (!t.ngayBatDau) return false;
+    const d = new Date(t.ngayBatDau);
+    return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+  }).length;
+
   // NTD hoạt động: count unique maDaiLyTD that exist in recruiters
   const ntdCodes = new Set(recruiters.map(r => r.agentCode));
   const activeNTDCount = new Set<string>();
@@ -1725,6 +1732,16 @@ export default function QuanLyPage() {
   const targetDLHD = parseFloat(onlineSettings['nmc-target-dlhd'] || '0') || 0;
   const targetSLTBTN = parseFloat(onlineSettings['nmc-target-sl-tb-tn'] || '0') || 0;
   const targetSLNTD = parseFloat(onlineSettings['nmc-target-sl-ntd'] || '0') || 0;
+  const targetSLTuyenDung = parseFloat(onlineSettings['nmc-target-sl-tuyen-dung'] || '0') || 0;
+  const targetIPAFYP = parseFloat(onlineSettings['nmc-target-ip-afyp'] || '0') || 0;
+
+  // Monthly plan targets (tháng 1-12)
+  const monthlyTargets = Array.from({ length: 12 }, (_, i) => {
+    const m = String(i + 1).padStart(2, '0');
+    return parseFloat(onlineSettings[`nmc-target-month-${m}`] || '0') || 0;
+  });
+  const [editingMonthlyTarget, setEditingMonthlyTarget] = useState<number | null>(null);
+  const [monthlyTargetInput, setMonthlyTargetInput] = useState('');
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
@@ -1843,7 +1860,7 @@ export default function QuanLyPage() {
               value={targetInput}
               onChange={(e) => setTargetInput(e.target.value)}
               placeholder="Chỉ tiêu..."
-              className="h-5 text-[10px] bg-gray-800 border-amber-500/50 text-white flex-1"
+              className="h-8 text-sm bg-gray-800 border-amber-500/50 text-white flex-1 min-w-[100px]"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }}
               autoFocus
             />
@@ -1868,14 +1885,16 @@ export default function QuanLyPage() {
     <div className="space-y-4">
       <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
 
-      {/* Summary Cards - 9 indicators */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
+      {/* Summary Cards - 11 indicators */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-2">
         {[
           { label: 'TỔNG AFYP', value: formatCurrency(totalRevenueAFYP), target: targetTongAFYP, targetFmt: formatCurrency(targetTongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
           { label: 'TỔNG IP', value: formatCurrency(totalRevenue), target: targetTongIP, targetFmt: formatCurrency(targetTongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
+          { label: 'IP/AFYP', value: ipAfypRatio.toFixed(1) + '%', target: targetIPAFYP, targetFmt: targetIPAFYP.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30', icon: TrendingUp },
           { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
           { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
           { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
+          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungYear), target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-pink-500/20 border-pink-500/30', icon: UserPlus },
           { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
           { label: 'ĐLHĐ', value: formatCurrency(doLonHD), target: targetDLHD, targetFmt: formatCurrency(targetDLHD), color: 'bg-emerald-500/20 border-emerald-500/30', icon: BarChart3 },
           { label: 'SL TB/TN', value: formatNumber(totalLeaders), target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-violet-500/20 border-violet-500/30', icon: Users },
@@ -1883,21 +1902,85 @@ export default function QuanLyPage() {
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[9px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
+            <div key={i} className={`${kpi.color} border rounded-lg p-2.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
+              <div className="flex items-center gap-1 mb-1"><kpi.icon className="w-3 h-3 text-white/80" /><p className="text-white/80 text-[8px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-white text-xs font-extrabold truncate">{kpi.value}</p>
               {kpi.target > 0 && (
-                <div className="mt-1.5">
-                  <div className="flex items-center justify-between text-[8px]">
+                <div className="mt-1">
+                  <div className="flex items-center justify-between text-[7px]">
                     <span className="text-gray-300">CT: {kpi.targetFmt}</span>
                     <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
                   </div>
-                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                  <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
                 </div>
               )}
             </div>
           );
         })}
+      </div>
+
+      {/* Monthly Plan Targets (Kế hoạch từng tháng) */}
+      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3">
+        <h3 className="text-sm font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
+          <Calendar className="w-4 h-4" /> Kế hoạch doanh số AFYP từng tháng
+        </h3>
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+          {monthlyTargets.map((target, i) => {
+            const m = String(i + 1).padStart(2, '0');
+            const mc = yearContracts.filter(c => {
+              const d = new Date(c.effectiveDate);
+              return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
+            });
+            const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
+            const isEditing = editingMonthlyTarget === i;
+            const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
+            return (
+              <div key={i} className="bg-gray-800/60 border border-emerald-500/20 rounded-md p-2 text-center">
+                <p className="text-[10px] font-bold text-emerald-300 mb-1">T{i + 1}</p>
+                {isEditing ? (
+                  <div className="space-y-1">
+                    <Input
+                      type="number"
+                      value={monthlyTargetInput}
+                      onChange={(e) => setMonthlyTargetInput(e.target.value)}
+                      placeholder="KH..."
+                      className="h-7 text-xs bg-gray-700 border-amber-500/50 text-white text-center"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseFloat(monthlyTargetInput) || 0;
+                          saveSetting(`nmc-target-month-${m}`, String(val));
+                          setEditingMonthlyTarget(null);
+                          toast({ title: `Đã lưu KH T${i + 1}`, description: formatCurrency(val) });
+                        }
+                        if (e.key === 'Escape') setEditingMonthlyTarget(null);
+                      }}
+                      autoFocus
+                    />
+                    <Button onClick={() => {
+                      const val = parseFloat(monthlyTargetInput) || 0;
+                      saveSetting(`nmc-target-month-${m}`, String(val));
+                      setEditingMonthlyTarget(null);
+                      toast({ title: `Đã lưu KH T${i + 1}`, description: formatCurrency(val) });
+                    }} className="h-5 bg-amber-500/20 text-amber-300 text-[8px] px-1.5 py-0 w-full">Lưu</Button>
+                  </div>
+                ) : (
+                  <div
+                    className="cursor-pointer hover:bg-emerald-500/10 rounded p-0.5"
+                    onDoubleClick={() => { setEditingMonthlyTarget(i); setMonthlyTargetInput(String(target || '')); }}
+                    title="Nháy đúp để sửa kế hoạch"
+                  >
+                    <p className="text-[9px] text-amber-300 font-bold">{target > 0 ? formatCurrency(target) : '—'}</p>
+                  </div>
+                )}
+                <p className={`text-[9px] font-bold mt-0.5 ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : actualAFYP > 0 ? 'text-sky-300' : 'text-gray-500'}`}>
+                  {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
+                </p>
+                {target > 0 && <Progress value={pct} className="h-1 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />}
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[9px] text-gray-500 mt-1.5">Nháy đúp vào ô kế hoạch để sửa. Tổng KH năm: {formatCurrency(monthlyTargets.reduce((s, t) => s + t, 0))}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart */}
@@ -1911,7 +1994,7 @@ export default function QuanLyPage() {
           });
           return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length };
         });
-        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), monthlyTarget || 1);
+        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), ...monthlyTargets.filter(t => t > 0), monthlyTarget || 1);
         return (
           <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -1919,25 +2002,26 @@ export default function QuanLyPage() {
                 <BarChart3 className="w-4 h-4" /> Tiến độ AFYP hàng tháng
               </h3>
               {monthlyTarget > 0 && (
-                <span className="text-[10px] text-gray-400">Mục tiêu/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
+                <span className="text-[10px] text-gray-400">Mục tiêu TB/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
               )}
             </div>
             <div className="flex items-end gap-1.5 h-[180px]">
               {monthlyData.map(d => {
                 const barHeight = maxAfyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
-                const targetLine = monthlyTarget > 0 ? (monthlyTarget / maxAfyp) * 100 : 0;
+                const specificTarget = monthlyTargets[d.index] || monthlyTarget;
+                const targetLine = specificTarget > 0 ? (specificTarget / maxAfyp) * 100 : 0;
                 const isComplete = d.afyp > 0;
-                const reached = monthlyTarget > 0 && d.afyp >= monthlyTarget;
+                const reached = specificTarget > 0 && d.afyp >= specificTarget;
                 return (
                   <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
-                    {monthlyTarget > 0 && (
-                      <div className="absolute w-full border-t border-dashed border-amber-400/60 z-10" style={{ bottom: `${targetLine}%` }} title={`CT: ${formatCurrency(Math.round(monthlyTarget))}`}></div>
+                    {specificTarget > 0 && (
+                      <div className="absolute w-full border-t border-dashed border-amber-400/60 z-10" style={{ bottom: `${targetLine}%` }} title={`CT: ${formatCurrency(Math.round(specificTarget))}`}></div>
                     )}
                     <div className="flex-1 w-full flex items-end justify-center">
                       <div
                         className={`w-full max-w-[32px] rounded-t-sm transition-all ${reached ? 'bg-emerald-500/70' : isComplete ? 'bg-sky-500/60' : 'bg-gray-700/30'}`}
                         style={{ height: `${Math.max(barHeight, 1)}%` }}
-                        title={`T${d.index + 1}: AFYP ${formatCurrency(d.afyp)} | IP ${formatCurrency(d.ip)} | ${d.count} HĐ${monthlyTarget > 0 ? ` | CT: ${formatCurrency(Math.round(monthlyTarget))}` : ''}`}
+                        title={`T${d.index + 1}: AFYP ${formatCurrency(d.afyp)} | IP ${formatCurrency(d.ip)} | ${d.count} HĐ${specificTarget > 0 ? ` | CT: ${formatCurrency(Math.round(specificTarget))}` : ''}`}
                       ></div>
                     </div>
                     <p className="text-[9px] text-gray-400 mt-1 font-bold">T{d.index + 1}</p>
@@ -1953,7 +2037,7 @@ export default function QuanLyPage() {
             <div className="flex items-center gap-4 mt-2 text-[9px] text-gray-500">
               <span className="flex items-center gap-1"><span className="w-3 h-2 bg-sky-500/60 rounded-sm inline-block"></span> AFYP</span>
               <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block"></span> Đạt chỉ tiêu</span>
-              {monthlyTarget > 0 && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
+              {(monthlyTarget > 0 || monthlyTargets.some(t => t > 0)) && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
             </div>
           </div>
         );
@@ -2163,6 +2247,16 @@ export default function QuanLyPage() {
       if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTD.add(c.maDaiLyTD);
     }
 
+    // SL Tuyển dụng for this month/year: count TVV from structure where ngayBatDau falls in the period
+    const slTuyenDungMonth = tvvStructList.filter(t => {
+      if (!t.ngayBatDau) return false;
+      const d = new Date(t.ngayBatDau);
+      if (isNaN(d.getTime())) return false;
+      if (d.getFullYear() !== currentYear) return false;
+      if (revenueSub === 'all') return true;
+      return String(d.getMonth() + 1).padStart(2, '0') === revenueSub;
+    }).length;
+
     return (
       <div>
         {/* Month sub-tabs */}
@@ -2191,7 +2285,8 @@ export default function QuanLyPage() {
             { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30' },
             { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30' },
             { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30' },
-            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30' },
+            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30' },
+            { label: 'SL Tuyển dụng', value: formatNumber(slTuyenDungMonth), color: 'bg-pink-500/20 border-pink-500/30' },
             { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30' },
             { label: 'ĐLHĐ', value: formatCurrency(dlhdMonth), color: 'bg-emerald-500/20 border-emerald-500/30' },
             { label: 'NTD HĐ', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30' },
@@ -2296,7 +2391,7 @@ export default function QuanLyPage() {
           </table>
         </div>
         <p className="text-[9px] text-gray-500 mt-1.5">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • SL Tuyển dụng: {slTuyenDungMonth} • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
@@ -2410,6 +2505,14 @@ export default function QuanLyPage() {
                                       <p className="text-sky-200/60 text-[10px]">{b.maBanNhom}</p>
                                     </div>
                                     <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{bnTVVs.length} TVV</span>
+                                    {(() => {
+                                      const newTvvThisYear = bnTVVs.filter(t => {
+                                        if (!t.ngayBatDau) return false;
+                                        const d = new Date(t.ngayBatDau);
+                                        return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+                                      }).length;
+                                      return newTvvThisYear > 0 ? <span className="text-[9px] text-pink-300 bg-pink-900/50 px-1.5 py-0.5 rounded-full">{newTvvThisYear} mới</span> : null;
+                                    })()}
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-5 w-5 p-0 text-sky-400 hover:text-sky-300"><Plus className="w-2.5 h-2.5" /></Button>
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-5 w-5 p-0 text-white/40 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-5 w-5 p-0 text-white/40 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
@@ -2424,7 +2527,7 @@ export default function QuanLyPage() {
                                             <Users className="w-3 h-3 text-violet-400" />
                                             <div className="min-w-0">
                                               <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
-                                              <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''}</p>
+                                              <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''} {t.ngayBatDau ? `• BĐ: ${new Date(t.ngayBatDau).toLocaleDateString('vi-VN')}` : ''}</p>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-1">
@@ -2746,12 +2849,35 @@ export default function QuanLyPage() {
                     type="number"
                     defaultValue={annualRevenueTarget || ''}
                     placeholder="Mục doanh số..."
-                    className="h-7 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
+                    className="h-9 text-sm bg-gray-800 border-amber-500/30 text-white flex-1 min-w-[140px]"
                     onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); } }}
                   />
                   <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
                 </div>
+              </div>
+              {/* Monthly plan targets */}
+              <div className="border-t border-emerald-500/20 pt-2">
+                <Label className="text-[10px] text-gray-400 block mb-1.5">Kế hoạch AFYP từng tháng</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                  {monthlyTargets.map((target, i) => {
+                    const m = String(i + 1).padStart(2, '0');
+                    return (
+                      <div key={i} className="flex items-center gap-1">
+                        <Label className="text-[9px] text-gray-500 w-6 shrink-0">T{i + 1}</Label>
+                        <Input
+                          type="number"
+                          defaultValue={target || ''}
+                          placeholder="KH..."
+                          className="h-7 text-[10px] bg-gray-800 border-amber-500/30 text-white flex-1"
+                          onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(`nmc-target-month-${m}`, String(v)); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(`nmc-target-month-${m}`, String(v)); } }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-gray-500 mt-1">Tổng KH: {formatCurrency(monthlyTargets.reduce((s, t) => s + t, 0))}</p>
               </div>
             </div>
 
