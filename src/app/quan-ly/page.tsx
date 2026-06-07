@@ -1859,11 +1859,11 @@ export default function QuanLyPage() {
   // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
   const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
 
-  // Độ lớn hợp đồng (ĐLHĐ) = Tổng doanh thu / Tổng số lượng HĐ
-  const doLonHD = totalRevenueContractCount > 0 ? totalRevenue / totalRevenueContractCount : 0;
+  // Độ lớn hợp đồng (ĐLHĐ) = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+  const doLonHD = luotHoatDong > 0 ? totalRevenueAFYP / luotHoatDong : 0;
 
-  // Năng suất = tổng số lượng HĐ / tổng số TVV đạt 3 triệu
-  const nangSuat = tvvAchieved3M > 0 ? totalRevenueContractCount / tvvAchieved3M : 0;
+  // Năng suất = SL hợp đồng / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+  const nangSuat = luotHoatDong > 0 ? totalRevenueContractCount / luotHoatDong : 0;
 
   // SL tuyển dụng = đếm TVV có ngày bắt đầu làm việc trong năm hiện tại (từ cấu trúc)
   const slTuyenDungNam = tvvStructList.filter(t => {
@@ -3207,8 +3207,8 @@ export default function QuanLyPage() {
     const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
     // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
     const ipAfypMonth = tongAFYP > 0 ? (tongIP / tongAFYP) * 100 : 0;
-    // ĐLHĐ = tổng doanh thu / tổng SL HĐ
-    const dlhdMonth = soLuongHD > 0 ? tongIP / soLuongHD : 0;
+    // ĐLHĐ = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+    const dlhdMonth = luotHoatDong > 0 ? tongAFYP / luotHoatDong : 0;
 
     // NTD count: count unique maDaiLyTD that exist in recruiters
     const ntdCodes = new Set(recruiters.map(r => r.agentCode));
