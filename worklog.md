@@ -369,3 +369,29 @@ Stage Summary:
 - User needs to re-import their 90 NTD data after this fix
 - The sync will no longer overwrite manual NTD edits
 - Import is now much faster (batch insert instead of 90 individual queries)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix TVV import, redesign cấu trúc layout, fix table no-wrap, verify tháng 6 link
+
+Work Log:
+- Read uploaded tvv.xlsx file: 1997 TVV records with columns (Mã TVV, Tên TVV, Mã nhóm, Chức vụ TVV, Ngày bắt đầu làm việc)
+- Updated TVV API route (/api/structure/tvv/route.ts) to support alternative column names from the SAP export file: Mã nhóm→maBanNhom, Chức vụ TVV→chucVu, Ngày bắt đầu làm việc→ngayBatDau
+- Updated structure-tvv template in TEMPLATES to match the new column naming
+- Completely redesigned the cấu trúc (structure) page from a 4-tier accordion tree to a 3-column layout: PHÒNG (left) → AD (center) → NHÓM/TVV (right)
+  - Column 1: PHÒNG list, click to select → filters Column 2
+  - Column 2: AD list filtered by selected Phòng, click to select → filters Column 3
+  - Column 3: NHÓM list filtered by selected AD, TVV hidden by default, click to expand/show
+- Imported all 1997 TVV records from tvv.xlsx to the production database via API (10 batches of 200)
+- Verified lượt HĐ counting is correct (contract line count from year file, not unique TVV)
+- Added whitespace-nowrap to result table headers in both báo cáo and thi đua pages using [&>th]:whitespace-nowrap
+- Fixed thi-đua page syntax error (missing closing brace)
+- Verified tháng 6 link is working (CSV fetches 3 contracts, data exists in DB)
+
+Stage Summary:
+- TVV import now supports both old column names (Mã Ban/Nhóm, Chức vụ, Ngày bắt đầu) and new ones (Mã nhóm, Chức vụ TVV, Ngày bắt đầu làm việc)
+- Cấu trúc page redesigned to 3-column layout with collapsible TVV
+- 1997 TVV records imported to production database
+- Table no-wrap fix applied to both report and thi đua result tables
+- Tháng 6 link verified working (3 contracts in June)
