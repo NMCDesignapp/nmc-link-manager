@@ -1849,12 +1849,12 @@ export default function QuanLyPage() {
   const totalRevenueAFYP = yearContracts.reduce((s, c) => s + c.afyp, 0);
   const totalRevenueContractCount = yearContracts.length; // Số lượng HĐ = số dòng
 
-  // Lượt HĐ = đếm số TVV duy nhất có ít nhất 1 HĐ với tinhLuot3tr >= 3,000,000
-  const luotHoatDong = new Set(yearContracts.filter(c => c.tinhLuot3tr >= 3000000).map(c => c.agentCode)).size;
-  // Lượt HĐ chuẩn = đếm số TVV duy nhất có ít nhất 1 HĐ với tinhLuot3tr >= 12,000,000
-  const luotHDChuan = new Set(yearContracts.filter(c => c.tinhLuot3tr >= 12000000).map(c => c.agentCode)).size;
+  // Lượt HĐ = đếm số dòng hợp đồng có tinhLuot3tr >= 3,000,000
+  const luotHoatDong = yearContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+  // Lượt HĐ chuẩn = đếm số dòng hợp đồng có tinhLuot3tr >= 12,000,000
+  const luotHDChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
 
-  // TVV đạt 3tr = same as luotHoatDong (unique TVV count)
+  // TVV đạt 3tr
   const tvvAchieved3M = luotHoatDong;
   const tvvAchieved12M = luotHDChuan;
 
@@ -2673,11 +2673,11 @@ export default function QuanLyPage() {
       } else if (metric === 'afyp') {
         return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.afyp || 0)) || 0), 0);
       } else if (metric === '_luotHoatDong') {
-        // Đếm số TVV duy nhất có ít nhất 1 HĐ với giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
-        return new Set(filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).map((item: any) => item.agentCode).filter(Boolean)).size;
+        // Đếm số dòng hợp đồng có giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
+        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).length;
       } else if (metric === '_luotHoatDongChuan') {
-        // Đếm số TVV duy nhất có ít nhất 1 HĐ với giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
-        return new Set(filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).map((item: any) => item.agentCode).filter(Boolean)).size;
+        // Đếm số dòng hợp đồng có giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
+        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).length;
       } else if (metric === '_soLuotHD') {
         // Đếm số dòng có dữ liệu
         return filtered.length;
@@ -2986,24 +2986,24 @@ export default function QuanLyPage() {
               <tbody>
                 {results.map((r, i) => (
                   <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
-                    <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{i + 1}</td>
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1}</td>}
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra2}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.extra3 || '—'}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1 || '—'}</td>}
-                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                    <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
-                    {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
-                    {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200">{formatCurrency(r.target)}</td>}
-                    {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
-                    {totalTarget > 0 && <td className="px-3 py-2 border border-green-200"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
-                    <td className="px-1 py-1 border border-green-200">
+                    <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{i + 1}</td>
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1}</td>}
+                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra2}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.extra3 || '—'}</td>}
+                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1 || '—'}</td>}
+                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                    <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
+                    {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
+                    {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200 whitespace-nowrap">{formatCurrency(r.target)}</td>}
+                    {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 whitespace-nowrap ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
+                    {totalTarget > 0 && <td className="px-3 py-2 border border-green-200 whitespace-nowrap"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
+                    <td className="px-1 py-1 border border-green-200 whitespace-nowrap">
                       <input
                         type="text"
                         value={reportRowNotes[r.key] || ''}
@@ -3128,24 +3128,24 @@ export default function QuanLyPage() {
                   <tbody>
                     {results.map((r, i) => (
                       <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
-                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{i + 1}</td>
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1}</td>}
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra2}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.extra3 || '—'}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200">{r.extra1 || '—'}</td>}
-                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200">{r.key}</td>}
-                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200">{r.label}</td>}
-                        <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
-                        {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
-                        {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200">{formatCurrency(r.target)}</td>}
-                        {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
-                        {totalTarget > 0 && <td className="px-3 py-2 border border-green-200"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
-                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200">{reportRowNotes[r.key] || ''}</td>
+                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{i + 1}</td>
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1}</td>}
+                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra2}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.extra3 || '—'}</td>}
+                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1 || '—'}</td>}
+                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
+                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
+                        <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
+                        {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
+                        {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200 whitespace-nowrap">{formatCurrency(r.target)}</td>}
+                        {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 whitespace-nowrap ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
+                        {totalTarget > 0 && <td className="px-3 py-2 border border-green-200 whitespace-nowrap"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
+                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{reportRowNotes[r.key] || ''}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -3189,8 +3189,8 @@ export default function QuanLyPage() {
     const soLuongHD = sortedContracts.length;
     const tongIP = sortedContracts.reduce((s, c) => s + c.pdt10DT, 0);
     const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
-    const luotHoatDong = new Set(sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).map(c => c.agentCode)).size;
-    const luotChuan = new Set(sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).map(c => c.agentCode)).size;
+    const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+    const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
     // SL tuyển dụng trong tháng/năm (từ cấu trúc TVV)
     const slTuyenDungPeriod = revenueSub === 'all'
       ? tvvStructList.filter(t => {

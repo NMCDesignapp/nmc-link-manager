@@ -21,12 +21,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Ensure URL has output=csv parameter
+    // Ensure URL has output=csv parameter while preserving gid and other params
     let csvUrl = url;
+    // Remove hash fragment (e.g. #gid=123) and convert to query param
+    const hashMatch = csvUrl.match(/#gid=(\d+)/);
+    if (hashMatch) {
+      csvUrl = csvUrl.split('#')[0];
+      // Add gid as query param if not already present
+      if (!csvUrl.includes('gid=')) {
+        csvUrl += (csvUrl.includes('?') ? '&' : '?') + `gid=${hashMatch[1]}`;
+      }
+    }
     if (!csvUrl.includes('output=csv')) {
-      // Remove any existing query params and add output=csv
-      const baseUrl = csvUrl.split('?')[0];
-      csvUrl = `${baseUrl}?output=csv`;
+      csvUrl += (csvUrl.includes('?') ? '&' : '?') + 'output=csv';
     }
 
     console.log('Fetching CSV from:', csvUrl);

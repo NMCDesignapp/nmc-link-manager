@@ -2576,30 +2576,30 @@ export default function ThiDuaPage() {
                       })() : null;
                       return (
                         <TableRow key={nyd.nydCode} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
-                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-white">{nyd.nhom || '—'}</TableCell>
-                          <TableCell className="text-xs text-white font-mono">{nyd.nydCode}</TableCell>
-                          <TableCell className="text-xs text-white">{nyd.nydName}</TableCell>
-                          <TableCell className="text-xs text-white">{nyd.position || '—'}</TableCell>
-                          <TableCell className="text-right text-xs text-violet-400">
+                          <TableCell className="text-center text-emerald-300/50 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{nyd.nhom || '—'}</TableCell>
+                          <TableCell className="text-xs text-white font-mono whitespace-nowrap">{nyd.nydCode}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{nyd.nydName}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{nyd.position || '—'}</TableCell>
+                          <TableCell className="text-right text-xs text-violet-400 whitespace-nowrap">
                             {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
                           </TableCell>
                           {includeIndividualTN && (
-                            <TableCell className="text-right text-xs text-emerald-300/70">{formatNumber(nyd.ownFYP)}</TableCell>
+                            <TableCell className="text-right text-xs text-emerald-300/70 whitespace-nowrap">{formatNumber(nyd.ownFYP)}</TableCell>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 && phaseBonus ? (
                             <>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : targetType === 'nhom' ? [...groupedData].map((g) => {
@@ -2615,12 +2615,12 @@ export default function ThiDuaPage() {
                       if (hideNotAchieved && !tier) return null;
                       return (
                         <TableRow key={group.maNhom} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
-                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-white"><span className="font-semibold text-emerald-400">{group.nhom || group.maNhom}</span></TableCell>
-                          <TableCell className="text-xs text-white font-mono">{group.leader?.agentCode || '—'}</TableCell>
-                          <TableCell className="text-xs text-white"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
-                          <TableCell className="text-xs text-white">{group.leader?.position || '—'}</TableCell>
-                          <TableCell className="text-right text-xs">
+                          <TableCell className="text-center text-emerald-300/50 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap"><span className="font-semibold text-emerald-400">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-white font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
+                          <TableCell className="text-right text-xs whitespace-nowrap">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-orange-400">{group.activityRounds} Lượt</span>
                               : <span className="text-white">{formatNumber(group.totalFYP)}</span>
@@ -2628,18 +2628,18 @@ export default function ThiDuaPage() {
                           </TableCell>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400 whitespace-nowrap">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
@@ -2651,28 +2651,28 @@ export default function ThiDuaPage() {
                       if (hideNotAchieved && !tier) return null;
                       return (
                         <TableRow key={contract.id} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
-                          <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-white">{contract.nhom || contract.maNhom}</TableCell>
-                          <TableCell className="text-xs text-white font-mono">{contract.agentCode}</TableCell>
-                          <TableCell className="text-xs text-white">{contract.agentName}</TableCell>
-                          <TableCell className="text-center text-xs text-emerald-300/50">{formatDate(contract.effectiveDate)}</TableCell>
-                          <TableCell className="text-right text-xs text-white">{formatNumber(contract.pdt10DT)}</TableCell>
+                          <TableCell className="text-center text-emerald-300/50 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{contract.nhom || contract.maNhom}</TableCell>
+                          <TableCell className="text-xs text-white font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
+                          <TableCell className="text-xs text-white whitespace-nowrap">{contract.agentName}</TableCell>
+                          <TableCell className="text-center text-xs text-emerald-300/50 whitespace-nowrap">{formatDate(contract.effectiveDate)}</TableCell>
+                          <TableCell className="text-right text-xs text-white whitespace-nowrap">{formatNumber(contract.pdt10DT)}</TableCell>
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableCell className="text-right text-xs text-emerald-300/70">{formatNumber(contract.afyp)}</TableCell>
+                            <TableCell className="text-right text-xs text-emerald-300/70 whitespace-nowrap">{formatNumber(contract.afyp)}</TableCell>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-500/10 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-500/10 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : (() => {
@@ -2681,24 +2681,24 @@ export default function ThiDuaPage() {
                         if (hideNotAchieved && !tier) return null;
                         return (
                           <TableRow key={agent.agentCode} className={`${tier ? 'bg-transparent' : 'bg-red-500/10'} hover:bg-emerald-500/10 border-b border-emerald-500/10`}>
-                            <TableCell className="text-center text-emerald-300/50 text-xs">{idx + 1}</TableCell>
-                            <TableCell className="text-xs text-white">{agent.nhom || agent.maNhom}</TableCell>
-                            <TableCell className="text-xs text-white font-mono">{agent.agentCode}</TableCell>
-                            <TableCell className="text-xs text-white">{agent.agentName}</TableCell>
-                            <TableCell className="text-right text-xs text-white">{formatNumber(value)}</TableCell>
+                            <TableCell className="text-center text-emerald-300/50 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                            <TableCell className="text-xs text-white whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
+                            <TableCell className="text-xs text-white font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
+                            <TableCell className="text-xs text-white whitespace-nowrap">{agent.agentName}</TableCell>
+                            <TableCell className="text-right text-xs text-white whitespace-nowrap">{formatNumber(value)}</TableCell>
                             {showRateColumn && !usePhase2 && (
-                              <TableCell className="text-center bg-violet-500/10 text-xs">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
+                              <TableCell className="text-center bg-violet-500/10 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-400">{formatRate(tier)}</span> : <span className="text-gray-300">—</span>}</TableCell>
                             )}
                             {usePhase2 ? (
                               <>
-                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
-                                <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-emerald-500/10 text-xs font-semibold text-emerald-400 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-300">—</span>}</TableCell>
+                                <TableCell className="text-right bg-amber-500/10 text-xs font-bold text-amber-400 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-500/10">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-500/10 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-400 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-300 text-xs">—</span>}</TableCell>
                             )}
-                            <TableCell>{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
+                            <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-emerald-300/40">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-emerald-300/40">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
                         );
                       });
