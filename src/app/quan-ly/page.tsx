@@ -2962,7 +2962,7 @@ export default function QuanLyPage() {
           <div className="overflow-auto max-h-[calc(100vh-520px)] bg-white rounded-lg border border-green-200" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
             <table className="w-full">
               <thead className="sticky top-0 z-10 bg-emerald-600 border-b border-emerald-700">
-                <tr>
+                <tr className="[&>th]:whitespace-nowrap">
                   <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
                   {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
                   {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}
@@ -3104,7 +3104,7 @@ export default function QuanLyPage() {
               <div className="overflow-auto border border-green-200 rounded-lg">
                 <table className="w-full">
                   <thead className="bg-emerald-600 border-b border-emerald-700">
-                    <tr>
+                    <tr className="[&>th]:whitespace-nowrap">
                       <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
                       {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
                       {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}

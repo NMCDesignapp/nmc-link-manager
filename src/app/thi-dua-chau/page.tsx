@@ -2386,22 +2386,22 @@ export default function ThiDuaPage() {
               <div className="overflow-x-auto border border-emerald-500/20 shadow-sm mt-3">
                 <Table className="text-xs">
                   <TableHeader>
-                    <TableRow className="bg-emerald-600 hover:bg-emerald-600">
+                    <TableRow className="bg-emerald-600 hover:bg-emerald-600 [&>th]:whitespace-nowrap">
                       <TableHead className="text-white text-center w-[40px] font-bold uppercase">STT</TableHead>
                       {targetType === 'nyd' ? (
                         <>
-                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[55px] font-bold uppercase text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">Chức vụ</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">
-                            <div>{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center whitespace-nowrap">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold uppercase text-center whitespace-nowrap">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center whitespace-nowrap">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center whitespace-nowrap">Chức vụ</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
+                            {isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                           </TableHead>
                           {includeIndividualTN && (
-                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">IP cá nhân</TableHead>
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center whitespace-nowrap">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
@@ -2436,7 +2436,7 @@ export default function ThiDuaPage() {
                           </TableHead>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
@@ -2470,7 +2470,7 @@ export default function ThiDuaPage() {
                             <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
@@ -2503,7 +2503,7 @@ export default function ThiDuaPage() {
                             {startDate && endDate && <div className="text-[9px] font-normal text-emerald-200/70 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
                           {usePhase2 ? (
                             <>
