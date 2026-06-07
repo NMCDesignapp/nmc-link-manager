@@ -31,21 +31,26 @@ export async function POST(request: NextRequest) {
 
     // Batch mode (array)
     if (Array.isArray(body)) {
-      const records = body.filter((r: any) => r.agentCode && r.agentName).map((r: any) => ({
-        agentCode: r.agentCode,
-        agentName: r.agentName,
-        maBanNhom: r.maBanNhom || '',
-        chucVu: r.chucVu || '',
-        ngayBatDau: safeDate(r.ngayBatDau),
-        note: r.note || '',
+      const records = body.filter((r: any) => (r.agentCode || r['Mã TVV']) && (r.agentName || r['Tên TVV'])).map((r: any) => ({
+        agentCode: r.agentCode || r['Mã TVV'],
+        agentName: r.agentName || r['Tên TVV'],
+        maBanNhom: r.maBanNhom || r['Mã Ban/Nhóm'] || '',
+        chucVu: r.chucVu || r['Chức vụ'] || '',
+        ngayBatDau: safeDate(r.ngayBatDau || r['Ngày bắt đầu']),
+        note: r.note || r['Ghi chú'] || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       const result = await db.tVVStruct.createMany({ data: records });
       return NextResponse.json({ message: `Đã nhập ${result.count} TVV`, count: result.count });
     }
 
-    // Single create
-    const { agentCode, agentName, maBanNhom, chucVu, ngayBatDau, note } = body;
+    // Single create - also support Vietnamese field names from CSV import
+    const agentCode = body.agentCode || body['Mã TVV'];
+    const agentName = body.agentName || body['Tên TVV'];
+    const maBanNhom = body.maBanNhom || body['Mã Ban/Nhóm'];
+    const chucVu = body.chucVu || body['Chức vụ'];
+    const ngayBatDau = body.ngayBatDau || body['Ngày bắt đầu'];
+    const note = body.note || body['Ghi chú'];
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({

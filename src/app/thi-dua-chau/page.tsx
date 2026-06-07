@@ -2386,145 +2386,145 @@ export default function ThiDuaPage() {
               <div className="overflow-x-auto border border-emerald-500/20 shadow-sm mt-3">
                 <Table className="text-xs">
                   <TableHeader>
-                    <TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20">
-                      <TableHead className="text-white text-center w-[40px] font-bold">STT</TableHead>
+                    <TableRow className="bg-emerald-600 hover:bg-emerald-600">
+                      <TableHead className="text-white text-center w-[40px] font-bold uppercase">STT</TableHead>
                       {targetType === 'nyd' ? (
                         <>
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[55px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">Chức vụ</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold uppercase text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">Chức vụ</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">
                             <div>{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
                           </TableHead>
                           {includeIndividualTN && (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center">IP cá nhân</TableHead>
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
                         </>
                       ) : targetType === 'nhom' ? (
                         <>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[55px] font-bold text-center">Mã TN</TableHead>
-                          <TableHead className="text-white min-w-[80px] font-bold text-center">Tên Trưởng Nhóm</TableHead>
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Chức vụ</TableHead>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[55px] font-bold uppercase text-center">Mã TN</TableHead>
+                          <TableHead className="text-white min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-emerald-200/70 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
 
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
                         </>
                       ) : isPerContractMode(conditionType) ? (
                         <>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white text-center w-[85px] font-bold">Ngày HL</TableHead>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">IP</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
+                          <TableHead className="text-white text-center w-[85px] font-bold uppercase">Ngày HL</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">IP</TableHead>
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
-                            <TableHead className="text-white min-w-[70px] font-bold text-center">AFYP</TableHead>
+                            <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
                         </>
                       ) : (
                         <>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">NHÓM</TableHead>
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Mã số</TableHead>
-                          <TableHead className="text-white min-w-[65px] font-bold text-center">Họ tên</TableHead>
-                          <TableHead className="text-white min-w-[70px] font-bold text-center">
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Mã số</TableHead>
+                          <TableHead className="text-white min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
+                          <TableHead className="text-white min-w-[70px] font-bold uppercase text-center">
                             <div>{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
                             {startDate && endDate && <div className="text-[9px] font-normal text-emerald-200/70 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-white min-w-[50px] font-bold text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
+                            <TableHead className="text-white min-w-[50px] font-bold uppercase text-center bg-violet-500/30"><div className="flex items-center justify-center gap-1"><Percent className="w-3 h-3" /> Tỷ lệ</div></TableHead>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD1</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-emerald-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-emerald-500/30">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                                 <div className="text-[9px] font-normal text-emerald-200/70 italic">GD2</div>
                               </TableHead>
-                              <TableHead className="text-white min-w-[60px] font-bold text-center bg-amber-500/30">
+                              <TableHead className="text-white min-w-[60px] font-bold uppercase text-center bg-amber-500/30">
                                 <div>Tổng Thưởng</div>
                               </TableHead>
                             </>
                           ) : (
-                            <TableHead className="text-white min-w-[65px] font-bold text-center bg-emerald-500/30">
+                            <TableHead className="text-white min-w-[65px] font-bold uppercase text-center bg-emerald-500/30">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
                             </TableHead>
                           )}
-                          <TableHead className="text-white min-w-[60px] font-bold text-center">Ghi chú</TableHead>
+                          <TableHead className="text-white min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
                         </>
                       )}
                     </TableRow>

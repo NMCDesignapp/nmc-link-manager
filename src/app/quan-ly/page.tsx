@@ -247,6 +247,19 @@ function formatDateDisplay(val: any): string {
   return d.toLocaleDateString('vi-VN');
 }
 
+// Helper: safe format date without timezone offset issues
+function safeFormatDate(val: any): string {
+  if (!val) return '';
+  const s = String(val);
+  // If it's a date-only or ISO string like "2026-01-01" or "2026-01-01T00:00:00.000Z", parse manually
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
+  // Otherwise use locale
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toLocaleDateString('vi-VN');
+  return s;
+}
+
 // ==================== EDITABLE CELL ====================
 function EditableCell({ value, onSave, type = 'text', className = '' }: {
   value: string | number; onSave: (val: any) => void; type?: 'text' | 'number' | 'date'; className?: string;
@@ -1836,10 +1849,10 @@ export default function QuanLyPage() {
   const totalRevenueAFYP = yearContracts.reduce((s, c) => s + c.afyp, 0);
   const totalRevenueContractCount = yearContracts.length; // Số lượng HĐ = số dòng
 
-  // Lượt HĐ = đếm số hợp đồng có tinhLuot3tr >= 3,000,000
-  const luotHoatDong = yearContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
-  // Lượt HĐ chuẩn = đếm số hợp đồng có tinhLuot3tr >= 12,000,000
-  const luotHDChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+  // Lượt HĐ = đếm số TVV duy nhất có ít nhất 1 HĐ với tinhLuot3tr >= 3,000,000
+  const luotHoatDong = new Set(yearContracts.filter(c => c.tinhLuot3tr >= 3000000).map(c => c.agentCode)).size;
+  // Lượt HĐ chuẩn = đếm số TVV duy nhất có ít nhất 1 HĐ với tinhLuot3tr >= 12,000,000
+  const luotHDChuan = new Set(yearContracts.filter(c => c.tinhLuot3tr >= 12000000).map(c => c.agentCode)).size;
 
   // TVV đạt 3tr = same as luotHoatDong (unique TVV count)
   const tvvAchieved3M = luotHoatDong;
@@ -2217,11 +2230,11 @@ export default function QuanLyPage() {
         </div>
         <div className="overflow-x-auto border border-emerald-500/30">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20 border-b border-emerald-500/30">
+            <TableHeader><TableRow className="bg-emerald-600 hover:bg-emerald-600 border-b border-emerald-500/30">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'startDate', l: 'Ngày bắt đầu' }, { f: 'note', l: 'Ghi chú' }].map(col => (
-                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+                <TableHead key={col.f} className="text-white text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
-              <TableHead className="text-white text-xs w-[40px]"></TableHead>
+              <TableHead className="text-white text-xs uppercase w-[40px]"></TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(l => (
@@ -2278,11 +2291,11 @@ export default function QuanLyPage() {
         </div>
         <div className="overflow-x-auto border border-emerald-500/30">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-500/20 hover:bg-emerald-500/20 border-b border-emerald-500/30">
+            <TableHeader><TableRow className="bg-emerald-600 hover:bg-emerald-600 border-b border-emerald-500/30">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
-                <TableHead key={col.f} className="text-white text-xs font-bold cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+                <TableHead key={col.f} className="text-white text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
-              {canEdit && <TableHead className="text-white text-xs w-[40px]"></TableHead>}
+              {canEdit && <TableHead className="text-white text-xs uppercase w-[40px]"></TableHead>}
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(r => (
@@ -2660,11 +2673,11 @@ export default function QuanLyPage() {
       } else if (metric === 'afyp') {
         return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.afyp || 0)) || 0), 0);
       } else if (metric === '_luotHoatDong') {
-        // Đếm số lượt giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
-        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).length;
+        // Đếm số TVV duy nhất có ít nhất 1 HĐ với giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
+        return new Set(filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).map((item: any) => item.agentCode).filter(Boolean)).size;
       } else if (metric === '_luotHoatDongChuan') {
-        // Đếm số lượt giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
-        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).length;
+        // Đếm số TVV duy nhất có ít nhất 1 HĐ với giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
+        return new Set(filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).map((item: any) => item.agentCode).filter(Boolean)).size;
       } else if (metric === '_soLuotHD') {
         // Đếm số dòng có dữ liệu
         return filtered.length;
@@ -2948,26 +2961,26 @@ export default function QuanLyPage() {
           {/* Results table - LIGHT THEME */}
           <div className="overflow-auto max-h-[calc(100vh-520px)] bg-white rounded-lg border border-green-200" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
             <table className="w-full">
-              <thead className="sticky top-0 z-10 bg-green-50 border-b border-green-200">
+              <thead className="sticky top-0 z-10 bg-emerald-600 border-b border-emerald-700">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">STT</th>
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã AD</th>}
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng KD</th>}
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên nhóm</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã ĐL TN</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên TN</th>}
-                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã phòng</th>}
-                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng</th>}
-                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã NTD</th>}
-                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Người TD</th>}
-                  <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col1DisplayLabel}</th>
-                  {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col2Label}</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Kế hoạch</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Tỷ lệ</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Tiến độ</th>}
-                  <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Ghi chú</th>
+                  <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}
+                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên nhóm</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã ĐL TN</th>}
+                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên TN</th>}
+                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã phòng</th>}
+                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng</th>}
+                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã NTD</th>}
+                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Người TD</th>}
+                  <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col1DisplayLabel}</th>
+                  {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col2Label}</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Kế hoạch</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Tỷ lệ</th>}
+                  {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Tiến độ</th>}
+                  <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Ghi chú</th>
                 </tr>
               </thead>
               <tbody>
@@ -3090,26 +3103,26 @@ export default function QuanLyPage() {
               {/* Table in popup - light theme */}
               <div className="overflow-auto border border-green-200 rounded-lg">
                 <table className="w-full">
-                  <thead className="bg-green-50 border-b border-green-200">
+                  <thead className="bg-emerald-600 border-b border-emerald-700">
                     <tr>
-                      <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">STT</th>
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã AD</th>}
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng KD</th>}
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">AD</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên nhóm</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã ĐL TN</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Tên TN</th>}
-                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã phòng</th>}
-                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Phòng</th>}
-                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Mã NTD</th>}
-                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Người TD</th>}
-                      <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col1DisplayLabel}</th>
-                      {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">{col2Label}</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Kế hoạch</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-green-700 font-bold uppercase border border-green-200">Tỷ lệ</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200 w-[120px]">Tiến độ</th>}
-                      <th className="px-3 py-2 text-left text-[10px] text-green-700 font-bold uppercase border border-green-200">Ghi chú</th>
+                      <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}
+                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên nhóm</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã ĐL TN</th>}
+                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên TN</th>}
+                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã phòng</th>}
+                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng</th>}
+                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã NTD</th>}
+                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Người TD</th>}
+                      <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col1DisplayLabel}</th>
+                      {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col2Label}</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Kế hoạch</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Tỷ lệ</th>}
+                      {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Tiến độ</th>}
+                      <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Ghi chú</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3176,8 +3189,8 @@ export default function QuanLyPage() {
     const soLuongHD = sortedContracts.length;
     const tongIP = sortedContracts.reduce((s, c) => s + c.pdt10DT, 0);
     const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
-    const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
-    const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+    const luotHoatDong = new Set(sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).map(c => c.agentCode)).size;
+    const luotChuan = new Set(sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).map(c => c.agentCode)).size;
     // SL tuyển dụng trong tháng/năm (từ cấu trúc TVV)
     const slTuyenDungPeriod = revenueSub === 'all'
       ? tvvStructList.filter(t => {
@@ -3521,7 +3534,7 @@ export default function QuanLyPage() {
                                     <Network className="w-3.5 h-3.5 text-sky-300" />
                                     <div className="min-w-0 flex-1">
                                       <p className="text-white text-xs font-bold truncate">{b.tenBanNhom}</p>
-                                      <p className="text-sky-200/60 text-[10px]">{b.maBanNhom} {b.ngayBatDau ? `• BĐ: ${new Date(b.ngayBatDau).toLocaleDateString('vi-VN')}` : ''}</p>
+                                      <p className="text-sky-200/60 text-[10px]">{b.maBanNhom} {b.ngayBatDau ? `• BĐ: ${safeFormatDate(b.ngayBatDau)}` : ''}</p>
                                     </div>
                                     <span className="text-[10px] text-sky-300 bg-sky-900 px-1.5 py-0.5 rounded-full">{bnTVVs.length} TVV</span>
                                     {(() => {
@@ -3546,7 +3559,7 @@ export default function QuanLyPage() {
                                             <Users className="w-3 h-3 text-violet-400" />
                                             <div className="min-w-0">
                                               <p className="text-white text-xs font-bold truncate">{t.agentName}</p>
-                                              <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''} {t.ngayBatDau ? `• BĐ: ${new Date(t.ngayBatDau).toLocaleDateString('vi-VN')}` : ''}</p>
+                                              <p className="text-violet-200/60 text-[10px]">{t.agentCode} {t.chucVu ? `• ${t.chucVu}` : ''} {t.ngayBatDau ? `• BĐ: ${safeFormatDate(t.ngayBatDau)}` : ''}</p>
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-1">
@@ -3702,7 +3715,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingBanNhom.ngayBatDau ? editingBanNhom.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingBanNhom(b => b ? { ...b, ngayBatDau: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingBanNhom.ngayBatDau ? toInputDate(editingBanNhom.ngayBatDau) : ''} onChange={e => setEditingBanNhom(b => b ? { ...b, ngayBatDau: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
@@ -3720,7 +3733,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Tên TVV</Label><Input value={editingTvv.agentName} onChange={e => setEditingTvv(t => t ? { ...t, agentName: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
-              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? editingTvv.ngayBatDau.slice(0, 10) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? toInputDate(editingTvv.ngayBatDau) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
