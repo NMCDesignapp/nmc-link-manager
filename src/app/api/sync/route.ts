@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           const namTDStr = columns[25] || '';
           const thangHLStr = columns[26] || '';
           const tinhLuotStr = columns[27] || '0';
-          const tinhLuot3trStr = columns[28] || '0';
+          const tinhLuot3trStr = columns[28] || ''; // Có thể thiếu → fallback về tinhLuot
           const maDaiLyTD = columns[29] || '';
           const danhDauTVV = columns[30] || '';
           const chucVu2 = columns[31] || '';
@@ -145,6 +145,9 @@ export async function POST(request: NextRequest) {
           const fyp = parseNumber(fypStr);
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
+          // Fallback: nếu file không có cột TÍNH LƯỢT 3TR → dùng giá trị TÍNH LƯỢT
+          const tinhLuot3trRaw = parseNumber(tinhLuot3trStr);
+          const tinhLuot3tr = tinhLuot3trRaw > 0 ? tinhLuot3trRaw : tinhLuot;
 
           try {
             await db.contract.upsert({
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest) {
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
                 tinhLuot,
-                tinhLuot3tr: parseNumber(tinhLuot3trStr),
+                tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
               create: {
@@ -194,7 +197,7 @@ export async function POST(request: NextRequest) {
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
                 tinhLuot,
-                tinhLuot3tr: parseNumber(tinhLuot3trStr),
+                tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
             });

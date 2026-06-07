@@ -52,7 +52,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.namTD !== undefined) data.namTD = parseInt(body.namTD) || 0;
     if (body.thangHL !== undefined) data.thangHL = parseInt(body.thangHL) || 0;
     if (body.tinhLuot !== undefined) data.tinhLuot = parseFloat(body.tinhLuot) || 0;
-    if (body.tinhLuot3tr !== undefined) data.tinhLuot3tr = parseFloat(body.tinhLuot3tr) || 0;
+    if (body.tinhLuot3tr !== undefined) {
+      const raw3tr = parseFloat(body.tinhLuot3tr) || 0;
+      // Fallback: nếu tinhLuot3tr = 0 → dùng tinhLuot
+      data.tinhLuot3tr = raw3tr > 0 ? raw3tr : (data.tinhLuot || parseFloat(body.tinhLuot) || 0);
+    }
     if (body.maDaiLyTD !== undefined) data.maDaiLyTD = body.maDaiLyTD;
     if (body.danhDauTVV !== undefined) data.danhDauTVV = body.danhDauTVV;
     if (body.chucVu2 !== undefined) data.chucVu2 = body.chucVu2;

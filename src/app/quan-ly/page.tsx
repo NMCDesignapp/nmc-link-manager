@@ -205,7 +205,7 @@ const CONTRACT_COLUMNS = [
   { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
   { f: 'afyp', l: 'AFYP', type: 'number' as const },
   { f: 'ad', l: 'AD', type: 'text' as const },
-  { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3tr', type: 'number' as const },
+  { f: 'tinhLuot', l: 'TÍNH LƯỢT', type: 'number' as const },
   { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
 ];
 
@@ -1558,7 +1558,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT': c.tinhLuot, 'TÍNH LƯỢT 3tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
+      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT': c.tinhLuot3tr || c.tinhLuot, 'MÃ ĐL TD': c.maDaiLyTD }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
 
@@ -1735,7 +1735,12 @@ export default function QuanLyPage() {
             namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
             tinhLuot: parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
+            tinhLuot3tr: (() => {
+              const raw3tr = parseFloat(String(row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0;
+              // Fallback: nếu file không có cột TÍNH LƯỢT 3TR → dùng giá trị TÍNH LƯỢT
+              const tinhLuotVal = parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0;
+              return raw3tr > 0 ? raw3tr : tinhLuotVal;
+            })(),
             maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
             danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
             chucVu2: String(row['Chức vụ'] || row['chucVu2'] || '').trim(),
@@ -2343,7 +2348,6 @@ export default function QuanLyPage() {
     { f: 'afyp', l: 'AFYP', type: 'number' as const },
     { f: 'ad', l: 'AD', type: 'text' as const },
     { f: 'tinhLuot', l: 'TÍNH LƯỢT', type: 'number' as const },
-    { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3tr', type: 'number' as const },
     { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
   ];
 
@@ -2364,8 +2368,7 @@ export default function QuanLyPage() {
       { key: 'pdt10DT', label: 'IP (PĐT + 10% ĐT)', type: 'number' as const },
       { key: 'afyp', label: 'AFYP', type: 'number' as const },
       { key: 'fyp', label: 'FYP', type: 'number' as const },
-      { key: 'tinhLuot3tr', label: 'Giá trị TÍNH LƯỢT 3tr', type: 'number' as const },
-      { key: 'tinhLuot', label: 'Giá trị TÍNH LƯỢT', type: 'number' as const },
+      { key: 'tinhLuot3tr', label: 'Giá trị TÍNH LƯỢT', type: 'number' as const },
       { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' as const },
       { key: 'ngayBatDauLamViec', label: 'Ngày bắt đầu làm việc', type: 'date' as const },
       { key: 'ngayBatDauLamViec2', label: 'Ngày BĐLV 2', type: 'date' as const },
@@ -3317,7 +3320,7 @@ export default function QuanLyPage() {
                 <div><span className="text-white/50">Ngày PH:</span> <span className="text-white/70">{formatDateDisplay(c.issueDate)}</span></div>
                 <div><span className="text-white/50">PĐT+10%:</span> <span className="text-amber-300 font-mono">{c.pdt10DT > 0 ? formatNumber(c.pdt10DT) : '—'}</span></div>
                 <div><span className="text-white/50">AFYP:</span> <span className="text-amber-300 font-mono">{c.afyp > 0 ? formatNumber(c.afyp) : '—'}</span></div>
-                <div><span className="text-white/50">Tính lượt 3tr:</span> <span className={`font-mono ${c.tinhLuot3tr >= 3000000 ? 'text-emerald-300' : 'text-gray-500'}`}>{c.tinhLuot3tr > 0 ? formatNumber(c.tinhLuot3tr) : '—'}</span></div>
+                <div><span className="text-white/50">Tính lượt:</span> <span className={`font-mono ${c.tinhLuot3tr >= 3000000 ? 'text-emerald-300' : 'text-gray-500'}`}>{c.tinhLuot3tr > 0 ? formatNumber(c.tinhLuot3tr) : '—'}</span></div>
                 <div><span className="text-white/50">Mã ĐL TD:</span> <span className="text-white/70 font-mono">{c.maDaiLyTD || '—'}</span></div>
               </div>
             </div>
@@ -3411,7 +3414,7 @@ export default function QuanLyPage() {
 
         {/* Footer summary */}
         <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT 3tr ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
         </p>
       </div>
     );
