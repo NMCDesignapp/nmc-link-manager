@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-// POST /api/contracts/delete-by-range - Delete contracts by effectiveDate range
+// POST /api/contracts/delete-by-range - Delete contracts by issueDate range (fallback effectiveDate)
 // Body: { fromMonth: "2026-01", toMonth: "2026-05" }
 export async function POST(request: NextRequest) {
   try {
@@ -26,12 +26,14 @@ export async function POST(request: NextRequest) {
     const startDate = new Date(Date.UTC(fromYear, fromM - 1, 1));
     const endDate = new Date(Date.UTC(toYear, toM, 1)); // first day of next month
 
+    // Delete by issueDate (Ngày PH) with fallback to effectiveDate (Ngày HL)
+    // Use OR: issueDate in range, OR (issueDate is null AND effectiveDate in range)
     const result = await db.contract.deleteMany({
       where: {
-        effectiveDate: {
-          gte: startDate,
-          lt: endDate,
-        },
+        OR: [
+          { issueDate: { gte: startDate, lt: endDate } },
+          { issueDate: null, effectiveDate: { gte: startDate, lt: endDate } },
+        ],
       },
     });
 

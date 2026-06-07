@@ -209,6 +209,13 @@ const CONTRACT_COLUMNS = [
 ];
 
 // ==================== HELPERS ====================
+// Helper: lấy tháng doanh số từ issueDate (Ngày PH), fallback effectiveDate (Ngày HL)
+function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string }): Date {
+  const issueD = c.issueDate ? new Date(c.issueDate) : null;
+  if (issueD && !isNaN(issueD.getTime())) return issueD;
+  return new Date(c.effectiveDate);
+}
+
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
 }
@@ -1839,7 +1846,7 @@ export default function QuanLyPage() {
   // Use current year contracts for all calculations
   const currentYear = new Date().getFullYear();
   const yearContracts = contracts.filter(c => {
-    const d = new Date(c.effectiveDate);
+    const d = getDoanhSoMonth(c);
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   });
 
@@ -2112,7 +2119,7 @@ export default function QuanLyPage() {
             const m = String(i + 1).padStart(2, '0');
             const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
             const mc = yearContracts.filter(c => {
-              const d = new Date(c.effectiveDate);
+              const d = getDoanhSoMonth(c);
               return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
             });
             const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
@@ -2140,7 +2147,7 @@ export default function QuanLyPage() {
         const monthlyData = Array.from({ length: 12 }, (_, i) => {
           const m = String(i + 1).padStart(2, '0');
           const mc = yearContracts.filter(c => {
-            const d = new Date(c.effectiveDate);
+            const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
           });
           return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length };
@@ -3158,14 +3165,14 @@ export default function QuanLyPage() {
     const currentYear = new Date().getFullYear();
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
-    // Filter contracts by selected month (based on effectiveDate)
+    // Filter contracts by selected month (based on Ngày PH, fallback Ngày HL)
     const monthFilteredContracts = revenueSub === 'all'
       ? contracts.filter(c => {
-          const d = new Date(c.effectiveDate);
+          const d = getDoanhSoMonth(c);
           return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
         })
       : contracts.filter(c => {
-          const d = new Date(c.effectiveDate);
+          const d = getDoanhSoMonth(c);
           if (isNaN(d.getTime())) return false;
           const m = String(d.getMonth() + 1).padStart(2, '0');
           return d.getFullYear() === currentYear && m === revenueSub;
