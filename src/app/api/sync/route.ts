@@ -28,11 +28,9 @@ function parseCSV(csv: string): string[][] {
     if (inQuotes) {
       if (char === '"') {
         if (nextChar === '"') {
-          // Escaped quote ""
           current += '"';
-          i++; // Skip next quote
+          i++;
         } else {
-          // End of quoted field
           inQuotes = false;
         }
       } else {
@@ -45,7 +43,6 @@ function parseCSV(csv: string): string[][] {
         currentRow.push(current.trim());
         current = '';
       } else if (char === '\r') {
-        // Skip carriage return
         continue;
       } else if (char === '\n') {
         currentRow.push(current.trim());
@@ -59,7 +56,6 @@ function parseCSV(csv: string): string[][] {
       }
     }
   }
-  // Don't forget the last field/row
   currentRow.push(current.trim());
   if (currentRow.some(c => c !== '')) {
     rows.push(currentRow);
@@ -75,6 +71,28 @@ function parseNumber(numStr: string): number {
   return isNaN(val) ? 0 : val;
 }
 
+// Helper: tìm giá trị theo tên header (hỗ trợ nhiều tên khác nhau)
+function getVal(row: Record<string, string>, ...keys: string[]): string {
+  for (const k of keys) {
+    if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+  }
+  return '';
+}
+
+// Chuyển CSV rows (mảng 2D) thành mảng object theo header
+function csvToObjects(rows: string[][]): Record<string, string>[] {
+  if (rows.length < 2) return [];
+  const header = rows[0];
+  const dataRows = rows.slice(1);
+  return dataRows.map(cols => {
+    const obj: Record<string, string> = {};
+    header.forEach((h, i) => {
+      if (h) obj[h.trim()] = (cols[i] || '').trim();
+    });
+    return obj;
+  });
+}
+
 // POST /api/sync - Sync all 3 CSVs simultaneously
 export async function POST(request: NextRequest) {
   try {
@@ -87,52 +105,53 @@ export async function POST(request: NextRequest) {
 
     const results = { contracts: 0, staff: 0, recruiters: 0, errors: [] as string[] };
 
-    // 1. Import Contracts — upsert by contractNumber to preserve manual edits
+    // 1. Import Contracts — HEADER-BASED mapping (không dùng vị trí cột nữa!)
     if (contractCsv) {
       try {
         const rows = parseCSV(contractCsv);
-        const dataRows = rows.slice(1); // Skip header
+        const records = csvToObjects(rows);
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
 
-        for (const columns of dataRows) {
-          const stt = columns[0] || '';
-          const ban = columns[1] || '';
-          const maTruongBan = columns[2] || '';
-          const nhom = columns[3] || '';
-          const maNhom = columns[4] || '';
-          const leaderAgentCode = columns[5] || '';
-          const agentCode = columns[6] || '';
-          const agentName = columns[7] || '';
-          const position = columns[8] || '';
-          const startDateStr = columns[9] || '';
-          const contractNumber = columns[10] || '';
-          const effectiveDateStr = columns[11] || '';
-          const issueDateStr = columns[12] || '';
-          const fypStr = columns[13] || '';
-          const pdt10DTStr = columns[14] || '';
-          const nguonDuLieu = columns[15] || '';
-          const hopDongToChuc = columns[16] || '';
-          const dkDongPhi = columns[17] || '';
-          const phiDongThemStr = columns[18] || '';
-          const afypChuaTru10DTStr = columns[19] || '';
-          const afypStr = columns[20] || '';
-          const ad = columns[21] || '';
-          const nhom2 = columns[22] || '';
-          const ngayBatDauLamViec2Str = columns[23] || '';
-          const thangTDStr = columns[24] || '';
-          const namTDStr = columns[25] || '';
-          const thangHLStr = columns[26] || '';
-          const tinhLuotStr = columns[27] || '0';
-          const tinhLuot3trStr = columns[28] || ''; // Có thể thiếu → fallback về tinhLuot
-          const maDaiLyTD = columns[29] || '';
-          const danhDauTVV = columns[30] || '';
-          const chucVu2 = columns[31] || '';
-          const recruiterCode = columns[32] || '';
+        for (const row of records) {
+          // Đọc theo tên header — hỗ trợ nhiều tên khác nhau
+          const agentCode = getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode');
+          const agentName = getVal(row, 'Tên', 'Họ tên', 'Tên TVV', 'agentName');
+          const position = getVal(row, 'Chức vụ', 'position');
+          const ban = getVal(row, 'Ban', 'ban');
+          const nhom = getVal(row, 'Nhóm', 'nhom');
+          const maNhom = getVal(row, 'Mã Ban/Nhóm', 'Mã nhóm', 'maNhom');
+          const maTruongBan = getVal(row, 'Mã trưởng ban', 'Mã Trưởng Ban', 'maTruongBan');
+          const leaderAgentCode = getVal(row, 'Mã trưởng Ban/Nhóm', 'leaderAgentCode');
+          const startDateStr = getVal(row, 'Ngày bắt đầu làm việc', 'Ngày bắt đầu', 'Ngày BĐLV', 'startDate');
+          const contractNumber = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber');
+          const effectiveDateStr = getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate');
+          const issueDateStr = getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate');
+          const pdt10DTStr = getVal(row, 'PĐT + 10% ĐT', 'IP+10%PĐT', 'PĐT+10%ĐT', 'pdt10DT');
+          const fypStr = getVal(row, 'FYP', 'fyp');
+          const nguonDuLieu = getVal(row, 'Nguồn dữ liệu', 'Nguồn DL', 'nguonDuLieu');
+          const hopDongToChuc = getVal(row, 'Hợp đồng tổ chức', 'HĐ tổ chức', 'hopDongToChuc');
+          const dkDongPhi = getVal(row, 'ĐK ĐÓNG PHÍ', 'ĐK đóng phí', 'dkDongPhi');
+          const phiDongThemStr = getVal(row, 'PHÍ ĐÓNG THÊM', 'Phí đóng thêm', 'phiDongThem');
+          const afypChuaTru10DTStr = getVal(row, 'AFYP chưa trừ 10% ĐT', 'afypChuaTru10DT');
+          const afypStr = getVal(row, 'AFYP', 'afyp');
+          const ad = getVal(row, 'AD', 'ad');
+          const nhom2 = getVal(row, 'NHÓM', 'Nhóm 2', 'nhom2');
+          const ngayBatDauLamViec2Str = getVal(row, 'NGÀY BẮT ĐẦU LÀM VIỆC', 'Ngày BĐLV 2', 'ngayBatDauLamViec2');
+          const thangTDStr = getVal(row, 'THÁNG TD', 'thangTD');
+          const namTDStr = getVal(row, 'NĂM TD', 'namTD');
+          const thangHLStr = getVal(row, 'THÁNG HL', 'thangHL');
+          const tinhLuotStr = getVal(row, 'TÍNH LƯỢT', 'Tính lượt', 'tinhLuot');
+          // Cột "TÍNH LƯỢT 3 tr" — tên chính xác trong file user
+          const tinhLuot3trStr = getVal(row, 'TÍNH LƯỢT 3 tr', 'TÍNH LƯỢT 3TR', 'TÍNH LƯỢT 3tr', 'Tính lượt 3tr', 'Tính lượt 3 tr', 'tinhLuot3tr');
+          const maDaiLyTD = getVal(row, 'MÃ ĐL TD', 'Mã đại lý tuyển dụng', 'Mã NTD', 'MÃ ĐLTD', 'maDaiLyTD');
+          const danhDauTVV = getVal(row, 'ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1', 'danhDauTVV');
+          const chucVu2 = getVal(row, 'Chức vụ', 'Chức vụ 2', 'chucVu2');
+          const recruiterCode = getVal(row, 'Mã tuyển dụng', 'MÃ TUYỂN DỤNG', 'recruiterCode');
+          const sttStr = getVal(row, 'STT', 'stt');
 
           if (!effectiveDateStr) continue;
-          // Auto-generate contract number if missing
-          const finalContractNumber = contractNumber || `AUTO_${Date.now()}_${columns.length}_${Math.random().toString(36).slice(2, 8)}`;
+          const finalContractNumber = contractNumber || `AUTO_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
           if (seenContractNumbers.has(finalContractNumber)) continue;
           seenContractNumbers.add(finalContractNumber);
 
@@ -142,18 +161,18 @@ export async function POST(request: NextRequest) {
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
           if (!effectiveDate) continue;
 
-          const fyp = parseNumber(fypStr);
+          const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
-          // Fallback: nếu file không có cột TÍNH LƯỢT 3TR → dùng giá trị TÍNH LƯỢT
+          // TÍNH LƯỢT 3 tr: ưu tiên giá trị từ cột này, fallback về TÍNH LƯỢT
           const tinhLuot3trRaw = parseNumber(tinhLuot3trStr);
-          const tinhLuot3tr = tinhLuot3trRaw > 0 ? tinhLuot3trRaw : tinhLuot;
+          const tinhLuot3tr = tinhLuot3trRaw > 0 ? tinhLuot3trRaw : (tinhLuot > 0 ? tinhLuot : tinhLuot3trRaw);
 
           try {
             await db.contract.upsert({
               where: { contractNumber: finalContractNumber },
               update: {
-                stt: parseInt(stt) || 0,
+                stt: parseInt(sttStr) || 0,
                 agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
                 maTruongBan, ngayBatDauLamViec: startDate,
                 recruiterCode: recruiterCode || '',
@@ -176,7 +195,7 @@ export async function POST(request: NextRequest) {
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
               create: {
-                stt: parseInt(stt) || 0,
+                stt: parseInt(sttStr) || 0,
                 contractNumber: finalContractNumber,
                 agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
                 maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
@@ -208,23 +227,16 @@ export async function POST(request: NextRequest) {
         }
 
         results.contracts = upserted;
-        // KHÔNG upsert Staff từ contracts — Staff chỉ từ Staff CSV
       } catch (err) {
         results.errors.push(`HĐ: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
     }
 
-    // 2. Import Staff CSV — upsert by agentCode to preserve manual edits
-    // DS Nhóm — chỉ chứa trưởng nhóm/trưởng ban
-    // CSV KHÔNG có cột Mã nhóm → phải lookup từ contracts
+    // 2. Import Staff CSV — header-based mapping
     if (staffCsv) {
       try {
         const rows = parseCSV(staffCsv);
-        const header = rows[0] || [];
-        const dataRows = rows.slice(1); // Skip header
-
-        // Xác định cấu trúc CSV dựa trên số cột header
-        const colCount = header.length;
+        const records = csvToObjects(rows);
 
         // Build nhóm→mã nhóm mapping từ contracts đã import
         const nhomToMaNhom = new Map<string, string>();
@@ -238,27 +250,15 @@ export async function POST(request: NextRequest) {
         }
 
         let upserted = 0;
-        for (const columns of dataRows) {
-          let nhom: string, maNhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
+        for (const row of records) {
+          const nhom = getVal(row, 'Nhóm', 'nhom');
+          let maNhom = getVal(row, 'Mã nhóm', 'Mã Ban/Nhóm', 'maNhom');
+          const agentCode = getVal(row, 'Mã số', 'Mã TN', 'Mã trưởng nhóm', 'agentCode');
+          const agentName = getVal(row, 'Họ tên', 'Họ tên TN', 'agentName');
+          const position = getVal(row, 'Chức vụ', 'position');
+          const startDateStr = getVal(row, 'Ngày bắt đầu', 'startDate');
 
-          if (colCount >= 7) {
-            // 7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu
-            nhom = columns[1] || '';
-            maNhom = columns[2] || '';
-            agentCode = columns[3] || '';
-            agentName = columns[4] || '';
-            position = columns[5] || '';
-            startDateStr = columns[6] || '';
-          } else {
-            // 6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu
-            nhom = columns[1] || '';
-            maNhom = nhomToMaNhom.get(nhom) || ''; // Lookup từ contracts
-            agentCode = columns[2] || '';
-            agentName = columns[3] || '';
-            position = columns[4] || '';
-            startDateStr = columns[5] || '';
-          }
-
+          if (!maNhom && nhom) maNhom = nhomToMaNhom.get(nhom) || '';
           if (!agentCode || !agentName) continue;
 
           try {
@@ -279,14 +279,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Import Recruiter CSV — createMany with skipDuplicates to NOT overwrite manual edits
+    // 3. Import Recruiter CSV — header-based mapping
     if (recruiterCsv) {
       try {
         const rows = parseCSV(recruiterCsv);
-        const header = rows[0] || [];
-        const dataRows = rows.slice(1); // Skip header
+        const records = csvToObjects(rows);
 
-        const colCount = header.length;
         const recruitersData: Array<{
           nhom: string;
           agentCode: string;
@@ -295,24 +293,12 @@ export async function POST(request: NextRequest) {
           startDate: Date | null;
         }> = [];
 
-        for (const columns of dataRows) {
-          let nhom: string, agentCode: string, agentName: string, position: string, startDateStr: string;
-
-          if (colCount >= 7) {
-            // 7 columns: STT, Nhóm, Mã nhóm, Mã TN, Họ tên TN, Chức vụ, Ngày bắt đầu
-            nhom = columns[1] || '';
-            agentCode = columns[3] || '';
-            agentName = columns[4] || '';
-            position = columns[5] || '';
-            startDateStr = columns[6] || '';
-          } else {
-            // 6 columns: STT, Nhóm, Mã số, Họ tên, Chức vụ, Ngày bắt đầu
-            nhom = columns[1] || '';
-            agentCode = columns[2] || '';
-            agentName = columns[3] || '';
-            position = columns[4] || '';
-            startDateStr = columns[5] || '';
-          }
+        for (const row of records) {
+          const nhom = getVal(row, 'Nhóm', 'nhom');
+          const agentCode = getVal(row, 'Mã số', 'Mã TN', 'agentCode');
+          const agentName = getVal(row, 'Họ tên', 'Họ tên TN', 'agentName');
+          const position = getVal(row, 'Chức vụ', 'position');
+          const startDateStr = getVal(row, 'Ngày bắt đầu', 'startDate');
 
           if (!agentCode || !agentName) continue;
 
@@ -325,7 +311,6 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Use createMany with skipDuplicates — only adds NEW recruiters, preserves manual edits
         let synced = 0;
         if (recruitersData.length > 0) {
           try {
@@ -335,7 +320,6 @@ export async function POST(request: NextRequest) {
             });
             synced = result.count;
           } catch {
-            // Fallback: try individual creates
             for (const r of recruitersData) {
               try {
                 await db.recruiter.create({ data: r });

@@ -1736,8 +1736,9 @@ export default function QuanLyPage() {
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
             tinhLuot: parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0,
             tinhLuot3tr: (() => {
-              const raw3tr = parseFloat(String(row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0;
-              // Fallback: nếu file không có cột TÍNH LƯỢT 3TR → dùng giá trị TÍNH LƯỢT
+              // Ưu tiên đọc cột "TÍNH LƯỢT 3 tr" (tên chính xác trong file user)
+              const raw3tr = parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0;
+              // Fallback: nếu không có cột TÍNH LƯỢT 3 tr → dùng giá trị TÍNH LƯỢT
               const tinhLuotVal = parseFloat(String(row['TÍNH LƯỢT'] || row['Tính lượt'] || row['tinhLuot'] || '0').replace(/,/g, '')) || 0;
               return raw3tr > 0 ? raw3tr : tinhLuotVal;
             })(),
