@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           namTD: safeInt(c.namTD),
           thangHL: safeInt(c.thangHL),
           tinhLuot: safeFloat(c.tinhLuot),
-          tinhLuot3tr: (() => { const v = safeFloat(c.tinhLuot3tr); return v > 0 ? v : safeFloat(c.tinhLuot); })(),
+          tinhLuot3tr: safeFloat(c.tinhLuot3tr),
           maDaiLyTD: String(c.maDaiLyTD || ''),
           danhDauTVV: String(c.danhDauTVV || ''),
           chucVu2: String(c.chucVu2 || ''),

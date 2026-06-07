@@ -164,9 +164,8 @@ export async function POST(request: NextRequest) {
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
           const tinhLuot = parseNumber(tinhLuotStr);
-          // TÍNH LƯỢT 3 tr: ưu tiên giá trị từ cột này, fallback về TÍNH LƯỢT
-          const tinhLuot3trRaw = parseNumber(tinhLuot3trStr);
-          const tinhLuot3tr = tinhLuot3trRaw > 0 ? tinhLuot3trRaw : (tinhLuot > 0 ? tinhLuot : tinhLuot3trRaw);
+          // TÍNH LƯỢT 3 tr: chỉ đọc từ cột này, KHÔNG fallback
+          const tinhLuot3tr = parseNumber(tinhLuot3trStr);
 
           try {
             await db.contract.upsert({

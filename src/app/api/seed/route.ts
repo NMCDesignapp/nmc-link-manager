@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         fyp,
         afyp,
         tinhLuot,
-        tinhLuot3tr: tinhLuot, // Fallback: seed route CSV không có cột TÍNH LƯỢT 3TR → dùng tinhLuot
+        tinhLuot3tr: 0, // Seed route CSV không có cột TÍNH LƯỢT 3 TR → giữ 0
       });
     }
 
