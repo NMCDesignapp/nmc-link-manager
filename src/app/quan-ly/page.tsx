@@ -63,7 +63,6 @@ interface Contract {
   thangTD: number;
   namTD: number;
   thangHL: number;
-  tinhLuot: number; // DB field - không dùng, giữ cho type compat
   tinhLuot3tr: number;
   maDaiLyTD: string;
   danhDauTVV: string;
@@ -1393,7 +1392,7 @@ export default function QuanLyPage() {
           pdt10DT: 0, fyp: 0, nguonDuLieu: '', hopDongToChuc: '', dkDongPhi: '',
           phiDongThem: 0, afypChuaTru10DT: 0, afyp: 0, ad: '', nhom2: '',
           ngayBatDauLamViec2: null, thangTD: 0, namTD: 0, thangHL: 0,
-          tinhLuot: 0, tinhLuot3tr: 0, maDaiLyTD: '', danhDauTVV: '',
+          tinhLuot3tr: 0, maDaiLyTD: '', danhDauTVV: '',
           chucVu2: '', recruiterCode: '', startDate: null,
         })
       });
@@ -1734,7 +1733,6 @@ export default function QuanLyPage() {
             thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
             namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
             thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
-            tinhLuot: 0, // Cột không có trong file - giữ 0
             tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
             maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
             danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
@@ -3315,7 +3313,7 @@ export default function QuanLyPage() {
                 <div><span className="text-white/50">Ngày PH:</span> <span className="text-white/70">{formatDateDisplay(c.issueDate)}</span></div>
                 <div><span className="text-white/50">PĐT+10%:</span> <span className="text-amber-300 font-mono">{c.pdt10DT > 0 ? formatNumber(c.pdt10DT) : '—'}</span></div>
                 <div><span className="text-white/50">AFYP:</span> <span className="text-amber-300 font-mono">{c.afyp > 0 ? formatNumber(c.afyp) : '—'}</span></div>
-                <div><span className="text-white/50">Tính lượt:</span> <span className={`font-mono ${c.tinhLuot3tr >= 3000000 ? 'text-emerald-300' : 'text-gray-500'}`}>{c.tinhLuot3tr > 0 ? formatNumber(c.tinhLuot3tr) : '—'}</span></div>
+                <div><span className="text-white/50">Tính lượt 3 tr:</span> <span className={`font-mono ${c.tinhLuot3tr >= 3000000 ? 'text-emerald-300' : 'text-gray-500'}`}>{c.tinhLuot3tr > 0 ? formatNumber(c.tinhLuot3tr) : '—'}</span></div>
                 <div><span className="text-white/50">Mã ĐL TD:</span> <span className="text-white/70 font-mono">{c.maDaiLyTD || '—'}</span></div>
               </div>
             </div>

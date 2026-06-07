@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
         ad: true, nhom2: true, ngayBatDauLamViec2: true,
         thangTD: true, namTD: true, thangHL: true,
-        tinhLuot: true, tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
+        tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
         chucVu2: true, recruiterCode: true, startDate: true,
       },
       orderBy: { effectiveDate: 'asc' },
@@ -134,7 +134,6 @@ export async function POST(request: NextRequest) {
           thangTD: safeInt(c.thangTD),
           namTD: safeInt(c.namTD),
           thangHL: safeInt(c.thangHL),
-          tinhLuot: safeFloat(c.tinhLuot),
           tinhLuot3tr: safeFloat(c.tinhLuot3tr),
           maDaiLyTD: String(c.maDaiLyTD || ''),
           danhDauTVV: String(c.danhDauTVV || ''),
@@ -212,7 +211,7 @@ export async function POST(request: NextRequest) {
       ngayBatDauLamViec, effectiveDate, issueDate,
       pdt10DT, fyp, nguonDuLieu, hopDongToChuc, dkDongPhi, phiDongThem,
       afypChuaTru10DT, afyp, ad, nhom2, ngayBatDauLamViec2,
-      thangTD, namTD, thangHL, tinhLuot, tinhLuot3tr, maDaiLyTD, danhDauTVV,
+      thangTD, namTD, thangHL, tinhLuot3tr, maDaiLyTD, danhDauTVV,
       chucVu2, recruiterCode, startDate,
     } = body;
 
@@ -256,7 +255,6 @@ export async function POST(request: NextRequest) {
         thangTD: safeInt(thangTD),
         namTD: safeInt(namTD),
         thangHL: safeInt(thangHL),
-        tinhLuot: safeFloat(tinhLuot),
         tinhLuot3tr: safeFloat(tinhLuot3tr),
         maDaiLyTD: maDaiLyTD || '',
         danhDauTVV: danhDauTVV || '',

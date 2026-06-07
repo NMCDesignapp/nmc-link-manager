@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
       // 5: Mã trưởng Ban/Nhóm (leaderAgentCode), 6: Mã ĐL, 7: Tên, 8: Chức vụ,
       // 9: Ngày bắt đầu làm việc (startDate), 10: Số hợp đồng, 11: Ngày hiệu lực,
       // 12: Ngày phát hành, 13: PĐT + 10% ĐT = FYP/IP,
-      // ... 20: AFYP, 26: Tính Lượt (tinhLuot)
+      // ... 20: AFYP
+      // TÍNH LƯỢT 3 tr column not available in seed CSV
 
       const contractNumber = columns[10] || '';
       const agentCode = columns[6] || '';
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       const issueDateStr = columns[12] || '';
       const fypStr = columns[13] || '';
       const afypStr = columns[20] || '';
-      const tinhLuotStr = columns[26] || '0';   // Tính Lượt
+      // Tính Lượt 3tr not available in current CSV format
 
       // Skip rows without effective date; auto-generate contract number if missing
       if (!effectiveDateStr) continue;
@@ -113,7 +114,6 @@ export async function POST(request: NextRequest) {
         issueDate: issueDate || effectiveDate,
         fyp,
         afyp,
-        tinhLuot: 0, // Cột không có trong file - giữ 0
         tinhLuot3tr: 0, // Seed route CSV không có cột TÍNH LƯỢT 3 TR → giữ 0
       });
     }

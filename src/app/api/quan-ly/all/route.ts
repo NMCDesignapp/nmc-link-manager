@@ -18,7 +18,7 @@ export async function GET() {
             dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
             ad: true, nhom2: true, ngayBatDauLamViec2: true,
             thangTD: true, namTD: true, thangHL: true,
-            tinhLuot: true, tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
+            tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
             chucVu2: true, recruiterCode: true, startDate: true,
           },
           orderBy: { effectiveDate: 'asc' },

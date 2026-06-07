@@ -51,7 +51,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.thangTD !== undefined) data.thangTD = parseInt(body.thangTD) || 0;
     if (body.namTD !== undefined) data.namTD = parseInt(body.namTD) || 0;
     if (body.thangHL !== undefined) data.thangHL = parseInt(body.thangHL) || 0;
-    if (body.tinhLuot !== undefined) data.tinhLuot = parseFloat(body.tinhLuot) || 0;
     if (body.tinhLuot3tr !== undefined) data.tinhLuot3tr = parseFloat(body.tinhLuot3tr) || 0;
     if (body.maDaiLyTD !== undefined) data.maDaiLyTD = body.maDaiLyTD;
     if (body.danhDauTVV !== undefined) data.danhDauTVV = body.danhDauTVV;

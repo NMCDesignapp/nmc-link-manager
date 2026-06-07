@@ -30,7 +30,7 @@ interface Contract {
   position: string; ban: string; nhom: string; maNhom: string;
   leaderAgentCode: string; recruiterCode: string;
   startDate: string | null; effectiveDate: string; issueDate: string;
-  fyp: number; afyp: number; tinhLuot: number; // DB field - không dùng
+  fyp: number; afyp: number;
   pdt10DT: number; tinhLuot3tr: number; maDaiLyTD: string; ngayBatDauLamViec: string | null;
 }
 

@@ -186,7 +186,6 @@ export async function POST(request: NextRequest) {
                 thangTD: parseInt(thangTDStr) || 0,
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
-                tinhLuot: 0, // Cột không có trong file - giữ 0
                 tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
@@ -211,7 +210,6 @@ export async function POST(request: NextRequest) {
                 thangTD: parseInt(thangTDStr) || 0,
                 namTD: parseInt(namTDStr) || 0,
                 thangHL: parseInt(thangHLStr) || 0,
-                tinhLuot: 0, // Cột không có trong file - giữ 0
                 tinhLuot3tr,
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
