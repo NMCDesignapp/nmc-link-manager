@@ -1537,6 +1537,25 @@ export default function ThiDuaPage() {
     XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  // Helper: inject a <style> tag that hides all scrollbars via CSS for image capture
+  const hideScrollbarsStyleId = 'nmc-hide-scrollbars-style';
+  const hideAllScrollbars = () => {
+    let style = document.getElementById(hideScrollbarsStyleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = hideScrollbarsStyleId;
+      style.textContent = `
+        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+      `;
+      document.head.appendChild(style);
+    }
+  };
+  const restoreAllScrollbars = () => {
+    const style = document.getElementById(hideScrollbarsStyleId);
+    if (style) style.remove();
+  };
+
   // Download image function - using html-to-image
   const handleDownloadImage = async () => {
     setIsDownloadingImage(true);
@@ -1552,6 +1571,7 @@ export default function ThiDuaPage() {
       const origOverflow = el.style.overflow;
       el.style.width = 'fit-content';
       el.style.overflow = 'hidden';
+      hideAllScrollbars();
       const blob = await toBlob(el, {
         quality: 1,
         pixelRatio: 2,
@@ -1559,6 +1579,7 @@ export default function ThiDuaPage() {
       });
       el.style.width = origWidth;
       el.style.overflow = origOverflow;
+      restoreAllScrollbars();
       if (!blob) {
         toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
         return;
@@ -1593,6 +1614,7 @@ export default function ThiDuaPage() {
       const origOverflow = el.style.overflow;
       el.style.width = 'fit-content';
       el.style.overflow = 'hidden';
+      hideAllScrollbars();
       const blob = await toBlob(el, {
         quality: 1,
         pixelRatio: 2,
@@ -1600,6 +1622,7 @@ export default function ThiDuaPage() {
       });
       el.style.width = origWidth;
       el.style.overflow = origOverflow;
+      restoreAllScrollbars();
       if (!blob) {
         toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
         return;
