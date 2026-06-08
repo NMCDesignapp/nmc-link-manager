@@ -223,6 +223,18 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('vi-VN').format(n);
 }
 
+// Smart currency formatting: mobile shows trđ/tỷ, desktop shows full đ
+function formatSmartCurrency(amount: number): string {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile) {
+    if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
+    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
+    if (amount >= 1_000) return `${(amount / 1_000).toFixed(1).replace(/\.?0+$/, '')} ngàn`;
+    return `${amount} đ`;
+  }
+  return formatCurrency(amount);
+}
+
 // Helper: convert any date value to yyyy-mm-dd for <input type="date">
 function toInputDate(val: any): string {
   if (!val) return '';
@@ -1872,10 +1884,10 @@ export default function QuanLyPage() {
   // Năng suất = SL hợp đồng / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
   const nangSuat = luotHoatDong > 0 ? totalRevenueContractCount / luotHoatDong : 0;
 
-  // SL tuyển dụng = đếm TVV có ngày bắt đầu làm việc trong năm hiện tại (từ cấu trúc)
-  const slTuyenDungNam = tvvStructList.filter(t => {
-    if (!t.ngayBatDau) return false;
-    const d = new Date(t.ngayBatDau);
+  // SL tuyển dụng = đếm HĐ có ngày bắt đầu làm việc trong năm hiện tại
+  const slTuyenDungNam = yearContracts.filter(c => {
+    if (!c.ngayBatDauLamViec) return false;
+    const d = new Date(c.ngayBatDauLamViec);
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   }).length;
 
@@ -2051,24 +2063,26 @@ export default function QuanLyPage() {
       {/* Row 1: Core Revenue KPIs - 5 cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'TỔNG AFYP', value: formatCurrency(totalRevenueAFYP), target: targetTongAFYP, targetFmt: formatCurrency(targetTongAFYP), color: 'bg-sky-500/20 border-sky-500/30', icon: DollarSign },
-          { label: 'TỔNG IP', value: formatCurrency(totalRevenue), target: targetTongIP, targetFmt: formatCurrency(targetTongIP), color: 'bg-emerald-500/20 border-emerald-500/30', icon: DollarSign },
-          { label: 'TỶ TRONG IP', value: ipAfypRatio.toFixed(1) + '%', color: 'bg-cyan-500/20 border-cyan-500/30', icon: Percent },
-          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-violet-500/20 border-violet-500/30', icon: Hash },
-          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-rose-500/20 border-rose-500/30', icon: CheckCircle2 },
+          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawValue: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), color: 'bg-gradient-to-br from-amber-100 to-amber-50', icon: DollarSign },
+          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawValue: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50', icon: DollarSign },
+          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawValue: ipAfypRatio, target: 0, targetFmt: '', color: 'bg-gradient-to-br from-cyan-100 to-cyan-50', icon: Percent },
+          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawValue: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-gradient-to-br from-violet-100 to-violet-50', icon: Hash },
+          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawValue: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-gradient-to-br from-rose-100 to-rose-50', icon: CheckCircle2 },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
+          const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-white/80" /><p className="text-white/80 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-white text-base font-extrabold truncate">{kpi.value}</p>
+            <div key={i} className={`${kpi.color} rounded-[2px] p-3 shadow-md text-center relative`}>
+              {kpi.target > 0 && (
+                <span className={`absolute top-1.5 right-2 text-lg font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+              )}
+              <div className="flex items-center justify-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-gray-600" /><p className="text-gray-700 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-gray-900 text-base font-extrabold truncate">{kpi.value}</p>
               {kpi.target > 0 ? (
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-[9px]">
-                    <span className="text-gray-300">CT: {kpi.targetFmt}</span>
-                    <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
+                    <span className="text-gray-500">CT: {kpi.targetFmt}</span>
                   </div>
-                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />
                 </div>
               ) : (
                 <div className="mt-2 h-[22px]"></div>
@@ -2081,25 +2095,27 @@ export default function QuanLyPage() {
       {/* Row 2: Secondary KPIs - 6 cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-amber-500/20 border-amber-500/30', icon: FileText },
-          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-sky-500/20 border-sky-500/30', icon: TrendingUp },
-          { label: 'ĐLHĐ', value: formatCurrency(doLonHD), target: targetDLHD, targetFmt: formatCurrency(targetDLHD), color: 'bg-emerald-500/20 border-emerald-500/30', icon: BarChart3 },
-          { label: 'SL TB/TN', value: formatNumber(totalLeaders), target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-violet-500/20 border-violet-500/30', icon: Users },
-          { label: 'SL NTD', value: formatNumber(totalRecruiters), target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-amber-500/20 border-amber-500/30', icon: UserCircle },
-          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-emerald-500/20 border-emerald-500/30', icon: UserPlus },
+          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawValue: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-gradient-to-br from-amber-100 to-amber-50', icon: FileText },
+          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawValue: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-gradient-to-br from-sky-100 to-sky-50', icon: TrendingUp },
+          { label: 'ĐLHĐ', value: formatSmartCurrency(doLonHD), rawValue: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50', icon: BarChart3 },
+          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawValue: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-gradient-to-br from-violet-100 to-violet-50', icon: Users },
+          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawValue: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-gradient-to-br from-orange-100 to-orange-50', icon: UserCircle },
+          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawValue: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-gradient-to-br from-teal-100 to-teal-50', icon: UserPlus },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((parseFloat(String(kpi.value).replace(/[^\d.-]/g, '')) || 0) / kpi.target * 100, 100) : 0;
+          const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} border rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-white/80" /><p className="text-white/80 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-white text-base font-extrabold truncate">{kpi.value}</p>
+            <div key={i} className={`${kpi.color} rounded-[2px] p-3 shadow-md text-center relative`}>
+              {kpi.target > 0 && (
+                <span className={`absolute top-1.5 right-2 text-lg font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+              )}
+              <div className="flex items-center justify-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-gray-600" /><p className="text-gray-700 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
+              <p className="text-gray-900 text-base font-extrabold truncate">{kpi.value}</p>
               {kpi.target > 0 ? (
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-[9px]">
-                    <span className="text-gray-300">CT: {kpi.targetFmt}</span>
-                    <span className={`font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct.toFixed(0)}%</span>
+                    <span className="text-gray-500">CT: {kpi.targetFmt}</span>
                   </div>
-                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-800 [&>div]:bg-emerald-400" />
+                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />
                 </div>
               ) : (
                 <div className="mt-2 h-[22px]"></div>
@@ -2110,8 +2126,8 @@ export default function QuanLyPage() {
       </div>
 
       {/* Monthly Plan Targets Overview (Kế hoạch AFYP từng tháng) */}
-      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3">
-        <h3 className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
+      <div className="bg-white rounded-[2px] p-3 shadow-md border border-gray-200">
+        <h3 className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5" /> Kế hoạch AFYP từng tháng
         </h3>
         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
@@ -2126,78 +2142,90 @@ export default function QuanLyPage() {
             const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             return (
-              <div key={i} className={`bg-gray-800/60 border rounded-md p-1.5 text-center ${isCurrent ? 'border-emerald-500/50 ring-1 ring-emerald-400/30' : 'border-emerald-500/20'}`}>
-                <p className={`text-[9px] font-bold mb-0.5 ${isCurrent ? 'text-emerald-300' : 'text-gray-400'}`}>T{i + 1}</p>
-                <p className="text-[8px] text-amber-300 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
-                <p className={`text-[8px] font-bold ${pct >= 100 ? 'text-emerald-300' : pct >= 70 ? 'text-amber-300' : actualAFYP > 0 ? 'text-sky-300' : 'text-gray-600'}`}>
+              <div key={i} className={`bg-gradient-to-br from-amber-50 to-white rounded-[2px] p-1.5 text-center shadow-sm relative ${isCurrent ? 'ring-2 ring-amber-400' : 'border border-gray-200'}`}>
+                {target > 0 && (
+                  <span className={`absolute top-0.5 right-1 text-xs font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+                )}
+                <p className={`text-xs font-bold mb-0.5 ${isCurrent ? 'text-amber-700' : 'text-gray-600'}`}>T{i + 1}</p>
+                <p className="text-[10px] text-gray-500 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
+                <p className={`text-sm font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : actualAFYP > 0 ? 'text-sky-700' : 'text-gray-400'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
-                {target > 0 && <Progress value={pct} className="h-0.5 mt-0.5 bg-gray-700 [&>div]:bg-emerald-400" />}
-                {pct >= 100 && <p className="text-[7px] text-emerald-300 font-bold">✓</p>}
+                {target > 0 && <Progress value={pct} className="h-1 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />}
               </div>
             );
           })}
         </div>
-        <p className="text-[8px] text-gray-500 mt-1">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
+        <p className="text-[10px] text-gray-500 mt-1">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
       </div>
 
-      {/* Monthly AFYP Progress Chart */}
+      {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện */}
       {(() => {
-        const monthlyTarget = targetTongAFYP > 0 ? targetTongAFYP / 12 : 0;
         const monthlyData = Array.from({ length: 12 }, (_, i) => {
           const m = String(i + 1).padStart(2, '0');
           const mc = yearContracts.filter(c => {
             const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
           });
-          return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length };
+          const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
+          return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length, target };
         });
-        const maxAfyp = Math.max(...monthlyData.map(d => d.afyp), ...Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).filter(v => v > 0), monthlyTarget || 1);
+        const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
+        const currentMonth = new Date().getMonth() + 1;
         return (
-          <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
+          <div className="bg-white rounded-[2px] p-4 shadow-md border border-gray-200">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
-                <BarChart3 className="w-4 h-4" /> Tiến độ AFYP hàng tháng
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-gray-600" /> Tiến độ AFYP hàng tháng
               </h3>
-              {monthlyTarget > 0 && (
-                <span className="text-[10px] text-gray-400">Mục tiêu/tháng: {formatCurrency(Math.round(monthlyTarget))}</span>
-              )}
+              <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-amber-400 rounded-[1px] inline-block"></span> Kế hoạch</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-[1px] inline-block"></span> Thực hiện</span>
+              </div>
             </div>
-            <div className="flex items-end gap-1.5 h-[180px]">
-              {monthlyData.map(d => {
-                const barHeight = maxAfyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
-                const specificTarget = parseFloat(onlineSettings[`nmc-target-afyp-month-${d.month}`] || '0') || monthlyTarget;
-                const targetLine = specificTarget > 0 ? (specificTarget / maxAfyp) * 100 : 0;
-                const isComplete = d.afyp > 0;
-                const reached = specificTarget > 0 && d.afyp >= specificTarget;
-                const currentMonth = new Date().getMonth() + 1;
-                const isCurrent = d.index + 1 === currentMonth;
-                return (
-                  <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
-                    {specificTarget > 0 && (
-                      <div className="absolute w-full border-t border-dashed border-amber-400/60 z-10" style={{ bottom: `${targetLine}%` }} title={`CT: ${formatCurrency(Math.round(specificTarget))}`}></div>
-                    )}
-                    <div className="flex-1 w-full flex items-end justify-center">
-                      <div
-                        className={`w-full max-w-[32px] rounded-t-sm transition-all ${reached ? 'bg-emerald-500/70' : isComplete ? 'bg-sky-500/60' : 'bg-gray-700/30'} ${isCurrent ? 'ring-1 ring-emerald-400/50' : ''}`}
-                        style={{ height: `${Math.max(barHeight, 1)}%` }}
-                        title={`T${d.index + 1}: AFYP ${formatCurrency(d.afyp)} | IP ${formatCurrency(d.ip)} | ${d.count} HĐ${specificTarget > 0 ? ` | CT: ${formatCurrency(Math.round(specificTarget))}` : ''}`}
-                      ></div>
-                    </div>
-                    <p className={`text-[9px] mt-1 font-bold ${isCurrent ? 'text-emerald-300' : 'text-gray-400'}`}>T{d.index + 1}</p>
-                    {isComplete && (
-                      <p className={`text-[8px] font-bold ${reached ? 'text-emerald-300' : 'text-sky-300'}`}>
-                        {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
-                      </p>
-                    )}
+            {/* Grid lines */}
+            <div className="relative">
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                {[0, 25, 50, 75, 100].map(pct => (
+                  <div key={pct} className="border-t border-gray-100 relative">
+                    <span className="absolute -left-1 -top-2 text-[8px] text-gray-400">{formatSmartCurrency(Math.round(maxAfyp * pct / 100))}</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-4 mt-2 text-[9px] text-gray-500">
-              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-sky-500/60 rounded-sm inline-block"></span> AFYP</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500/70 rounded-sm inline-block"></span> Đạt CT</span>
-              {monthlyTarget > 0 && <span className="flex items-center gap-1"><span className="w-4 border-t border-dashed border-amber-400/60 inline-block"></span> Mục tiêu</span>}
+                ))}
+              </div>
+              {/* Chart bars */}
+              <div className="flex items-end gap-2 h-[200px] ml-10">
+                {monthlyData.map(d => {
+                  const planHeight = d.target > 0 ? (d.target / maxAfyp) * 100 : 0;
+                  const actualHeight = d.afyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
+                  const reached = d.target > 0 && d.afyp >= d.target;
+                  const isCurrent = d.index + 1 === currentMonth;
+                  const pct = d.target > 0 ? Math.min((d.afyp / d.target) * 100, 100) : 0;
+                  return (
+                    <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
+                      <div className="flex-1 w-full flex items-end justify-center gap-[2px]">
+                        {/* Plan bar (outline) */}
+                        <div
+                          className={`w-2/5 border-2 border-amber-400 rounded-t-[1px] ${isCurrent ? 'border-amber-500' : ''}`}
+                          style={{ height: `${Math.max(planHeight, 1)}%` }}
+                          title={`T${d.index + 1} KH: ${formatCurrency(d.target)}`}
+                        ></div>
+                        {/* Actual bar (filled) */}
+                        <div
+                          className={`w-2/5 rounded-t-[1px] transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-gray-200'} ${isCurrent ? 'ring-1 ring-emerald-400' : ''}`}
+                          style={{ height: `${Math.max(actualHeight, 1)}%` }}
+                          title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${pct.toFixed(0)}%` : ''}`}
+                        ></div>
+                      </div>
+                      <p className={`text-[10px] mt-1 font-bold ${isCurrent ? 'text-amber-700' : 'text-gray-500'}`}>T{d.index + 1}</p>
+                      {d.afyp > 0 && (
+                        <p className={`text-[9px] font-bold ${reached ? 'text-emerald-700' : 'text-sky-700'}`}>
+                          {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
@@ -3232,10 +3260,10 @@ export default function QuanLyPage() {
             <button
               key={m.key}
               onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); }}
-              className={`px-2.5 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
+              className={`px-2.5 py-1 rounded-[2px] text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 revenueSub === m.key
-                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
-                  : 'bg-emerald-800/60 text-emerald-300/70 hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent'
+                  ? 'bg-amber-100 border border-amber-300 text-amber-800 shadow-sm'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-amber-50 shadow-sm'
               }`}
             >
               {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
@@ -3244,37 +3272,39 @@ export default function QuanLyPage() {
           ))}
         </div>
 
-        {/* Compact KPI strip — grid on mobile, flex on desktop */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:flex gap-1.5 sm:gap-1.5 mb-3">
-          {[
-            { label: 'SL HĐ', value: formatNumber(soLuongHD), color: 'bg-amber-500/20 border-amber-500/30' },
-            { label: 'IP + 10% PĐT', value: formatCurrency(tongIP), color: 'bg-emerald-500/20 border-emerald-500/30' },
-            { label: 'AFYP', value: formatCurrency(tongAFYP), color: 'bg-sky-500/20 border-sky-500/30' },
-            { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-violet-500/20 border-violet-500/30' },
-            { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-rose-500/20 border-rose-500/30' },
-            { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-emerald-500/20 border-emerald-500/30' },
-            { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-sky-500/20 border-sky-500/30' },
-            { label: 'ĐLHĐ', value: formatCurrency(dlhdMonth), color: 'bg-emerald-500/20 border-emerald-500/30' },
-            { label: 'NTD HĐ', value: formatNumber(activeNTD.size), color: 'bg-violet-500/20 border-violet-500/30' },
-            { label: 'SL TD', value: formatNumber(slTuyenDungPeriod), color: 'bg-emerald-500/20 border-emerald-500/30' },
-          ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} border rounded-md px-2 sm:px-2.5 py-1.5 backdrop-blur-sm`} style={{ boxShadow: '0 0 8px rgba(0, 255, 136, 0.08)' }}>
-              <p className="text-white/70 text-[8px] sm:text-[8px] font-bold leading-tight">{kpi.label}</p>
-              <p className="text-white text-[11px] sm:text-[11px] font-extrabold truncate">{kpi.value}</p>
-            </div>
-          ))}
-        </div>
+        {/* Layout: Indicators (1/3) + Table (2/3) */}
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* KPI Indicator strip — left side on desktop, full width on mobile */}
+          <div className="lg:w-1/3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
+            {[
+              { label: 'SL HĐ', value: formatNumber(soLuongHD), color: 'bg-gradient-to-br from-amber-100 to-amber-50' },
+              { label: 'IP + 10% PĐT', value: formatSmartCurrency(tongIP), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50' },
+              { label: 'AFYP', value: formatSmartCurrency(tongAFYP), color: 'bg-gradient-to-br from-sky-100 to-sky-50' },
+              { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-gradient-to-br from-violet-100 to-violet-50' },
+              { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-gradient-to-br from-rose-100 to-rose-50' },
+              { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-gradient-to-br from-cyan-100 to-cyan-50' },
+              { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-gradient-to-br from-sky-100 to-sky-50' },
+              { label: 'ĐLHĐ', value: formatSmartCurrency(dlhdMonth), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50' },
+            ].map((kpi, i) => (
+              <div key={i} className={`${kpi.color} rounded-[2px] p-2 shadow-md text-center`}>
+                <p className="text-gray-600 text-[9px] font-bold leading-tight">{kpi.label}</p>
+                <p className="text-gray-900 text-sm font-extrabold truncate">{kpi.value}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* Nhóm filter + table header */}
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <h3 className="text-xs sm:text-sm font-bold text-amber-300">
-            {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
-          </h3>
+          {/* Table section — right side on desktop, full width on mobile */}
+          <div className="lg:w-2/3">
+            {/* Nhóm filter + table header */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-700">
+                {revenueSub === 'all' ? `Tổng hợp năm ${currentYear}` : monthLabel} — {sortedContracts.length} HĐ
+              </h3>
           {uniqueNhoms.length > 0 && (
             <select
               value={settingsNhomFilter}
               onChange={(e) => setSettingsNhomFilter(e.target.value)}
-              className="h-7 text-[10px] bg-gray-800 border border-emerald-500/30 text-white rounded px-2"
+              className="h-7 text-[10px] bg-white border border-gray-300 text-gray-700 rounded-[2px] px-2"
             >
               <option value="">Tất cả Nhóm</option>
               {uniqueNhoms.map(n => (
@@ -3282,17 +3312,9 @@ export default function QuanLyPage() {
               ))}
             </select>
           )}
-          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded text-[11px] font-medium cursor-pointer"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
-          <Button onClick={async () => {
-            if (!confirm('Tính lại doanh thu từ tất cả HĐ?\nSẽ xóa doanh thu cũ và tính lại từ đầu.')) return;
-            try {
-              const r = await fetch('/api/revenue/sync-from-contracts', { method: 'POST' });
-              if (r.ok) { const data = await r.json(); toast({ title: 'Đã tính doanh thu', description: data.message }); await fetchAllData(); }
-              else { const err = await r.json().catch(() => ({})); toast({ title: 'Lỗi', description: err.error || 'Không thể tính doanh thu', variant: 'destructive' }); }
-            } catch { toast({ title: 'Lỗi', description: 'Không thể kết nối', variant: 'destructive' }); }
-          }} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><Calculator className="w-3 h-3 mr-1" /> Tính doanh thu</Button>
-          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-7 text-xs"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
-          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
+          <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-800 rounded-[2px] text-[11px] font-medium cursor-pointer shadow-sm"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 h-7 text-xs rounded-[2px]"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('contracts')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 h-7 text-xs rounded-[2px]"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
         </div>
 
         {/* ===== Mobile card view (hidden on md+) ===== */}
@@ -3413,9 +3435,11 @@ export default function QuanLyPage() {
 
         {/* Footer summary */}
         <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
-          IP + 10% PĐT: {formatCurrency(tongIP)} • AFYP: {formatCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatCurrency(dlhdMonth)} • NTD: {activeNTD.size}
+          IP + 10% PĐT: {formatSmartCurrency(tongIP)} • AFYP: {formatSmartCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatSmartCurrency(dlhdMonth)}
         </p>
       </div>
+          </div>
+        </div>
     );
   };
 
