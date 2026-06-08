@@ -1360,7 +1360,7 @@ export default function QuanLyPage() {
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
-      overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct()]); }, // Fetch all data + structure for SL Tuyển Dụng
+      overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); }, // Fetch all data + structure for Kế hoạch targets
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
