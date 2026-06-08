@@ -3921,99 +3921,132 @@ export default function QuanLyPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 mt-2">
-            {/* Section 1: Chỉ tiêu (Targets) */}
+            {/* Section 1: Kế hoạch Năm */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
-                <Target className="w-4 h-4 text-amber-400" /> Chỉ tiêu
+                <Target className="w-4 h-4 text-amber-400" /> Kế hoạch Năm
               </h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Tổng IP', key: 'nmc-target-tong-ip', val: targetTongIP, fmt: (v: number) => formatCurrency(v) },
-                  { label: 'Tổng AFYP', key: 'nmc-target-tong-afyp', val: targetTongAFYP, fmt: (v: number) => formatCurrency(v) },
-                  { label: 'SL HĐ', key: 'nmc-target-tong-sl-hd', val: targetTongSLHD, fmt: (v: number) => formatNumber(v) },
-                  { label: 'Lượt HĐ', key: 'nmc-target-luot-hd', val: targetLuotHD, fmt: (v: number) => formatNumber(v) },
-                  { label: 'Lượt HĐ chuẩn', key: 'nmc-target-luot-hd-chuan', val: targetLuotHDChuan, fmt: (v: number) => formatNumber(v) },
-                  { label: 'Năng suất', key: 'nmc-target-nang-suat', val: targetNangSuat, fmt: (v: number) => v.toFixed(1) },
-                  { label: 'ĐLHĐ', key: 'nmc-target-dlhd', val: targetDLHD, fmt: (v: number) => formatCurrency(v) },
-                  { label: 'SL TB/TN', key: 'nmc-target-sl-tb-tn', val: targetSLTBTN, fmt: (v: number) => formatNumber(v) },
-                  { label: 'SL NTD', key: 'nmc-target-sl-ntd', val: targetSLNTD, fmt: (v: number) => formatNumber(v) },
-                  { label: 'SL Tuyển dụng', key: 'nmc-target-sl-tuyen-dung', val: targetSLTuyenDung, fmt: (v: number) => formatNumber(v) },
-                ].map(item => (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <Label className="text-[10px] text-gray-400 w-24 shrink-0">{item.label}</Label>
-                    <Input
-                      type="number"
-                      defaultValue={item.val || ''}
-                      placeholder="Chỉ tiêu..."
-                      className="h-7 text-[10px] bg-gray-800 border-emerald-500/30 text-white flex-1"
-                      onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(item.key, String(v)); } }}
-                    />
-                    <span className="text-[9px] text-gray-500 w-20 text-right truncate">{item.val > 0 ? item.fmt(item.val) : '—'}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t border-emerald-500/20 pt-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-gray-400 w-24 shrink-0">Mục DS năm</Label>
-                  <Input
-                    type="number"
-                    defaultValue={annualRevenueTarget || ''}
-                    placeholder="Mục doanh số..."
-                    className="h-9 text-sm bg-gray-800 border-amber-500/30 text-white flex-1 min-w-[140px]"
-                    onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting('nmc-annual-revenue-target', String(v)); } }}
-                  />
-                  <span className="text-[9px] text-gray-500 w-20 text-right truncate">{annualRevenueTarget > 0 ? formatCurrency(annualRevenueTarget) : '—'}</span>
-                </div>
+                  { label: 'AFYP', key: 'nmc-target-tong-afyp', val: targetTongAFYP, fmt: (v: number) => formatCurrency(v), actual: totalRevenueAFYP, color: 'sky' },
+                  { label: 'Lượt HĐ', key: 'nmc-target-luot-hd', val: targetLuotHD, fmt: (v: number) => formatNumber(v), actual: luotHoatDong, color: 'violet' },
+                  { label: 'Lượt HĐ chuẩn', key: 'nmc-target-luot-hd-chuan', val: targetLuotHDChuan, fmt: (v: number) => formatNumber(v), actual: luotHDChuan, color: 'rose' },
+                ].map(item => {
+                  const pct = item.val > 0 ? (item.actual / item.val) * 100 : 0;
+                  const colorMap: Record<string, string> = {
+                    sky: 'border-sky-500/30 bg-sky-500/10',
+                    violet: 'border-violet-500/30 bg-violet-500/10',
+                    rose: 'border-rose-500/30 bg-rose-500/10',
+                  };
+                  const inputColorMap: Record<string, string> = {
+                    sky: 'border-sky-500/30 focus:border-sky-400',
+                    violet: 'border-violet-500/30 focus:border-violet-400',
+                    rose: 'border-rose-500/30 focus:border-rose-400',
+                  };
+                  const pctColorMap: Record<string, string> = {
+                    sky: 'text-sky-400',
+                    violet: 'text-violet-400',
+                    rose: 'text-rose-400',
+                  };
+                  return (
+                    <div key={item.key} className={`rounded-lg p-3 border ${colorMap[item.color]} space-y-2`}>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-white">{item.label}</Label>
+                        {item.val > 0 && (
+                          <span className={`text-[10px] font-bold ${pctColorMap[item.color]}`}>{pct.toFixed(1)}%</span>
+                        )}
+                      </div>
+                      <Input
+                        type="number"
+                        defaultValue={item.val || ''}
+                        placeholder="Nhập kế hoạch..."
+                        className={`h-9 text-sm bg-white/5 ${inputColorMap[item.color]} text-white`}
+                        onBlur={(e) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { const v = parseFloat((e.target as HTMLInputElement).value) || 0; saveSetting(item.key, String(v)); } }}
+                      />
+                      {item.val > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px]">
+                            <span className="text-white/50">Thực tế: {item.fmt(item.actual)}</span>
+                            <span className="text-white/50">KH: {item.fmt(item.val)}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-emerald-400' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {/* Kế hoạch từng tháng */}
-              <div className="border-t border-emerald-500/20 pt-2 mt-2">
-                <h4 className="text-[10px] font-bold text-amber-300 mb-2 flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Kế hoạch từng tháng
+              <div className="border-t border-emerald-500/20 pt-3 mt-2">
+                <h4 className="text-xs font-bold text-amber-300 mb-3 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" /> Kế hoạch từng tháng
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {Array.from({length: 12}, (_, i) => {
                     const m = String(i + 1).padStart(2, '0');
                     const keys = {
-                      ip: `nmc-target-ip-month-${m}`,
                       afyp: `nmc-target-afyp-month-${m}`,
                       luotHD: `nmc-target-luot-hd-month-${m}`,
-                      slHD: `nmc-target-sl-hd-month-${m}`,
-                      tyTrong: `nmc-target-ty-trong-month-${m}`,
-                      slTD: `nmc-target-sl-td-month-${m}`,
+                      luotHDChuan: `nmc-target-luot-hd-chuan-month-${m}`,
                     };
                     const vals = {
-                      ip: parseFloat(onlineSettings[keys.ip] || '0') || 0,
                       afyp: parseFloat(onlineSettings[keys.afyp] || '0') || 0,
                       luotHD: parseFloat(onlineSettings[keys.luotHD] || '0') || 0,
-                      slHD: parseFloat(onlineSettings[keys.slHD] || '0') || 0,
-                      tyTrong: parseFloat(onlineSettings[keys.tyTrong] || '0') || 0,
-                      slTD: parseFloat(onlineSettings[keys.slTD] || '0') || 0,
+                      luotHDChuan: parseFloat(onlineSettings[keys.luotHDChuan] || '0') || 0,
                     };
+                    // Calculate actual AFYP for this month
+                    const monthActualAFYP = yearContracts.filter(c => getMonthForRevenue(c) === i + 1).reduce((s, c) => s + c.afyp, 0);
+                    const afypPct = vals.afyp > 0 ? (monthActualAFYP / vals.afyp) * 100 : 0;
                     return (
-                      <div key={m} className="bg-gray-800 rounded-md p-2 border border-emerald-500/20 space-y-1">
+                      <div key={m} className="bg-white/5 rounded-lg p-2.5 border border-emerald-500/20 space-y-2">
                         <p className="text-[10px] font-bold text-emerald-300">Tháng {i + 1}</p>
-                        {[
-                          { label: 'IP', key: keys.ip, val: vals.ip },
-                          { label: 'AFYP', key: keys.afyp, val: vals.afyp },
-                          { label: 'Lượt HĐ', key: keys.luotHD, val: vals.luotHD },
-                          { label: 'SL HĐ', key: keys.slHD, val: vals.slHD },
-                          { label: 'Tỷ trọng%', key: keys.tyTrong, val: vals.tyTrong },
-                          { label: 'SL TD', key: keys.slTD, val: vals.slTD },
-                        ].map(item => (
-                          <div key={item.key} className="flex items-center gap-1">
-                            <Label className="text-[8px] text-gray-400 w-14 shrink-0">{item.label}</Label>
-                            <Input
-                              type="number"
-                              defaultValue={item.val || ''}
-                              placeholder="0"
-                              className="h-5 text-[9px] bg-gray-700 border-gray-600 text-white flex-1 px-1"
-                              onBlur={(e: any) => { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); }}
-                              onKeyDown={(e: any) => { if (e.key === 'Enter') { const v = parseFloat(e.target.value) || 0; saveSetting(item.key, String(v)); } }}
-                            />
+                        {/* AFYP with % */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <Label className="text-[8px] text-sky-300/70">AFYP</Label>
+                            {vals.afyp > 0 && <span className="text-[8px] font-bold text-sky-400">{afypPct.toFixed(0)}%</span>}
                           </div>
-                        ))}
+                          <Input
+                            type="number"
+                            defaultValue={vals.afyp || ''}
+                            placeholder="0"
+                            className="h-7 text-[10px] bg-white/5 border-sky-500/20 text-white px-2"
+                            onBlur={(e: any) => { const v = parseFloat(e.target.value) || 0; saveSetting(keys.afyp, String(v)); }}
+                            onKeyDown={(e: any) => { if (e.key === 'Enter') { const v = parseFloat(e.target.value) || 0; saveSetting(keys.afyp, String(v)); } }}
+                          />
+                          {vals.afyp > 0 && (
+                            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                              <div className={`h-full rounded-full ${afypPct >= 100 ? 'bg-emerald-400' : afypPct >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${Math.min(afypPct, 100)}%` }} />
+                            </div>
+                          )}
+                        </div>
+                        {/* Lượt HĐ */}
+                        <div>
+                          <Label className="text-[8px] text-violet-300/70 mb-1 block">Lượt HĐ</Label>
+                          <Input
+                            type="number"
+                            defaultValue={vals.luotHD || ''}
+                            placeholder="0"
+                            className="h-7 text-[10px] bg-white/5 border-violet-500/20 text-white px-2"
+                            onBlur={(e: any) => { const v = parseFloat(e.target.value) || 0; saveSetting(keys.luotHD, String(v)); }}
+                            onKeyDown={(e: any) => { if (e.key === 'Enter') { const v = parseFloat(e.target.value) || 0; saveSetting(keys.luotHD, String(v)); } }}
+                          />
+                        </div>
+                        {/* Lượt HĐ chuẩn */}
+                        <div>
+                          <Label className="text-[8px] text-rose-300/70 mb-1 block">Lượt HĐ chuẩn</Label>
+                          <Input
+                            type="number"
+                            defaultValue={vals.luotHDChuan || ''}
+                            placeholder="0"
+                            className="h-7 text-[10px] bg-white/5 border-rose-500/20 text-white px-2"
+                            onBlur={(e: any) => { const v = parseFloat(e.target.value) || 0; saveSetting(keys.luotHDChuan, String(v)); }}
+                            onKeyDown={(e: any) => { if (e.key === 'Enter') { const v = parseFloat(e.target.value) || 0; saveSetting(keys.luotHDChuan, String(v)); } }}
+                          />
+                        </div>
                       </div>
                     );
                   })}
