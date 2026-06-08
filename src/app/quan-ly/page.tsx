@@ -3567,25 +3567,22 @@ export default function QuanLyPage() {
                             {/* TVV list — animated slide-down */}
                             <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                               {bnTVVs.length > 0 ? (
-                                <div className="ml-3 mt-0.5 bg-violet-500/5 border border-violet-500/15 rounded-md overflow-hidden">
+                                <div className="ml-3 mt-0.5 space-y-0">
                                   {bnTVVs.map((t, idx) => (
                                     <div
                                       key={t.id}
-                                      className="flex items-center justify-between px-3 py-1.5 hover:bg-violet-500/10 transition-all duration-200 border-b border-violet-500/5 last:border-b-0"
+                                      className="flex items-center gap-2 px-2.5 py-1 hover:bg-violet-500/8 transition-all duration-200 rounded-sm group"
                                       style={{
-                                        transitionDelay: isExpanded ? `${idx * 40}ms` : '0ms',
-                                        transform: isExpanded ? 'translateX(0)' : 'translateX(-8px)',
+                                        transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
+                                        transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
                                         opacity: isExpanded ? 1 : 0,
                                       }}
                                     >
-                                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                        <Users className="w-2.5 h-2.5 text-violet-400 flex-shrink-0" />
-                                        <div className="min-w-0">
-                                          <p className="text-white text-[10px] font-semibold truncate">{t.agentName}</p>
-                                          <p className="text-violet-200/50 text-[8px]">{t.agentCode}{t.chucVu ? ` • ${t.chucVu}` : ''}{t.ngayBatDau ? ` • ${safeFormatDate(t.ngayBatDau)}` : ''}</p>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                                      <span className="text-violet-400/50 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
+                                      <span className="text-white text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
+                                      {t.chucVu && <span className="text-sky-300/70 text-[9px] flex-shrink-0">{t.chucVu}</span>}
+                                      {t.ngayBatDau && <span className="text-violet-300/50 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
+                                      <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-white/30 hover:text-amber-400"><Edit2 className="w-2 h-2" /></Button>
                                         <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2 h-2" /></Button>
                                       </div>
@@ -3593,7 +3590,7 @@ export default function QuanLyPage() {
                                   ))}
                                 </div>
                               ) : (
-                                <div className="ml-3 mt-0.5 px-3 py-2 bg-violet-500/5 border border-violet-500/15 rounded-md">
+                                <div className="ml-3 mt-0.5 px-3 py-2">
                                   <p className="text-white/30 text-[10px] italic">Chưa có TVV</p>
                                 </div>
                               )}
