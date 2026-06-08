@@ -3998,7 +3998,7 @@ export default function QuanLyPage() {
                       luotHDChuan: parseFloat(onlineSettings[keys.luotHDChuan] || '0') || 0,
                     };
                     // Calculate actual AFYP for this month
-                    const monthActualAFYP = yearContracts.filter(c => getMonthForRevenue(c) === i + 1).reduce((s, c) => s + c.afyp, 0);
+                    const monthActualAFYP = yearContracts.filter(c => { const d = getDoanhSoMonth(c); return !isNaN(d.getTime()) && d.getMonth() + 1 === i + 1; }).reduce((s, c) => s + c.afyp, 0);
                     const afypPct = vals.afyp > 0 ? (monthActualAFYP / vals.afyp) * 100 : 0;
                     return (
                       <div key={m} className="bg-white/5 rounded-lg p-2.5 border border-emerald-500/20 space-y-2">
