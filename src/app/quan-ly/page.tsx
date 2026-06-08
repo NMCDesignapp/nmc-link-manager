@@ -299,14 +299,14 @@ function EditableCell({ value, onSave, type = 'text', className = '' }: {
         onChange={(e) => setEditVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full h-full px-1 py-0.5 text-xs bg-[#0e0e18] text-white border-2 border-emerald-500/50 outline-none"
+        className="w-full h-full px-1 py-0.5 text-xs bg-white text-gray-800 border-2 border-emerald-400 outline-none"
       />
     );
   }
 
   return (
     <div
-      className={`cursor-pointer hover:bg-emerald-500/10 hover:outline hover:outline-1 hover:outline-emerald-300 px-1 py-0.5 min-h-[22px] text-white ${className}`}
+      className={`cursor-pointer hover:bg-emerald-50 hover:outline hover:outline-1 hover:outline-emerald-400 px-1 py-0.5 min-h-[22px] text-gray-800 ${className}`}
       onDoubleClick={() => setEditing(true)}
       title="Nháy đúp để sửa"
     >
@@ -2233,17 +2233,17 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('leaders')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('leaders')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-500/30">
+        <div className="overflow-x-auto border border-emerald-600">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-600 hover:bg-emerald-600 border-b border-emerald-500/30">
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'ban', l: 'Ban' }, { f: 'nhom', l: 'Nhóm' }, { f: 'maNhom', l: 'Mã nhóm' }, { f: 'salary', l: 'Tiền/tháng' }, { f: 'phone', l: 'SĐT' }, { f: 'email', l: 'Email' }, { f: 'startDate', l: 'Ngày bắt đầu' }, { f: 'note', l: 'Ghi chú' }].map(col => (
-                <TableHead key={col.f} className="text-white text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+                <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
-              <TableHead className="text-white text-xs uppercase w-[40px]"></TableHead>
+              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(l => (
-                <TableRow key={l.id} className="bg-[#0e0e18]/60 hover:bg-emerald-500/10 border-b border-emerald-500/20">
+                <TableRow key={l.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
                   <TableCell className="text-xs p-0"><EditableCell value={l.agentCode} onSave={(v) => updateLeader(l.id, 'agentCode', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.agentName} onSave={(v) => updateLeader(l.id, 'agentName', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={l.position} onSave={(v) => updateLeader(l.id, 'position', v)} /></TableCell>
@@ -2294,17 +2294,17 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('recruiters')} variant="outline" className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('recruiters')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-500/30">
+        <div className="overflow-x-auto border border-emerald-600">
           <Table>
-            <TableHeader><TableRow className="bg-emerald-600 hover:bg-emerald-600 border-b border-emerald-500/30">
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
-                <TableHead key={col.f} className="text-white text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+                <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
-              {canEdit && <TableHead className="text-white text-xs uppercase w-[40px]"></TableHead>}
+              {canEdit && <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>}
             </TableRow></TableHeader>
             <TableBody>
               {filtered.map(r => (
-                <TableRow key={r.id} className="bg-[#0e0e18]/60 hover:bg-emerald-500/10 border-b border-emerald-500/20">
+                <TableRow key={r.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
                   {canEdit ? (<>
                     <TableCell className="text-xs p-0"><EditableCell value={r.agentCode} onSave={(v) => updateRecruiter(r.id, 'agentCode', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={r.agentName} onSave={(v) => updateRecruiter(r.id, 'agentName', v)} /></TableCell>
@@ -2313,11 +2313,11 @@ export default function QuanLyPage() {
                     <TableCell className="text-xs p-0"><EditableCell value={r.startDate || ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
                     <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                   </>) : (<>
-                    <TableCell className="text-xs text-emerald-300/80 font-mono">{r.agentCode}</TableCell>
-                    <TableCell className="text-xs text-white">{r.agentName}</TableCell>
-                    <TableCell className="text-xs text-white/70">{r.position}</TableCell>
-                    <TableCell className="text-xs text-white/70">{r.nhom}</TableCell>
-                    <TableCell className="text-xs text-white/70">{r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
+                    <TableCell className="text-xs text-gray-600 font-mono">{r.agentCode}</TableCell>
+                    <TableCell className="text-xs text-gray-800">{r.agentName}</TableCell>
+                    <TableCell className="text-xs text-gray-600">{r.position}</TableCell>
+                    <TableCell className="text-xs text-gray-600">{r.nhom}</TableCell>
+                    <TableCell className="text-xs text-gray-600">{r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
                   </>)}
                 </TableRow>
               ))}
@@ -3340,17 +3340,16 @@ export default function QuanLyPage() {
         </div>
 
         {/* ===== Desktop table view (hidden below md) ===== */}
-        <div className="hidden md:block overflow-auto max-h-[calc(100vh-320px)] border border-emerald-500/30 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
+        <div className="hidden md:block overflow-auto max-h-[calc(100vh-320px)] border border-emerald-600 rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
           <table style={{ borderCollapse: 'separate', borderSpacing: 0 }} className="w-full min-w-[1400px]">
-            <thead className="sticky top-0 z-10 bg-[#0e0e18] border-b-2 border-emerald-500/50">
+            <thead className="sticky top-0 z-10 bg-emerald-800 border-b-2 border-emerald-700">
               <tr>
                 {/* STT column - auto-numbered */}
-                <th className="px-2 py-2 text-[10px] font-bold text-white text-center whitespace-nowrap w-[40px]" style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}>STT</th>
+                <th className="px-2 py-2 text-[10px] font-bold text-yellow-100 text-center whitespace-nowrap w-[40px]">STT</th>
                 {CONTRACT_TABLE_COLUMNS.map(col => (
                   <th
                     key={col.f}
-                    className="px-2 py-2 whitespace-nowrap text-[10px] font-bold text-white cursor-pointer hover:text-amber-300 transition-colors"
-                    style={{ textShadow: '0 0 8px rgba(0,255,136,0.4)' }}
+                    className="px-2 py-2 whitespace-nowrap text-[10px] font-bold text-yellow-100 cursor-pointer hover:text-amber-300 transition-colors"
                     onClick={() => sortData(col.f)}
                   >
                     {col.l} <SortIcon field={col.f} />
@@ -3361,19 +3360,19 @@ export default function QuanLyPage() {
             </thead>
             <tbody>
               {sortedContracts.slice(0, 500).map((c, idx) => (
-                <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-[#0e0e18]/80' : 'bg-[#12122a]/80'} hover:bg-emerald-500/10 border-b border-emerald-500/10 transition-colors`}>
+                <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-emerald-50 border-b border-gray-200 transition-colors`}>
                   {/* Auto STT */}
                   <td className="text-[10px] py-1 px-2 text-gray-400 text-center">{idx + 1}</td>
                   {CONTRACT_TABLE_COLUMNS.map(col => (
                     <td key={col.f} className="text-[10px] py-1 px-1">
                       {col.type === 'number' ? (
-                        <span className={`block px-1 text-right font-mono ${(c as any)[col.f] > 0 ? 'text-amber-300' : 'text-gray-600'}`}>
+                        <span className={`block px-1 text-right font-mono ${(c as any)[col.f] > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
                           {(c as any)[col.f] > 0 ? formatNumber((c as any)[col.f]) : '—'}
                         </span>
                       ) : col.type === 'date' ? (
-                        <span className="block px-1 text-white/70 whitespace-nowrap">{formatDateDisplay((c as any)[col.f])}</span>
+                        <span className="block px-1 text-gray-600 whitespace-nowrap">{formatDateDisplay((c as any)[col.f])}</span>
                       ) : (
-                        <span className="block px-1 text-white/90 whitespace-nowrap truncate max-w-[120px]" title={String((c as any)[col.f] || '')}>{String((c as any)[col.f] || '—')}</span>
+                        <span className="block px-1 text-gray-800 whitespace-nowrap truncate max-w-[120px]" title={String((c as any)[col.f] || '')}>{String((c as any)[col.f] || '—')}</span>
                       )}
                     </td>
                   ))}
@@ -3389,17 +3388,17 @@ export default function QuanLyPage() {
               )}
               {/* Totals row - sticky bottom */}
               {sortedContracts.length > 0 && (
-                <tr className="sticky bottom-0 bg-emerald-500/10 font-bold border-t-2 border-emerald-500/30">
-                  <td className="text-[10px] py-2 px-2 text-amber-300 font-bold text-center" colSpan={1}>Σ</td>
-                  <td className="text-[10px] py-2 px-2 text-amber-300 font-bold" colSpan={10}>TỔNG CỘNG ({soLuongHD} HĐ)</td>
+                <tr className="sticky bottom-0 bg-emerald-100 font-bold border-t-2 border-emerald-500/30">
+                  <td className="text-[10px] py-2 px-2 text-emerald-800 font-bold text-center" colSpan={1}>Σ</td>
+                  <td className="text-[10px] py-2 px-2 text-emerald-800 font-bold" colSpan={10}>TỔNG CỘNG ({soLuongHD} HĐ)</td>
                   {/* IP + 10% PĐT total */}
-                  <td className="text-[10px] py-2 px-1 text-amber-300 text-right font-mono font-bold">{formatNumber(tongIP)}</td>
+                  <td className="text-[10px] py-2 px-1 text-emerald-800 text-right font-mono font-bold">{formatNumber(tongIP)}</td>
                   {/* AFYP total */}
-                  <td className="text-[10px] py-2 px-1 text-amber-300 text-right font-mono font-bold">{formatNumber(tongAFYP)}</td>
+                  <td className="text-[10px] py-2 px-1 text-emerald-800 text-right font-mono font-bold">{formatNumber(tongAFYP)}</td>
                   {/* AD */}
                   <td className="text-[10px] py-2 px-2 text-gray-400"></td>
                   {/* TÍNH LƯỢT 3tr summary */}
-                  <td className="text-[10px] py-2 px-1 text-violet-300 text-right font-mono font-bold" title={`HD: ${luotHoatDong} | Chuẩn: ${luotChuan}`}>
+                  <td className="text-[10px] py-2 px-1 text-violet-600 text-right font-mono font-bold" title={`HD: ${luotHoatDong} | Chuẩn: ${luotChuan}`}>
                     {luotHoatDong}/{luotChuan}
                   </td>
                   {/* MÃ ĐL TD */}
@@ -3833,7 +3832,7 @@ export default function QuanLyPage() {
   return (
     <div className="h-screen flex flex-col fixed inset-0 z-50 bg-[#0e0e18]/80">
       {/* Header */}
-      <header className="border-b border-emerald-500/30 bg-[#0e0e18]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
+      <header className="border-b border-emerald-700 bg-[#0e0e18]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {/* Mobile hamburger */}
         <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
