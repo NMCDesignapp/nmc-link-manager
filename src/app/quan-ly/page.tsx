@@ -2005,45 +2005,35 @@ export default function QuanLyPage() {
     };
 
     return (
-      <div className="rounded-none p-3 text-center relative" style={{ backgroundColor: '#87CEEB', boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
-        {target > 0 && pct !== undefined && (
-          <span className={`absolute top-1.5 right-2 text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+      <div className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)' }}>
+        {pct !== undefined && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+            {pct.toFixed(0)}%
+          </div>
         )}
-        <div className="flex items-center justify-center gap-1.5 mb-1.5">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-none" style={{ backgroundColor: '#5B9BD5' }}><Icon className="w-3.5 h-3.5 text-white" /></span>
-          <p className="text-gray-800 text-[10px] font-black tracking-wide leading-tight">{label}</p>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+          </div>
+          <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{label}</p>
         </div>
-        <p className="text-gray-900 text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{formatVal()}</p>
+        <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{formatVal()}</p>
         {isEditing ? (
           <div className="flex items-center gap-1 mt-2">
-            <Input
-              type="number"
-              value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)}
-              placeholder="Chỉ tiêu..."
-              className="h-6 text-xs bg-white/80 border-0 text-gray-800 flex-1 rounded-none"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }}
-              autoFocus
-            />
-            <Button onClick={() => handleSaveTarget(settingKey)} className="h-6 bg-amber-500 text-white text-[9px] px-2 py-0 rounded-none hover:bg-amber-600">Lưu</Button>
+            <Input type="number" value={targetInput} onChange={(e) => setTargetInput(e.target.value)} placeholder="Chỉ tiêu..." className="h-7 text-xs bg-gray-800 border-amber-500/50 text-white flex-1" onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }} autoFocus />
+            <Button onClick={() => handleSaveTarget(settingKey)} className="h-7 bg-amber-500 text-white text-[10px] px-2 py-0 rounded-none hover:bg-amber-600">Lưu</Button>
           </div>
-        ) : target > 0 && pct !== undefined ? (
+        ) : target > 0 ? (
           <div className="mt-2">
-            <div className="flex items-center justify-between text-[9px] font-semibold">
-              <span className="text-gray-700">KH: {formatTarget()}</span>
-            </div>
-            <div className="mt-0.5 h-1.5 rounded-none bg-white/40 overflow-hidden">
-              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+            <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {formatTarget()}</p>
+            <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct || 0}%`, backgroundColor: pct && pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
             </div>
           </div>
         ) : (
-          <p className="text-[9px] text-gray-600 mt-1 font-medium">Nháy đúp ✏️ để đặt chỉ tiêu</p>
+          <p className="text-white/30 text-[9px] sm:text-[10px] mt-2">Nháy đúp ✏️ để đặt chỉ tiêu</p>
         )}
-        <button
-          className="absolute top-1 left-2 text-gray-600/50 hover:text-gray-800 text-[9px]"
-          onDoubleClick={() => { setEditingTarget(settingKey); setTargetInput(String(target || '')); }}
-          title="Nháy đúp để sửa chỉ tiêu"
-        >
+        <button className="absolute top-1 left-2 text-white/20 hover:text-white/60" onDoubleClick={() => { setEditingTarget(settingKey); setTargetInput(String(target || '')); }} title="Nháy đúp để sửa chỉ tiêu">
           <Edit2 className="w-2.5 h-2.5" />
         </button>
       </div>
@@ -2051,7 +2041,7 @@ export default function QuanLyPage() {
   };
 
   const renderOverview = () => (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header with sync status */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
@@ -2062,75 +2052,81 @@ export default function QuanLyPage() {
         )}
       </div>
 
-      {/* Row 1: Core Revenue KPIs - 5 cards — metallic solid design */}
+      {/* Row 1: Core Revenue KPIs - Metallic solid dark cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {[
-          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawValue: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#F5D061', iconBg: '#D4A017', icon: DollarSign },
-          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawValue: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#6ECFBD', iconBg: '#3BA99C', icon: DollarSign },
-          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawValue: ipAfypRatio, target: 0, targetFmt: '', bg: '#7EC8E3', iconBg: '#4A90A4', icon: Percent },
-          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawValue: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#B8A9E8', iconBg: '#8B72CF', icon: Hash },
-          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawValue: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#F2A7B3', iconBg: '#D4707F', icon: CheckCircle2 },
+          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#2563EB', badge: '#1D4ED8', icon: DollarSign },
+          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#059669', badge: '#047857', icon: DollarSign },
+          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', badge: '#0E7490', icon: Percent },
+          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#7C3AED', badge: '#6D28D9', icon: Hash },
+          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#DC2626', badge: '#B91C1C', icon: CheckCircle2 },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
+          const pct = kpi.target > 0 ? Math.min((kpi.rawVal / kpi.target) * 100, 100) : 0;
+          const Icon = kpi.icon;
           return (
-            <div key={i} className="rounded-none p-2 sm:p-4 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
+            <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-1 right-1.5 sm:top-2 sm:right-3 text-base sm:text-xl font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-xl font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                  {pct.toFixed(0)}%
+                </div>
               )}
-              <div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3 h-3 sm:w-4 sm:h-4 text-white" /></span>
-                <p className="text-gray-800 text-[9px] sm:text-xs font-black tracking-wide leading-tight">{kpi.label}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
               </div>
-              <p className="text-gray-900 text-lg sm:text-2xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
+              <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
               {kpi.target > 0 ? (
-                <div className="mt-1 sm:mt-3">
-                  <div className="flex items-center justify-between text-[8px] sm:text-[10px] font-semibold">
-                    <span className="text-gray-700">KH: {kpi.targetFmt}</span>
-                  </div>
-                  <div className="mt-0.5 sm:mt-1 h-1.5 sm:h-2 rounded-none bg-white/40 overflow-hidden">
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                <div className="mt-2">
+                  <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
+                  <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 </div>
               ) : (
-                <div className="mt-1 sm:mt-3 h-[14px] sm:h-[20px]"></div>
+                <div className="mt-2 h-[18px]"></div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Row 2: Secondary KPIs - 6 cards — same metallic style */}
+      {/* Row 2: Secondary KPIs - Same metallic solid style */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {[
-          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawValue: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#F5D061', iconBg: '#D4A017', icon: FileText },
-          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawValue: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#87CEEB', iconBg: '#5B9BD5', icon: TrendingUp },
-          { label: 'ĐLHĐ', value: formatSmartCurrency(doLonHD), rawValue: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#6ECFBD', iconBg: '#3BA99C', icon: BarChart3 },
-          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawValue: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#B8A9E8', iconBg: '#8B72CF', icon: Users },
-          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawValue: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#F4B084', iconBg: '#D4814A', icon: UserCircle },
-          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawValue: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#5CC8C8', iconBg: '#2EA0A0', icon: UserPlus },
+          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', badge: '#B45309', icon: FileText },
+          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', badge: '#0369A1', icon: TrendingUp },
+          { label: 'ĐL HĐ', value: formatSmartCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#059669', badge: '#047857', icon: BarChart3 },
+          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', badge: '#6D28D9', icon: Users },
+          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', badge: '#A16207', icon: UserCircle },
+          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', badge: '#0F766E', icon: UserPlus },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
+          const pct = kpi.target > 0 ? Math.min((kpi.rawVal / kpi.target) * 100, 100) : 0;
+          const Icon = kpi.icon;
           return (
-            <div key={i} className="rounded-none p-2 sm:p-3 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
+            <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-1 right-1.5 sm:top-1.5 sm:right-2 text-sm sm:text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                  {pct.toFixed(0)}%
+                </div>
               )}
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-1 sm:mb-1.5">
-                <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" /></span>
-                <p className="text-gray-800 text-[8px] sm:text-[10px] font-black tracking-wide leading-tight">{kpi.label}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}>
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                </div>
+                <p className="text-white/80 text-[9px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
               </div>
-              <p className="text-gray-900 text-base sm:text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
+              <p className="text-white text-lg sm:text-xl font-black truncate leading-tight">{kpi.value}</p>
               {kpi.target > 0 ? (
-                <div className="mt-1 sm:mt-2">
-                  <div className="flex items-center justify-between text-[7px] sm:text-[9px] font-semibold">
-                    <span className="text-gray-700">KH: {kpi.targetFmt}</span>
-                  </div>
-                  <div className="mt-0.5 h-1 sm:h-1.5 rounded-none bg-white/40 overflow-hidden">
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                <div className="mt-2">
+                  <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
+                  <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 </div>
               ) : (
-                <div className="mt-1 sm:mt-2 h-[14px] sm:h-[20px]"></div>
+                <div className="mt-2 h-[18px]"></div>
               )}
             </div>
           );
@@ -2138,11 +2134,14 @@ export default function QuanLyPage() {
       </div>
 
       {/* Monthly Plan Targets Overview (Kế hoạch AFYP từng tháng) */}
-      <div className="rounded-none p-4" style={{ backgroundColor: '#F8F9FA', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h3 className="text-xs font-black text-gray-800 mb-3 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5" /> KẾ HOẠCH AFYP TỪNG THÁNG
-        </h3>
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+      <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+            <Calendar className="w-4 h-4 text-emerald-400" />
+          </div>
+          <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
+        </div>
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
             const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
@@ -2154,25 +2153,25 @@ export default function QuanLyPage() {
             const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             return (
-              <div key={i} className="rounded-none p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#F5D061' : '#FFFFFF', boxShadow: isCurrent ? '0 2px 8px rgba(245,208,97,0.4)' : '0 1px 3px rgba(0,0,0,0.08)' }}>
+              <div key={i} className="rounded-none p-1.5 sm:p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
                 {target > 0 && (
-                  <span className={`absolute top-1 right-1.5 text-xs font-black ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+                  <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
                 )}
-                <p className={`text-xs font-black mb-1 ${isCurrent ? 'text-amber-900' : 'text-gray-600'}`}>T{i + 1}</p>
-                <p className="text-[10px] text-gray-500 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
-                <p className={`text-sm font-black ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : actualAFYP > 0 ? 'text-sky-700' : 'text-gray-400'}`}>
+                <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
+                <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
+                <p className={`text-[10px] sm:text-xs font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : actualAFYP > 0 ? 'text-sky-400' : 'text-gray-600'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
                 {target > 0 && (
-                  <div className="mt-1 h-1 bg-gray-200 overflow-hidden">
-                    <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                  <div className="w-full h-1 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-        <p className="text-[10px] text-gray-500 mt-2">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
+        <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện */}
@@ -2189,12 +2188,15 @@ export default function QuanLyPage() {
         const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
         const currentMonth = new Date().getMonth() + 1;
         return (
-          <div className="rounded-none p-5" style={{ backgroundColor: '#F8F9FA', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <div className="rounded-none p-3 sm:p-5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
-                <BarChart3 className="w-4 h-4 text-gray-600" /> TIẾN ĐỘ AFYP HÀNG THÁNG
-              </h3>
-              <div className="flex items-center gap-4 text-[10px] text-gray-500 font-semibold">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+                  <BarChart3 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Tiến độ AFYP hàng tháng</h3>
+              </div>
+              <div className="flex items-center gap-4 text-[10px] text-white/40 font-semibold">
                 <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-amber-500 inline-block"></span> Kế hoạch</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 inline-block"></span> Thực hiện</span>
               </div>
@@ -2203,8 +2205,8 @@ export default function QuanLyPage() {
             <div className="relative">
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                 {[0, 25, 50, 75, 100].map(pct => (
-                  <div key={pct} className="border-t border-gray-200 relative">
-                    <span className="absolute -left-1 -top-2 text-[8px] text-gray-400 font-medium">{formatSmartCurrency(Math.round(maxAfyp * pct / 100))}</span>
+                  <div key={pct} className="border-t border-white/5 relative">
+                    <span className="absolute -left-1 -top-2 text-[8px] text-white/20 font-medium">{formatSmartCurrency(Math.round(maxAfyp * pct / 100))}</span>
                   </div>
                 ))}
               </div>
@@ -2221,20 +2223,20 @@ export default function QuanLyPage() {
                       <div className="flex-1 w-full flex items-end justify-center gap-[2px]">
                         {/* Plan bar (outline) */}
                         <div
-                          className={`w-2/5 border-2 border-amber-500 ${isCurrent ? 'border-amber-600' : ''}`}
+                          className={`w-2/5 border-2 border-amber-500/60 ${isCurrent ? 'border-amber-400' : ''}`}
                           style={{ height: `${Math.max(planHeight, 1)}%` }}
                           title={`T${d.index + 1} KH: ${formatCurrency(d.target)}`}
                         ></div>
                         {/* Actual bar (filled) */}
                         <div
-                          className={`w-2/5 transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-gray-200'} ${isCurrent ? 'ring-1 ring-emerald-400' : ''}`}
+                          className={`w-2/5 transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-white/10'} ${isCurrent ? 'ring-1 ring-emerald-400/50' : ''}`}
                           style={{ height: `${Math.max(actualHeight, 1)}%` }}
                           title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${pct.toFixed(0)}%` : ''}`}
                         ></div>
                       </div>
-                      <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-amber-700' : 'text-gray-500'}`}>T{d.index + 1}</p>
+                      <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-emerald-400' : 'text-white/40'}`}>T{d.index + 1}</p>
                       {d.afyp > 0 && (
-                        <p className={`text-[9px] font-black ${reached ? 'text-emerald-700' : 'text-sky-700'}`}>
+                        <p className={`text-[9px] font-black ${reached ? 'text-emerald-400' : 'text-sky-400'}`}>
                           {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
                         </p>
                       )}
@@ -2262,14 +2264,20 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), color: 'bg-emerald-500/20 border border-emerald-500/30', icon: Users },
-            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), color: 'bg-sky-500/20 border border-sky-500/30', icon: DollarSign },
-          ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
-              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
-            </div>
-          ))}
+            { label: 'Tổng TB/TN', value: formatNumber(kpiTotalTB), bg: '#059669', badge: '#047857', icon: Users },
+            { label: 'Tổng lương', value: formatCurrency(kpiTotalSalary), bg: '#2563EB', badge: '#1D4ED8', icon: DollarSign },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+            <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+              </div>
+              <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+            </div>);
+          })
+          }
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button onClick={addLeader} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
@@ -2322,14 +2330,20 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), color: 'bg-violet-500/20 border border-violet-500/30', icon: UserCircle },
-            { label: 'Đang hoạt động', value: formatNumber(kpiActive), color: 'bg-emerald-500/20 border border-emerald-500/30', icon: CheckCircle2 },
-          ].map((kpi, i) => (
-            <div key={i} className={`${kpi.color} rounded-lg p-3 backdrop-blur-sm`} style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-              <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="w-3.5 h-3.5 text-white/80" /><p className="text-white/80 text-[10px] font-bold">{kpi.label}</p></div>
-              <p className="text-white text-sm font-extrabold truncate">{kpi.value}</p>
-            </div>
-          ))}
+            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), bg: '#7C3AED', badge: '#6D28D9', icon: UserCircle },
+            { label: 'Đang hoạt động', value: formatNumber(kpiActive), bg: '#059669', badge: '#047857', icon: CheckCircle2 },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+            <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+              </div>
+              <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+            </div>);
+          })
+          }
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button onClick={addRecruiter} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
