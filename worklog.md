@@ -1,397 +1,76 @@
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix data sync, disappearing links, desktop layout bugs
+# Work Log: Redesign Quản Lý Page Overview & Monthly Sections
 
-Work Log:
-- Fixed SWR revalidation flash with keepPreviousData + revalidateOnFocus: false
-- Fixed layoutId conflict with separate prefixes (mobile-link- vs desktop-link-)
-- Fixed settings race condition - local storage wins over server data
-- Fixed CSV sync parser to handle quoted multi-line fields
+## Date: 2026-03-05
 
-Stage Summary:
-- All rendering bugs fixed
-- SWR hooks configured for stable data display
+## Changes Made
 
----
-Task ID: 2
-Agent: Main Agent
-Task: Migrate SQLite to Neon PostgreSQL and deploy to Vercel
+### 1. Added `formatSmartCurrency` helper function
+- Location: Lines ~227-236 (after `formatNumber`)
+- Mobile (< 768px): Shows currency in trđ/tỷ/ngàn units (e.g., "1.35 trđ")
+- Desktop (>= 768px): Shows full format using `formatCurrency` (e.g., "1.350.000 ₫")
+- Applied to all currency values in overview cards and monthly section
 
-Work Log:
-- Diagnosed root cause: SQLite doesn't work on Vercel (serverless, read-only filesystem)
-- Created Neon PostgreSQL database via neon.new API
-- Updated prisma/schema.prisma: provider from sqlite to postgresql, added directUrl
-- Added DATABASE_URL and DIRECT_URL to Vercel environment variables
-- Deployed to Vercel production successfully
+### 2. Fixed SL TB/TN card data source
+- Changed from `totalLeaders` (leaders.length) to `totalStaff` (staff.length)
+- Staff is the DS TB/TN from quản lý, which is the correct source
 
-Stage Summary:
-- DATABASE: Neon PostgreSQL (cloud, persistent)
-  - Pooler URL: postgresql://neondb_owner:npg_Mt5S2qxfcQCw@ep-still-bird-ajsntqwu-pooler.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require
-  - Direct URL: postgresql://neondb_owner:npg_Mt5S2qxfcQCw@ep-still-bird-ajsntqwu.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require
-- VERCEL PRODUCTION URL: https://nc-link.vercel.app
-- Vercel alias: https://my-project-phi-two-54.vercel.app
-- GITHUB REPO: https://github.com/NMCDesignapp/nmc-link-manager
-- ENV VARS ON VERCEL: DATABASE_URL + DIRECT_URL (Production, Development)
-- VERCEL TOKEN: [REDACTED]
-- SCHEMA: Link, Category, Setting, CalendarEvent, Contract, Staff, Recruiter, Contest
-- postinstall script: prisma generate && prisma migrate deploy
-- App fully functional on Vercel with Neon PostgreSQL
+### 3. Fixed SL Tuyển dụng calculation
+- Changed from counting `tvvStructList` entries with `ngayBatDau` in current year
+- Now counts from `yearContracts` where `ngayBatDauLamViec` is in current year
+- Uses contract data instead of TVV structure data
 
----
-Task ID: 3
-Agent: Main Agent
-Task: Fix link opening behavior - keep iframe in-app, not open external browser
+### 4. Redesigned Overview Cards (Tổng quan)
+- Solid bright/metallic gradient backgrounds instead of semi-transparent:
+  - AFYP: `from-amber-100 to-amber-50`
+  - IP: `from-emerald-100 to-emerald-50`
+  - Tỷ trọng: `from-cyan-100 to-cyan-50`
+  - Lượt HĐ: `from-violet-100 to-violet-50`
+  - Lượt HĐ chuẩn: `from-rose-100 to-rose-50`
+  - SL HĐ: `from-amber-100 to-amber-50`
+  - Năng suất: `from-sky-100 to-sky-50`
+  - ĐLHĐ: `from-emerald-100 to-emerald-50`
+  - SL TB/TN: `from-violet-100 to-violet-50`
+  - SL NTD: `from-orange-100 to-orange-50`
+  - SL Tuyển dụng: `from-teal-100 to-teal-50`
+- Centered content (`text-center`)
+- Removed border-radius (`rounded-[2px]` max)
+- Added shadow (`shadow-md`)
+- Dark text colors for readability (`text-gray-900`, `text-gray-700`)
+- Added % completion in TOP-RIGHT corner of card (large font `text-lg font-bold`)
+- Percentage hidden when no target is set
+- Fixed progress bar styling (bg-gray-200 track, emerald-600 fill)
 
-Work Log:
-- User reported "Example Domain" error when clicking links
-- Root cause: Seed data had example.com URLs (placeholder)
-- User wants links to open IN APP via iframe (with back button), NOT in external browser
-- Kept handleOpenLink using IframeModal (no change to open in browser)
-- Deleted all placeholder example.com links from database
-- Database is now EMPTY - user will add their own real links via Settings > Add Link
+### 5. Redesigned Monthly Plan Cards (12 ô nhỏ)
+- Same design style as overview: solid bright colors, centered, no rounded corners
+- White background container with `bg-white` and `shadow-md`
+- Amber gradient for month cells: `from-amber-50 to-white`
+- Added % completion prominently in each cell (top-right, `text-xs font-bold`)
+- Made value text larger (`text-sm font-bold`)
+- Current month highlighted with `ring-2 ring-amber-400`
 
-Stage Summary:
-- IMPORTANT: User adds their OWN real links through the app. NEVER add example/placeholder links!
-- Links open in iframe inside the app with back button (user preference)
-- If a website blocks iframe, app shows "Mo trong trinh duyet" fallback button
-- Database has 0 links, 3 categories (Cong cu, Bao cao, Khac), and settings
-- User can add links via: Settings (gear icon) > Add Link
+### 6. Redesigned Chart (Biểu đồ)
+- White background (`bg-white`) with `shadow-md` and `border border-gray-200`
+- 2-column approach: Plan (Kế hoạch) as outline bar + Actual (Thực hiện) as filled bar
+- Plan bars: `border-2 border-amber-400` (outline style)
+- Actual bars: `bg-emerald-500` (reached), `bg-sky-500` (not reached)
+- Legend with "Kế hoạch" and "Thực hiện" labels
+- Grid lines with axis labels using `formatSmartCurrency`
+- Professional look with clean axis labels
 
----
-Task ID: 4
-Agent: Main Agent
-Task: Fix thi-dua page calculations not working (API timeout)
+### 7. Redesigned Monthly File Section (Doanh số)
+- Removed "SL TD" indicator card
+- Removed "NTD HĐ" indicator card
+- Remaining indicators use same style as overview (solid bright gradients, centered, `rounded-[2px]`, `shadow-md`)
+- New layout: Indicators take 1/3 width on desktop (`lg:w-1/3`), table takes 2/3 (`lg:w-2/3`)
+- On mobile: Indicators show as 2-column grid, table below
+- Month sub-tab buttons redesigned to match light theme
+- Select dropdown and buttons updated to light theme styling
 
-Work Log:
-- Diagnosed: /api/contracts was timing out on Vercel due to slow Neon PostgreSQL queries
-- Root cause 1: Prisma findMany() without select - fetching all columns including large fields
-- Root cause 2: No connection pooling optimization for serverless environment
-- Fixed: Added `select` to contracts, staff, recruiters API routes (only needed columns)
-- Fixed: Added Cache-Control headers (s-maxage=60, stale-while-revalidate=300)
-- Fixed: Optimized db.ts with connection_limit=1, connect_timeout=10, pool_timeout=10 for Neon serverless
-- Result: /api/contracts went from TIMEOUT → 200 OK in 0.32s (261KB)
+### 8. Removed "Tính doanh thu" functionality
+- Removed the "Tính doanh thu" button entirely from the revenue section
+- The button called `/api/revenue/sync-from-contracts` - this API endpoint still exists but is no longer accessible from the UI
 
-Stage Summary:
-- Thi-dua page calculations should work again - all APIs responding fast
-- Calculation logic was NOT changed - kept exactly as user built it
-- IMPORTANT: Never modify the calculation logic unless user explicitly asks
-- Database: 564 contracts, 88 staff, 26 recruiters, 0 links
-- App URL: https://nc-link.vercel.app
-
----
-Task ID: 4
-Agent: Main Agent
-Task: UI tweaks - calendar redesign, neon date picker for thi đua, poster fix
-
-Work Log:
-- Redesigned monthly-calendar.tsx: brighter backgrounds (0.04→0.08), less border-radius (rounded-xl→rounded-md), wider gaps (gap-1.5→gap-2), brighter text (0.75→0.90), subtle glow on non-today cells
-- Created new component neon-date-picker.tsx: popup calendar matching MonthlyCalendar neon style with month nav, weekday headers, day grid, today/selected highlighting, quick "Hôm nay" and "Xóa" buttons
-- Replaced 5 native <Input type="date"> in thi-dua-chau/page.tsx with NeonDatePicker (3 main dates + 2 phase-2 dates)
-- Fixed poster image in result dialog: changed object-cover→object-fill so image stretches to fill 21:9 container instead of being cropped
-- Deployed to Vercel production: https://nc-link.vercel.app
-
-Stage Summary:
-- Calendar: brighter, less rounded corners, wider spacing between cells
-- Thi đua date pickers: now use neon popup calendar consistent with main page calendar design
-- Poster image: fills the container (stretched) instead of being cropped
-
----
-Task ID: 5
-Agent: Main Agent
-Task: Move clock to left panel desktop, fix calendar popup alignment
-
-Work Log:
-- Created DesktopBigClock component (desktop-big-clock.tsx): big clock with 4.5rem font, neon glow, seconds, day/date info, decorative glow line
-- Moved clock from right panel (MonthlyCalendar desktopBright) to left panel below link buttons in page.tsx
-- Removed LiveClock from MonthlyCalendar desktopBright top section
-- Fixed calendar event popup positioning: changed from bottom-based to top-based positioning with dynamic above/below calculation
-- Arrow indicator now dynamically positioned to point at the correct cell even when popup is clamped to edge
-- Popup uses fixed positioning with accurate cellCenterX/cellTop/cellBottom coordinates
-- Deployed to Vercel: https://nc-link.vercel.app
-
-Stage Summary:
-- Desktop left panel: Big neon clock in empty space below links (bigger than NMC text)
-- Calendar popup: now properly aligned with cell, arrow points correctly
----
-Task ID: 6
-Agent: Main Agent
-Task: Center clock, add LED-colored button backgrounds, redesign background with Matrix binary rain + 4D space
-
-Work Log:
-- Centered clock in left panel: changed layout so links take fixed space (6 buttons max), clock uses flex-1 to fill remaining space and center itself
-- Limited desktop link buttons to 6 visible (links.slice(0, 6))
-- Added semi-transparent colored backgrounds to link buttons matching their LED border color: `${solidColor}15` instead of dark `rgba(10,10,25,0.9)`
-- Added same treatment to competition button: `rgba(245,158,11,0.12)` instead of dark background
-- Completely redesigned SpaceBackground component:
-  - Top portion: Matrix-style binary rain (0s and 1s falling in columns) with head glow effect and fading tails
-  - Bottom portion: 4D hypercube (tesseract) space with rotating tesseracts projected from 4D to 2D, stars, and wormhole tunnel effect
-  - Smooth transition zone between matrix rain and 4D space
-- Deployed to Vercel production: https://nc-link.vercel.app
-
-Stage Summary:
-- Clock now centered in its area below the 6 link buttons
-- All buttons have semi-transparent colored backgrounds matching their LED border
-- Background now has Matrix binary rain falling from top + 4D hypercube space at bottom
-
----
-Task ID: 1
-Agent: Main Agent
-Task: Redesign VINH DANH page with professional formal styling, all templates, draggable text/images, proper positioning
-
-Work Log:
-- Read and analyzed current vinh-danh page code
-- Extracted all 5 PDF templates to high-quality PNG backgrounds (200 DPI, 7875x3938px)
-- Analyzed PDF text/image positions using PyMuPDF to determine correct placement
-- Identified fonts: NotoSerifDisplay-Regular (#f5d182 gold), EDLavonia-Regular (#e2cc87), DMSerifDisplay-Regular (#f3e4af)
-- Completely rewrote /src/app/vinh-danh/page.tsx with:
-  - All 5 templates (Mẫu 1-5) with correct image slot positions from PDF analysis
-  - Professional gold/amber formal theme matching honor poster designs
-  - Google Fonts: Noto Serif Display, Great Vibes, Alex Brush, Dancing Script, Montserrat, DM Serif Display
-  - Draggable text fields directly on poster canvas (mouse drag)
-  - Image pan/zoom controls for adjusting photos within frames
-  - Selection indicator for active text field with dashed border
-  - Proper serif display fonts for names and script fonts for Congratulations text
-  - Gold/champagne text colors (#f5d182, #f3e4af) for dignified formal appearance
-- Built successfully, committed and pushed to GitHub for Vercel auto-deploy
-
-Stage Summary:
-- All 5 templates available with correct positions
-- Professional formal styling with gold/amber theme
-- Draggable text on poster + image pan/zoom
-- Deployed to Vercel via GitHub push
-
----
-Task ID: 1
-Agent: full-stack-developer
-Task: Add per-section settings, link configuration, and KPI calculations to quan-ly page
-
-Work Log:
-- Added Settings, Link2, ExternalLink icons to lucide-react imports
-- Added Popover component import from shadcn/ui
-- Created reusable SettingsPopover component with link nguồn input and đồng bộ toggle per section, persisted to localStorage with keys `nmc-link-{key}` and `nmc-sync-{key}`
-- Added per-section settings state management (sectionLinks, sectionSyncs, settingsVersion) with localStorage persistence
-- Added KPI summary cards to Leaders section: Tổng TB/TN count + Tổng lương sum
-- Added KPI summary cards to Recruiters section: Tổng NTD count + Đang hoạt động count
-- Added SettingsPopover button to Leaders, Recruiters, and Structure toolbars
-- Added per-month SettingsPopover to Revenue sub-tabs (revenue-{monthKey} pattern)
-- Added Link2 icon indicators to sidebar items when links are configured
-- Added Link2 icon to revenue month sub-items when links are configured
-- Added SettingsPopover to Structure section header
-- Kept global sync toggle in Overview as master switch
-- Build succeeded with no errors
-- Pushed to GitHub: feat: add per-section settings, link config, and KPI calculations
-
-Stage Summary:
-- Each section now has its own configurable Google Sheets link and sync toggle
-- KPI summary indicators auto-calculate from visible table data
-- Sidebar and revenue tabs show link icons when configured
-- All settings persisted in localStorage
-- No existing functionality broken
-
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix revenue section - customizable KPI cards, remove duplicate table, persist sync toggle
-
-Work Log:
-- Analyzed user screenshot and identified 3 issues in Doanh thu section
-- Read full page.tsx (~1700 lines) to understand current structure
-- Enhanced KPIConfig interface with dataSourceKey and color fields
-- Added KPIDataSource interface and KPI_COLORS constant
-- Rewrote KPISettingsPopover to support multiple data sources (revenue + contracts)
-- Added data source selector, color picker, and dynamic field dropdown in KPI settings
-- Provided 7 default KPI configs matching original hardcoded cards
-- Removed hardcoded KPI cards grid from renderRevenue
-- Removed "Doanh số chi tiết" (emerald) MonthlyRevenue table
-- Renamed "Hợp đồng" heading to "Bảng chi tiết"
-- Fixed sync toggle persistence by using lazy useState initializer from localStorage
-- Pushed changes to GitHub (commit: 24aaa62)
-- Verified Vercel deployment returns HTTP 200
-
-Stage Summary:
-- KPI cards now fully customizable: name, data source, field, calculation method, color, target
-- Only 1 detail table (Contracts) remains in revenue section
-- Sync toggle persists OFF state across page reloads
-- All changes deployed to https://nc-link.vercel.app/quan-ly
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Move all settings to online storage + fix UI black streak and faded colors
-
-Work Log:
-- Analyzed user screenshot (VLM timed out, inferred issues from code)
-- Confirmed existing Setting model in Prisma and /api/settings route (GET/PUT)
-- Added onlineSettings state and saveSetting() function in QuanLyPage
-- Updated SettingsPopover to use onlineSettings/saveSetting instead of localStorage
-- Updated KPISettingsPopover to use onlineSettings/saveSetting instead of localStorage
-- Updated syncEnabled to derive from onlineSettings
-- Updated sectionLinks/sectionSyncs to derive from onlineSettings
-- Changed bg-[#0a0a1a] to bg-emerald-950 (fixes black streak)
-- Replaced ALL transparent/faded colors with solid equivalents:
-  - text-white/60 → text-emerald-100, text-white/40 → text-gray-300
-  - border-white/10 → border-emerald-600, bg-violet-900/40 → bg-violet-800
-  - And 15+ more replacements
-- Pushed to git (commit: e0af369)
-- Verified Vercel deployment returns HTTP 200
-- Tested API: GET /api/settings works, PUT saves correctly to PostgreSQL
-- Verified saved settings persist in database across requests
-
-Stage Summary:
-- All KPI configs, sync state, section links now stored in PostgreSQL via /api/settings
-- Works across multiple devices (online storage)
-- Falls back to localStorage if API fails (with warning toast)
-- UI: no more black streak, all solid readable colors
-- Spreadsheet data kept in localStorage (large, can migrate later)
-- Deployed at https://nc-link.vercel.app/quan-ly
-
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix sync error on thi-dua page - "column does not exist" when syncing doanh số
-
-Work Log:
-- Analyzed screenshot showing error: "prisma.contract.createMany() invocation: The column si does not exist in the current database"
-- Compared Prisma schema with actual database migrations
-- Found 22 columns in Prisma Contract model that were never migrated to the Neon database
-- Created migration 20260605000000_add_contract_columns with all missing columns
-- Applied migration directly to Neon database
-- Updated /api/sync route to map all CSV columns to new Contract fields (was only mapping ~15 columns, now maps all 33)
-- Pushed to GitHub - Vercel will auto-deploy with prisma migrate deploy in postinstall
-
-Stage Summary:
-- Root cause: Prisma schema was updated with new columns but database was never migrated
-- When Prisma tried createMany(), it generated SQL with columns that didn't exist in DB
-- Fixed by adding migration and applying it to Neon database
-- Migration columns: stt, maTruongBan, maBanNhom, maTruongBanNhom, maDL, ngayBatDauLamViec, pdt10DT, nguonDuLieu, hopDongToChuc, dkDongPhi, phiDongThem, afypChuaTru10DT, ad, nhom2, ngayBatDauLamViec2, thangTD, namTD, thangHL, tinhLuot3tr, maDaiLyTD, danhDauTVV, chucVu2
-- App URL: https://nc-link.vercel.app
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Restructure Revenue section and thi-dua data flow
-
-Work Log:
-- Analyzed user requirements: monthly revenue input, yearly auto-aggregation, thi-dua uses MonthlyRevenue
-- Modified /quan-ly/page.tsx renderRevenue():
-  - Monthly tabs (T1-T12): Show ONLY editable MonthlyRevenue table (no contracts table)
-  - "Cả năm" tab: Auto-aggregate from all 12 months, show KPI cards, monthly breakdown, summary by TVV
-  - Yearly data is READ-ONLY (auto-calculated)
-- Modified /thi-dua-chau/page.tsx:
-  - Added MonthlyRevenueRow interface
-  - Added revenueData state and fetchRevenue() function
-  - Added filteredRevenueData (filtered by contest date range)
-  - Added displayRevenueData (filtered by subject codes and target type)
-  - groupedData now uses MonthlyRevenue for FYP/AFYP/contractCount/activityRounds
-  - tvvTotalRows uses MonthlyRevenue aggregated by agentCode
-  - nydData keeps contracts for recruiterCode mapping but gets FYP from MonthlyRevenue
-  - Auto-sync now also refreshes revenue data after CSV sync
-- Build successful, pushed to GitHub
-
-Stage Summary:
-- Revenue section in /quan-ly now properly separates monthly input from yearly aggregation
-- Contest page uses MonthlyRevenue as data source instead of calculating from contracts
-- DS TB/TN and DS NTD already come from database (no change needed)
-- App URL: https://nc-link.vercel.app
----
-Task ID: 1
-Agent: Main
-Task: Đồng bộ giao diện trang thi đua với trang chính
-
-Work Log:
-- Đọc và so sánh giao diện 2 trang (thi-dua-chau vs quan-ly)
-- Xác định các khác biệt chính: nền honeycomb tối vs emerald đặc, header blur vs emerald đặc, card glassmorphic vs emerald đặc
-- Thay đổi outer layout: min-h-screen → h-screen flex flex-col bg-emerald-900 fixed inset-0 z-50
-- Thay đổi header: bg-[#0e0e18]/80 backdrop-blur-md → bg-emerald-700 border-b-2 border-emerald-500
-- Thay đổi main content: max-w-5xl mx-auto → flex-1 overflow-y-auto p-4 bg-emerald-800
-- Thay đổi tất cả Cards: bg-white/5 backdrop-blur-sm → bg-emerald-800/50
-- Thay đổi Inputs: bg-white/5 border-emerald-500/20 → bg-emerald-700 border-emerald-500
-- Thay đổi Labels: text-white/70 → text-emerald-200
-- Loại bỏ neon glow effects (drop-shadow, neonBorder glow)
-- PopoverContent: bg-[#1a1a2e] → bg-gray-900 border-emerald-700
-- Push lên GitHub, Vercel auto-deploy
-
-Stage Summary:
-- Giao diện trang thi đua đã đồng bộ với theme emerald đặc của trang chính
-- Đã commit và push: "sync: đồng bộ giao diện trang thi đua với trang chính (emerald theme)"
-- Mục Cấu trúc 4 tầng đã được xây dựng sẵn từ trước (Phòng → AD → Ban/Nhóm → TVV với CRUD + import)
-
----
-Task ID: 2
-Agent: Main
-Task: Thêm hiệu ứng động + fix NTD + redesign neon dark + xóa Menu File
-
-Work Log:
-- Thêm class neon-card vào neonBorder (thi đua page) cho hover glow effect
-- Thêm class page-transition vào main content (thi đua page) cho fade-in
-- Thêm class neon-text vào CardTitle headings (thi đua page)
-- Thêm neon-sweep, glow-hover, stagger-item, neon-glow vào sidebar buttons (quan-ly page)
-- Thêm page-transition vào main content (quan-ly page)
-- Thêm neon-text vào section headings (quan-ly page)
-- Redesign trang /quan-ly từ solid emerald sang neon dark theme (header blur, sidebar blur, main no bg)
-- Xóa MENU FILE vô dụng ở sidebar
-- Fix API /api/sync: đổi từ deleteMany+createMany sang upsert cho cả 3 bảng (Contract, Staff, Recruiter)
-  - Contract: upsert theo contractNumber
-  - Staff: upsert theo agentCode  
-  - Recruiter: upsert theo agentCode
-  - Điều này bảo toàn các chỉnh sửa thủ công khi auto-sync chạy
-
-Stage Summary:
-- Hiệu ứng động đã thêm: neon-card, neon-sweep, neon-text, glow-hover, stagger-item, page-transition
-- Lỗi NTD bị mất dữ liệu: FIXED - upsert thay vì deleteMany
-- Trang quản lý đã chuyển sang neon dark theme
-- Menu File vô dụng đã xóa
-- Push lên GitHub thành công
----
-Task ID: 1
-Agent: Main
-Task: Fix NTD (recruiter) data persistence bug - data keeps reverting to old version
-
-Work Log:
-- Investigated the full data flow: quan-ly page → API recruiters → Neon PostgreSQL
-- Checked all API endpoints: /api/recruiters, /api/sync, /api/staff, /api/quan-ly/all
-- Found root causes:
-  1. Staff API still used deleteMany()+createMany() (was supposed to be fixed)
-  2. Recruiter bulk import used individual upserts (90 separate DB queries → Vercel timeout risk)
-  3. Sync API used upsert for recruiters (overwrites manual edits with Google Sheets data)
-  4. Import success count showed members.length instead of actual upserted count
-  5. Staff GET endpoint had s-maxage=60 cache (could show stale data)
-- Fixed recruiter bulk import: createMany + selective update (batch insert first, then update existing)
-- Fixed sync API: changed to createMany with skipDuplicates (only adds NEW recruiters, never overwrites)
-- Fixed staff API: removed deleteMany+createMany, now uses same batch create + update pattern
-- Removed staff GET caching
-- Fixed import success count to use actual API response count
-- Pushed to GitHub, Vercel auto-deployed
-
-Stage Summary:
-- Current database has 26 NTD (from Google Sheets sync)
-- User needs to re-import their 90 NTD data after this fix
-- The sync will no longer overwrite manual NTD edits
-- Import is now much faster (batch insert instead of 90 individual queries)
-
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix TVV import, redesign cấu trúc layout, fix table no-wrap, verify tháng 6 link
-
-Work Log:
-- Read uploaded tvv.xlsx file: 1997 TVV records with columns (Mã TVV, Tên TVV, Mã nhóm, Chức vụ TVV, Ngày bắt đầu làm việc)
-- Updated TVV API route (/api/structure/tvv/route.ts) to support alternative column names from the SAP export file: Mã nhóm→maBanNhom, Chức vụ TVV→chucVu, Ngày bắt đầu làm việc→ngayBatDau
-- Updated structure-tvv template in TEMPLATES to match the new column naming
-- Completely redesigned the cấu trúc (structure) page from a 4-tier accordion tree to a 3-column layout: PHÒNG (left) → AD (center) → NHÓM/TVV (right)
-  - Column 1: PHÒNG list, click to select → filters Column 2
-  - Column 2: AD list filtered by selected Phòng, click to select → filters Column 3
-  - Column 3: NHÓM list filtered by selected AD, TVV hidden by default, click to expand/show
-- Imported all 1997 TVV records from tvv.xlsx to the production database via API (10 batches of 200)
-- Verified lượt HĐ counting is correct (contract line count from year file, not unique TVV)
-- Added whitespace-nowrap to result table headers in both báo cáo and thi đua pages using [&>th]:whitespace-nowrap
-- Fixed thi-đua page syntax error (missing closing brace)
-- Verified tháng 6 link is working (CSV fetches 3 contracts, data exists in DB)
-
-Stage Summary:
-- TVV import now supports both old column names (Mã Ban/Nhóm, Chức vụ, Ngày bắt đầu) and new ones (Mã nhóm, Chức vụ TVV, Ngày bắt đầu làm việc)
-- Cấu trúc page redesigned to 3-column layout with collapsible TVV
-- 1997 TVV records imported to production database
-- Table no-wrap fix applied to both report and thi đua result tables
-- Tháng 6 link verified working (3 contracts in June)
+## Build Status
+- Build: ✅ Successful
+- Lint: ✅ No errors
+- Git: ✅ Committed and pushed to main
