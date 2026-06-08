@@ -877,30 +877,53 @@ export default function ThiDuaPage() {
   const tvvTotalRows = useMemo(() => {
     if (targetType !== 'tvv' || isPerContractMode(conditionType)) return [];
     const isAFYP = conditionType === 'total_afyp';
+    const isActivityMode = isActivityRoundMode(conditionType);
     const agentMap = new Map<string, {
       agentCode: string; agentName: string; nhom: string; maNhom: string;
       totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number;
     }>();
-    // Từ displayRevenueData (TVV có doanh thu)
-    for (const rv of displayRevenueData) {
-      const key = rv.agentCode || rv.agentName;
-      if (!key) continue;
-      const existing = agentMap.get(key);
-      if (existing) {
-        existing.totalFYP += rv.totalFYP;
-        existing.totalAFYP += rv.totalAFYP;
-        existing.contractCount += rv.contractCount;
-        existing.activityRounds += rv.activityRounds;
-      } else {
-        agentMap.set(key, {
-          agentCode: rv.agentCode, agentName: rv.agentName,
-          nhom: rv.nhom || rv.maNhom, maNhom: rv.maNhom,
-          totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, contractCount: rv.contractCount,
-          activityRounds: rv.activityRounds,
-        });
+
+    if (isActivityMode) {
+      // Activity round mode: use MonthlyRevenue for activityRounds
+      for (const rv of displayRevenueData) {
+        const key = rv.agentCode || rv.agentName;
+        if (!key) continue;
+        const existing = agentMap.get(key);
+        if (existing) {
+          existing.totalFYP += rv.totalFYP;
+          existing.totalAFYP += rv.totalAFYP;
+          existing.contractCount += rv.contractCount;
+          existing.activityRounds += rv.activityRounds;
+        } else {
+          agentMap.set(key, {
+            agentCode: rv.agentCode, agentName: rv.agentName,
+            nhom: rv.nhom || rv.maNhom, maNhom: rv.maNhom,
+            totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, contractCount: rv.contractCount,
+            activityRounds: rv.activityRounds,
+          });
+        }
+      }
+    } else {
+      // total_ip / total_afyp mode: aggregate from displayContracts (Contracts table) — primary source
+      for (const c of displayContracts) {
+        const key = c.agentCode;
+        if (!key) continue;
+        const existing = agentMap.get(key);
+        if (existing) {
+          existing.totalFYP += c.pdt10DT;
+          existing.totalAFYP += c.afyp;
+          existing.contractCount += 1;
+        } else {
+          agentMap.set(key, {
+            agentCode: c.agentCode, agentName: c.agentName,
+            nhom: c.nhom || c.maNhom || '', maNhom: c.maNhom || '',
+            totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1,
+            activityRounds: 0,
+          });
+        }
       }
     }
-    // Thêm TVV từ subjectCodes KHÔNG có trong displayRevenueData (không có doanh thu → giá trị 0)
+    // Thêm TVV từ subjectCodes KHÔNG có trong dữ liệu (không có doanh thu → giá trị 0)
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
@@ -920,18 +943,22 @@ export default function ThiDuaPage() {
       }
     }
     return Array.from(agentMap.values()).map(agent => {
-      const value = isAFYP ? agent.totalAFYP : agent.totalFYP;
+      const value = isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP);
       const { tier } = calculateBonus(value);
       const remaining = getRemainingToNextTier(value);
-      // Phase 2 - split revenue by month
+      // Phase 2 - split by date using contracts
       let phaseInfo = { phase1Bonus: 0, phase2Bonus: 0, phase1Tier: null as BonusTier | null, phase2Tier: null as BonusTier | null };
       if (usePhase2 && phase2StartDate) {
-        const p2StartMonth = phase2StartDate.slice(0, 7);
-        const agentRevenue = displayRevenueData.filter(rv => rv.agentCode === agent.agentCode || rv.agentName === agent.agentName);
-        const p1Revenue = agentRevenue.filter(rv => rv.month < p2StartMonth);
-        const p2Revenue = agentRevenue.filter(rv => rv.month >= p2StartMonth);
-        const p1Value = isAFYP ? p1Revenue.reduce((s, rv) => s + rv.totalAFYP, 0) : p1Revenue.reduce((s, rv) => s + rv.totalFYP, 0);
-        const p2Value = isAFYP ? p2Revenue.reduce((s, rv) => s + rv.totalAFYP, 0) : p2Revenue.reduce((s, rv) => s + rv.totalFYP, 0);
+        const p2Start = new Date(phase2StartDate);
+        const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+        const p1Contracts = agentContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+        const p2Contracts = agentContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+        const p1Value = isAFYP
+          ? p1Contracts.reduce((s, c) => s + c.afyp, 0)
+          : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+        const p2Value = isAFYP
+          ? p2Contracts.reduce((s, c) => s + c.afyp, 0)
+          : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
         const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
         const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
         phaseInfo = {
@@ -942,7 +969,7 @@ export default function ThiDuaPage() {
       }
       return { agent, value, tier, remaining, phaseInfo };
     }).sort((a, b) => b.value - a.value);
-  }, [displayRevenueData, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier]);
+  }, [displayContracts, displayRevenueData, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // Bảng doanh số CHỈ dùng để tính số liệu (FYP, lượt), KHÔNG dùng để lấy thông tin nhóm
