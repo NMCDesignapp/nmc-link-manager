@@ -427,9 +427,10 @@ export default function ThiDuaPage() {
   const router = useRouter();
   // Data sourced from Quản lý page — no CSV sync
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [issueDate, setIssueDate] = useState('');
+  const [startDate, setStartDate] = useState(''); // Ngày hiệu lực từ
+  const [endDate, setEndDate] = useState('');     // Ngày hiệu lực đến
+  const [issueStartDate, setIssueStartDate] = useState(''); // Ngày phát hành từ
+  const [issueEndDate, setIssueEndDate] = useState('');     // Ngày phát hành đến
   const [contestTitle, setContestTitle] = useState('CHƯƠNG TRÌNH THI ĐUA');
   const [conditionType, setConditionType] = useState<ConditionType>('per_contract_ip');
   const [targetType, setTargetType] = useState<TargetType>('tvv');
@@ -529,11 +530,14 @@ export default function ThiDuaPage() {
   }, [fetchContracts, fetchStaff, fetchRecruiters, fetchRevenue]);
 
   const handleSearch = useCallback(() => {
-    if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
+    if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
     let results = [...contracts];
+    // Lọc theo Ngày hiệu lực (từ-đến)
     if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
     if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    if (issueDate) { const issue = new Date(issueDate); results = results.filter((c) => { const cI = new Date(c.issueDate); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+    // Lọc theo Ngày phát hành (từ-đến)
+    if (issueStartDate) { const start = new Date(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
+    if (issueEndDate) { const end = new Date(issueEndDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.issueDate) <= end); }
     // Secondary condition filter
     if (useSecondaryCondition) {
       if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
@@ -542,7 +546,7 @@ export default function ThiDuaPage() {
     results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
     setFilteredContracts(results);
     return results;
-  }, [startDate, endDate, issueDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
+  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
 
   const handleSearchRef = useRef(handleSearch);
   handleSearchRef.current = handleSearch;
@@ -1274,7 +1278,7 @@ export default function ThiDuaPage() {
     setIsSaving(true);
     try {
       const res = await fetch('/api/contests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        title: contestTitle, startDate, endDate, issueDate: issueDate || undefined,
+        title: contestTitle, startDate, endDate, issueDate: issueStartDate || undefined,
         conditionType, targetType, bonusTiers: JSON.stringify(bonusTiers),
         posterUrl, participants: JSON.stringify(subjectCodes),
         usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
@@ -1296,7 +1300,8 @@ export default function ThiDuaPage() {
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
     setConditionType(contest.conditionType as ConditionType);
     setTargetType((contest.targetType || 'tvv') as TargetType);
-    if (contest.issueDate) setIssueDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueDate('');
+    if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
+    setIssueEndDate(''); // issueEndDate not stored in contest yet
     try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers); } catch { /* ignore */ }
     if (contest.posterUrl) setPosterUrl(contest.posterUrl); else setPosterUrl('');
     try { const parts = JSON.parse(contest.participants || '[]'); if (Array.isArray(parts) && parts.length > 0) setThiDuaSubjects(parts.join('\n')); else setThiDuaSubjects(''); } catch { setThiDuaSubjects(''); }
@@ -1709,11 +1714,14 @@ export default function ThiDuaPage() {
 
   // Calculate and show results popup
   const handleCalculate = () => {
-    if (!startDate && !endDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
+    if (!startDate && !endDate && !issueStartDate && !issueEndDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
     let results = [...contracts];
+    // Lọc theo Ngày hiệu lực (từ-đến)
     if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
     if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    if (issueDate) { const issue = new Date(issueDate); results = results.filter((c) => { const cI = new Date(c.issueDate); return cI.getFullYear() === issue.getFullYear() && cI.getMonth() === issue.getMonth() && cI.getDate() === issue.getDate(); }); }
+    // Lọc theo Ngày phát hành (từ-đến)
+    if (issueStartDate) { const start = new Date(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
+    if (issueEndDate) { const end = new Date(issueEndDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.issueDate) <= end); }
     // Secondary condition filter
     if (useSecondaryCondition) {
       if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
@@ -1896,10 +1904,11 @@ export default function ThiDuaPage() {
               <Label className="text-xs font-medium text-emerald-200">Tên chương trình thi đua</Label>
               <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-gray-600 bg-gray-800 text-white h-9 text-sm w-full" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <NeonDatePicker label="Hiệu lực từ" value={startDate} onChange={setStartDate} />
               <NeonDatePicker label="Hiệu lực đến" value={endDate} onChange={setEndDate} />
-              <NeonDatePicker label="Ngày phát hành" value={issueDate} onChange={setIssueDate} />
+              <NeonDatePicker label="Phát hành từ" value={issueStartDate} onChange={setIssueStartDate} />
+              <NeonDatePicker label="Phát hành đến" value={issueEndDate} onChange={setIssueEndDate} />
             </div>
           </CardContent>
         </Card>
