@@ -2063,7 +2063,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Row 1: Core Revenue KPIs - 5 cards — metallic solid design */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {[
           { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawValue: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#F5D061', iconBg: '#D4A017', icon: DollarSign },
           { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawValue: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#6ECFBD', iconBg: '#3BA99C', icon: DollarSign },
@@ -2073,26 +2073,26 @@ export default function QuanLyPage() {
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className="rounded-none p-4 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
+            <div key={i} className="rounded-none p-2 sm:p-4 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-2 right-3 text-xl font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+                <span className={`absolute top-1 right-1.5 sm:top-2 sm:right-3 text-base sm:text-xl font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
               )}
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-4 h-4 text-white" /></span>
-                <p className="text-gray-800 text-xs font-black tracking-wide leading-tight">{kpi.label}</p>
+              <div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                <span className="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3 h-3 sm:w-4 sm:h-4 text-white" /></span>
+                <p className="text-gray-800 text-[9px] sm:text-xs font-black tracking-wide leading-tight">{kpi.label}</p>
               </div>
-              <p className="text-gray-900 text-2xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
+              <p className="text-gray-900 text-lg sm:text-2xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
               {kpi.target > 0 ? (
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-[10px] font-semibold">
+                <div className="mt-1 sm:mt-3">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[10px] font-semibold">
                     <span className="text-gray-700">KH: {kpi.targetFmt}</span>
                   </div>
-                  <div className="mt-1 h-2 rounded-none bg-white/40 overflow-hidden">
+                  <div className="mt-0.5 sm:mt-1 h-1.5 sm:h-2 rounded-none bg-white/40 overflow-hidden">
                     <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 h-[20px]"></div>
+                <div className="mt-1 sm:mt-3 h-[14px] sm:h-[20px]"></div>
               )}
             </div>
           );
@@ -2100,7 +2100,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Row 2: Secondary KPIs - 6 cards — same metallic style */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {[
           { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawValue: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#F5D061', iconBg: '#D4A017', icon: FileText },
           { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawValue: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#87CEEB', iconBg: '#5B9BD5', icon: TrendingUp },
@@ -2111,26 +2111,26 @@ export default function QuanLyPage() {
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className="rounded-none p-3 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
+            <div key={i} className="rounded-none p-2 sm:p-3 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-1.5 right-2 text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+                <span className={`absolute top-1 right-1.5 sm:top-1.5 sm:right-2 text-sm sm:text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
               )}
-              <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                <span className="inline-flex items-center justify-center w-6 h-6 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3.5 h-3.5 text-white" /></span>
-                <p className="text-gray-800 text-[10px] font-black tracking-wide leading-tight">{kpi.label}</p>
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-1 sm:mb-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" /></span>
+                <p className="text-gray-800 text-[8px] sm:text-[10px] font-black tracking-wide leading-tight">{kpi.label}</p>
               </div>
-              <p className="text-gray-900 text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
+              <p className="text-gray-900 text-base sm:text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
               {kpi.target > 0 ? (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between text-[9px] font-semibold">
+                <div className="mt-1 sm:mt-2">
+                  <div className="flex items-center justify-between text-[7px] sm:text-[9px] font-semibold">
                     <span className="text-gray-700">KH: {kpi.targetFmt}</span>
                   </div>
-                  <div className="mt-0.5 h-1.5 rounded-none bg-white/40 overflow-hidden">
+                  <div className="mt-0.5 h-1 sm:h-1.5 rounded-none bg-white/40 overflow-hidden">
                     <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 h-[20px]"></div>
+                <div className="mt-1 sm:mt-2 h-[14px] sm:h-[20px]"></div>
               )}
             </div>
           );

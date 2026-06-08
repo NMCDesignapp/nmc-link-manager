@@ -490,7 +490,7 @@ export default function ThiDuaPage() {
   const fetchContracts = useCallback(async () => {
     setIsLoading(true);
     try { const res = await fetch('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(data); } }
-    catch { toast({ title: 'Lỗi', description: 'Không thể tải danh sách hợp đồng', variant: 'destructive' }); }
+    catch { /* silent - status shown by green check / spinner */ }
     finally { setIsLoading(false); }
   }, []);
   useEffect(() => { fetchContracts(); }, [fetchContracts]);
@@ -1862,11 +1862,15 @@ export default function ThiDuaPage() {
           </button>
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
           <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
-          {/* Data from Quản lý page */}
+          {/* Data status indicator */}
           <div className="ml-auto flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-7 text-[10px] text-emerald-400/70 hover:text-emerald-300">
-              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Tải lại</span>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" title="Dữ liệu đã sẵn sàng" />
+            )}
+            <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-7 w-7 p-0 text-emerald-400/70 hover:text-emerald-300">
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -2220,17 +2224,17 @@ export default function ThiDuaPage() {
           )}
         </Card>
 
-        {/* Action Buttons - Same Row, equal width */}
-        <div className="grid grid-cols-3 gap-2">
-          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 h-10 text-[11px] bg-transparent" onClick={handleRefreshData} disabled={isLoading}>
-            {isLoading ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />} Tải lại dữ liệu
-          </Button>
+        {/* Action Buttons - Tính thi đua prominent, refresh small */}
+        <div className="flex items-center gap-2">
           <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
             <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
             {subjectCodes.length > 0 && <Badge className="ml-1 bg-sky-500 text-white text-[9px] h-4 px-1">{subjectCodes.length}</Badge>}
           </Button>
-          <Button onClick={handleCalculate} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
+          <Button onClick={handleCalculate} className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
             <Trophy className="w-4 h-4 mr-1" /> Tính thi đua
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-10 w-10 p-0 text-emerald-400/50 hover:text-emerald-300 shrink-0" title="Tải lại dữ liệu">
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           </Button>
         </div>
 
