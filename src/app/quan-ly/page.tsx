@@ -125,7 +125,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'structure' | 'spreadsheet' | 'report';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'spreadsheet';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
@@ -143,6 +143,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
   { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
+  { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
   { key: 'report', label: 'Báo cáo', icon: BarChart3, synced: false },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
   { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
@@ -1363,6 +1364,7 @@ export default function QuanLyPage() {
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
+      kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
       spreadsheet: async () => {},
@@ -1899,21 +1901,34 @@ export default function QuanLyPage() {
     if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTDCount.add(c.maDaiLyTD);
   }
 
-  // Target values from settings
-  const targetTongIP = parseFloat(onlineSettings['nmc-target-tong-ip'] || '0') || 0;
-  const targetTongAFYP = parseFloat(onlineSettings['nmc-target-tong-afyp'] || '0') || 0;
-  const targetTongSLHD = parseFloat(onlineSettings['nmc-target-tong-sl-hd'] || '0') || 0;
-  const targetLuotHD = parseFloat(onlineSettings['nmc-target-luot-hd'] || '0') || 0;
-  const targetLuotHDChuan = parseFloat(onlineSettings['nmc-target-luot-hd-chuan'] || '0') || 0;
-  const targetNangSuat = parseFloat(onlineSettings['nmc-target-nang-suat'] || '0') || 0;
-  const targetDLHD = parseFloat(onlineSettings['nmc-target-dlhd'] || '0') || 0;
-  const targetSLTBTN = parseFloat(onlineSettings['nmc-target-sl-tb-tn'] || '0') || 0;
-  const targetSLNTD = parseFloat(onlineSettings['nmc-target-sl-ntd'] || '0') || 0;
-  const targetSLTuyenDung = parseFloat(onlineSettings['nmc-target-sl-tuyen-dung'] || '0') || 0;
+  // Target values — ALL plans come from KẾ HOẠCH section only
+  // AFYP plan: calculated from KẾ HOẠCH (sum of all Phòng = sum of all AD plans)
+  const adPlansForTarget = new Map<string, number>();
+  adList.forEach(ad => {
+    const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
+    adPlansForTarget.set(ad.maAD, val);
+  });
+  const targetTongAFYP = adList.reduce((s, ad) => s + (adPlansForTarget.get(ad.maAD) || 0), 0);
+
+  // Other indicators: display only, no plan from KẾ HOẠCH
+  const targetTongIP = 0; // IP has no plan
+  const targetTongSLHD = 0;
+  const targetLuotHD = 0;
+  const targetLuotHDChuan = 0;
+  const targetNangSuat = 0;
+  const targetDLHD = 0;
+  const targetSLTBTN = 0;
+  const targetSLNTD = 0;
+  const targetSLTuyenDung = 0;
 
   // Edit state for indicator targets
   const [editingTarget, setEditingTarget] = useState<string | null>(null);
   const [targetInput, setTargetInput] = useState('');
+
+  // KẾ HOẠCH settings state
+  const [khSettingsOpen, setKhSettingsOpen] = useState(false);
+  const [khEditRatio, setKhEditRatio] = useState<string | null>(null);
+  const [khEditRatioVal, setKhEditRatioVal] = useState('');
 
   const handleSaveTarget = useCallback((key: string) => {
     const val = parseFloat(targetInput) || 0;
@@ -2134,36 +2149,38 @@ export default function QuanLyPage() {
         })}
       </div>
 
-      {/* Monthly Plan Targets Overview (Kế hoạch AFYP từng tháng) */}
+      {/* Monthly Plan from KẾ HOẠCH (read-only summary) */}
       <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
             <Calendar className="w-4 h-4 text-emerald-400" />
           </div>
           <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
+          <span className="text-[9px] text-amber-400/60 ml-auto">Nguồn: KẾ HOẠCH</span>
         </div>
         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
-            const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
+            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
+            const monthlyPlan = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
             const mc = yearContracts.filter(c => {
               const d = getDoanhSoMonth(c);
               return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
             });
             const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
-            const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
+            const pct = monthlyPlan > 0 ? Math.min((actualAFYP / monthlyPlan) * 100, 100) : 0;
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             return (
               <div key={i} className="rounded-none p-1.5 sm:p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
-                {target > 0 && (
+                {monthlyPlan > 0 && (
                   <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
                 )}
                 <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
-                <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
+                <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(0)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}</p>
                 <p className={`text-[10px] sm:text-xs font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : actualAFYP > 0 ? 'text-sky-400' : 'text-gray-600'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
-                {target > 0 && (
+                {monthlyPlan > 0 && (
                   <div className="w-full h-1 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
                     <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
@@ -2172,7 +2189,7 @@ export default function QuanLyPage() {
             );
           })}
         </div>
-        <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
+        <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện */}
@@ -2183,7 +2200,7 @@ export default function QuanLyPage() {
             const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
           });
-          const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
+          const target = (() => { const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0; return targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0; })();
           return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length, target };
         });
         const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
@@ -2251,6 +2268,354 @@ export default function QuanLyPage() {
       })()}
     </div>
   );
+
+  // ========== RENDER: Kế hoạch ==========
+  const renderKeHoach = () => {
+    // Monthly ratio from settings (tỷ lệ % từng tháng)
+    const monthlyRatios = Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
+    });
+
+    // AFYP plan per AD (from settings)
+    const adPlans = new Map<string, number>();
+    adList.forEach(ad => {
+      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
+      adPlans.set(ad.maAD, val);
+    });
+
+    // AFYP plan per Nhóm (from settings)
+    const nhomPlans = new Map<string, number>();
+    banNhomList.forEach(bn => {
+      const val = parseFloat(onlineSettings[`nmc-kh-nhom-${bn.maBanNhom}`] || '0') || 0;
+      nhomPlans.set(bn.maBanNhom, val);
+    });
+
+    // Auto-calculate: Phòng = sum of its ADs
+    const phongPlans = new Map<string, number>();
+    phongList.forEach(p => {
+      const sum = adList.filter(ad => ad.maPhong === p.maPhong).reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
+      phongPlans.set(p.maPhong, sum);
+    });
+
+    // Auto-calculate: Công ty = sum of all Phòng
+    const congTyPlan = phongList.reduce((s, p) => s + (phongPlans.get(p.maPhong) || 0), 0);
+
+    // Actual AFYP from contracts per AD/Nhóm
+    const actualAFYPByAD = new Map<string, number>();
+    const actualAFYPByNhom = new Map<string, number>();
+    const actualAFYPByPhong = new Map<string, number>();
+    adList.forEach(ad => {
+      const nhomsOfAD = banNhomList.filter(bn => bn.maAD === ad.maAD);
+      const total = yearContracts.filter(c => nhomsOfAD.some(bn => bn.maBanNhom === c.maBanNhom)).reduce((s, c) => s + c.afyp, 0);
+      actualAFYPByAD.set(ad.maAD, total);
+    });
+    banNhomList.forEach(bn => {
+      const total = yearContracts.filter(c => c.maBanNhom === bn.maBanNhom).reduce((s, c) => s + c.afyp, 0);
+      actualAFYPByNhom.set(bn.maBanNhom, total);
+    });
+    phongList.forEach(p => {
+      const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
+      const total = adsOfPhong.reduce((s, ad) => s + (actualAFYPByAD.get(ad.maAD) || 0), 0);
+      actualAFYPByPhong.set(p.maPhong, total);
+    });
+    const congTyActual = yearContracts.reduce((s, c) => s + c.afyp, 0);
+
+    // Total annual ratio check
+    const totalRatio = monthlyRatios.reduce((s, r) => s + r, 0);
+
+    const saveRatio = (m: string, val: string) => {
+      saveSetting(`nmc-kh-ratio-${m}`, val);
+      setKhEditRatio(null);
+    };
+
+    const saveADPlan = (maAD: string, val: number) => {
+      saveSetting(`nmc-kh-ad-${maAD}`, String(val));
+    };
+
+    const saveNhomPlan = (maBanNhom: string, val: number) => {
+      saveSetting(`nmc-kh-nhom-${maBanNhom}`, String(val));
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Kế hoạch AFYP năm {currentYear}</h2>
+          <Popover open={khSettingsOpen} onOpenChange={setKhSettingsOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="h-8 px-3 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30">
+                <Settings className="w-3.5 h-3.5 mr-1" /> Cài đặt KH
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="bg-[#0e0e18]/98 backdrop-blur-xl border-amber-500/30 w-[95vw] max-w-[800px] p-4 max-h-[85vh] overflow-y-auto" align="end" sideOffset={4}>
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                  <Target className="w-4 h-4" /> Cài đặt Kế hoạch AFYP
+                </h4>
+
+                {/* 12 monthly ratio boxes */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-2">Tỷ lệ phân bổ theo tháng (%) — Tổng sẽ = 100%</p>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+                    {monthlyRatios.map((ratio, i) => {
+                      const m = String(i + 1).padStart(2, '0');
+                      const isEditing = khEditRatio === m;
+                      return (
+                        <div key={i} className="text-center">
+                          <p className="text-[9px] text-gray-500 font-bold mb-0.5">T{i + 1}</p>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={khEditRatioVal}
+                              onChange={e => setKhEditRatioVal(e.target.value)}
+                              onBlur={() => saveRatio(m, khEditRatioVal)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveRatio(m, khEditRatioVal); if (e.key === 'Escape') setKhEditRatio(null); }}
+                              className="w-full h-8 text-xs text-center bg-gray-700 border border-amber-500/50 text-white rounded px-1"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="h-8 flex items-center justify-center bg-gray-800 border border-gray-700 rounded cursor-pointer hover:border-amber-500/50"
+                              onClick={() => { setKhEditRatio(m); setKhEditRatioVal(String(ratio)); }}
+                            >
+                              <span className={`text-xs font-bold ${ratio > 0 ? 'text-amber-400' : 'text-gray-600'}`}>{ratio > 0 ? `${ratio}%` : '—'}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className={`text-[9px] mt-1 font-bold ${Math.abs(totalRatio - 100) < 0.1 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    Tổng tỷ lệ: {totalRatio.toFixed(1)}% {Math.abs(totalRatio - 100) < 0.1 ? '✓' : '(nên = 100%)'}
+                  </p>
+                </div>
+
+                {/* AD plans */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-1">Kế hoạch năm — AD (Phòng tự tính = tổng AD)</p>
+                  {phongList.map(p => {
+                    const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
+                    const phongTotal = phongPlans.get(p.maPhong) || 0;
+                    return (
+                      <div key={p.maPhong} className="mb-3">
+                        <div className="flex items-center justify-between bg-amber-500/10 px-2 py-1 rounded-t border-b border-amber-500/20">
+                          <span className="text-[10px] text-amber-300 font-bold">🏢 {p.tenPhong}</span>
+                          <span className="text-[10px] text-amber-200 font-bold">{phongTotal > 0 ? formatSmartCurrency(phongTotal) : '—'}</span>
+                        </div>
+                        {adsOfPhong.map(ad => {
+                          const plan = adPlans.get(ad.maAD) || 0;
+                          return (
+                            <div key={ad.maAD} className="flex items-center gap-2 px-2 py-1 border-b border-gray-800 hover:bg-gray-800/50">
+                              <span className="text-[10px] text-gray-300 flex-1 truncate">├ {ad.tenAD}</span>
+                              <input
+                                type="number"
+                                value={plan || ''}
+                                onChange={e => saveADPlan(ad.maAD, parseFloat(e.target.value) || 0)}
+                                placeholder="KH năm..."
+                                className="w-28 h-6 text-[10px] text-right bg-gray-800 border border-gray-700 text-white rounded px-1.5 hover:border-amber-500/50 focus:border-amber-400 outline-none"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Nhóm plans */}
+                <div>
+                  <p className="text-[10px] text-gray-400 mb-1">Kế hoạch năm — Nhóm</p>
+                  {phongList.map(p => {
+                    const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
+                    if (adsOfPhong.length === 0) return null;
+                    return adsOfPhong.map(ad => {
+                      const nhomsOfAD = banNhomList.filter(bn => bn.maAD === ad.maAD);
+                      if (nhomsOfAD.length === 0) return null;
+                      return (
+                        <div key={ad.maAD} className="mb-2">
+                          <div className="text-[9px] text-sky-300 font-bold px-2 py-0.5 bg-sky-500/10 rounded-t">AD: {ad.tenAD}</div>
+                          {nhomsOfAD.map(bn => {
+                            const plan = nhomPlans.get(bn.maBanNhom) || 0;
+                            return (
+                              <div key={bn.maBanNhom} className="flex items-center gap-2 px-2 py-0.5 border-b border-gray-800/50 hover:bg-gray-800/30">
+                                <span className="text-[10px] text-gray-400 flex-1 truncate">├ {bn.tenBanNhom}</span>
+                                <input
+                                  type="number"
+                                  value={plan || ''}
+                                  onChange={e => saveNhomPlan(bn.maBanNhom, parseFloat(e.target.value) || 0)}
+                                  placeholder="KH năm..."
+                                  className="w-28 h-6 text-[10px] text-right bg-gray-800 border border-gray-700 text-white rounded px-1.5 hover:border-amber-500/50 focus:border-amber-400 outline-none"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    });
+                  })}
+                </div>
+
+                <div className="text-[9px] text-gray-500 pt-2 border-t border-gray-800">
+                  Phòng = tổng AD trong phòng • Công ty = tổng các phòng • KH tháng = KH năm × tỷ lệ tháng
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Minimap: Công ty tổng quan */}
+        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+              <Building2 className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Công ty</p>
+              <div className="flex items-baseline gap-3">
+                <p className="text-white text-xl sm:text-2xl font-black">{formatSmartCurrency(congTyActual)}</p>
+                {congTyPlan > 0 && (
+                  <>
+                    <p className="text-amber-400 text-xs font-bold">KH: {formatSmartCurrency(congTyPlan)}</p>
+                    <p className={`text-sm font-black ${congTyActual / congTyPlan >= 1 ? 'text-emerald-400' : congTyActual / congTyPlan >= 0.7 ? 'text-amber-400' : 'text-rose-400'}`}>
+                      {(congTyActual / congTyPlan * 100).toFixed(1)}%
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {congTyPlan > 0 && (
+            <div className="w-full h-2 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min((congTyActual / congTyPlan) * 100, 100)}%`, backgroundColor: congTyActual / congTyPlan >= 1 ? '#86EFAC' : congTyActual / congTyPlan >= 0.7 ? '#FDE68A' : '#FCA5A5' }} />
+            </div>
+          )}
+        </div>
+
+        {/* Minimap: 12 tháng — KH vs Thực hiện */}
+        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+              <Calendar className="w-4 h-4 text-emerald-400" />
+            </div>
+            <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
+          </div>
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
+            {Array.from({ length: 12 }, (_, i) => {
+              const m = String(i + 1).padStart(2, '0');
+              const ratio = monthlyRatios[i] || 0;
+              const monthlyPlan = congTyPlan > 0 && ratio > 0 ? congTyPlan * ratio / 100 : 0;
+              const mc = yearContracts.filter(c => {
+                const d = getDoanhSoMonth(c);
+                return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
+              });
+              const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
+              const pct = monthlyPlan > 0 ? Math.min((actualAFYP / monthlyPlan) * 100, 100) : 0;
+              const isCurrent = i + 1 === new Date().getMonth() + 1;
+              return (
+                <div key={i} className="rounded-none p-1.5 sm:p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
+                  {monthlyPlan > 0 && (
+                    <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
+                  )}
+                  <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
+                  <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(0)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}</p>
+                  <p className={`text-[10px] sm:text-xs font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : actualAFYP > 0 ? 'text-sky-400' : 'text-gray-600'}`}>
+                    {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
+                  </p>
+                  {monthlyPlan > 0 && (
+                    <div className="w-full h-1 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">KH tháng = KH năm × tỷ lệ tháng | Tổng KH năm: {formatSmartCurrency(congTyPlan)}</p>
+        </div>
+
+        {/* Minimap: Phòng → AD → Nhóm hierarchy */}
+        {phongList.map(p => {
+          const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
+          const phongPlan = phongPlans.get(p.maPhong) || 0;
+          const phongActual = actualAFYPByPhong.get(p.maPhong) || 0;
+          const phongPct = phongPlan > 0 ? phongActual / phongPlan : 0;
+          return (
+            <div key={p.maPhong} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+              {/* Phòng header */}
+              <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs sm:text-sm font-bold text-amber-300">{p.tenPhong}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-white text-sm sm:text-lg font-black">{formatSmartCurrency(phongActual)}</span>
+                  {phongPlan > 0 && (
+                    <>
+                      <span className="text-amber-400 text-[10px] font-bold">KH: {formatSmartCurrency(phongPlan)}</span>
+                      <span className={`text-xs font-black ${phongPct >= 1 ? 'text-emerald-400' : phongPct >= 0.7 ? 'text-amber-400' : 'text-rose-400'}`}>{(phongPct * 100).toFixed(1)}%</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {phongPlan > 0 && (
+                <div className="w-full h-1.5" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                  <div className="h-full transition-all duration-500" style={{ width: `${Math.min(phongPct * 100, 100)}%`, backgroundColor: phongPct >= 1 ? '#86EFAC' : phongPct >= 0.7 ? '#FDE68A' : '#FCA5A5' }} />
+                </div>
+              )}
+              {/* AD rows */}
+              {adsOfPhong.map(ad => {
+                const nhomsOfAD = banNhomList.filter(bn => bn.maAD === ad.maAD);
+                const adPlan = adPlans.get(ad.maAD) || 0;
+                const adActual = actualAFYPByAD.get(ad.maAD) || 0;
+                const adPct = adPlan > 0 ? adActual / adPlan : 0;
+                return (
+                  <div key={ad.maAD}>
+                    <div className="px-3 py-1.5 sm:px-4 flex items-center justify-between border-t border-gray-800/50 hover:bg-gray-800/30">
+                      <span className="text-[10px] sm:text-xs text-sky-300 font-bold">AD: {ad.tenAD}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-white text-[10px] sm:text-xs font-bold">{formatSmartCurrency(adActual)}</span>
+                        {adPlan > 0 && (
+                          <>
+                            <span className="text-amber-400/70 text-[9px]">KH: {formatSmartCurrency(adPlan)}</span>
+                            <span className={`text-[10px] font-black ${adPct >= 1 ? 'text-emerald-400' : adPct >= 0.7 ? 'text-amber-400' : 'text-rose-400'}`}>{(adPct * 100).toFixed(1)}%</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {adPlan > 0 && (
+                      <div className="w-full h-1" style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                        <div className="h-full transition-all duration-500" style={{ width: `${Math.min(adPct * 100, 100)}%`, backgroundColor: adPct >= 1 ? '#86EFAC' : adPct >= 0.7 ? '#FDE68A' : '#FCA5A5' }} />
+                      </div>
+                    )}
+                    {/* Nhóm mini rows */}
+                    {nhomsOfAD.map(bn => {
+                      const bnPlan = nhomPlans.get(bn.maBanNhom) || 0;
+                      const bnActual = actualAFYPByNhom.get(bn.maBanNhom) || 0;
+                      const bnPct = bnPlan > 0 ? bnActual / bnPlan : 0;
+                      return (
+                        <div key={bn.maBanNhom} className="px-3 py-1 sm:px-6 flex items-center justify-between border-t border-gray-800/20 hover:bg-gray-800/20">
+                          <span className="text-[9px] sm:text-[10px] text-gray-400 truncate max-w-[50%]">├ {bn.tenBanNhom}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-gray-300 text-[9px] sm:text-[10px] font-bold">{formatSmartCurrency(bnActual)}</span>
+                            {bnPlan > 0 && (
+                              <>
+                                <span className="text-amber-400/50 text-[8px]">KH:{formatSmartCurrency(bnPlan)}</span>
+                                <span className={`text-[9px] font-black ${bnPct >= 1 ? 'text-emerald-400' : bnPct >= 0.7 ? 'text-amber-400' : 'text-rose-400'}`}>{(bnPct * 100).toFixed(0)}%</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   // ========== RENDER: Leaders ==========
   const renderLeaders = () => {
@@ -3869,6 +4234,7 @@ export default function QuanLyPage() {
       case 'leaders': return renderLeaders();
       case 'recruiters': return renderRecruiters();
       case 'revenue': return renderRevenue();
+      case 'kehoach': return renderKeHoach();
       case 'report': return renderReport();
       case 'structure': return renderStructure();
       case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
