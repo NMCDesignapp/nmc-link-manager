@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Import Staff CSV — header-based mapping
+    // 2. Import Staff CSV — header-based mapping → into LeaderInfo (DS TB/TN) table
     if (staffCsv) {
       try {
         const rows = parseCSV(staffCsv);
@@ -255,16 +255,25 @@ export async function POST(request: NextRequest) {
           const agentCode = getVal(row, 'Mã số', 'Mã TN', 'Mã trưởng nhóm', 'agentCode');
           const agentName = getVal(row, 'Họ tên', 'Họ tên TN', 'agentName');
           const position = getVal(row, 'Chức vụ', 'position');
+          const ban = getVal(row, 'Ban', 'ban');
+          const salaryStr = getVal(row, 'Tiền/tháng', 'Lương', 'salary');
+          const phone = getVal(row, 'SĐT', 'phone');
+          const email = getVal(row, 'Email', 'email');
+          const note = getVal(row, 'Ghi chú', 'note');
           const startDateStr = getVal(row, 'Ngày bắt đầu', 'startDate');
 
           if (!maNhom && nhom) maNhom = nhomToMaNhom.get(nhom) || '';
           if (!agentCode || !agentName) continue;
 
+          const salary = parseNumber(salaryStr);
+          const startDate = parseDate(startDateStr);
+
           try {
-            await db.staff.upsert({
+            // Import into LeaderInfo (DS TB/TN) — this is the primary table the app reads from
+            await db.leaderInfo.upsert({
               where: { agentCode },
-              update: { nhom, maNhom, agentName, position, startDate: parseDate(startDateStr) },
-              create: { nhom, maNhom, agentCode, agentName, position, startDate: parseDate(startDateStr) },
+              update: { nhom, maNhom, agentName, position, ban, salary, phone, email, note, startDate },
+              create: { agentCode, agentName, position, ban, nhom, maNhom, salary, phone, email, note, startDate },
             });
             upserted++;
           } catch {

@@ -1348,6 +1348,7 @@ export default function QuanLyPage() {
         setContracts(data.contracts || []);
         setStaff(data.staff || []);
         setRecruiters(data.recruiters || []);
+        if (data.tvvStruct) setTvvStructList(data.tvvStruct);
       }
     } catch {}
   }, []);
@@ -1358,7 +1359,7 @@ export default function QuanLyPage() {
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
-      overview: async () => { await fetchAllData(); }, // Single request for all data
+      overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct()]); }, // Fetch all data + structure for SL Tuyển Dụng
       leaders: fetchLeaders,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
@@ -1848,7 +1849,7 @@ export default function QuanLyPage() {
 
   // ========== RENDER: Overview ==========
   const totalLeaders = leaders.length;
-  const totalStaff = staff.length;
+  const totalStaff = leaders.length; // SL TB/TN = đếm tại file DS TB/TN (LeaderInfo table)
   const totalContracts = contracts.length;
   const totalFYP = contracts.reduce((s, c) => s + c.fyp, 0);
   const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
@@ -1931,7 +1932,7 @@ export default function QuanLyPage() {
       ],
     },
     {
-      key: 'staff', label: 'TVV', data: staff,
+      key: 'tvvStruct', label: 'TVV', data: tvvStructList,
       fields: [
         { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
       ],
@@ -1966,7 +1967,7 @@ export default function QuanLyPage() {
 
   const overviewDefaultKPIs: KPIConfig[] = [
     { id: 'ov-tb-tn', label: 'Trưởng Ban/Nhóm', dataSourceKey: 'leaders', field: 'salary', calculation: 'count', color: 'emerald' },
-    { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'staff', field: 'agentCode', calculation: 'count', color: 'sky' },
+    { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'tvvStruct', field: 'agentCode', calculation: 'count', color: 'sky' },
     { id: 'ov-ntd', label: 'Người TD', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
     { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'amber' },
     { id: 'ov-dt', label: 'Tổng DT', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'emerald' },

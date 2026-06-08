@@ -4,7 +4,7 @@ import { db, withRetry } from '@/lib/db'
 // GET /api/quan-ly/all - Fetch all data in one request for faster page load
 export async function GET() {
   try {
-    const [leaders, revenue, contracts, staff, recruiters] = await withRetry(() =>
+    const [leaders, revenue, contracts, staff, recruiters, tvvStruct] = await withRetry(() =>
       Promise.all([
         db.leaderInfo.findMany({ orderBy: { agentName: 'asc' } }),
         db.monthlyRevenue.findMany({ orderBy: [{ month: 'desc' }, { nhom: 'asc' }] }),
@@ -37,10 +37,17 @@ export async function GET() {
           },
           orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
         }),
+        db.tVVStruct.findMany({
+          select: {
+            id: true, agentCode: true, agentName: true, maBanNhom: true,
+            chucVu: true, ngayBatDau: true, note: true,
+          },
+          orderBy: { agentName: 'asc' },
+        }),
       ])
     )
 
-    return NextResponse.json({ leaders, revenue, contracts, staff, recruiters }, {
+    return NextResponse.json({ leaders, revenue, contracts, staff, recruiters, tvvStruct }, {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
