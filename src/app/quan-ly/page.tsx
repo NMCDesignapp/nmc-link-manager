@@ -3528,7 +3528,9 @@ export default function QuanLyPage() {
                       )}
                       {aBNs.map(b => {
                         const isExpanded = expandedBanNhoms.has(b.id);
-                        const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom);
+                        const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3, 'TVV': 4 };
+                        const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom)
+                          .sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
                         const tdCount = bnTVVs.filter(t => {
                           if (!t.ngayBatDau) return false;
                           const d = new Date(t.ngayBatDau);
