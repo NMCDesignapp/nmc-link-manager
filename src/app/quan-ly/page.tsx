@@ -1884,10 +1884,10 @@ export default function QuanLyPage() {
   // Năng suất = SL hợp đồng / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
   const nangSuat = luotHoatDong > 0 ? totalRevenueContractCount / luotHoatDong : 0;
 
-  // SL tuyển dụng = đếm HĐ có ngày bắt đầu làm việc trong năm hiện tại
-  const slTuyenDungNam = yearContracts.filter(c => {
-    if (!c.ngayBatDauLamViec) return false;
-    const d = new Date(c.ngayBatDauLamViec);
+  // SL tuyển dụng = đếm unique agentCode từ cấu trúc TVV có ngày bắt đầu trong năm hiện tại
+  const slTuyenDungNam = tvvStructList.filter(t => {
+    if (!t.ngayBatDau) return false;
+    const d = new Date(t.ngayBatDau);
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   }).length;
 
@@ -1985,7 +1985,7 @@ export default function QuanLyPage() {
     toast({ title: 'Đã lưu mục doanh số năm', description: formatCurrency(val) });
   }, [annualTargetInput, saveSetting]);
 
-  // Indicator card component for revenue-based KPIs
+  // Indicator card component for revenue-based KPIs — metallic solid design
   const IndicatorCard = ({ label, value, target, settingKey, formatType, icon }: {
     label: string; value: number; target: number; settingKey: string;
     formatType: 'currency' | 'number' | 'decimal'; icon: React.ElementType;
@@ -2005,45 +2005,47 @@ export default function QuanLyPage() {
     };
 
     return (
-      <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-3" style={{ boxShadow: '0 0 12px rgba(0, 255, 136, 0.1)' }}>
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-1.5">
-            <Icon className="w-3.5 h-3.5 text-white/80" />
-            <p className="text-white/80 text-[10px] font-bold">{label}</p>
-          </div>
-          <button
-            className="text-amber-400/60 hover:text-amber-300 text-[9px]"
-            onDoubleClick={() => { setEditingTarget(settingKey); setTargetInput(String(target || '')); }}
-            title="Nháy đúp để sửa chỉ tiêu"
-          >
-            <Edit2 className="w-2.5 h-2.5" />
-          </button>
+      <div className="rounded-none p-3 text-center relative" style={{ backgroundColor: '#87CEEB', boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
+        {target > 0 && pct !== undefined && (
+          <span className={`absolute top-1.5 right-2 text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
+        )}
+        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-none" style={{ backgroundColor: '#5B9BD5' }}><Icon className="w-3.5 h-3.5 text-white" /></span>
+          <p className="text-gray-800 text-[10px] font-black tracking-wide leading-tight">{label}</p>
         </div>
-        <p className="text-white text-sm font-extrabold truncate">{formatVal()}</p>
+        <p className="text-gray-900 text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{formatVal()}</p>
         {isEditing ? (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-2">
             <Input
               type="number"
               value={targetInput}
               onChange={(e) => setTargetInput(e.target.value)}
               placeholder="Chỉ tiêu..."
-              className="h-5 text-[10px] bg-gray-800 border-amber-500/50 text-white flex-1"
+              className="h-6 text-xs bg-white/80 border-0 text-gray-800 flex-1 rounded-none"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarget(settingKey); if (e.key === 'Escape') setEditingTarget(null); }}
               autoFocus
             />
-            <Button onClick={() => handleSaveTarget(settingKey)} className="h-5 bg-amber-500/20 text-amber-300 text-[9px] px-1.5 py-0">Lưu</Button>
+            <Button onClick={() => handleSaveTarget(settingKey)} className="h-6 bg-amber-500 text-white text-[9px] px-2 py-0 rounded-none hover:bg-amber-600">Lưu</Button>
           </div>
-        ) : target > 0 ? (
-          <div className="mt-1">
-            <div className="flex items-center justify-between text-[9px]">
-              <span className="text-gray-300">CT: {formatTarget()}</span>
-              <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
+        ) : target > 0 && pct !== undefined ? (
+          <div className="mt-2">
+            <div className="flex items-center justify-between text-[9px] font-semibold">
+              <span className="text-gray-700">KH: {formatTarget()}</span>
             </div>
-            <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
+            <div className="mt-0.5 h-1.5 rounded-none bg-white/40 overflow-hidden">
+              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+            </div>
           </div>
         ) : (
-          <p className="text-[9px] text-gray-500 mt-1">Nháy đúp ✏️ để đặt chỉ tiêu</p>
+          <p className="text-[9px] text-gray-600 mt-1 font-medium">Nháy đúp ✏️ để đặt chỉ tiêu</p>
         )}
+        <button
+          className="absolute top-1 left-2 text-gray-600/50 hover:text-gray-800 text-[9px]"
+          onDoubleClick={() => { setEditingTarget(settingKey); setTargetInput(String(target || '')); }}
+          title="Nháy đúp để sửa chỉ tiêu"
+        >
+          <Edit2 className="w-2.5 h-2.5" />
+        </button>
       </div>
     );
   };
@@ -2060,65 +2062,75 @@ export default function QuanLyPage() {
         )}
       </div>
 
-      {/* Row 1: Core Revenue KPIs - 5 cards */}
+      {/* Row 1: Core Revenue KPIs - 5 cards — metallic solid design */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawValue: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), color: 'bg-gradient-to-br from-amber-100 to-amber-50', icon: DollarSign },
-          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawValue: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50', icon: DollarSign },
-          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawValue: ipAfypRatio, target: 0, targetFmt: '', color: 'bg-gradient-to-br from-cyan-100 to-cyan-50', icon: Percent },
-          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawValue: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), color: 'bg-gradient-to-br from-violet-100 to-violet-50', icon: Hash },
-          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawValue: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), color: 'bg-gradient-to-br from-rose-100 to-rose-50', icon: CheckCircle2 },
+          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawValue: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#F5D061', iconBg: '#D4A017', icon: DollarSign },
+          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawValue: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#6ECFBD', iconBg: '#3BA99C', icon: DollarSign },
+          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawValue: ipAfypRatio, target: 0, targetFmt: '', bg: '#7EC8E3', iconBg: '#4A90A4', icon: Percent },
+          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawValue: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#B8A9E8', iconBg: '#8B72CF', icon: Hash },
+          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawValue: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#F2A7B3', iconBg: '#D4707F', icon: CheckCircle2 },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} rounded-[2px] p-3 shadow-md text-center relative`}>
+            <div key={i} className="rounded-none p-4 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-1.5 right-2 text-lg font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+                <span className={`absolute top-2 right-3 text-xl font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
               )}
-              <div className="flex items-center justify-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-gray-600" /><p className="text-gray-700 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-gray-900 text-base font-extrabold truncate">{kpi.value}</p>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-4 h-4 text-white" /></span>
+                <p className="text-gray-800 text-xs font-black tracking-wide leading-tight">{kpi.label}</p>
+              </div>
+              <p className="text-gray-900 text-2xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
               {kpi.target > 0 ? (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between text-[9px]">
-                    <span className="text-gray-500">CT: {kpi.targetFmt}</span>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[10px] font-semibold">
+                    <span className="text-gray-700">KH: {kpi.targetFmt}</span>
                   </div>
-                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />
+                  <div className="mt-1 h-2 rounded-none bg-white/40 overflow-hidden">
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                  </div>
                 </div>
               ) : (
-                <div className="mt-2 h-[22px]"></div>
+                <div className="mt-3 h-[20px]"></div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Row 2: Secondary KPIs - 6 cards */}
+      {/* Row 2: Secondary KPIs - 6 cards — same metallic style */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawValue: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), color: 'bg-gradient-to-br from-amber-100 to-amber-50', icon: FileText },
-          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawValue: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), color: 'bg-gradient-to-br from-sky-100 to-sky-50', icon: TrendingUp },
-          { label: 'ĐLHĐ', value: formatSmartCurrency(doLonHD), rawValue: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50', icon: BarChart3 },
-          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawValue: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), color: 'bg-gradient-to-br from-violet-100 to-violet-50', icon: Users },
-          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawValue: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), color: 'bg-gradient-to-br from-orange-100 to-orange-50', icon: UserCircle },
-          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawValue: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), color: 'bg-gradient-to-br from-teal-100 to-teal-50', icon: UserPlus },
+          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawValue: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#F5D061', iconBg: '#D4A017', icon: FileText },
+          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawValue: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#87CEEB', iconBg: '#5B9BD5', icon: TrendingUp },
+          { label: 'ĐLHĐ', value: formatSmartCurrency(doLonHD), rawValue: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#6ECFBD', iconBg: '#3BA99C', icon: BarChart3 },
+          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawValue: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#B8A9E8', iconBg: '#8B72CF', icon: Users },
+          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawValue: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#F4B084', iconBg: '#D4814A', icon: UserCircle },
+          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawValue: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#5CC8C8', iconBg: '#2EA0A0', icon: UserPlus },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? Math.min((kpi.rawValue / kpi.target) * 100, 100) : 0;
           return (
-            <div key={i} className={`${kpi.color} rounded-[2px] p-3 shadow-md text-center relative`}>
+            <div key={i} className="rounded-none p-3 text-center relative" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12)' }}>
               {kpi.target > 0 && (
-                <span className={`absolute top-1.5 right-2 text-lg font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+                <span className={`absolute top-1.5 right-2 text-lg font-black ${pct >= 100 ? 'text-emerald-800' : pct >= 70 ? 'text-amber-800' : 'text-rose-800'}`} style={{ textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>{pct.toFixed(0)}%</span>
               )}
-              <div className="flex items-center justify-center gap-1.5 mb-1.5"><kpi.icon className="w-4 h-4 text-gray-600" /><p className="text-gray-700 text-[10px] font-bold leading-tight">{kpi.label}</p></div>
-              <p className="text-gray-900 text-base font-extrabold truncate">{kpi.value}</p>
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-none" style={{ backgroundColor: kpi.iconBg }}><kpi.icon className="w-3.5 h-3.5 text-white" /></span>
+                <p className="text-gray-800 text-[10px] font-black tracking-wide leading-tight">{kpi.label}</p>
+              </div>
+              <p className="text-gray-900 text-xl font-black truncate" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.4)' }}>{kpi.value}</p>
               {kpi.target > 0 ? (
                 <div className="mt-2">
-                  <div className="flex items-center justify-between text-[9px]">
-                    <span className="text-gray-500">CT: {kpi.targetFmt}</span>
+                  <div className="flex items-center justify-between text-[9px] font-semibold">
+                    <span className="text-gray-700">KH: {kpi.targetFmt}</span>
                   </div>
-                  <Progress value={pct} className="h-1.5 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />
+                  <div className="mt-0.5 h-1.5 rounded-none bg-white/40 overflow-hidden">
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                  </div>
                 </div>
               ) : (
-                <div className="mt-2 h-[22px]"></div>
+                <div className="mt-2 h-[20px]"></div>
               )}
             </div>
           );
@@ -2126,11 +2138,11 @@ export default function QuanLyPage() {
       </div>
 
       {/* Monthly Plan Targets Overview (Kế hoạch AFYP từng tháng) */}
-      <div className="bg-white rounded-[2px] p-3 shadow-md border border-gray-200">
-        <h3 className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5" /> Kế hoạch AFYP từng tháng
+      <div className="rounded-none p-4" style={{ backgroundColor: '#F8F9FA', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <h3 className="text-xs font-black text-gray-800 mb-3 flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5" /> KẾ HOẠCH AFYP TỪNG THÁNG
         </h3>
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
             const target = parseFloat(onlineSettings[`nmc-target-afyp-month-${m}`] || '0') || 0;
@@ -2142,21 +2154,25 @@ export default function QuanLyPage() {
             const pct = target > 0 ? Math.min((actualAFYP / target) * 100, 100) : 0;
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             return (
-              <div key={i} className={`bg-gradient-to-br from-amber-50 to-white rounded-[2px] p-1.5 text-center shadow-sm relative ${isCurrent ? 'ring-2 ring-amber-400' : 'border border-gray-200'}`}>
+              <div key={i} className="rounded-none p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#F5D061' : '#FFFFFF', boxShadow: isCurrent ? '0 2px 8px rgba(245,208,97,0.4)' : '0 1px 3px rgba(0,0,0,0.08)' }}>
                 {target > 0 && (
-                  <span className={`absolute top-0.5 right-1 text-xs font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
+                  <span className={`absolute top-1 right-1.5 text-xs font-black ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : 'text-rose-700'}`}>{pct.toFixed(0)}%</span>
                 )}
-                <p className={`text-xs font-bold mb-0.5 ${isCurrent ? 'text-amber-700' : 'text-gray-600'}`}>T{i + 1}</p>
+                <p className={`text-xs font-black mb-1 ${isCurrent ? 'text-amber-900' : 'text-gray-600'}`}>T{i + 1}</p>
                 <p className="text-[10px] text-gray-500 font-bold">{target > 0 ? (target >= 1_000_000 ? `${(target / 1_000_000).toFixed(0)}tr` : formatNumber(target)) : '—'}</p>
-                <p className={`text-sm font-bold ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : actualAFYP > 0 ? 'text-sky-700' : 'text-gray-400'}`}>
+                <p className={`text-sm font-black ${pct >= 100 ? 'text-emerald-700' : pct >= 70 ? 'text-amber-700' : actualAFYP > 0 ? 'text-sky-700' : 'text-gray-400'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
-                {target > 0 && <Progress value={pct} className="h-1 mt-0.5 bg-gray-200 [&>div]:bg-emerald-600" />}
+                {target > 0 && (
+                  <div className="mt-1 h-1 bg-gray-200 overflow-hidden">
+                    <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#16a34a' : pct >= 70 ? '#d97706' : '#dc2626' }} />
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-        <p className="text-[10px] text-gray-500 mt-1">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
+        <p className="text-[10px] text-gray-500 mt-2">Nháy ✏️ ở cài đặt để sửa KH. Tổng KH: {formatSmartCurrency(Array.from({length: 12}, (_, i) => parseFloat(onlineSettings[`nmc-target-afyp-month-${String(i+1).padStart(2,'0')}`] || '0') || 0).reduce((s, t) => s + t, 0))}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện */}
@@ -2173,22 +2189,22 @@ export default function QuanLyPage() {
         const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
         const currentMonth = new Date().getMonth() + 1;
         return (
-          <div className="bg-white rounded-[2px] p-4 shadow-md border border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-                <BarChart3 className="w-4 h-4 text-gray-600" /> Tiến độ AFYP hàng tháng
+          <div className="rounded-none p-5" style={{ backgroundColor: '#F8F9FA', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-gray-600" /> TIẾN ĐỘ AFYP HÀNG THÁNG
               </h3>
-              <div className="flex items-center gap-4 text-[10px] text-gray-500">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-amber-400 rounded-[1px] inline-block"></span> Kế hoạch</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded-[1px] inline-block"></span> Thực hiện</span>
+              <div className="flex items-center gap-4 text-[10px] text-gray-500 font-semibold">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-amber-500 inline-block"></span> Kế hoạch</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 inline-block"></span> Thực hiện</span>
               </div>
             </div>
             {/* Grid lines */}
             <div className="relative">
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                 {[0, 25, 50, 75, 100].map(pct => (
-                  <div key={pct} className="border-t border-gray-100 relative">
-                    <span className="absolute -left-1 -top-2 text-[8px] text-gray-400">{formatSmartCurrency(Math.round(maxAfyp * pct / 100))}</span>
+                  <div key={pct} className="border-t border-gray-200 relative">
+                    <span className="absolute -left-1 -top-2 text-[8px] text-gray-400 font-medium">{formatSmartCurrency(Math.round(maxAfyp * pct / 100))}</span>
                   </div>
                 ))}
               </div>
@@ -2205,20 +2221,20 @@ export default function QuanLyPage() {
                       <div className="flex-1 w-full flex items-end justify-center gap-[2px]">
                         {/* Plan bar (outline) */}
                         <div
-                          className={`w-2/5 border-2 border-amber-400 rounded-t-[1px] ${isCurrent ? 'border-amber-500' : ''}`}
+                          className={`w-2/5 border-2 border-amber-500 ${isCurrent ? 'border-amber-600' : ''}`}
                           style={{ height: `${Math.max(planHeight, 1)}%` }}
                           title={`T${d.index + 1} KH: ${formatCurrency(d.target)}`}
                         ></div>
                         {/* Actual bar (filled) */}
                         <div
-                          className={`w-2/5 rounded-t-[1px] transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-gray-200'} ${isCurrent ? 'ring-1 ring-emerald-400' : ''}`}
+                          className={`w-2/5 transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-gray-200'} ${isCurrent ? 'ring-1 ring-emerald-400' : ''}`}
                           style={{ height: `${Math.max(actualHeight, 1)}%` }}
                           title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${pct.toFixed(0)}%` : ''}`}
                         ></div>
                       </div>
-                      <p className={`text-[10px] mt-1 font-bold ${isCurrent ? 'text-amber-700' : 'text-gray-500'}`}>T{d.index + 1}</p>
+                      <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-amber-700' : 'text-gray-500'}`}>T{d.index + 1}</p>
                       {d.afyp > 0 && (
-                        <p className={`text-[9px] font-bold ${reached ? 'text-emerald-700' : 'text-sky-700'}`}>
+                        <p className={`text-[9px] font-black ${reached ? 'text-emerald-700' : 'text-sky-700'}`}>
                           {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
                         </p>
                       )}

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return '';
     };
 
-    // Batch mode (array)
+    // Batch mode (array) — with duplicate agentCode check
     if (Array.isArray(body)) {
       const records = body.filter((r: any) => getVal(r, 'agentCode', 'Mã TVV') && getVal(r, 'agentName', 'Tên TVV')).map((r: any) => ({
         agentCode: getVal(r, 'agentCode', 'Mã TVV'),
@@ -46,6 +46,25 @@ export async function POST(request: NextRequest) {
         note: getVal(r, 'note', 'Ghi chú') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
+
+      // Check for duplicate agentCode within the batch itself
+      const batchCodes = records.map(r => r.agentCode);
+      const duplicateBatchCodes = batchCodes.filter((code, idx) => batchCodes.indexOf(code) !== idx);
+      if (duplicateBatchCodes.length > 0) {
+        const uniqueDupes = [...new Set(duplicateBatchCodes)];
+        return NextResponse.json({ error: `Mã TVV trùng trong file: ${uniqueDupes.join(', ')}` }, { status: 409 });
+      }
+
+      // Check for duplicate agentCode against existing DB records
+      const existingTVV = await db.tVVStruct.findMany({
+        where: { agentCode: { in: batchCodes } },
+        select: { agentCode: true },
+      });
+      if (existingTVV.length > 0) {
+        const existingCodes = existingTVV.map(t => t.agentCode);
+        return NextResponse.json({ error: `Mã TVV đã tồn tại trong hệ thống: ${existingCodes.join(', ')}` }, { status: 409 });
+      }
+
       const result = await db.tVVStruct.createMany({ data: records });
       return NextResponse.json({ message: `Đã nhập ${result.count} TVV`, count: result.count });
     }
