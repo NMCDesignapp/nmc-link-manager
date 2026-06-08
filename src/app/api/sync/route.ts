@@ -150,7 +150,12 @@ export async function POST(request: NextRequest) {
           const sttStr = getVal(row, 'STT', 'stt');
 
           if (!effectiveDateStr) continue;
-          const finalContractNumber = contractNumber || `AUTO_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          // Generate deterministic contractNumber if missing: agentCode_effectiveDate_pdt10DT
+          // This ensures same CSV row maps to same contract across sync runs (no duplicates)
+          const finalContractNumber = contractNumber || (() => {
+            const key = `${agentCode || 'X'}_${effectiveDateStr || 'X'}_${pdt10DTStr || fypStr || '0'}_${afypStr || '0'}`;
+            return `AUTO_${key.replace(/[^a-zA-Z0-9_]/g, '')}`;
+          })();
           if (seenContractNumbers.has(finalContractNumber)) continue;
           seenContractNumbers.add(finalContractNumber);
 

@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         .filter((c: any) => c.contractNumber || c.agentName)
         .map((c: any, i: number) => ({
           stt: safeInt(c.stt),
-          contractNumber: c.contractNumber || 'HD_' + Date.now() + '_' + i,
+          contractNumber: c.contractNumber || `AUTO_${String(c.agentCode || 'X')}_${String(c.effectiveDate || 'X').replace(/[^a-zA-Z0-9]/g, '')}_${safeFloat(c.pdt10DT)}_${safeFloat(c.afyp)}`,
           agentCode: String(c.agentCode || ''),
           agentName: c.agentName || 'Chưa nhập',
           position: String(c.position || ''),
