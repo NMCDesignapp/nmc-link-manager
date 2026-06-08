@@ -2720,7 +2720,7 @@ export default function QuanLyPage() {
       return { key, label: group.label, value, value2, target, pct, extra1: group.extra1, extra2: group.extra2, extra3: (group as any).extra3 || '', hasData: group.items.length > 0 };
     })
     // Chỉ hiện những đối tượng có trong cấu trúc (không hiện dòng ngoài đối tượng)
-    .filter(r => r.key !== '__unmatched__' && r.hasData)
+    .filter(r => r.key !== '__unmatched__')
     .sort((a, b) => b.value - a.value);
 
     const totalValue = results.reduce((s, r) => s + r.value, 0);
