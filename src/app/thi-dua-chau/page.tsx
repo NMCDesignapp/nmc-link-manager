@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSettings } from '@/hooks/use-settings';
+// useSettings removed — no CSV sync, data from Quản lý page
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ import {
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
-  RefreshCw, CheckCircle2, AlertCircle, Clock,
+  RefreshCw, CheckCircle2,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 
@@ -155,9 +155,7 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
   return count;
 }
 
-const DEFAULT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv';
-const DEFAULT_STAFF_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLOfLKaDdEL8EcAb6kaI6GKt3cFaXLxnwuCgeR63rmn2pQI0wC-aZswNRCDqvt87G0981ibFjmDNG1/pub?output=csv';
-const DEFAULT_NYD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMzanBhPmqGXv2JXxYHkuaNiWC2YhzOAemkQao1FfW_l2a5-wJnjDeFnxvohS4ydTXusXVey8J3jdA/pub?output=csv';
+// CSV auto-sync removed — data is now sourced from Quản lý page only
 
 // Chuẩn hóa Unicode NFC để so sánh tiếng Việt (NFD vs NFC, vd: "ề" vs "ề")
 function norm(s: string): string { return s.normalize('NFC'); }
@@ -427,8 +425,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
 
 export default function ThiDuaPage() {
   const router = useRouter();
-  const { settings } = useSettings();
-  const csvUrl = settings.csv_url || DEFAULT_CSV_URL;
+  // Data sourced from Quản lý page — no CSV sync
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -464,8 +461,6 @@ export default function ThiDuaPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false); // keep for reference but not used for sync button
   const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
@@ -522,68 +517,16 @@ export default function ThiDuaPage() {
   }, []);
   useEffect(() => { fetchRevenue(); }, [fetchRevenue]);
 
-  // Auto-sync EVERY TIME page opens
-  const hasAutoSynced = useRef(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
-  const [lastSyncTime, setLastSyncTime] = useState<string>('');
-
-  const doAutoSync = useCallback(async () => {
-    if (isImporting) return;
-    setSyncStatus('syncing');
+  // Data is loaded directly from DB (populated by Quản lý page) — no CSV sync needed
+  // Refresh all data from DB
+  const handleRefreshData = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const urls = [
-        settings.csv_url || csvUrl,
-        settings.csv_staff_url || DEFAULT_STAFF_CSV_URL,
-        settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,
-      ];
-      const fetchPromises = urls.map(url => {
-        if (!url) return Promise.resolve(null);
-        return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
-          .then(res => res.ok ? res.json() : null)
-          .then(data => data?.csvData || null)
-          .catch(() => null);
-      });
-      const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
-      if (!contractCsv && !staffCsv && !recruiterCsv) {
-        setSyncStatus('error');
-        return;
-      }
-      const syncRes = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
-      });
-      if (syncRes.ok) {
-        const data = await syncRes.json();
-        // AWAIT all data fetches so state is updated before setting success
-        await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchRevenue()]);
-        setSyncStatus('success');
-        setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
-      } else {
-        setSyncStatus('error');
-      }
-    } catch {
-      setSyncStatus('error');
+      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchRevenue()]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [isImporting, settings.csv_url, settings.csv_staff_url, settings.csv_nyd_url, csvUrl, fetchContracts, fetchStaff, fetchRecruiters, fetchRevenue]);
-
-  useEffect(() => {
-    if (hasAutoSynced.current) return;
-    hasAutoSynced.current = true;
-    const timer = setTimeout(() => { doAutoSync(); }, 800);
-    return () => clearTimeout(timer);
-  }, [doAutoSync]);
-
-  // Auto re-search when sync completes and search conditions exist
-  useEffect(() => {
-    if (syncStatus === 'success' && (startDate || endDate)) {
-      // Re-search with new data after sync - delay to ensure contracts state is settled
-      const timer = setTimeout(() => {
-        handleSearchRef.current();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [syncStatus, startDate, endDate]);
+  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchRevenue]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất Ngày hiệu lực từ hoặc đến' }); return; }
@@ -1388,51 +1331,7 @@ export default function ThiDuaPage() {
     setDeleteConfirmId(null);
   };
 
-  const handleImportFromUrl = async () => {
-    setIsImporting(true);
-    try {
-      // Fetch all 3 CSVs simultaneously
-      const urls = [
-        settings.csv_url || csvUrl,                     // Contract CSV
-        settings.csv_staff_url || DEFAULT_STAFF_CSV_URL, // Staff CSV (DS Nhóm)
-        settings.csv_nyd_url || DEFAULT_NYD_CSV_URL,     // Recruiter CSV (DS NTD)
-      ];
-
-      const fetchPromises = urls.map(url => {
-        if (!url) return Promise.resolve(null);
-        return fetch(`/api/import-csv?url=${encodeURIComponent(url)}`)
-          .then(res => res.ok ? res.json() : null)
-          .then(data => data?.csvData || null)
-          .catch(() => null);
-      });
-
-      const [contractCsv, staffCsv, recruiterCsv] = await Promise.all(fetchPromises);
-
-      if (!contractCsv && !staffCsv && !recruiterCsv) {
-        throw new Error('Không thể tải bất kỳ CSV nào. Vui lòng kiểm tra lại các liên kết.');
-      }
-
-      // Send all to sync endpoint
-      const syncRes = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
-      });
-
-      if (!syncRes.ok) {
-        const errData = await syncRes.json();
-        throw new Error(errData.error || 'Không thể nhập');
-      }
-
-      const data = await syncRes.json();
-      // AWAIT all data fetches so state is updated before proceeding
-      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchRevenue()]);
-      toast({ title: 'Đồng bộ thành công', description: data.message });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi không xác định';
-      toast({ title: 'Lỗi nhập', description: msg, variant: 'destructive' });
-    } finally { setIsImporting(false); }
-  };
+  // handleImportFromUrl removed — data sourced from Quản lý page only
 
   const handlePrint = () => {
     if (!printRef.current) return; const printWindow = window.open('', '_blank'); if (!printWindow) return;
@@ -1932,31 +1831,12 @@ export default function ThiDuaPage() {
           </button>
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
           <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
-          {/* Sync status icon */}
+          {/* Data from Quản lý page */}
           <div className="ml-auto flex items-center gap-1.5">
-            {syncStatus === 'syncing' && (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400/70">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span className="hidden sm:inline">Đồng bộ...</span>
-              </span>
-            )}
-            {syncStatus === 'success' && (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400" title={`Đồng bộ lúc ${lastSyncTime}`}>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{lastSyncTime}</span>
-              </span>
-            )}
-            {syncStatus === 'error' && (
-              <span className="flex items-center gap-1 text-[10px] text-red-400" title="Lỗi đồng bộ">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Lỗi</span>
-              </span>
-            )}
-            {syncStatus === 'idle' && (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400/50" title="Chưa đồng bộ">
-                <Clock className="w-3.5 h-3.5" />
-              </span>
-            )}
+            <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-7 text-[10px] text-emerald-400/70 hover:text-emerald-300">
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Tải lại</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -2310,8 +2190,8 @@ export default function ThiDuaPage() {
 
         {/* Action Buttons - Same Row, equal width */}
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 h-10 text-[11px] bg-transparent" onClick={handleImportFromUrl} disabled={isImporting}>
-            {isImporting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1" />} Đồng bộ
+          <Button variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20 h-10 text-[11px] bg-transparent" onClick={handleRefreshData} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />} Tải lại dữ liệu
           </Button>
           <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
             <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
