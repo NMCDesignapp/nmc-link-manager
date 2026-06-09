@@ -2175,22 +2175,24 @@ export default function QuanLyPage() {
           return (
             <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
               {/* Colored header strip */}
-              <div className="px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
-                <p className="text-white text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">
-                  {kpi.label} <span className="text-white/60 text-[8px] sm:text-[10px] font-normal italic">({kpi.unit})</span>
-                </p>
-                {kpi.target > 0 && (
-                  <span className="text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                    {pct.toFixed(0)}%
-                  </span>
+              <div className="px-2.5 py-1 sm:px-3 sm:py-1.5" style={{ backgroundColor: kpi.bg }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-[9px] sm:text-[11px] font-bold leading-tight uppercase tracking-wider">
+                    {kpi.label} <span className="text-white/60 text-[7px] sm:text-[9px] font-normal italic">({kpi.unit})</span>
+                  </p>
+                  {kpi.target > 0 && (
+                    <span className="text-[11px] sm:text-sm font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                      {pct.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                {kpi.hasKH && kpi.target > 0 && (
+                  <p className="text-white/50 text-[7px] sm:text-[9px] font-normal italic mt-0.5 leading-tight">KH: {kpi.targetFmt}</p>
                 )}
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-3 py-3 sm:px-4 sm:py-4 text-center">
-                <p className="text-xl sm:text-3xl font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
-                {kpi.hasKH && kpi.target > 0 ? (
-                  <p className="text-gray-400 text-[10px] sm:text-xs font-medium italic mt-1 truncate">KH: {kpi.targetFmt}</p>
-                ) : null}
+              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-lg sm:text-2xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2200,7 +2202,7 @@ export default function QuanLyPage() {
       {/* Row 2: Secondary KPIs - New card design */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {[
-          { label: 'SL HĐ', unit: 'hợp đồng', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
+          { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', hasKH: true },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatSmartCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#059669', hasKH: true },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', hasKH: true },
@@ -2211,22 +2213,24 @@ export default function QuanLyPage() {
           return (
             <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
               {/* Colored header strip */}
-              <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
-                <p className="text-white text-[9px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider">
-                  {kpi.label} <span className="text-white/60 text-[7px] sm:text-[9px] font-normal italic">({kpi.unit})</span>
-                </p>
-                {kpi.target > 0 && (
-                  <span className="text-xs sm:text-base font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                    {pct.toFixed(0)}%
-                  </span>
+              <div className="px-2 py-1 sm:px-2.5 sm:py-1.5" style={{ backgroundColor: kpi.bg }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider">
+                    {kpi.label} <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic">({kpi.unit})</span>
+                  </p>
+                  {kpi.target > 0 && (
+                    <span className="text-[10px] sm:text-xs font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                      {pct.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                {kpi.hasKH && kpi.target > 0 && (
+                  <p className="text-white/50 text-[6px] sm:text-[8px] font-normal italic mt-0.5 leading-tight">KH: {kpi.targetFmt}</p>
                 )}
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-2.5 py-2.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-lg sm:text-2xl font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
-                {kpi.hasKH && kpi.target > 0 ? (
-                  <p className="text-gray-400 text-[9px] sm:text-[10px] font-medium italic mt-1 truncate">KH: {kpi.targetFmt}</p>
-                ) : null}
+              <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center">
+                <p className="text-base sm:text-xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -3703,7 +3707,7 @@ export default function QuanLyPage() {
           {/* KPI Indicator strip — left side on desktop, full width on mobile */}
           <div className="lg:w-1/3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
             {[
-              { label: 'SL HĐ', unit: 'hợp đồng', value: formatNumber(soLuongHD), bg: '#D97706' },
+              { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(soLuongHD), bg: '#D97706' },
               { label: 'IP + 10% PĐT', unit: 'trđ', value: formatSmartCurrency(tongIP), bg: '#059669' },
               { label: 'AFYP', unit: 'trđ', value: formatSmartCurrency(tongAFYP), bg: '#2563EB' },
               { label: 'Lượt HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
@@ -3714,14 +3718,14 @@ export default function QuanLyPage() {
             ].map((kpi, i) => (
               <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                 {/* Colored header strip */}
-                <div className="px-2 py-1 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
-                  <p className="text-white text-[8px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider">
-                    {kpi.label} <span className="text-white/60 text-[7px] sm:text-[8px] font-normal italic">({kpi.unit})</span>
+                <div className="px-2 py-1" style={{ backgroundColor: kpi.bg }}>
+                  <p className="text-white text-[8px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider text-center">
+                    {kpi.label} <span className="text-white/60 text-[6px] sm:text-[7px] font-normal italic">({kpi.unit})</span>
                   </p>
                 </div>
                 {/* White body with large number */}
-                <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center">
-                  <p className="text-sm sm:text-lg font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+                <div className="bg-white px-1.5 py-2 sm:px-2 sm:py-2.5 text-center">
+                  <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
                 </div>
               </div>
             ))}
