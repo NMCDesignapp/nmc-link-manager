@@ -1408,7 +1408,7 @@ export default function ThiDuaPage() {
     let rows: (string | number)[][];
 
     if (targetType === 'nyd') {
-      headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã TVV', 'Họ tên', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
       rows = nydData.map(n => {
         const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
@@ -1422,7 +1422,7 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
       if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, 'Ngày HL', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => {
           const groupPhase = getGroupPhaseBonus(g);
           const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
@@ -1432,18 +1432,20 @@ export default function ThiDuaPage() {
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
         }).map(({ g, tier, groupPhase }, idx) => {
-          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
+          const ngayHL = g.contracts.length > 0 ? g.contracts.reduce((earliest: string, c: Contract) => { const d = c.effectiveDate || ''; return d && (!earliest || d < earliest) ? d : earliest; }, '') : '';
+          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, ngayHL ? formatDate(ngayHL) : ''];
           row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', tier ? '' : 'Chưa đạt mức');
           return row;
         });
       } else {
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Tên TN', 'Chức vụ', condHeader, ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, 'Ngày HL', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
         rows = [...groupedData].map((g) => { const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds) : calculateBonus(g.totalFYP); return { g, tier }; }).sort((a, b) => {
           const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
           const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
           return bValue - aValue;
         }).map(({ g, tier }, idx) => {
-          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP];
+          const ngayHL = g.contracts.length > 0 ? g.contracts.reduce((earliest: string, c: Contract) => { const d = c.effectiveDate || ''; return d && (!earliest || d < earliest) ? d : earliest; }, '') : '';
+          const row: (string | number)[] = [idx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP, ngayHL ? formatDate(ngayHL) : ''];
           if (showRateColumn) row.push(tier ? formatRate(tier) : '');
           row.push(tier ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : '');
           row.push(tier ? '' : 'Chưa đạt mức');
@@ -1454,7 +1456,7 @@ export default function ThiDuaPage() {
       // TVV per-contract or total_fyp
       if (isPerContractMode(conditionType)) {
         if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TVV', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
           rows = [...displayContracts].map((c) => {
             const { tier } = calculateBonus(c.pdt10DT);
             const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
@@ -1466,7 +1468,7 @@ export default function ThiDuaPage() {
             return base;
           });
         } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TVV', 'Họ tên', 'Ngày HL', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           rows = [...displayContracts].map((c) => { const { tier } = calculateBonus(c.pdt10DT); return { c, tier }; }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier }, idx) => {
             const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, formatDate(c.effectiveDate), c.pdt10DT];
             if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
@@ -1480,12 +1482,12 @@ export default function ThiDuaPage() {
         // total_ip / total_afyp mode for TVV: use tvvTotalRows (includes TVV with 0 contracts)
         const isAFYP = conditionType === 'total_afyp';
         if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TVV', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
           rows = tvvTotalRows.map(({ agent, value, tier, phaseInfo }, idx) =>
             [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value, phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', tier ? '' : 'Chưa đạt mức']
           );
         } else {
-          headers = ['STT', 'Nhóm', 'Mã số', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TVV', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           rows = tvvTotalRows.map(({ agent, value, tier }, idx) => {
             const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
             if (showRateColumn) row.push(tier ? formatRate(tier) : '');
@@ -1509,7 +1511,7 @@ export default function ThiDuaPage() {
 
     // Sheet 2: Chi tiết hợp đồng — tất cả HĐ được tính vào thi đua
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Nhóm', 'Mã nhóm', 'Mã TVV', 'Tên TVV', 'Chức vụ', 'Số HĐ', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Mã NTD', 'Bàn'];
+      const detailHeaders = ['STT', 'Nhóm', 'Mã nhóm', 'Mã TVV', 'Tên TVV', 'Chức vụ', 'Số HĐ', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Mã ĐL TD', 'Tên ĐL TD', 'Tính lượt', 'Ngày BĐLV', 'Bàn'];
       const detailRows: (string | number)[][] = displayContracts.map((c, idx) => [
         idx + 1,
         c.nhom || c.maNhom || '',
@@ -1522,7 +1524,10 @@ export default function ThiDuaPage() {
         c.issueDate ? formatDate(c.issueDate) : '',
         c.pdt10DT,
         c.afyp,
+        c.maDaiLyTD || '',
         c.recruiterCode || '',
+        c.tinhLuot3tr || '',
+        c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
         c.ban || '',
       ]);
       const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
