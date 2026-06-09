@@ -2177,11 +2177,11 @@ export default function QuanLyPage() {
               {/* Colored header strip - single line */}
               <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
                 <p className="text-white text-[9px] sm:text-[11px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap">
-                  {kpi.label} <span className="text-white/60 text-[7px] sm:text-[9px] font-normal italic">({kpi.unit})</span>
+                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[7px] sm:text-[9px] font-normal italic"> ({kpi.unit})</span>}
                 </p>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {kpi.hasKH && kpi.target > 0 && (
-                    <span className="text-white/40 text-[6px] sm:text-[8px] font-normal italic">KH:{kpi.targetFmt}</span>
+                    <span className="text-white/50 text-[6px] sm:text-[8px] font-semibold">{kpi.targetFmt}</span>
                   )}
                   {kpi.target > 0 && (
                     <span className="text-[11px] sm:text-sm font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
@@ -2191,8 +2191,8 @@ export default function QuanLyPage() {
                 </div>
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-lg sm:text-2xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center min-w-0">
+                <p className="text-lg sm:text-2xl font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2215,11 +2215,11 @@ export default function QuanLyPage() {
               {/* Colored header strip - single line */}
               <div className="px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
                 <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap">
-                  {kpi.label} <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic">({kpi.unit})</span>
+                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}
                 </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {kpi.hasKH && kpi.target > 0 && (
-                    <span className="text-white/40 text-[6px] sm:text-[7px] font-normal italic">KH:{kpi.targetFmt}</span>
+                    <span className="text-white/50 text-[6px] sm:text-[7px] font-semibold">{kpi.targetFmt}</span>
                   )}
                   {kpi.target > 0 && (
                     <span className="text-[10px] sm:text-xs font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
@@ -2229,8 +2229,8 @@ export default function QuanLyPage() {
                 </div>
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center">
-                <p className="text-base sm:text-xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center min-w-0">
+                <p className="text-base sm:text-xl font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -3707,25 +3707,25 @@ export default function QuanLyPage() {
           {/* KPI Indicator strip — left side on desktop, full width on mobile */}
           <div className="lg:w-1/3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
             {[
-              { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(soLuongHD), bg: '#D97706' },
-              { label: 'IP + 10% PĐT', unit: 'trđ', value: formatSmartCurrency(tongIP), bg: '#059669' },
-              { label: 'AFYP', unit: 'trđ', value: formatSmartCurrency(tongAFYP), bg: '#2563EB' },
-              { label: 'Lượt HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
-              { label: 'Lượt chuẩn', unit: 'lượt', value: formatNumber(luotChuan), bg: '#DC2626' },
-              { label: 'IP/AFYP', unit: '%', value: ipAfypMonth.toFixed(1) + '%', bg: '#0891B2' },
-              { label: 'Năng suất', unit: 'HĐ/lượt', value: nangSuatMonth.toFixed(2), bg: '#0284C7' },
-              { label: 'ĐLHĐ', unit: 'trđ', value: formatSmartCurrency(dlhdMonth), bg: '#059669' },
+              { label: 'SL HĐ', value: formatNumber(soLuongHD), bg: '#D97706' },
+              { label: 'IP + 10% PĐT', value: formatSmartCurrency(tongIP), bg: '#059669' },
+              { label: 'AFYP', value: formatSmartCurrency(tongAFYP), bg: '#2563EB' },
+              { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
+              { label: 'Lượt chuẩn', value: formatNumber(luotChuan), bg: '#DC2626' },
+              { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', bg: '#0891B2' },
+              { label: 'Năng suất', value: nangSuatMonth.toFixed(2), bg: '#0284C7' },
+              { label: 'ĐLHĐ', value: formatSmartCurrency(dlhdMonth), bg: '#059669' },
             ].map((kpi, i) => (
               <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                 {/* Colored header strip */}
                 <div className="px-2 py-1" style={{ backgroundColor: kpi.bg }}>
                   <p className="text-white text-[8px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider text-center">
-                    {kpi.label} <span className="text-white/60 text-[6px] sm:text-[7px] font-normal italic">({kpi.unit})</span>
+                    {kpi.label}
                   </p>
                 </div>
                 {/* White body with large number */}
-                <div className="bg-white px-1.5 py-2 sm:px-2 sm:py-2.5 text-center">
-                  <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+                <div className="bg-white px-1.5 py-2 sm:px-2 sm:py-2.5 text-center min-w-0">
+                  <p className="text-sm sm:text-lg font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
                 </div>
               </div>
             ))}
