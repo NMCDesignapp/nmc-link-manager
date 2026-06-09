@@ -3893,7 +3893,7 @@ export default function QuanLyPage() {
       <div className="space-y-3 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
-          <h2 className="text-xl font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
+          <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
           <div className="flex items-center gap-1">
             <div className="relative group">
               <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
@@ -3909,7 +3909,7 @@ export default function QuanLyPage() {
               </div>
             </div>
             <div className="relative group">
-              <Button variant="ghost" size="sm" className="h-7 text-[10px] text-violet-300 hover:text-violet-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+              <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-300 hover:text-emerald-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
               <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                 {[
                   { key: 'structure-phong', label: 'Mẫu Phòng' },
@@ -3924,16 +3924,16 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        {/* Summary strip */}
+        {/* Summary strip — green theme */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalPhong} Phòng</span>
-          <span className="text-[10px] text-amber-300 bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded-full">{totalADCount} AD</span>
-          <span className="text-[10px] text-sky-300 bg-sky-500/15 border border-sky-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
-          <span className="text-[10px] text-violet-300 bg-violet-500/15 border border-violet-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
+          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalADCount} AD</span>
+          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
+          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
         </div>
 
-        {/* Tree Layout — All expanded, only TVV collapsed */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin">
+        {/* Tree Layout — Kế hoạch-style cards with silver/gray content bg */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin space-y-2">
           {phongList.length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-white/30 text-xs italic">Chưa có cấu trúc. Thêm Phòng hoặc Import để bắt đầu.</p>
@@ -3942,128 +3942,132 @@ export default function QuanLyPage() {
           ) : phongList.map(p => {
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
             return (
-              <div key={p.id} className="mb-2">
-                {/* PHÒNG row */}
-                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/15 border border-emerald-500/25 rounded-lg hover:bg-emerald-500/20 transition-colors">
-                  <Building2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-xs font-bold truncate">{p.tenPhong}</p>
-                    <p className="text-emerald-200/50 text-[9px]">{p.maPhong} • {pADs.length} AD</p>
+              <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+                {/* PHÒNG header — dark strip like Kế hoạch */}
+                <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs sm:text-sm font-bold text-emerald-300">{p.tenPhong}</span>
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-amber-400 hover:text-amber-300" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-amber-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {pADs.length} AD</span>
+                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-emerald-400 hover:text-emerald-300" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-emerald-400"><Edit2 className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeletePhong(p.id)} className="h-5 w-5 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
                   </div>
                 </div>
 
-                {/* AD list under this Phòng */}
-                {pADs.length === 0 && (
-                  <div className="ml-6 mt-1 px-2 py-1.5">
-                    <p className="text-white/20 text-[9px] italic">Chưa có AD</p>
-                  </div>
-                )}
-                {pADs.map(a => {
-                  const aBNs = banNhomList.filter(b => b.maAD === a.maAD);
-                  return (
-                    <div key={a.id} className="ml-5 mt-1">
-                      {/* AD row */}
-                      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md hover:bg-amber-500/15 transition-colors">
-                        <UserCog className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-white text-[11px] font-bold truncate">{a.tenAD}</p>
-                          <p className="text-amber-200/50 text-[9px]">{a.maAD} • {aBNs.length} nhóm</p>
+                {/* AD list — silver/gray background */}
+                <div className="px-3 py-2 space-y-1.5" style={{ backgroundColor: '#e5e7eb' }}>
+                  {pADs.length === 0 && (
+                    <div className="px-2 py-1.5">
+                      <p className="text-gray-500 text-[9px] italic">Chưa có AD</p>
+                    </div>
+                  )}
+                  {pADs.map(a => {
+                    const aBNs = banNhomList.filter(b => b.maAD === a.maAD);
+                    return (
+                      <div key={a.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#f9fafb', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                        {/* AD header — green accent */}
+                        <div className="px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#d1fae5' }}>
+                          <div className="flex items-center gap-2">
+                            <UserCog className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                            <span className="text-[11px] font-bold text-emerald-800 truncate">{a.tenAD}</span>
+                            <span className="text-[9px] text-emerald-600/60">{a.maAD} • {aBNs.length} nhóm</span>
+                          </div>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-4 w-4 p-0 text-emerald-500 hover:text-emerald-700" title="Thêm Nhóm"><Plus className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditingAD(a)} className="h-4 w-4 p-0 text-gray-400 hover:text-emerald-600"><Edit2 className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteAD(a.id)} className="h-4 w-4 p-0 text-gray-400 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
-                          <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-4 w-4 p-0 text-sky-400 hover:text-sky-300" title="Thêm Nhóm"><Plus className="w-2 h-2" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditingAD(a)} className="h-4 w-4 p-0 text-white/30 hover:text-amber-400"><Edit2 className="w-2 h-2" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteAD(a.id)} className="h-4 w-4 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2 h-2" /></Button>
+
+                        {/* Nhóm list — white background */}
+                        <div className="px-2 py-1.5 space-y-1">
+                          {aBNs.length === 0 && (
+                            <div className="px-2 py-1">
+                              <p className="text-gray-400 text-[9px] italic">Chưa có Nhóm</p>
+                            </div>
+                          )}
+                          {aBNs.map(b => {
+                            const isExpanded = expandedBanNhoms.has(b.id);
+                            const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3, 'TVV': 4 };
+                            const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom)
+                              .sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
+                            const tdCount = bnTVVs.filter(t => {
+                              if (!t.ngayBatDau) return false;
+                              const d = new Date(t.ngayBatDau);
+                              return !isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear();
+                            }).length;
+                            return (
+                              <div key={b.id}>
+                                {/* Nhóm header row — click to toggle TVV */}
+                                <div
+                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-all duration-200 border ${isExpanded ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-gray-200 hover:bg-emerald-50/50'}`}
+                                  onClick={() => {
+                                    setExpandedBanNhoms(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}>
+                                    <ChevronDown className="w-3 h-3 text-emerald-500" />
+                                  </div>
+                                  <Network className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-gray-800 text-[11px] font-bold truncate">{b.tenBanNhom}</p>
+                                    <p className="text-gray-400 text-[9px]">{b.maBanNhom}{b.ngayBatDau ? ` • BĐ: ${safeFormatDate(b.ngayBatDau)}` : ''}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{bnTVVs.length} TVV</span>
+                                    {tdCount > 0 && <span className="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{tdCount} TD</span>}
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-4 w-4 p-0 text-emerald-400 hover:text-emerald-600" title="Thêm TVV"><Plus className="w-2 h-2" /></Button>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                                  </div>
+                                </div>
+
+                                {/* TVV list — animated slide-down */}
+                                <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                  {bnTVVs.length > 0 ? (
+                                    <div className="ml-5 mt-0.5 space-y-0">
+                                      {bnTVVs.map((t, idx) => (
+                                        <div
+                                          key={t.id}
+                                          className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-50 transition-all duration-200 rounded-sm group"
+                                          style={{
+                                            transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
+                                            transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
+                                            opacity: isExpanded ? 1 : 0,
+                                          }}
+                                        >
+                                          <span className="text-gray-400 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
+                                          <span className="text-gray-700 text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
+                                          {t.chucVu && <span className="text-emerald-600/70 text-[9px] flex-shrink-0">{t.chucVu}</span>}
+                                          {t.ngayBatDau && <span className="text-gray-400 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
+                                          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="ml-5 mt-0.5 px-3 py-2">
+                                      <p className="text-gray-400 text-[10px] italic">Chưa có TVV</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-
-                      {/* Nhóm list under this AD */}
-                      {aBNs.length === 0 && (
-                        <div className="ml-5 mt-1 px-2 py-1">
-                          <p className="text-white/20 text-[9px] italic">Chưa có Nhóm</p>
-                        </div>
-                      )}
-                      {aBNs.map(b => {
-                        const isExpanded = expandedBanNhoms.has(b.id);
-                        const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3, 'TVV': 4 };
-                        const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom)
-                          .sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
-                        const tdCount = bnTVVs.filter(t => {
-                          if (!t.ngayBatDau) return false;
-                          const d = new Date(t.ngayBatDau);
-                          return !isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear();
-                        }).length;
-                        return (
-                          <div key={b.id} className="ml-4 mt-1">
-                            {/* Nhóm header row — click to toggle TVV */}
-                            <div
-                              className={`flex items-center gap-2 px-2 py-1.5 bg-sky-500/8 border border-sky-500/15 rounded-md cursor-pointer transition-all duration-200 ${isExpanded ? 'bg-sky-500/15 border-sky-500/30' : 'hover:bg-sky-500/12'}`}
-                              onClick={() => {
-                                setExpandedBanNhoms(prev => {
-                                  const next = new Set(prev);
-                                  if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
-                                  return next;
-                                });
-                              }}
-                            >
-                              <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}>
-                                <ChevronDown className="w-3 h-3 text-sky-400" />
-                              </div>
-                              <Network className="w-3 h-3 text-sky-400 flex-shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-white text-[11px] font-bold truncate">{b.tenBanNhom}</p>
-                                <p className="text-sky-200/50 text-[9px]">{b.maBanNhom}{b.ngayBatDau ? ` • BĐ: ${safeFormatDate(b.ngayBatDau)}` : ''}</p>
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <span className="text-[9px] text-sky-300 bg-sky-900/80 px-1.5 py-0.5 rounded-full whitespace-nowrap">{bnTVVs.length} TVV</span>
-                                {tdCount > 0 && <span className="text-[9px] text-emerald-300 bg-emerald-900/80 px-1.5 py-0.5 rounded-full whitespace-nowrap">{tdCount} TD</span>}
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-4 w-4 p-0 text-violet-400 hover:text-violet-300" title="Thêm TVV"><Plus className="w-2 h-2" /></Button>
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-4 w-4 p-0 text-white/30 hover:text-amber-400"><Edit2 className="w-2 h-2" /></Button>
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-4 w-4 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2 h-2" /></Button>
-                              </div>
-                            </div>
-
-                            {/* TVV list — animated slide-down */}
-                            <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                              {bnTVVs.length > 0 ? (
-                                <div className="ml-3 mt-0.5 space-y-0">
-                                  {bnTVVs.map((t, idx) => (
-                                    <div
-                                      key={t.id}
-                                      className="flex items-center gap-2 px-2.5 py-1 hover:bg-violet-500/8 transition-all duration-200 rounded-sm group"
-                                      style={{
-                                        transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
-                                        transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
-                                        opacity: isExpanded ? 1 : 0,
-                                      }}
-                                    >
-                                      <span className="text-violet-400/50 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
-                                      <span className="text-white text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
-                                      {t.chucVu && <span className="text-sky-300/70 text-[9px] flex-shrink-0">{t.chucVu}</span>}
-                                      {t.ngayBatDau && <span className="text-violet-300/50 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
-                                      <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-white/30 hover:text-amber-400"><Edit2 className="w-2 h-2" /></Button>
-                                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2 h-2" /></Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="ml-3 mt-0.5 px-3 py-2">
-                                  <p className="text-white/30 text-[10px] italic">Chưa có TVV</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
@@ -4086,14 +4090,14 @@ export default function QuanLyPage() {
       {/* Add AD Dialog */}
       <Dialog open={addADOpen} onOpenChange={setAddADOpen}>
         <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
-          <DialogHeader><DialogTitle className="text-amber-400">Thêm AD</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-emerald-400">Thêm AD</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Tên AD</Label><Input value={newAD.tenAD} onChange={e => setNewAD(p => ({ ...p, tenAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
-          <DialogFooter><Button onClick={handleAddAD} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300">Thêm</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAddAD} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Thêm</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

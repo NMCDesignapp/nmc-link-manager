@@ -1565,32 +1565,115 @@ export default function ThiDuaPage() {
         toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
         return;
       }
-      // Temporarily set width to fit-content for tight capture (no white side borders)
+
       const el = resultContentRef.current;
       const origWidth = el.style.width;
       const origOverflow = el.style.overflow;
-      el.style.width = 'fit-content';
-      el.style.overflow = 'hidden';
-      hideAllScrollbars();
-      const blob = await toBlob(el, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      });
-      el.style.width = origWidth;
-      el.style.overflow = origOverflow;
-      restoreAllScrollbars();
-      if (!blob) {
-        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-        return;
+
+      // Count result rows to determine if splitting is needed
+      const tableRows = el.querySelectorAll('tbody tr');
+      const MAX_ROWS_PER_IMAGE = 20;
+      const needsSplit = tableRows.length > MAX_ROWS_PER_IMAGE;
+
+      if (!needsSplit) {
+        // Single image — no split needed
+        el.style.width = 'fit-content';
+        el.style.overflow = 'hidden';
+        hideAllScrollbars();
+        const blob = await toBlob(el, {
+          quality: 1,
+          pixelRatio: 3,
+          backgroundColor: '#ffffff',
+        });
+        el.style.width = origWidth;
+        el.style.overflow = origOverflow;
+        restoreAllScrollbars();
+        if (!blob) {
+          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
+      } else {
+        // Split into 2 images
+        const dateStr = new Date().toISOString().slice(0, 10);
+
+        // === IMAGE 1: Poster + first half of rows ===
+        el.style.width = 'fit-content';
+        el.style.overflow = 'hidden';
+
+        // Hide rows after MAX_ROWS_PER_IMAGE
+        const allRows = Array.from(tableRows) as HTMLTableRowElement[];
+        const hiddenRows2: HTMLTableRowElement[] = [];
+        allRows.forEach((row, idx) => {
+          if (idx >= MAX_ROWS_PER_IMAGE) {
+            row.style.display = 'none';
+            hiddenRows2.push(row);
+          }
+        });
+
+        hideAllScrollbars();
+        const blob1 = await toBlob(el, {
+          quality: 1,
+          pixelRatio: 3,
+          backgroundColor: '#ffffff',
+        });
+
+        // Restore hidden rows
+        hiddenRows2.forEach(row => { row.style.display = ''; });
+
+        // === IMAGE 2: Poster + title + second half of rows ===
+        const hiddenRows1: HTMLTableRowElement[] = [];
+        allRows.forEach((row, idx) => {
+          if (idx < MAX_ROWS_PER_IMAGE) {
+            row.style.display = 'none';
+            hiddenRows1.push(row);
+          }
+        });
+
+        const blob2 = await toBlob(el, {
+          quality: 1,
+          pixelRatio: 3,
+          backgroundColor: '#ffffff',
+        });
+
+        // Restore all rows
+        hiddenRows1.forEach(row => { row.style.display = ''; });
+        el.style.width = origWidth;
+        el.style.overflow = origOverflow;
+        restoreAllScrollbars();
+
+        // Download both images
+        if (blob1) {
+          const url1 = URL.createObjectURL(blob1);
+          const link1 = document.createElement('a');
+          link1.download = `ket_qua_thi_dua_1_${dateStr}.png`;
+          link1.href = url1;
+          link1.click();
+          URL.revokeObjectURL(url1);
+        }
+        if (blob2) {
+          // Slight delay to avoid browser blocking second download
+          await new Promise(r => setTimeout(r, 500));
+          const url2 = URL.createObjectURL(blob2);
+          const link2 = document.createElement('a');
+          link2.download = `ket_qua_thi_dua_2_${dateStr}.png`;
+          link2.href = url2;
+          link2.click();
+          URL.revokeObjectURL(url2);
+        }
+
+        if (!blob1 && !blob2) {
+          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+          return;
+        }
+        toast({ title: 'Thành công', description: `Đã tải 2 ảnh (${allRows.length} dòng kết quả)` });
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
     } catch (error) {
       console.error('Download image error:', error);
       toast({ title: 'Lỗi', description: 'Không thể tải ảnh', variant: 'destructive' });
@@ -1617,7 +1700,7 @@ export default function ThiDuaPage() {
       hideAllScrollbars();
       const blob = await toBlob(el, {
         quality: 1,
-        pixelRatio: 2,
+        pixelRatio: 3,
         backgroundColor: '#ffffff',
       });
       el.style.width = origWidth;
@@ -2324,9 +2407,9 @@ export default function ThiDuaPage() {
                 <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}
 
-              {/* Result Table */}
-              <div className="overflow-x-auto border border-emerald-600 shadow-sm mt-3">
-                <Table className="text-xs">
+              {/* Result Table - slightly larger */}
+              <div className="overflow-x-auto border border-emerald-600 shadow-sm mt-3" id="result-table-container">
+                <Table className="text-sm">
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
                       <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
