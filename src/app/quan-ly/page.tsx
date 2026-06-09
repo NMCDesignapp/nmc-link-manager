@@ -1058,6 +1058,7 @@ export default function QuanLyPage() {
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
 
   // Online settings state (fetched from API instead of localStorage)
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -1865,14 +1866,33 @@ export default function QuanLyPage() {
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   });
 
-  const totalRevenue = yearContracts.reduce((s, c) => s + c.pdt10DT, 0); // IP + 10% PĐT
-  const totalRevenueAFYP = yearContracts.reduce((s, c) => s + c.afyp, 0);
-  const totalRevenueContractCount = yearContracts.length; // Số lượng HĐ = số dòng
+  // Period-to-months mapping for overview time period filter
+  const getPeriodMonths = (period: string): number[] => {
+    if (period.startsWith('month-')) return [parseInt(period.split('-')[1])];
+    if (period === 'q1') return [1,2,3];
+    if (period === 'q2') return [4,5,6];
+    if (period === 'q3') return [7,8,9];
+    if (period === 'q4') return [10,11,12];
+    if (period === 'h1') return [1,2,3,4,5,6];
+    if (period === 'year') return [1,2,3,4,5,6,7,8,9,10,11,12];
+    return [1,2,3,4,5,6,7,8,9,10,11,12];
+  };
+
+  // Filter contracts by selected overview period
+  const periodMonths = getPeriodMonths(overviewPeriod);
+  const periodContracts = yearContracts.filter(c => {
+    const d = getDoanhSoMonth(c);
+    return periodMonths.includes(d.getMonth() + 1);
+  });
+
+  const totalRevenue = periodContracts.reduce((s, c) => s + c.pdt10DT, 0); // IP + 10% PĐT
+  const totalRevenueAFYP = periodContracts.reduce((s, c) => s + c.afyp, 0);
+  const totalRevenueContractCount = periodContracts.length; // Số lượng HĐ = số dòng
 
   // Lượt HĐ = đếm số dòng hợp đồng có tinhLuot3tr >= 3,000,000
-  const luotHoatDong = yearContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+  const luotHoatDong = periodContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
   // Lượt HĐ chuẩn = đếm số dòng hợp đồng có tinhLuot3tr >= 12,000,000
-  const luotHDChuan = yearContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+  const luotHDChuan = periodContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
 
   // TVV đạt 3tr
   const tvvAchieved3M = luotHoatDong;
@@ -1897,7 +1917,7 @@ export default function QuanLyPage() {
   // NTD hoạt động: count unique maDaiLyTD that exist in recruiters
   const ntdCodes = new Set(recruiters.map(r => r.agentCode));
   const activeNTDCount = new Set<string>();
-  for (const c of yearContracts) {
+  for (const c of periodContracts) {
     if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTDCount.add(c.maDaiLyTD);
   }
 
@@ -2008,7 +2028,7 @@ export default function QuanLyPage() {
   }) => {
     const Icon = icon;
     const isEditing = editingTarget === settingKey;
-    const pct = target > 0 ? Math.min((value / target) * 100, 100) : undefined;
+    const pct = target > 0 ? (value / target) * 100 : undefined;
     const formatVal = () => {
       if (formatType === 'currency') return formatCurrency(value);
       if (formatType === 'decimal') return value.toFixed(1);
@@ -2043,7 +2063,7 @@ export default function QuanLyPage() {
           <div className="mt-2">
             <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {formatTarget()}</p>
             <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct || 0}%`, backgroundColor: pct && pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
+              <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct || 0, 100)}%`, backgroundColor: pct && pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
             </div>
           </div>
         ) : (
@@ -2056,16 +2076,90 @@ export default function QuanLyPage() {
     );
   };
 
+  // Period label helper for overview filter display
+  const getPeriodLabel = (period: string): string => {
+    if (period.startsWith('month-')) return `Tháng ${period.split('-')[1]}`;
+    if (period === 'q1') return 'Quý 1';
+    if (period === 'q2') return 'Quý 2';
+    if (period === 'q3') return 'Quý 3';
+    if (period === 'q4') return 'Quý 4';
+    if (period === 'h1') return '6 tháng đầu';
+    if (period === 'year') return 'Cả năm';
+    return 'Cả năm';
+  };
+
   const renderOverview = () => (
     <div className="space-y-3">
-      {/* Header with sync status */}
-      <div className="flex items-center justify-between">
+      {/* Header with sync status and period filter */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
-        {lastSyncTime && (
-          <span className="text-[10px] text-emerald-400/60 flex items-center gap-1">
-            <RefreshCw className="w-3 h-3" /> Đồng bộ lúc {lastSyncTime}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Time Period Filter Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="h-7 px-2.5 text-[10px] sm:text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30 gap-1">
+                <Calendar className="w-3 h-3" />
+                {getPeriodLabel(overviewPeriod)}
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="bg-[#0e0e18]/98 backdrop-blur-xl border-amber-500/30 w-72 p-3" align="end" sideOffset={4}>
+              <div className="space-y-3">
+                {/* Tháng group */}
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-wider">Tháng</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const key = `month-${i + 1}`;
+                      const isActive = overviewPeriod === key;
+                      return (
+                        <button key={key} onClick={() => setOverviewPeriod(key)}
+                          className={`px-1.5 py-1 text-[10px] font-bold rounded transition-all ${isActive ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' : 'text-gray-300 hover:bg-white/10 border border-transparent'}`}>
+                          T{i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Quý group */}
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-wider">Quý</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    {(['q1', 'q2', 'q3', 'q4'] as const).map(q => {
+                      const isActive = overviewPeriod === q;
+                      const label = q.replace('q', 'Q');
+                      return (
+                        <button key={q} onClick={() => setOverviewPeriod(q)}
+                          className={`px-1.5 py-1 text-[10px] font-bold rounded transition-all ${isActive ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50' : 'text-gray-300 hover:bg-white/10 border border-transparent'}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Khác group */}
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-wider">Khác</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button onClick={() => setOverviewPeriod('h1')}
+                      className={`px-1.5 py-1 text-[10px] font-bold rounded transition-all ${overviewPeriod === 'h1' ? 'bg-sky-500/30 text-sky-300 border border-sky-500/50' : 'text-gray-300 hover:bg-white/10 border border-transparent'}`}>
+                      6 tháng đầu
+                    </button>
+                    <button onClick={() => setOverviewPeriod('year')}
+                      className={`px-1.5 py-1 text-[10px] font-bold rounded transition-all ${overviewPeriod === 'year' ? 'bg-sky-500/30 text-sky-300 border border-sky-500/50' : 'text-gray-300 hover:bg-white/10 border border-transparent'}`}>
+                      Cả năm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {lastSyncTime && (
+            <span className="text-[10px] text-emerald-400/60 flex items-center gap-1">
+              <RefreshCw className="w-3 h-3" /> Đồng bộ lúc {lastSyncTime}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Row 1: Core Revenue KPIs - Metallic solid dark cards */}
@@ -2077,7 +2171,7 @@ export default function QuanLyPage() {
           { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#7C3AED', badge: '#6D28D9', icon: Hash },
           { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#DC2626', badge: '#B91C1C', icon: CheckCircle2 },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((kpi.rawVal / kpi.target) * 100, 100) : 0;
+          const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           const Icon = kpi.icon;
           return (
             <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
@@ -2097,7 +2191,7 @@ export default function QuanLyPage() {
                 <div className="mt-2">
                   <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
                   <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 </div>
               ) : (
@@ -2118,7 +2212,7 @@ export default function QuanLyPage() {
           { label: 'SL NTD', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', badge: '#A16207', icon: UserCircle },
           { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', badge: '#0F766E', icon: UserPlus },
         ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? Math.min((kpi.rawVal / kpi.target) * 100, 100) : 0;
+          const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           const Icon = kpi.icon;
           return (
             <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
@@ -2138,7 +2232,7 @@ export default function QuanLyPage() {
                 <div className="mt-2">
                   <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
                   <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 </div>
               ) : (
@@ -2158,6 +2252,30 @@ export default function QuanLyPage() {
           <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
           <span className="text-[9px] text-amber-400/60 ml-auto">Nguồn: KẾ HOẠCH</span>
         </div>
+        {/* Aggregated summary for selected period */}
+        {overviewPeriod !== 'year' && (() => {
+          const selectedPeriodMonths = getPeriodMonths(overviewPeriod);
+          let aggPlan = 0, aggActual = 0;
+          selectedPeriodMonths.forEach(mi => {
+            const mm = String(mi).padStart(2, '0');
+            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+            const mp = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
+            aggPlan += mp;
+            const mcc = yearContracts.filter(c => { const d = getDoanhSoMonth(c); return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() + 1 === mi; });
+            aggActual += mcc.reduce((s, c) => s + c.afyp, 0);
+          });
+          const aggPct = aggPlan > 0 ? (aggActual / aggPlan) * 100 : 0;
+          return (
+            <div className="mb-3 p-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-[10px] text-amber-300 font-bold">{getPeriodLabel(overviewPeriod)}:</span>
+              <div className="flex items-center gap-3 text-[10px]">
+                <span className="text-white/60">KH: <span className="text-amber-400 font-bold">{formatSmartCurrency(aggPlan)}</span></span>
+                <span className="text-white/60">TH: <span className="text-emerald-400 font-bold">{formatSmartCurrency(aggActual)}</span></span>
+                <span className={`font-black ${aggPct >= 100 ? 'text-emerald-400' : aggPct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{aggPct.toFixed(1)}%</span>
+              </div>
+            </div>
+          );
+        })()}
         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
@@ -2168,21 +2286,22 @@ export default function QuanLyPage() {
               return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
             });
             const actualAFYP = mc.reduce((s, c) => s + c.afyp, 0);
-            const pct = monthlyPlan > 0 ? Math.min((actualAFYP / monthlyPlan) * 100, 100) : 0;
+            const pct = monthlyPlan > 0 ? (actualAFYP / monthlyPlan) * 100 : 0;
             const isCurrent = i + 1 === new Date().getMonth() + 1;
+            const isInPeriod = periodMonths.includes(i + 1);
             return (
-              <div key={i} className="rounded-none p-1.5 sm:p-2 text-center relative" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
+              <div key={i} className={`rounded-none p-1.5 sm:p-2 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
                 {monthlyPlan > 0 && (
                   <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
                 )}
-                <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
+                <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</p>
                 <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(0)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}</p>
                 <p className={`text-[10px] sm:text-xs font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : actualAFYP > 0 ? 'text-sky-400' : 'text-gray-600'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
                 {monthlyPlan > 0 && (
                   <div className="w-full h-1 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
+                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 )}
               </div>
@@ -2235,13 +2354,14 @@ export default function QuanLyPage() {
                   const actualHeight = d.afyp > 0 ? (d.afyp / maxAfyp) * 100 : 0;
                   const reached = d.target > 0 && d.afyp >= d.target;
                   const isCurrent = d.index + 1 === currentMonth;
-                  const pct = d.target > 0 ? Math.min((d.afyp / d.target) * 100, 100) : 0;
+                  const isInPeriod = periodMonths.includes(d.index + 1);
+                  const pct = d.target > 0 ? (d.afyp / d.target) * 100 : 0;
                   return (
-                    <div key={d.month} className="flex-1 flex flex-col items-center relative" style={{ height: '100%' }}>
+                    <div key={d.month} className={`flex-1 flex flex-col items-center relative ${!isInPeriod && overviewPeriod !== 'year' ? 'opacity-30' : ''}`} style={{ height: '100%' }}>
                       <div className="flex-1 w-full flex items-end justify-center gap-[2px]">
                         {/* Plan bar (outline) */}
                         <div
-                          className={`w-2/5 border-2 border-amber-500/60 ${isCurrent ? 'border-amber-400' : ''}`}
+                          className={`w-2/5 border-2 ${isInPeriod || overviewPeriod === 'year' ? 'border-amber-500/60' : 'border-amber-500/30'} ${isCurrent ? 'border-amber-400' : ''}`}
                           style={{ height: `${Math.max(planHeight, 1)}%` }}
                           title={`T${d.index + 1} KH: ${formatCurrency(d.target)}`}
                         ></div>
@@ -2252,7 +2372,7 @@ export default function QuanLyPage() {
                           title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${pct.toFixed(0)}%` : ''}`}
                         ></div>
                       </div>
-                      <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-emerald-400' : 'text-white/40'}`}>T{d.index + 1}</p>
+                      <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-emerald-400' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-white/40'}`}>T{d.index + 1}</p>
                       {d.afyp > 0 && (
                         <p className={`text-[9px] font-black ${reached ? 'text-emerald-400' : 'text-sky-400'}`}>
                           {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
@@ -2320,8 +2440,8 @@ export default function QuanLyPage() {
     // Helper: format plan value for minimap display
     const fmtPlan = (val: number) => {
       if (val <= 0) return '—';
-      if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1).replace(/\.0$/, '')} tỷ`;
-      if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(0)} trđ`;
+      if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
+      if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
       return formatNumber(Math.round(val));
     };
 
