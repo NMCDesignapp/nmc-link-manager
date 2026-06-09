@@ -32,6 +32,7 @@ interface Contract {
   startDate: string | null; effectiveDate: string; issueDate: string;
   fyp: number; afyp: number;
   pdt10DT: number; tinhLuot3tr: number; maDaiLyTD: string; ngayBatDauLamViec: string | null;
+  ad?: string;
 }
 
 interface BonusTier {
@@ -1511,24 +1512,24 @@ export default function ThiDuaPage() {
 
     // Sheet 2: Chi tiết hợp đồng — tất cả HĐ được tính vào thi đua
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Nhóm', 'Mã nhóm', 'Mã TVV', 'Tên TVV', 'Chức vụ', 'Số HĐ', 'Ngày hiệu lực', 'Ngày cấp', 'IP', 'AFYP', 'Mã ĐL TD', 'Tên ĐL TD', 'Tính lượt', 'Ngày BĐLV', 'Bàn'];
+      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD'];
       const detailRows: (string | number)[][] = displayContracts.map((c, idx) => [
         idx + 1,
+        c.ban || '',
         c.nhom || c.maNhom || '',
         c.maNhom || '',
         c.agentCode || '',
         c.agentName || '',
         c.position || '',
+        c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
         c.contractNumber || '',
         c.effectiveDate ? formatDate(c.effectiveDate) : '',
         c.issueDate ? formatDate(c.issueDate) : '',
         c.pdt10DT,
         c.afyp,
-        c.maDaiLyTD || '',
-        c.recruiterCode || '',
+        c.ad || c.leaderAgentCode || '',
         c.tinhLuot3tr || '',
-        c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
-        c.ban || '',
+        c.maDaiLyTD || '',
       ]);
       const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
       const detailColWidths = detailHeaders.map((h, i) => {
