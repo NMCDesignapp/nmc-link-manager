@@ -2349,11 +2349,11 @@ export default function ThiDuaPage() {
                             <>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
@@ -2374,7 +2374,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
-                            {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-normal text-emerald-600/50 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                            {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
 
                           {showRateColumn && !usePhase2 && (
@@ -2384,11 +2384,11 @@ export default function ThiDuaPage() {
                             <>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
@@ -2418,11 +2418,11 @@ export default function ThiDuaPage() {
                             <>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD1</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD1</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD2</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD2</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
@@ -2442,7 +2442,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
                             <div>{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
-                            {startDate && endDate && <div className="text-[9px] font-normal text-emerald-600/50 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                            {startDate && endDate && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
@@ -2451,11 +2451,11 @@ export default function ThiDuaPage() {
                             <>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD1</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD1</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-normal text-emerald-600/50 italic">GD2</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD2</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
