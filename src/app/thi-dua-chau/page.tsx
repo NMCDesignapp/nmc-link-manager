@@ -1661,33 +1661,120 @@ export default function ThiDuaPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi đua');
 
-    // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý
+    // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD'];
-      const detailRows: (string | number)[][] = displayContracts.map((c, idx) => [
-        idx + 1,
-        c.ban || '',
-        c.nhom || c.maNhom || '',
-        c.maNhom || '',
-        c.agentCode || '',
-        c.agentName || '',
-        c.position || '',
-        c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
-        c.contractNumber || '',
-        c.effectiveDate ? formatDate(c.effectiveDate) : '',
-        c.issueDate ? formatDate(c.issueDate) : '',
-        c.pdt10DT,
-        c.afyp,
-        c.ad || c.leaderAgentCode || '',
-        c.tinhLuot3tr || '',
-        c.maDaiLyTD || '',
-      ]);
+      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+      // Build detail rows with bonus values for merging
+      const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
+
+      // Helper: compute bonus for a group of contracts (same key = same TVV / same nhóm / same NTD)
+      const getBonusForGroup = (groupKey: string): string => {
+        if (targetType === 'nhom') {
+          const g = groupedData.find(g => g.maNhom === groupKey);
+          if (!g) return '';
+          const value = isActivityRoundMode(conditionType) ? g.activityRounds : g.totalFYP;
+          const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
+          return tier ? formatBonusAmount(tier, g.totalFYP, g.activityRounds) : '';
+        }
+        if (targetType === 'nyd') {
+          const n = nydData.find(n => n.nydCode === groupKey);
+          if (!n) return '';
+          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+          const { tier } = calculateBonus(value);
+          return tier ? formatBonusAmount(tier, value, n.recruitCount) : '';
+        }
+        // TVV total mode
+        if (targetType === 'tvv' && isTotalMode(conditionType)) {
+          const tr = tvvTotalRows.find(r => r.agent.agentCode === groupKey);
+          if (!tr) return '';
+          return tr.tier ? formatBonusAmount(tr.tier, tr.value) : '';
+        }
+        return '';
+      };
+
+      // Build rows: each contract gets its own row, but THƯỞNG is only shown on first row of group
+      type DetailRow = { data: (string | number)[]; groupKey: string };
+      const detailRowData: DetailRow[] = displayContracts.map((c) => {
+        let groupKey = '';
+        let bonusValue: string | number = '';
+        if (needMerge) {
+          if (targetType === 'nhom') {
+            groupKey = c.maNhom || '';
+          } else if (targetType === 'nyd') {
+            groupKey = c.maDaiLyTD || c.recruiterCode || '';
+          } else if (targetType === 'tvv' && isTotalMode(conditionType)) {
+            groupKey = c.agentCode || '';
+          }
+        } else {
+          // TVV per_contract: each contract has its own bonus
+          const { tier } = calculateBonus(c.pdt10DT);
+          bonusValue = tier ? formatBonusAmount(tier, c.pdt10DT) : '';
+        }
+        return {
+          data: [
+            0, // STT placeholder, will be set below
+            c.ban || '',
+            c.nhom || c.maNhom || '',
+            c.maNhom || '',
+            c.agentCode || '',
+            c.agentName || '',
+            c.position || '',
+            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+            c.contractNumber || '',
+            c.effectiveDate ? formatDate(c.effectiveDate) : '',
+            c.issueDate ? formatDate(c.issueDate) : '',
+            c.pdt10DT,
+            c.afyp,
+            c.ad || c.leaderAgentCode || '',
+            c.tinhLuot3tr || '',
+            c.maDaiLyTD || '',
+            bonusValue,
+          ],
+          groupKey,
+        };
+      });
+
+      // Set STT
+      detailRowData.forEach((r, idx) => { r.data[0] = idx + 1; });
+
+      // Fill THƯỞNG for first row of each group when merging
+      const detailMerges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+      if (needMerge) {
+        // Group rows by key, preserving order
+        const groupFirstRow = new Map<string, number>();
+        const groupRowCount = new Map<string, number>();
+        detailRowData.forEach((r, idx) => {
+          if (!groupFirstRow.has(r.groupKey)) {
+            groupFirstRow.set(r.groupKey, idx);
+          }
+          groupRowCount.set(r.groupKey, (groupRowCount.get(r.groupKey) || 0) + 1);
+        });
+        // Set bonus value on first row of each group
+        for (const [key, firstIdx] of groupFirstRow) {
+          const bonus = getBonusForGroup(key);
+          detailRowData[firstIdx].data[detailHeaders.length - 1] = bonus;
+          // Create merge range for THƯỞNG column if group has > 1 row
+          const count = groupRowCount.get(key) || 1;
+          if (count > 1) {
+            const colIdx = detailHeaders.length - 1; // THƯỞNG is last column
+            detailMerges.push({
+              s: { r: firstIdx + 1, c: colIdx }, // +1 for header row
+              e: { r: firstIdx + count, c: colIdx },
+            });
+          }
+        }
+      }
+
+      const detailRows: (string | number)[][] = detailRowData.map(r => r.data);
       const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
       const detailColWidths = detailHeaders.map((h, i) => {
         const maxLen = Math.max(h.length, ...detailRows.map(r => String(r[i] || '').length));
         return { wch: Math.min(maxLen + 2, 30) };
       });
       wsDetail['!cols'] = detailColWidths;
+      if (detailMerges.length > 0) {
+        wsDetail['!merges'] = detailMerges;
+      }
       XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
     }
 
