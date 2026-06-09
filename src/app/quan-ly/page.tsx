@@ -2162,82 +2162,72 @@ export default function QuanLyPage() {
         </div>
       </div>
 
-      {/* Row 1: Core Revenue KPIs - Metallic solid dark cards */}
+      {/* Row 1: Core Revenue KPIs - New card design */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {[
-          { label: 'TỔNG AFYP', value: formatSmartCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#2563EB', badge: '#1D4ED8', icon: DollarSign },
-          { label: 'TỔNG IP', value: formatSmartCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#059669', badge: '#047857', icon: DollarSign },
-          { label: 'TỶ TRỌNG IP', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', badge: '#0E7490', icon: Percent },
-          { label: 'LƯỢT HĐ', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#7C3AED', badge: '#6D28D9', icon: Hash },
-          { label: 'LƯỢT HĐ CHUẨN', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#DC2626', badge: '#B91C1C', icon: CheckCircle2 },
+          { label: 'TỔNG AFYP', unit: 'trđ', value: formatSmartCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
+          { label: 'TỔNG IP', unit: 'trđ', value: formatSmartCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#059669', hasKH: true },
+          { label: 'TỶ TRỌNG IP', unit: '%', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
+          { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#7C3AED', hasKH: true },
+          { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#DC2626', hasKH: true },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
-          const Icon = kpi.icon;
           return (
-            <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
-              {kpi.target > 0 && (
-                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-xl font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                  {pct.toFixed(0)}%
-                </div>
-              )}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}>
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+            <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
+              {/* Colored header strip */}
+              <div className="px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
+                <p className="text-white text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">
+                  {kpi.label} <span className="text-white/60 text-[8px] sm:text-[10px] font-normal italic">({kpi.unit})</span>
+                </p>
+                {kpi.target > 0 && (
+                  <span className="text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                    {pct.toFixed(0)}%
+                  </span>
+                )}
               </div>
-              <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
-              {kpi.target > 0 ? (
-                <div className="mt-2">
-                  <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
-                  <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 h-[18px]"></div>
-              )}
+              {/* White body with large number */}
+              <div className="bg-white px-3 py-3 sm:px-4 sm:py-4 text-center">
+                <p className="text-xl sm:text-3xl font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+                {kpi.hasKH && kpi.target > 0 ? (
+                  <p className="text-gray-400 text-[10px] sm:text-xs font-medium italic mt-1 truncate">KH: {kpi.targetFmt}</p>
+                ) : null}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Row 2: Secondary KPIs - Same metallic solid style */}
+      {/* Row 2: Secondary KPIs - New card design */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {[
-          { label: 'SL HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', badge: '#B45309', icon: FileText },
-          { label: 'NĂNG SUẤT', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', badge: '#0369A1', icon: TrendingUp },
-          { label: 'ĐL HĐ', value: formatSmartCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#059669', badge: '#047857', icon: BarChart3 },
-          { label: 'SL TB/TN', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', badge: '#6D28D9', icon: Users },
-          { label: 'SL NTD', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', badge: '#A16207', icon: UserCircle },
-          { label: 'SL TUYỂN DỤNG', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', badge: '#0F766E', icon: UserPlus },
+          { label: 'SL HĐ', unit: 'hợp đồng', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
+          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', hasKH: true },
+          { label: 'ĐL HĐ', unit: 'trđ', value: formatSmartCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#059669', hasKH: true },
+          { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', hasKH: true },
+          { label: 'SL NTD', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', hasKH: true },
+          { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', hasKH: true },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
-          const Icon = kpi.icon;
           return (
-            <div key={i} className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)' }}>
-              {kpi.target > 0 && (
-                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                  {pct.toFixed(0)}%
-                </div>
-              )}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}>
-                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                </div>
-                <p className="text-white/80 text-[9px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+            <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
+              {/* Colored header strip */}
+              <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
+                <p className="text-white text-[9px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider">
+                  {kpi.label} <span className="text-white/60 text-[7px] sm:text-[9px] font-normal italic">({kpi.unit})</span>
+                </p>
+                {kpi.target > 0 && (
+                  <span className="text-xs sm:text-base font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
+                    {pct.toFixed(0)}%
+                  </span>
+                )}
               </div>
-              <p className="text-white text-lg sm:text-xl font-black truncate leading-tight">{kpi.value}</p>
-              {kpi.target > 0 ? (
-                <div className="mt-2">
-                  <p className="text-white/50 text-[9px] sm:text-[10px] font-semibold">KH: {kpi.targetFmt}</p>
-                  <div className="w-full h-1.5 sm:h-2 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 h-[18px]"></div>
-              )}
+              {/* White body with large number */}
+              <div className="bg-white px-2.5 py-2.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-lg sm:text-2xl font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+                {kpi.hasKH && kpi.target > 0 ? (
+                  <p className="text-gray-400 text-[9px] sm:text-[10px] font-medium italic mt-1 truncate">KH: {kpi.targetFmt}</p>
+                ) : null}
+              </div>
             </div>
           );
         })}
@@ -3713,18 +3703,26 @@ export default function QuanLyPage() {
           {/* KPI Indicator strip — left side on desktop, full width on mobile */}
           <div className="lg:w-1/3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
             {[
-              { label: 'SL HĐ', value: formatNumber(soLuongHD), color: 'bg-gradient-to-br from-amber-100 to-amber-50' },
-              { label: 'IP + 10% PĐT', value: formatSmartCurrency(tongIP), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50' },
-              { label: 'AFYP', value: formatSmartCurrency(tongAFYP), color: 'bg-gradient-to-br from-sky-100 to-sky-50' },
-              { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), color: 'bg-gradient-to-br from-violet-100 to-violet-50' },
-              { label: 'Lượt chuẩn', value: formatNumber(luotChuan), color: 'bg-gradient-to-br from-rose-100 to-rose-50' },
-              { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', color: 'bg-gradient-to-br from-cyan-100 to-cyan-50' },
-              { label: 'Năng suất', value: nangSuatMonth.toFixed(2), color: 'bg-gradient-to-br from-sky-100 to-sky-50' },
-              { label: 'ĐLHĐ', value: formatSmartCurrency(dlhdMonth), color: 'bg-gradient-to-br from-emerald-100 to-emerald-50' },
+              { label: 'SL HĐ', unit: 'hợp đồng', value: formatNumber(soLuongHD), bg: '#D97706' },
+              { label: 'IP + 10% PĐT', unit: 'trđ', value: formatSmartCurrency(tongIP), bg: '#059669' },
+              { label: 'AFYP', unit: 'trđ', value: formatSmartCurrency(tongAFYP), bg: '#2563EB' },
+              { label: 'Lượt HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
+              { label: 'Lượt chuẩn', unit: 'lượt', value: formatNumber(luotChuan), bg: '#DC2626' },
+              { label: 'IP/AFYP', unit: '%', value: ipAfypMonth.toFixed(1) + '%', bg: '#0891B2' },
+              { label: 'Năng suất', unit: 'HĐ/lượt', value: nangSuatMonth.toFixed(2), bg: '#0284C7' },
+              { label: 'ĐLHĐ', unit: 'trđ', value: formatSmartCurrency(dlhdMonth), bg: '#059669' },
             ].map((kpi, i) => (
-              <div key={i} className={`${kpi.color} rounded-[2px] p-2 shadow-md text-center`}>
-                <p className="text-gray-600 text-[9px] font-bold leading-tight">{kpi.label}</p>
-                <p className="text-gray-900 text-sm font-extrabold truncate">{kpi.value}</p>
+              <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                {/* Colored header strip */}
+                <div className="px-2 py-1 flex items-center justify-between" style={{ backgroundColor: kpi.bg }}>
+                  <p className="text-white text-[8px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider">
+                    {kpi.label} <span className="text-white/60 text-[7px] sm:text-[8px] font-normal italic">({kpi.unit})</span>
+                  </p>
+                </div>
+                {/* White body with large number */}
+                <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center">
+                  <p className="text-sm sm:text-lg font-black truncate leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+                </div>
               </div>
             ))}
           </div>
