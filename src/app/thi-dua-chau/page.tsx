@@ -786,7 +786,30 @@ export default function ThiDuaPage() {
         // Lượt HĐ mode: use activityRounds from MonthlyRevenue for recruited agents
         let totalRounds = 0;
         let totalRecruitFYP = 0;
-        const recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
+        let recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
+        // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
+        if (isTVVmMode(conditionType)) {
+          recruitedAgents = new Set(
+            [...recruitedAgents].filter(agentCode => {
+              // Kiểm tra TVVm từ staffList hoặc contracts
+              const staff = staffList.find(s => s.agentCode === agentCode);
+              if (staff?.startDate) return isTVVm(staff.startDate);
+              // Fallback: kiểm tra từ contracts (ngayBatDauLamViec hoặc startDate)
+              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
+              if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
+              return false;
+            })
+          );
+        }
+        // Lọc TVV90 nếu chế độ TVV90
+        if (conditionType === 'activity_round_tvv90') {
+          recruitedAgents = new Set(
+            [...recruitedAgents].filter(agentCode => {
+              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
+              return contract ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP) : false;
+            })
+          );
+        }
         for (const agentCode of recruitedAgents) {
           const rv = revenueByAgent.get(agentCode);
           if (rv) {
@@ -1119,7 +1142,27 @@ export default function ThiDuaPage() {
         const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
         let recruitCount = 0; let recruitFYP = 0;
         if (isActivityRoundMode(conditionType)) {
-          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          let recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
+          if (isTVVmMode(conditionType)) {
+            recruitedAgents = new Set(
+              [...recruitedAgents].filter(agentCode => {
+                const staff = staffList.find(s => s.agentCode === agentCode);
+                if (staff?.startDate) return isTVVm(staff.startDate);
+                const contract = recruited.find(c => c.agentCode === agentCode);
+                if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
+                return false;
+              })
+            );
+          }
+          // Lọc TVV90 nếu chế độ TVV90
+          if (conditionType === 'activity_round_tvv90') {
+            recruitedAgents = new Set(
+              [...recruitedAgents].filter(agentCode => {
+                return isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP);
+              })
+            );
+          }
           for (const agentCode of recruitedAgents) {
             const rv = revenueByAgent.get(agentCode);
             if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; }
@@ -1200,7 +1243,27 @@ export default function ThiDuaPage() {
         const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
         let recruitCount = 0; let recruitFYP = 0;
         if (isActivityRoundMode(conditionType)) {
-          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          let recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
+          if (isTVVmMode(conditionType)) {
+            recruitedAgents = new Set(
+              [...recruitedAgents].filter(agentCode => {
+                const staff = staffList.find(s => s.agentCode === agentCode);
+                if (staff?.startDate) return isTVVm(staff.startDate);
+                const contract = recruited.find(c => c.agentCode === agentCode);
+                if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
+                return false;
+              })
+            );
+          }
+          // Lọc TVV90 nếu chế độ TVV90
+          if (conditionType === 'activity_round_tvv90') {
+            recruitedAgents = new Set(
+              [...recruitedAgents].filter(agentCode => {
+                return isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP);
+              })
+            );
+          }
           for (const agentCode of recruitedAgents) {
             const rv = revenueByAgent.get(agentCode);
             if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; }
