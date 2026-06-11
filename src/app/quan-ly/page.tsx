@@ -3722,13 +3722,13 @@ export default function QuanLyPage() {
           <div className="lg:w-1/3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
             {[
               { label: 'SL HĐ', value: formatNumber(soLuongHD), bg: '#D97706' },
-              { label: 'IP + 10% PĐT', value: formatSmartCurrency(tongIP), bg: '#059669' },
-              { label: 'AFYP', value: formatSmartCurrency(tongAFYP), bg: '#2563EB' },
+              { label: 'IP + 10% PĐT', value: formatKpiCurrency(tongIP), bg: '#059669' },
+              { label: 'AFYP', value: formatKpiCurrency(tongAFYP), bg: '#2563EB' },
               { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
               { label: 'Lượt chuẩn', value: formatNumber(luotChuan), bg: '#DC2626' },
               { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', bg: '#0891B2' },
               { label: 'Năng suất', value: nangSuatMonth.toFixed(2), bg: '#0284C7' },
-              { label: 'ĐLHĐ', value: formatSmartCurrency(dlhdMonth), bg: '#059669' },
+              { label: 'ĐLHĐ', value: formatKpiCurrency(dlhdMonth), bg: '#059669' },
             ].map((kpi, i) => (
               <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                 {/* Colored header strip */}
@@ -3738,8 +3738,8 @@ export default function QuanLyPage() {
                   </p>
                 </div>
                 {/* White body with large number */}
-                <div className="bg-white px-1.5 py-2 sm:px-2 sm:py-2.5 text-center min-w-0">
-                  <p className="text-sm sm:text-lg font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
+                <div className="bg-white px-1.5 py-2 sm:px-2 sm:py-2.5 text-center">
+                  <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
                 </div>
               </div>
             ))}
@@ -3887,7 +3887,7 @@ export default function QuanLyPage() {
 
         {/* Footer summary */}
         <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
-          IP + 10% PĐT: {formatSmartCurrency(tongIP)} • AFYP: {formatSmartCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatSmartCurrency(dlhdMonth)}
+          IP + 10% PĐT: {formatKpiCurrency(tongIP)} • AFYP: {formatKpiCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatKpiCurrency(dlhdMonth)}
         </p>
       </div>
           </div>
@@ -3965,7 +3965,7 @@ export default function QuanLyPage() {
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
                     <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {pADs.length} AD</span>
-                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-emerald-400 hover:text-emerald-300" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-emerald-400"><Edit2 className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeletePhong(p.id)} className="h-5 w-5 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
                   </div>
@@ -3981,18 +3981,18 @@ export default function QuanLyPage() {
                   {pADs.map(a => {
                     const aBNs = banNhomList.filter(b => b.maAD === a.maAD);
                     return (
-                      <div key={a.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#f9fafb', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                        {/* AD header — green accent */}
-                        <div className="px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#d1fae5' }}>
+                      <div key={a.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#ecfdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                        {/* AD header — dark green accent */}
+                        <div className="px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#059669' }}>
                           <div className="flex items-center gap-2">
-                            <UserCog className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                            <span className="text-[11px] font-bold text-emerald-800 truncate">{a.tenAD}</span>
-                            <span className="text-[9px] text-emerald-600/60">{a.maAD} • {aBNs.length} nhóm</span>
+                            <UserCog className="w-3.5 h-3.5 text-white flex-shrink-0" />
+                            <span className="text-[11px] font-bold text-white truncate">{a.tenAD}</span>
+                            <span className="text-[9px] text-white/70">{a.maAD} • {aBNs.length} nhóm</span>
                           </div>
                           <div className="flex items-center gap-0.5 flex-shrink-0">
-                            <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-4 w-4 p-0 text-emerald-500 hover:text-emerald-700" title="Thêm Nhóm"><Plus className="w-2 h-2" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => setEditingAD(a)} className="h-4 w-4 p-0 text-gray-400 hover:text-emerald-600"><Edit2 className="w-2 h-2" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteAD(a.id)} className="h-4 w-4 p-0 text-gray-400 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-4 w-4 p-0 text-white/70 hover:text-white" title="Thêm Nhóm"><Plus className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditingAD(a)} className="h-4 w-4 p-0 text-white/50 hover:text-white"><Edit2 className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteAD(a.id)} className="h-4 w-4 p-0 text-white/50 hover:text-red-300"><Trash2 className="w-2 h-2" /></Button>
                           </div>
                         </div>
 
@@ -4017,7 +4017,7 @@ export default function QuanLyPage() {
                               <div key={b.id}>
                                 {/* Nhóm header row — click to toggle TVV */}
                                 <div
-                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-all duration-200 border ${isExpanded ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-gray-200 hover:bg-emerald-50/50'}`}
+                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-all duration-200 border ${isExpanded ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-gray-200 hover:bg-emerald-50/50'}`}
                                   onClick={() => {
                                     setExpandedBanNhoms(prev => {
                                       const next = new Set(prev);
@@ -4035,8 +4035,8 @@ export default function QuanLyPage() {
                                     <p className="text-gray-400 text-[9px]">{b.maBanNhom}{b.ngayBatDau ? ` • BĐ: ${safeFormatDate(b.ngayBatDau)}` : ''}</p>
                                   </div>
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{bnTVVs.length} TVV</span>
-                                    {tdCount > 0 && <span className="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{tdCount} TD</span>}
+                                    <span className="text-[9px] text-white bg-emerald-700 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{bnTVVs.length} TVV</span>
+                                    {tdCount > 0 && <span className="text-[9px] text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{tdCount} TD</span>}
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-4 w-4 p-0 text-emerald-400 hover:text-emerald-600" title="Thêm TVV"><Plus className="w-2 h-2" /></Button>
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
                                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
@@ -4050,7 +4050,7 @@ export default function QuanLyPage() {
                                       {bnTVVs.map((t, idx) => (
                                         <div
                                           key={t.id}
-                                          className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-50 transition-all duration-200 rounded-sm group"
+                                          className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm group"
                                           style={{
                                             transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
                                             transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
@@ -4059,7 +4059,7 @@ export default function QuanLyPage() {
                                         >
                                           <span className="text-gray-400 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
                                           <span className="text-gray-700 text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
-                                          {t.chucVu && <span className="text-emerald-600/70 text-[9px] flex-shrink-0">{t.chucVu}</span>}
+                                          {t.chucVu && <span className="text-emerald-700 text-[9px] flex-shrink-0 font-semibold">{t.chucVu}</span>}
                                           {t.ngayBatDau && <span className="text-gray-400 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
                                           <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
