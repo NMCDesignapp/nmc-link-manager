@@ -1382,7 +1382,7 @@ export default function ThiDuaPage() {
         const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
         return bValue - aValue;
       }).forEach(({ group: g, tier, groupPhase }, idx) => {
-        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : `IP: ${formatNumber(g.totalFYP)}`;
+        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
         // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
         const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
         if (usePhase2 && phase2StartDate) {
@@ -1535,7 +1535,7 @@ export default function ThiDuaPage() {
       sortedGroups.forEach(({ g, tier, groupPhase }, gIdx) => {
         const startRow = currentRow;
         const contracts = [...(g.contracts || [])].sort((a, b) => b.pdt10DT - a.pdt10DT);
-        const condValue = isActivityRoundMode(conditionType) ? `${g.activityRounds} Lượt` : g.totalFYP;
+        const condValue = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : g.totalFYP;
         if (contracts.length === 0) {
           const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue, '', '', '', '', '', g.totalFYP];
           if (usePhase2) {
@@ -2610,7 +2610,7 @@ export default function ThiDuaPage() {
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
-                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(luotHDThreshold)}/tháng = 1 lượt` : `Tổng FYP${includeIndividualTN ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}` : `Tổng FYP${includeIndividualTN ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
             )}
           </div>
@@ -2915,7 +2915,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-600 whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs whitespace-nowrap">
                             {isActivityRoundMode(conditionType)
-                              ? <span className="text-gray-900">{group.activityRounds} Lượt</span>
+                              ? <span className="text-gray-900">{group.activityRounds} {isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}</span>
                               : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
