@@ -237,11 +237,12 @@ function formatSmartCurrency(amount: number): string {
 }
 
 // Compact currency for KPI cards - always shows trđ/tỷ/ngàn on ALL screen sizes
+// trđ always shows 3 decimal places with Vietnamese comma separator (e.g. 1,350 trđ)
 function formatKpiCurrency(amount: number): string {
-  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(1).replace(/\.?0+$/, '')} ngàn`;
-  if (amount === 0) return '0 đ';
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(3).replace('.', ',')} tỷ`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(3).replace('.', ',')} trđ`;
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(3).replace('.', ',')} ngàn`;
+  if (amount === 0) return '0,000 trđ';
   return `${amount} đ`;
 }
 
