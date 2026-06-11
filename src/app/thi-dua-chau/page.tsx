@@ -2148,11 +2148,6 @@ export default function ThiDuaPage() {
     }
     setFilteredContracts(results);
     setIsResultDialogOpen(true);
-    if (results.length > 0) {
-      toast({ title: 'Thành công', description: `Tìm thấy ${results.length} hợp đồng` });
-    } else {
-      toast({ title: 'Thông báo', description: 'Không có hợp đồng, hiển thị danh sách đối tượng với giá trị 0' });
-    }
   };
 
   // Neon border style like main page
@@ -2256,8 +2251,13 @@ export default function ThiDuaPage() {
           <div className="ml-auto flex items-center gap-1.5">
             {isLoading ? (
               <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+            ) : contracts.length > 0 ? (
+              <div className="flex items-center gap-1" title={`${contracts.length} HĐ đã đồng bộ`}>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-400">{contracts.length} HĐ</span>
+              </div>
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" title="Dữ liệu đã sẵn sàng" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400/40" title="Chưa có dữ liệu" />
             )}
             <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-7 w-7 p-0 text-emerald-400/70 hover:text-emerald-300">
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
