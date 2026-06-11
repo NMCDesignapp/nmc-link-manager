@@ -772,22 +772,49 @@ export default function ThiDuaPage() {
     }
 
     // Step 2: Calculate recruit data using maDaiLyTD from contracts for mapping
-    // But get FYP from MonthlyRevenue
     // Mã số NTD → ánh xạ sang cột maDaiLyTD trong bảng doanh số
     const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
-    // Build revenue lookup by agentCode
-    const revenueByAgent = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number }>();
-    for (const rv of filteredRevenueData) {
-      const key = rv.agentCode || rv.agentName;
-      if (!key) continue;
-      const existing = revenueByAgent.get(key);
-      if (existing) {
-        existing.totalFYP += rv.totalFYP;
-        existing.totalAFYP += rv.totalAFYP;
-        existing.contractCount += rv.contractCount;
-        existing.activityRounds += rv.activityRounds;
-      } else {
-        revenueByAgent.set(key, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, contractCount: rv.contractCount, activityRounds: rv.activityRounds });
+    const isAFYP = conditionType === 'total_afyp';
+    // Build FYP lookup by agentCode — dùng Contracts (nguồn duy nhất) cho total_ip/total_afyp
+    const agentFYPLookup = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
+    if (isTotalMode(conditionType)) {
+      // total_ip/total_afyp: lấy FYP trực tiếp từ Contracts
+      for (const c of displayContracts) {
+        const key = c.agentCode;
+        if (!key) continue;
+        const existing = agentFYPLookup.get(key);
+        if (existing) {
+          existing.totalFYP += c.pdt10DT;
+          existing.totalAFYP += c.afyp;
+        } else {
+          agentFYPLookup.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 });
+        }
+      }
+      // Tính activityRounds từ Contracts cho từng agent
+      const agentContractsMap = new Map<string, Contract[]>();
+      for (const c of displayContracts) {
+        const key = c.agentCode;
+        if (!key) continue;
+        if (!agentContractsMap.has(key)) agentContractsMap.set(key, []);
+        agentContractsMap.get(key)!.push(c);
+      }
+      for (const [key, cList] of agentContractsMap) {
+        const data = agentFYPLookup.get(key);
+        if (data) data.activityRounds = calculateLuot(cList, luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+      }
+    } else {
+      // activity_round modes: dùng MonthlyRevenue (đã tính sẵn lượt HĐ theo tháng)
+      for (const rv of filteredRevenueData) {
+        const key = rv.agentCode || rv.agentName;
+        if (!key) continue;
+        const existing = agentFYPLookup.get(key);
+        if (existing) {
+          existing.totalFYP += rv.totalFYP;
+          existing.totalAFYP += rv.totalAFYP;
+          existing.activityRounds += rv.activityRounds;
+        } else {
+          agentFYPLookup.set(key, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, activityRounds: rv.activityRounds });
+        }
       }
     }
     for (const [nydCode, nyd] of nydMap) {
@@ -795,7 +822,7 @@ export default function ThiDuaPage() {
       const recruitedContracts = displayContracts.filter(c => c.maDaiLyTD === nydCode && c.agentCode !== nydCode);
 
       if (isActivityRoundMode(conditionType)) {
-        // Lượt HĐ mode: use activityRounds from MonthlyRevenue for recruited agents
+        // Lượt HĐ mode: use activityRounds for recruited agents
         let totalRounds = 0;
         let totalRecruitFYP = 0;
         let recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
@@ -803,10 +830,8 @@ export default function ThiDuaPage() {
         if (isTVVmMode(conditionType)) {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              // Kiểm tra TVVm từ staffList hoặc contracts
               const staff = staffList.find(s => s.agentCode === agentCode);
               if (staff?.startDate) return isTVVm(staff.startDate);
-              // Fallback: kiểm tra từ contracts (ngayBatDauLamViec hoặc startDate)
               const contract = recruitedContracts.find(c => c.agentCode === agentCode);
               if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
               return false;
@@ -823,7 +848,7 @@ export default function ThiDuaPage() {
           );
         }
         for (const agentCode of recruitedAgents) {
-          const rv = revenueByAgent.get(agentCode);
+          const rv = agentFYPLookup.get(agentCode);
           if (rv) {
             totalRounds += rv.activityRounds;
             totalRecruitFYP += rv.totalFYP;
@@ -832,13 +857,13 @@ export default function ThiDuaPage() {
         nyd.recruitCount = totalRounds;
         nyd.recruitFYP = totalRecruitFYP;
       } else {
-        // NTD FYP mode: get FYP from MonthlyRevenue for recruited agents
+        // NTD FYP mode: get FYP from agentFYPLookup (Contracts cho total_ip/total_afyp)
         let recruitCount = 0;
         let recruitFYP = 0;
         const recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
         for (const agentCode of recruitedAgents) {
-          const rv = revenueByAgent.get(agentCode);
-          const agentFYP = rv?.totalFYP || 0;
+          const rv = agentFYPLookup.get(agentCode);
+          const agentFYP = rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
           if (agentFYP >= luotHDThreshold) recruitCount++;
           recruitFYP += agentFYP;
         }
@@ -846,14 +871,14 @@ export default function ThiDuaPage() {
         nyd.recruitFYP = recruitFYP;
       }
 
-      // Also add NTD's own FYP from MonthlyRevenue
-      const ownRevenue = revenueByAgent.get(nydCode);
-      nyd.ownFYP = ownRevenue?.totalFYP || 0;
+      // Also add NTD's own FYP from agentFYPLookup
+      const ownRevenue = agentFYPLookup.get(nydCode);
+      nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
       nyd.contracts = [...recruitedContracts, ...displayContracts.filter(c => c.agentCode === nydCode)];
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, filteredRevenueData, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold]);
+  }, [displayContracts, filteredRevenueData, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng MonthlyRevenue làm nguồn doanh số thay vì HĐ
@@ -1062,39 +1087,68 @@ export default function ThiDuaPage() {
       }
     }
 
-    // Step 2: Map doanh số từ MonthlyRevenue vào nhóm ĐÃ CÓ
+    // Step 2: Map doanh số vào nhóm ĐÃ CÓ
     // Dùng mã nhóm (maNhom) để ánh xạ, hỗ trợ case-insensitive
     const mapKeyIndex = new Map<string, string>(); // lowercase → actual key
     for (const key of map.keys()) {
       mapKeyIndex.set(key.toLowerCase(), key);
     }
-    // Aggregate revenue by maNhom from MonthlyRevenue data
-    const revenueByNhom = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number }>();
-    for (const rv of displayRevenueData) {
-      if (!rv.maNhom) continue;
-      const existing = revenueByNhom.get(rv.maNhom);
-      if (existing) {
-        existing.totalFYP += rv.totalFYP;
-        existing.totalAFYP += rv.totalAFYP;
-        existing.contractCount += rv.contractCount;
-        existing.activityRounds += rv.activityRounds;
-      } else {
-        revenueByNhom.set(rv.maNhom, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, contractCount: rv.contractCount, activityRounds: rv.activityRounds });
-      }
-    }
-    // Map aggregated revenue into groups
-    for (const [rvNhom, rvData] of revenueByNhom) {
-      const actualKey = map.get(rvNhom) ? rvNhom : mapKeyIndex.get(rvNhom.toLowerCase());
-      const g = actualKey ? map.get(actualKey) : null;
-      if (g) {
-        g.totalFYP += rvData.totalFYP;
-        g.totalAFYP += rvData.totalAFYP;
-        g.contractCount += rvData.contractCount;
-        g.activityRounds += rvData.activityRounds;
-      }
-    }
 
-    // Step 3: Activity rounds already populated from MonthlyRevenue (no need to recalculate)
+    if (isTotalMode(conditionType)) {
+      // total_ip / total_afyp: lấy trực tiếp từ Contracts (nguồn duy nhất)
+      const contractByNhom = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number }>();
+      for (const c of displayContracts) {
+        if (!c.maNhom) continue;
+        const existing = contractByNhom.get(c.maNhom);
+        if (existing) {
+          existing.totalFYP += c.pdt10DT;
+          existing.totalAFYP += c.afyp;
+          existing.contractCount += 1;
+        } else {
+          contractByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1 });
+        }
+      }
+      for (const [cNhom, cData] of contractByNhom) {
+        const actualKey = map.get(cNhom) ? cNhom : mapKeyIndex.get(cNhom.toLowerCase());
+        const g = actualKey ? map.get(actualKey) : null;
+        if (g) {
+          g.totalFYP += cData.totalFYP;
+          g.totalAFYP += cData.totalAFYP;
+          g.contractCount += cData.contractCount;
+        }
+      }
+      // Tính lượt HĐ từ Contracts cho từng nhóm
+      for (const [maNhom, g] of map) {
+        const groupContracts = displayContracts.filter(c => c.maNhom === maNhom || (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase()));
+        g.activityRounds = calculateLuot(groupContracts, luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+      }
+    } else {
+      // activity_round modes: dùng MonthlyRevenue (đã tính sẵn lượt HĐ theo tháng)
+      const revenueByNhom = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number }>();
+      for (const rv of displayRevenueData) {
+        if (!rv.maNhom) continue;
+        const existing = revenueByNhom.get(rv.maNhom);
+        if (existing) {
+          existing.totalFYP += rv.totalFYP;
+          existing.totalAFYP += rv.totalAFYP;
+          existing.contractCount += rv.contractCount;
+          existing.activityRounds += rv.activityRounds;
+        } else {
+          revenueByNhom.set(rv.maNhom, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP, contractCount: rv.contractCount, activityRounds: rv.activityRounds });
+        }
+      }
+      // Map aggregated revenue into groups
+      for (const [rvNhom, rvData] of revenueByNhom) {
+        const actualKey = map.get(rvNhom) ? rvNhom : mapKeyIndex.get(rvNhom.toLowerCase());
+        const g = actualKey ? map.get(actualKey) : null;
+        if (g) {
+          g.totalFYP += rvData.totalFYP;
+          g.totalAFYP += rvData.totalAFYP;
+          g.contractCount += rvData.contractCount;
+          g.activityRounds += rvData.activityRounds;
+        }
+      }
+    }
 
     // Step 4: Calculate memberCount từ Staff table
     for (const g of Array.from(map.values())) {
@@ -1102,220 +1156,230 @@ export default function ThiDuaPage() {
     }
 
     return Array.from(map.values());
-  }, [displayRevenueData, targetType, conditionType, staffList, recruiterList, subjectCodes]);
+  }, [displayContracts, displayRevenueData, targetType, conditionType, staffList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // Phase 2: Split revenue by month and compute bonus
   const phase2Results = useMemo(() => {
     if (!usePhase2 || !phase2StartDate) return null;
+    const p2Start = new Date(phase2StartDate);
     const p2StartMonth = phase2StartDate.slice(0, 7);
-    const phase1Revenue = displayRevenueData.filter(rv => rv.month < p2StartMonth);
-    const phase2Revenue = displayRevenueData.filter(rv => rv.month >= p2StartMonth);
+
+    // Cho total_ip/total_afyp: chia HĐ theo effectiveDate thay vì revenue theo tháng
+    const isTotalModeP2 = isTotalMode(conditionType);
+    const isAFYP = conditionType === 'total_afyp';
 
     // Calculate Phase 1 bonus
     let phase1Bonus = 0;
-    if (targetType === 'nhom') {
-      if (isActivityRoundMode(conditionType)) {
-        // Aggregate revenue by maNhom for phase 1
-        const phase1Grouped = new Map<string, { totalFYP: number; activityRounds: number }>();
+    if (isTotalModeP2) {
+      // total_ip/total_afyp: dùng Contracts (nguồn duy nhất), chia theo effectiveDate
+      const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+      const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+
+      if (targetType === 'nhom') {
+        // Gộp HĐ theo nhóm
+        const phase1ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase1Contracts) {
+          if (!c.maNhom) continue;
+          const existing = phase1ByNhom.get(c.maNhom);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { phase1ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const [, data] of phase1ByNhom) {
+          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+          phase1Bonus += getBonusAmountWithTiers(value, bonusTiers);
+        }
+        const phase2ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase2Contracts) {
+          if (!c.maNhom) continue;
+          const existing = phase2ByNhom.get(c.maNhom);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { phase2ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const [, data] of phase2ByNhom) {
+          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+          phase2Bonus += getBonusAmountWithTiers(value, bonusTiers2);
+        }
+      } else if (targetType === 'nyd') {
+        // NYD Phase 1: tính từ Contracts
+        const agentFYPLookupP1 = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase1Contracts) {
+          const key = c.agentCode;
+          if (!key) continue;
+          const existing = agentFYPLookupP1.get(key);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { agentFYPLookupP1.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const r of recruiterList) {
+          const recruited = phase1Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          let recruitFYP = 0;
+          for (const agentCode of recruitedAgents) {
+            const rv = agentFYPLookupP1.get(agentCode);
+            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+          }
+          const ownRV = agentFYPLookupP1.get(r.agentCode);
+          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
+          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+          if (tier) phase1Bonus += computeBonusFromTier(tier, value);
+        }
+        // NYD Phase 2
+        const agentFYPLookupP2 = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase2Contracts) {
+          const key = c.agentCode;
+          if (!key) continue;
+          const existing = agentFYPLookupP2.get(key);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { agentFYPLookupP2.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const r of recruiterList) {
+          const recruited = phase2Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+          let recruitFYP = 0;
+          for (const agentCode of recruitedAgents) {
+            const rv = agentFYPLookupP2.get(agentCode);
+            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+          }
+          const ownRV = agentFYPLookupP2.get(r.agentCode);
+          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
+          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+          if (tier) phase2Bonus += computeBonusFromTier(tier, value);
+        }
+      } else {
+        // TVV total mode: aggregate by agentCode from Contracts
+        const phase1AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase1Contracts) {
+          const key = c.agentCode;
+          if (!key) continue;
+          const existing = phase1AgentMap.get(key);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { phase1AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const [, data] of phase1AgentMap) {
+          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+          if (tier) phase1Bonus += computeBonusFromTier(tier, value);
+        }
+        const phase2AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+        for (const c of phase2Contracts) {
+          const key = c.agentCode;
+          if (!key) continue;
+          const existing = phase2AgentMap.get(key);
+          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+          else { phase2AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+        }
+        for (const [, data] of phase2AgentMap) {
+          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+          if (tier) phase2Bonus += computeBonusFromTier(tier, value);
+        }
+      }
+    } else {
+      // activity_round / per-contract modes: dùng MonthlyRevenue
+      const phase1Revenue = displayRevenueData.filter(rv => rv.month < p2StartMonth);
+      const phase2Revenue = displayRevenueData.filter(rv => rv.month >= p2StartMonth);
+
+      if (targetType === 'nhom') {
+        if (isActivityRoundMode(conditionType)) {
+          const phase1Grouped = new Map<string, { totalFYP: number; activityRounds: number }>();
+          for (const rv of phase1Revenue) {
+            if (!rv.maNhom) continue;
+            const existing = phase1Grouped.get(rv.maNhom);
+            if (existing) { existing.totalFYP += rv.totalFYP; existing.activityRounds += rv.activityRounds; }
+            else { phase1Grouped.set(rv.maNhom, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds }); }
+          }
+          for (const [, data] of phase1Grouped) {
+            const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers);
+            if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
+          }
+          const phase2Grouped = new Map<string, { totalFYP: number; activityRounds: number }>();
+          for (const rv of phase2Revenue) {
+            if (!rv.maNhom) continue;
+            const existing = phase2Grouped.get(rv.maNhom);
+            if (existing) { existing.totalFYP += rv.totalFYP; existing.activityRounds += rv.activityRounds; }
+            else { phase2Grouped.set(rv.maNhom, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds }); }
+          }
+          for (const [, data] of phase2Grouped) {
+            const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers2);
+            if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
+          }
+        } else {
+          const grouped1 = new Map<string, number>();
+          for (const rv of phase1Revenue) { grouped1.set(rv.maNhom, (grouped1.get(rv.maNhom) || 0) + rv.totalFYP); }
+          for (const [, total] of grouped1) { phase1Bonus += getBonusAmountWithTiers(total, bonusTiers); }
+          const grouped2 = new Map<string, number>();
+          for (const rv of phase2Revenue) { grouped2.set(rv.maNhom, (grouped2.get(rv.maNhom) || 0) + rv.totalFYP); }
+          for (const [, total] of grouped2) { phase2Bonus += getBonusAmountWithTiers(total, bonusTiers2); }
+        }
+      } else if (targetType === 'nyd') {
+        // NYD Phase 1
+        const revenueByAgentP1 = new Map<string, { totalFYP: number; activityRounds: number }>();
         for (const rv of phase1Revenue) {
-          if (!rv.maNhom) continue;
-          const existing = phase1Grouped.get(rv.maNhom);
-          if (existing) {
-            existing.totalFYP += rv.totalFYP;
-            existing.activityRounds += rv.activityRounds;
+          const key = rv.agentCode || rv.agentName;
+          if (!key) continue;
+          const existing = revenueByAgentP1.get(key);
+          if (existing) { existing.totalFYP += rv.totalFYP; existing.activityRounds += rv.activityRounds; }
+          else { revenueByAgentP1.set(key, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds }); }
+        }
+        for (const r of recruiterList) {
+          const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+          let recruitCount = 0; let recruitFYP = 0;
+          if (isActivityRoundMode(conditionType)) {
+            let recruitedAgents = new Set(recruited.map(c => c.agentCode));
+            if (isTVVmMode(conditionType)) { recruitedAgents = new Set([...recruitedAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+            if (conditionType === 'activity_round_tvv90') { recruitedAgents = new Set([...recruitedAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+            for (const agentCode of recruitedAgents) { const rv = revenueByAgentP1.get(agentCode); if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; } }
           } else {
-            phase1Grouped.set(rv.maNhom, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds });
+            const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+            for (const agentCode of recruitedAgents) { const rv = revenueByAgentP1.get(agentCode); const agentFYP = rv?.totalFYP || 0; if (agentFYP >= luotHDThreshold) recruitCount++; recruitFYP += agentFYP; }
           }
+          const ownRV = revenueByAgentP1.get(r.agentCode);
+          const ownFYP = ownRV?.totalFYP || 0;
+          const value = isActivityRoundMode(conditionType) ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0));
+          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+          if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
         }
-        for (const [, data] of phase1Grouped) {
-          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
-        }
-      } else {
-        const grouped = new Map<string, number>();
-        for (const rv of phase1Revenue) { grouped.set(rv.maNhom, (grouped.get(rv.maNhom) || 0) + rv.totalFYP); }
-        for (const [, total] of grouped) { phase1Bonus += getBonusAmountWithTiers(total, bonusTiers); }
-      }
-    } else if (targetType === 'nyd') {
-      // Use Recruiter table as reference for NTD list
-      const revenueByAgent = new Map<string, { totalFYP: number; activityRounds: number }>();
-      for (const rv of phase1Revenue) {
-        const key = rv.agentCode || rv.agentName;
-        if (!key) continue;
-        const existing = revenueByAgent.get(key);
-        if (existing) {
-          existing.totalFYP += rv.totalFYP;
-          existing.activityRounds += rv.activityRounds;
-        } else {
-          revenueByAgent.set(key, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds });
-        }
-      }
-      for (const r of recruiterList) {
-        const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
-        let recruitCount = 0; let recruitFYP = 0;
-        if (isActivityRoundMode(conditionType)) {
-          let recruitedAgents = new Set(recruited.map(c => c.agentCode));
-          // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
-          if (isTVVmMode(conditionType)) {
-            recruitedAgents = new Set(
-              [...recruitedAgents].filter(agentCode => {
-                const staff = staffList.find(s => s.agentCode === agentCode);
-                if (staff?.startDate) return isTVVm(staff.startDate);
-                const contract = recruited.find(c => c.agentCode === agentCode);
-                if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
-                return false;
-              })
-            );
-          }
-          // Lọc TVV90 nếu chế độ TVV90
-          if (conditionType === 'activity_round_tvv90') {
-            recruitedAgents = new Set(
-              [...recruitedAgents].filter(agentCode => {
-                return isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP);
-              })
-            );
-          }
-          for (const agentCode of recruitedAgents) {
-            const rv = revenueByAgent.get(agentCode);
-            if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; }
-          }
-        } else {
-          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
-          for (const agentCode of recruitedAgents) {
-            const rv = revenueByAgent.get(agentCode);
-            const agentFYP = rv?.totalFYP || 0;
-            if (agentFYP >= luotHDThreshold) recruitCount++;
-            recruitFYP += agentFYP;
-          }
-        }
-        const ownRV = revenueByAgent.get(r.agentCode);
-        const ownFYP = ownRV?.totalFYP || 0;
-        const value = isActivityRoundMode(conditionType) ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0));
-        const { tier } = calculateBonusWithTiers(value, bonusTiers);
-        if (tier) phase1Bonus += computeBonusFromTier(tier, value, recruitCount);
-      }
-    } else if (isTotalMode(conditionType) && targetType === 'tvv') {
-      // TVV total mode: aggregate by agentCode for phase 1
-      const isAFYP = conditionType === 'total_afyp';
-      const agentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-      for (const rv of phase1Revenue) {
-        const key = rv.agentCode || rv.agentName;
-        if (!key) continue;
-        const existing = agentMap.get(key);
-        if (existing) { existing.totalFYP += rv.totalFYP; existing.totalAFYP += rv.totalAFYP; }
-        else { agentMap.set(key, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP }); }
-      }
-      for (const [, data] of agentMap) {
-        const value = isAFYP ? data.totalAFYP : data.totalFYP;
-        const { tier } = calculateBonusWithTiers(value, bonusTiers);
-        if (tier) phase1Bonus += computeBonusFromTier(tier, value);
-      }
-    } else {
-      for (const rv of phase1Revenue) { phase1Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers); }
-    }
-
-    // Calculate Phase 2 bonus
-    let phase2Bonus = 0;
-    if (targetType === 'nhom') {
-      if (isActivityRoundMode(conditionType)) {
-        const phase2Grouped = new Map<string, { totalFYP: number; activityRounds: number }>();
+        // NYD Phase 2
+        const revenueByAgentP2 = new Map<string, { totalFYP: number; activityRounds: number }>();
         for (const rv of phase2Revenue) {
-          if (!rv.maNhom) continue;
-          const existing = phase2Grouped.get(rv.maNhom);
-          if (existing) {
-            existing.totalFYP += rv.totalFYP;
-            existing.activityRounds += rv.activityRounds;
+          const key = rv.agentCode || rv.agentName;
+          if (!key) continue;
+          const existing = revenueByAgentP2.get(key);
+          if (existing) { existing.totalFYP += rv.totalFYP; existing.activityRounds += rv.activityRounds; }
+          else { revenueByAgentP2.set(key, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds }); }
+        }
+        for (const r of recruiterList) {
+          const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+          let recruitCount = 0; let recruitFYP = 0;
+          if (isActivityRoundMode(conditionType)) {
+            let recruitedAgents = new Set(recruited.map(c => c.agentCode));
+            if (isTVVmMode(conditionType)) { recruitedAgents = new Set([...recruitedAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+            if (conditionType === 'activity_round_tvv90') { recruitedAgents = new Set([...recruitedAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+            for (const agentCode of recruitedAgents) { const rv = revenueByAgentP2.get(agentCode); if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; } }
           } else {
-            phase2Grouped.set(rv.maNhom, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds });
+            const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+            for (const agentCode of recruitedAgents) { const rv = revenueByAgentP2.get(agentCode); const agentFYP = rv?.totalFYP || 0; if (agentFYP >= luotHDThreshold) recruitCount++; recruitFYP += agentFYP; }
           }
+          const ownRV = revenueByAgentP2.get(r.agentCode);
+          const ownFYP = ownRV?.totalFYP || 0;
+          const value = isActivityRoundMode(conditionType) ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0));
+          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+          if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
         }
-        for (const [, data] of phase2Grouped) {
-          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
-        }
+      } else if (isActivityRoundMode(conditionType)) {
+        for (const rv of phase1Revenue) { phase1Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers); }
+        for (const rv of phase2Revenue) { phase2Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers2); }
       } else {
-        const grouped = new Map<string, number>();
-        for (const rv of phase2Revenue) { grouped.set(rv.maNhom, (grouped.get(rv.maNhom) || 0) + rv.totalFYP); }
-        for (const [, total] of grouped) { phase2Bonus += getBonusAmountWithTiers(total, bonusTiers2); }
+        for (const rv of phase1Revenue) { phase1Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers); }
+        for (const rv of phase2Revenue) { phase2Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers2); }
       }
-    } else if (targetType === 'nyd') {
-      const revenueByAgent = new Map<string, { totalFYP: number; activityRounds: number }>();
-      for (const rv of phase2Revenue) {
-        const key = rv.agentCode || rv.agentName;
-        if (!key) continue;
-        const existing = revenueByAgent.get(key);
-        if (existing) {
-          existing.totalFYP += rv.totalFYP;
-          existing.activityRounds += rv.activityRounds;
-        } else {
-          revenueByAgent.set(key, { totalFYP: rv.totalFYP, activityRounds: rv.activityRounds });
-        }
-      }
-      for (const r of recruiterList) {
-        const recruited = displayContracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
-        let recruitCount = 0; let recruitFYP = 0;
-        if (isActivityRoundMode(conditionType)) {
-          let recruitedAgents = new Set(recruited.map(c => c.agentCode));
-          // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
-          if (isTVVmMode(conditionType)) {
-            recruitedAgents = new Set(
-              [...recruitedAgents].filter(agentCode => {
-                const staff = staffList.find(s => s.agentCode === agentCode);
-                if (staff?.startDate) return isTVVm(staff.startDate);
-                const contract = recruited.find(c => c.agentCode === agentCode);
-                if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
-                return false;
-              })
-            );
-          }
-          // Lọc TVV90 nếu chế độ TVV90
-          if (conditionType === 'activity_round_tvv90') {
-            recruitedAgents = new Set(
-              [...recruitedAgents].filter(agentCode => {
-                return isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP);
-              })
-            );
-          }
-          for (const agentCode of recruitedAgents) {
-            const rv = revenueByAgent.get(agentCode);
-            if (rv) { recruitCount += rv.activityRounds; recruitFYP += rv.totalFYP; }
-          }
-        } else {
-          const recruitedAgents = new Set(recruited.map(c => c.agentCode));
-          for (const agentCode of recruitedAgents) {
-            const rv = revenueByAgent.get(agentCode);
-            const agentFYP = rv?.totalFYP || 0;
-            if (agentFYP >= luotHDThreshold) recruitCount++;
-            recruitFYP += agentFYP;
-          }
-        }
-        const ownRV = revenueByAgent.get(r.agentCode);
-        const ownFYP = ownRV?.totalFYP || 0;
-        const value = isActivityRoundMode(conditionType) ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0));
-        const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-        if (tier) phase2Bonus += computeBonusFromTier(tier, value, recruitCount);
-      }
-    } else if (isTotalMode(conditionType) && targetType === 'tvv') {
-      const isAFYP = conditionType === 'total_afyp';
-      const agentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-      for (const rv of phase2Revenue) {
-        const key = rv.agentCode || rv.agentName;
-        if (!key) continue;
-        const existing = agentMap.get(key);
-        if (existing) { existing.totalFYP += rv.totalFYP; existing.totalAFYP += rv.totalAFYP; }
-        else { agentMap.set(key, { totalFYP: rv.totalFYP, totalAFYP: rv.totalAFYP }); }
-      }
-      for (const [, data] of agentMap) {
-        const value = isAFYP ? data.totalAFYP : data.totalFYP;
-        const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-        if (tier) phase2Bonus += computeBonusFromTier(tier, value);
-      }
-    } else {
-      for (const rv of phase2Revenue) { phase2Bonus += getBonusAmountWithTiers(rv.totalFYP, bonusTiers2); }
     }
 
-    return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count: phase1Revenue.length, phase2Count: phase2Revenue.length };
-  }, [usePhase2, phase2StartDate, displayRevenueData, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, recruiterList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold]);
+    const phase1Count = isTotalModeP2 ? displayContracts.filter(c => new Date(c.effectiveDate) < p2Start).length : displayRevenueData.filter(rv => rv.month < p2StartMonth).length;
+    const phase2Count = isTotalModeP2 ? displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start).length : displayRevenueData.filter(rv => rv.month >= p2StartMonth).length;
+    return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
+  }, [usePhase2, phase2StartDate, displayRevenueData, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, recruiterList, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // Helper: get the value for comparison based on condition type
   const getContractValue = useCallback((c: Contract): number => {
@@ -1334,11 +1398,13 @@ export default function ThiDuaPage() {
   }, [conditionType]);
 
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
-    const totalFYP = displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
+    const totalFYP = isTotalMode(conditionType)
+      ? displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0)
+      : displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
     const { tier } = calculateBonus(totalFYP); const remaining = getRemainingToNextTier(totalFYP);
     const bonus = tier ? computeBonusFromTier(tier, totalFYP) : 0;
     return { totalFYP, bonus, tier, remaining };
-  }, [displayRevenueData, calculateBonus, getRemainingToNextTier]);
+  }, [conditionType, displayContracts, displayRevenueData, calculateBonus, getRemainingToNextTier]);
 
   const addBonusTier = () => setBonusTiers([...bonusTiers, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
   const removeBonusTier = (id: string) => { setBonusTiers(bonusTiers.filter((t) => t.id !== id)); };
@@ -2060,8 +2126,12 @@ export default function ThiDuaPage() {
 
   // Consolidated stats computation - single useMemo for all derived values
   const stats = useMemo(() => {
-    const totalFYP = displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
-    
+    // Tổng IP/AFYP: dùng displayContracts (nguồn duy nhất) cho total_ip/total_afyp
+    // Để đảm bảo Tổng IP = tổng IP từng TVV/nhóm
+    const totalFYP = isTotalMode(conditionType)
+      ? displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0)
+      : displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
+
     // TVV stats - use tvvTotalRows for total mode (includes TVV with 0 revenue)
     let tvvAchievedCount: number;
     let tvvTotalBonus: number;
@@ -2073,7 +2143,7 @@ export default function ThiDuaPage() {
       tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.pdt10DT).tier).length;
       tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.pdt10DT), 0);
     }
-    
+
     // Nhóm stats
     const nhomAchievedCount = groupedData.filter(g => {
       if (isActivityRoundMode(conditionType)) return calculateActivityRoundBonus(g.activityRounds).tier;
@@ -2084,12 +2154,12 @@ export default function ThiDuaPage() {
       if (isActivityRoundMode(conditionType)) return sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP);
       return sum + getBonusAmount(g.totalFYP);
     }, 0);
-    
+
     // Activity round stats
     const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter(g => calculateActivityRoundBonus(g.activityRounds).tier).length : 0;
     const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
     const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((sum, g) => sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
-    
+
     // NYD stats
     const nydAchievedCount = targetType === 'nyd' ? nydData.filter(n => {
       const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
@@ -2102,22 +2172,24 @@ export default function ThiDuaPage() {
       if (!tier) return sum;
       return sum + computeBonusFromTier(tier, value, n.recruitCount);
     }, 0) : 0;
-    
+
     // For TVV total mode, count from tvvTotalRows (includes TVV with 0 revenue)
     const tvvAgentCount = isTotalMode(conditionType) && targetType === 'tvv'
       ? tvvTotalRows.length
       : displayContracts.length;
     const achievedCount = targetType === 'nyd' ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
     const notAchievedCount = targetType === 'nyd' ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : tvvAgentCount - tvvAchievedCount;
-    
+
     const baseTotalBonus = targetType === 'nyd' ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : tvvTotalBonus;
     const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
     const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
-    
-    // total_fyp mode
-    const totalFYPValue = displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
+
+    // total_ip/total_afyp: dùng displayContracts (nguồn duy nhất) thay vì displayRevenueData
+    const totalFYPFromContracts = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+    const totalAFYPFromContracts = displayContracts.reduce((sum, c) => sum + c.afyp, 0);
+    const totalFYPValue = isTotalMode(conditionType) ? totalFYPFromContracts : displayRevenueData.reduce((sum, r) => sum + r.totalFYP, 0);
     const isTotalModeType = isTotalMode(conditionType) && targetType !== 'nhom';
-    const totalValue = isTotalModeType ? (conditionType === 'total_afyp' ? displayRevenueData.reduce((sum, r) => sum + r.totalAFYP, 0) : totalFYPValue) : 0;
+    const totalValue = isTotalModeType ? (conditionType === 'total_afyp' ? totalAFYPFromContracts : totalFYPValue) : 0;
     const matchedTotalTier = isTotalModeType ? calculateBonus(totalValue).tier : null;
     const totalRemaining = isTotalModeType && matchedTotalTier ? getRemainingToNextTier(totalValue) : null;
     
