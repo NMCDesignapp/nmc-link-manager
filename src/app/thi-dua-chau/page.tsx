@@ -463,6 +463,8 @@ export default function ThiDuaPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoadedCount, setDataLoadedCount] = useState<number>(0);
+  const [dataLoadedVisible, setDataLoadedVisible] = useState<boolean>(false);
   const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
@@ -525,10 +527,20 @@ export default function ThiDuaPage() {
     setIsLoading(true);
     try {
       await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchRevenue()]);
+      // Show success indicator
+      const contractRes = await fetch('/api/contracts');
+      if (contractRes.ok) {
+        const contractData = await contractRes.json();
+        setDataLoadedCount(contractData.length || contracts.length);
+      } else {
+        setDataLoadedCount(contracts.length);
+      }
+      setDataLoadedVisible(true);
+      setTimeout(() => setDataLoadedVisible(false), 3000);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchRevenue]);
+  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchRevenue, contracts.length]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
@@ -2235,6 +2247,14 @@ export default function ThiDuaPage() {
 
   return (
     <div className="min-h-screen">
+
+      {/* Data loaded indicator - top right corner */}
+      {dataLoadedVisible && (
+        <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
+          <CheckCircle2 className="w-4 h-4" />
+          <span className="text-xs font-bold">{dataLoadedCount} HĐ đã tải</span>
+        </div>
+      )}
 
       {/* Header */}
       <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">

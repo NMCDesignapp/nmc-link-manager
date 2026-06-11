@@ -1113,6 +1113,8 @@ export default function QuanLyPage() {
 
   // Auto-sync: khi settings load xong và syncEnabled, tự động fetch CSV từ Google Sheets links
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const [syncSuccessCount, setSyncSuccessCount] = useState<number>(0);
+  const [syncSuccessVisible, setSyncSuccessVisible] = useState<boolean>(false);
   const autoSyncFromLinks = useCallback(async () => {
     if (!syncEnabled) return;
     const monthKeys = ['revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
@@ -1179,8 +1181,14 @@ export default function QuanLyPage() {
           } catch { /* silent */ }
           // Refresh UI data after sync
           await fetchAllDataRef.current();
-          const errMsg = syncErrors.length > 0 ? ` | Lỗi: ${syncErrors.join(', ')}` : '';
-          toast({ title: 'Đồng bộ thành công', description: result.message + errMsg });
+          // Show sync success indicator instead of toast
+          const totalSynced = result.count || syncedCount;
+          setSyncSuccessCount(totalSynced);
+          setSyncSuccessVisible(true);
+          setTimeout(() => setSyncSuccessVisible(false), 4000);
+          if (syncErrors.length > 0) {
+            toast({ title: 'Lỗi đồng bộ một phần', description: syncErrors.join('; '), variant: 'destructive' });
+          }
         }
       } catch { /* silent */ }
     } else if (syncedCount === 0) {
@@ -4298,6 +4306,13 @@ export default function QuanLyPage() {
 
   return (
     <div className="h-screen flex flex-col fixed inset-0 z-50 bg-[#0e0e18]/80">
+      {/* Sync success indicator - top right corner */}
+      {syncSuccessVisible && (
+        <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
+          <CheckCircle2 className="w-4 h-4" />
+          <span className="text-xs font-bold">{syncSuccessCount} HĐ đã đồng bộ</span>
+        </div>
+      )}
       {/* Header */}
       <header className="border-b border-emerald-700 bg-[#0e0e18]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {/* Mobile hamburger */}
