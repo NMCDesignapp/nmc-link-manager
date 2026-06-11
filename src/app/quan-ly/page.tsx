@@ -236,6 +236,15 @@ function formatSmartCurrency(amount: number): string {
   return formatCurrency(amount);
 }
 
+// Compact currency for KPI cards - always shows trđ/tỷ/ngàn on ALL screen sizes
+function formatKpiCurrency(amount: number): string {
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(1).replace(/\.?0+$/, '')} ngàn`;
+  if (amount === 0) return '0 đ';
+  return `${amount} đ`;
+}
+
 // Helper: convert any date value to yyyy-mm-dd for <input type="date">
 function toInputDate(val: any): string {
   if (!val) return '';
@@ -2173,8 +2182,8 @@ export default function QuanLyPage() {
       {/* Row 1: Core Revenue KPIs - New card design */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         {[
-          { label: 'TỔNG AFYP', unit: 'trđ', value: formatSmartCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatSmartCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
-          { label: 'TỔNG IP', unit: 'trđ', value: formatSmartCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatSmartCurrency(targetTongIP), bg: '#059669', hasKH: true },
+          { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
+          { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatKpiCurrency(targetTongIP), bg: '#059669', hasKH: true },
           { label: 'TỶ TRỌNG IP', unit: '%', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
           { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: targetLuotHD, targetFmt: formatNumber(targetLuotHD), bg: '#7C3AED', hasKH: true },
           { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: targetLuotHDChuan, targetFmt: formatNumber(targetLuotHDChuan), bg: '#DC2626', hasKH: true },
@@ -2199,8 +2208,8 @@ export default function QuanLyPage() {
                 </div>
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center min-w-0">
-                <p className="text-base sm:text-xl font-black leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-base sm:text-xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2212,7 +2221,7 @@ export default function QuanLyPage() {
         {[
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', hasKH: true },
-          { label: 'ĐL HĐ', unit: 'trđ', value: formatSmartCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatSmartCurrency(targetDLHD), bg: '#059669', hasKH: true },
+          { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: targetDLHD, targetFmt: formatKpiCurrency(targetDLHD), bg: '#059669', hasKH: true },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', hasKH: true },
           { label: 'SL NTD', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', hasKH: true },
           { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', hasKH: true },
@@ -2237,8 +2246,8 @@ export default function QuanLyPage() {
                 </div>
               </div>
               {/* White body with large number */}
-              <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center min-w-0">
-                <p className="text-sm sm:text-lg font-black leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
