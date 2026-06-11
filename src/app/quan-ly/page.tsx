@@ -2192,7 +2192,7 @@ export default function QuanLyPage() {
               </div>
               {/* White body with large number */}
               <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center min-w-0">
-                <p className="text-lg sm:text-2xl font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
+                <p className="text-base sm:text-xl font-black leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2230,7 +2230,7 @@ export default function QuanLyPage() {
               </div>
               {/* White body with large number */}
               <div className="bg-white px-2 py-2 sm:px-2.5 sm:py-2.5 text-center min-w-0">
-                <p className="text-base sm:text-xl font-black leading-tight break-words" style={{ color: kpi.bg }}>{kpi.value}</p>
+                <p className="text-sm sm:text-lg font-black leading-tight whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
