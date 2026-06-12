@@ -1501,6 +1501,25 @@ export default function QuanLyPage() {
     try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [fetchTvvStruct]);
 
+  // Replace all TVV from uploaded file
+  const [isReplacingTvv, setIsReplacingTvv] = useState(false);
+  const handleReplaceAllTvv = useCallback(async () => {
+    if (!confirm('Cập nhật toàn bộ DS TVV? Dữ liệu cũ sẽ bị xóa và thay bằng DS mới.')) return;
+    setIsReplacingTvv(true);
+    try {
+      // Fetch the pre-loaded TVV data
+      const dataRes = await fetch('/data/tvv_import.json');
+      if (!dataRes.ok) { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu TVV mới', variant: 'destructive' }); return; }
+      const data = await dataRes.json();
+      if (!Array.isArray(data) || data.length === 0) { toast({ title: 'Lỗi', description: 'Dữ liệu TVV trống', variant: 'destructive' }); return; }
+      // Send to API with replaceAll=true
+      const res = await fetch('/api/structure/tvv?replaceAll=true', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res.ok) { const result = await res.json(); fetchTvvStruct(); toast({ title: 'Thành công', description: result.message || `Đã nhập ${result.count} TVV` }); }
+      else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể cập nhật', variant: 'destructive' }); }
+    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật DS TVV', variant: 'destructive' }); }
+    finally { setIsReplacingTvv(false); }
+  }, [fetchTvvStruct]);
+
   const handleEditPhong = useCallback(async () => {
     if (!editingPhong) return;
     try { const res = await fetch(`/api/structure/phong/${editingPhong.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maPhong: editingPhong.maPhong, tenPhong: editingPhong.tenPhong, note: editingPhong.note }) }); if (res.ok) { setEditingPhong(null); fetchPhong(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
@@ -3944,6 +3963,11 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalADCount} AD</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
+          <div className="ml-auto">
+            <Button variant="ghost" size="sm" onClick={handleReplaceAllTvv} disabled={isReplacingTvv} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
+              {isReplacingTvv ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang cập nhật...</> : <><RefreshCw className="w-3 h-3 mr-1" /> Cập nhật DS TVV</>}
+            </Button>
+          </div>
         </div>
 
         {/* Tree Layout — Kế hoạch-style cards with silver/gray content bg */}
