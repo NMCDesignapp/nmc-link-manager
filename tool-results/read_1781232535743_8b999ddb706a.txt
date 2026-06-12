@@ -1,0 +1,395 @@
+     1→  2668→          <div ref={resultContentRef} className="px-3 py-2">
+     2→  2669→            <div ref={printRef}>
+     3→  2670→              {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
+     4→  2671→              {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
+     5→  2672→              {!posterUrl && (
+     6→  2673→                <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
+     7→  2674→              )}
+     8→  2675→
+     9→  2676→              {/* Result Table - slightly larger */}
+    10→  2677→              <div className="overflow-x-auto border border-emerald-600 shadow-sm mt-3" id="result-table-container">
+    11→  2678→                <Table className="text-sm">
+    12→  2679→                  <TableHeader>
+    13→  2680→                    <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
+    14→  2681→                      <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
+    15→  2682→                      {targetType === 'nyd' ? (
+    16→  2683→                        <>
+    17→  2684→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center whitespace-nowrap">NHÓM</TableHead>
+    18→  2685→                          <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center whitespace-nowrap">Mã số</TableHead>
+    19→  2686→                          <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">Họ tên</TableHead>
+    20→  2687→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center whitespace-nowrap">Chức vụ</TableHead>
+    21→  2688→                          <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
+    22→  2689→                            {isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+    23→  2690→                          </TableHead>
+    24→  2691→                          {includeIndividualTN && (
+    25→  2692→                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">IP cá nhân</TableHead>
+    26→  2693→                          )}
+    27→  2694→                          {showRateColumn && !usePhase2 && (
+    28→  2695→                            <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+    29→  2696→                          )}
+    30→  2697→                          {usePhase2 ? (
+    31→  2698→                            <>
+    32→  2699→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+    33→  2700→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    34→  2701→                                <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
+    35→  2702→                              </TableHead>
+    36→  2703→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+    37→  2704→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    38→  2705→                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+    39→  2706→                              </TableHead>
+    40→  2707→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
+    41→  2708→                                <div>Tổng Thưởng</div>
+    42→  2709→                              </TableHead>
+    43→  2710→                            </>
+    44→  2711→                          ) : (
+    45→  2712→                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
+    46→  2713→                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    47→  2714→                            </TableHead>
+    48→  2715→                          )}
+    49→  2716→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
+    50→  2717→                        </>
+    51→  2718→                      ) : targetType === 'nhom' ? (
+    52→  2719→                        <>
+    53→  2720→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+    54→  2721→                          <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center">Mã TN</TableHead>
+    55→  2722→                          <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
+    56→  2723→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
+    57→  2724→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
+    58→  2725→                            {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+    59→  2726→                            {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+    60→  2727→                          </TableHead>
+    61→  2728→
+    62→  2729→                          {showRateColumn && !usePhase2 && (
+    63→  2730→                            <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+    64→  2731→                          )}
+    65→  2732→                          {usePhase2 ? (
+    66→  2733→                            <>
+    67→  2734→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+    68→  2735→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    69→  2736→                                <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
+    70→  2737→                              </TableHead>
+    71→  2738→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+    72→  2739→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    73→  2740→                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+    74→  2741→                              </TableHead>
+    75→  2742→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
+    76→  2743→                                <div>Tổng Thưởng</div>
+    77→  2744→                              </TableHead>
+    78→  2745→                            </>
+    79→  2746→                          ) : (
+    80→  2747→                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
+    81→  2748→                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+    82→  2749→                            </TableHead>
+    83→  2750→                          )}
+    84→  2751→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
+    85→  2752→                        </>
+    86→  2753→                      ) : isPerContractMode(conditionType) ? (
+    87→  2754→                        <>
+    88→  2755→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+    89→  2756→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Mã số</TableHead>
+    90→  2757→                          <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
+    91→  2758→                          <TableHead className="text-yellow-100 text-center w-[85px] font-bold uppercase">Ngày HL</TableHead>
+    92→  2759→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">IP</TableHead>
+    93→  2760→                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
+    94→  2761→                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
+    95→  2762→                          )}
+    96→  2763→                          {showRateColumn && !usePhase2 && (
+    97→  2764→                            <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+    98→  2765→                          )}
+    99→  2766→                          {usePhase2 ? (
+   100→  2767→                            <>
+   101→  2768→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+   102→  2769→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   103→  2770→                                <div className="text-[9px] font-bold text-red-500 italic">GD1</div>
+   104→  2771→                              </TableHead>
+   105→  2772→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+   106→  2773→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   107→  2774→                                <div className="text-[9px] font-bold text-red-500 italic">GD2</div>
+   108→  2775→                              </TableHead>
+   109→  2776→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
+   110→  2777→                                <div>Tổng Thưởng</div>
+   111→  2778→                              </TableHead>
+   112→  2779→                            </>
+   113→  2780→                          ) : (
+   114→  2781→                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
+   115→  2782→                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   116→  2783→                            </TableHead>
+   117→  2784→                          )}
+   118→  2785→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
+   119→  2786→                        </>
+   120→  2787→                      ) : (
+   121→  2788→                        <>
+   122→  2789→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+   123→  2790→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Mã số</TableHead>
+   124→  2791→                          <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
+   125→  2792→                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
+   126→  2793→                            <div>{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
+   127→  2794→                            {startDate && endDate && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+   128→  2795→                          </TableHead>
+   129→  2796→                          {showRateColumn && !usePhase2 && (
+   130→  2797→                            <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+   131→  2798→                          )}
+   132→  2799→                          {usePhase2 ? (
+   133→  2800→                            <>
+   134→  2801→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+   135→  2802→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   136→  2803→                                <div className="text-[9px] font-bold text-red-500 italic">GD1</div>
+   137→  2804→                              </TableHead>
+   138→  2805→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+   139→  2806→                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   140→  2807→                                <div className="text-[9px] font-bold text-red-500 italic">GD2</div>
+   141→  2808→                              </TableHead>
+   142→  2809→                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
+   143→  2810→                                <div>Tổng Thưởng</div>
+   144→  2811→                              </TableHead>
+   145→  2812→                            </>
+   146→  2813→                          ) : (
+   147→  2814→                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
+   148→  2815→                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+   149→  2816→                            </TableHead>
+   150→  2817→                          )}
+   151→  2818→                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
+   152→  2819→                        </>
+   153→  2820→                      )}
+   154→  2821→                    </TableRow>
+   155→  2822→                  </TableHeader>
+   156→  2823→                  <TableBody>
+   157→  2824→                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, value }, idx) => {
+   158→  2825→                      if (hideNotAchieved && !tier) return null;
+   159→  2826→                      if (!nyd.nhom) return null;
+   160→  2827→                      const phaseBonus = usePhase2 && phase2StartDate ? (() => {
+   161→  2828→                        const p2Start = new Date(phase2StartDate);
+   162→  2829→                        const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+   163→  2830→                        const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+   164→  2831→                        const applyTVV90 = conditionType === 'activity_round_tvv90';
+   165→  2832→                        
+   166→  2833→                        // Phase 1: find recruited TVV for this NYD
+   167→  2834→                        const p1Recruited = p1Contracts.filter(c => c.maDaiLyTD === nyd.nydCode && c.agentCode !== nyd.nydCode);
+   168→  2835→                        let p1RecruitCount = 0;
+   169→  2836→                        let p1RecruitFYP = 0;
+   170→  2837→                        if (isActivityRoundMode(conditionType)) {
+   171→  2838→                          p1RecruitCount = calculateLuot(p1Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+   172→  2839→                          p1RecruitFYP = p1Recruited.reduce((s, c) => s + c.pdt10DT, 0);
+   173→  2840→                        } else {
+   174→  2841→                          const p1RecruitedMap = new Map<string, number>();
+   175→  2842→                          for (const rc of p1Recruited) { p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.pdt10DT); }
+   176→  2843→                          for (const [, af] of p1RecruitedMap) { if (af >= luotHDThreshold) p1RecruitCount++; p1RecruitFYP += af; }
+   177→  2844→                        }
+   178→  2845→                        const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
+   179→  2846→                        const p1Value = isActivityRoundMode(conditionType) ? p1RecruitCount : (p1RecruitFYP + (includeIndividualTN ? p1OwnFYP : 0));
+   180→  2847→                        const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
+   181→  2848→                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
+   182→  2849→
+   183→  2850→                        // Phase 2
+   184→  2851→                        const p2Recruited = p2Contracts.filter(c => c.maDaiLyTD === nyd.nydCode && c.agentCode !== nyd.nydCode);
+   185→  2852→                        let p2RecruitCount = 0;
+   186→  2853→                        let p2RecruitFYP = 0;
+   187→  2854→                        if (isActivityRoundMode(conditionType)) {
+   188→  2855→                          p2RecruitCount = calculateLuot(p2Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+   189→  2856→                          p2RecruitFYP = p2Recruited.reduce((s, c) => s + c.pdt10DT, 0);
+   190→  2857→                        } else {
+   191→  2858→                          const p2RecruitedMap = new Map<string, number>();
+   192→  2859→                          for (const rc of p2Recruited) { p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.pdt10DT); }
+   193→  2860→                          for (const [, af] of p2RecruitedMap) { if (af >= luotHDThreshold) p2RecruitCount++; p2RecruitFYP += af; }
+   194→  2861→                        }
+   195→  2862→                        const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
+   196→  2863→                        const p2Value = isActivityRoundMode(conditionType) ? p2RecruitCount : (p2RecruitFYP + (includeIndividualTN ? p2OwnFYP : 0));
+   197→  2864→                        const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
+   198→  2865→                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
+   199→  2866→
+   200→  2867→                        return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
+   201→  2868→                      })() : null;
+   202→  2869→                      return (
+   203→  2870→                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+   204→  2871→                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+   205→  2872→                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{nyd.nhom || '—'}</TableCell>
+   206→  2873→                          <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{nyd.nydCode}</TableCell>
+   207→  2874→                          <TableCell className="text-xs text-gray-800 whitespace-nowrap">{nyd.nydName}</TableCell>
+   208→  2875→                          <TableCell className="text-xs text-gray-600 whitespace-nowrap">{nyd.position || '—'}</TableCell>
+   209→  2876→                          <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">
+   210→  2877→                            {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
+   211→  2878→                          </TableCell>
+   212→  2879→                          {includeIndividualTN && (
+   213→  2880→                            <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(nyd.ownFYP)}</TableCell>
+   214→  2881→                          )}
+   215→  2882→                          {showRateColumn && !usePhase2 && (
+   216→  2883→                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+   217→  2884→                          )}
+   218→  2885→                          {usePhase2 && phaseBonus ? (
+   219→  2886→                            <>
+   220→  2887→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseBonus.phase1Bonus > 0 ? formatCurrency(phaseBonus.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   221→  2888→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseBonus.phase2Bonus > 0 ? formatCurrency(phaseBonus.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   222→  2889→                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
+   223→  2890→                            </>
+   224→  2891→                          ) : (
+   225→  2892→                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+   226→  2893→                          )}
+   227→  2894→                          <TableCell className="whitespace-nowrap">{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+   228→  2895→                        </TableRow>
+   229→  2896→                      );
+   230→  2897→                    }) : targetType === 'nhom' ? [...groupedData].map((g) => {
+   231→  2898→                      const groupPhase = getGroupPhaseBonus(g);
+   232→  2899→                      const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+   233→  2900→                      const remaining = isActivityRoundMode(conditionType) ? getRemainingToNextActivityRoundTier(g.activityRounds) : getRemainingToNextTier(g.totalFYP);
+   234→  2901→                      return { group: g, tier, remaining, groupPhase };
+   235→  2902→                    }).sort((a, b) => {
+   236→  2903→                      const aValue = isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
+   237→  2904→                      const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
+   238→  2905→                      return bValue - aValue;
+   239→  2906→                    }).map(({ group, tier, remaining, groupPhase }, idx) => {
+   240→  2907→                      if (hideNotAchieved && !tier) return null;
+   241→  2908→                      if (!group.nhom && !group.maNhom) return null;
+   242→  2909→                      return (
+   243→  2910→                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+   244→  2911→                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+   245→  2912→                          <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+   246→  2913→                          <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
+   247→  2914→                          <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
+   248→  2915→                          <TableCell className="text-xs text-gray-600 whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
+   249→  2916→                          <TableCell className="text-right text-xs whitespace-nowrap">
+   250→  2917→                            {isActivityRoundMode(conditionType)
+   251→  2918→                              ? <span className="text-gray-900">{group.activityRounds} {isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}</span>
+   252→  2919→                              : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
+   253→  2920→                            }
+   254→  2921→                          </TableCell>
+   255→  2922→
+   256→  2923→                          {showRateColumn && !usePhase2 && (
+   257→  2924→                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+   258→  2925→                          )}
+   259→  2926→                          {usePhase2 ? (
+   260→  2927→                            <>
+   261→  2928→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   262→  2929→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   263→  2930→                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
+   264→  2931→                            </>
+   265→  2932→                          ) : (
+   266→  2933→                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+   267→  2934→                          )}
+   268→  2935→                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+   269→  2936→                        </TableRow>
+   270→  2937→                      );
+   271→  2938→                    }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
+   272→  2939→                      const { tier } = calculateBonus(c.pdt10DT);
+   273→  2940→                      const remaining = getRemainingToNextTier(c.pdt10DT);
+   274→  2941→                      const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+   275→  2942→                      return { contract: c, tier, remaining, phaseInfo };
+   276→  2943→                    }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).map(({ contract, tier, remaining, phaseInfo }, idx) => {
+   277→  2944→                      if (hideNotAchieved && !tier) return null;
+   278→  2945→                      if (!contract.nhom && !contract.maNhom) return null;
+   279→  2946→                      return (
+   280→  2947→                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+   281→  2948→                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+   282→  2949→                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{contract.nhom || contract.maNhom}</TableCell>
+   283→  2950→                          <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
+   284→  2951→                          <TableCell className="text-xs text-gray-800 whitespace-nowrap">{contract.agentName}</TableCell>
+   285→  2952→                          <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(contract.effectiveDate)}</TableCell>
+   286→  2953→                          <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(contract.pdt10DT)}</TableCell>
+   287→  2954→                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
+   288→  2955→                            <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(contract.afyp)}</TableCell>
+   289→  2956→                          )}
+   290→  2957→                          {showRateColumn && !usePhase2 && (
+   291→  2958→                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+   292→  2959→                          )}
+   293→  2960→                          {usePhase2 ? (
+   294→  2961→                            <>
+   295→  2962→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   296→  2963→                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   297→  2964→                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+   298→  2965→                            </>
+   299→  2966→                          ) : (
+   300→  2967→                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+   301→  2968→                          )}
+   302→  2969→                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+   303→  2970→                        </TableRow>
+   304→  2971→                      );
+   305→  2972→                    }) : (() => {
+   306→  2973→                      // total_ip / total_afyp mode for TVV: use pre-computed tvvTotalRows (includes TVV with 0 contracts)
+   307→  2974→                      return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
+   308→  2975→                        if (hideNotAchieved && !tier) return null;
+   309→  2976→                        if (!agent.nhom && !agent.maNhom) return null;
+   310→  2977→                        return (
+   311→  2978→                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+   312→  2979→                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+   313→  2980→                            <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
+   314→  2981→                            <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
+   315→  2982→                            <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>
+   316→  2983→                            <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(value)}</TableCell>
+   317→  2984→                            {showRateColumn && !usePhase2 && (
+   318→  2985→                              <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+   319→  2986→                            )}
+   320→  2987→                            {usePhase2 ? (
+   321→  2988→                              <>
+   322→  2989→                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   323→  2990→                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+   324→  2991→                                <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+   325→  2992→                              </>
+   326→  2993→                            ) : (
+   327→  2994→                              <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+   328→  2995→                            )}
+   329→  2996→                            <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+   330→  2997→                          </TableRow>
+   331→  2998→                        );
+   332→  2999→                      });
+   333→  3000→                    })()}
+   334→  3001→                  </TableBody>
+   335→  3002→                </Table>
+   336→  3003→              </div>
+   337→  3004→            </div>
+   338→  3005→          </div>
+   339→  3006→        </DialogContent>
+   340→  3007→      </Dialog>
+   341→  3008→
+   342→  3009→      {/* Subject Dialog - Nhập đối tượng thi đua */}
+   343→  3010→      <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
+   344→  3011→        <DialogContent className="sm:max-w-lg bg-[#1a1a2e] border-emerald-500/20">
+   345→  3012→          <DialogHeader><DialogTitle className="text-white flex items-center gap-2"><Users className="w-4 h-4 text-sky-400" /> Nhập đối tượng thi đua</DialogTitle><DialogDescription className="text-emerald-300/60">Khi có danh sách, kết quả chỉ tính cho các đối tượng này</DialogDescription></DialogHeader>
+   346→  3013→          <div className="space-y-3 py-3">
+   347→  3014→            <div className="space-y-1">
+   348→  3015→              <Label className="text-xs text-emerald-200/70">
+   349→  3016→                {targetType === 'tvv' ? 'Mã TVV hoặc tên TVV' : targetType === 'nyd' ? 'Mã NYD' : 'Mã nhóm'}, mỗi đối tượng 1 dòng
+   350→  3017→              </Label>
+   351→  3018→              <textarea
+   352→  3019→                value={thiDuaSubjects}
+   353→  3020→                onChange={(e) => setThiDuaSubjects(e.target.value)}
+   354→  3021→                placeholder={targetType === 'tvv' ? 'D104142435\nD104142436\n...' : targetType === 'nyd' ? 'D104142435\nD104142436\n...' : 'MC001\nMC002\n...'}
+   355→  3022→                className="w-full h-32 text-xs bg-gray-800 border border-gray-600 text-white rounded-lg p-2 font-mono resize-none focus:outline-none focus:border-sky-500/50"
+   356→  3023→              />
+   357→  3024→            </div>
+   358→  3025→            {thiDuaSubjects.trim() && (
+   359→  3026→              <div className="rounded-lg bg-sky-500/10 border border-sky-500/20 p-2 text-xs text-sky-300">
+   360→  3027→                <p className="font-medium">Đã nhập {subjectCodes.length} đối tượng</p>
+   361→  3028→              </div>
+   362→  3029→            )}
+   363→  3030→            {(targetType === 'tvv' ? contracts.length > 0 : targetType === 'nyd' ? recruiterList.length > 0 : staffList.length > 0) && (
+   364→  3031→              <div className="space-y-1">
+   365→  3032→                <Label className="text-xs text-emerald-300/70">Đối tượng có sẵn ({targetType === 'tvv' ? 'TVV' : targetType === 'nyd' ? 'NTD' : 'Nhóm'}):</Label>
+   366→  3033→                <div className="max-h-24 overflow-y-auto rounded-lg border border-gray-600/50 p-1.5">
+   367→  3034→                  <div className="flex flex-wrap gap-1">
+   368→  3035→                    {targetType === 'tvv'
+   369→  3036→                      ? [...new Set(contracts.map(c => c.agentCode))].map(code => (
+   370→  3037→                          <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
+   371→  3038→                        ))
+   372→  3039→                      : targetType === 'nyd'
+   373→  3040→                        ? recruiterList.map(r => (
+   374→  3041→                            <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
+   375→  3042→                          ))
+   376→  3043→                        : [...new Map(staffList.filter(s => s.maNhom).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
+   377→  3044→                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
+   378→  3045→                          ))
+   379→  3046→                    }
+   380→  3047→                  </div>
+   381→  3048→                </div>
+   382→  3049→              </div>
+   383→  3050→            )}
+   384→  3051→          </div>
+   385→  3052→          <DialogFooter>
+   386→  3053→            <Button variant="outline" onClick={() => { setThiDuaSubjects(''); }} className="h-8 border-red-500/30 text-red-400 bg-transparent hover:bg-red-500/10"><Trash2 className="w-3 h-3 mr-1" /> Xóa tất cả</Button>
+   387→  3054→            <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)} className="h-8 border-emerald-500/30 bg-transparent text-emerald-200">Đóng</Button>
+   388→  3055→            <Button onClick={() => { setIsSubjectDialogOpen(false); toast({ title: 'Đã áp dụng', description: subjectCodes.length > 0 ? `Lọc theo ${subjectCodes.length} đối tượng` : 'Hiển thị tất cả' }); }} className="bg-sky-500/80 hover:bg-sky-600 h-8 border border-sky-500/30">Áp dụng</Button>
+   389→  3056→          </DialogFooter>
+   390→  3057→        </DialogContent>
+   391→  3058→      </Dialog>
+   392→  3059→    </div>
+   393→  3060→  );
+   394→  3061→}
+   395→  3062→

@@ -1,0 +1,402 @@
+  2270→                      </div>
+  2271→                    ))}
+  2272→                  </PopoverContent>
+  2273→                </Popover>
+  2274→                <Button variant="outline" size="sm" onClick={handleSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
+  2275→              </div>
+  2276→            </div>
+  2277→          </CardHeader>
+  2278→          <CardContent className="px-4 pb-4 space-y-3">
+  2279→            <div className="space-y-1">
+  2280→              <Label className="text-xs font-medium text-emerald-200">Tên chương trình thi đua</Label>
+  2281→              <Input value={contestTitle} onChange={(e) => setContestTitle(e.target.value)} className="font-semibold border-gray-600 bg-gray-800 text-white h-9 text-sm w-full" />
+  2282→            </div>
+  2283→            <div className="grid grid-cols-2 gap-2">
+  2284→              <NeonDatePicker label="Hiệu lực từ" value={startDate} onChange={setStartDate} />
+  2285→              <NeonDatePicker label="Hiệu lực đến" value={endDate} onChange={setEndDate} />
+  2286→              <NeonDatePicker label="Phát hành từ" value={issueStartDate} onChange={setIssueStartDate} />
+  2287→              <NeonDatePicker label="Phát hành đến" value={issueEndDate} onChange={setIssueEndDate} />
+  2288→            </div>
+  2289→          </CardContent>
+  2290→        </Card>
+  2291→
+  2292→        {/* STEP 2: Config - Collapsible */}
+  2293→        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm` + (!showConfig ? ' py-0' : '')}>
+  2294→          <CardHeader className={!showConfig ? 'py-1.5 px-4' : 'pb-2 pt-3 px-4'}>
+  2295→            <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
+  2296→              <div className="flex items-center gap-2">
+  2297→                <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+  2298→                <CardTitle className="text-sm text-emerald-400 neon-text whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
+  2299→              </div>
+  2300→              {showConfig ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
+  2301→            </button>
+  2302→          </CardHeader>
+  2303→          {showConfig && (
+  2304→            <CardContent className="px-4 pb-4 space-y-3">
+  2305→              {/* 1. Đối tượng thi đua - Chọn TRƯỚC điều kiện */}
+  2306→              <div className="space-y-2">
+  2307→                <Label className="text-xs font-medium text-emerald-200">Đối tượng thi đua</Label>
+  2308→                <div className="grid grid-cols-3 gap-1.5">
+  2309→                  <button
+  2310→                    type="button"
+  2311→                    onClick={() => setTargetType('tvv')}
+  2312→                    className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+  2313→                      targetType === 'tvv'
+  2314→                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300/50'
+  2315→                        : 'bg-emerald-500/10 text-emerald-300/60 hover:bg-emerald-500/20 hover:text-emerald-200'
+  2316→                    }`}
+  2317→                  >
+  2318→                    <Users className="w-4 h-4" />
+  2319→                    <span>TVV</span>
+  2320→                  </button>
+  2321→                  <button
+  2322→                    type="button"
+  2323→                    onClick={() => setTargetType('nhom')}
+  2324→                    className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+  2325→                      targetType === 'nhom'
+  2326→                        ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30 ring-2 ring-sky-300/50'
+  2327→                        : 'bg-sky-500/20 text-sky-300/60 hover:bg-sky-500/30 hover:text-sky-200'
+  2328→                    }`}
+  2329→                  >
+  2330→                    <UserCheck className="w-4 h-4" />
+  2331→                    <span>Nhóm</span>
+  2332→                  </button>
+  2333→                  <button
+  2334→                    type="button"
+  2335→                    onClick={() => setTargetType('nyd')}
+  2336→                    className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
+  2337→                      targetType === 'nyd'
+  2338→                        ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30 ring-2 ring-violet-300/50'
+  2339→                        : 'bg-violet-500/20 text-violet-300/60 hover:bg-violet-500/20 hover:text-violet-200'
+  2340→                    }`}
+  2341→                  >
+  2342→                    <UserPlus className="w-4 h-4" />
+  2343→                    <span>NTD</span>
+  2344→                  </button>
+  2345→                </div>
+  2346→                <p className="text-[10px] text-emerald-400/50 italic">
+  2347→                  {targetType === 'tvv' ? 'Ánh xạ theo mã TVV' : targetType === 'nhom' ? 'Ánh xạ theo tên/mã nhóm' : 'Ánh xạ theo mã đại lý tuyển dụng'}
+  2348→                </p>
+  2349→              </div>
+  2350→
+  2351→              <Separator className="bg-emerald-500/20" />
+  2352→
+  2353→              {/* 2. Điều kiện thi đua */}
+  2354→              <div className="space-y-2">
+  2355→                <Label className="text-xs font-medium text-emerald-200">Điều kiện thi đua</Label>
+  2356→                {/* Theo HĐ row */}
+  2357→                <div className="space-y-1.5">
+  2358→                  <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Theo Hợp đồng</p>
+  2359→                  <div className="grid grid-cols-2 gap-1.5">
+  2360→                    <button type="button" onClick={() => setConditionType('per_contract_ip')}
+  2361→                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${isPerContractMode(conditionType) ? 'bg-emerald-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-emerald-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2362→                    ><FileText className="w-3 h-3 shrink-0" /><span>IP/HĐ</span></button>
+  2363→                    <button type="button" onClick={() => setConditionType('per_contract_afyp')}
+  2364→                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'per_contract_afyp' ? 'bg-teal-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-teal-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2365→                    ><FileText className="w-3 h-3 shrink-0" /><span>AFYP/HĐ</span></button>
+  2366→                  </div>
+  2367→                </div>
+  2368→                {/* Tổng row */}
+  2369→                <div className="space-y-1.5">
+  2370→                  <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Tổng</p>
+  2371→                  <div className="grid grid-cols-2 gap-1.5">
+  2372→                    <button type="button" onClick={() => setConditionType('total_ip')}
+  2373→                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'total_ip' ? 'bg-teal-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-teal-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2374→                    ><TrendingUp className="w-3 h-3 shrink-0" /><span>Tổng IP</span></button>
+  2375→                    <button type="button" onClick={() => setConditionType('total_afyp')}
+  2376→                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'total_afyp' ? 'bg-cyan-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-cyan-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2377→                    ><TrendingUp className="w-3 h-3 shrink-0" /><span>Tổng AFYP</span></button>
+  2378→                  </div>
+  2379→                </div>
+  2380→                {/* Lượt HĐ - with sub-options and configurable threshold */}
+  2381→                <div className="space-y-1.5">
+  2382→                  <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Lượt hoạt động</p>
+  2383→                  <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_tvvm' ? 'activity_round_tvvm' : 'activity_round')}
+  2384→                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round' || conditionType === 'activity_round_tvvm' ? 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-amber-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2385→                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt HĐ</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDThreshold)}kđ/tháng)</span></button>
+  2386→                  {(conditionType === 'activity_round' || conditionType === 'activity_round_tvvm') && (
+  2387→                    <div className="space-y-1.5 pl-3 border-l-2 border-amber-500/30">
+  2388→                      <div className="grid grid-cols-2 gap-1.5">
+  2389→                        <button type="button" onClick={() => setConditionType('activity_round')}
+  2390→                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
+  2391→                        ><span>Tất cả TVV</span></button>
+  2392→                        <button type="button" onClick={() => setConditionType('activity_round_tvvm')}
+  2393→                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_tvvm' ? 'bg-amber-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
+  2394→                        ><span>TVVm (≤12t)</span></button>
+  2395→                      </div>
+  2396→                      <div className="grid grid-cols-1 gap-1.5">
+  2397→                        <div className="space-y-0.5">
+  2398→                          <Label className="text-[9px] text-amber-400/70">Ngưỡng IP/tháng (nđ) cho Lượt HĐ</Label>
+  2399→                          <Input type="number" inputMode="decimal" placeholder="3" value={vndToNgan(luotHDThreshold) || ''} onChange={(e) => setLuotHDThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-amber-500/30 bg-gray-800 text-white" />
+  2400→                        </div>
+  2401→                      </div>
+  2402→                    </div>
+  2403→                  )}
+  2404→                </div>
+  2405→                {/* Lượt HĐ chuẩn - with sub-options and configurable threshold */}
+  2406→                <div className="space-y-1.5">
+  2407→                  <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_standard_tvvm' ? 'activity_round_standard_tvvm' : 'activity_round_standard')}
+  2408→                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-orange-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2409→                  ><Award className="w-3 h-3 shrink-0" /><span>Lượt HĐ Chuẩn</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDCTThreshold)}kđ/tháng)</span></button>
+  2410→                  {(conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm') && (
+  2411→                    <div className="space-y-1.5 pl-3 border-l-2 border-orange-500/30">
+  2412→                      <div className="grid grid-cols-2 gap-1.5">
+  2413→                        <button type="button" onClick={() => setConditionType('activity_round_standard')}
+  2414→                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
+  2415→                        ><span>Tất cả TVV</span></button>
+  2416→                        <button type="button" onClick={() => setConditionType('activity_round_standard_tvvm')}
+  2417→                          className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-500/80 text-white ring-1 ring-white/20' : 'bg-gray-800/50 text-emerald-300/60 hover:text-emerald-200'}`}
+  2418→                        ><span>TVVm (≤12t)</span></button>
+  2419→                      </div>
+  2420→                      <div className="grid grid-cols-1 gap-1.5">
+  2421→                        <div className="space-y-0.5">
+  2422→                          <Label className="text-[9px] text-orange-400/70">Ngưỡng IP/tháng (nđ) cho Lượt HĐC</Label>
+  2423→                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(luotHDCTThreshold) || ''} onChange={(e) => setLuotHDCTThreshold(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-orange-500/30 bg-gray-800 text-white" />
+  2424→                        </div>
+  2425→                      </div>
+  2426→                    </div>
+  2427→                  )}
+  2428→                </div>
+  2429→                {/* Lượt TVV90 - with configurable threshold */}
+  2430→                <div className="space-y-1.5">
+  2431→                  <button type="button" onClick={() => setConditionType('activity_round_tvv90')}
+  2432→                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_tvv90' ? 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-rose-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+  2433→                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt TVV90</span><span className="text-[9px] opacity-60">(≤{tvv90MaxMonths}t + IP≥{vndToNgan(tvv90MinIP)}kđ)</span></button>
+  2434→                  {conditionType === 'activity_round_tvv90' && (
+  2435→                    <div className="space-y-1.5 pl-3 border-l-2 border-rose-500/30">
+  2436→                      <div className="grid grid-cols-2 gap-1.5">
+  2437→                        <div className="space-y-0.5">
+  2438→                          <Label className="text-[9px] text-rose-400/70">Thời gian tối đa (tháng)</Label>
+  2439→                          <Input type="number" inputMode="numeric" placeholder="3" value={tvv90MaxMonths || ''} onChange={(e) => setTvv90MaxMonths(parseInt(e.target.value) || 3)} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
+  2440→                        </div>
+  2441→                        <div className="space-y-0.5">
+  2442→                          <Label className="text-[9px] text-rose-400/70">IP/tháng tối thiểu (nđ)</Label>
+  2443→                          <Input type="number" inputMode="decimal" placeholder="12" value={vndToNgan(tvv90MinIP) || ''} onChange={(e) => setTvv90MinIP(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
+  2444→                        </div>
+  2445→                      </div>
+  2446→                    </div>
+  2447→                  )}
+  2448→                </div>
+  2449→              </div>
+  2450→
+  2451→              <Separator className="bg-emerald-500/20" />
+  2452→
+  2453→              {/* Bonus Tiers - Phase 1 */}
+  2454→              <BonusTierEditor
+  2455→                tiers={bonusTiers}
+  2456→                conditionType={conditionType}
+  2457→                onUpdate={updateBonusTier}
+  2458→                onAdd={addBonusTier}
+  2459→                onRemove={removeBonusTier}
+  2460→                title={usePhase2 ? 'Bảng mức thưởng - Giai đoạn 1' : 'Bảng mức thưởng'}
+  2461→              />
+  2462→
+  2463→              {/* Phase 2 Section */}
+  2464→              <Separator className="bg-emerald-500/20" />
+  2465→              <div className="space-y-2">
+  2466→                <div className="flex items-center gap-2">
+  2467→                  <Checkbox id="usePhase2" checked={usePhase2} onCheckedChange={(v) => setUsePhase2(!!v)} />
+  2468→                  <Label htmlFor="usePhase2" className="text-xs font-medium text-emerald-200 flex items-center gap-1 cursor-pointer">
+  2469→                    <Layers className="w-3.5 h-3.5 text-sky-400" /> Chia 2 giai đoạn
+  2470→                  </Label>
+  2471→                </div>
+  2472→                {usePhase2 && (
+  2473→                  <div className="space-y-2 pl-4 border-l-2 border-sky-500/20">
+  2474→                    <div className="grid grid-cols-2 gap-2">
+  2475→                      <NeonDatePicker label="GĐ2 Hiệu lực từ" value={phase2StartDate} onChange={setPhase2StartDate} accentColor="sky" />
+  2476→                      <NeonDatePicker label="GĐ2 Hiệu lực đến" value={phase2EndDate} onChange={setPhase2EndDate} accentColor="sky" />
+  2477→                    </div>
+  2478→                    <BonusTierEditor
+  2479→                      tiers={bonusTiers2}
+  2480→                      conditionType={conditionType}
+  2481→                      onUpdate={updateBonusTier2}
+  2482→                      onAdd={addBonusTier2}
+  2483→                      onRemove={removeBonusTier2}
+  2484→                      title="Bảng mức thưởng - Giai đoạn 2"
+  2485→                      accentColor="sky"
+  2486→                    />
+  2487→                  </div>
+  2488→                )}
+  2489→              </div>
+  2490→
+  2491→              {/* Chỉ tiêu bổ sung (Secondary Condition) */}
+  2492→              <Separator className="bg-emerald-500/20" />
+  2493→              <div className="space-y-2">
+  2494→                <div className="flex items-center gap-2">
+  2495→                  <Checkbox id="useSecondaryCondition" checked={useSecondaryCondition} onCheckedChange={(v) => setUseSecondaryCondition(!!v)} />
+  2496→                  <Label htmlFor="useSecondaryCondition" className="text-xs font-medium text-emerald-200 flex items-center gap-1 cursor-pointer">
+  2497→                    <Settings2 className="w-3.5 h-3.5 text-orange-400" /> Chỉ tiêu bổ sung
+  2498→                  </Label>
+  2499→                </div>
+  2500→                {useSecondaryCondition && (
+  2501→                  <div className="space-y-2 pl-4 border-l-2 border-orange-500/30">
+  2502→                    <div className="grid grid-cols-2 gap-2">
+  2503→                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
+  2504→                      <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
+  2505→                    </div>
+  2506→                    <div className="grid grid-cols-2 gap-2">
+  2507→                      <div className="space-y-1">
+  2508→                        <Label className="text-[10px] text-orange-400/70">Lượt HĐ từ</Label>
+  2509→                        <Input type="number" placeholder="0" value={secondaryLuotHDMin || ''} onChange={(e) => setSecondaryLuotHDMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
+  2510→                        <div className="flex gap-1">
+  2511→                          <button type="button" onClick={() => setSecondaryLuotHDFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
+  2512→                          <button type="button" onClick={() => setSecondaryLuotHDFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
+  2513→                        </div>
+  2514→                      </div>
+  2515→                      <div className="space-y-1">
+  2516→                        <Label className="text-[10px] text-orange-400/70">Lượt HĐC từ</Label>
+  2517→                        <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
+  2518→                        <div className="flex gap-1">
+  2519→                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
+  2520→                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
+  2521→                        </div>
+  2522→                      </div>
+  2523→                    </div>
+  2524→                  </div>
+  2525→                )}
+  2526→              </div>
+  2527→
+  2528→              {/* Tùy chọn */}
+  2529→              <Separator className="bg-emerald-500/20" />
+  2530→              <div className="space-y-2">
+  2531→                <Label className="text-xs font-medium text-emerald-200">Tùy chọn</Label>
+  2532→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+  2533→                  {/* Hide not achieved */}
+  2534→                  <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10">
+  2535→                    <Checkbox id="hideNotAchieved" checked={hideNotAchieved} onCheckedChange={(v) => setHideNotAchieved(!!v)} />
+  2536→                    <Label htmlFor="hideNotAchieved" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
+  2537→                      <EyeOff className="w-3 h-3 text-gray-400" /> Ẩn chưa đạt mức
+  2538→                    </Label>
+  2539→                  </div>
+  2540→                  {/* Include Individual NTD - for nhóm and NTD targets */}
+  2541→                  {(targetType === 'nhom' || targetType === 'nyd') && (
+  2542→                    <div className="flex items-center gap-2 p-2 rounded-lg border border-violet-500/30 bg-emerald-500/10">
+  2543→                      <Checkbox id="includeIndividualNTD" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
+  2544→                      <Label htmlFor="includeIndividualNTD" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
+  2545→                        <UserPlus className="w-3 h-3 text-violet-400" /> Tính cá nhân NTD vào chương trình
+  2546→                      </Label>
+  2547→                    </div>
+  2548→                  )}
+  2549→                  {/* Include Individual TN - for nhóm and NTD targets */}
+  2550→                  {(targetType === 'nhom' || targetType === 'nyd') && (
+  2551→                    <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-500/10">
+  2552→                      <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(v) => setIncludeIndividualTN(!!v)} />
+  2553→                      <Label htmlFor="includeIndividualTN" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
+  2554→                        <UserCheck className="w-3 h-3 text-sky-400" /> Tính cá nhân TN vào chương trình
+  2555→                      </Label>
+  2556→                    </div>
+  2557→                  )}
+  2558→                </div>
+  2559→              </div>
+  2560→
+  2561→              <Separator className="bg-emerald-500/20" />
+  2562→
+  2563→              {/* Poster upload inside config */}
+  2564→              <div className="flex items-center gap-2">
+  2565→                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition-colors">
+  2566→                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh poster
+  2567→                  <input type="file" accept="image/*" onChange={handlePosterUpload} className="hidden" />
+  2568→                </label>
+  2569→                {posterUrl && <Button variant="outline" size="sm" onClick={() => setPosterUrl('')} className="text-red-400 border-emerald-500/30 bg-transparent h-7 text-xs"><X className="w-3 h-3 mr-0.5" />Xóa</Button>}
+  2570→                {posterUrl && <img src={posterUrl} alt="Preview" className="h-8 rounded border border-emerald-500/30" />}
+  2571→              </div>
+  2572→            </CardContent>
+  2573→          )}
+  2574→        </Card>
+  2575→
+  2576→        {/* Action Buttons - Tính thi đua prominent, refresh small */}
+  2577→        <div className="flex items-center gap-2">
+  2578→          <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
+  2579→            <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
+  2580→            {subjectCodes.length > 0 && <Badge className="ml-1 bg-sky-500 text-white text-[9px] h-4 px-1">{subjectCodes.length}</Badge>}
+  2581→          </Button>
+  2582→          <Button onClick={handleCalculate} className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
+  2583→            <Trophy className="w-4 h-4 mr-1" /> Tính thi đua
+  2584→          </Button>
+  2585→          <Button variant="ghost" size="sm" onClick={handleRefreshData} disabled={isLoading} className="h-10 w-10 p-0 text-emerald-400/50 hover:text-emerald-300 shrink-0" title="Tải lại dữ liệu">
+  2586→            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+  2587→          </Button>
+  2588→        </div>
+  2589→
+  2590→        {/* Summary Cards - below buttons, visible when results exist */}
+  2591→        {(displayContracts.length > 0 || nydData.length > 0) && (
+  2592→          <div className="space-y-2">
+  2593→            <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />
+  2594→
+  2595→            {usePhase2 && phase2Results && (
+  2596→              <div className="rounded-lg bg-gradient-to-r from-sky-900/40 to-cyan-900/40 border border-sky-500/20 p-3">
+  2597→                <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-sky-400" /><div className="flex-1"><p className="text-xs font-bold text-sky-300">Chia 2 giai đoạn</p><p className="text-[10px] text-sky-400/60">GĐ1: {phase2Results.phase1Count} HĐ | GĐ2: {phase2Results.phase2Count} HĐ</p></div><div className="text-right"><p className="text-[10px] text-sky-400/60">GĐ1: {formatCurrency(phase2Results.phase1Bonus)}</p><p className="text-[10px] text-sky-400/60">GĐ2: {formatCurrency(phase2Results.phase2Bonus)}</p><p className="text-sm font-extrabold text-sky-300">Tổng: {formatCurrency(phase2Results.totalBonus)}</p></div></div>
+  2598→              </div>
+  2599→            )}
+  2600→
+  2601→            {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
+  2602→              <div className="rounded-lg bg-gradient-to-r from-orange-900/40 to-amber-900/40 border border-orange-500/30 p-3">
+  2603→                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt TVV90' : 'Lượt HĐ'}: IP ≥ {formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt{conditionType === 'activity_round_tvv90' ? ` (TVV90 ≤${tvv90MaxMonths}T)` : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
+  2604→              </div>
+  2605→            )}
+  2606→            {isTotalMode(conditionType) && targetType !== 'nhom' && (
+  2607→              <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/30 p-3">
+  2608→                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-500/20 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-500/20 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+  2609→              </div>
+  2610→            )}
+  2611→            {targetType === 'nyd' && nydData.length > 0 && (
+  2612→              <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
+  2613→                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}` : `Tổng FYP${includeIndividualTN ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+  2614→              </div>
+  2615→            )}
+  2616→          </div>
+  2617→        )}
+  2618→
+  2619→        {/* Source Data - collapsible */}
+  2620→        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
+  2621→          <CardHeader className="pb-2 pt-3 px-4">
+  2622→            <button className="flex items-center justify-between w-full" onClick={() => setShowSourceData(!showSourceData)}>
+  2623→              <div className="flex items-center gap-2"><Database className="w-4 h-4 text-emerald-400/60" /><CardTitle className="text-sm text-emerald-200">Dữ liệu nguồn</CardTitle><Badge variant="secondary" className="text-[10px]">{contracts.length} HĐ</Badge></div>
+  2624→              {showSourceData ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
+  2625→            </button>
+  2626→          </CardHeader>
+  2627→          {showSourceData && (
+  2628→            <CardContent className="px-4 pb-3">
+  2629→              {contracts.length === 0 ? (
+  2630→                <div className="text-center py-6 text-emerald-400/50"><Database className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Chưa có dữ liệu</p><p className="text-xs">Nhấn &ldquo;Nhập HD&rdquo; để tải từ Google Sheets</p></div>
+  2631→              ) : (
+  2632→                <div className="rounded-lg border border-emerald-500/30 overflow-x-auto max-h-48 overflow-y-auto">
+  2633→                  <Table><TableHeader><TableRow className="bg-emerald-500/20 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
+  2634→                    <TableBody>{contracts.map((c, idx) => (
+  2635→                      <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+  2636→                    ))}</TableBody>
+  2637→                  </Table>
+  2638→                </div>
+  2639→              )}
+  2640→            </CardContent>
+  2641→          )}
+  2642→        </Card>
+  2643→      </main>
+  2644→
+  2645→      {/* Result Dialog Popup - White theme, only poster + detail table */}
+  2646→      <Dialog open={isResultDialogOpen} onOpenChange={(open) => { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); }}>
+  2647→        <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+  2648→          {/* Action bar */}
+  2649→          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+  2650→            <DialogTitle className="text-emerald-600 text-base font-bold flex items-center gap-2">
+  2651→              <Trophy className="w-5 h-5 text-emerald-600" />
+  2652→              Kết quả chi tiết
+  2653→            </DialogTitle>
+  2654→            <div className="flex items-center gap-1">
+  2655→              <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
+  2656→                {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+  2657→              </Button>
+  2658→              <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
+  2659→                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
+  2660→              </Button>
+  2661→              <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
+  2662→                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
+  2663→              </Button>
+  2664→              <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><Download className="w-3 h-3 mr-1" />XLSX</Button>
+  2665→            </div>
+  2666→          </div>
+  2667→
+  2668→          <div ref={resultContentRef} className="px-3 py-2">
+  2669→            <div ref={printRef}>
+
+[showing lines 2270-2669 of 3062; use offset=2670 with limit to continue reading]

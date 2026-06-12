@@ -85,6 +85,7 @@ interface SavedContest {
   useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
   secondaryLuotHDMin?: number; secondaryLuotHDCMin?: number;
   secondaryLuotHDFilter?: string; secondaryLuotHDCFilter?: string;
+  secondaryTotalAFYPMin?: number; secondaryTotalIPMin?: number;
   hideNotAchieved?: boolean; includeIndividualNTD?: boolean; includeIndividualTN?: boolean;
   luotHDThreshold?: number; luotHDCTThreshold?: number;
   tvv90MaxMonths?: number; tvv90MinIP?: number;
@@ -445,6 +446,8 @@ export default function ThiDuaPage() {
   const [secondaryLuotHDCMin, setSecondaryLuotHDCMin] = useState(0);
   const [secondaryLuotHDFilter, setSecondaryLuotHDFilter] = useState<'all' | 'tvvm'>('all');
   const [secondaryLuotHDCFilter, setSecondaryLuotHDCFilter] = useState<'all' | 'tvvm'>('all');
+  const [secondaryTotalAFYPMin, setSecondaryTotalAFYPMin] = useState(0);
+  const [secondaryTotalIPMin, setSecondaryTotalIPMin] = useState(0);
   // Options
   const [hideNotAchieved, setHideNotAchieved] = useState(false);
   const [includeIndividualNTD, setIncludeIndividualNTD] = useState(false);
@@ -1269,6 +1272,18 @@ export default function ThiDuaPage() {
     return g.totalFYP;
   }, [conditionType]);
 
+  // Helper: kiểm tra điều kiện bổ sung Tổng AFYP / Tổng IP cho 1 entity (TVV/nhóm/NTD)
+  // Trả về { passed, totalAFYP, totalIP } — passed=true nếu đạt tất cả điều kiện
+  const checkSecondaryTotalCondition = useCallback((contracts: Contract[]): { passed: boolean; totalAFYP: number; totalIP: number } => {
+    const totalAFYP = contracts.reduce((sum, c) => sum + c.afyp, 0);
+    const totalIP = contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+    if (!useSecondaryCondition) return { passed: true, totalAFYP, totalIP };
+    let passed = true;
+    if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) passed = false;
+    if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) passed = false;
+    return { passed, totalAFYP, totalIP };
+  }, [useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin]);
+
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
     const { tier } = calculateBonus(totalFYP); const remaining = getRemainingToNextTier(totalFYP);
@@ -1297,6 +1312,7 @@ export default function ThiDuaPage() {
         bonusTiers2: JSON.stringify(bonusTiers2),
         useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
         secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
+        secondaryTotalAFYPMin, secondaryTotalIPMin,
         hideNotAchieved, includeIndividualNTD, includeIndividualTN,
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       }) });
@@ -1330,6 +1346,8 @@ export default function ThiDuaPage() {
     setSecondaryLuotHDCMin(contest.secondaryLuotHDCMin ?? 0);
     setSecondaryLuotHDFilter((contest.secondaryLuotHDFilter as 'all' | 'tvvm') ?? 'all');
     setSecondaryLuotHDCFilter((contest.secondaryLuotHDCFilter as 'all' | 'tvvm') ?? 'all');
+    setSecondaryTotalAFYPMin(contest.secondaryTotalAFYPMin ?? 0);
+    setSecondaryTotalIPMin(contest.secondaryTotalIPMin ?? 0);
     // Options
     setHideNotAchieved(contest.hideNotAchieved ?? false);
     setIncludeIndividualNTD(contest.includeIndividualNTD ?? false);
@@ -2076,6 +2094,9 @@ export default function ThiDuaPage() {
   const sortedTiers = useMemo(() => [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP), [bonusTiers]);
   const showRateColumn = useMemo(() => hasPercentBonus(bonusTiers), [bonusTiers]);
 
+  // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
+  const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
+
   // Calculate and show results popup
   const handleCalculate = () => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
@@ -2499,6 +2520,8 @@ export default function ThiDuaPage() {
                 </div>
                 {useSecondaryCondition && (
                   <div className="space-y-2 pl-4 border-l-2 border-orange-500/30">
+                    {/* Lọc theo hợp đồng — chỉ giữ lại HĐ đạt điều kiện */}
+                    <div className="text-[10px] text-orange-400/50 font-medium uppercase tracking-wider">Lọc hợp đồng</div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
@@ -2520,6 +2543,12 @@ export default function ThiDuaPage() {
                           <button type="button" onClick={() => setSecondaryLuotHDCFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
                         </div>
                       </div>
+                    </div>
+                    {/* Điều kiện bổ sung nhận thưởng — phải đạt mới được thưởng */}
+                    <div className="text-[10px] text-amber-400/60 font-medium uppercase tracking-wider mt-2">Điều kiện nhận thưởng</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1"><Label className="text-[10px] text-amber-400/70">Tổng AFYP từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryTotalAFYPMin ? vndToNgan(secondaryTotalAFYPMin) : ''} onChange={(e) => setSecondaryTotalAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-amber-500/30 bg-gray-800 text-white" /></div>
+                      <div className="space-y-1"><Label className="text-[10px] text-amber-400/70">Tổng IP từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryTotalIPMin ? vndToNgan(secondaryTotalIPMin) : ''} onChange={(e) => setSecondaryTotalIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-amber-500/30 bg-gray-800 text-white" /></div>
                     </div>
                   </div>
                 )}
@@ -2688,6 +2717,12 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
                             {isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                           </TableHead>
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
+                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                            </>
+                          )}
                           {includeIndividualTN && (
                             <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">IP cá nhân</TableHead>
                           )}
@@ -2725,7 +2760,12 @@ export default function ThiDuaPage() {
                             {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
-
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
+                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -2760,6 +2800,12 @@ export default function ThiDuaPage() {
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
                             <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
                           )}
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
+                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -2793,6 +2839,12 @@ export default function ThiDuaPage() {
                             <div>{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}</div>
                             {startDate && endDate && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                           </TableHead>
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
+                              {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -2876,6 +2928,26 @@ export default function ThiDuaPage() {
                           <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">
                             {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
                           </TableCell>
+                          {showSecondaryTotalColumn && (() => {
+                            const nydContracts = nyd.contracts || displayContracts.filter(c => c.maDaiLyTD === nyd.nydCode);
+                            const sc = checkSecondaryTotalCondition(nydContracts);
+                            return (
+                              <>
+                                {secondaryTotalAFYPMin > 0 && (
+                                  <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {formatNumber(sc.totalAFYP)}
+                                    {sc.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
+                                  </TableCell>
+                                )}
+                                {secondaryTotalIPMin > 0 && (
+                                  <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {formatNumber(sc.totalIP)}
+                                    {sc.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
+                                  </TableCell>
+                                )}
+                              </>
+                            );
+                          })()}
                           {includeIndividualTN && (
                             <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(nyd.ownFYP)}</TableCell>
                           )}
@@ -2906,8 +2978,12 @@ export default function ThiDuaPage() {
                     }).map(({ group, tier, remaining, groupPhase }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       if (!group.nhom && !group.maNhom) return null;
+                      // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho nhóm
+                      const secondaryCheck = checkSecondaryTotalCondition(group.contracts || []);
+                      const secondaryPassed = secondaryCheck.passed;
+                      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
                       return (
-                        <TableRow key={group.maNhom} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                        <TableRow key={group.maNhom} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
@@ -2919,32 +2995,52 @@ export default function ThiDuaPage() {
                               : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
-
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {formatNumber(secondaryCheck.totalAFYP)}
+                                  {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                              {secondaryTotalIPMin > 0 && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {formatNumber(secondaryCheck.totalIP)}
+                                  {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && groupPhase.phase1Bonus > 0 ? formatCurrency(groupPhase.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && groupPhase.phase2Bonus > 0 ? formatCurrency(groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
                       const { tier } = calculateBonus(c.pdt10DT);
                       const remaining = getRemainingToNextTier(c.pdt10DT);
                       const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
-                      return { contract: c, tier, remaining, phaseInfo };
-                    }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).map(({ contract, tier, remaining, phaseInfo }, idx) => {
+                      // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho TVV
+                      const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+                      const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
+                      const secondaryPassed = secondaryCheck.passed;
+                      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                      return { contract: c, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
+                    }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).map(({ contract, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       if (!contract.nhom && !contract.maNhom) return null;
                       return (
-                        <TableRow key={contract.id} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                        <TableRow key={contract.id} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{contract.nhom || contract.maNhom}</TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
@@ -2954,19 +3050,35 @@ export default function ThiDuaPage() {
                           {useSecondaryCondition && secondaryAFYPMin > 0 && (
                             <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(contract.afyp)}</TableCell>
                           )}
+                          {showSecondaryTotalColumn && (
+                            <>
+                              {secondaryTotalAFYPMin > 0 && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {formatNumber(secondaryCheck.totalAFYP)}
+                                  {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                              {secondaryTotalIPMin > 0 && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {formatNumber(secondaryCheck.totalIP)}
+                                  {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
                             <>
-                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                              <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, contract.pdt10DT)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, contract.pdt10DT)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : (() => {
@@ -2974,26 +3086,48 @@ export default function ThiDuaPage() {
                       return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
                         if (hideNotAchieved && !tier) return null;
                         if (!agent.nhom && !agent.maNhom) return null;
+                        // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP
+                        const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+                        const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
+                        const secondaryPassed = secondaryCheck.passed;
+                        // Nếu có điều kiện bổ sung mà không đạt → không được thưởng (nhưng vẫn hiển thị)
+                        const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
                         return (
-                          <TableRow key={agent.agentCode} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                          <TableRow key={agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                             <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
                             <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>
                             <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(value)}</TableCell>
+                            {showSecondaryTotalColumn && (
+                              <>
+                                {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && (
+                                  <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {formatNumber(secondaryCheck.totalAFYP)}
+                                    {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
+                                  </TableCell>
+                                )}
+                                {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && (
+                                  <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {formatNumber(secondaryCheck.totalIP)}
+                                    {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
+                                  </TableCell>
+                                )}
+                              </>
+                            )}
                             {showRateColumn && !usePhase2 && (
-                              <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+                              <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                             )}
                             {usePhase2 ? (
                               <>
-                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                                <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}</TableCell>
+                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && phaseInfo.phase1Bonus > 0 ? formatCurrency(phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                                <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && phaseInfo.phase2Bonus > 0 ? formatCurrency(phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                                <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, value)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                             )}
-                            <TableCell className="whitespace-nowrap">{!tier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {formatNumber(remaining)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                            <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                           </TableRow>
                         );
                       });

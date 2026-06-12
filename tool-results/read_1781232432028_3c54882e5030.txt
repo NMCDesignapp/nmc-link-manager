@@ -1,0 +1,402 @@
+   301→   301→            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
+   302→   302→            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+   303→   303→            <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
+   304→   304→          </div>
+   305→   305→          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+   306→   306→        </div>
+   307→   307→      </div>
+   308→   308→    );
+   309→   309→  }
+   310→   310→
+   311→   311→  // Original gradient variant
+   312→   312→  return (
+   313→   313→    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border border-emerald-500/30' : ''} shadow-[0_0_15px_rgba(0,255,136,0.1)]`}>
+   314→   314→      <div className="absolute inset-0 bg-[rgba(14,14,30,0.85)] backdrop-blur" />
+   315→   315→      <div className="relative z-10 p-4 sm:p-5">
+   316→   316→        <div className="flex items-start gap-3 mb-3">
+   317→   317→          <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+   318→   318→            <Trophy className="w-6 h-6 text-white" />
+   319→   319→          </div>
+   320→   320→          <div className="flex-1 min-w-0">
+   321→   321→            <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
+   322→   322→            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+   323→   323→              <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
+   324→   324→              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+   325→   325→              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+   326→   326→                {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+   327→   327→                {' '}{targetLabel}
+   328→   328→              </span>
+   329→   329→            </div>
+   330→   330→          </div>
+   331→   331→        </div>
+   332→   332→        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+   333→   333→          {sortedTiers.map((tier, i) => (
+   334→   334→            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-3 py-2 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[80px] shadow-md`}>
+   335→   335→              <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 opacity-80" /><span className="text-[10px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
+   336→   336→              <div className="text-xs font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
+   337→   337→              <div className="text-sm font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
+   338→   338→            </div>
+   339→   339→          ))}
+   340→   340→        </div>
+   341→   341→        <div className="grid grid-cols-4 gap-2 mb-2">
+   342→   342→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+   343→   343→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
+   344→   344→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+   345→   345→          <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
+   346→   346→        </div>
+   347→   347→        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+   348→   348→        {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200 text-sm italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
+   349→   349→      </div>
+   350→   350→    </div>
+   351→   351→  );
+   352→   352→});
+   353→   353→
+   354→   354→// Bonus tier editor component
+   355→   355→const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
+   356→   356→  tiers: BonusTier[];
+   357→   357→  conditionType: ConditionType;
+   358→   358→  onUpdate: (id: string, field: keyof BonusTier, value: string | number | null) => void;
+   359→   359→  onAdd: () => void;
+   360→   360→  onRemove: (id: string) => void;
+   361→   361→  title?: string;
+   362→   362→  accentColor?: string;
+   363→   363→}) {
+   364→   364→  const isAR = isActivityRoundMode(conditionType);
+   365→   365→  const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
+   366→   366→  const unitLabel = isAFYP ? 'AFYP' : 'IP';
+   367→   367→  const cls = accentColor === 'sky' ? {
+   368→   368→    bg: 'bg-sky-900/30', border: 'border-sky-500/30', label: 'text-sky-400', badge: 'bg-sky-500/10',
+   369→   369→    btn: 'text-sky-400 hover:text-sky-300', accent: 'bg-sky-600',
+   370→   370→  } : {
+   371→   371→    bg: 'bg-amber-900/30', border: 'border-amber-500/30', label: 'text-amber-400', badge: 'bg-amber-500/10',
+   372→   372→    btn: 'text-amber-400 hover:text-amber-300', accent: 'bg-amber-600',
+   373→   373→  };
+   374→   374→
+   375→   375→  return (
+   376→   376→    <div className="space-y-2">
+   377→   377→      <div className="flex items-center justify-between">
+   378→   378→        <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
+   379→   379→        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
+   380→   380→      </div>
+   381→   381→      <div className="space-y-2">
+   382→   382→        {tiers.map((tier, index) => (
+   383→   383→          <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
+   384→   384→            <div className="flex items-center gap-1.5 mb-1.5">
+   385→   385→              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
+   386→   386→              <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
+   387→   387→                {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
+   388→   388→                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
+   389→   389→                ))}
+   390→   390→              </div>
+   391→   391→              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-2.5 h-2.5" /></Button>
+   392→   392→            </div>
+   393→   393→            <div className="grid grid-cols-3 gap-1.5">
+   394→   394→              {isAR ? (
+   395→   395→                <>
+   396→   396→                  <div><Label className="text-[9px] text-emerald-300/70">Lượt từ</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   397→   397→                  <div><Label className="text-[9px] text-emerald-300/70">Lượt đến</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   398→   398→                </>
+   399→   399→              ) : (
+   400→   400→                <>
+   401→   401→                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} từ (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   402→   402→                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   403→   403→                </>
+   404→   404→              )}
+   405→   405→              <div>
+   406→   406→                <Label className="text-[9px] text-emerald-300/70">
+   407→   407→                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+   408→   408→                </Label>
+   409→   409→                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
+   410→   410→                  ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+   411→   411→                  : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+   412→   412→                    ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+   413→   413→                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
+   414→   414→              </div>
+   415→   415→            </div>
+   416→   416→          </div>
+   417→   417→        ))}
+   418→   418→      </div>
+   419→   419→    </div>
+   420→   420→  );
+   421→   421→});
+   422→   422→
+   423→   423→export default function ThiDuaPage() {
+   424→   424→  const router = useRouter();
+   425→   425→  // Data sourced from Quản lý page — no CSV sync
+   426→   426→
+   427→   427→  const [startDate, setStartDate] = useState(''); // Ngày hiệu lực từ
+   428→   428→  const [endDate, setEndDate] = useState('');     // Ngày hiệu lực đến
+   429→   429→  const [issueStartDate, setIssueStartDate] = useState(''); // Ngày phát hành từ
+   430→   430→  const [issueEndDate, setIssueEndDate] = useState('');     // Ngày phát hành đến
+   431→   431→  const [contestTitle, setContestTitle] = useState('CHƯƠNG TRÌNH THI ĐUA');
+   432→   432→  const [conditionType, setConditionType] = useState<ConditionType>('per_contract_ip');
+   433→   433→  const [targetType, setTargetType] = useState<TargetType>('tvv');
+   434→   434→  const [bonusTiers, setBonusTiers] = useState<BonusTier[]>([]);
+   435→   435→  // Phase 2
+   436→   436→  const [usePhase2, setUsePhase2] = useState(false);
+   437→   437→  const [phase2StartDate, setPhase2StartDate] = useState('');
+   438→   438→  const [phase2EndDate, setPhase2EndDate] = useState('');
+   439→   439→  const [bonusTiers2, setBonusTiers2] = useState<BonusTier[]>([]);
+   440→   440→  // Secondary Condition
+   441→   441→  const [useSecondaryCondition, setUseSecondaryCondition] = useState(false);
+   442→   442→  const [secondaryAFYPMin, setSecondaryAFYPMin] = useState(0);
+   443→   443→  const [secondaryIPMin, setSecondaryIPMin] = useState(0);
+   444→   444→  const [secondaryLuotHDMin, setSecondaryLuotHDMin] = useState(0);
+   445→   445→  const [secondaryLuotHDCMin, setSecondaryLuotHDCMin] = useState(0);
+   446→   446→  const [secondaryLuotHDFilter, setSecondaryLuotHDFilter] = useState<'all' | 'tvvm'>('all');
+   447→   447→  const [secondaryLuotHDCFilter, setSecondaryLuotHDCFilter] = useState<'all' | 'tvvm'>('all');
+   448→   448→  // Options
+   449→   449→  const [hideNotAchieved, setHideNotAchieved] = useState(false);
+   450→   450→  const [includeIndividualNTD, setIncludeIndividualNTD] = useState(false);
+   451→   451→  const [includeIndividualTN, setIncludeIndividualTN] = useState(false);
+   452→   452→  // Configurable thresholds
+   453→   453→  const [luotHDThreshold, setLuotHDThreshold] = useState(3_000_000);
+   454→   454→  const [luotHDCTThreshold, setLuotHDCTThreshold] = useState(12_000_000);
+   455→   455→  const [tvv90MaxMonths, setTvv90MaxMonths] = useState(3);
+   456→   456→  const [tvv90MinIP, setTvv90MinIP] = useState(12_000_000);
+   457→   457→
+   458→   458→  const [posterUrl, setPosterUrl] = useState<string>('');
+   459→   459→  const [contracts, setContracts] = useState<Contract[]>([]);
+   460→   460→  const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+   461→   461→  const [isLoading, setIsLoading] = useState(false);
+   462→   462→  const [dataLoadedCount, setDataLoadedCount] = useState<number>(0);
+   463→   463→  const [dataLoadedVisible, setDataLoadedVisible] = useState<boolean>(false);
+   464→   464→  const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
+   465→   465→  const [selectedContestId, setSelectedContestId] = useState<string>('');
+   466→   466→  const [isSaving, setIsSaving] = useState(false);
+   467→   467→  const [contestListOpen, setContestListOpen] = useState(false);
+   468→   468→  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+   469→   469→  const [showSourceData, setShowSourceData] = useState(false);
+   470→   470→  const [showConfig, setShowConfig] = useState(false);
+   471→   471→  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+   472→   472→  const [isResultExpanded, setIsResultExpanded] = useState(false);
+   473→   473→  const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
+   474→   474→  const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+   475→   475→  const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+   476→   476→  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+   477→   477→  const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
+   478→   478→  // revenueData removed — all data now sourced from Contracts table only
+   479→   479→  const printRef = useRef<HTMLDivElement>(null);
+   480→   480→  const resultContentRef = useRef<HTMLDivElement>(null);
+   481→   481→
+   482→   482→  const handlePosterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+   483→   483→    const file = e.target.files?.[0]; if (!file) return;
+   484→   484→    const reader = new FileReader();
+   485→   485→    reader.onload = (ev) => { setPosterUrl(ev.target?.result as string); };
+   486→   486→    reader.readAsDataURL(file);
+   487→   487→  };
+   488→   488→
+   489→   489→  const fetchContracts = useCallback(async () => {
+   490→   490→    setIsLoading(true);
+   491→   491→    try { const res = await fetch('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(data); } }
+   492→   492→    catch { /* silent - status shown by green check / spinner */ }
+   493→   493→    finally { setIsLoading(false); }
+   494→   494→  }, []);
+   495→   495→  useEffect(() => { fetchContracts(); }, [fetchContracts]);
+   496→   496→
+   497→   497→  const fetchSavedContests = useCallback(async () => {
+   498→   498→    try { const res = await fetch('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+   499→   499→  }, []);
+   500→   500→  useEffect(() => { fetchSavedContests(); }, [fetchSavedContests]);
+   501→   501→
+   502→   502→  // Fetch staff list for group membership reference
+   503→   503→  const fetchStaff = useCallback(async () => {
+   504→   504→    try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
+   505→   505→  }, []);
+   506→   506→  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+   507→   507→
+   508→   508→  // Fetch recruiter list for NYD reference
+   509→   509→  const fetchRecruiters = useCallback(async () => {
+   510→   510→    try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
+   511→   511→  }, []);
+   512→   512→  useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
+   513→   513→
+   514→   514→  // fetchRevenue removed — all data now sourced from Contracts table only
+   515→   515→
+   516→   516→  // Data is loaded directly from DB (populated by Quản lý page) — no CSV sync needed
+   517→   517→  // Refresh all data from DB
+   518→   518→  const handleRefreshData = useCallback(async () => {
+   519→   519→    setIsLoading(true);
+   520→   520→    try {
+   521→   521→      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters()]);
+   522→   522→      // Show success indicator
+   523→   523→      const contractRes = await fetch('/api/contracts');
+   524→   524→      if (contractRes.ok) {
+   525→   525→        const contractData = await contractRes.json();
+   526→   526→        setDataLoadedCount(contractData.length || contracts.length);
+   527→   527→      } else {
+   528→   528→        setDataLoadedCount(contracts.length);
+   529→   529→      }
+   530→   530→      setDataLoadedVisible(true);
+   531→   531→      setTimeout(() => setDataLoadedVisible(false), 3000);
+   532→   532→    } finally {
+   533→   533→      setIsLoading(false);
+   534→   534→    }
+   535→   535→  }, [fetchContracts, fetchStaff, fetchRecruiters, contracts.length]);
+   536→   536→
+   537→   537→  const handleSearch = useCallback(() => {
+   538→   538→    if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
+   539→   539→    let results = [...contracts];
+   540→   540→    // Lọc theo Ngày hiệu lực (từ-đến)
+   541→   541→    if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
+   542→   542→    if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
+   543→   543→    // Lọc theo Ngày phát hành (từ-đến)
+   544→   544→    if (issueStartDate) { const start = new Date(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
+   545→   545→    if (issueEndDate) { const end = new Date(issueEndDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.issueDate) <= end); }
+   546→   546→    // Secondary condition filter
+   547→   547→    if (useSecondaryCondition) {
+   548→   548→      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
+   549→   549→      if (secondaryIPMin > 0) results = results.filter((c) => c.pdt10DT >= secondaryIPMin);
+   550→   550→    }
+   551→   551→    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+   552→   552→    setFilteredContracts(results);
+   553→   553→    return results;
+   554→   554→  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
+   555→   555→
+   556→   556→  const handleSearchRef = useRef(handleSearch);
+   557→   557→  handleSearchRef.current = handleSearch;
+   558→   558→
+   559→   559→  // Bonus calculation helpers - takes tiers as parameter for Phase2 support
+   560→   560→  const calculateBonusWithTiers = useCallback((fyp: number, tiers: BonusTier[]): { tier: BonusTier | null; tierIndex: number } => {
+   561→   561→    const sortedTiers = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+   562→   562→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (fyp >= tier.minFYP) return { tier, tierIndex: i }; }
+   563→   563→    return { tier: null, tierIndex: -1 };
+   564→   564→  }, []);
+   565→   565→
+   566→   566→  const calculateBonus = useCallback((fyp: number): { tier: BonusTier | null; tierIndex: number } => {
+   567→   567→    return calculateBonusWithTiers(fyp, bonusTiers);
+   568→   568→  }, [calculateBonusWithTiers, bonusTiers]);
+   569→   569→
+   570→   570→  const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[]): number => {
+   571→   571→    const { tier } = calculateBonusWithTiers(fyp, tiers); if (!tier) return 0;
+   572→   572→    return computeBonusFromTier(tier, fyp);
+   573→   573→  }, [calculateBonusWithTiers]);
+   574→   574→
+   575→   575→  const getBonusAmount = useCallback((fyp: number): number => {
+   576→   576→    return getBonusAmountWithTiers(fyp, bonusTiers);
+   577→   577→  }, [getBonusAmountWithTiers, bonusTiers]);
+   578→   578→
+   579→   579→  const getRemainingToNextTier = useCallback((fyp: number): number | null => {
+   580→   580→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   581→   581→    for (const tier of sortedTiers) { if (tier.minFYP > fyp) return tier.minFYP - fyp; }
+   582→   582→    return null;
+   583→   583→  }, [bonusTiers]);
+   584→   584→
+   585→   585→  const calculateActivityRoundBonus = useCallback((activityRounds: number): { tier: BonusTier | null; tierIndex: number } => {
+   586→   586→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   587→   587→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (activityRounds >= tier.minFYP) return { tier, tierIndex: i }; }
+   588→   588→    return { tier: null, tierIndex: -1 };
+   589→   589→  }, [bonusTiers]);
+   590→   590→
+   591→   591→  const calculateActivityRoundBonusWithTiers = useCallback((activityRounds: number, tiers: BonusTier[]): { tier: BonusTier | null; tierIndex: number } => {
+   592→   592→    const sortedTiers = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+   593→   593→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (activityRounds >= tier.minFYP) return { tier, tierIndex: i }; }
+   594→   594→    return { tier: null, tierIndex: -1 };
+   595→   595→  }, []);
+   596→   596→
+   597→   597→  const getActivityRoundBonusAmount = useCallback((activityRounds: number, groupTotalFYP?: number): number => {
+   598→   598→    const { tier } = calculateActivityRoundBonus(activityRounds); if (!tier) return 0;
+   599→   599→    return computeBonusFromTier(tier, groupTotalFYP || 0, activityRounds);
+   600→   600→  }, [calculateActivityRoundBonus]);
+   601→   601→
+   602→   602→  const getRemainingToNextActivityRoundTier = useCallback((activityRounds: number): number | null => {
+   603→   603→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   604→   604→    for (const tier of sortedTiers) { if (tier.minFYP > activityRounds) return tier.minFYP - activityRounds; }
+   605→   605→    return null;
+   606→   606→  }, [bonusTiers]);
+   607→   607→
+   608→   608→  // Subject filter - loại bỏ trùng lặp
+   609→   609→  const subjectCodes = useMemo(() => {
+   610→   610→    const raw = thiDuaSubjects.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+   611→   611→    return [...new Set(raw)];
+   612→   612→  }, [thiDuaSubjects]);
+   613→   613→
+   614→   614→  // Display contracts with subject filter applied
+   615→   615→  // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
+   616→   616→  const displayContracts = useMemo(() => {
+   617→   617→    if (targetType === 'tvv') {
+   618→   618→      if (subjectCodes.length === 0) return filteredContracts;
+   619→   619→      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
+   620→   620→    }
+   621→   621→    if (targetType === 'nhom') {
+   622→   622→      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại PA)
+   623→   623→      // Sau đó lọc HĐ theo mã nhóm
+   624→   624→      const allowedMaNhom = new Set<string>();
+   625→   625→      if (subjectCodes.length > 0) {
+   626→   626→        // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
+   627→   627→        for (const code of subjectCodes) {
+   628→   628→          const codeLower = norm(code).toLowerCase();
+   629→   629→          const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+   630→   630→          if (staff?.maNhom) {
+   631→   631→            allowedMaNhom.add(staff.maNhom);
+   632→   632→          } else {
+   633→   633→            allowedMaNhom.add(code);
+   634→   634→          }
+   635→   635→        }
+   636→   636→      } else {
+   637→   637→        // Không nhập đối tượng → lấy tất cả nhóm từ Staff table (trừ PA)
+   638→   638→        for (const s of staffList) {
+   639→   639→          if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+   640→   640→            allowedMaNhom.add(s.maNhom);
+   641→   641→          }
+   642→   642→        }
+   643→   643→      }
+   644→   644→      return filteredContracts.filter(c => allowedMaNhom.has(c.maNhom));
+   645→   645→    }
+   646→   646→    if (targetType === 'nyd') {
+   647→   647→      // NTD: xác định tập mã NTD từ Recruiter table
+   648→   648→      if (subjectCodes.length > 0) {
+   649→   649→        return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+   650→   650→          (c.maDaiLyTD && subjectCodes.includes(c.maDaiLyTD)));
+   651→   651→      }
+   652→   652→      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table
+   653→   653→      const ntdCodes = new Set(recruiterList.map(r => r.agentCode));
+   654→   654→      return filteredContracts.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
+   655→   655→    }
+   656→   656→    return filteredContracts;
+   657→   657→  }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
+   658→   658→
+   659→   659→  // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
+   660→   660→
+   661→   661→  // NYD data computation - use Recruiter table as primary reference
+   662→   662→  const nydData: NYDData[] = useMemo(() => {
+   663→   663→    if (targetType !== 'nyd') return [];
+   664→   664→    const nydMap = new Map<string, NYDData>();
+   665→   665→
+   666→   666→    // Step 1: Load NTD from Recruiter table
+   667→   667→    // Nếu có DS đối tượng → chỉ lấy NTD trong DS, ngược lại lấy tất cả
+   668→   668→    if (subjectCodes.length > 0) {
+   669→   669→      for (const r of recruiterList) {
+   670→   670→        if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
+   671→   671→          nydMap.set(r.agentCode, {
+   672→   672→            nydCode: r.agentCode,
+   673→   673→            nydName: r.agentName,
+   674→   674→            nhom: r.nhom,
+   675→   675→            position: r.position || '',
+   676→   676→            startDate: r.startDate,
+   677→   677→            recruitCount: 0,
+   678→   678→            recruitFYP: 0,
+   679→   679→            ownFYP: 0,
+   680→   680→            contracts: [],
+   681→   681→          });
+   682→   682→        }
+   683→   683→      }
+   684→   684→      // Thêm NTD từ subjectCodes KHÔNG có trong recruiterList (để hiện đầy đủ DS)
+   685→   685→      for (const code of subjectCodes) {
+   686→   686→        const codeLower = norm(code).toLowerCase();
+   687→   687→        const found = Array.from(nydMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+   688→   688→        if (!found) {
+   689→   689→          // Tìm thông tin từ staffList nếu có
+   690→   690→          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || norm(s.agentName || '').toLowerCase() === codeLower);
+   691→   691→          nydMap.set(code, {
+   692→   692→            nydCode: staff?.agentCode || code,
+   693→   693→            nydName: staff?.agentName || code,
+   694→   694→            nhom: staff?.nhom || '',
+   695→   695→            position: staff?.position || '',
+   696→   696→            startDate: staff?.startDate || null,
+   697→   697→            recruitCount: 0,
+   698→   698→            recruitFYP: 0,
+   699→   699→            ownFYP: 0,
+   700→   700→            contracts: [],
+
+[showing lines 301-700 of 2002; use offset=701 with limit to continue reading]

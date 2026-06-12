@@ -140,6 +140,8 @@ model Contest {
   secondaryLuotHDCMin  Float @default(0)
   secondaryLuotHDFilter String @default("all")
   secondaryLuotHDCFilter String @default("all")
+  secondaryTotalAFYPMin Float @default(0)
+  secondaryTotalIPMin   Float @default(0)
   hideNotAchieved  Boolean  @default(false)
   includeIndividualNTD Boolean @default(false)
   includeIndividualTN  Boolean @default(false)
