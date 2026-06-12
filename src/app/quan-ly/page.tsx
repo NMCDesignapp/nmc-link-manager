@@ -1670,12 +1670,19 @@ export default function QuanLyPage() {
     finally { setImportLoading(false); }
   }, [importData, importTier, importPreview, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
-  // ========== Download Template (server-side) ==========
-  const handleDownloadTemplate = useCallback((sheetName: string) => {
+  // ========== Download Template (client-side) ==========
+  const handleDownloadTemplate = useCallback(async (sheetName: string) => {
     try {
       const template = TEMPLATES[sheetName];
       if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu', variant: 'destructive' }); return; }
-      window.open(`/api/quan-ly/template?type=${sheetName}`, '_blank');
+      // Client-side XLSX generation — avoids server binary response issues
+      const XLSX = await import('xlsx');
+      const data = [template.sampleData.length > 0 ? template.sampleData[0] : Object.fromEntries(template.headers.map(h => [h, '']))];
+      const ws = XLSX.utils.json_to_sheet(data, { header: template.headers });
+      ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `Mau_${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast({ title: 'Đang tải mẫu...', description: `Mẫu ${sheetName}` });
     } catch (err) {
       console.error('[handleDownloadTemplate] Error:', err);
@@ -1683,7 +1690,7 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ========== Export (server-side) ==========
+  // ========== Export (client-side) ==========
   const handleExport = useCallback(async (sheetName: string) => {
     try {
       let data: any[] = [];
@@ -1695,26 +1702,14 @@ export default function QuanLyPage() {
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
-      const res = await fetch('/api/quan-ly/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sheetName, data }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errData.error || 'Export failed');
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Client-side XLSX generation — avoids server body size limits and binary response issues
+      const XLSX = await import('xlsx');
+      const ws = XLSX.utils.json_to_sheet(data);
+      const headers = Object.keys(data[0]);
+      ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast({ title: 'Xuất Excel thành công' });
     } catch (err) {
       console.error('[handleExport] Error:', err);
