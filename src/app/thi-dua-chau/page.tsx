@@ -1285,7 +1285,8 @@ export default function ThiDuaPage() {
   // Helper: kiểm tra 1 TVV có đạt điều kiện của chương trình tham chiếu không
   // Dùng cho conditionType = 'tvv_pass_count'
   // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (không dùng displayContracts)
-  // TVV đạt = đạt bất kỳ mức thưởng nào (giá trị >= mức thưởng thấp nhất)
+  // TVV đạt = đạt bất kỳ mức thưởng nào trong chương trình tham chiếu
+  // Logic giống hệt cách tính kết quả trên trang thi đua TVV
   const checkTVVPassContest = useCallback((agentCode: string): boolean => {
     if (!referenceContestId) return false;
     const refContest = savedContests.find(sc => sc.id === referenceContestId);
@@ -1294,9 +1295,6 @@ export default function ThiDuaPage() {
     const refCondition = refContest.conditionType as ConditionType;
     const refTiers: BonusTier[] = (() => { try { return JSON.parse(refContest.bonusTiers); } catch { return []; } })();
     if (refTiers.length === 0) return false;
-
-    // Sắp xếp tiers theo minFYP để lấy đúng mức thấp nhất
-    const sortedTiers = [...refTiers].sort((a, b) => a.minFYP - b.minFYP);
 
     // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (dùng contracts gốc, không dùng displayContracts)
     let agentContracts = contracts.filter(c => c.agentCode === agentCode);
@@ -1317,35 +1315,48 @@ export default function ThiDuaPage() {
     }
 
     // Tính giá trị cho TVV theo điều kiện của CTĐK tham chiếu
-    const isAFYP = refCondition === 'total_afyp';
+    const isAFYP = refCondition === 'total_afyp' || refCondition === 'per_contract_afyp';
     const isPerContract = isPerContractMode(refCondition);
     const isActivity = isActivityRoundMode(refCondition);
     const refLuotThreshold = isStandardMode(refCondition)
       ? (refContest.luotHDCTThreshold ?? 12_000_000)
       : (refContest.luotHDThreshold ?? 3_000_000);
 
-    // TVV đạt = đạt bất kỳ mức thưởng nào (= giá trị >= mức thấp nhất)
+    // TVV đạt = calculateBonusWithTiers tìm được tier (đạt bất kỳ mức thưởng nào)
+    // Giống hệt logic tính kết quả trên trang thi đua TVV
+    let passed = false;
+
     if (isPerContract) {
-      const minFYP = sortedTiers[0]?.minFYP ?? 0;
-      return agentContracts.some(c => {
+      // Per-contract: TVV đạt nếu có ít nhất 1 HĐ đạt mức thưởng
+      passed = agentContracts.some(c => {
         const value = refCondition === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
-        return value >= minFYP;
+        const { tier } = calculateBonusWithTiers(value, refTiers);
+        return tier !== null;
       });
-    }
-
-    if (isActivity) {
-      const minRounds = sortedTiers[0]?.minFYP ?? 0;
+    } else if (isActivity) {
+      // Activity round: tính lượt rồi check tier
       const luot = calculateLuot(agentContracts, refLuotThreshold, refCondition, refContest.tvv90MaxMonths ?? 3, refContest.tvv90MinIP ?? 12_000_000);
-      return luot >= minRounds;
+      const { tier } = calculateBonusWithTiers(luot, refTiers);
+      passed = tier !== null;
+    } else {
+      // Total mode: tính tổng IP/AFYP rồi check tier
+      const value = isAFYP
+        ? agentContracts.reduce((s, c) => s + c.afyp, 0)
+        : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      const { tier } = calculateBonusWithTiers(value, refTiers);
+      passed = tier !== null;
     }
 
-    // Total mode: TVV đạt nếu tổng IP/AFYP >= mức thấp nhất
-    const minFYP = sortedTiers[0]?.minFYP ?? 0;
-    const value = isAFYP
-      ? agentContracts.reduce((s, c) => s + c.afyp, 0)
-      : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
-    return value >= minFYP;
-  }, [referenceContestId, savedContests, contracts]);
+    // Kiểm tra điều kiện bổ sung (Tổng AFYP/Tổng IP tối thiểu) của chương trình tham chiếu
+    if (passed && refContest.useSecondaryCondition) {
+      const totalAFYP = agentContracts.reduce((s, c) => s + c.afyp, 0);
+      const totalIP = agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      if ((refContest.secondaryTotalAFYPMin ?? 0) > 0 && totalAFYP < (refContest.secondaryTotalAFYPMin ?? 0)) passed = false;
+      if ((refContest.secondaryTotalIPMin ?? 0) > 0 && totalIP < (refContest.secondaryTotalIPMin ?? 0)) passed = false;
+    }
+
+    return passed;
+  }, [referenceContestId, savedContests, contracts, calculateBonusWithTiers, calculateLuot]);
 
   // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
   const getGroupTVVPassCount = useCallback((g: GroupData): number => {
@@ -1358,7 +1369,7 @@ export default function ThiDuaPage() {
     const groupAllContracts = contracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
     for (const c of groupAllContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
     // Thêm TVV từ staffList trong nhóm (không có HĐ vẫn tính, nhưng sẽ không đạt)
-    const groupStaff = staffList.filter(s => s.maNhom === g.maNhom);
+    const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
     for (const s of groupStaff) agentCodes.add(s.agentCode);
 
     let count = 0;
@@ -1501,20 +1512,26 @@ export default function ThiDuaPage() {
     } else if (targetType === 'nhom') {
       [...groupedData].map((g) => {
         const groupPhase = getGroupPhaseBonus(g);
-        const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
-        return { group: g, tier, groupPhase };
+        const tvvPassCount = getGroupTVVPassCount(g);
+        const tier = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+        return { group: g, tier, groupPhase, tvvPassCount };
       }).sort((a, b) => {
-        const aValue = isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
-        const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
+        const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
+        const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
         return bValue - aValue;
-      }).forEach(({ group: g, tier, groupPhase }, idx) => {
-        const valueLabel = isTVVPassCountMode(conditionType) ? `${getGroupTVVPassCount(g)} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''}` : isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
-        // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
-        const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
-        if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+      }).forEach(({ group: g, tier, groupPhase, tvvPassCount }, idx) => {
+        if (isTVVPassCountMode(conditionType)) {
+          // Bảng đơn giản cho TVV đạt thi đua
+          const bonusLabel = tier ? `Thưởng: ${formatBonus(tier, tvvPassCount)}` : 'Chưa đạt';
+          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leader?.agentCode || '—'} | ${g.leader?.agentName || '—'} | ${tvvPassCount} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''} | ${bonusLabel}\n`;
         } else {
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
+          const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
+          if (usePhase2 && phase2StartDate) {
+            text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+          } else {
+            text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+          }
         }
       });
     } else if (isPerContractMode(conditionType)) {
@@ -1656,115 +1673,142 @@ export default function ThiDuaPage() {
         }
       });
     } else if (targetType === 'nhom') {
-      // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      const condHeader = isTVVPassCountMode(conditionType) ? `TVV đạt CTĐK${!includeTNInPassCount ? ' (KO tính TN)' : ''}` : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
-      if (usePhase2) {
-        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-      } else {
-        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
-      }
-      const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
-      rows = [];
-      merges = [];
-      let currentRow = 1;
-      const sortedGroups = [...groupedData].map((g) => {
-        const groupPhase = getGroupPhaseBonus(g);
-        const tvvPassCount = getGroupTVVPassCount(g);
-        const tier = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
-        const tierNoPhase = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
-        return { g, tier: usePhase2 ? tier : tierNoPhase, groupPhase, tvvPassCount };
-      }).sort((a, b) => {
-        const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
-        const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
-        return bValue - aValue;
-      });
-      sortedGroups.forEach(({ g, tier, groupPhase, tvvPassCount }, gIdx) => {
-        const startRow = currentRow;
-        const contracts = [...(g.contracts || [])].sort((a, b) => b.pdt10DT - a.pdt10DT);
-        const condValue = isTVVPassCountMode(conditionType) ? getGroupTVVPassCount(g) : isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : g.totalFYP;
-        // Check supplementary total condition
-        const sc = checkSecondaryTotalCondition(g.contracts || []);
-        const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
-        if (contracts.length === 0) {
-          const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
-          if (expSecAFYP) row.push(sc.totalAFYP);
-          if (expSecIP) row.push(sc.totalIP);
-          row.push('', '', '', '', '', g.totalFYP);
-          if (usePhase2) {
-            row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
-          } else {
-            if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
-            row.push(effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
-          }
+      // NHÓM
+      if (isTVVPassCountMode(conditionType)) {
+        // Bảng đơn giản cho TVV đạt thi đua: STT - NHÓM - MÃ TN - HỌ TÊN TN - SL TVV đạt thi đua - THƯỞNG - GHI CHÚ
+        const refContestLabel = referenceContestId ? (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? ` (${rc.title})` : ''; })() : '';
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Họ tên TN', `SL TVV đạt thi đua${!includeTNInPassCount ? ' (KO tính TN)' : ''}${refContestLabel}`, 'Thưởng', 'Ghi chú'];
+        rows = [];
+        const sortedGroups = [...groupedData].map((g) => {
+          const tvvPassCount = getGroupTVVPassCount(g);
+          const tier = calculateBonus(tvvPassCount).tier;
+          return { g, tier, tvvPassCount };
+        }).sort((a, b) => b.tvvPassCount - a.tvvPassCount);
+        sortedGroups.forEach(({ g, tier, tvvPassCount }, gIdx) => {
+          const sc = checkSecondaryTotalCondition(g.contracts || []);
+          const effectiveTier = sc.passed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+          const remaining = getRemainingToNextTier(tvvPassCount);
+          const row: (string | number)[] = [
+            gIdx + 1,
+            g.nhom || g.maNhom,
+            g.leader?.agentCode || '',
+            g.leader?.agentName || '',
+            tvvPassCount,
+            effectiveTier ? formatBonusAmount(effectiveTier, tvvPassCount) : '',
+            !effectiveTier && remaining !== null ? `Cần thêm ${remaining} TVV` : !effectiveTier ? 'Chưa đạt' : '',
+          ];
           rows.push(row);
-          currentRow++;
+        });
+        merges = [];
+      } else {
+        // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
+        const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+        if (usePhase2) {
+          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         } else {
-          contracts.forEach((c, cIdx) => {
-            const row: (string | number)[] = [
-              cIdx === 0 ? gIdx + 1 : '',
-              cIdx === 0 ? (g.nhom || g.maNhom) : '',
-              cIdx === 0 ? (g.leader?.agentCode || '') : '',
-              cIdx === 0 ? (g.leader?.agentName || '') : '',
-              cIdx === 0 ? (g.leader?.position || '') : '',
-              cIdx === 0 ? condValue : '',
-            ];
-            if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
-            if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
-            row.push(
-              c.agentName || '',
-              c.contractNumber || '',
-              c.effectiveDate ? formatDate(c.effectiveDate) : '',
-              c.issueDate ? formatDate(c.issueDate) : '',
-              c.pdt10DT,
-              c.afyp,
-              cIdx === 0 ? g.totalFYP : '',
-            );
+          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+        }
+        const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
+        rows = [];
+        merges = [];
+        let currentRow = 1;
+        const sortedGroups = [...groupedData].map((g) => {
+          const groupPhase = getGroupPhaseBonus(g);
+          const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+          return { g, tier, groupPhase };
+        }).sort((a, b) => {
+          const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
+          const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
+          return bValue - aValue;
+        });
+        sortedGroups.forEach(({ g, tier, groupPhase }, gIdx) => {
+          const startRow = currentRow;
+          const contracts = [...(g.contracts || [])].sort((a, b) => b.pdt10DT - a.pdt10DT);
+          const condValue = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : g.totalFYP;
+          // Check supplementary total condition
+          const sc = checkSecondaryTotalCondition(g.contracts || []);
+          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+          if (contracts.length === 0) {
+            const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
+            if (expSecAFYP) row.push(sc.totalAFYP);
+            if (expSecIP) row.push(sc.totalIP);
+            row.push('', '', '', '', '', g.totalFYP);
             if (usePhase2) {
-              row.push(
-                cIdx === 0 ? (groupPhase.phase1Bonus || '') : '',
-                cIdx === 0 ? (groupPhase.phase2Bonus || '') : '',
-                cIdx === 0 ? (groupPhase.phase1Bonus + groupPhase.phase2Bonus || '') : '',
-                cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '',
-              );
+              row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
             } else {
-              if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
-              row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '') : '');
-              row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+              if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+              row.push(effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
             }
             rows.push(row);
             currentRow++;
-          });
-          // Merge cells cho nhóm
-          if (contracts.length > 1) {
-            const endRow = currentRow - 1;
-            // STT, Nhóm, Mã TTN, Tên TTN, Chức vụ, condHeader
-            for (let c = 0; c <= 5; c++) {
-              merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
-            }
-            // Supplementary cols
-            for (let ci = 0; ci < secOffset; ci++) {
-              merges.push({ s: { r: startRow, c: 6 + ci }, e: { r: endRow, c: 6 + ci } });
-            }
-            // Tổng cộng col (12 + secOffset)
-            merges.push({ s: { r: startRow, c: 12 + secOffset }, e: { r: endRow, c: 12 + secOffset } });
-            if (usePhase2) {
-              for (let c = 13 + secOffset; c <= 16 + secOffset; c++) {
+          } else {
+            contracts.forEach((c, cIdx) => {
+              const row: (string | number)[] = [
+                cIdx === 0 ? gIdx + 1 : '',
+                cIdx === 0 ? (g.nhom || g.maNhom) : '',
+                cIdx === 0 ? (g.leader?.agentCode || '') : '',
+                cIdx === 0 ? (g.leader?.agentName || '') : '',
+                cIdx === 0 ? (g.leader?.position || '') : '',
+                cIdx === 0 ? condValue : '',
+              ];
+              if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
+              if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+              row.push(
+                c.agentName || '',
+                c.contractNumber || '',
+                c.effectiveDate ? formatDate(c.effectiveDate) : '',
+                c.issueDate ? formatDate(c.issueDate) : '',
+                c.pdt10DT,
+                c.afyp,
+                cIdx === 0 ? g.totalFYP : '',
+              );
+              if (usePhase2) {
+                row.push(
+                  cIdx === 0 ? (groupPhase.phase1Bonus || '') : '',
+                  cIdx === 0 ? (groupPhase.phase2Bonus || '') : '',
+                  cIdx === 0 ? (groupPhase.phase1Bonus + groupPhase.phase2Bonus || '') : '',
+                  cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '',
+                );
+              } else {
+                if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
+                row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '') : '');
+                row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+              }
+              rows.push(row);
+              currentRow++;
+            });
+            // Merge cells cho nhóm
+            if (contracts.length > 1) {
+              const endRow = currentRow - 1;
+              // STT, Nhóm, Mã TTN, Tên TTN, Chức vụ, condHeader
+              for (let c = 0; c <= 5; c++) {
                 merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
               }
-            } else {
-              if (showRateColumn) {
-                for (let c = 13 + secOffset; c <= 15 + secOffset; c++) {
+              // Supplementary cols
+              for (let ci = 0; ci < secOffset; ci++) {
+                merges.push({ s: { r: startRow, c: 6 + ci }, e: { r: endRow, c: 6 + ci } });
+              }
+              // Tổng cộng col (12 + secOffset)
+              merges.push({ s: { r: startRow, c: 12 + secOffset }, e: { r: endRow, c: 12 + secOffset } });
+              if (usePhase2) {
+                for (let c = 13 + secOffset; c <= 16 + secOffset; c++) {
                   merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
                 }
               } else {
-                for (let c = 13 + secOffset; c <= 14 + secOffset; c++) {
-                  merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+                if (showRateColumn) {
+                  for (let c = 13 + secOffset; c <= 15 + secOffset; c++) {
+                    merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+                  }
+                } else {
+                  for (let c = 13 + secOffset; c <= 14 + secOffset; c++) {
+                    merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      }
     } else {
       // TVV
       if (isPerContractMode(conditionType)) {
@@ -2999,46 +3043,63 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
                         </>
                       ) : targetType === 'nhom' ? (
-                        <>
-                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
-                          <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center">Mã TN</TableHead>
-                          <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
-                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
-                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
-                            {isTVVPassCountMode(conditionType) ? <>{'TVV đạt CTĐK'}{!includeTNInPassCount ? <div className="text-[9px] font-bold text-amber-400 italic">(KO tính TN)</div> : null}</> : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
-                            {startDate && endDate && !isActivityRoundMode(conditionType) && !isTVVPassCountMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
-                            {isTVVPassCountMode(conditionType) && referenceContestId && (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? <div className="text-[9px] font-bold text-purple-400 italic">{rc.title}</div> : null; })()}
-                          </TableHead>
-                          {showSecondaryTotalColumn && (
-                            <>
-                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
-                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
-                            </>
-                          )}
-                          {showRateColumn && !usePhase2 && (
-                            <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
-                          )}
-                          {usePhase2 ? (
-                            <>
-                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
-                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
-                              </TableHead>
-                              <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
-                                <div>Tổng Thưởng</div>
-                              </TableHead>
-                            </>
-                          ) : (
-                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
-                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+                        isTVVPassCountMode(conditionType) ? (
+                          /* Bảng kết quả đơn giản cho TVV đạt thi đua: STT - NHÓM - MÃ TN - HỌ TÊN TN - SL TVV đạt thi đua - THƯỞNG - GHI CHÚ */
+                          <>
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center">MÃ TN</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[100px] font-bold uppercase text-center">HỌ TÊN TN</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center">
+                              <div>SL TVV ĐẠT THI ĐUA</div>
+                              {!includeTNInPassCount && <div className="text-[9px] font-bold text-amber-400 italic">(KO tính TN)</div>}
+                              {referenceContestId && (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? <div className="text-[9px] font-bold text-purple-400 italic">{rc.title}</div> : null; })()}
                             </TableHead>
-                          )}
-                          <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
-                        </>
+                            <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center bg-emerald-700">
+                              <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> THƯỞNG</div>
+                            </TableHead>
+                            <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">GHI CHÚ</TableHead>
+                          </>
+                        ) : (
+                          <>
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center">Mã TN</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
+                              {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                              {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
+                            </TableHead>
+                            {showSecondaryTotalColumn && (
+                              <>
+                                {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
+                                {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                              </>
+                            )}
+                            {showRateColumn && !usePhase2 && (
+                              <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+                            )}
+                            {usePhase2 ? (
+                              <>
+                                <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+                                  <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+                                  <div className="text-[9px] font-bold text-red-500 italic">GD1: {phase2StartDate ? formatDate(startDate) : '...'} - {phase2StartDate ? formatDate(phase2StartDate) : '...'}</div>
+                                </TableHead>
+                                <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
+                                  <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+                                  <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+                                </TableHead>
+                                <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
+                                  <div>Tổng Thưởng</div>
+                                </TableHead>
+                              </>
+                            ) : (
+                              <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-emerald-700">
+                                <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
+                              </TableHead>
+                            )}
+                            <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Ghi chú</TableHead>
+                          </>
+                        )
                       ) : isPerContractMode(conditionType) ? (
                         <>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">NHÓM</TableHead>
@@ -3236,6 +3297,25 @@ export default function ThiDuaPage() {
                       const secondaryCheck = checkSecondaryTotalCondition(group.contracts || []);
                       const secondaryPassed = secondaryCheck.passed;
                       const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+
+                      // Bảng đơn giản cho TVV đạt thi đua: STT - NHÓM - MÃ TN - HỌ TÊN TN - SL TVV đạt thi đua - THƯỞNG - GHI CHÚ
+                      if (isTVVPassCountMode(conditionType)) {
+                        return (
+                          <TableRow key={group.maNhom} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                            <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                            <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
+                            <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
+                            <TableCell className="text-center text-xs whitespace-nowrap">
+                              <span className="text-gray-900 font-bold text-base">{tvvPassCount}</span>
+                              <span className="text-gray-500 text-xs ml-1">TVV</span>
+                            </TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, tvvPassCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {remaining} TVV</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          </TableRow>
+                        );
+                      }
+
                       return (
                         <TableRow key={group.maNhom} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
@@ -3244,9 +3324,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
                           <TableCell className="text-xs text-gray-600 whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs whitespace-nowrap">
-                            {isTVVPassCountMode(conditionType)
-                              ? <span className="text-gray-900 font-semibold">{tvvPassCount} TVV đạt{!includeTNInPassCount && group.leader?.agentCode ? <span className="text-[9px] text-purple-500 ml-1">(KO tính TN)</span> : ''}</span>
-                              : isActivityRoundMode(conditionType)
+                            {isActivityRoundMode(conditionType)
                               ? <span className="text-gray-900">{group.activityRounds} {isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}</span>
                               : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
                             }
@@ -3277,9 +3355,9 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{isTVVPassCountMode(conditionType) ? formatBonusAmount(effectiveTier, tvvPassCount) : formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isTVVPassCountMode(conditionType) ? `${remaining} TVV` : isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
