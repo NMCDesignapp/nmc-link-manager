@@ -1043,9 +1043,10 @@ export default function ThiDuaPage() {
         g.contractCount += cData.contractCount;
       }
     }
-    // Tính lượt HĐ từ Contracts cho từng nhóm
+    // Tính lượt HĐ từ Contracts cho từng nhóm + gán contracts vào group
     for (const [maNhom, g] of map) {
       const groupContracts = displayContracts.filter(c => c.maNhom === maNhom || (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase()));
+      g.contracts = groupContracts;
       g.activityRounds = calculateLuot(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
     }
 
@@ -1288,13 +1289,22 @@ export default function ThiDuaPage() {
   // TVV đạt = đạt bất kỳ mức thưởng nào trong chương trình tham chiếu
   // Logic giống hệt cách tính kết quả trên trang thi đua TVV
   const checkTVVPassContest = useCallback((agentCode: string): boolean => {
-    if (!referenceContestId) return false;
+    if (!referenceContestId) {
+      console.log('[checkTVVPassContest] No referenceContestId');
+      return false;
+    }
     const refContest = savedContests.find(sc => sc.id === referenceContestId);
-    if (!refContest) return false;
+    if (!refContest) {
+      console.log('[checkTVVPassContest] Ref contest not found:', referenceContestId);
+      return false;
+    }
 
     const refCondition = refContest.conditionType as ConditionType;
     const refTiers: BonusTier[] = (() => { try { return JSON.parse(refContest.bonusTiers); } catch { return []; } })();
-    if (refTiers.length === 0) return false;
+    if (refTiers.length === 0) {
+      console.log('[checkTVVPassContest] No tiers in ref contest:', refContest.title);
+      return false;
+    }
 
     // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (dùng contracts gốc, không dùng displayContracts)
     let agentContracts = contracts.filter(c => c.agentCode === agentCode);
@@ -1344,6 +1354,7 @@ export default function ThiDuaPage() {
         ? agentContracts.reduce((s, c) => s + c.afyp, 0)
         : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
       const { tier } = calculateBonusWithTiers(value, refTiers);
+      console.log(`[checkTVVPassContest] ${agentCode}: ${refCondition}=${value}, tier=${tier ? 'YES' : 'NO'}, contracts=${agentContracts.length}`);
       passed = tier !== null;
     }
 
@@ -1355,6 +1366,7 @@ export default function ThiDuaPage() {
       if ((refContest.secondaryTotalIPMin ?? 0) > 0 && totalIP < (refContest.secondaryTotalIPMin ?? 0)) passed = false;
     }
 
+    console.log(`[checkTVVPassContest] ${agentCode}: passed=${passed}, refContest="${refContest.title}", refCondition=${refCondition}`);
     return passed;
   }, [referenceContestId, savedContests, contracts, calculateBonusWithTiers, calculateLuot]);
 
@@ -1373,12 +1385,14 @@ export default function ThiDuaPage() {
     for (const s of groupStaff) agentCodes.add(s.agentCode);
 
     let count = 0;
+    const passedTVVs: string[] = [];
     for (const code of agentCodes) {
       // Mặc định: không đếm cá nhân TN (vì họ đã đạt ở chương trình cá nhân kìa)
       // Chỉ đếm TN khi includeTNInPassCount = true
       if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-      if (checkTVVPassContest(code)) count++;
+      if (checkTVVPassContest(code)) { count++; passedTVVs.push(code); }
     }
+    console.log(`[getGroupTVVPassCount] ${g.nhom || g.maNhom}: ${count}/${agentCodes.size} TVV đạt (TN=${tnAgentCode}, excludeTN=${!includeTNInPassCount}), passed=[${passedTVVs.join(',')}]`);
     return count;
   }, [conditionType, referenceContestId, contracts, staffList, checkTVVPassContest, includeTNInPassCount]);
 
