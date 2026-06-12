@@ -1284,7 +1284,9 @@ export default function ThiDuaPage() {
 
   // Helper: kiểm tra 1 TVV có đạt điều kiện của chương trình tham chiếu không
   // Dùng cho conditionType = 'tvv_pass_count'
-  const checkTVVPassContest = useCallback((agentCode: string, agentContracts: Contract[]): boolean => {
+  // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (không dùng displayContracts)
+  // TVV đạt = đạt bất kỳ mức thưởng nào (giá trị >= mức thưởng thấp nhất)
+  const checkTVVPassContest = useCallback((agentCode: string): boolean => {
     if (!referenceContestId) return false;
     const refContest = savedContests.find(sc => sc.id === referenceContestId);
     if (!refContest) return false;
@@ -1292,6 +1294,27 @@ export default function ThiDuaPage() {
     const refCondition = refContest.conditionType as ConditionType;
     const refTiers: BonusTier[] = (() => { try { return JSON.parse(refContest.bonusTiers); } catch { return []; } })();
     if (refTiers.length === 0) return false;
+
+    // Sắp xếp tiers theo minFYP để lấy đúng mức thấp nhất
+    const sortedTiers = [...refTiers].sort((a, b) => a.minFYP - b.minFYP);
+
+    // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (dùng contracts gốc, không dùng displayContracts)
+    let agentContracts = contracts.filter(c => c.agentCode === agentCode);
+    // Lọc theo ngày hiệu lực của chương trình tham chiếu
+    if (refContest.startDate) {
+      const start = new Date(refContest.startDate);
+      agentContracts = agentContracts.filter(c => new Date(c.effectiveDate) >= start);
+    }
+    if (refContest.endDate) {
+      const end = new Date(refContest.endDate);
+      end.setHours(23, 59, 59, 999);
+      agentContracts = agentContracts.filter(c => new Date(c.effectiveDate) <= end);
+    }
+    // Lọc theo ngày phát hành nếu chương trình tham chiếu có cài
+    if (refContest.issueDate) {
+      const issueStart = new Date(refContest.issueDate);
+      agentContracts = agentContracts.filter(c => new Date(c.issueDate) >= issueStart);
+    }
 
     // Tính giá trị cho TVV theo điều kiện của CTĐK tham chiếu
     const isAFYP = refCondition === 'total_afyp';
@@ -1301,9 +1324,9 @@ export default function ThiDuaPage() {
       ? (refContest.luotHDCTThreshold ?? 12_000_000)
       : (refContest.luotHDThreshold ?? 3_000_000);
 
+    // TVV đạt = đạt bất kỳ mức thưởng nào (= giá trị >= mức thấp nhất)
     if (isPerContract) {
-      // Per-contract: TVV đạt nếu có ít nhất 1 HĐ đạt mức thưởng thấp nhất
-      const minFYP = refTiers[0]?.minFYP ?? 0;
+      const minFYP = sortedTiers[0]?.minFYP ?? 0;
       return agentContracts.some(c => {
         const value = refCondition === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
         return value >= minFYP;
@@ -1311,27 +1334,29 @@ export default function ThiDuaPage() {
     }
 
     if (isActivity) {
-      // Activity round: TVV đạt nếu số lượt HĐ >= mức thấp nhất
-      const minRounds = refTiers[0]?.minFYP ?? 0;
+      const minRounds = sortedTiers[0]?.minFYP ?? 0;
       const luot = calculateLuot(agentContracts, refLuotThreshold, refCondition, refContest.tvv90MaxMonths ?? 3, refContest.tvv90MinIP ?? 12_000_000);
       return luot >= minRounds;
     }
 
     // Total mode: TVV đạt nếu tổng IP/AFYP >= mức thấp nhất
-    const minFYP = refTiers[0]?.minFYP ?? 0;
+    const minFYP = sortedTiers[0]?.minFYP ?? 0;
     const value = isAFYP
       ? agentContracts.reduce((s, c) => s + c.afyp, 0)
       : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
     return value >= minFYP;
-  }, [referenceContestId, savedContests]);
+  }, [referenceContestId, savedContests, contracts]);
 
   // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
   const getGroupTVVPassCount = useCallback((g: GroupData): number => {
     if (conditionType !== 'tvv_pass_count' || !referenceContestId) return 0;
     // Xác định agentCode của Trưởng Nhóm để loại trừ nếu cần
     const tnAgentCode = g.leader?.agentCode || '';
-    // Lấy danh sách unique TVV trong nhóm
-    const agentCodes = new Set(g.contracts.map(c => c.agentCode).filter(Boolean));
+    // Lấy danh sách unique TVV trong nhóm (từ contracts + staffList)
+    const agentCodes = new Set<string>();
+    // Lấy từ tất cả HĐ gốc (contracts) thuộc nhóm — dùng contracts gốc để không bỏ sót TVV
+    const groupAllContracts = contracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
+    for (const c of groupAllContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
     // Thêm TVV từ staffList trong nhóm (không có HĐ vẫn tính, nhưng sẽ không đạt)
     const groupStaff = staffList.filter(s => s.maNhom === g.maNhom);
     for (const s of groupStaff) agentCodes.add(s.agentCode);
@@ -1341,11 +1366,10 @@ export default function ThiDuaPage() {
       // Mặc định: không đếm cá nhân TN (vì họ đã đạt ở chương trình cá nhân kìa)
       // Chỉ đếm TN khi includeTNInPassCount = true
       if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-      const agentContracts = displayContracts.filter(c => c.agentCode === code);
-      if (checkTVVPassContest(code, agentContracts)) count++;
+      if (checkTVVPassContest(code)) count++;
     }
     return count;
-  }, [conditionType, referenceContestId, displayContracts, staffList, checkTVVPassContest, includeTNInPassCount]);
+  }, [conditionType, referenceContestId, contracts, staffList, checkTVVPassContest, includeTNInPassCount]);
 
   // Helper: kiểm tra điều kiện bổ sung Tổng AFYP / Tổng IP cho 1 entity (TVV/nhóm/NTD)
   // Trả về { passed, totalAFYP, totalIP } — passed=true nếu đạt tất cả điều kiện
