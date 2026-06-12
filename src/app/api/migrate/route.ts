@@ -77,3 +77,34 @@ export async function POST() {
     );
   }
 }
+
+// PATCH /api/migrate - Add missing columns to existing tables
+export async function PATCH() {
+  try {
+    const results: string[] = [];
+
+    // Add secondaryTotalAFYPMin and secondaryTotalIPMin to Contest if missing
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "secondaryTotalAFYPMin" DOUBLE PRECISION NOT NULL DEFAULT 0`);
+      results.push('Added secondaryTotalAFYPMin to Contest');
+    } catch (e: any) {
+      if (e?.message?.includes('already exists')) results.push('secondaryTotalAFYPMin already exists');
+      else results.push('Error adding secondaryTotalAFYPMin: ' + String(e));
+    }
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "secondaryTotalIPMin" DOUBLE PRECISION NOT NULL DEFAULT 0`);
+      results.push('Added secondaryTotalIPMin to Contest');
+    } catch (e: any) {
+      if (e?.message?.includes('already exists')) results.push('secondaryTotalIPMin already exists');
+      else results.push('Error adding secondaryTotalIPMin: ' + String(e));
+    }
+
+    return NextResponse.json({ message: 'Column migration completed', results });
+  } catch (error) {
+    console.error('Column migration error:', error);
+    return NextResponse.json(
+      { error: 'Column migration failed: ' + String(error) },
+      { status: 500 }
+    );
+  }
+}

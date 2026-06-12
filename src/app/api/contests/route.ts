@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
       secondaryLuotHDMin, secondaryLuotHDCMin,
       secondaryLuotHDFilter, secondaryLuotHDCFilter,
+      secondaryTotalAFYPMin, secondaryTotalIPMin,
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
     } = body as {
@@ -48,6 +49,8 @@ export async function POST(request: NextRequest) {
       secondaryLuotHDCMin?: number;
       secondaryLuotHDFilter?: string;
       secondaryLuotHDCFilter?: string;
+      secondaryTotalAFYPMin?: number;
+      secondaryTotalIPMin?: number;
       hideNotAchieved?: boolean;
       includeIndividualNTD?: boolean;
       includeIndividualTN?: boolean;
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest) {
       secondaryLuotHDCMin: secondaryLuotHDCMin ?? 0,
       secondaryLuotHDFilter: secondaryLuotHDFilter || 'all',
       secondaryLuotHDCFilter: secondaryLuotHDCFilter || 'all',
+      secondaryTotalAFYPMin: secondaryTotalAFYPMin ?? 0,
+      secondaryTotalIPMin: secondaryTotalIPMin ?? 0,
       hideNotAchieved: hideNotAchieved ?? false,
       includeIndividualNTD: includeIndividualNTD ?? false,
       includeIndividualTN: includeIndividualTN ?? false,
@@ -105,9 +110,10 @@ export async function POST(request: NextRequest) {
     const contest = await db.contest.create({ data });
 
     return NextResponse.json({ message: 'Đã lưu chương trình thi đua', contest });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving contest:', error);
-    return NextResponse.json({ error: 'Không thể lưu chương trình thi đua' }, { status: 500 });
+    const details = error?.message || String(error);
+    return NextResponse.json({ error: 'Không thể lưu chương trình thi đua', details }, { status: 500 });
   }
 }
 

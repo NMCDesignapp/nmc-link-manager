@@ -1317,8 +1317,12 @@ export default function ThiDuaPage() {
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
-      else toast({ title: 'Lỗi', description: 'Không thể lưu', variant: 'destructive' });
-    } catch { toast({ title: 'Lỗi', description: 'Không thể lưu', variant: 'destructive' }); }
+      else {
+        let errMsg = 'Không thể lưu';
+        try { const errData = await res.json(); errMsg = errData.error || errData.details || errMsg; } catch {}
+        toast({ title: 'Lỗi lưu', description: errMsg, variant: 'destructive' });
+      }
+    } catch (err) { toast({ title: 'Lỗi lưu', description: String(err), variant: 'destructive' }); }
     finally { setIsSaving(false); }
   };
 
@@ -1469,7 +1473,7 @@ export default function ThiDuaPage() {
           if (includeIndividualTN) row.push(n.ownFYP);
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
-          row.push('', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
+          row.push('', '', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
           if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
           row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
           rows.push(row);
