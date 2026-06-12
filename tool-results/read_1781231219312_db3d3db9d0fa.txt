@@ -1,0 +1,2002 @@
+     1→'use client';
+     2→
+     3→import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+     4→import { useRouter } from 'next/navigation';
+     5→import { Button } from '@/components/ui/button';
+     6→import { Input } from '@/components/ui/input';
+     7→import { Label } from '@/components/ui/label';
+     8→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+     9→import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+    10→import { Progress } from '@/components/ui/progress';
+    11→import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    12→import { toast } from '@/hooks/use-toast';
+    13→import {
+    14→  ArrowLeft, Plus, Trash2, Download, Upload, Search, ArrowUpDown,
+    15→  LayoutDashboard, Users, DollarSign, FileText, UserCircle, Loader2,
+    16→  RefreshCw, CheckCircle2, X, FileSpreadsheet, ToggleLeft, ToggleRight,
+    17→  AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
+    18→  Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
+    19→  Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
+    20→  Menu, ChevronLeft, UserPlus,
+    21→} from 'lucide-react';
+    22→
+    23→// ==================== TYPES ====================
+    24→interface LeaderInfo {
+    25→  id: string; agentCode: string; agentName: string; position: string;
+    26→  ban: string; nhom: string; maNhom: string; salary: number;
+    27→  phone: string; email: string; note: string; startDate: string | null;
+    28→}
+    29→
+    30→interface MonthlyRevenue {
+    31→  id: string; month: string; maNhom: string; nhom: string;
+    32→  agentCode: string; agentName: string; totalFYP: number;
+    33→  totalAFYP: number; contractCount: number; activityRounds: number; note: string;
+    34→}
+    35→
+    36→interface Contract {
+    37→  id: string;
+    38→  stt: number;
+    39→  contractNumber: string;
+    40→  ban: string;
+    41→  maTruongBan: string;
+    42→  nhom: string;
+    43→  maBanNhom: string;
+    44→  maTruongBanNhom: string;
+    45→  maDL: string;
+    46→  agentCode: string;
+    47→  agentName: string;
+    48→  position: string;
+    49→  ngayBatDauLamViec: string | null;
+    50→  effectiveDate: string;
+    51→  issueDate: string;
+    52→  pdt10DT: number;
+    53→  fyp: number;
+    54→  nguonDuLieu: string;
+    55→  hopDongToChuc: string;
+    56→  dkDongPhi: string;
+    57→  phiDongThem: number;
+    58→  afypChuaTru10DT: number;
+    59→  afyp: number;
+    60→  ad: string;
+    61→  nhom2: string;
+    62→  ngayBatDauLamViec2: string | null;
+    63→  thangTD: number;
+    64→  namTD: number;
+    65→  thangHL: number;
+    66→  tinhLuot3tr: number;
+    67→  maDaiLyTD: string;
+    68→  danhDauTVV: string;
+    69→  chucVu2: string;
+    70→  leaderAgentCode: string;
+    71→  recruiterCode: string;
+    72→  startDate: string | null;
+    73→  maNhom: string;
+    74→}
+    75→
+    76→interface StaffMember {
+    77→  id: string; nhom: string; maNhom: string; agentCode: string;
+    78→  agentName: string; position: string; startDate: string | null;
+    79→}
+    80→
+    81→interface Recruiter {
+    82→  id: string; nhom: string; agentCode: string; agentName: string;
+    83→  position: string; startDate: string | null;
+    84→}
+    85→
+    86→interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
+    87→interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
+    88→interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
+    89→interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
+    90→
+    91→// Merge range for spreadsheet
+    92→interface MergeRange {
+    93→  startRow: number;
+    94→  startCol: number;
+    95→  endRow: number;
+    96→  endCol: number;
+    97→}
+    98→
+    99→// KPI configuration
+   100→interface KPIConfig {
+   101→  id: string;
+   102→  label: string;
+   103→  dataSourceKey: string;
+   104→  field: string;
+   105→  calculation: 'sum' | 'average' | 'count' | 'min' | 'max';
+   106→  target?: number;
+   107→  color: 'emerald' | 'amber' | 'sky' | 'violet' | 'rose' | 'orange';
+   108→}
+   109→
+   110→// KPI data source
+   111→interface KPIDataSource {
+   112→  key: string;
+   113→  label: string;
+   114→  data: Record<string, any>[];
+   115→  fields: { key: string; label: string; type: 'number' | 'string' }[];
+   116→}
+   117→
+   118→const KPI_COLORS: Record<string, string> = {
+   119→  emerald: 'bg-emerald-500/20',
+   120→  amber: 'bg-amber-500/20',
+   121→  sky: 'bg-sky-500/20',
+   122→  violet: 'bg-violet-500/20',
+   123→  rose: 'bg-rose-500/20',
+   124→  orange: 'bg-orange-500/20',
+   125→};
+   126→
+   127→// ==================== CONSTANTS ====================
+   128→type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'spreadsheet';
+   129→type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
+   130→
+   131→const MONTHS: { key: RevenueSubKey; label: string }[] = [
+   132→  { key: 'all', label: 'Cả năm' },
+   133→  { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
+   134→  { key: '03', label: 'Tháng 3' }, { key: '04', label: 'Tháng 4' },
+   135→  { key: '05', label: 'Tháng 5' }, { key: '06', label: 'Tháng 6' },
+   136→  { key: '07', label: 'Tháng 7' }, { key: '08', label: 'Tháng 8' },
+   137→  { key: '09', label: 'Tháng 9' }, { key: '10', label: 'Tháng 10' },
+   138→  { key: '11', label: 'Tháng 11' }, { key: '12', label: 'Tháng 12' },
+   139→];
+   140→
+   141→const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
+   142→  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
+   143→  { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
+   144→  { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
+   145→  { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
+   146→  { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
+   147→  { key: 'report', label: 'Báo cáo', icon: BarChart3, synced: false },
+   148→  { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
+   149→  { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
+   150→];
+   151→
+   152→// Templates
+   153→const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, string>[] }> = {
+   154→  leaders: {
+   155→    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Tiền/tháng', 'SĐT', 'Email', 'Ghi chú'],
+   156→    sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ghi chú': '' }],
+   157→  },
+   158→  revenue: {
+   159→    headers: ['Tháng', 'Mã nhóm', 'Nhóm', 'Mã TVV', 'Tên TVV', 'Tổng IP', 'Tổng AFYP', 'Số HĐ', 'Lượt HĐ', 'Ghi chú'],
+   160→    sampleData: [{ 'Tháng': '2026-06', 'Mã nhóm': 'NH01', 'Nhóm': 'Nhóm 1', 'Mã TVV': 'TVV001', 'Tên TVV': 'Nguyễn Văn A', 'Tổng IP': '15000000', 'Tổng AFYP': '20000000', 'Số HĐ': '5', 'Lượt HĐ': '8', 'Ghi chú': '' }],
+   161→  },
+   162→  contracts: {
+   163→    headers: ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD'],
+   164→    sampleData: [{ 'STT': '1', 'Ban': 'Hiệp Tiến', 'Nhóm': 'Nhiệt An', 'Mã Ban/Nhóm': 'U1041A3L6E', 'Mã ĐL': 'D104132784', 'Tên': 'Dương Thị Hồng Nga', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/10/2017', 'Số hợp đồng': '10000017167449', 'Ngày hiệu lực': '01/01/2026', 'Ngày phát hành': '09/01/2026', 'PĐT + 10% ĐT': '12651118', 'AFYP': '12643612', 'AD': 'Trương Quốc Uy', 'TÍNH LƯỢT 3 tr': '12651118', 'MÃ ĐL TD': 'D104102154' }],
+   165→  },
+   166→  staff: {
+   167→    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Mã nhóm', 'Ngày bắt đầu'],
+   168→    sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Ngày bắt đầu': '01/01/2026' }],
+   169→  },
+   170→  recruiters: {
+   171→    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu'],
+   172→    sampleData: [{ 'Mã số': 'NTD001', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'NTD', 'Nhóm': 'Nhóm 1', 'Ngày bắt đầu': '01/01/2026' }],
+   173→  },
+   174→  'structure-phong': {
+   175→    headers: ['Mã Phòng', 'Tên Phòng', 'Ghi chú'],
+   176→    sampleData: [{ 'Mã Phòng': 'P001', 'Tên Phòng': 'Phòng Kinh doanh', 'Ghi chú': '' }],
+   177→  },
+   178→  'structure-ad': {
+   179→    headers: ['Mã AD', 'Tên AD', 'Mã Phòng', 'Ghi chú'],
+   180→    sampleData: [{ 'Mã AD': 'AD001', 'Tên AD': 'Nguyễn Văn AD', 'Mã Phòng': 'P001', 'Ghi chú': '' }],
+   181→  },
+   182→  'structure-bannhom': {
+   183→    headers: ['Mã Ban/Nhóm', 'Tên Ban/Nhóm', 'Mã AD', 'Ghi chú'],
+   184→    sampleData: [{ 'Mã Ban/Nhóm': 'BN001', 'Tên Ban/Nhóm': 'Nhóm Hiệp Tiến', 'Mã AD': 'AD001', 'Ghi chú': '' }],
+   185→  },
+   186→  'structure-tvv': {
+   187→    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Ghi chú'],
+   188→    sampleData: [{ 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn TVV', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Ghi chú': '' }],
+   189→  },
+   190→};
+   191→
+   192→// Contract columns matching the new Tháng 1.xlsx template layout
+   193→const CONTRACT_COLUMNS = [
+   194→  { f: 'stt', l: 'STT', type: 'number' as const },
+   195→  { f: 'ban', l: 'Ban', type: 'text' as const },
+   196→  { f: 'nhom', l: 'Nhóm', type: 'text' as const },
+   197→  { f: 'maBanNhom', l: 'Mã Ban/Nhóm', type: 'text' as const },
+   198→  { f: 'maDL', l: 'Mã ĐL', type: 'text' as const },
+   199→  { f: 'agentName', l: 'Tên', type: 'text' as const },
+   200→  { f: 'position', l: 'Chức vụ', type: 'text' as const },
+   201→  { f: 'ngayBatDauLamViec', l: 'Ngày bắt đầu LV', type: 'date' as const },
+   202→  { f: 'contractNumber', l: 'Số hợp đồng', type: 'text' as const },
+   203→  { f: 'effectiveDate', l: 'Ngày hiệu lực', type: 'date' as const },
+   204→  { f: 'issueDate', l: 'Ngày phát hành', type: 'date' as const },
+   205→  { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
+   206→  { f: 'afyp', l: 'AFYP', type: 'number' as const },
+   207→  { f: 'ad', l: 'AD', type: 'text' as const },
+   208→  { f: 'tinhLuot3tr', l: 'TÍNH LƯỢT 3 tr', type: 'number' as const },
+   209→  { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
+   210→];
+   211→
+   212→// ==================== HELPERS ====================
+   213→// Helper: lấy tháng doanh số từ issueDate (Ngày PH), fallback effectiveDate (Ngày HL)
+   214→function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string }): Date {
+   215→  const issueD = c.issueDate ? new Date(c.issueDate) : null;
+   216→  if (issueD && !isNaN(issueD.getTime())) return issueD;
+   217→  return new Date(c.effectiveDate);
+   218→}
+   219→
+   220→function formatCurrency(n: number): string {
+   221→  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
+   222→}
+   223→function formatNumber(n: number): string {
+   224→  return new Intl.NumberFormat('vi-VN').format(n);
+   225→}
+   226→
+   227→// Smart currency formatting: mobile shows trđ/tỷ, desktop shows full đ
+   228→function formatSmartCurrency(amount: number): string {
+   229→  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+   230→  if (isMobile) {
+   231→    if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
+   232→    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
+   233→    if (amount >= 1_000) return `${(amount / 1_000).toFixed(1).replace(/\.?0+$/, '')} ngàn`;
+   234→    return `${amount} đ`;
+   235→  }
+   236→  return formatCurrency(amount);
+   237→}
+   238→
+   239→// Compact currency for KPI cards - always shows trđ/tỷ/ngàn on ALL screen sizes
+   240→// trđ always shows 3 decimal places with Vietnamese comma separator (e.g. 1,350 trđ)
+   241→function formatKpiCurrency(amount: number): string {
+   242→  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(3).replace('.', ',')} tỷ`;
+   243→  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(3).replace('.', ',')} trđ`;
+   244→  if (amount >= 1_000) return `${(amount / 1_000).toFixed(3).replace('.', ',')} ngàn`;
+   245→  if (amount === 0) return '0,000 trđ';
+   246→  return `${amount} đ`;
+   247→}
+   248→
+   249→// Helper: convert any date value to yyyy-mm-dd for <input type="date">
+   250→function toInputDate(val: any): string {
+   251→  if (!val) return '';
+   252→  const s = String(val);
+   253→  // Already yyyy-mm-dd
+   254→  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+   255→  // ISO string: take first 10 chars
+   256→  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+   257→  // dd/mm/yyyy Vietnamese format
+   258→  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+   259→  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+   260→  // Try native parse
+   261→  const d = new Date(s);
+   262→  if (!isNaN(d.getTime())) {
+   263→    const y = d.getFullYear();
+   264→    const m = String(d.getMonth() + 1).padStart(2, '0');
+   265→    const day = String(d.getDate()).padStart(2, '0');
+   266→    return `${y}-${m}-${day}`;
+   267→  }
+   268→  return '';
+   269→}
+   270→
+   271→// Helper: format date value for display (Vietnamese format)
+   272→function formatDateDisplay(val: any): string {
+   273→  if (!val) return '—';
+   274→  const d = new Date(String(val));
+   275→  if (isNaN(d.getTime())) return String(val || '—');
+   276→  return d.toLocaleDateString('vi-VN');
+   277→}
+   278→
+   279→// Helper: safe format date without timezone offset issues
+   280→function safeFormatDate(val: any): string {
+   281→  if (!val) return '';
+   282→  const s = String(val);
+   283→  // If it's a date-only or ISO string like "2026-01-01" or "2026-01-01T00:00:00.000Z", parse manually
+   284→  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+   285→  if (ymd) return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
+   286→  // Otherwise use locale
+   287→  const d = new Date(s);
+   288→  if (!isNaN(d.getTime())) return d.toLocaleDateString('vi-VN');
+   289→  return s;
+   290→}
+   291→
+   292→// ==================== EDITABLE CELL ====================
+   293→function EditableCell({ value, onSave, type = 'text', className = '' }: {
+   294→  value: string | number; onSave: (val: any) => void; type?: 'text' | 'number' | 'date'; className?: string;
+   295→}) {
+   296→  const [editing, setEditing] = useState(false);
+   297→  const [editVal, setEditVal] = useState('');
+   298→  const inputRef = useRef<HTMLInputElement>(null);
+   299→
+   300→  // Sync editVal with value, converting dates properly
+   301→  useEffect(() => {
+   302→    if (type === 'date') {
+   303→      setEditVal(toInputDate(value));
+   304→    } else {
+   305→      setEditVal(String(value ?? ''));
+   306→    }
+   307→  }, [value, type]);
+   308→  useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+   309→
+   310→  const handleSave = useCallback(() => {
+   311→    const finalVal = type === 'number' ? (parseFloat(editVal) || 0) : editVal;
+   312→    if (finalVal !== value) onSave(finalVal);
+   313→    setEditing(false);
+   314→  }, [editVal, value, type, onSave]);
+   315→
+   316→  if (editing) {
+   317→    return (
+   318→      <input
+   319→        ref={inputRef}
+   320→        type={type === 'number' ? 'number' : type === 'date' ? 'date' : 'text'}
+   321→        value={editVal}
+   322→        onChange={(e) => setEditVal(e.target.value)}
+   323→        onBlur={handleSave}
+   324→        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+   325→        className="w-full h-full px-1 py-0.5 text-xs bg-white text-gray-800 border-2 border-emerald-400 outline-none"
+   326→      />
+   327→    );
+   328→  }
+   329→
+   330→  return (
+   331→    <div
+   332→      className={`cursor-pointer hover:bg-emerald-50 hover:outline hover:outline-1 hover:outline-emerald-400 px-1 py-0.5 min-h-[22px] text-gray-800 ${className}`}
+   333→      onDoubleClick={() => setEditing(true)}
+   334→      title="Nháy đúp để sửa"
+   335→    >
+   336→      {type === 'number' && typeof value === 'number'
+   337→        ? formatNumber(value)
+   338→        : type === 'date'
+   339→          ? formatDateDisplay(value)
+   340→          : String(value || '—')}
+   341→    </div>
+   342→  );
+   343→}
+   344→
+   345→// ==================== SETTINGS POPOVER ====================
+   346→function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting }: { sectionKey: string; sectionLabel: string; onlineSettings: Record<string, string>; saveSetting: (key: string, value: string) => Promise<void> }) {
+   347→  const [link, setLink] = useState('');
+   348→  const [syncOn, setSyncOn] = useState(true);
+   349→  const [open, setOpen] = useState(false);
+   350→
+   351→  useEffect(() => {
+   352→    const savedLink = onlineSettings[`nmc-link-${sectionKey}`] || '';
+   353→    const savedSync = onlineSettings[`nmc-sync-${sectionKey}`];
+   354→    setLink(savedLink);
+   355→    if (savedSync !== undefined && savedSync !== '') setSyncOn(savedSync === 'true');
+   356→  }, [sectionKey, open, onlineSettings]);
+   357→
+   358→  const handleSave = useCallback(() => {
+   359→    saveSetting(`nmc-link-${sectionKey}`, link);
+   360→    saveSetting(`nmc-sync-${sectionKey}`, String(syncOn));
+   361→    toast({ title: 'Đã lưu cài đặt', description: `${sectionLabel}: ${link ? 'Đã thiết lập link' : 'Chưa có link'} • Đồng bộ: ${syncOn ? 'BẬT' : 'TẮT'}` });
+   362→    setOpen(false);
+   363→  }, [link, syncOn, sectionKey, sectionLabel, saveSetting]);
+   364→
+   365→  const hasLink = !!(onlineSettings[`nmc-link-${sectionKey}`]);
+   366→
+   367→  return (
+   368→    <Popover open={open} onOpenChange={setOpen}>
+   369→      <PopoverTrigger asChild>
+   370→        <Button
+   371→          variant="ghost"
+   372→          className={`h-8 px-2 text-xs ${hasLink ? 'text-emerald-300 hover:text-emerald-200' : 'text-gray-400 hover:text-gray-200'} hover:bg-emerald-500/10`}
+   373→          title="Cài đặt"
+   374→        >
+   375→          <Settings className="w-3.5 h-3.5" />
+   376→          {hasLink && <Link2 className="w-3 h-3 ml-1 text-emerald-400" />}
+   377→        </Button>
+   378→      </PopoverTrigger>
+   379→      <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-80 p-3" align="end" sideOffset={4}>
+   380→        <div className="space-y-3">
+   381→          <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+   382→            <Settings className="w-3.5 h-3.5" /> Cài đặt: {sectionLabel}
+   383→          </h4>
+   384→          <div>
+   385→            <label className="text-xs text-gray-400 mb-1 block">Link nguồn (Google Sheets URL)</label>
+   386→            <div className="flex items-center gap-1">
+   387→              <Input
+   388→                value={link}
+   389→                onChange={(e) => setLink(e.target.value)}
+   390→                placeholder="https://docs.google.com/spreadsheets/d/..."
+   391→                className="h-7 text-xs bg-gray-800 border-gray-600 text-white placeholder-gray-500"
+   392→              />
+   393→              {link && (
+   394→                <a href={link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 flex-shrink-0">
+   395→                  <ExternalLink className="w-3.5 h-3.5" />
+   396→                </a>
+   397→              )}
+   398→            </div>
+   399→          </div>
+   400→          <div className="flex items-center justify-between">
+   401→            <span className="text-xs text-gray-400">Đồng bộ tự động</span>
+   402→            <button onClick={() => setSyncOn(!syncOn)} className="flex items-center">
+   403→              {syncOn
+   404→                ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" />
+   405→                : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+   406→            </button>
+   407→          </div>
+   408→          <Button onClick={handleSave} className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-7 text-xs">
+   409→            Lưu cài đặt
+   410→          </Button>
+   411→        </div>
+   412→      </PopoverContent>
+   413→    </Popover>
+   414→  );
+   415→}
+   416→
+   417→// ==================== KPI SETTINGS POPOVER ====================
+   418→function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConfigs, onlineSettings, saveSetting, annualTarget }: {
+   419→  sectionKey: string; sectionLabel: string;
+   420→  dataSources: KPIDataSource[];
+   421→  defaultConfigs?: KPIConfig[];
+   422→  onlineSettings: Record<string, string>;
+   423→  saveSetting: (key: string, value: string) => Promise<void>;
+   424→  annualTarget?: number; // Shared annual revenue target for all KPIs in this section
+   425→}) {
+   426→  const [configs, setConfigs] = useState<KPIConfig[]>([]);
+   427→  const [open, setOpen] = useState(false);
+   428→
+   429→  useEffect(() => {
+   430→    const saved = onlineSettings[`nmc-kpi-${sectionKey}`];
+   431→    if (saved) {
+   432→      try { setConfigs(JSON.parse(saved)); } catch { setConfigs([]); }
+   433→    } else if (defaultConfigs && defaultConfigs.length > 0) {
+   434→      setConfigs(defaultConfigs);
+   435→      saveSetting(`nmc-kpi-${sectionKey}`, JSON.stringify(defaultConfigs));
+   436→    }
+   437→  }, [sectionKey, open, defaultConfigs, onlineSettings, saveSetting]);
+   438→
+   439→  const saveConfigs = useCallback((newConfigs: KPIConfig[]) => {
+   440→    setConfigs(newConfigs);
+   441→    saveSetting(`nmc-kpi-${sectionKey}`, JSON.stringify(newConfigs));
+   442→  }, [sectionKey, saveSetting]);
+   443→
+   444→  const firstSourceKey = dataSources[0]?.key || '';
+   445→  const firstFieldKey = dataSources[0]?.fields[0]?.key || '';
+   446→
+   447→  const addConfig = useCallback(() => {
+   448→    const newConfig: KPIConfig = {
+   449→      id: `kpi-${Date.now()}`,
+   450→      label: 'KPI mới',
+   451→      dataSourceKey: firstSourceKey,
+   452→      field: firstFieldKey,
+   453→      calculation: 'sum',
+   454→      target: undefined,
+   455→      color: 'emerald',
+   456→    };
+   457→    saveConfigs([...configs, newConfig]);
+   458→  }, [configs, saveConfigs, firstSourceKey, firstFieldKey]);
+   459→
+   460→  const updateConfig = useCallback((id: string, updates: Partial<KPIConfig>) => {
+   461→    saveConfigs(configs.map(c => c.id === id ? { ...c, ...updates } : c));
+   462→  }, [configs, saveConfigs]);
+   463→
+   464→  const removeConfig = useCallback((id: string) => {
+   465→    saveConfigs(configs.filter(c => c.id !== id));
+   466→  }, [configs, saveConfigs]);
+   467→
+   468→  // Calculate KPI values from the correct data source
+   469→  const calculateKPI = useCallback((config: KPIConfig): number => {
+   470→    const ds = dataSources.find(d => d.key === config.dataSourceKey);
+   471→    if (!ds) return 0;
+   472→
+   473→    // For 'count' calculation, count items that have a non-empty value for the field
+   474→    if (config.calculation === 'count') {
+   475→      return ds.data.filter(item => {
+   476→        const val = item[config.field];
+   477→        return val !== undefined && val !== null && val !== '';
+   478→      }).length;
+   479→    }
+   480→
+   481→    // For other calculations, parse numeric values
+   482→    const values = ds.data
+   483→      .map(item => parseFloat(item[config.field]) || 0)
+   484→      .filter(v => !isNaN(v));
+   485→
+   486→    if (values.length === 0) return 0;
+   487→    switch (config.calculation) {
+   488→      case 'sum': return values.reduce((a, b) => a + b, 0);
+   489→      case 'average': return values.reduce((a, b) => a + b, 0) / values.length;
+   490→      case 'min': return Math.min(...values);
+   491→      case 'max': return Math.max(...values);
+   492→      default: return 0;
+   493→    }
+   494→  }, [dataSources]);
+   495→
+   496→  const formatKPIValue = (val: number): string => {
+   497→    if (Math.abs(val) >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)} tỷ`;
+   498→    if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)} triệu`;
+   499→    if (Math.abs(val) >= 1_000) return formatNumber(Math.round(val));
+   500→    return val.toFixed(val % 1 === 0 ? 0 : 1);
+   501→  };
+   502→
+   503→  // Get fields for a specific data source (include string fields for 'count' calculation)
+   504→  const getFieldsForSource = useCallback((sourceKey: string) => {
+   505→    const ds = dataSources.find(d => d.key === sourceKey);
+   506→    return ds ? ds.fields : [];
+   507→  }, [dataSources]);
+   508→
+   509→  return (
+   510→    <div className="space-y-2">
+   511→      {/* KPI cards */}
+   512→      {configs.length > 0 && (
+   513→        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+   514→          {configs.map(config => {
+   515→            const actual = calculateKPI(config);
+   516→            // Use annualTarget as fallback target if provided, otherwise use per-KPI target
+   517→            const effectiveTarget = (annualTarget && annualTarget > 0) ? annualTarget : (config.target && config.target > 0 ? config.target : undefined);
+   518→            const pct = effectiveTarget ? Math.min((actual / effectiveTarget) * 100, 100) : undefined;
+   519→            const ds = dataSources.find(d => d.key === config.dataSourceKey);
+   520→            const fieldLabel = ds?.fields.find(f => f.key === config.field)?.label || config.field;
+   521→            const calcLabel = { sum: 'Tổng', average: 'TB', count: 'SL', min: 'Min', max: 'Max' }[config.calculation];
+   522→            const colorClass = KPI_COLORS[config.color] || 'bg-emerald-500/20';
+   523→            return (
+   524→              <div key={config.id} className={`${colorClass} rounded-lg p-2.5 border border-emerald-500/30 backdrop-blur-sm`} style={{ boxShadow: `0 0 12px rgba(0, 255, 136, 0.1)` }}>
+   525→                <div className="flex items-center justify-between mb-1">
+   526→                  <p className="text-emerald-100 text-[9px] font-bold">{config.label || fieldLabel}</p>
+   527→                  <span className="text-gray-300 text-[8px]">{calcLabel} {fieldLabel}</span>
+   528→                </div>
+   529→                <p className="text-white text-sm font-extrabold truncate">{formatKPIValue(actual)}</p>
+   530→                {effectiveTarget && effectiveTarget > 0 && (
+   531→                  <div className="mt-1">
+   532→                    <div className="flex items-center justify-between text-[9px]">
+   533→                      <span className="text-gray-300">Mục tiêu: {formatKPIValue(effectiveTarget)}{(annualTarget && annualTarget > 0) ? ' (năm)' : ''}</span>
+   534→                      <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
+   535→                    </div>
+   536→                    <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
+   537→                  </div>
+   538→                )}
+   539→              </div>
+   540→            );
+   541→          })}
+   542→        </div>
+   543→      )}
+   544→
+   545→      {/* Settings popover */}
+   546→      <Popover open={open} onOpenChange={setOpen}>
+   547→        <PopoverTrigger asChild>
+   548→          <Button
+   549→            variant="ghost"
+   550→            className="h-7 px-2 text-[10px] text-gray-400 hover:text-gray-200 hover:bg-emerald-500/10"
+   551→            title="Cài đặt KPI"
+   552→          >
+   553→            <BarChart3 className="w-3 h-3" />
+   554→            <span className="ml-1">KPI</span>
+   555→          </Button>
+   556→        </PopoverTrigger>
+   557→        <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
+   558→          <div className="space-y-3">
+   559→            <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+   560→              <Target className="w-3.5 h-3.5" /> KPI: {sectionLabel}
+   561→            </h4>
+   562→            <p className="text-[10px] text-gray-400">Tự động tính toán từ dữ liệu bảng. Thêm chỉ số KPI và đặt mục tiêu.</p>
+   563→
+   564→            {configs.map(config => {
+   565→              const currentFields = getFieldsForSource(config.dataSourceKey);
+   566→              return (
+   567→                <div key={config.id} className="bg-gray-800 rounded-md p-2 space-y-1.5 border border-gray-700">
+   568→                  <div className="flex items-center gap-1">
+   569→                    <Input
+   570→                      value={config.label}
+   571→                      onChange={(e) => updateConfig(config.id, { label: e.target.value })}
+   572→                      className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+   573→                      placeholder="Tên KPI"
+   574→                    />
+   575→                    <Button variant="ghost" size="sm" onClick={() => removeConfig(config.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300">
+   576→                      <X className="w-3 h-3" />
+   577→                    </Button>
+   578→                  </div>
+   579→                  <div className="grid grid-cols-3 gap-1.5">
+   580→                    <select
+   581→                      value={config.dataSourceKey}
+   582→                      onChange={(e) => {
+   583→                        const newSourceKey = e.target.value;
+   584→                        const newFields = getFieldsForSource(newSourceKey);
+   585→                        updateConfig(config.id, { dataSourceKey: newSourceKey, field: newFields[0]?.key || '' });
+   586→                      }}
+   587→                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+   588→                    >
+   589→                      {dataSources.map(ds => (
+   590→                        <option key={ds.key} value={ds.key}>{ds.label}</option>
+   591→                      ))}
+   592→                    </select>
+   593→                    <select
+   594→                      value={config.field}
+   595→                      onChange={(e) => updateConfig(config.id, { field: e.target.value })}
+   596→                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+   597→                    >
+   598→                      {currentFields.map(f => (
+   599→                        <option key={f.key} value={f.key}>{f.label}</option>
+   600→                      ))}
+   601→                    </select>
+   602→                    <select
+   603→                      value={config.calculation}
+   604→                      onChange={(e) => updateConfig(config.id, { calculation: e.target.value as KPIConfig['calculation'] })}
+   605→                      className="h-6 text-[10px] bg-gray-700 border border-gray-600 text-white rounded px-1"
+   606→                    >
+   607→                      <option value="sum">Tổng</option>
+   608→                      <option value="average">TB</option>
+   609→                      <option value="count">SL</option>
+   610→                      <option value="min">Min</option>
+   611→                      <option value="max">Max</option>
+   612→                    </select>
+   613→                  </div>
+   614→                  <div className="flex items-center gap-1.5">
+   615→                    <Target className="w-3 h-3 text-amber-400 flex-shrink-0" />
+   616→                    <Input
+   617→                      type="number"
+   618→                      value={config.target || ''}
+   619→                      onChange={(e) => updateConfig(config.id, { target: e.target.value ? parseFloat(e.target.value) : undefined })}
+   620→                      className="h-6 text-xs bg-gray-700 border-gray-600 text-white flex-1"
+   621→                      placeholder="Mục tiêu (để trống = không có)"
+   622→                    />
+   623→                  </div>
+   624→                  <div className="flex items-center gap-1">
+   625→                    <span className="text-[10px] text-gray-400">Màu:</span>
+   626→                    {(['emerald', 'amber', 'sky', 'violet', 'rose', 'orange'] as const).map(c => (
+   627→                      <button
+   628→                        key={c}
+   629→                        onClick={() => updateConfig(config.id, { color: c })}
+   630→                        className={`w-5 h-5 rounded-full ${KPI_COLORS[c]} border-2 ${config.color === c ? 'border-white' : 'border-transparent'} hover:border-white transition-colors`}
+   631→                        title={c}
+   632→                      />
+   633→                    ))}
+   634→                  </div>
+   635→                </div>
+   636→              );
+   637→            })}
+   638→
+   639→            <Button onClick={addConfig} className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-7 text-xs">
+   640→              <Plus className="w-3 h-3 mr-1" /> Thêm chỉ số KPI
+   641→            </Button>
+   642→          </div>
+   643→        </PopoverContent>
+   644→      </Popover>
+   645→    </div>
+   646→  );
+   647→}
+   648→
+   649→// ==================== SPREADSHEET COMPONENT ====================
+   650→const SPREADSHEET_ROWS = 50;
+   651→const SPREADSHEET_COLS = 26;
+   652→const COL_LABELS = Array.from({ length: SPREADSHEET_COLS }, (_, i) => String.fromCharCode(65 + i));
+   653→
+   654→type CellValue = string;
+   655→type CellMap = Record<string, CellValue>;
+   656→
+   657→function evaluateFormula(formula: string, cells: CellMap): string {
+   658→  if (!formula.startsWith('=')) return formula;
+   659→  const expr = formula.slice(1).trim().toUpperCase();
+   660→
+   661→  // SUM function
+   662→  const sumMatch = expr.match(/^SUM\(([A-Z]\d+):([A-Z]\d+)\)$/);
+   663→  if (sumMatch) {
+   664→    const startCol = sumMatch[1][0], startRow = parseInt(sumMatch[1].slice(1));
+   665→    const endCol = sumMatch[2][0], endRow = parseInt(sumMatch[2].slice(1));
+   666→    let total = 0;
+   667→    for (let r = startRow; r <= endRow; r++) {
+   668→      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+   669→        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+   670→        if (!isNaN(val)) total += val;
+   671→      }
+   672→    }
+   673→    return String(total);
+   674→  }
+   675→
+   676→  // AVERAGE function
+   677→  const avgMatch = expr.match(/^AVERAGE\(([A-Z]\d+):([A-Z]\d+)\)$/);
+   678→  if (avgMatch) {
+   679→    const startCol = avgMatch[1][0], startRow = parseInt(avgMatch[1].slice(1));
+   680→    const endCol = avgMatch[2][0], endRow = parseInt(avgMatch[2].slice(1));
+   681→    let total = 0, count = 0;
+   682→    for (let r = startRow; r <= endRow; r++) {
+   683→      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+   684→        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+   685→        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) { total += val; count++; }
+   686→      }
+   687→    }
+   688→    return count > 0 ? String(Math.round((total / count) * 100) / 100) : '0';
+   689→  }
+   690→
+   691→  // COUNT function
+   692→  const countMatch = expr.match(/^COUNT\(([A-Z]\d+):([A-Z]\d+)\)$/);
+   693→  if (countMatch) {
+   694→    const startCol = countMatch[1][0], startRow = parseInt(countMatch[1].slice(1));
+   695→    const endCol = countMatch[2][0], endRow = parseInt(countMatch[2].slice(1));
+   696→    let count = 0;
+   697→    for (let r = startRow; r <= endRow; r++) {
+   698→      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+   699→        if (cells[String.fromCharCode(c) + r]) count++;
+   700→      }
+   701→    }
+   702→    return String(count);
+   703→  }
+   704→
+   705→  // MAX function
+   706→  const maxMatch = expr.match(/^MAX\(([A-Z]\d+):([A-Z]\d+)\)$/);
+   707→  if (maxMatch) {
+   708→    const startCol = maxMatch[1][0], startRow = parseInt(maxMatch[1].slice(1));
+   709→    const endCol = maxMatch[2][0], endRow = parseInt(maxMatch[2].slice(1));
+   710→    let max = -Infinity;
+   711→    for (let r = startRow; r <= endRow; r++) {
+   712→      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+   713→        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+   714→        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) max = Math.max(max, val);
+   715→      }
+   716→    }
+   717→    return max === -Infinity ? '0' : String(max);
+   718→  }
+   719→
+   720→  // MIN function
+   721→  const minMatch = expr.match(/^MIN\(([A-Z]\d+):([A-Z]\d+)\)$/);
+   722→  if (minMatch) {
+   723→    const startCol = minMatch[1][0], startRow = parseInt(minMatch[1].slice(1));
+   724→    const endCol = minMatch[2][0], endRow = parseInt(minMatch[2].slice(1));
+   725→    let min = Infinity;
+   726→    for (let r = startRow; r <= endRow; r++) {
+   727→      for (let c = startCol.charCodeAt(0); c <= endCol.charCodeAt(0); c++) {
+   728→        const val = parseFloat(cells[String.fromCharCode(c) + r] || '0');
+   729→        if (!isNaN(val) && cells[String.fromCharCode(c) + r]) min = Math.min(min, val);
+   730→      }
+   731→    }
+   732→    return min === Infinity ? '0' : String(min);
+   733→  }
+   734→
+   735→  // Cell reference math: =A1+B1, =A1*2, =A1+B1*C1
+   736→  try {
+   737→    const resolved = expr.replace(/([A-Z])(\d+)/g, (match) => {
+   738→      const v = parseFloat(cells[match] || '0');
+   739→      return isNaN(v) ? '0' : String(v);
+   740→    });
+   741→    // Safe eval for simple math
+   742→    const result = Function('"use strict"; return (' + resolved + ')')();
+   743→    if (typeof result === 'number' && isFinite(result)) return String(Math.round(result * 100) / 100);
+   744→    return formula;
+   745→  } catch {
+   746→    return formula;
+   747→  }
+   748→}
+   749→
+   750→function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Record<string, string>; saveSetting: (key: string, value: string) => Promise<void> }) {
+   751→  const [cells, setCells] = useState<CellMap>({});
+   752→  const [merges, setMerges] = useState<MergeRange[]>([]);
+   753→  const [activeCell, setActiveCell] = useState<string | null>(null);
+   754→  const [editingCell, setEditingCell] = useState<string | null>(null);
+   755→  const [editVal, setEditVal] = useState('');
+   756→  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+   757→  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
+   758→  const inputRef = useRef<HTMLInputElement>(null);
+   759→  const initializedRef = useRef(false);
+   760→
+   761→  // Load cells and merges from parent's onlineSettings (no extra API call)
+   762→  useEffect(() => {
+   763→    if (initializedRef.current) return;
+   764→    const cellsData = onlineSettings['nmc-spreadsheet-cells'];
+   765→    const mergesData = onlineSettings['nmc-spreadsheet-merges'];
+   766→    if (cellsData) { try { setCells(JSON.parse(cellsData)); } catch {} }
+   767→    if (mergesData) { try { setMerges(JSON.parse(mergesData)); } catch {} }
+   768→    if (Object.keys(onlineSettings).length > 0) initializedRef.current = true;
+   769→  }, [onlineSettings]);
+   770→
+   771→  // Save cells to online API (debounced)
+   772→  const saveCellsTimeout = useRef<NodeJS.Timeout | null>(null);
+   773→  useEffect(() => {
+   774→    if (Object.keys(cells).length === 0 || !initializedRef.current) return;
+   775→    if (saveCellsTimeout.current) clearTimeout(saveCellsTimeout.current);
+   776→    saveCellsTimeout.current = setTimeout(() => {
+   777→      saveSetting('nmc-spreadsheet-cells', JSON.stringify(cells));
+   778→    }, 1000);
+   779→  }, [cells, saveSetting]);
+   780→
+   781→  // Save merges to online API (debounced)
+   782→  const saveMergesTimeout = useRef<NodeJS.Timeout | null>(null);
+   783→  useEffect(() => {
+   784→    if (merges.length === 0 || !initializedRef.current) return;
+   785→    if (saveMergesTimeout.current) clearTimeout(saveMergesTimeout.current);
+   786→    saveMergesTimeout.current = setTimeout(() => {
+   787→      saveSetting('nmc-spreadsheet-merges', JSON.stringify(merges));
+   788→    }, 1000);
+   789→  }, [merges, saveSetting]);
+   790→
+   791→  useEffect(() => {
+   792→    if (editingCell && inputRef.current) inputRef.current.focus();
+   793→  }, [editingCell]);
+   794→
+   795→  // Parse cellId to {col, row} (0-indexed)
+   796→  const parseCellId = useCallback((cellId: string) => {
+   797→    const col = cellId.charCodeAt(0) - 65;
+   798→    const row = parseInt(cellId.slice(1)) - 1;
+   799→    return { col, row };
+   800→  }, []);
+   801→
+   802→  // Check if a cell is the top-left of a merge
+   803→  const getCellMerge = useCallback((cellId: string): MergeRange | null => {
+   804→    const { col, row } = parseCellId(cellId);
+   805→    return merges.find(m => m.startRow === row && m.startCol === col) || null;
+   806→  }, [merges, parseCellId]);
+   807→
+   808→  // Check if a cell is hidden by a merge
+   809→  const isCellHidden = useCallback((cellId: string): boolean => {
+   810→    const { col, row } = parseCellId(cellId);
+   811→    return merges.some(m =>
+   812→      row >= m.startRow && row <= m.endRow &&
+   813→      col >= m.startCol && col <= m.endCol &&
+   814→      !(row === m.startRow && col === m.startCol)
+   815→    );
+   816→  }, [merges, parseCellId]);
+   817→
+   818→  // Get rowSpan/colSpan for a cell
+   819→  const getCellSpan = useCallback((cellId: string): { rowSpan?: number; colSpan?: number } => {
+   820→    const merge = getCellMerge(cellId);
+   821→    if (!merge) return {};
+   822→    return {
+   823→      rowSpan: merge.endRow - merge.startRow + 1,
+   824→      colSpan: merge.endCol - merge.startCol + 1,
+   825→    };
+   826→  }, [getCellMerge]);
+   827→
+   828→  // Check if a cell is in the selection range
+   829→  const isCellSelected = useCallback((cellId: string): boolean => {
+   830→    if (!selectionStart) return false;
+   831→    const end = selectionEnd || selectionStart;
+   832→    const { col: sc, row: sr } = parseCellId(selectionStart);
+   833→    const { col: ec, row: er } = parseCellId(end);
+   834→    const { col, row } = parseCellId(cellId);
+   835→    const minCol = Math.min(sc, ec), maxCol = Math.max(sc, ec);
+   836→    const minRow = Math.min(sr, er), maxRow = Math.max(sr, er);
+   837→    return col >= minCol && col <= maxCol && row >= minRow && row <= maxRow;
+   838→  }, [selectionStart, selectionEnd, parseCellId]);
+   839→
+   840→  // Merge selected cells
+   841→  const handleMergeCells = useCallback(() => {
+   842→    if (!selectionStart || !selectionEnd) {
+   843→      toast({ title: 'Chọn vùng ô trước', description: 'Click ô đầu → Shift+Click ô cuối', variant: 'destructive' });
+   844→      return;
+   845→    }
+   846→    const { col: sc, row: sr } = parseCellId(selectionStart);
+   847→    const { col: ec, row: er } = parseCellId(selectionEnd);
+   848→    const newMerge: MergeRange = {
+   849→      startRow: Math.min(sr, er),
+   850→      startCol: Math.min(sc, ec),
+   851→      endRow: Math.max(sr, er),
+   852→      endCol: Math.max(sc, ec),
+   853→    };
+   854→    // Check if already merged
+   855→    const overlaps = merges.some(m =>
+   856→      m.startRow <= newMerge.endRow && m.endRow >= newMerge.startRow &&
+   857→      m.startCol <= newMerge.endCol && m.endCol >= newMerge.startCol
+   858→    );
+   859→    if (overlaps) {
+   860→      toast({ title: 'Vùng đã được gộp', description: 'Tách ô trước khi gộp lại', variant: 'destructive' });
+   861→      return;
+   862→    }
+   863→    setMerges(prev => [...prev, newMerge]);
+   864→    setSelectionStart(null);
+   865→    setSelectionEnd(null);
+   866→    toast({ title: 'Đã gộp ô', description: `${String.fromCharCode(65 + newMerge.startCol)}${newMerge.startRow + 1}:${String.fromCharCode(65 + newMerge.endCol)}${newMerge.endRow + 1}` });
+   867→  }, [selectionStart, selectionEnd, merges, parseCellId]);
+   868→
+   869→  // Unmerge cells
+   870→  const handleUnmergeCells = useCallback(() => {
+   871→    if (!activeCell) return;
+   872→    const merge = getCellMerge(activeCell);
+   873→    if (!merge) {
+   874→      toast({ title: 'Ô này không phải ô gộp', variant: 'destructive' });
+   875→      return;
+   876→    }
+   877→    setMerges(prev => prev.filter(m => m !== merge));
+   878→    toast({ title: 'Đã tách ô' });
+   879→  }, [activeCell, getCellMerge]);
+   880→
+   881→  const getDisplayValue = (cellId: string) => {
+   882→    const raw = cells[cellId] || '';
+   883→    if (raw.startsWith('=')) return evaluateFormula(raw, cells);
+   884→    return raw;
+   885→  };
+   886→
+   887→  const handleCellSave = () => {
+   888→    if (!editingCell) return;
+   889→    setCells(prev => ({ ...prev, [editingCell]: editVal }));
+   890→    setEditingCell(null);
+   891→  };
+   892→
+   893→  const handleKeyDown = (e: React.KeyboardEvent) => {
+   894→    if (e.key === 'Enter') { handleCellSave(); }
+   895→    else if (e.key === 'Escape') { setEditingCell(null); }
+   896→    else if (e.key === 'Tab') {
+   897→      e.preventDefault();
+   898→      handleCellSave();
+   899→      if (activeCell) {
+   900→        const col = activeCell[0].charCodeAt(0);
+   901→        const row = activeCell.slice(1);
+   902→        const nextCol = String.fromCharCode(col + 1);
+   903→        if (col < 65 + SPREADSHEET_COLS - 1) setActiveCell(nextCol + row);
+   904→      }
+   905→    }
+   906→  };
+   907→
+   908→  const clearSheet = () => {
+   909→    if (confirm('Xóa toàn bộ trang tính?')) {
+   910→      setCells({});
+   911→      setMerges([]);
+   912→      // Also clear online
+   913→      saveSetting('nmc-spreadsheet-cells', '');
+   914→      saveSetting('nmc-spreadsheet-merges', '[]');
+   915→    }
+   916→  };
+   917→
+   918→  const activeCellValue = editingCell ? editVal : (activeCell ? (cells[activeCell] || '') : '');
+   919→
+   920→  return (
+   921→    <div className="flex flex-col h-full">
+   922→      {/* Formula bar */}
+   923→      <div className="flex items-center gap-2 mb-2 bg-gray-800 p-2 rounded-md">
+   924→        <span className="text-gray-300 text-xs font-mono min-w-[40px] text-center">{activeCell || '—'}</span>
+   925→        <span className="text-gray-500 text-xs">fx</span>
+   926→        <input
+   927→          ref={inputRef}
+   928→          value={editingCell ? editVal : activeCellValue}
+   929→          onChange={(e) => { if (editingCell) setEditVal(e.target.value); }}
+   930→          onFocus={() => { if (activeCell && !editingCell) { setEditingCell(activeCell); setEditVal(cells[activeCell] || ''); } }}
+   931→          onBlur={handleCellSave}
+   932→          onKeyDown={handleKeyDown}
+   933→          className="flex-1 bg-gray-700 text-white text-xs px-2 py-1 border border-gray-600 outline-none focus:border-emerald-500"
+   934→          placeholder="Nhập giá trị hoặc công thức (vd: =SUM(A1:A10))"
+   935→        />
+   936→        <Button onClick={clearSheet} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-800 h-7 text-xs px-2">Xóa hết</Button>
+   937→      </div>
+   938→
+   939→      {/* Quick functions toolbar */}
+   940→      <div className="flex items-center gap-1 mb-2 flex-wrap">
+   941→        {[
+   942→          { label: 'SUM', fn: 'SUM(A1:A10)' },
+   943→          { label: 'AVG', fn: 'AVERAGE(A1:A10)' },
+   944→          { label: 'COUNT', fn: 'COUNT(A1:A10)' },
+   945→          { label: 'MAX', fn: 'MAX(A1:A10)' },
+   946→          { label: 'MIN', fn: 'MIN(A1:A10)' },
+   947→        ].map(f => (
+   948→          <button
+   949→            key={f.label}
+   950→            onClick={() => { if (activeCell) { setEditingCell(activeCell); setEditVal('=' + f.fn); } }}
+   951→            className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold rounded"
+   952→          >
+   953→            {f.label}
+   954→          </button>
+   955→        ))}
+   956→        <div className="border-l border-gray-600 h-4 mx-1" />
+   957→        <button
+   958→          onClick={handleMergeCells}
+   959→          className="px-2 py-0.5 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded flex items-center gap-1"
+   960→          title="Gộp các ô đã chọn (Click → Shift+Click)"
+   961→        >
+   962→          <Merge className="w-3 h-3" /> Gộp ô
+   963→        </button>
+   964→        <button
+   965→          onClick={handleUnmergeCells}
+   966→          className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold rounded flex items-center gap-1"
+   967→          title="Tách ô gộp tại ô đang chọn"
+   968→        >
+   969→          <Split className="w-3 h-3" /> Tách ô
+   970→        </button>
+   971→        <span className="text-gray-400 text-[10px] ml-2">Chọn ô → nhấn nút hàm → sửa range → Enter • Click+Shift để chọn vùng gộp</span>
+   972→      </div>
+   973→
+   974→      {/* Selection info */}
+   975→      {selectionStart && selectionEnd && (
+   976→        <div className="mb-2 px-2 py-1 bg-violet-800/50 border border-violet-500/30 rounded text-[10px] text-violet-200">
+   977→          Đã chọn: {selectionStart}:{selectionEnd} — Nhấn "Gộp ô" để gộp
+   978→        </div>
+   979→      )}
+   980→
+   981→      {/* Spreadsheet grid */}
+   982→      <div className="flex-1 overflow-auto border border-gray-600 bg-[#0e0e18]/80">
+   983→        <table className="border-collapse w-max">
+   984→          <thead className="sticky top-0 z-10">
+   985→            <tr>
+   986→              <th className="bg-gray-800 text-gray-300 text-[10px] font-bold w-[40px] min-w-[40px] border border-gray-600 sticky left-0 z-20">#</th>
+   987→              {COL_LABELS.map(col => (
+   988→                <th key={col} className="bg-gray-800 text-gray-300 text-[10px] font-bold min-w-[80px] border border-gray-600 px-1 py-0.5">{col}</th>
+   989→              ))}
+   990→            </tr>
+   991→          </thead>
+   992→          <tbody>
+   993→            {Array.from({ length: SPREADSHEET_ROWS }, (_, rowIdx) => {
+   994→              const rowNum = rowIdx + 1;
+   995→              return (
+   996→                <tr key={rowNum}>
+   997→                  <td className="bg-gray-800/80 text-gray-400 text-[10px] text-center border border-gray-600 font-mono sticky left-0">{rowNum}</td>
+   998→                  {COL_LABELS.map(col => {
+   999→                    const cellId = col + rowNum;
+  1000→                    // Skip hidden cells (part of a merge but not top-left)
+  1001→                    if (isCellHidden(cellId)) return null;
+  1002→
+  1003→                    const isActive = activeCell === cellId;
+  1004→                    const isEditing = editingCell === cellId;
+  1005→                    const display = getDisplayValue(cellId);
+  1006→                    const isFormula = (cells[cellId] || '').startsWith('=');
+  1007→                    const isSelected = isCellSelected(cellId);
+  1008→                    const isMerged = !!getCellMerge(cellId);
+  1009→                    const span = getCellSpan(cellId);
+  1010→
+  1011→                    return (
+  1012→                      <td
+  1013→                        key={cellId}
+  1014→                        rowSpan={span.rowSpan}
+  1015→                        colSpan={span.colSpan}
+  1016→                        className={`border border-gray-600 px-1 py-0 text-[11px] cursor-cell min-w-[80px] bg-[#0e0e18]/40 ${
+  1017→                          isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-500/10' : ''
+  1018→                        } ${isSelected && !isActive ? 'bg-violet-500/10 outline outline-1 outline-violet-400' : ''
+  1019→                        } ${!isActive && !isSelected ? 'hover:bg-emerald-500/5' : ''
+  1020→                        } ${isFormula ? 'text-sky-300 font-medium' : 'text-gray-200'
+  1021→                        } ${isMerged ? 'bg-emerald-500/10 border-emerald-400' : ''}`}
+  1022→                        onClick={(e) => {
+  1023→                          if (e.shiftKey && selectionStart) {
+  1024→                            setSelectionEnd(cellId);
+  1025→                          } else {
+  1026→                            setSelectionStart(cellId);
+  1027→                            setSelectionEnd(null);
+  1028→                          }
+  1029→                          setActiveCell(cellId);
+  1030→                          setEditingCell(null);
+  1031→                        }}
+  1032→                        onDoubleClick={() => { setActiveCell(cellId); setEditingCell(cellId); setEditVal(cells[cellId] || ''); }}
+  1033→                      >
+  1034→                        {isEditing ? (
+  1035→                          <input
+  1036→                            autoFocus
+  1037→                            value={editVal}
+  1038→                            onChange={(e) => setEditVal(e.target.value)}
+  1039→                            onBlur={handleCellSave}
+  1040→                            onKeyDown={handleKeyDown}
+  1041→                            className="w-full h-full px-0 py-0 text-[11px] bg-[#0e0e18] text-white border-none outline-none"
+  1042→                          />
+  1043→                        ) : (
+  1044→                          <span className="block truncate">{display}</span>
+  1045→                        )}
+  1046→                      </td>
+  1047→                    );
+  1048→                  })}
+  1049→                </tr>
+  1050→              );
+  1051→            })}
+  1052→          </tbody>
+  1053→        </table>
+  1054→      </div>
+  1055→      <div className="text-gray-400 text-[10px] mt-1">Nháy đúp để sửa ô • Dùng = để nhập công thức • Click+Shift để chọn vùng • Gộp/Tách ô • Dữ liệu lưu trong trình duyệt</div>
+  1056→    </div>
+  1057→  );
+  1058→}
+  1059→
+  1060→// ==================== MAIN PAGE ====================
+  1061→export default function QuanLyPage() {
+  1062→  const router = useRouter();
+  1063→  const [activeSheet, setActiveSheet] = useState<SheetKey>('overview');
+  1064→  const [revenueSub, setRevenueSub] = useState<RevenueSubKey>('all');
+  1065→  const [revenueNhomFilter, setRevenueNhomFilter] = useState<string>('');
+  1066→  const [revenueExpanded, setRevenueExpanded] = useState(false);
+  1067→  const [searchTerm, setSearchTerm] = useState('');
+  1068→  const [sortField, setSortField] = useState('');
+  1069→  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  1070→  const [sidebarOpen, setSidebarOpen] = useState(false);
+  1071→  const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  1072→
+  1073→  // Online settings state (fetched from API instead of localStorage)
+  1074→  const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
+  1075→
+  1076→  // Fetch all settings from API on mount
+  1077→  useEffect(() => {
+  1078→    fetch('/api/settings')
+  1079→      .then(r => r.ok ? r.json() : {})
+  1080→      .then(data => setOnlineSettings(data))
+  1081→      .catch(() => {
+  1082→        // Server unavailable - no localStorage fallback
+  1083→        setOnlineSettings({});
+  1084→      });
+  1085→  }, []);
+  1086→
+  1087→  const saveSetting = useCallback(async (key: string, value: string) => {
+  1088→    // Optimistic update using functional state to avoid dependency on onlineSettings
+  1089→    let prevValue = '';
+  1090→    setOnlineSettings(prev => {
+  1091→      prevValue = prev[key];
+  1092→      return { ...prev, [key]: value };
+  1093→    });
+  1094→    try {
+  1095→      const r = await fetch('/api/settings', {
+  1096→        method: 'PUT',
+  1097→        headers: { 'Content-Type': 'application/json' },
+  1098→        body: JSON.stringify({ [key]: value }),
+  1099→      });
+  1100→      if (!r.ok) {
+  1101→        // Revert on server error
+  1102→        setOnlineSettings(prev => ({ ...prev, [key]: prevValue }));
+  1103→        toast({ title: 'Lỗi lưu cài đặt', description: `Máy chủ trả về lỗi ${r.status}`, variant: 'destructive' });
+  1104→      }
+  1105→    } catch {
+  1106→      // Revert on network error
+  1107→      setOnlineSettings(prev => ({ ...prev, [key]: prevValue }));
+  1108→      toast({ title: 'Lỗi lưu online', description: 'Không thể kết nối máy chủ', variant: 'destructive' });
+  1109→    }
+  1110→  }, []); // STABLE - no dependency on onlineSettings
+  1111→
+  1112→  // syncEnabled now derived from onlineSettings
+  1113→  const [syncEnabled, setSyncEnabled] = useState(true);
+  1114→
+  1115→  // Update syncEnabled when onlineSettings loads
+  1116→  useEffect(() => {
+  1117→    const saved = onlineSettings['nmc-sync-enabled'];
+  1118→    if (saved !== undefined && saved !== '') setSyncEnabled(saved === 'true');
+  1119→  }, [onlineSettings['nmc-sync-enabled']]); // eslint-disable-line react-hooks/exhaustive-deps
+  1120→
+  1121→  // Ref to fetchAllData to avoid circular dependency issues
+  1122→  const fetchAllDataRef = useRef<() => Promise<void>>(async () => {});
+  1123→
+  1124→  // Auto-sync: khi settings load xong và syncEnabled, tự động fetch CSV từ Google Sheets links
+  1125→  const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  1126→  const [syncSuccessCount, setSyncSuccessCount] = useState<number>(0);
+  1127→  const [syncSuccessVisible, setSyncSuccessVisible] = useState<boolean>(false);
+  1128→  const autoSyncFromLinks = useCallback(async () => {
+  1129→    if (!syncEnabled) return;
+  1130→    const monthKeys = ['revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
+  1131→      'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
+  1132→    // Thu thập CSV từ các link đã lưu
+  1133→    let contractCsvData = ''; // data rows only (no header)
+  1134→    let contractHeader = '';  // header row from first revenue link
+  1135→    let staffCsv = '';
+  1136→    let recruiterCsv = '';
+  1137→    let syncedCount = 0;
+  1138→    const syncErrors: string[] = [];
+  1139→    for (const key of ['leaders', 'recruiters', ...monthKeys]) {
+  1140→      const link = onlineSettings[`nmc-link-${key}`];
+  1141→      const autoOn = onlineSettings[`nmc-sync-${key}`];
+  1142→      if (!link || autoOn === 'false') continue;
+  1143→      try {
+  1144→        const r = await fetch(`/api/import-csv?url=${encodeURIComponent(link)}`);
+  1145→        if (!r.ok) {
+  1146→          syncErrors.push(`${key}: HTTP ${r.status}`);
+  1147→          continue;
+  1148→        }
+  1149→        const data = await r.json();
+  1150→        if (!data.csvData) {
+  1151→          syncErrors.push(`${key}: CSV trống`);
+  1152→          continue;
+  1153→        }
+  1154→        if (key === 'leaders') { staffCsv = data.csvData; syncedCount++; }
+  1155→        else if (key === 'recruiters') { recruiterCsv = data.csvData; syncedCount++; }
+  1156→        else if (key.startsWith('revenue-')) {
+  1157→          const lines = data.csvData.split('\n');
+  1158→          // Save header from first revenue link
+  1159→          if (!contractHeader && lines.length > 0) {
+  1160→            contractHeader = lines[0];
+  1161→          }
+  1162→          // Append data rows (skip header) — avoid duplicate headers when merging
+  1163→          const dataOnly = lines.slice(1).join('\n');
+  1164→          if (dataOnly.trim()) {
+  1165→            contractCsvData += (contractCsvData ? '\n' : '') + dataOnly;
+  1166→            syncedCount++;
+  1167→          }
+  1168→        }
+  1169→      } catch (e) {
+  1170→        syncErrors.push(`${key}: lỗi kết nối`);
+  1171→      }
+  1172→    }
+  1173→    // Combine header + data for contractCsv
+  1174→    const contractCsv = contractHeader ? contractHeader + '\n' + contractCsvData : '';
+  1175→    // Gọi sync API nếu có dữ liệu
+  1176→    if (contractCsv || staffCsv || recruiterCsv) {
+  1177→      try {
+  1178→        const r = await fetch('/api/sync', {
+  1179→          method: 'POST',
+  1180→          headers: { 'Content-Type': 'application/json' },
+  1181→          body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+  1182→        });
+  1183→        if (r.ok) {
+  1184→          const result = await r.json();
+  1185→          console.log('[Auto-sync] Đã đồng bộ:', result);
+  1186→          setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
+  1187→          // Backfill: fix existing contracts with missing tinhLuot3tr/maBanNhom/maDL
+  1188→          try {
+  1189→            const bf = await fetch('/api/backfill', { method: 'POST' });
+  1190→            if (bf.ok) { const bfr = await bf.json(); console.log('[Backfill]', bfr.message); }
+  1191→          } catch { /* silent */ }
+  1192→          // Refresh UI data after sync
+  1193→          await fetchAllDataRef.current();
+  1194→          // Show sync success indicator instead of toast
+  1195→          const totalSynced = result.count || syncedCount;
+  1196→          setSyncSuccessCount(totalSynced);
+  1197→          setSyncSuccessVisible(true);
+  1198→          setTimeout(() => setSyncSuccessVisible(false), 4000);
+  1199→          if (syncErrors.length > 0) {
+  1200→            toast({ title: 'Lỗi đồng bộ một phần', description: syncErrors.join('; '), variant: 'destructive' });
+  1201→          }
+  1202→        }
+  1203→      } catch { /* silent */ }
+  1204→    } else if (syncedCount === 0) {
+  1205→      console.log('[Auto-sync] Không có link nào để đồng bộ');
+  1206→      if (syncErrors.length > 0) {
+  1207→        toast({ title: 'Lỗi đồng bộ', description: syncErrors.join('; '), variant: 'destructive' });
+  1208→      }
+  1209→    }
+  1210→  }, [syncEnabled, onlineSettings]);
+  1211→
+  1212→  // Track which links have been synced to avoid re-syncing on every render
+  1213→  const syncedLinksRef = useRef<string>('');
+  1214→  useEffect(() => {
+  1215→    // Build a fingerprint of all current links to detect changes
+  1216→    const linkKeys = ['leaders', 'recruiters', 
+  1217→      'revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
+  1218→      'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
+  1219→    const fingerprint = linkKeys.map(k => `${k}:${onlineSettings[`nmc-link-${k}`] || ''}`).join('|');
+  1220→    
+  1221→    if (Object.keys(onlineSettings).length > 0 && syncEnabled && fingerprint !== syncedLinksRef.current) {
+  1222→      syncedLinksRef.current = fingerprint;
+  1223→      autoSyncFromLinks();
+  1224→    }
+  1225→  }, [syncEnabled, onlineSettings, autoSyncFromLinks]);
+  1226→
+  1227→  // Persist sync preference online
+  1228→  useEffect(() => {
+  1229→    // Only save after initial load (skip the default true)
+  1230→    if (onlineSettings['nmc-sync-enabled'] !== undefined || syncEnabled !== true) {
+  1231→      saveSetting('nmc-sync-enabled', String(syncEnabled));
+  1232→    }
+  1233→  }, [syncEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  1234→
+  1235→  // Data
+  1236→  const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
+  1237→  const [revenue, setRevenue] = useState<MonthlyRevenue[]>([]);
+  1238→  const [contracts, setContracts] = useState<Contract[]>([]);
+  1239→  const [staff, setStaff] = useState<StaffMember[]>([]);
+  1240→  const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
+  1241→  const [isLoading, setIsLoading] = useState(false);
+  1242→
+  1243→  // Structure state
+  1244→  const [phongList, setPhongList] = useState<PhongItem[]>([]);
+  1245→  const [adList, setAdList] = useState<ADItem[]>([]);
+  1246→  const [banNhomList, setBanNhomList] = useState<BanNhomItem[]>([]);
+  1247→  const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
+  1248→  const [selectedPhong, setSelectedPhong] = useState<string>('');
+  1249→  const [selectedAD, setSelectedAD] = useState<string>('');
+  1250→  const [selectedBanNhom, setSelectedBanNhom] = useState<string>('');
+  1251→
+  1252→  // Add dialog state per tier
+  1253→  const [addPhongOpen, setAddPhongOpen] = useState(false);
+  1254→  const [addADOpen, setAddADOpen] = useState(false);
+  1255→  const [addBanNhomOpen, setAddBanNhomOpen] = useState(false);
+  1256→  const [addTvvOpen, setAddTvvOpen] = useState(false);
+  1257→  const [newPhong, setNewPhong] = useState({ maPhong: '', tenPhong: '', note: '' });
+  1258→  const [newAD, setNewAD] = useState({ maAD: '', tenAD: '', maPhong: '', note: '' });
+  1259→  const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' });
+  1260→  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' });
+  1261→
+  1262→  // Edit state
+  1263→  const [editingPhong, setEditingPhong] = useState<PhongItem | null>(null);
+  1264→  const [editingAD, setEditingAD] = useState<ADItem | null>(null);
+  1265→  const [editingBanNhom, setEditingBanNhom] = useState<BanNhomItem | null>(null);
+  1266→  const [editingTvv, setEditingTvv] = useState<TVVStructItem | null>(null);
+  1267→
+  1268→  // Import dialog
+  1269→  const [importTier, setImportTier] = useState<string>('');
+  1270→  const [importData, setImportData] = useState<string>('');
+  1271→  const [importFile, setImportFile] = useState<File | null>(null);
+  1272→  const [importPreview, setImportPreview] = useState<Array<Record<string, string>>>([]);
+  1273→  const [importLoading, setImportLoading] = useState(false);
+  1274→  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  1275→  const [settingsNhomFilter, setSettingsNhomFilter] = useState<string>('');
+  1276→
+  1277→  // Report state
+  1278→  const [reportSubject, setReportSubject] = useState<'phong' | 'ad' | 'nhom' | 'ntd'>('nhom');
+  1279→  const [reportColumn, setReportColumn] = useState<string>('pdt10DT');
+  1280→  const [reportColumn2, setReportColumn2] = useState<string>('');
+  1281→  const [reportTVVm, setReportTVVm] = useState<boolean>(false);
+  1282→  const [reportTVVm2, setReportTVVm2] = useState<boolean>(false);
+  1283→  const [reportTarget, setReportTarget] = useState<string>('');
+  1284→  const [reportMonthFrom, setReportMonthFrom] = useState<string>('');
+  1285→  const [reportMonthTo, setReportMonthTo] = useState<string>('');
+  1286→  const [reportTitle, setReportTitle] = useState<string>('');
+  1287→  const [reportNote, setReportNote] = useState<string>('');
+  1288→  // Report conditions: multiple filter rows
+  1289→  const [reportConditions, setReportConditions] = useState<Array<{ column: string; operator: string; value: string }>>([]);
+  1290→  const [reportIncludeNTDOwn, setReportIncludeNTDOwn] = useState<boolean>(true);
+  1291→  const [reportRowNotes, setReportRowNotes] = useState<Record<string, string>>({});
+  1292→  const [reportPopupOpen, setReportPopupOpen] = useState(false);
+  1293→  const reportPopupRef = useRef<HTMLDivElement>(null);
+  1294→  // Accordion expand state for structure tree
+  1295→  const [expandedPhongs, setExpandedPhongs] = useState<Set<string>>(new Set());
+  1296→  const [expandedADs, setExpandedADs] = useState<Set<string>>(new Set());
+  1297→  const [expandedBanNhoms, setExpandedBanNhoms] = useState<Set<string>>(new Set());
+  1298→
+  1299→  // Data cache removed - always fetch fresh data to prevent stale data / missing records
+  1300→
+  1301→  // Per-section settings state (derived from onlineSettings) - use useMemo for efficiency
+  1302→  const sectionLinks = useMemo(() => {
+  1303→    const links: Record<string, string> = {};
+  1304→    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+  1305→      'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
+  1306→      'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
+  1307→    allKeys.forEach(key => {
+  1308→      const l = onlineSettings[`nmc-link-${key}`];
+  1309→      if (l) links[key] = l;
+  1310→    });
+  1311→    return links;
+  1312→  }, [onlineSettings]);
+  1313→
+  1314→  const sectionSyncs = useMemo(() => {
+  1315→    const syncs: Record<string, boolean> = {};
+  1316→    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+  1317→      'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
+  1318→      'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
+  1319→    allKeys.forEach(key => {
+  1320→      const s = onlineSettings[`nmc-sync-${key}`];
+  1321→      if (s !== undefined && s !== '') syncs[key] = s === 'true';
+  1322→    });
+  1323→    return syncs;
+  1324→  }, [onlineSettings]);
+  1325→
+  1326→  const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
+  1327→  const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
+  1328→
+  1329→  // Fetch individual (for refresh or single-tab loads after initial load)
+  1330→  const fetchLeaders = useCallback(async () => {
+  1331→    try { const r = await fetch('/api/leaders'); if (r.ok) setLeaders(await r.json()); } catch {}
+  1332→  }, []);
+  1333→  const fetchRevenue = useCallback(async () => {
+  1334→    try { const r = await fetch('/api/revenue'); if (r.ok) setRevenue(await r.json()); } catch {}
+  1335→  }, []);
+  1336→  const fetchContracts = useCallback(async () => {
+  1337→    try { const r = await fetch('/api/contracts'); if (r.ok) setContracts(await r.json()); } catch {}
+  1338→  }, []);
+  1339→  const fetchStaff = useCallback(async () => {
+  1340→    try { const r = await fetch('/api/staff'); if (r.ok) setStaff(await r.json()); } catch {}
+  1341→  }, []);
+  1342→  const fetchRecruiters = useCallback(async () => {
+  1343→    try { const r = await fetch('/api/recruiters'); if (r.ok) setRecruiters(await r.json()); } catch {}
+  1344→  }, []);
+  1345→
+  1346→  // Fetch structure data
+  1347→  const fetchPhong = useCallback(async () => {
+  1348→    try { const res = await fetch('/api/structure/phong'); if (res.ok) { const data = await res.json(); setPhongList(data); } } catch {}
+  1349→  }, []);
+  1350→  const fetchAD = useCallback(async () => {
+  1351→    try { const res = await fetch('/api/structure/ad'); if (res.ok) { const data = await res.json(); setAdList(data); } } catch {}
+  1352→  }, []);
+  1353→  const fetchBanNhom = useCallback(async () => {
+  1354→    try { const res = await fetch('/api/structure/bannhom'); if (res.ok) { const data = await res.json(); setBanNhomList(data); } } catch {}
+  1355→  }, []);
+  1356→  const fetchTvvStruct = useCallback(async () => {
+  1357→    try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch {}
+  1358→  }, []);
+  1359→
+  1360→  // Fetch all data in one request (for initial page load)
+  1361→  const fetchAllData = useCallback(async () => {
+  1362→    try {
+  1363→      const r = await fetch('/api/quan-ly/all');
+  1364→      if (r.ok) {
+  1365→        const data = await r.json();
+  1366→        setLeaders(data.leaders || []);
+  1367→        setRevenue(data.revenue || []);
+  1368→        setContracts(data.contracts || []);
+  1369→        setStaff(data.staff || []);
+  1370→        setRecruiters(data.recruiters || []);
+  1371→        if (data.tvvStruct) setTvvStructList(data.tvvStruct);
+  1372→      }
+  1373→    } catch {}
+  1374→  }, []);
+  1375→
+  1376→  // Keep ref in sync so auto-sync can call it
+  1377→  fetchAllDataRef.current = fetchAllData;
+  1378→
+  1379→  const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
+  1380→    setIsLoading(true);
+  1381→    const loaders: Record<SheetKey, () => Promise<void>> = {
+  1382→      overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); }, // Fetch all data + structure for Kế hoạch targets
+  1383→      leaders: fetchLeaders,
+  1384→      recruiters: fetchRecruiters,
+  1385→      revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
+  1386→      kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
+  1387→      report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
+  1388→      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
+  1389→      spreadsheet: async () => {},
+  1390→    };
+  1391→    loaders[sheet]().finally(() => setIsLoading(false));
+  1392→  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
+  1393→
+  1394→  useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
+  1395→
+  1396→  // ========== CRUD: Leaders ==========
+  1397→  const updateLeader = useCallback(async (id: string, field: string, value: any) => {
+  1398→    try { const r = await fetch(`/api/leaders/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setLeaders(p => p.map(l => l.id === id ? { ...l, [field]: value } : l)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1399→  }, []);
+  1400→  const addLeader = useCallback(async () => {
+  1401→    try { const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setLeaders(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1402→  }, []);
+  1403→  const deleteLeader = useCallback(async (id: string) => {
+  1404→    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/leaders/${id}`, { method: 'DELETE' }); if (r.ok) { setLeaders(p => p.filter(l => l.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  1405→  }, []);
+  1406→
+  1407→  // ========== CRUD: Revenue ==========
+  1408→  const updateRevenue = useCallback(async (id: string, field: string, value: any) => {
+  1409→    try { const r = await fetch(`/api/revenue/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setRevenue(p => p.map(rv => rv.id === id ? { ...rv, [field]: value } : rv)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1410→  }, []);
+  1411→  const addRevenue = useCallback(async () => {
+  1412→    const month = new Date().toISOString().slice(0, 7);
+  1413→    try { const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month, agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setRevenue(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1414→  }, []);
+  1415→  const deleteRevenue = useCallback(async (id: string) => {
+  1416→    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/revenue/${id}`, { method: 'DELETE' }); if (r.ok) { setRevenue(p => p.filter(rv => rv.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  1417→  }, []);
+  1418→
+  1419→  // ========== CRUD: Contracts ==========
+  1420→  const updateContract = useCallback(async (id: string, field: string, value: any) => {
+  1421→    try { const r = await fetch(`/api/contracts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setContracts(p => p.map(c => c.id === id ? { ...c, [field]: value } : c)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1422→  }, []);
+  1423→  const addContract = useCallback(async () => {
+  1424→    try {
+  1425→      const now = new Date().toISOString().slice(0, 10);
+  1426→      const r = await fetch('/api/contracts', {
+  1427→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1428→        body: JSON.stringify({
+  1429→          stt: 0, contractNumber: 'HD_' + Date.now(), agentCode: '', agentName: 'Chưa nhập',
+  1430→          position: '', ban: '', maTruongBan: '', nhom: '', maBanNhom: '',
+  1431→          maTruongBanNhom: '', maDL: '', maNhom: '', leaderAgentCode: '',
+  1432→          ngayBatDauLamViec: null, effectiveDate: now, issueDate: now,
+  1433→          pdt10DT: 0, fyp: 0, nguonDuLieu: '', hopDongToChuc: '', dkDongPhi: '',
+  1434→          phiDongThem: 0, afypChuaTru10DT: 0, afyp: 0, ad: '', nhom2: '',
+  1435→          ngayBatDauLamViec2: null, thangTD: 0, namTD: 0, thangHL: 0,
+  1436→          tinhLuot3tr: 0, maDaiLyTD: '', danhDauTVV: '',
+  1437→          chucVu2: '', recruiterCode: '', startDate: null,
+  1438→        })
+  1439→      });
+  1440→      if (r.ok) { const n = await r.json(); setContracts(p => [n, ...p]); toast({ title: 'Đã thêm' }); }
+  1441→    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1442→  }, []);
+  1443→  const deleteContract = useCallback(async (id: string) => {
+  1444→    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/contracts/${id}`, { method: 'DELETE' }); if (r.ok) { setContracts(p => p.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  1445→  }, []);
+  1446→
+  1447→  // ========== CRUD: Staff ==========
+  1448→  const updateStaffMember = useCallback(async (id: string, field: string, value: any) => {
+  1449→    try { const r = await fetch(`/api/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setStaff(p => p.map(s => s.id === id ? { ...s, [field]: value } : s)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1450→  }, []);
+  1451→  const addStaffMember = useCallback(async () => {
+  1452→    try { const r = await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NEW_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setStaff(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1453→  }, []);
+  1454→  const deleteStaffMember = useCallback(async (id: string) => {
+  1455→    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/staff/${id}`, { method: 'DELETE' }); if (r.ok) { setStaff(p => p.filter(s => s.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  1456→  }, []);
+  1457→
+  1458→  // ========== CRUD: Recruiters ==========
+  1459→  const updateRecruiter = useCallback(async (id: string, field: string, value: any) => {
+  1460→    try { const r = await fetch(`/api/recruiters/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setRecruiters(p => p.map(rc => rc.id === id ? { ...rc, [field]: value } : rc)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1461→  }, []);
+  1462→  const addRecruiter = useCallback(async () => {
+  1463→    try { const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'NTD_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setRecruiters(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1464→  }, []);
+  1465→  const deleteRecruiter = useCallback(async (id: string) => {
+  1466→    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); if (r.ok) { setRecruiters(p => p.filter(rc => rc.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  1467→  }, []);
+  1468→
+  1469→  // ========== CRUD: Structure (4-tier) ==========
+  1470→  const handleAddPhong = useCallback(async () => {
+  1471→    if (!newPhong.maPhong || !newPhong.tenPhong) return;
+  1472→    try { const res = await fetch('/api/structure/phong', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newPhong) }); if (res.ok) { setAddPhongOpen(false); setNewPhong({ maPhong: '', tenPhong: '', note: '' }); fetchPhong(); toast({ title: 'Đã thêm Phòng' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1473→  }, [newPhong, fetchPhong]);
+  1474→  const handleAddAD = useCallback(async () => {
+  1475→    if (!newAD.maAD || !newAD.tenAD) return;
+  1476→    try { const res = await fetch('/api/structure/ad', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAD) }); if (res.ok) { setAddADOpen(false); setNewAD({ maAD: '', tenAD: '', maPhong: '', note: '' }); fetchAD(); toast({ title: 'Đã thêm AD' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1477→  }, [newAD, fetchAD]);
+  1478→  const handleAddBanNhom = useCallback(async () => {
+  1479→    if (!newBanNhom.maBanNhom || !newBanNhom.tenBanNhom) return;
+  1480→    try { const res = await fetch('/api/structure/bannhom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newBanNhom) }); if (res.ok) { setAddBanNhomOpen(false); setNewBanNhom({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' }); fetchBanNhom(); toast({ title: 'Đã thêm Ban/Nhóm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1481→  }, [newBanNhom, fetchBanNhom]);
+  1482→  const handleAddTvv = useCallback(async () => {
+  1483→    if (!newTvv.agentCode || !newTvv.agentName) return;
+  1484→    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1485→  }, [newTvv, fetchTvvStruct]);
+  1486→
+  1487→  const handleDeletePhong = useCallback(async (id: string) => {
+  1488→    if (!confirm('Xóa Phòng này?')) return;
+  1489→    try { const res = await fetch(`/api/structure/phong/${id}`, { method: 'DELETE' }); if (res.ok) { fetchPhong(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1490→  }, [fetchPhong]);
+  1491→  const handleDeleteAD = useCallback(async (id: string) => {
+  1492→    if (!confirm('Xóa AD này?')) return;
+  1493→    try { const res = await fetch(`/api/structure/ad/${id}`, { method: 'DELETE' }); if (res.ok) { fetchAD(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1494→  }, [fetchAD]);
+  1495→  const handleDeleteBanNhom = useCallback(async (id: string) => {
+  1496→    if (!confirm('Xóa Ban/Nhóm này?')) return;
+  1497→    try { const res = await fetch(`/api/structure/bannhom/${id}`, { method: 'DELETE' }); if (res.ok) { fetchBanNhom(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1498→  }, [fetchBanNhom]);
+  1499→  const handleDeleteTvv = useCallback(async (id: string) => {
+  1500→    if (!confirm('Xóa TVV này?')) return;
+  1501→    try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1502→  }, [fetchTvvStruct]);
+  1503→
+  1504→  // Replace all TVV from uploaded file
+  1505→  const [isReplacingTvv, setIsReplacingTvv] = useState(false);
+  1506→  const handleReplaceAllTvv = useCallback(async () => {
+  1507→    if (!confirm('Cập nhật toàn bộ DS TVV? Dữ liệu cũ sẽ bị xóa và thay bằng DS mới.')) return;
+  1508→    setIsReplacingTvv(true);
+  1509→    try {
+  1510→      // Fetch the pre-loaded TVV data
+  1511→      const dataRes = await fetch('/data/tvv_import.json');
+  1512→      if (!dataRes.ok) { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu TVV mới', variant: 'destructive' }); return; }
+  1513→      const data = await dataRes.json();
+  1514→      if (!Array.isArray(data) || data.length === 0) { toast({ title: 'Lỗi', description: 'Dữ liệu TVV trống', variant: 'destructive' }); return; }
+  1515→      // Send to API with replaceAll=true
+  1516→      const res = await fetch('/api/structure/tvv?replaceAll=true', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  1517→      if (res.ok) { const result = await res.json(); fetchTvvStruct(); toast({ title: 'Thành công', description: result.message || `Đã nhập ${result.count} TVV` }); }
+  1518→      else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể cập nhật', variant: 'destructive' }); }
+  1519→    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật DS TVV', variant: 'destructive' }); }
+  1520→    finally { setIsReplacingTvv(false); }
+  1521→  }, [fetchTvvStruct]);
+  1522→
+  1523→  const handleEditPhong = useCallback(async () => {
+  1524→    if (!editingPhong) return;
+  1525→    try { const res = await fetch(`/api/structure/phong/${editingPhong.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maPhong: editingPhong.maPhong, tenPhong: editingPhong.tenPhong, note: editingPhong.note }) }); if (res.ok) { setEditingPhong(null); fetchPhong(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1526→  }, [editingPhong, fetchPhong]);
+  1527→  const handleEditAD = useCallback(async () => {
+  1528→    if (!editingAD) return;
+  1529→    try { const res = await fetch(`/api/structure/ad/${editingAD.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maAD: editingAD.maAD, tenAD: editingAD.tenAD, maPhong: editingAD.maPhong, note: editingAD.note }) }); if (res.ok) { setEditingAD(null); fetchAD(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1530→  }, [editingAD, fetchAD]);
+  1531→  const handleEditBanNhom = useCallback(async () => {
+  1532→    if (!editingBanNhom) return;
+  1533→    try { const res = await fetch(`/api/structure/bannhom/${editingBanNhom.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maBanNhom: editingBanNhom.maBanNhom, tenBanNhom: editingBanNhom.tenBanNhom, maAD: editingBanNhom.maAD, ngayBatDau: editingBanNhom.ngayBatDau, note: editingBanNhom.note }) }); if (res.ok) { setEditingBanNhom(null); fetchBanNhom(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1534→  }, [editingBanNhom, fetchBanNhom]);
+  1535→  const handleEditTvv = useCallback(async () => {
+  1536→    if (!editingTvv) return;
+  1537→    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  1538→  }, [editingTvv, fetchTvvStruct]);
+  1539→
+  1540→  const handleImportFile = useCallback(async (file: File) => {
+  1541→    try {
+  1542→      const XLSX = await import('xlsx');
+  1543→      const arrayBuffer = await file.arrayBuffer();
+  1544→      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  1545→      const ws = wb.Sheets[wb.SheetNames[0]];
+  1546→      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+  1547→      // Convert all values to string
+  1548→      const records = jsonData.map(row => {
+  1549→        const obj: Record<string, string> = {};
+  1550→        Object.entries(row).forEach(([k, v]) => { obj[k] = String(v ?? ''); });
+  1551→        return obj;
+  1552→      });
+  1553→      setImportPreview(records);
+  1554→      setImportFile(file);
+  1555→    } catch (e) {
+  1556→      console.error('File parse error', e);
+  1557→      toast({ title: 'Lỗi đọc file', description: 'File không hợp lệ. Dùng file .xlsx hoặc .csv', variant: 'destructive' });
+  1558→    }
+  1559→  }, []);
+  1560→
+  1561→  const handleImportStructure = useCallback(async () => {
+  1562→    let records: Array<Record<string, string>> = [];
+  1563→    // If file was uploaded, use parsed preview data
+  1564→    if (importPreview.length > 0) {
+  1565→      records = importPreview;
+  1566→    } else if (importData) {
+  1567→      // Fallback: paste tab-separated data
+  1568→      const lines = importData.trim().split('\n');
+  1569→      const header = lines[0].split('\t');
+  1570→      const rows = lines.slice(1);
+  1571→      records = rows.map(line => {
+  1572→        const cols = line.split('\t');
+  1573→        const record: Record<string, string> = {};
+  1574→        header.forEach((h, i) => { record[h.trim()] = (cols[i] || '').trim(); });
+  1575→        return record;
+  1576→      });
+  1577→    } else {
+  1578→      return;
+  1579→    }
+  1580→    if (!importTier || records.length === 0) return;
+  1581→    setImportLoading(true);
+  1582→    try {
+  1583→      let endpoint = '';
+  1584→      if (importTier === 'phong') endpoint = '/api/structure/phong';
+  1585→      else if (importTier === 'ad') endpoint = '/api/structure/ad';
+  1586→      else if (importTier === 'bannhom') endpoint = '/api/structure/bannhom';
+  1587→      else if (importTier === 'tvv') endpoint = '/api/structure/tvv';
+  1588→      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(records) });
+  1589→      if (res.ok) {
+  1590→        fetchPhong(); fetchAD(); fetchBanNhom(); fetchTvvStruct();
+  1591→        setImportData(''); setImportTier(''); setImportFile(null); setImportPreview([]);
+  1592→        toast({ title: 'Import thành công', description: `Đã import ${records.length} bản ghi` });
+  1593→      } else {
+  1594→        const err = await res.json().catch(() => ({}));
+  1595→        toast({ title: 'Lỗi import', description: err.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1596→      }
+  1597→    } catch (e) { console.error('Import error', e); toast({ title: 'Lỗi import', variant: 'destructive' }); }
+  1598→    finally { setImportLoading(false); }
+  1599→  }, [importData, importTier, importPreview, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
+  1600→
+  1601→  // ========== Download Template (server-side) ==========
+  1602→  const handleDownloadTemplate = useCallback((sheetName: string) => {
+  1603→    try {
+  1604→      const template = TEMPLATES[sheetName];
+  1605→      if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu', variant: 'destructive' }); return; }
+  1606→      window.open(`/api/quan-ly/template?type=${sheetName}`, '_blank');
+  1607→      toast({ title: 'Đang tải mẫu...', description: `Mẫu ${sheetName}` });
+  1608→    } catch (err) {
+  1609→      console.error('[handleDownloadTemplate] Error:', err);
+  1610→      toast({ title: 'Lỗi tải mẫu', description: String(err), variant: 'destructive' });
+  1611→    }
+  1612→  }, []);
+  1613→
+  1614→  // ========== Export (server-side) ==========
+  1615→  const handleExport = useCallback(async (sheetName: string) => {
+  1616→    try {
+  1617→      let data: any[] = [];
+  1618→      if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
+  1619→      else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
+  1620→      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
+  1621→      else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
+  1622→      else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
+  1623→
+  1624→      if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
+  1625→
+  1626→      const res = await fetch('/api/quan-ly/export', {
+  1627→        method: 'POST',
+  1628→        headers: { 'Content-Type': 'application/json' },
+  1629→        body: JSON.stringify({ sheetName, data }),
+  1630→      });
+  1631→
+  1632→      if (!res.ok) {
+  1633→        const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+  1634→        throw new Error(errData.error || 'Export failed');
+  1635→      }
+  1636→
+  1637→      const blob = await res.blob();
+  1638→      const url = URL.createObjectURL(blob);
+  1639→      const a = document.createElement('a');
+  1640→      a.href = url;
+  1641→      a.download = `${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  1642→      document.body.appendChild(a);
+  1643→      a.click();
+  1644→      document.body.removeChild(a);
+  1645→      URL.revokeObjectURL(url);
+  1646→      toast({ title: 'Xuất Excel thành công' });
+  1647→    } catch (err) {
+  1648→      console.error('[handleExport] Error:', err);
+  1649→      toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
+  1650→    }
+  1651→  }, [leaders, revenue, contracts, staff, recruiters]);
+  1652→
+  1653→  // ========== Import ==========
+  1654→  // Helper: convert various date formats to ISO string (yyyy-mm-dd) - timezone safe
+  1655→  // CRITICAL FIX: XLSX cellDates:true creates Date in LOCAL timezone (UTC+7),
+  1656→  // but previous code used getUTC* methods → dates shifted back 1 day
+  1657→  // (e.g. May 1 local = April 30 17:00 UTC → getUTCDate returns 30 = April!)
+  1658→  // Fix: use LOCAL get* methods for XLSX Date objects, UTC for everything else
+  1659→  const parseDateValue = useCallback((val: any): string | null => {
+  1660→    if (!val || val === '' || val === '—') return null;
+  1661→    // Already a Date object - XLSX with cellDates:true creates LOCAL timezone Date objects
+  1662→    // MUST use getFullYear/getMonth/getDate (NOT getUTC*) because XLSX creates dates in local tz
+  1663→    // Example: 01/05/2026 in Excel → new Date(2026,4,1) → local midnight → getUTCDate()=30 (wrong!)
+  1664→    if (val instanceof Date) {
+  1665→      const y = val.getFullYear();
+  1666→      const m = String(val.getMonth() + 1).padStart(2, '0');
+  1667→      const d = String(val.getDate()).padStart(2, '0');
+  1668→      // Validate: reasonable year range
+  1669→      if (y < 1900 || y > 2100) return null;
+  1670→      return `${y}-${m}-${d}`;
+  1671→    }
+  1672→    // String date formats
+  1673→    if (typeof val === 'string') {
+  1674→      // yyyy-mm-dd
+  1675→      if (/^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10);
+  1676→      // dd/mm/yyyy (Vietnamese format)
+  1677→      const dmy = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  1678→      if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  1679→      // Try native parse - use local methods since non-ISO strings create local tz Dates
+  1680→      const d = new Date(val);
+  1681→      if (!isNaN(d.getTime())) {
+  1682→        const y = d.getFullYear();
+  1683→        const m = String(d.getMonth() + 1).padStart(2, '0');
+  1684→        const day = String(d.getDate()).padStart(2, '0');
+  1685→        if (y < 1900 || y > 2100) return null;
+  1686→        return `${y}-${m}-${day}`;
+  1687→      }
+  1688→    }
+  1689→    // Excel serial number (days since 1899-12-30)
+  1690→    // Serial numbers are timezone-neutral, use UTC conversion
+  1691→    if (typeof val === 'number' && val > 1000) {
+  1692→      const d = new Date((val - 25569) * 86400 * 1000);
+  1693→      if (!isNaN(d.getTime())) {
+  1694→        const y = d.getUTCFullYear();
+  1695→        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  1696→        const day = String(d.getUTCDate()).padStart(2, '0');
+  1697→        if (y < 1900 || y > 2100) return null;
+  1698→        return `${y}-${m}-${day}`;
+  1699→      }
+  1700→    }
+  1701→    return null;
+  1702→  }, []);
+  1703→
+  1704→  const handleImport = useCallback(async (sheetName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  1705→    const file = e.target.files?.[0];
+  1706→    if (!file) return;
+  1707→    try {
+  1708→      const XLSX = await import('xlsx');
+  1709→      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+  1710→      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
+  1711→      if (!data.length) { toast({ title: 'File trống', variant: 'destructive' }); e.target.value = ''; return; }
+  1712→
+  1713→      let successCount = 0;
+  1714→      let failCount = 0;
+  1715→
+  1716→      if (sheetName === 'leaders') {
+  1717→        const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(String(r['Tiền/tháng'] || r['salary'] || '0').replace(/,/g, '')) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(r => r.agentCode || r.agentName);
+  1718→        // Batch import - send all rows in one API call
+  1719→        const r = await fetch('/api/leaders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows) });
+  1720→        if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; } else {
+  1721→          failCount = rows.length;
+  1722→          const errData = await r.json().catch(() => ({}));
+  1723→          toast({ title: 'Lỗi import TB/TN', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1724→        }
+  1725→      } else if (sheetName === 'revenue') {
+  1726→        const rows = data.map((r: any) => {
+  1727→          // With raw:true, numbers come as numbers. Handle both types.
+  1728→          const parseNum = (v: any) => typeof v === 'number' ? v : parseFloat(String(v || '0').replace(/,/g, '')) || 0;
+  1729→          const parseIntVal = (v: any) => typeof v === 'number' ? Math.round(v) : parseInt(String(v || '0').replace(/,/g, '')) || 0;
+  1730→          return {
+  1731→            month: String(r['Tháng'] || r['Month'] || r['month'] || ''),
+  1732→            maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''),
+  1733→            nhom: String(r['Nhóm'] || r['nhom'] || ''),
+  1734→            agentCode: String(r['Mã TVV'] || r['agentCode'] || ''),
+  1735→            agentName: String(r['Tên TVV'] || r['agentName'] || ''),
+  1736→            totalFYP: parseNum(r['Tổng IP'] || r['totalFYP']),
+  1737→            totalAFYP: parseNum(r['Tổng AFYP'] || r['totalAFYP']),
+  1738→            contractCount: parseIntVal(r['Số HĐ'] || r['contractCount']),
+  1739→            activityRounds: parseIntVal(r['Lượt HĐ'] || r['activityRounds']),
+  1740→            note: String(r['Ghi chú'] || r['note'] || ''),
+  1741→          };
+  1742→        }).filter(r => r.month || r.agentCode || r.agentName);
+  1743→        if (rows.length === 0) { toast({ title: 'Không có dữ liệu hợp lệ', description: 'Kiểm tra lại cột Tháng, Mã TVV, Tên TVV', variant: 'destructive' }); }
+  1744→        else {
+  1745→          const r = await fetch('/api/revenue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members: rows }) });
+  1746→          if (r.ok) { const result = await r.json(); successCount = result.count || rows.length; }
+  1747→          else {
+  1748→            failCount = rows.length;
+  1749→            const errData = await r.json().catch(() => ({}));
+  1750→            console.warn('[Import revenue] Failed:', errData.error);
+  1751→            toast({ title: 'Lỗi import doanh số', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1752→          }
+  1753→        }
+  1754→      } else if (sheetName === 'contracts') {
+  1755→        // Batch import - prepare all rows then send in one API call
+  1756→        const contractRows = [];
+  1757→        for (const r of data) {
+  1758→          const row = r as any;
+  1759→          const effectiveDate = parseDateValue(row['Ngày hiệu lực'] || row['Ngày hl'] || row['effectiveDate']);
+  1760→          const contractNumber = String(row['Số hợp đồng'] || row['Số HĐ'] || row['contractNumber'] || '').trim();
+  1761→          const agentName = String(row['Tên'] || row['Họ tên'] || row['Tên TVV'] || row['agentName'] || '').trim();
+  1762→          const fyp = parseFloat(String(row['FYP'] || row['IP'] || row['PĐT + 10% ĐT'] || row['fyp'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0;
+  1763→
+  1764→          // Skip rows without minimum required data
+  1765→          if (!contractNumber && !agentName) { failCount++; continue; }
+  1766→
+  1767→          contractRows.push({
+  1768→            stt: parseInt(String(row['STT'] || row['stt'] || '0').replace(/,/g, '')) || 0,
+  1769→            ban: String(row['Ban'] || row['ban'] || '').trim(),
+  1770→            maTruongBan: String(row['Mã trưởng ban'] || row['maTruongBan'] || '').trim(),
+  1771→            nhom: String(row['Nhóm'] || row['nhom'] || '').trim(),
+  1772→            maBanNhom: String(row['Mã Ban/Nhóm'] || row['Mã ban/nhóm'] || row['maBanNhom'] || '').trim(),
+  1773→            maTruongBanNhom: String(row['Mã trưởng Ban/Nhóm'] || row['maTruongBanNhom'] || '').trim(),
+  1774→            maDL: String(row['Mã ĐL'] || row['Mã đại lý'] || row['maDL'] || '').trim(),
+  1775→            agentCode: String(row['Mã TVV'] || row['agentCode'] || row['Mã ĐL'] || row['Mã đại lý'] || '').trim(),
+  1776→            agentName: agentName || 'Chưa nhập',
+  1777→            position: String(row['Chức vụ'] || row['position'] || '').trim(),
+  1778→            ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['Ngày bắt đầu LV'] || row['Ngày BĐLV'] || row['ngayBatDauLamViec']),
+  1779→            contractNumber: contractNumber || 'HD_' + Date.now() + '_' + contractRows.length,
+  1780→            effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
+  1781→            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['Ngày PH'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
+  1782→            pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['PĐT+10%ĐT'] || row['IP+10%PĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
+  1783→            fyp: fyp || parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
+  1784→            nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || '').trim(),
+  1785→            hopDongToChuc: String(row['Hợp đồng tổ chức'] || row['hopDongToChuc'] || '').trim(),
+  1786→            dkDongPhi: String(row['ĐK ĐÓNG PHÍ'] || row['dkDongPhi'] || '').trim(),
+  1787→            phiDongThem: parseFloat(String(row['PHÍ ĐÓNG THÊM'] || row['phiDongThem'] || '0').replace(/,/g, '')) || 0,
+  1788→            afypChuaTru10DT: parseFloat(String(row['AFYP chưa trừ 10% ĐT'] || row['afypChuaTru10DT'] || '0').replace(/,/g, '')) || 0,
+  1789→            afyp: parseFloat(String(row['AFYP'] || row['afyp'] || '0').replace(/,/g, '')) || 0,
+  1790→            ad: String(row['AD'] || row['ad'] || '').trim(),
+  1791→            nhom2: String(row['NHÓM'] || row['nhom2'] || '').trim(),
+  1792→            ngayBatDauLamViec2: parseDateValue(row['NGÀY BẮT ĐẦU LÀM VIỆC'] || row['ngayBatDauLamViec2']),
+  1793→            thangTD: parseInt(String(row['THÁNG TD'] || row['thangTD'] || '0').replace(/,/g, '')) || 0,
+  1794→            namTD: parseInt(String(row['NĂM TD'] || row['namTD'] || '0').replace(/,/g, '')) || 0,
+  1795→            thangHL: parseInt(String(row['THÁNG HL'] || row['thangHL'] || '0').replace(/,/g, '')) || 0,
+  1796→            tinhLuot3tr: parseFloat(String(row['TÍNH LƯỢT 3 tr'] || row['TÍNH LƯỢT 3TR'] || row['TÍNH LƯỢT 3tr'] || row['Tính lượt 3tr'] || row['Tính lượt 3 tr'] || row['tinhLuot3tr'] || '0').replace(/,/g, '')) || 0,
+  1797→            maDaiLyTD: String(row['MÃ ĐL TD'] || row['Mã đại lý tuyển dụng'] || row['Mã NTD'] || row['MÃ ĐLTD'] || row['maDaiLyTD'] || '').trim(),
+  1798→            danhDauTVV: String(row['ĐÁNH DẤU TVVm TUYỂN DỤNG QUÝ 1'] || row['danhDauTVV'] || '').trim(),
+  1799→            chucVu2: String(row['Chức vụ'] || row['chucVu2'] || '').trim(),
+  1800→            maNhom: String(row['Mã nhóm'] || row['maNhom'] || row['Mã Ban/Nhóm'] || '').trim(),
+  1801→          });
+  1802→        }
+  1803→        if (contractRows.length > 0) {
+  1804→          // Upsert mode: chỉ cập nhật HĐ theo số HĐ, không xóa HĐ cũ
+  1805→          console.log(`[Import contracts] ${contractRows.length} rows (upsert mode)`);
+  1806→          const resp = await fetch('/api/contracts', {
+  1807→            method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1808→            body: JSON.stringify({ contracts: contractRows })
+  1809→          });
+  1810→          if (resp.ok) { 
+  1811→            const result = await resp.json(); 
+  1812→            successCount = result.count || contractRows.length;
+  1813→            const updatedInfo = result.updated > 0 ? ` | Cập nhật ${result.updated} HĐ` : '';
+  1814→            const errorInfo = result.errors > 0 ? ` | ${result.errors} lỗi` : '';
+  1815→            toast({ title: 'Import thành công', description: `${result.count} HĐ mới${updatedInfo}${errorInfo}` });
+  1816→            // Auto-sync revenue from contracts after successful import
+  1817→            try {
+  1818→              const syncRes = await fetch('/api/revenue/sync-from-contracts', { method: 'POST' });
+  1819→              if (syncRes.ok) {
+  1820→                const syncData = await syncRes.json();
+  1821→                console.log('[Auto-sync revenue]', syncData.message);
+  1822→              }
+  1823→            } catch { /* silent - revenue sync is optional */ }
+  1824→          }
+  1825→          else {
+  1826→            failCount = contractRows.length;
+  1827→            const errData = await resp.json().catch(() => ({}));
+  1828→            console.warn('[Import contracts] Batch failed:', errData.error);
+  1829→            toast({ title: 'Lỗi import HĐ', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1830→          }
+  1831→        }
+  1832→      } else if (sheetName === 'staff') {
+  1833→        const members = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
+  1834→        if (members.length) {
+  1835→          const r = await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+  1836→          if (r.ok) { const result = await r.json(); successCount = result.count || members.length; } else {
+  1837→            failCount = members.length;
+  1838→            const errData = await r.json().catch(() => ({}));
+  1839→            toast({ title: 'Lỗi import nhân sự', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1840→          }
+  1841→        }
+  1842→      } else if (sheetName === 'recruiters') {
+  1843→        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
+  1844→        if (members.length) {
+  1845→          const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+  1846→          if (r.ok) { const result = await r.json(); successCount = result.count || members.length; } else {
+  1847→            failCount = members.length;
+  1848→            const errData = await r.json().catch(() => ({}));
+  1849→            toast({ title: 'Lỗi import người TD', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+  1850→          }
+  1851→        }
+  1852→      }
+  1853→      if (failCount > 0) {
+  1854→        toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
+  1855→      } else if (sheetName !== 'contracts') {
+  1856→        // Contracts already shows its own toast with replace info
+  1857→        toast({ title: 'Import thành công', description: `${successCount} dòng` });
+  1858→      }
+  1859→    } catch (err) {
+  1860→      console.error('[handleImport] Error:', err);
+  1861→      toast({ title: 'Lỗi import', description: String(err), variant: 'destructive' });
+  1862→    }
+  1863→    // Reload all data after import (await to prevent race conditions)
+  1864→    await fetchAllData();
+  1865→    e.target.value = '';
+  1866→  }, [parseDateValue, fetchAllData]);
+  1867→
+  1868→  // Sort & filter
+  1869→  const sortData = useCallback((field: string) => {
+  1870→    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+  1871→    else { setSortField(field); setSortDir('asc'); }
+  1872→  }, [sortField]);
+  1873→  const getSorted = useCallback((data: any[]) => {
+  1874→    if (!sortField) return data;
+  1875→    return [...data].sort((a, b) => { const va = a[sortField], vb = b[sortField]; if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va; return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va)); });
+  1876→  }, [sortField, sortDir]);
+  1877→  const getFiltered = useCallback((data: any[], fields: string[]) => {
+  1878→    if (!searchTerm) return data; const l = searchTerm.toLowerCase(); return data.filter(item => fields.some(f => String(item[f] || '').toLowerCase().includes(l)));
+  1879→  }, [searchTerm]);
+  1880→
+  1881→  const SortIcon = ({ field }: { field: string }) => (
+  1882→    <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-emerald-200'}`} />
+  1883→  );
+  1884→
+  1885→  const handleSyncToggle = useCallback(() => {
+  1886→    if (syncEnabled) { if (!confirm('Tắt đồng bộ?\nBảng Hợp đồng & Nhân sự sẽ chuyển sang chế độ thủ công.')) return; setSyncEnabled(false); toast({ title: 'Đã tắt đồng bộ', description: 'Có thể chỉnh sửa HĐ & Nhân sự' }); }
+  1887→    else { setSyncEnabled(true); toast({ title: 'Đã bật đồng bộ', description: 'Tự động cập nhật từ Google Sheets' }); }
+  1888→  }, [syncEnabled]);
+  1889→
+  1890→  // ========== RENDER: Overview ==========
+  1891→  const totalLeaders = leaders.length;
+  1892→  const totalStaff = leaders.length; // SL TB/TN = đếm tại file DS TB/TN (LeaderInfo table)
+  1893→  const totalContracts = contracts.length;
+  1894→  const totalFYP = contracts.reduce((s, c) => s + c.fyp, 0);
+  1895→  const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
+  1896→  const totalRecruiters = recruiters.length;
+  1897→
+  1898→  // Computed values from Contract data (file doanh thu năm)
+  1899→  // Use current year contracts for all calculations
+  1900→  const currentYear = new Date().getFullYear();
+  1901→  const yearContracts = contracts.filter(c => {
+  1902→    const d = getDoanhSoMonth(c);
+  1903→    return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+  1904→  });
+  1905→
+  1906→  // Period-to-months mapping for overview time period filter
+  1907→  const getPeriodMonths = (period: string): number[] => {
+  1908→    if (period.startsWith('month-')) return [parseInt(period.split('-')[1])];
+  1909→    if (period === 'q1') return [1,2,3];
+  1910→    if (period === 'q2') return [4,5,6];
+  1911→    if (period === 'q3') return [7,8,9];
+  1912→    if (period === 'q4') return [10,11,12];
+  1913→    if (period === 'h1') return [1,2,3,4,5,6];
+  1914→    if (period === 'year') return [1,2,3,4,5,6,7,8,9,10,11,12];
+  1915→    return [1,2,3,4,5,6,7,8,9,10,11,12];
+  1916→  };
+  1917→
+  1918→  // Filter contracts by selected overview period
+  1919→  const periodMonths = getPeriodMonths(overviewPeriod);
+  1920→  const periodContracts = yearContracts.filter(c => {
+  1921→    const d = getDoanhSoMonth(c);
+  1922→    return periodMonths.includes(d.getMonth() + 1);
+  1923→  });
+  1924→
+  1925→  const totalRevenue = periodContracts.reduce((s, c) => s + c.pdt10DT, 0); // IP + 10% PĐT
+  1926→  const totalRevenueAFYP = periodContracts.reduce((s, c) => s + c.afyp, 0);
+  1927→  const totalRevenueContractCount = periodContracts.length; // Số lượng HĐ = số dòng
+  1928→
+  1929→  // Lượt HĐ = đếm số dòng hợp đồng có tinhLuot3tr >= 3,000,000
+  1930→  const luotHoatDong = periodContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+  1931→  // Lượt HĐ chuẩn = đếm số dòng hợp đồng có tinhLuot3tr >= 12,000,000
+  1932→  const luotHDChuan = periodContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
+  1933→
+  1934→  // TVV đạt 3tr
+  1935→  const tvvAchieved3M = luotHoatDong;
+  1936→  const tvvAchieved12M = luotHDChuan;
+  1937→
+  1938→  // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
+  1939→  const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
+  1940→
+  1941→  // Độ lớn hợp đồng (ĐLHĐ) = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+  1942→  const doLonHD = luotHoatDong > 0 ? totalRevenueAFYP / luotHoatDong : 0;
+  1943→
+  1944→  // Năng suất = SL hợp đồng / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+  1945→  const nangSuat = luotHoatDong > 0 ? totalRevenueContractCount / luotHoatDong : 0;
+  1946→
+  1947→  // SL tuyển dụng = đếm unique agentCode từ cấu trúc TVV có ngày bắt đầu trong năm hiện tại
+  1948→  const slTuyenDungNam = tvvStructList.filter(t => {
+  1949→    if (!t.ngayBatDau) return false;
+  1950→    const d = new Date(t.ngayBatDau);
+  1951→    return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+  1952→  }).length;
+  1953→
+  1954→  // NTD hoạt động: count unique maDaiLyTD that exist in recruiters
+  1955→  const ntdCodes = new Set(recruiters.map(r => r.agentCode));
+  1956→  const activeNTDCount = new Set<string>();
+  1957→  for (const c of periodContracts) {
+  1958→    if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTDCount.add(c.maDaiLyTD);
+  1959→  }
+  1960→
+  1961→  // Target values — ALL plans come from KẾ HOẠCH section only
+  1962→  // AFYP plan: calculated from KẾ HOẠCH (sum of all Phòng = sum of all AD plans)
+  1963→  const adPlansForTarget = new Map<string, number>();
+  1964→  adList.forEach(ad => {
+  1965→    const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
+  1966→    adPlansForTarget.set(ad.maAD, val);
+  1967→  });
+  1968→  const targetTongAFYP = adList.reduce((s, ad) => s + (adPlansForTarget.get(ad.maAD) || 0), 0);
+  1969→
+  1970→  // Other indicators: display only, no plan from KẾ HOẠCH
+  1971→  const targetTongIP = 0; // IP has no plan
+  1972→  const targetTongSLHD = 0;
+  1973→  const targetLuotHD = 0;
+  1974→  const targetLuotHDChuan = 0;
+  1975→  const targetNangSuat = 0;
+  1976→  const targetDLHD = 0;
+  1977→  const targetSLTBTN = 0;
+  1978→  const targetSLNTD = 0;
+  1979→  const targetSLTuyenDung = 0;
+  1980→
+  1981→  // Edit state for indicator targets
+  1982→  const [editingTarget, setEditingTarget] = useState<string | null>(null);
+  1983→  const [targetInput, setTargetInput] = useState('');
+  1984→
+  1985→  // KẾ HOẠCH settings state
+  1986→  const [khSettingsOpen, setKhSettingsOpen] = useState(false);
+  1987→  const [khEditRatio, setKhEditRatio] = useState<string | null>(null);
+  1988→  const [khEditRatioVal, setKhEditRatioVal] = useState('');
+  1989→
+  1990→  const handleSaveTarget = useCallback((key: string) => {
+  1991→    const val = parseFloat(targetInput) || 0;
+  1992→    saveSetting(key, String(val));
+  1993→    setEditingTarget(null);
+  1994→    toast({ title: 'Đã lưu chỉ tiêu', description: `Mục tiêu: ${val > 0 ? formatNumber(val) : 'Chưa đặt'}` });
+  1995→  }, [targetInput, saveSetting]);
+  1996→
+  1997→  // Overview KPI data sources
+  1998→  const overviewDataSources: KPIDataSource[] = [
+  1999→    {
+  2000→      key: 'leaders', label: 'TB/TN', data: leaders,
+
+[showing lines 1-2000 of 4658; use offset=2001 with limit to continue reading]

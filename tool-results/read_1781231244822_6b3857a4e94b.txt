@@ -1,0 +1,422 @@
+  3918→  const renderStructure = () => {
+  3919→    const totalTVV = tvvStructList.length;
+  3920→    const totalBN = banNhomList.length;
+  3921→    const totalADCount = adList.length;
+  3922→    const totalPhong = phongList.length;
+  3923→
+  3924→    return (
+  3925→      <>
+  3926→      <div className="space-y-3 h-full flex flex-col">
+  3927→        {/* Header */}
+  3928→        <div className="flex items-center justify-between flex-shrink-0">
+  3929→          <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Cấu trúc tổ chức</h2>
+  3930→          <div className="flex items-center gap-1">
+  3931→            <div className="relative group">
+  3932→              <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
+  3933→              <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+  3934→                {[
+  3935→                  { tier: 'phong', label: 'Import Phòng' },
+  3936→                  { tier: 'ad', label: 'Import AD' },
+  3937→                  { tier: 'bannhom', label: 'Import Ban/Nhóm' },
+  3938→                  { tier: 'tvv', label: 'Import TVV' },
+  3939→                ].map(t => (
+  3940→                  <button key={t.tier} onClick={() => setImportTier(t.tier)} className="w-full text-left text-[10px] text-emerald-300 hover:bg-emerald-500/10 px-2 py-1 rounded">{t.label}</button>
+  3941→                ))}
+  3942→              </div>
+  3943→            </div>
+  3944→            <div className="relative group">
+  3945→              <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-300 hover:text-emerald-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
+  3946→              <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+  3947→                {[
+  3948→                  { key: 'structure-phong', label: 'Mẫu Phòng' },
+  3949→                  { key: 'structure-ad', label: 'Mẫu AD' },
+  3950→                  { key: 'structure-bannhom', label: 'Mẫu Ban/Nhóm' },
+  3951→                  { key: 'structure-tvv', label: 'Mẫu TVV' },
+  3952→                ].map(t => (
+  3953→                  <button key={t.key} onClick={() => handleDownloadTemplate(t.key)} className="w-full text-left text-[10px] text-emerald-300 hover:bg-emerald-500/10 px-2 py-1 rounded">{t.label}</button>
+  3954→                ))}
+  3955→              </div>
+  3956→            </div>
+  3957→          </div>
+  3958→        </div>
+  3959→
+  3960→        {/* Summary strip — green theme */}
+  3961→        <div className="flex items-center gap-2 flex-shrink-0">
+  3962→          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalPhong} Phòng</span>
+  3963→          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalADCount} AD</span>
+  3964→          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
+  3965→          <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
+  3966→          <div className="ml-auto">
+  3967→            <Button variant="ghost" size="sm" onClick={handleReplaceAllTvv} disabled={isReplacingTvv} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
+  3968→              {isReplacingTvv ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang cập nhật...</> : <><RefreshCw className="w-3 h-3 mr-1" /> Cập nhật DS TVV</>}
+  3969→            </Button>
+  3970→          </div>
+  3971→        </div>
+  3972→
+  3973→        {/* Tree Layout — Kế hoạch-style cards with silver/gray content bg */}
+  3974→        <div className="flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin space-y-2">
+  3975→          {phongList.length === 0 ? (
+  3976→            <div className="p-6 text-center">
+  3977→              <p className="text-white/30 text-xs italic">Chưa có cấu trúc. Thêm Phòng hoặc Import để bắt đầu.</p>
+  3978→              <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="text-emerald-400 hover:text-emerald-300 mt-2 text-[10px] h-6"><Plus className="w-3 h-3 mr-1" /> Thêm Phòng</Button>
+  3979→            </div>
+  3980→          ) : phongList.map(p => {
+  3981→            const pADs = adList.filter(a => a.maPhong === p.maPhong);
+  3982→            return (
+  3983→              <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+  3984→                {/* PHÒNG header — dark strip like Kế hoạch */}
+  3985→                <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
+  3986→                  <div className="flex items-center gap-2">
+  3987→                    <Building2 className="w-4 h-4 text-emerald-400" />
+  3988→                    <span className="text-xs sm:text-sm font-bold text-emerald-300">{p.tenPhong}</span>
+  3989→                  </div>
+  3990→                  <div className="flex items-center gap-0.5 flex-shrink-0">
+  3991→                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {pADs.length} AD</span>
+  3992→                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
+  3993→                    <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-emerald-400"><Edit2 className="w-2.5 h-2.5" /></Button>
+  3994→                    <Button variant="ghost" size="sm" onClick={() => handleDeletePhong(p.id)} className="h-5 w-5 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
+  3995→                  </div>
+  3996→                </div>
+  3997→
+  3998→                {/* AD list — silver/gray background */}
+  3999→                <div className="px-3 py-2 space-y-1.5" style={{ backgroundColor: '#e5e7eb' }}>
+  4000→                  {pADs.length === 0 && (
+  4001→                    <div className="px-2 py-1.5">
+  4002→                      <p className="text-gray-500 text-[9px] italic">Chưa có AD</p>
+  4003→                    </div>
+  4004→                  )}
+  4005→                  {pADs.map(a => {
+  4006→                    const aBNs = banNhomList.filter(b => b.maAD === a.maAD);
+  4007→                    return (
+  4008→                      <div key={a.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#ecfdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+  4009→                        {/* AD header — dark green accent */}
+  4010→                        <div className="px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#059669' }}>
+  4011→                          <div className="flex items-center gap-2">
+  4012→                            <UserCog className="w-3.5 h-3.5 text-white flex-shrink-0" />
+  4013→                            <span className="text-[11px] font-bold text-white truncate">{a.tenAD}</span>
+  4014→                            <span className="text-[9px] text-white/70">{a.maAD} • {aBNs.length} nhóm</span>
+  4015→                          </div>
+  4016→                          <div className="flex items-center gap-0.5 flex-shrink-0">
+  4017→                            <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: a.maAD })); setAddBanNhomOpen(true); }} className="h-4 w-4 p-0 text-white/70 hover:text-white" title="Thêm Nhóm"><Plus className="w-2 h-2" /></Button>
+  4018→                            <Button variant="ghost" size="sm" onClick={() => setEditingAD(a)} className="h-4 w-4 p-0 text-white/50 hover:text-white"><Edit2 className="w-2 h-2" /></Button>
+  4019→                            <Button variant="ghost" size="sm" onClick={() => handleDeleteAD(a.id)} className="h-4 w-4 p-0 text-white/50 hover:text-red-300"><Trash2 className="w-2 h-2" /></Button>
+  4020→                          </div>
+  4021→                        </div>
+  4022→
+  4023→                        {/* Nhóm list — white background */}
+  4024→                        <div className="px-2 py-1.5 space-y-1">
+  4025→                          {aBNs.length === 0 && (
+  4026→                            <div className="px-2 py-1">
+  4027→                              <p className="text-gray-400 text-[9px] italic">Chưa có Nhóm</p>
+  4028→                            </div>
+  4029→                          )}
+  4030→                          {aBNs.map(b => {
+  4031→                            const isExpanded = expandedBanNhoms.has(b.id);
+  4032→                            const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3, 'TVV': 4 };
+  4033→                            const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom)
+  4034→                              .sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
+  4035→                            const tdCount = bnTVVs.filter(t => {
+  4036→                              if (!t.ngayBatDau) return false;
+  4037→                              const d = new Date(t.ngayBatDau);
+  4038→                              return !isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear();
+  4039→                            }).length;
+  4040→                            return (
+  4041→                              <div key={b.id}>
+  4042→                                {/* Nhóm header row — click to toggle TVV */}
+  4043→                                <div
+  4044→                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-all duration-200 border ${isExpanded ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-gray-200 hover:bg-emerald-50/50'}`}
+  4045→                                  onClick={() => {
+  4046→                                    setExpandedBanNhoms(prev => {
+  4047→                                      const next = new Set(prev);
+  4048→                                      if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
+  4049→                                      return next;
+  4050→                                    });
+  4051→                                  }}
+  4052→                                >
+  4053→                                  <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}>
+  4054→                                    <ChevronDown className="w-3 h-3 text-emerald-500" />
+  4055→                                  </div>
+  4056→                                  <Network className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+  4057→                                  <div className="min-w-0 flex-1">
+  4058→                                    <p className="text-gray-800 text-[11px] font-bold truncate">{b.tenBanNhom}</p>
+  4059→                                    <p className="text-gray-400 text-[9px]">{b.maBanNhom}{b.ngayBatDau ? ` • BĐ: ${safeFormatDate(b.ngayBatDau)}` : ''}</p>
+  4060→                                  </div>
+  4061→                                  <div className="flex items-center gap-1 flex-shrink-0">
+  4062→                                    <span className="text-[9px] text-white bg-emerald-700 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{bnTVVs.length} TVV</span>
+  4063→                                    {tdCount > 0 && <span className="text-[9px] text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded-full whitespace-nowrap font-semibold">{tdCount} TD</span>}
+  4064→                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setNewTvv(prev => ({ ...prev, maBanNhom: b.maBanNhom })); setAddTvvOpen(true); }} className="h-4 w-4 p-0 text-emerald-400 hover:text-emerald-600" title="Thêm TVV"><Plus className="w-2 h-2" /></Button>
+  4065→                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingBanNhom(b); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
+  4066→                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteBanNhom(b.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+  4067→                                  </div>
+  4068→                                </div>
+  4069→
+  4070→                                {/* TVV list — animated slide-down */}
+  4071→                                <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+  4072→                                  {bnTVVs.length > 0 ? (
+  4073→                                    <div className="ml-5 mt-0.5 space-y-0">
+  4074→                                      {bnTVVs.map((t, idx) => (
+  4075→                                        <div
+  4076→                                          key={t.id}
+  4077→                                          className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm group"
+  4078→                                          style={{
+  4079→                                            transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
+  4080→                                            transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
+  4081→                                            opacity: isExpanded ? 1 : 0,
+  4082→                                          }}
+  4083→                                        >
+  4084→                                          <span className="text-gray-400 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
+  4085→                                          <span className="text-gray-700 text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
+  4086→                                          {t.chucVu && <span className="text-emerald-700 text-[9px] flex-shrink-0 font-semibold">{t.chucVu}</span>}
+  4087→                                          {t.ngayBatDau && <span className="text-gray-400 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
+  4088→                                          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+  4089→                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
+  4090→                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+  4091→                                          </div>
+  4092→                                        </div>
+  4093→                                      ))}
+  4094→                                    </div>
+  4095→                                  ) : (
+  4096→                                    <div className="ml-5 mt-0.5 px-3 py-2">
+  4097→                                      <p className="text-gray-400 text-[10px] italic">Chưa có TVV</p>
+  4098→                                    </div>
+  4099→                                  )}
+  4100→                                </div>
+  4101→                              </div>
+  4102→                            );
+  4103→                          })}
+  4104→                        </div>
+  4105→                      </div>
+  4106→                    );
+  4107→                  })}
+  4108→                </div>
+  4109→              </div>
+  4110→            );
+  4111→          })}
+  4112→        </div>
+  4113→      </div>
+  4114→
+  4115→      {/* Add Phong Dialog */}
+  4116→      <Dialog open={addPhongOpen} onOpenChange={setAddPhongOpen}>
+  4117→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4118→          <DialogHeader><DialogTitle className="text-emerald-400">Thêm Phòng</DialogTitle></DialogHeader>
+  4119→          <div className="space-y-2">
+  4120→            <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newPhong.maPhong} onChange={e => setNewPhong(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4121→            <div><Label className="text-xs text-emerald-200/70">Tên Phòng</Label><Input value={newPhong.tenPhong} onChange={e => setNewPhong(p => ({ ...p, tenPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4122→            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newPhong.note} onChange={e => setNewPhong(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4123→          </div>
+  4124→          <DialogFooter><Button onClick={handleAddPhong} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Thêm</Button></DialogFooter>
+  4125→        </DialogContent>
+  4126→      </Dialog>
+  4127→
+  4128→      {/* Add AD Dialog */}
+  4129→      <Dialog open={addADOpen} onOpenChange={setAddADOpen}>
+  4130→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4131→          <DialogHeader><DialogTitle className="text-emerald-400">Thêm AD</DialogTitle></DialogHeader>
+  4132→          <div className="space-y-2">
+  4133→            <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4134→            <div><Label className="text-xs text-emerald-200/70">Tên AD</Label><Input value={newAD.tenAD} onChange={e => setNewAD(p => ({ ...p, tenAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4135→            <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newAD.maPhong} onChange={e => setNewAD(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: P001" /></div>
+  4136→            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newAD.note} onChange={e => setNewAD(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4137→          </div>
+  4138→          <DialogFooter><Button onClick={handleAddAD} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Thêm</Button></DialogFooter>
+  4139→        </DialogContent>
+  4140→      </Dialog>
+  4141→
+  4142→      {/* Add BanNhom Dialog */}
+  4143→      <Dialog open={addBanNhomOpen} onOpenChange={setAddBanNhomOpen}>
+  4144→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4145→          <DialogHeader><DialogTitle className="text-sky-400">Thêm Ban/Nhóm</DialogTitle></DialogHeader>
+  4146→          <div className="space-y-2">
+  4147→            <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4148→            <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={newBanNhom.tenBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, tenBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4149→            <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newBanNhom.maAD} onChange={e => setNewBanNhom(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: AD001" /></div>
+  4150→            <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newBanNhom.ngayBatDau} onChange={e => setNewBanNhom(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4151→            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newBanNhom.note} onChange={e => setNewBanNhom(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4152→          </div>
+  4153→          <DialogFooter><Button onClick={handleAddBanNhom} className="bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300">Thêm</Button></DialogFooter>
+  4154→        </DialogContent>
+  4155→      </Dialog>
+  4156→
+  4157→      {/* Add TVV Dialog */}
+  4158→      <Dialog open={addTvvOpen} onOpenChange={setAddTvvOpen}>
+  4159→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4160→          <DialogHeader><DialogTitle className="text-violet-400">Thêm TVV</DialogTitle></DialogHeader>
+  4161→          <div className="space-y-2">
+  4162→            <div><Label className="text-xs text-emerald-200/70">Mã TVV</Label><Input value={newTvv.agentCode} onChange={e => setNewTvv(p => ({ ...p, agentCode: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4163→            <div><Label className="text-xs text-emerald-200/70">Tên TVV</Label><Input value={newTvv.agentName} onChange={e => setNewTvv(p => ({ ...p, agentName: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4164→            <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newTvv.maBanNhom} onChange={e => setNewTvv(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: BN001" /></div>
+  4165→            <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4166→            <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4167→            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4168→          </div>
+  4169→          <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Thêm</Button></DialogFooter>
+  4170→        </DialogContent>
+  4171→      </Dialog>
+  4172→
+  4173→      {/* Edit Phong Dialog */}
+  4174→      <Dialog open={!!editingPhong} onOpenChange={(open) => { if (!open) setEditingPhong(null); }}>
+  4175→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4176→          <DialogHeader><DialogTitle className="text-emerald-400">Sửa Phòng</DialogTitle></DialogHeader>
+  4177→          {editingPhong && (
+  4178→            <div className="space-y-2">
+  4179→              <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={editingPhong.maPhong} onChange={e => setEditingPhong(p => p ? { ...p, maPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4180→              <div><Label className="text-xs text-emerald-200/70">Tên Phòng</Label><Input value={editingPhong.tenPhong} onChange={e => setEditingPhong(p => p ? { ...p, tenPhong: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4181→              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingPhong.note} onChange={e => setEditingPhong(p => p ? { ...p, note: e.target.value } : p)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4182→            </div>
+  4183→          )}
+  4184→          <DialogFooter><Button onClick={handleEditPhong} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Lưu</Button></DialogFooter>
+  4185→        </DialogContent>
+  4186→      </Dialog>
+  4187→
+  4188→      {/* Edit AD Dialog */}
+  4189→      <Dialog open={!!editingAD} onOpenChange={(open) => { if (!open) setEditingAD(null); }}>
+  4190→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4191→          <DialogHeader><DialogTitle className="text-amber-400">Sửa AD</DialogTitle></DialogHeader>
+  4192→          {editingAD && (
+  4193→            <div className="space-y-2">
+  4194→              <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingAD.maAD} onChange={e => setEditingAD(a => a ? { ...a, maAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4195→              <div><Label className="text-xs text-emerald-200/70">Tên AD</Label><Input value={editingAD.tenAD} onChange={e => setEditingAD(a => a ? { ...a, tenAD: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4196→              <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={editingAD.maPhong} onChange={e => setEditingAD(a => a ? { ...a, maPhong: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4197→              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingAD.note} onChange={e => setEditingAD(a => a ? { ...a, note: e.target.value } : a)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4198→            </div>
+  4199→          )}
+  4200→          <DialogFooter><Button onClick={handleEditAD} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300">Lưu</Button></DialogFooter>
+  4201→        </DialogContent>
+  4202→      </Dialog>
+  4203→
+  4204→      {/* Edit BanNhom Dialog */}
+  4205→      <Dialog open={!!editingBanNhom} onOpenChange={(open) => { if (!open) setEditingBanNhom(null); }}>
+  4206→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4207→          <DialogHeader><DialogTitle className="text-sky-400">Sửa Ban/Nhóm</DialogTitle></DialogHeader>
+  4208→          {editingBanNhom && (
+  4209→            <div className="space-y-2">
+  4210→              <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingBanNhom.maBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, maBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4211→              <div><Label className="text-xs text-emerald-200/70">Tên Ban/Nhóm</Label><Input value={editingBanNhom.tenBanNhom} onChange={e => setEditingBanNhom(b => b ? { ...b, tenBanNhom: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4212→              <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={editingBanNhom.maAD} onChange={e => setEditingBanNhom(b => b ? { ...b, maAD: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4213→              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingBanNhom.ngayBatDau ? toInputDate(editingBanNhom.ngayBatDau) : ''} onChange={e => setEditingBanNhom(b => b ? { ...b, ngayBatDau: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4214→              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingBanNhom.note} onChange={e => setEditingBanNhom(b => b ? { ...b, note: e.target.value } : b)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4215→            </div>
+  4216→          )}
+  4217→          <DialogFooter><Button onClick={handleEditBanNhom} className="bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300">Lưu</Button></DialogFooter>
+  4218→        </DialogContent>
+  4219→      </Dialog>
+  4220→
+  4221→      {/* Edit TVV Dialog */}
+  4222→      <Dialog open={!!editingTvv} onOpenChange={(open) => { if (!open) setEditingTvv(null); }}>
+  4223→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+  4224→          <DialogHeader><DialogTitle className="text-violet-400">Sửa TVV</DialogTitle></DialogHeader>
+  4225→          {editingTvv && (
+  4226→            <div className="space-y-2">
+  4227→              <div><Label className="text-xs text-emerald-200/70">Mã TVV</Label><Input value={editingTvv.agentCode} onChange={e => setEditingTvv(t => t ? { ...t, agentCode: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4228→              <div><Label className="text-xs text-emerald-200/70">Tên TVV</Label><Input value={editingTvv.agentName} onChange={e => setEditingTvv(t => t ? { ...t, agentName: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4229→              <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4230→              <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4231→              <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? toInputDate(editingTvv.ngayBatDau) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4232→              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+  4233→            </div>
+  4234→          )}
+  4235→          <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Lưu</Button></DialogFooter>
+  4236→        </DialogContent>
+  4237→      </Dialog>
+  4238→
+  4239→      {/* Import Dialog */}
+  4240→      <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); } }}>
+  4241→        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 max-w-lg">
+  4242→          <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
+  4243→          <div className="space-y-3">
+  4244→            {/* File upload zone */}
+  4245→            <div
+  4246→              className="border-2 border-dashed border-emerald-500/30 rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400/60 hover:bg-emerald-500/5 transition-all"
+  4247→              onClick={() => { const inp = document.getElementById('import-file-input'); if (inp) inp.click(); }}
+  4248→              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+  4249→              onDrop={e => {
+  4250→                e.preventDefault(); e.stopPropagation();
+  4251→                const file = e.dataTransfer.files[0];
+  4252→                if (file) handleImportFile(file);
+  4253→              }}
+  4254→            >
+  4255→              <input id="import-file-input" type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) handleImportFile(file); }} />
+  4256→              {importFile ? (
+  4257→                <div className="space-y-1">
+  4258→                  <FileSpreadsheet className="w-8 h-8 text-emerald-400 mx-auto" />
+  4259→                  <p className="text-emerald-300 text-xs font-bold">{importFile.name}</p>
+  4260→                  <p className="text-emerald-200/50 text-[10px]">{(importFile.size / 1024).toFixed(1)} KB — Nhấn để đổi file</p>
+  4261→                </div>
+  4262→              ) : (
+  4263→                <div className="space-y-1">
+  4264→                  <Upload className="w-8 h-8 text-emerald-400/50 mx-auto" />
+  4265→                  <p className="text-emerald-300 text-xs font-bold">Kéo thả file hoặc nhấn chọn</p>
+  4266→                  <p className="text-emerald-200/50 text-[10px]">Hỗ trợ .xlsx, .xls, .csv</p>
+  4267→                </div>
+  4268→              )}
+  4269→            </div>
+  4270→
+  4271→            {/* Preview table */}
+  4272→            {importPreview.length > 0 && (
+  4273→              <div className="space-y-1">
+  4274→                <p className="text-emerald-300 text-[10px] font-bold">Xem trước ({importPreview.length} bản ghi)</p>
+  4275→                <div className="max-h-40 overflow-auto border border-emerald-500/20 rounded-md">
+  4276→                  <table className="w-full text-[10px]">
+  4277→                    <thead className="bg-emerald-500/10 sticky top-0">
+  4278→                      <tr>
+  4279→                        {Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1 text-left text-emerald-300 whitespace-nowrap">{k}</th>)}
+  4280→                      </tr>
+  4281→                    </thead>
+  4282→                    <tbody>
+  4283→                      {importPreview.slice(0, 5).map((row, i) => (
+  4284→                        <tr key={i} className="border-t border-emerald-500/10">
+  4285→                          {Object.values(row).map((v, j) => <td key={j} className="px-2 py-1 text-white/80 whitespace-nowrap">{v}</td>)}
+  4286→                        </tr>
+  4287→                      ))}
+  4288→                      {importPreview.length > 5 && (
+  4289→                        <tr className="border-t border-emerald-500/10">
+  4290→                          <td colSpan={Object.keys(importPreview[0]).length} className="px-2 py-1 text-emerald-400/60 text-center">... còn {importPreview.length - 5} bản ghi</td>
+  4291→                        </tr>
+  4292→                      )}
+  4293→                    </tbody>
+  4294→                  </table>
+  4295→                </div>
+  4296→              </div>
+  4297→            )}
+  4298→
+  4299→            {/* Fallback: paste data */}
+  4300→            <details className="group">
+  4301→              <summary className="text-white/40 text-[10px] cursor-pointer hover:text-white/60">Hoặc dán dữ liệu từ Excel (Tab-separated)</summary>
+  4302→              <textarea value={importData} onChange={e => { setImportData(e.target.value); setImportFile(null); setImportPreview([]); }} className="w-full h-28 bg-white/5 border border-emerald-500/20 rounded-md p-2 text-white text-xs font-mono mt-2" placeholder={
+  4303→                importTier === 'phong' ? 'maPhong\ttenPhong\tnote\nP001\tPhòng KD\tGhi chú'
+  4304→                : importTier === 'ad' ? 'maAD\ttenAD\tmaPhong\tnote\nAD001\tNguyễn Văn A\tP001\tGhi chú'
+  4305→                : importTier === 'bannhom' ? 'maBanNhom\ttenBanNhom\tmaAD\tnote\nBN001\tBan 1\tAD001\tGhi chú'
+  4306→                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tGhi chú'
+  4307→              } />
+  4308→            </details>
+  4309→          </div>
+  4310→          <DialogFooter>
+  4311→            <Button variant="ghost" onClick={() => { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); }} className="text-white/50">Huỷ</Button>
+  4312→            <Button onClick={handleImportStructure} disabled={importLoading || (importPreview.length === 0 && !importData)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 disabled:opacity-50">
+  4313→              {importLoading ? 'Đang import...' : `Import${importPreview.length > 0 ? ` (${importPreview.length} bản ghi)` : ''}`}
+  4314→            </Button>
+  4315→          </DialogFooter>
+  4316→        </DialogContent>
+  4317→      </Dialog>
+  4318→      </>
+  4319→    );
+  4320→  };
+  4321→
+  4322→  // ========== RENDER SHEET DISPATCHER ==========
+  4323→  const renderSheet = () => {
+  4324→    if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+  4325→    switch (activeSheet) {
+  4326→      case 'overview': return renderOverview();
+  4327→      case 'leaders': return renderLeaders();
+  4328→      case 'recruiters': return renderRecruiters();
+  4329→      case 'revenue': return renderRevenue();
+  4330→      case 'kehoach': return renderKeHoach();
+  4331→      case 'report': return renderReport();
+  4332→      case 'structure': return renderStructure();
+  4333→      case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
+  4334→    }
+  4335→  };
+  4336→
+  4337→  return (
+
+[showing lines 3918-4337 of 4658; use offset=4338 with limit to continue reading]

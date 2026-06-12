@@ -1501,10 +1501,10 @@ export default function QuanLyPage() {
     try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [fetchTvvStruct]);
 
-  // Replace all TVV from uploaded file
+  // Upsert TVV from uploaded file — cập nhật thông minh: giữ nguyên nếu không đổi, cập nhật nếu thay đổi, thêm mới nếu chưa có, xoá nếu không còn trong DS mới
   const [isReplacingTvv, setIsReplacingTvv] = useState(false);
-  const handleReplaceAllTvv = useCallback(async () => {
-    if (!confirm('Cập nhật toàn bộ DS TVV? Dữ liệu cũ sẽ bị xóa và thay bằng DS mới.')) return;
+  const handleUpsertTvv = useCallback(async () => {
+    if (!confirm('Cập nhật DS TVV?\n\nHệ thống sẽ:\n• Thêm TVV mới\n• Cập nhật TVV có thay đổi (chức vụ, nhóm...)\n• Giữ nguyên TVV không đổi\n• Xoá TVV không còn trong DS mới')) return;
     setIsReplacingTvv(true);
     try {
       // Fetch the pre-loaded TVV data
@@ -1512,9 +1512,18 @@ export default function QuanLyPage() {
       if (!dataRes.ok) { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu TVV mới', variant: 'destructive' }); return; }
       const data = await dataRes.json();
       if (!Array.isArray(data) || data.length === 0) { toast({ title: 'Lỗi', description: 'Dữ liệu TVV trống', variant: 'destructive' }); return; }
-      // Send to API with replaceAll=true
-      const res = await fetch('/api/structure/tvv?replaceAll=true', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      if (res.ok) { const result = await res.json(); fetchTvvStruct(); toast({ title: 'Thành công', description: result.message || `Đã nhập ${result.count} TVV` }); }
+      // Send to API with upsert=true (smart update mode)
+      const res = await fetch('/api/structure/tvv?upsert=true', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res.ok) {
+        const result = await res.json();
+        fetchTvvStruct();
+        const detail = [];
+        if (result.created > 0) detail.push(`thêm mới ${result.created}`);
+        if (result.updated > 0) detail.push(`cập nhật ${result.updated}`);
+        if (result.skipped > 0) detail.push(`giữ nguyên ${result.skipped}`);
+        if (result.deleted > 0) detail.push(`xoá ${result.deleted}`);
+        toast({ title: 'Cập nhật DS TVV thành công', description: detail.join(', ') || result.message });
+      }
       else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể cập nhật', variant: 'destructive' }); }
     } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật DS TVV', variant: 'destructive' }); }
     finally { setIsReplacingTvv(false); }
@@ -3964,7 +3973,7 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
           <div className="ml-auto">
-            <Button variant="ghost" size="sm" onClick={handleReplaceAllTvv} disabled={isReplacingTvv} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
+            <Button variant="ghost" size="sm" onClick={handleUpsertTvv} disabled={isReplacingTvv} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
               {isReplacingTvv ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang cập nhật...</> : <><RefreshCw className="w-3 h-3 mr-1" /> Cập nhật DS TVV</>}
             </Button>
           </div>
