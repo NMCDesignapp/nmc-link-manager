@@ -1,0 +1,453 @@
+    50→    50→  1479→          sortedContracts.forEach((c, cIdx) => {
+    51→    51→  1480→            const row: (string | number)[] = [
+    52→    52→  1481→              cIdx === 0 ? nIdx + 1 : '',
+    53→    53→  1482→              n.nhom || '',
+    54→    54→  1483→              cIdx === 0 ? n.nydCode : '',
+    55→    55→  1484→              cIdx === 0 ? n.nydName : '',
+    56→    56→  1485→              cIdx === 0 ? (n.position || '') : '',
+    57→    57→  1486→              cIdx === 0 ? (isActivityRoundMode(conditionType) ? n.recruitCount : value) : '',
+    58→    58→  1487→            ];
+    59→    59→  1488→            if (includeIndividualTN) row.push(cIdx === 0 ? n.ownFYP : '');
+    60→    60→  1489→            if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
+    61→    61→  1490→            if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+    62→    62→  1491→            row.push(
+    63→    63→  1492→              c.agentName || '',
+    64→    64→  1493→              c.contractNumber || '',
+    65→    65→  1494→              c.effectiveDate ? formatDate(c.effectiveDate) : '',
+    66→    66→  1495→              c.issueDate ? formatDate(c.issueDate) : '',
+    67→    67→  1496→              c.pdt10DT,
+    68→    68→  1497→              c.afyp,
+    69→    69→  1498→              cIdx === 0 ? value : '',
+    70→    70→  1499→              c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+    71→    71→  1500→            );
+    72→    72→  1501→            if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
+    73→    73→  1502→            row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '') : '');
+    74→    74→  1503→            row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+    75→    75→  1504→            rows.push(row);
+    76→    76→  1505→            currentRow++;
+    77→    77→  1506→          });
+    78→    78→  1507→          // Merge cells for NTD-level columns
+    79→    79→  1508→          if (sortedContracts.length > 1) {
+    80→    80→  1509→            const endRow = currentRow - 1;
+    81→    81→  1510→            const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
+    82→    82→  1511→            // STT col 0
+    83→    83→  1512→            merges.push({ s: { r: startRow, c: 0 }, e: { r: endRow, c: 0 } });
+    84→    84→  1513→            // Nhóm col 1
+    85→    85→  1514→            merges.push({ s: { r: startRow, c: 1 }, e: { r: endRow, c: 1 } });
+    86→    86→  1515→            // Mã ĐL col 2
+    87→    87→  1516→            merges.push({ s: { r: startRow, c: 2 }, e: { r: endRow, c: 2 } });
+    88→    88→  1517→            // Họ tên NTD col 3
+    89→    89→  1518→            merges.push({ s: { r: startRow, c: 3 }, e: { r: endRow, c: 3 } });
+    90→    90→  1519→            // Chức vụ col 4
+    91→    91→  1520→            merges.push({ s: { r: startRow, c: 4 }, e: { r: endRow, c: 4 } });
+    92→    92→  1521→            // Điều kiện col 5
+    93→    93→  1522→            merges.push({ s: { r: startRow, c: 5 }, e: { r: endRow, c: 5 } });
+    94→    94→  1523→            let mergeOffset = 0;
+    95→    95→  1524→            if (includeIndividualTN) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
+    96→    96→  1525→            // Supplementary cols (6 + mergeOffset ... 6 + mergeOffset + secOffset - 1)
+    97→    97→  1526→            for (let ci = 0; ci < secOffset; ci++) {
+    98→    98→  1527→              merges.push({ s: { r: startRow, c: 6 + mergeOffset + ci }, e: { r: endRow, c: 6 + mergeOffset + ci } });
+    99→    99→  1528→            }
+   100→   100→  1529→            // Tổng cộng col (12 + mergeOffset + secOffset)
+   101→   101→  1530→            const tongCol = 12 + mergeOffset + secOffset;
+   102→   102→  1531→            merges.push({ s: { r: startRow, c: tongCol }, e: { r: endRow, c: tongCol } });
+   103→   103→  1532→            // Ngày BĐLV col (13 + mergeOffset + secOffset)
+   104→   104→  1533→            merges.push({ s: { r: startRow, c: 13 + mergeOffset + secOffset }, e: { r: endRow, c: 13 + mergeOffset + secOffset } });
+   105→   105→  1534→            if (showRateColumn) {
+   106→   106→  1535→              const rateCol = 14 + mergeOffset + secOffset;
+   107→   107→  1536→              merges.push({ s: { r: startRow, c: rateCol }, e: { r: endRow, c: rateCol } });
+   108→   108→  1537→              const thuongCol = 15 + mergeOffset + secOffset;
+   109→   109→  1538→              merges.push({ s: { r: startRow, c: thuongCol }, e: { r: endRow, c: thuongCol } });
+   110→   110→  1539→              const ghichuCol = 16 + mergeOffset + secOffset;
+   111→   111→  1540→              merges.push({ s: { r: startRow, c: ghichuCol }, e: { r: endRow, c: ghichuCol } });
+   112→   112→  1541→            } else {
+   113→   113→  1542→              const thuongCol = 14 + mergeOffset + secOffset;
+   114→   114→  1543→              merges.push({ s: { r: startRow, c: thuongCol }, e: { r: endRow, c: thuongCol } });
+   115→   115→  1544→              const ghichuCol = 15 + mergeOffset + secOffset;
+   116→   116→  1545→              merges.push({ s: { r: startRow, c: ghichuCol }, e: { r: endRow, c: ghichuCol } });
+   117→   117→  1546→            }
+   118→   118→  1547→          }
+   119→   119→  1548→        }
+   120→   120→  1549→      });
+   121→   121→  1550→    } else if (targetType === 'nhom') {
+   122→   122→  1551→      // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
+   123→   123→  1552→      const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+   124→   124→  1553→      if (usePhase2) {
+   125→   125→  1554→        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+   126→   126→  1555→      } else {
+   127→   127→  1556→        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+   128→   128→  1557→      }
+   129→   129→  1558→      const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
+   130→   130→  1559→      rows = [];
+   131→   131→  1560→      merges = [];
+   132→   132→  1561→      let currentRow = 1;
+   133→   133→  1562→      const sortedGroups = [...groupedData].map((g) => {
+   134→   134→  1563→        const groupPhase = getGroupPhaseBonus(g);
+   135→   135→  1564→        const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+   136→   136→  1565→        const tierNoPhase = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
+   137→   137→  1566→        return { g, tier: usePhase2 ? tier : tierNoPhase, groupPhase };
+   138→   138→  1567→      }).sort((a, b) => {
+   139→   139→  1568→        const aValue = isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
+   140→   140→  1569→        const bValue = isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
+   141→   141→  1570→        return bValue - aValue;
+   142→   142→  1571→      });
+   143→   143→  1572→      sortedGroups.forEach(({ g, tier, groupPhase }, gIdx) => {
+   144→   144→  1573→        const startRow = currentRow;
+   145→   145→  1574→        const contracts = [...(g.contracts || [])].sort((a, b) => b.pdt10DT - a.pdt10DT);
+   146→   146→  1575→        const condValue = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : g.totalFYP;
+   147→   147→  1576→        // Check supplementary total condition
+   148→   148→  1577→        const sc = checkSecondaryTotalCondition(g.contracts || []);
+   149→   149→  1578→        const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   150→   150→  1579→        if (contracts.length === 0) {
+   151→   151→  1580→          const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
+   152→   152→  1581→          if (expSecAFYP) row.push(sc.totalAFYP);
+   153→   153→  1582→          if (expSecIP) row.push(sc.totalIP);
+   154→   154→  1583→          row.push('', '', '', '', '', g.totalFYP);
+   155→   155→  1584→          if (usePhase2) {
+   156→   156→  1585→            row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   157→   157→  1586→          } else {
+   158→   158→  1587→            if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+   159→   159→  1588→            row.push(effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   160→   160→  1589→          }
+   161→   161→  1590→          rows.push(row);
+   162→   162→  1591→          currentRow++;
+   163→   163→  1592→        } else {
+   164→   164→  1593→          contracts.forEach((c, cIdx) => {
+   165→   165→  1594→            const row: (string | number)[] = [
+   166→   166→  1595→              cIdx === 0 ? gIdx + 1 : '',
+   167→   167→  1596→              cIdx === 0 ? (g.nhom || g.maNhom) : '',
+   168→   168→  1597→              cIdx === 0 ? (g.leader?.agentCode || '') : '',
+   169→   169→  1598→              cIdx === 0 ? (g.leader?.agentName || '') : '',
+   170→   170→  1599→              cIdx === 0 ? (g.leader?.position || '') : '',
+   171→   171→  1600→              cIdx === 0 ? condValue : '',
+   172→   172→  1601→            ];
+   173→   173→  1602→            if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
+   174→   174→  1603→            if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+   175→   175→  1604→            row.push(
+   176→   176→  1605→              c.agentName || '',
+   177→   177→  1606→              c.contractNumber || '',
+   178→   178→  1607→              c.effectiveDate ? formatDate(c.effectiveDate) : '',
+   179→   179→  1608→              c.issueDate ? formatDate(c.issueDate) : '',
+   180→   180→  1609→              c.pdt10DT,
+   181→   181→  1610→              c.afyp,
+   182→   182→  1611→              cIdx === 0 ? g.totalFYP : '',
+   183→   183→  1612→            );
+   184→   184→  1613→            if (usePhase2) {
+   185→   185→  1614→              row.push(
+   186→   186→  1615→                cIdx === 0 ? (groupPhase.phase1Bonus || '') : '',
+   187→   187→  1616→                cIdx === 0 ? (groupPhase.phase2Bonus || '') : '',
+   188→   188→  1617→                cIdx === 0 ? (groupPhase.phase1Bonus + groupPhase.phase2Bonus || '') : '',
+   189→   189→  1618→                cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '',
+   190→   190→  1619→              );
+   191→   191→  1620→            } else {
+   192→   192→  1621→              if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
+   193→   193→  1622→              row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '') : '');
+   194→   194→  1623→              row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+   195→   195→  1624→            }
+   196→   196→  1625→            rows.push(row);
+   197→   197→  1626→            currentRow++;
+   198→   198→  1627→          });
+   199→   199→  1628→          // Merge cells cho nhóm
+   200→   200→  1629→          if (contracts.length > 1) {
+   201→   201→  1630→            const endRow = currentRow - 1;
+   202→   202→  1631→            // STT, Nhóm, Mã TTN, Tên TTN, Chức vụ, condHeader
+   203→   203→  1632→            for (let c = 0; c <= 5; c++) {
+   204→   204→  1633→              merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+   205→   205→  1634→            }
+   206→   206→  1635→            // Supplementary cols
+   207→   207→  1636→            for (let ci = 0; ci < secOffset; ci++) {
+   208→   208→  1637→              merges.push({ s: { r: startRow, c: 6 + ci }, e: { r: endRow, c: 6 + ci } });
+   209→   209→  1638→            }
+   210→   210→  1639→            // Tổng cộng col (12 + secOffset)
+   211→   211→  1640→            merges.push({ s: { r: startRow, c: 12 + secOffset }, e: { r: endRow, c: 12 + secOffset } });
+   212→   212→  1641→            if (usePhase2) {
+   213→   213→  1642→              for (let c = 13 + secOffset; c <= 16 + secOffset; c++) {
+   214→   214→  1643→                merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+   215→   215→  1644→              }
+   216→   216→  1645→            } else {
+   217→   217→  1646→              if (showRateColumn) {
+   218→   218→  1647→                for (let c = 13 + secOffset; c <= 15 + secOffset; c++) {
+   219→   219→  1648→                  merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+   220→   220→  1649→                }
+   221→   221→  1650→              } else {
+   222→   222→  1651→                for (let c = 13 + secOffset; c <= 14 + secOffset; c++) {
+   223→   223→  1652→                  merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+   224→   224→  1653→                }
+   225→   225→  1654→              }
+   226→   226→  1655→            }
+   227→   227→  1656→          }
+   228→   228→  1657→        }
+   229→   229→  1658→      });
+   230→   230→  1659→    } else {
+   231→   231→  1660→      // TVV
+   232→   232→  1661→      if (isPerContractMode(conditionType)) {
+   233→   233→  1662→        // TVV per-contract: thêm Số hợp đồng, Ngày hiệu lực, Ngày phát hành
+   234→   234→  1663→        if (usePhase2) {
+   235→   235→  1664→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+   236→   236→  1665→          rows = [...displayContracts].map((c) => {
+   237→   237→  1666→            const { tier } = calculateBonus(c.pdt10DT);
+   238→   238→  1667→            const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+   239→   239→  1668→            // Check supplementary total for this TVV's contracts
+   240→   240→  1669→            const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+   241→   241→  1670→            const sc = checkSecondaryTotalCondition(agentContracts);
+   242→   242→  1671→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   243→   243→  1672→            return { c, tier, effectiveTier, phaseInfo, sc };
+   244→   244→  1673→          }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier, effectiveTier, phaseInfo, sc }, idx) => {
+   245→   245→  1674→            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), c.pdt10DT];
+   246→   246→  1675→            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
+   247→   247→  1676→            if (expSecAFYP) base.push(sc.totalAFYP);
+   248→   248→  1677→            if (expSecIP) base.push(sc.totalIP);
+   249→   249→  1678→            base.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   250→   250→  1679→            return base;
+   251→   251→  1680→          });
+   252→   252→  1681→        } else {
+   253→   253→  1682→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+   254→   254→  1683→          rows = [...displayContracts].map((c) => {
+   255→   255→  1684→            const { tier } = calculateBonus(c.pdt10DT);
+   256→   256→  1685→            const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+   257→   257→  1686→            const sc = checkSecondaryTotalCondition(agentContracts);
+   258→   258→  1687→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   259→   259→  1688→            return { c, tier, effectiveTier, sc };
+   260→   260→  1689→          }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier, effectiveTier, sc }, idx) => {
+   261→   261→  1690→            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), c.pdt10DT];
+   262→   262→  1691→            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
+   263→   263→  1692→            if (expSecAFYP) base.push(sc.totalAFYP);
+   264→   264→  1693→            if (expSecIP) base.push(sc.totalIP);
+   265→   265→  1694→            if (showRateColumn) base.push(effectiveTier ? formatRate(effectiveTier) : '');
+   266→   266→  1695→            base.push(effectiveTier ? formatBonusAmount(effectiveTier, c.pdt10DT) : '');
+   267→   267→  1696→            base.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   268→   268→  1697→            return base;
+   269→   269→  1698→          });
+   270→   270→  1699→        }
+   271→   271→  1700→      } else {
+   272→   272→  1701→        // total_ip / total_afyp: thêm cột Tổng (gộp ô tất cả dòng)
+   273→   273→  1702→        const isAFYP = conditionType === 'total_afyp';
+   274→   274→  1703→        if (usePhase2) {
+   275→   275→  1704→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+   276→   276→  1705→          const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
+   277→   277→  1706→          const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
+   278→   278→  1707→          rows = tvvTotalRows.map(({ agent, value, tier, phaseInfo }, idx) => {
+   279→   279→  1708→            // Check supplementary total condition for this TVV
+   280→   280→  1709→            const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+   281→   281→  1710→            const sc = checkSecondaryTotalCondition(agentContracts);
+   282→   282→  1711→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   283→   283→  1712→            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+   284→   284→  1713→            if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
+   285→   285→  1714→            if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
+   286→   286→  1715→            row.push(idx === 0 ? grandTotal : '');
+   287→   287→  1716→            row.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   288→   288→  1717→            return row;
+   289→   289→  1718→          });
+   290→   290→  1719→          if (tvvTotalRows.length > 1) {
+   291→   291→  1720→            merges.push({ s: { r: 1, c: 5 + secOffset }, e: { r: tvvTotalRows.length, c: 5 + secOffset } });
+   292→   292→  1721→          }
+   293→   293→  1722→        } else {
+   294→   294→  1723→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+   295→   295→  1724→          const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
+   296→   296→  1725→          const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
+   297→   297→  1726→          rows = tvvTotalRows.map(({ agent, value, tier }, idx) => {
+   298→   298→  1727→            const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+   299→   299→  1728→            const sc = checkSecondaryTotalCondition(agentContracts);
+   300→   300→  1729→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   301→   301→  1730→            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+   302→   302→  1731→            if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
+   303→   303→  1732→            if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
+   304→   304→  1733→            row.push(idx === 0 ? grandTotal : '');
+   305→   305→  1734→            if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+   306→   306→  1735→            row.push(effectiveTier ? formatBonusAmount(effectiveTier, value) : '');
+   307→   307→  1736→            row.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+   308→   308→  1737→            return row;
+   309→   309→  1738→          });
+   310→   310→  1739→          if (tvvTotalRows.length > 1) {
+   311→   311→  1740→            merges.push({ s: { r: 1, c: 5 + secOffset }, e: { r: tvvTotalRows.length, c: 5 + secOffset } });
+   312→   312→  1741→          }
+   313→   313→  1742→        }
+   314→   314→  1743→      }
+   315→   315→  1744→    }
+   316→   316→  1745→    const XLSX = await import('xlsx');
+   317→   317→  1746→    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+   318→   318→  1747→    // Auto-size columns
+   319→   319→  1748→    const colWidths = headers.map((h, i) => {
+   320→   320→  1749→      const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] || '').length));
+   321→   321→  1750→      return { wch: Math.min(maxLen + 2, 30) };
+   322→   322→  1751→    });
+   323→   323→  1752→    ws['!cols'] = colWidths;
+   324→   324→  1753→    if (merges.length > 0) ws['!merges'] = merges;
+   325→   325→  1754→    const wb = XLSX.utils.book_new();
+   326→   326→  1755→    XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi đua');
+   327→   327→  1756→
+   328→   328→  1757→    // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
+   329→   329→  1758→    if (displayContracts.length > 0) {
+   330→   330→  1759→      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+   331→   331→  1760→      // Build detail rows with bonus values for merging
+   332→   332→  1761→      const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
+   333→   333→  1762→
+   334→   334→  1763→      // Helper: compute bonus for a group of contracts (same key = same TVV / same nhóm / same NTD)
+   335→   335→  1764→      const getBonusForGroup = (groupKey: string): string => {
+   336→   336→  1765→        if (targetType === 'nhom') {
+   337→   337→  1766→          const g = groupedData.find(g => g.maNhom === groupKey);
+   338→   338→  1767→          if (!g) return '';
+   339→   339→  1768→          const value = isActivityRoundMode(conditionType) ? g.activityRounds : g.totalFYP;
+   340→   340→  1769→          const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
+   341→   341→  1770→          // Check supplementary condition
+   342→   342→  1771→          const sc = checkSecondaryTotalCondition(g.contracts || []);
+   343→   343→  1772→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   344→   344→  1773→          return effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '';
+   345→   345→  1774→        }
+   346→   346→  1775→        if (targetType === 'nyd') {
+   347→   347→  1776→          const n = nydData.find(n => n.nydCode === groupKey);
+   348→   348→  1777→          if (!n) return '';
+   349→   349→  1778→          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+   350→   350→  1779→          const { tier } = calculateBonus(value);
+   351→   351→  1780→          const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
+   352→   352→  1781→          const sc = checkSecondaryTotalCondition(nydContracts);
+   353→   353→  1782→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   354→   354→  1783→          return effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '';
+   355→   355→  1784→        }
+   356→   356→  1785→        // TVV total mode
+   357→   357→  1786→        if (targetType === 'tvv' && isTotalMode(conditionType)) {
+   358→   358→  1787→          const tr = tvvTotalRows.find(r => r.agent.agentCode === groupKey);
+   359→   359→  1788→          if (!tr) return '';
+   360→   360→  1789→          const agentContracts = displayContracts.filter(c => c.agentCode === groupKey);
+   361→   361→  1790→          const sc = checkSecondaryTotalCondition(agentContracts);
+   362→   362→  1791→          const effectiveTier = sc.passed ? tr.tier : (expSecAFYP || expSecIP ? null : tr.tier);
+   363→   363→  1792→          return effectiveTier ? formatBonusAmount(effectiveTier, tr.value) : '';
+   364→   364→  1793→        }
+   365→   365→  1794→        return '';
+   366→   366→  1795→      };
+   367→   367→  1796→
+   368→   368→  1797→      // Build rows: each contract gets its own row, but THƯỞNG is only shown on first row of group
+   369→   369→  1798→      type DetailRow = { data: (string | number)[]; groupKey: string };
+   370→   370→  1799→      const detailRowData: DetailRow[] = displayContracts.map((c) => {
+   371→   371→  1800→        let groupKey = '';
+   372→   372→  1801→        let bonusValue: string | number = '';
+   373→   373→  1802→        if (needMerge) {
+   374→   374→  1803→          if (targetType === 'nhom') {
+   375→   375→  1804→            groupKey = c.maNhom || '';
+   376→   376→  1805→          } else if (targetType === 'nyd') {
+   377→   377→  1806→            groupKey = c.maDaiLyTD || c.recruiterCode || '';
+   378→   378→  1807→          } else if (targetType === 'tvv' && isTotalMode(conditionType)) {
+   379→   379→  1808→            groupKey = c.agentCode || '';
+   380→   380→  1809→          }
+   381→   381→  1810→        } else {
+   382→   382→  1811→          // TVV per_contract: each contract has its own bonus
+   383→   383→  1812→          const { tier } = calculateBonus(c.pdt10DT);
+   384→   384→  1813→          const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+   385→   385→  1814→          const sc = checkSecondaryTotalCondition(agentContracts);
+   386→   386→  1815→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+   387→   387→  1816→          bonusValue = effectiveTier ? formatBonusAmount(effectiveTier, c.pdt10DT) : '';
+   388→   388→  1817→        }
+   389→   389→  1818→        return {
+   390→   390→  1819→          data: [
+   391→   391→  1820→            0, // STT placeholder, will be set below
+   392→   392→  1821→            c.ban || '',
+   393→   393→  1822→            c.nhom || c.maNhom || '',
+   394→   394→  1823→            c.maNhom || '',
+   395→   395→  1824→            c.agentCode || '',
+   396→   396→  1825→            c.agentName || '',
+   397→   397→  1826→            c.position || '',
+   398→   398→  1827→            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+   399→   399→  1828→            c.contractNumber || '',
+   400→   400→  1829→            c.effectiveDate ? formatDate(c.effectiveDate) : '',
+   401→   401→  1830→            c.issueDate ? formatDate(c.issueDate) : '',
+   402→   402→  1831→            c.pdt10DT,
+   403→   403→  1832→            c.afyp,
+   404→   404→  1833→            c.ad || c.leaderAgentCode || '',
+   405→   405→  1834→            c.tinhLuot3tr || '',
+   406→   406→  1835→            c.maDaiLyTD || '',
+   407→   407→  1836→            bonusValue,
+   408→   408→  1837→          ],
+   409→   409→  1838→          groupKey,
+   410→   410→  1839→        };
+   411→   411→  1840→      });
+   412→   412→  1841→
+   413→   413→  1842→      // Set STT
+   414→   414→  1843→      detailRowData.forEach((r, idx) => { r.data[0] = idx + 1; });
+   415→   415→  1844→
+   416→   416→  1845→      // Fill THƯỞNG for first row of each group when merging
+   417→   417→  1846→      const detailMerges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+   418→   418→  1847→      if (needMerge) {
+   419→   419→  1848→        // Group rows by key, preserving order
+   420→   420→  1849→        const groupFirstRow = new Map<string, number>();
+   421→   421→  1850→        const groupRowCount = new Map<string, number>();
+   422→   422→  1851→        detailRowData.forEach((r, idx) => {
+   423→   423→  1852→          if (!groupFirstRow.has(r.groupKey)) {
+   424→   424→  1853→            groupFirstRow.set(r.groupKey, idx);
+   425→   425→  1854→          }
+   426→   426→  1855→          groupRowCount.set(r.groupKey, (groupRowCount.get(r.groupKey) || 0) + 1);
+   427→   427→  1856→        });
+   428→   428→  1857→        // Set bonus value on first row of each group
+   429→   429→  1858→        for (const [key, firstIdx] of groupFirstRow) {
+   430→   430→  1859→          const bonus = getBonusForGroup(key);
+   431→   431→  1860→          detailRowData[firstIdx].data[detailHeaders.length - 1] = bonus;
+   432→   432→  1861→          // Create merge range for THƯỞNG column if group has > 1 row
+   433→   433→  1862→          const count = groupRowCount.get(key) || 1;
+   434→   434→  1863→          if (count > 1) {
+   435→   435→  1864→            const colIdx = detailHeaders.length - 1; // THƯỞNG is last column
+   436→   436→  1865→            detailMerges.push({
+   437→   437→  1866→              s: { r: firstIdx + 1, c: colIdx }, // +1 for header row
+   438→   438→  1867→              e: { r: firstIdx + count, c: colIdx },
+   439→   439→  1868→            });
+   440→   440→  1869→          }
+   441→   441→  1870→        }
+   442→   442→  1871→      }
+   443→   443→  1872→
+   444→   444→  1873→      const detailRows: (string | number)[][] = detailRowData.map(r => r.data);
+   445→   445→  1874→      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+   446→   446→  1875→      const detailColWidths = detailHeaders.map((h, i) => {
+   447→   447→  1876→        const maxLen = Math.max(h.length, ...detailRows.map(r => String(r[i] || '').length));
+   448→   448→  1877→        return { wch: Math.min(maxLen + 2, 30) };
+   449→   449→  1878→      });
+   450→   450→  1879→      wsDetail['!cols'] = detailColWidths;
+   451→   451→  1880→      if (detailMerges.length > 0) {
+   452→   452→  1881→        wsDetail['!merges'] = detailMerges;
+   453→   453→  1882→      }
+   454→   454→  1883→      XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
+   455→   455→  1884→    }
+   456→   456→  1885→
+   457→   457→  1886→    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
+   458→   458→  1887→    } catch (err) {
+   459→   459→  1888→      console.error('[handleExport] Error:', err);
+   460→   460→  1889→      toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
+   461→   461→  1890→    }
+   462→   462→  1891→  };
+   463→   463→  1892→
+   464→   464→  1893→  // Helper: inject a <style> tag that hides all scrollbars via CSS for image capture
+   465→   465→  1894→  const hideScrollbarsStyleId = 'nmc-hide-scrollbars-style';
+   466→   466→  1895→  const hideAllScrollbars = () => {
+   467→   467→  1896→    let style = document.getElementById(hideScrollbarsStyleId) as HTMLStyleElement | null;
+   468→   468→  1897→    if (!style) {
+   469→   469→  1898→      style = document.createElement('style');
+   470→   470→  1899→      style.id = hideScrollbarsStyleId;
+   471→   471→  1900→      style.textContent = `
+   472→   472→  1901→        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+   473→   473→  1902→        *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+   474→   474→  1903→      `;
+   475→   475→  1904→      document.head.appendChild(style);
+   476→   476→  1905→    }
+   477→   477→  1906→  };
+   478→   478→  1907→  const restoreAllScrollbars = () => {
+   479→   479→  1908→    const style = document.getElementById(hideScrollbarsStyleId);
+   480→   480→  1909→    if (style) style.remove();
+   481→   481→  1910→  };
+   482→   482→  1911→
+   483→   483→  1912→  // Download image function - using html-to-image
+   484→   484→  1913→  const handleDownloadImage = async () => {
+   485→   485→  1914→    setIsDownloadingImage(true);
+   486→   486→  1915→    try {
+   487→   487→  1916→      const { toBlob } = await import('html-to-image');
+   488→   488→  1917→      if (!resultContentRef.current) {
+   489→   489→  1918→        toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
+   490→   490→  1919→        return;
+   491→   491→  1920→      }
+   492→   492→  1921→
+   493→   493→  1922→      const el = resultContentRef.current;
+   494→   494→  1923→      const origWidth = el.style.width;
+   495→   495→  1924→      const origOverflow = el.style.overflow;
+   496→   496→  1925→
+   497→   497→  1926→      // Count result rows to determine if splitting is needed
+   498→   498→  1927→      const tableRows = el.querySelectorAll('tbody tr');
+   499→   499→  1928→      const MAX_ROWS_PER_IMAGE = 20;
+   500→   500→  1929→      const needsSplit = tableRows.length > MAX_ROWS_PER_IMAGE;
+   501→
+   502→[showing lines 1-500 of 502; use offset=501 with limit to continue reading]
