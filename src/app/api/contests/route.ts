@@ -139,3 +139,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Không thể xóa chương trình thi đua' }, { status: 500 });
   }
 }
+
+// PATCH /api/contests - Update specific fields by id
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body as { id: string; [key: string]: any };
+
+    if (!id) {
+      return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
+    }
+
+    const contest = await db.contest.update({
+      where: { id },
+      data: updates,
+    });
+
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest });
+  } catch (error: any) {
+    console.error('Error updating contest:', error);
+    return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
+  }
+}

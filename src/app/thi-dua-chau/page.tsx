@@ -1443,7 +1443,8 @@ export default function ThiDuaPage() {
     setSelectedContestId(contestId); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
     setConditionType(contest.conditionType as ConditionType);
-    setTargetType((contest.targetType || 'tvv') as TargetType);
+    // tvv_pass_count chỉ dành cho nhóm → tự động set targetType = 'nhom'
+    setTargetType((contest.conditionType === 'tvv_pass_count' ? 'nhom' : (contest.targetType || 'tvv')) as TargetType);
     if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
     setIssueEndDate(''); // issueEndDate not stored in contest yet
     try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers); } catch { /* ignore */ }
@@ -2567,7 +2568,8 @@ export default function ThiDuaPage() {
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setTargetType('tvv')}
+                    onClick={() => { setTargetType('tvv'); if (conditionType === 'tvv_pass_count') setConditionType('total_ip'); }}
+                    disabled={false}
                     className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
                       targetType === 'tvv'
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-300/50'
@@ -2591,7 +2593,8 @@ export default function ThiDuaPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTargetType('nyd')}
+                    onClick={() => { setTargetType('nyd'); if (conditionType === 'tvv_pass_count') setConditionType('activity_round_standard'); }}
+                    disabled={false}
                     className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${
                       targetType === 'nyd'
                         ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30 ring-2 ring-violet-300/50'
@@ -2708,7 +2711,7 @@ export default function ThiDuaPage() {
                 {/* Đếm TVV đạt CTĐK - reference another saved contest */}
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Tham chiếu chương trình</p>
-                  <button type="button" onClick={() => setConditionType('tvv_pass_count')}
+                  <button type="button" onClick={() => { setConditionType('tvv_pass_count'); setTargetType('nhom'); }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'tvv_pass_count' ? 'bg-purple-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-purple-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
                   ><BookmarkPlus className="w-3 h-3 shrink-0" /><span>Đếm TVV đạt CTĐK</span></button>
                   {conditionType === 'tvv_pass_count' && (
