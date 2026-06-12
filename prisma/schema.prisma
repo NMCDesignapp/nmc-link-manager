@@ -150,6 +150,7 @@ model Contest {
   tvv90MaxMonths   Float  @default(3)
   tvv90MinIP       Float  @default(12000000)
   referenceContestId String @default("")
+  includeTNInPassCount Boolean @default(false)
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")

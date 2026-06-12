@@ -1,0 +1,2002 @@
+     1→'use client';
+     2→
+     3→import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+     4→import { useRouter } from 'next/navigation';
+     5→// useSettings removed — no CSV sync, data from Quản lý page
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Separator } from '@/components/ui/separator';
+    13→import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+    14→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    15→import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+    16→import { Checkbox } from '@/components/ui/checkbox';
+    17→import { toast } from '@/hooks/use-toast';
+    18→import {
+    19→  Plus, Trash2, Trophy, FileText, TrendingUp, Database,
+    20→  Download, X, Link, Loader2, Printer, Copy, Save, BookmarkPlus,
+    21→  Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
+    22→  UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
+    23→  Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
+    24→  RefreshCw, CheckCircle2,
+    25→} from 'lucide-react';
+    26→import { NeonDatePicker } from '@/components/neon-date-picker';
+    27→
+    28→interface Contract {
+    29→  id: string; contractNumber: string; agentCode: string; agentName: string;
+    30→  position: string; ban: string; nhom: string; maNhom: string;
+    31→  leaderAgentCode: string; recruiterCode: string;
+    32→  startDate: string | null; effectiveDate: string; issueDate: string;
+    33→  fyp: number; afyp: number;
+    34→  pdt10DT: number; tinhLuot3tr: number; maDaiLyTD: string; ngayBatDauLamViec: string | null;
+    35→  ad?: string;
+    36→}
+    37→
+    38→interface BonusTier {
+    39→  id: string; minFYP: number; maxFYP: number | null; bonusAmount: number;
+    40→  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'percent_fyc'; bonusText: string; bonusPercent: number;
+    41→}
+    42→
+    43→interface GroupLeader {
+    44→  agentCode: string; agentName: string; position: string;
+    45→}
+    46→
+    47→interface GroupData {
+    48→  maNhom: string; nhom: string;
+    49→  leader: GroupLeader | null;   // Trưởng nhóm (hoặc Trưởng ban tham dự với vai trò Trưởng nhóm)
+    50→  totalFYP: number;
+    51→  totalAFYP: number;
+    52→  contractCount: number; activityRounds: number; contracts: Contract[];
+    53→  memberCount: number;  // Số TVV trong nhóm (từ Staff table)
+    54→}
+    55→
+    56→interface NYDData {
+    57→  nydCode: string;
+    58→  nydName: string;
+    59→  nhom: string;
+    60→  position: string;
+    61→  startDate: string | null;
+    62→  recruitCount: number;
+    63→  recruitFYP: number;
+    64→  ownFYP: number;
+    65→  contracts: Contract[];
+    66→}
+    67→
+    68→interface StaffMember {
+    69→  id: string; nhom: string; maNhom: string; agentCode: string; agentName: string;
+    70→  position: string; startDate: string | null;
+    71→}
+    72→
+    73→interface RecruiterMember {
+    74→  id: string; nhom: string; agentCode: string; agentName: string;
+    75→  position: string; startDate: string | null;
+    76→}
+    77→
+    78→// MonthlyRevenueRow removed — all data now sourced from Contracts table only
+    79→
+    80→interface SavedContest {
+    81→  id: string; title: string; startDate: string; endDate: string;
+    82→  issueDate: string | null; conditionType: string; targetType: string;
+    83→  bonusTiers: string; posterUrl?: string; participants?: string;
+    84→  usePhase2?: boolean; phase2StartDate?: string | null; phase2EndDate?: string | null; bonusTiers2?: string;
+    85→  useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
+    86→  secondaryLuotHDMin?: number; secondaryLuotHDCMin?: number;
+    87→  secondaryLuotHDFilter?: string; secondaryLuotHDCFilter?: string;
+    88→  secondaryTotalAFYPMin?: number; secondaryTotalIPMin?: number;
+    89→  hideNotAchieved?: boolean; includeIndividualNTD?: boolean; includeIndividualTN?: boolean;
+    90→  luotHDThreshold?: number; luotHDCTThreshold?: number;
+    91→  tvv90MaxMonths?: number; tvv90MinIP?: number;
+    92→  referenceContestId?: string;
+    93→  csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
+    94→  createdAt: string; updatedAt: string;
+    95→}
+    96→
+    97→type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count';
+    98→type TargetType = 'tvv' | 'nhom' | 'nyd';
+    99→
+   100→function isActivityRoundMode(ct: ConditionType): boolean {
+   101→  return ct === 'activity_round' || ct === 'activity_round_tvvm' || ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm' || ct === 'activity_round_tvv90';
+   102→}
+   103→function isTVVPassCountMode(ct: ConditionType): boolean {
+   104→  return ct === 'tvv_pass_count';
+   105→}
+   106→function isPerContractMode(ct: ConditionType): boolean {
+   107→  return ct === 'per_contract_ip' || ct === 'per_contract_afyp';
+   108→}
+   109→function isTotalMode(ct: ConditionType): boolean {
+   110→  return ct === 'total_ip' || ct === 'total_afyp';
+   111→}
+   112→function isTVVmMode(ct: ConditionType): boolean {
+   113→  return ct === 'activity_round_tvvm' || ct === 'activity_round_standard_tvvm';
+   114→}
+   115→function isStandardMode(ct: ConditionType): boolean {
+   116→  return ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm';
+   117→}
+   118→
+   119→function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
+   120→  if (!startDate) return false;
+   121→  const start = new Date(startDate);
+   122→  const now = new Date();
+   123→  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+   124→  return diffMonths <= maxMonths;
+   125→}
+   126→
+   127→// TVV90: TVV có thời gian làm việc không quá N tháng
+   128→function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: number = 3, _minIP?: number): boolean {
+   129→  const agentContract = contracts.find(c => c.agentCode === agentCode);
+   130→  if (!agentContract) return false;
+   131→  const startDate = agentContract.ngayBatDauLamViec || agentContract.startDate;
+   132→  if (!startDate) return false;
+   133→  const start = new Date(startDate);
+   134→  const now = new Date();
+   135→  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+   136→  return diffMonths <= maxMonths;
+   137→}
+   138→
+   139→// Helper: calculate lượt for a group of contracts based on tinhLuot3tr
+   140→// Đếm SỐ DÒNG hợp đồng có tinhLuot3tr >= threshold (không phải unique TVV)
+   141→function calculateLuot(contracts: Contract[], luotThreshold: number, conditionType: ConditionType, tvv90MaxMonths?: number, tvv90MinIP?: number): number {
+   142→  let count = 0;
+   143→  for (const c of contracts) {
+   144→    // Apply TVVm filter if condition is tvvm mode
+   145→    if (isTVVmMode(conditionType)) {
+   146→      if (!isTVVm(c.ngayBatDauLamViec || c.startDate)) continue;
+   147→    }
+   148→    // Apply TVV90 filter if condition is tvv90 mode
+   149→    if (conditionType === 'activity_round_tvv90') {
+   150→      if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
+   151→    }
+   152→    // Đếm số dòng hợp đồng có tinhLuot3tr >= threshold
+   153→    if (c.tinhLuot3tr >= luotThreshold) {
+   154→      count++;
+   155→    }
+   156→  }
+   157→  return count;
+   158→}
+   159→
+   160→// CSV auto-sync removed — data is now sourced from Quản lý page only
+   161→
+   162→// Chuẩn hóa Unicode NFC để so sánh tiếng Việt (NFD vs NFC, vd: "ề" vs "ề")
+   163→function norm(s: string): string { return s.normalize('NFC'); }
+   164→
+   165→function formatCurrency(amount: number): string {
+   166→  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
+   167→}
+   168→function formatNumber(amount: number): string { return new Intl.NumberFormat('vi-VN').format(amount); }
+   169→function formatDate(dateStr: string): string { return new Date(dateStr).toLocaleDateString('vi-VN'); }
+   170→function nganToVnd(val: number): number { return val * 1_000; }
+   171→function vndToNgan(val: number): number { return val / 1_000; }
+   172→
+   173→function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
+   174→  if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
+   175→  if (tier.bonusType === 'percent' && tier.bonusPercent > 0) {
+   176→    const calculated = fyp ? tier.bonusPercent / 100 * fyp : 0;
+   177→    return `${tier.bonusPercent}% IP${fyp ? ` = ${formatCurrency(calculated)}` : ''}`;
+   178→  }
+   179→  if (tier.bonusType === 'percent_fyc' && tier.bonusPercent > 0) {
+   180→    const fyc = fyp ? fyp * 0.25 : 0;
+   181→    const calculated = fyc ? tier.bonusPercent / 100 * fyc : 0;
+   182→    return `${tier.bonusPercent}% FYC${fyp ? ` = ${formatCurrency(calculated)}` : ''}`;
+   183→  }
+   184→  if (tier.bonusType === 'money_per_round') {
+   185→    const calculated = rounds ? tier.bonusAmount * rounds : 0;
+   186→    return rounds ? `${formatCurrency(tier.bonusAmount)}/lượt × ${rounds} = ${formatCurrency(calculated)}` : `${formatCurrency(tier.bonusAmount)}/lượt`;
+   187→  }
+   188→  return formatCurrency(tier.bonusAmount);
+   189→}
+   190→
+   191→// Format rate label for percent-based bonus types
+   192→function formatRate(tier: BonusTier): string {
+   193→  if (tier.bonusType === 'percent') return `${tier.bonusPercent}%`;
+   194→  if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}%`;
+   195→  return '';
+   196→}
+   197→
+   198→// Format bonus amount only (no formula) for display in table
+   199→function formatBonusAmount(tier: BonusTier, fyp?: number, rounds?: number): string {
+   200→  if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
+   201→  const amount = computeBonusFromTier(tier, fyp || 0, rounds);
+   202→  return formatCurrency(amount);
+   203→}
+   204→
+   205→// Check if any tier uses percent-based bonus
+   206→function hasPercentBonus(tiers: BonusTier[]): boolean {
+   207→  return tiers.some(t => t.bonusType === 'percent' || t.bonusType === 'percent_fyc');
+   208→}
+   209→
+   210→function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
+   211→  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
+   212→  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
+   213→  if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
+   214→  return tier.bonusAmount;
+   215→}
+   216→
+   217→function BonusTypeIcon({ type, className }: { type: string; className?: string }) {
+   218→  if (type === 'gift') return <Gift className={className} />;
+   219→  if (type === 'percent') return <Percent className={className} />;
+   220→  if (type === 'percent_fyc') return <Percent className={className} />;
+   221→  if (type === 'money_per_round') return <Layers className={className} />;
+   222→  return <Sparkles className={className} />;
+   223→}
+   224→
+   225→function getConditionLabel(ct: ConditionType): string {
+   226→  switch (ct) {
+   227→    case 'per_contract_ip': return 'IP/HĐ';
+   228→    case 'per_contract_afyp': return 'AFYP/HĐ';
+   229→    case 'total_ip': return 'Tổng IP';
+   230→    case 'total_afyp': return 'Tổng AFYP';
+   231→    case 'activity_round': return 'Lượt HĐ';
+   232→    case 'activity_round_tvvm': return 'Lượt TVVm HĐ';
+   233→    case 'activity_round_standard': return 'Lượt HĐ Chuẩn';
+   234→    case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
+   235→    case 'activity_round_tvv90': return 'Lượt TVV90';
+   236→    case 'tvv_pass_count': return 'TVV đạt CTĐK';
+   237→  }
+   238→}
+   239→
+   240→function getTargetLabel(tt: TargetType): string {
+   241→  switch (tt) {
+   242→    case 'tvv': return 'TVV';
+   243→    case 'nhom': return 'Nhóm';
+   244→    case 'nyd': return 'NTD';
+   245→  }
+   246→}
+   247→
+   248→const TIER_COLORS = ['from-amber-400 to-orange-500','from-emerald-400 to-teal-500','from-sky-400 to-cyan-500','from-violet-400 to-purple-500','from-rose-400 to-pink-500','from-lime-400 to-green-500'];
+   249→
+   250→const BONUS_TYPE_BUTTONS = [
+   251→  ['money', 'Tiền', Banknote, 'bg-emerald-600'],
+   252→  ['gift', 'Quà', Gift, 'bg-pink-600'],
+   253→  ['percent', '% IP', Percent, 'bg-violet-600'],
+   254→  ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'],
+   255→  ['money_per_round', '/Lượt', Layers, 'bg-teal-600'],
+   256→] as const;
+   257→
+   258→// ContestPoster Component - supports white & gradient variants
+   259→const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
+   260→  contestTitle: string; startDate: string; endDate: string; conditionType: ConditionType;
+   261→  targetType: TargetType; sortedTiers: BonusTier[]; filteredContracts: Contract[];
+   262→  groupedData: GroupData[]; totalFYP: number; totalBonus: number;
+   263→  achievedCount: number; notAchievedCount: number;
+   264→  formatCurrency: (n: number) => string; formatNumber: (n: number) => string;
+   265→  formatDate: (d: string) => string; isPreview?: boolean; variant?: 'gradient' | 'white';
+   266→}) {
+   267→  const rowCount = targetType === 'nhom' ? groupedData.length : filteredContracts.length;
+   268→  const hasData = rowCount > 0;
+   269→  const achievementPercent = hasData ? Math.round((achievedCount / rowCount) * 100) : 0;
+   270→  const tierColors = TIER_COLORS;
+   271→  const isWhite = variant === 'white';
+   272→
+   273→  const conditionLabel = getConditionLabel(conditionType);
+   274→  const targetLabel = getTargetLabel(targetType);
+   275→
+   276→  if (isWhite) {
+   277→    return (
+   278→      <div className="rounded-2xl border border-emerald-500/30 bg-[rgba(14,14,30,0.85)] backdrop-blur overflow-hidden shadow-[0_0_15px_rgba(0,255,136,0.1)]">
+   279→        <div className="p-4 sm:p-5">
+   280→          <div className="flex items-start gap-3 mb-3">
+   281→            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+   282→              <Trophy className="w-6 h-6 text-white" />
+   283→            </div>
+   284→            <div className="flex-1 min-w-0">
+   285→              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
+   286→              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+   287→                <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
+   288→                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+   289→                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+   290→                  {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+   291→                  {' '}{targetLabel}
+   292→                </span>
+   293→              </div>
+   294→            </div>
+   295→          </div>
+   296→          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+   297→            {sortedTiers.map((tier, i) => (
+   298→              <div key={tier.id} className={`flex-shrink-0 rounded-lg px-3 py-2 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[80px] shadow-md`}>
+   299→                <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 opacity-80" /><span className="text-[10px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
+   300→                <div className="text-xs font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
+   301→                <div className="text-sm font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
+   302→              </div>
+   303→            ))}
+   304→          </div>
+   305→          <div className="grid grid-cols-4 gap-2 mb-2">
+   306→            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+   307→            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
+   308→            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+   309→            <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
+   310→          </div>
+   311→          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+   312→        </div>
+   313→      </div>
+   314→    );
+   315→  }
+   316→
+   317→  // Original gradient variant
+   318→  return (
+   319→    <div className={`relative overflow-hidden rounded-2xl ${isPreview ? 'border border-emerald-500/30' : ''} shadow-[0_0_15px_rgba(0,255,136,0.1)]`}>
+   320→      <div className="absolute inset-0 bg-[rgba(14,14,30,0.85)] backdrop-blur" />
+   321→      <div className="relative z-10 p-4 sm:p-5">
+   322→        <div className="flex items-start gap-3 mb-3">
+   323→          <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg flex-shrink-0">
+   324→            <Trophy className="w-6 h-6 text-white" />
+   325→          </div>
+   326→          <div className="flex-1 min-w-0">
+   327→            <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide leading-tight break-words">{contestTitle || 'CHƯƠNG TRÌNH THI ĐUA'}</h2>
+   328→            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+   329→              <div className="flex items-center gap-1 text-emerald-200 text-sm"><CalendarRange className="w-4 h-4" /><span>{startDate ? fd(startDate) : '...'} — {endDate ? fd(endDate) : '...'}</span></div>
+   330→              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"><Target className="w-3.5 h-3.5" />{conditionLabel}</span>
+   331→              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+   332→                {targetType === 'tvv' ? <Users className="w-3.5 h-3.5" /> : targetType === 'nyd' ? <UserPlus className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+   333→                {' '}{targetLabel}
+   334→              </span>
+   335→            </div>
+   336→          </div>
+   337→        </div>
+   338→        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-none">
+   339→          {sortedTiers.map((tier, i) => (
+   340→            <div key={tier.id} className={`flex-shrink-0 rounded-lg px-3 py-2 bg-gradient-to-br ${tierColors[i % tierColors.length]} text-white min-w-[80px] shadow-md`}>
+   341→              <div className="flex items-center gap-1 mb-0.5"><BonusTypeIcon type={tier.bonusType} className="w-3.5 h-3.5 opacity-80" /><span className="text-[10px] font-bold uppercase opacity-90">Mức {i + 1}</span></div>
+   342→              <div className="text-xs font-semibold leading-tight">{isActivityRoundMode(conditionType) ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt` : `${fc(tier.minFYP)}${tier.maxFYP ? ` - ${fc(tier.maxFYP)}` : ' ↑'}`}</div>
+   343→              <div className="text-sm font-extrabold mt-0.5 truncate" title={formatBonus(tier)}>{formatBonus(tier)}</div>
+   344→            </div>
+   345→          ))}
+   346→        </div>
+   347→        <div className="grid grid-cols-4 gap-2 mb-2">
+   348→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
+   349→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
+   350→          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
+   351→          <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
+   352→        </div>
+   353→        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+   354→        {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200 text-sm italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
+   355→      </div>
+   356→    </div>
+   357→  );
+   358→});
+   359→
+   360→// Bonus tier editor component
+   361→const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
+   362→  tiers: BonusTier[];
+   363→  conditionType: ConditionType;
+   364→  onUpdate: (id: string, field: keyof BonusTier, value: string | number | null) => void;
+   365→  onAdd: () => void;
+   366→  onRemove: (id: string) => void;
+   367→  title?: string;
+   368→  accentColor?: string;
+   369→}) {
+   370→  const isAR = isActivityRoundMode(conditionType);
+   371→  const isPassCount = isTVVPassCountMode(conditionType);
+   372→  const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
+   373→  const unitLabel = isPassCount ? 'TVV đạt' : isAFYP ? 'AFYP' : 'IP';
+   374→  const cls = accentColor === 'sky' ? {
+   375→    bg: 'bg-sky-900/30', border: 'border-sky-500/30', label: 'text-sky-400', badge: 'bg-sky-500/10',
+   376→    btn: 'text-sky-400 hover:text-sky-300', accent: 'bg-sky-600',
+   377→  } : {
+   378→    bg: 'bg-amber-900/30', border: 'border-amber-500/30', label: 'text-amber-400', badge: 'bg-amber-500/10',
+   379→    btn: 'text-amber-400 hover:text-amber-300', accent: 'bg-amber-600',
+   380→  };
+   381→
+   382→  return (
+   383→    <div className="space-y-2">
+   384→      <div className="flex items-center justify-between">
+   385→        <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
+   386→        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
+   387→      </div>
+   388→      <div className="space-y-2">
+   389→        {tiers.map((tier, index) => (
+   390→          <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
+   391→            <div className="flex items-center gap-1.5 mb-1.5">
+   392→              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
+   393→              <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
+   394→                {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
+   395→                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
+   396→                ))}
+   397→              </div>
+   398→              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-2.5 h-2.5" /></Button>
+   399→            </div>
+   400→            <div className="grid grid-cols-3 gap-1.5">
+   401→              {isAR ? (
+   402→                <>
+   403→                  <div><Label className="text-[9px] text-emerald-300/70">Lượt từ</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   404→                  <div><Label className="text-[9px] text-emerald-300/70">Lượt đến</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   405→                </>
+   406→              ) : (
+   407→                <>
+   408→                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} từ (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   409→                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
+   410→                </>
+   411→              )}
+   412→              <div>
+   413→                <Label className="text-[9px] text-emerald-300/70">
+   414→                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+   415→                </Label>
+   416→                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
+   417→                  ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+   418→                  : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+   419→                    ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+   420→                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
+   421→              </div>
+   422→            </div>
+   423→          </div>
+   424→        ))}
+   425→      </div>
+   426→    </div>
+   427→  );
+   428→});
+   429→
+   430→export default function ThiDuaPage() {
+   431→  const router = useRouter();
+   432→  // Data sourced from Quản lý page — no CSV sync
+   433→
+   434→  const [startDate, setStartDate] = useState(''); // Ngày hiệu lực từ
+   435→  const [endDate, setEndDate] = useState('');     // Ngày hiệu lực đến
+   436→  const [issueStartDate, setIssueStartDate] = useState(''); // Ngày phát hành từ
+   437→  const [issueEndDate, setIssueEndDate] = useState('');     // Ngày phát hành đến
+   438→  const [contestTitle, setContestTitle] = useState('CHƯƠNG TRÌNH THI ĐUA');
+   439→  const [conditionType, setConditionType] = useState<ConditionType>('per_contract_ip');
+   440→  const [targetType, setTargetType] = useState<TargetType>('tvv');
+   441→  const [bonusTiers, setBonusTiers] = useState<BonusTier[]>([]);
+   442→  // Phase 2
+   443→  const [usePhase2, setUsePhase2] = useState(false);
+   444→  const [phase2StartDate, setPhase2StartDate] = useState('');
+   445→  const [phase2EndDate, setPhase2EndDate] = useState('');
+   446→  const [bonusTiers2, setBonusTiers2] = useState<BonusTier[]>([]);
+   447→  // Secondary Condition
+   448→  const [useSecondaryCondition, setUseSecondaryCondition] = useState(false);
+   449→  const [secondaryAFYPMin, setSecondaryAFYPMin] = useState(0);
+   450→  const [secondaryIPMin, setSecondaryIPMin] = useState(0);
+   451→  const [secondaryLuotHDMin, setSecondaryLuotHDMin] = useState(0);
+   452→  const [secondaryLuotHDCMin, setSecondaryLuotHDCMin] = useState(0);
+   453→  const [secondaryLuotHDFilter, setSecondaryLuotHDFilter] = useState<'all' | 'tvvm'>('all');
+   454→  const [secondaryLuotHDCFilter, setSecondaryLuotHDCFilter] = useState<'all' | 'tvvm'>('all');
+   455→  const [secondaryTotalAFYPMin, setSecondaryTotalAFYPMin] = useState(0);
+   456→  const [secondaryTotalIPMin, setSecondaryTotalIPMin] = useState(0);
+   457→  // Options
+   458→  const [hideNotAchieved, setHideNotAchieved] = useState(false);
+   459→  const [includeIndividualNTD, setIncludeIndividualNTD] = useState(false);
+   460→  const [includeIndividualTN, setIncludeIndividualTN] = useState(false);
+   461→  // Configurable thresholds
+   462→  const [luotHDThreshold, setLuotHDThreshold] = useState(3_000_000);
+   463→  const [luotHDCTThreshold, setLuotHDCTThreshold] = useState(12_000_000);
+   464→  const [tvv90MaxMonths, setTvv90MaxMonths] = useState(3);
+   465→  const [tvv90MinIP, setTvv90MinIP] = useState(12_000_000);
+   466→  // Reference contest for tvv_pass_count mode
+   467→  const [referenceContestId, setReferenceContestId] = useState<string>('');
+   468→
+   469→  const [posterUrl, setPosterUrl] = useState<string>('');
+   470→  const [contracts, setContracts] = useState<Contract[]>([]);
+   471→  const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+   472→  const [isLoading, setIsLoading] = useState(false);
+   473→  const [dataLoadedCount, setDataLoadedCount] = useState<number>(0);
+   474→  const [dataLoadedVisible, setDataLoadedVisible] = useState<boolean>(false);
+   475→  const [savedContests, setSavedContests] = useState<SavedContest[]>([]);
+   476→  const [selectedContestId, setSelectedContestId] = useState<string>('');
+   477→  const [isSaving, setIsSaving] = useState(false);
+   478→  const [contestListOpen, setContestListOpen] = useState(false);
+   479→  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+   480→  const [showSourceData, setShowSourceData] = useState(false);
+   481→  const [showConfig, setShowConfig] = useState(false);
+   482→  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+   483→  const [isResultExpanded, setIsResultExpanded] = useState(false);
+   484→  const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
+   485→  const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+   486→  const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+   487→  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+   488→  const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
+   489→  // revenueData removed — all data now sourced from Contracts table only
+   490→  const printRef = useRef<HTMLDivElement>(null);
+   491→  const resultContentRef = useRef<HTMLDivElement>(null);
+   492→
+   493→  const handlePosterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+   494→    const file = e.target.files?.[0]; if (!file) return;
+   495→    const reader = new FileReader();
+   496→    reader.onload = (ev) => { setPosterUrl(ev.target?.result as string); };
+   497→    reader.readAsDataURL(file);
+   498→  };
+   499→
+   500→  const fetchContracts = useCallback(async () => {
+   501→    setIsLoading(true);
+   502→    try { const res = await fetch('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(data); } }
+   503→    catch { /* silent - status shown by green check / spinner */ }
+   504→    finally { setIsLoading(false); }
+   505→  }, []);
+   506→  useEffect(() => { fetchContracts(); }, [fetchContracts]);
+   507→
+   508→  const fetchSavedContests = useCallback(async () => {
+   509→    try { const res = await fetch('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+   510→  }, []);
+   511→  useEffect(() => { fetchSavedContests(); }, [fetchSavedContests]);
+   512→
+   513→  // Fetch staff list for group membership reference
+   514→  const fetchStaff = useCallback(async () => {
+   515→    try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
+   516→  }, []);
+   517→  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+   518→
+   519→  // Fetch recruiter list for NYD reference
+   520→  const fetchRecruiters = useCallback(async () => {
+   521→    try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
+   522→  }, []);
+   523→  useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
+   524→
+   525→  // fetchRevenue removed — all data now sourced from Contracts table only
+   526→
+   527→  // Data is loaded directly from DB (populated by Quản lý page) — no CSV sync needed
+   528→  // Refresh all data from DB
+   529→  const handleRefreshData = useCallback(async () => {
+   530→    setIsLoading(true);
+   531→    try {
+   532→      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters()]);
+   533→      // Show success indicator
+   534→      const contractRes = await fetch('/api/contracts');
+   535→      if (contractRes.ok) {
+   536→        const contractData = await contractRes.json();
+   537→        setDataLoadedCount(contractData.length || contracts.length);
+   538→      } else {
+   539→        setDataLoadedCount(contracts.length);
+   540→      }
+   541→      setDataLoadedVisible(true);
+   542→      setTimeout(() => setDataLoadedVisible(false), 3000);
+   543→    } finally {
+   544→      setIsLoading(false);
+   545→    }
+   546→  }, [fetchContracts, fetchStaff, fetchRecruiters, contracts.length]);
+   547→
+   548→  const handleSearch = useCallback(() => {
+   549→    if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
+   550→    let results = [...contracts];
+   551→    // Lọc theo Ngày hiệu lực (từ-đến)
+   552→    if (startDate) { const start = new Date(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
+   553→    if (endDate) { const end = new Date(endDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
+   554→    // Lọc theo Ngày phát hành (từ-đến)
+   555→    if (issueStartDate) { const start = new Date(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
+   556→    if (issueEndDate) { const end = new Date(issueEndDate); end.setHours(23, 59, 59, 999); results = results.filter((c) => new Date(c.issueDate) <= end); }
+   557→    // Secondary condition filter
+   558→    if (useSecondaryCondition) {
+   559→      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
+   560→      if (secondaryIPMin > 0) results = results.filter((c) => c.pdt10DT >= secondaryIPMin);
+   561→    }
+   562→    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+   563→    setFilteredContracts(results);
+   564→    return results;
+   565→  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
+   566→
+   567→  const handleSearchRef = useRef(handleSearch);
+   568→  handleSearchRef.current = handleSearch;
+   569→
+   570→  // Bonus calculation helpers - takes tiers as parameter for Phase2 support
+   571→  const calculateBonusWithTiers = useCallback((fyp: number, tiers: BonusTier[]): { tier: BonusTier | null; tierIndex: number } => {
+   572→    const sortedTiers = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+   573→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (fyp >= tier.minFYP) return { tier, tierIndex: i }; }
+   574→    return { tier: null, tierIndex: -1 };
+   575→  }, []);
+   576→
+   577→  const calculateBonus = useCallback((fyp: number): { tier: BonusTier | null; tierIndex: number } => {
+   578→    return calculateBonusWithTiers(fyp, bonusTiers);
+   579→  }, [calculateBonusWithTiers, bonusTiers]);
+   580→
+   581→  const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[]): number => {
+   582→    const { tier } = calculateBonusWithTiers(fyp, tiers); if (!tier) return 0;
+   583→    return computeBonusFromTier(tier, fyp);
+   584→  }, [calculateBonusWithTiers]);
+   585→
+   586→  const getBonusAmount = useCallback((fyp: number): number => {
+   587→    return getBonusAmountWithTiers(fyp, bonusTiers);
+   588→  }, [getBonusAmountWithTiers, bonusTiers]);
+   589→
+   590→  const getRemainingToNextTier = useCallback((fyp: number): number | null => {
+   591→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   592→    for (const tier of sortedTiers) { if (tier.minFYP > fyp) return tier.minFYP - fyp; }
+   593→    return null;
+   594→  }, [bonusTiers]);
+   595→
+   596→  const calculateActivityRoundBonus = useCallback((activityRounds: number): { tier: BonusTier | null; tierIndex: number } => {
+   597→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   598→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (activityRounds >= tier.minFYP) return { tier, tierIndex: i }; }
+   599→    return { tier: null, tierIndex: -1 };
+   600→  }, [bonusTiers]);
+   601→
+   602→  const calculateActivityRoundBonusWithTiers = useCallback((activityRounds: number, tiers: BonusTier[]): { tier: BonusTier | null; tierIndex: number } => {
+   603→    const sortedTiers = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+   604→    for (let i = sortedTiers.length - 1; i >= 0; i--) { const tier = sortedTiers[i]; if (activityRounds >= tier.minFYP) return { tier, tierIndex: i }; }
+   605→    return { tier: null, tierIndex: -1 };
+   606→  }, []);
+   607→
+   608→  const getActivityRoundBonusAmount = useCallback((activityRounds: number, groupTotalFYP?: number): number => {
+   609→    const { tier } = calculateActivityRoundBonus(activityRounds); if (!tier) return 0;
+   610→    return computeBonusFromTier(tier, groupTotalFYP || 0, activityRounds);
+   611→  }, [calculateActivityRoundBonus]);
+   612→
+   613→  const getRemainingToNextActivityRoundTier = useCallback((activityRounds: number): number | null => {
+   614→    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+   615→    for (const tier of sortedTiers) { if (tier.minFYP > activityRounds) return tier.minFYP - activityRounds; }
+   616→    return null;
+   617→  }, [bonusTiers]);
+   618→
+   619→  // Subject filter - loại bỏ trùng lặp
+   620→  const subjectCodes = useMemo(() => {
+   621→    const raw = thiDuaSubjects.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+   622→    return [...new Set(raw)];
+   623→  }, [thiDuaSubjects]);
+   624→
+   625→  // Display contracts with subject filter applied
+   626→  // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
+   627→  const displayContracts = useMemo(() => {
+   628→    if (targetType === 'tvv') {
+   629→      if (subjectCodes.length === 0) return filteredContracts;
+   630→      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
+   631→    }
+   632→    if (targetType === 'nhom') {
+   633→      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại PA)
+   634→      // Sau đó lọc HĐ theo mã nhóm
+   635→      const allowedMaNhom = new Set<string>();
+   636→      if (subjectCodes.length > 0) {
+   637→        // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
+   638→        for (const code of subjectCodes) {
+   639→          const codeLower = norm(code).toLowerCase();
+   640→          const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+   641→          if (staff?.maNhom) {
+   642→            allowedMaNhom.add(staff.maNhom);
+   643→          } else {
+   644→            allowedMaNhom.add(code);
+   645→          }
+   646→        }
+   647→      } else {
+   648→        // Không nhập đối tượng → lấy tất cả nhóm từ Staff table (trừ PA)
+   649→        for (const s of staffList) {
+   650→          if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+   651→            allowedMaNhom.add(s.maNhom);
+   652→          }
+   653→        }
+   654→      }
+   655→      return filteredContracts.filter(c => allowedMaNhom.has(c.maNhom));
+   656→    }
+   657→    if (targetType === 'nyd') {
+   658→      // NTD: xác định tập mã NTD từ Recruiter table
+   659→      if (subjectCodes.length > 0) {
+   660→        return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+   661→          (c.maDaiLyTD && subjectCodes.includes(c.maDaiLyTD)));
+   662→      }
+   663→      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table
+   664→      const ntdCodes = new Set(recruiterList.map(r => r.agentCode));
+   665→      return filteredContracts.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
+   666→    }
+   667→    return filteredContracts;
+   668→  }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
+   669→
+   670→  // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
+   671→
+   672→  // NYD data computation - use Recruiter table as primary reference
+   673→  const nydData: NYDData[] = useMemo(() => {
+   674→    if (targetType !== 'nyd') return [];
+   675→    const nydMap = new Map<string, NYDData>();
+   676→
+   677→    // Step 1: Load NTD from Recruiter table
+   678→    // Nếu có DS đối tượng → chỉ lấy NTD trong DS, ngược lại lấy tất cả
+   679→    if (subjectCodes.length > 0) {
+   680→      for (const r of recruiterList) {
+   681→        if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
+   682→          nydMap.set(r.agentCode, {
+   683→            nydCode: r.agentCode,
+   684→            nydName: r.agentName,
+   685→            nhom: r.nhom,
+   686→            position: r.position || '',
+   687→            startDate: r.startDate,
+   688→            recruitCount: 0,
+   689→            recruitFYP: 0,
+   690→            ownFYP: 0,
+   691→            contracts: [],
+   692→          });
+   693→        }
+   694→      }
+   695→      // Thêm NTD từ subjectCodes KHÔNG có trong recruiterList (để hiện đầy đủ DS)
+   696→      for (const code of subjectCodes) {
+   697→        const codeLower = norm(code).toLowerCase();
+   698→        const found = Array.from(nydMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+   699→        if (!found) {
+   700→          // Tìm thông tin từ staffList nếu có
+   701→          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || norm(s.agentName || '').toLowerCase() === codeLower);
+   702→          nydMap.set(code, {
+   703→            nydCode: staff?.agentCode || code,
+   704→            nydName: staff?.agentName || code,
+   705→            nhom: staff?.nhom || '',
+   706→            position: staff?.position || '',
+   707→            startDate: staff?.startDate || null,
+   708→            recruitCount: 0,
+   709→            recruitFYP: 0,
+   710→            ownFYP: 0,
+   711→            contracts: [],
+   712→          });
+   713→        }
+   714→      }
+   715→    } else {
+   716→      // Không có DS đối tượng → lấy tất cả NTD
+   717→      for (const r of recruiterList) {
+   718→        nydMap.set(r.agentCode, {
+   719→          nydCode: r.agentCode,
+   720→          nydName: r.agentName,
+   721→          nhom: r.nhom,
+   722→          position: r.position || '',
+   723→          startDate: r.startDate,
+   724→          recruitCount: 0,
+   725→          recruitFYP: 0,
+   726→          ownFYP: 0,
+   727→          contracts: [],
+   728→        });
+   729→      }
+   730→    }
+   731→
+   732→    // Step 2: Calculate recruit data using maDaiLyTD from contracts for mapping
+   733→    // Mã số NTD → ánh xạ sang cột maDaiLyTD trong bảng doanh số
+   734→    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+   735→    const isAFYP = conditionType === 'total_afyp';
+   736→    // Build FYP lookup by agentCode — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
+   737→    const agentFYPLookup = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
+   738→    for (const c of displayContracts) {
+   739→      const key = c.agentCode;
+   740→      if (!key) continue;
+   741→      const existing = agentFYPLookup.get(key);
+   742→      if (existing) {
+   743→        existing.totalFYP += c.pdt10DT;
+   744→        existing.totalAFYP += c.afyp;
+   745→      } else {
+   746→        agentFYPLookup.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 });
+   747→      }
+   748→    }
+   749→    // Tính activityRounds từ Contracts cho từng agent
+   750→    const agentContractsMap = new Map<string, Contract[]>();
+   751→    for (const c of displayContracts) {
+   752→      const key = c.agentCode;
+   753→      if (!key) continue;
+   754→      if (!agentContractsMap.has(key)) agentContractsMap.set(key, []);
+   755→      agentContractsMap.get(key)!.push(c);
+   756→    }
+   757→    for (const [key, cList] of agentContractsMap) {
+   758→      const data = agentFYPLookup.get(key);
+   759→      if (data) data.activityRounds = calculateLuot(cList, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+   760→    }
+   761→    for (const [nydCode, nyd] of nydMap) {
+   762→      // Find all contracts where maDaiLyTD = NTD's agentCode (TVV được tuyển bởi NTD này)
+   763→      const recruitedContracts = displayContracts.filter(c => c.maDaiLyTD === nydCode && c.agentCode !== nydCode);
+   764→
+   765→      if (isActivityRoundMode(conditionType)) {
+   766→        // Lượt HĐ mode: use activityRounds for recruited agents
+   767→        let totalRounds = 0;
+   768→        let totalRecruitFYP = 0;
+   769→        let recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
+   770→        // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
+   771→        if (isTVVmMode(conditionType)) {
+   772→          recruitedAgents = new Set(
+   773→            [...recruitedAgents].filter(agentCode => {
+   774→              const staff = staffList.find(s => s.agentCode === agentCode);
+   775→              if (staff?.startDate) return isTVVm(staff.startDate);
+   776→              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
+   777→              if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
+   778→              return false;
+   779→            })
+   780→          );
+   781→        }
+   782→        // Lọc TVV90 nếu chế độ TVV90
+   783→        if (conditionType === 'activity_round_tvv90') {
+   784→          recruitedAgents = new Set(
+   785→            [...recruitedAgents].filter(agentCode => {
+   786→              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
+   787→              return contract ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP) : false;
+   788→            })
+   789→          );
+   790→        }
+   791→        for (const agentCode of recruitedAgents) {
+   792→          const rv = agentFYPLookup.get(agentCode);
+   793→          if (rv) {
+   794→            totalRounds += rv.activityRounds;
+   795→            totalRecruitFYP += rv.totalFYP;
+   796→          }
+   797→        }
+   798→        nyd.recruitCount = totalRounds;
+   799→        nyd.recruitFYP = totalRecruitFYP;
+   800→      } else {
+   801→        // NTD FYP mode: get FYP from agentFYPLookup (Contracts cho total_ip/total_afyp)
+   802→        let recruitCount = 0;
+   803→        let recruitFYP = 0;
+   804→        const recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
+   805→        for (const agentCode of recruitedAgents) {
+   806→          const rv = agentFYPLookup.get(agentCode);
+   807→          const agentFYP = rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+   808→          if (agentFYP >= luotHDThreshold) recruitCount++;
+   809→          recruitFYP += agentFYP;
+   810→        }
+   811→        nyd.recruitCount = recruitCount;
+   812→        nyd.recruitFYP = recruitFYP;
+   813→      }
+   814→
+   815→      // Also add NTD's own FYP from agentFYPLookup
+   816→      const ownRevenue = agentFYPLookup.get(nydCode);
+   817→      nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
+   818→      nyd.contracts = [...recruitedContracts, ...displayContracts.filter(c => c.agentCode === nydCode)];
+   819→    }
+   820→
+   821→    return Array.from(nydMap.values());
+   822→  }, [displayContracts, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+   823→
+   824→  // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
+   825→  // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
+   826→  const tvvTotalRows = useMemo(() => {
+   827→    if (targetType !== 'tvv' || isPerContractMode(conditionType)) return [];
+   828→    const isAFYP = conditionType === 'total_afyp';
+   829→    const isActivityMode = isActivityRoundMode(conditionType);
+   830→    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+   831→    const agentMap = new Map<string, {
+   832→      agentCode: string; agentName: string; nhom: string; maNhom: string;
+   833→      totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number;
+   834→    }>();
+   835→
+   836→    // TẤT CẢ chế độ: dùng displayContracts (nguồn duy nhất)
+   837→    for (const c of displayContracts) {
+   838→      const key = c.agentCode;
+   839→      if (!key) continue;
+   840→      const existing = agentMap.get(key);
+   841→      if (existing) {
+   842→        existing.totalFYP += c.pdt10DT;
+   843→        existing.totalAFYP += c.afyp;
+   844→        existing.contractCount += 1;
+   845→      } else {
+   846→        agentMap.set(key, {
+   847→          agentCode: c.agentCode, agentName: c.agentName,
+   848→          nhom: c.nhom || c.maNhom || '', maNhom: c.maNhom || '',
+   849→          totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1,
+   850→          activityRounds: 0,
+   851→        });
+   852→      }
+   853→    }
+   854→    // Tính activityRounds từ Contracts cho từng agent
+   855→    for (const [key, agent] of agentMap) {
+   856→      const agentContracts = displayContracts.filter(c => c.agentCode === key);
+   857→      agent.activityRounds = calculateLuot(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+   858→    }
+   859→    // Thêm TVV từ subjectCodes KHÔNG có trong dữ liệu (không có doanh thu → giá trị 0)
+   860→    if (subjectCodes.length > 0) {
+   861→      for (const code of subjectCodes) {
+   862→        const codeLower = norm(code).toLowerCase();
+   863→        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+   864→        if (!found) {
+   865→          const staff = staffList.find(s => s.agentCode.toLowerCase() === codeLower || norm(s.agentName || '').toLowerCase() === codeLower);
+   866→          const recruiter = !staff ? recruiterList.find(r => r.agentCode.toLowerCase() === codeLower || norm(r.agentName || '').toLowerCase() === codeLower) : null;
+   867→          const info = staff || recruiter;
+   868→          agentMap.set(code, {
+   869→            agentCode: info?.agentCode || code,
+   870→            agentName: info?.agentName || code,
+   871→            nhom: info?.nhom || '',
+   872→            maNhom: (info as StaffMember)?.maNhom || '',
+   873→            totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
+   874→          });
+   875→        }
+   876→      }
+   877→    }
+   878→    return Array.from(agentMap.values()).map(agent => {
+   879→      const value = isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP);
+   880→      const { tier } = calculateBonus(value);
+   881→      const remaining = getRemainingToNextTier(value);
+   882→      // Phase 2 - split by date using contracts
+   883→      let phaseInfo = { phase1Bonus: 0, phase2Bonus: 0, phase1Tier: null as BonusTier | null, phase2Tier: null as BonusTier | null };
+   884→      if (usePhase2 && phase2StartDate) {
+   885→        const p2Start = new Date(phase2StartDate);
+   886→        const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+   887→        const p1Contracts = agentContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+   888→        const p2Contracts = agentContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+   889→        const p1Value = isAFYP
+   890→          ? p1Contracts.reduce((s, c) => s + c.afyp, 0)
+   891→          : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+   892→        const p2Value = isAFYP
+   893→          ? p2Contracts.reduce((s, c) => s + c.afyp, 0)
+   894→          : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+   895→        const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
+   896→        const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
+   897→        phaseInfo = {
+   898→          phase1Bonus: p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0,
+   899→          phase2Bonus: p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0,
+   900→          phase1Tier: p1Res.tier, phase2Tier: p2Res.tier,
+   901→        };
+   902→      }
+   903→      return { agent, value, tier, remaining, phaseInfo };
+   904→    }).sort((a, b) => b.value - a.value);
+   905→  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+   906→
+   907→  // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
+   908→  // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
+   909→  // Thi đua nhóm: Dùng Staff table làm nguồn chính để xây dựng danh sách nhóm
+   910→  // Ánh xạ doanh số từ displayContracts vào nhóm theo mã nhóm
+   911→  // Loại bỏ nhóm PA
+   912→  // Trưởng ban tham dự với vai trò Trưởng nhóm
+   913→  // Nếu có DS đối tượng → chỉ hiển thị nhóm trong DS
+   914→  // Nhóm không có HĐ vẫn hiện với giá trị 0
+   915→  const groupedData: GroupData[] = useMemo(() => {
+   916→    if (targetType !== 'nhom') return [];
+   917→    const map = new Map<string, GroupData>();
+   918→
+   919→    // Xác định tập mã nhóm hợp lệ
+   920→    // 1. Nếu có nhập đối tượng → chỉ lấy nhóm trong DS
+   921→    // 2. Nếu không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
+   922→    const allowedMaNhom = new Set<string>();
+   923→
+   924→    if (subjectCodes.length > 0) {
+   925→      // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
+   926→      for (const code of subjectCodes) {
+   927→        const codeLower = norm(code).toLowerCase();
+   928→        const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
+   929→        if (staff?.maNhom) {
+   930→          allowedMaNhom.add(staff.maNhom);
+   931→        } else {
+   932→          // Không tìm thấy → vẫn thêm (nhóm chưa có trong staffList)
+   933→          allowedMaNhom.add(code);
+   934→        }
+   935→      }
+   936→    } else {
+   937→      // Không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
+   938→      for (const s of staffList) {
+   939→        if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+   940→          allowedMaNhom.add(s.maNhom);
+   941→        }
+   942→      }
+   943→    }
+   944→
+   945→    // Step 1: Build groups từ Staff table (nguồn chính)
+   946→    for (const s of staffList) {
+   947→      if (!s.maNhom) continue;
+   948→      if (map.has(s.maNhom)) continue;
+   949→      // Loại bỏ nhóm PA
+   950→      if (norm(s.nhom || '').toLowerCase().includes('pa')) continue;
+   951→      // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
+   952→      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
+   953→
+   954→      map.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
+   955→    }
+   956→
+   957→    // Thêm nhóm trong DS đối tượng nhưng chưa có trong Staff table (nhóm mới, giá trị 0)
+   958→    if (subjectCodes.length > 0) {
+   959→      for (const maNhom of allowedMaNhom) {
+   960→        if (!map.has(maNhom)) {
+   961→          // Tìm tên nhóm từ staffList
+   962→          const staff = staffList.find(s => s.maNhom === maNhom);
+   963→          const nhomName = staff?.nhom || maNhom;
+   964→          map.set(maNhom, { maNhom, nhom: nhomName, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
+   965→        }
+   966→      }
+   967→    }
+   968→
+   969→    // Tìm Trưởng nhóm tham dự thi đua
+   970→    // Ưu tiên: Trưởng ban > Trưởng nhóm (TB tham dự với vai trò TN)
+   971→    // Fallback sang Recruiter table nếu Staff table không có
+   972→    for (const [maNhom, g] of map) {
+   973→      const groupStaff = staffList.filter(s => s.maNhom === maNhom);
+   974→
+   975→      // Ưu tiên Trưởng ban (họ tham dự thi đua với vai trò Trưởng nhóm)
+   976→      const truongBan = groupStaff.find(s => {
+   977→        const pos = norm(s.position || '').toLowerCase().trim();
+   978→        return pos === 'trưởng ban';
+   979→      });
+   980→      if (truongBan) {
+   981→        g.leader = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
+   982→        continue;
+   983→      }
+   984→
+   985→      // Nếu không có Trưởng ban → lấy Trưởng nhóm
+   986→      const truongNhom = groupStaff.find(s => {
+   987→        const pos = norm(s.position || '').toLowerCase().trim();
+   988→        return pos === 'trưởng nhóm';
+   989→      });
+   990→      if (truongNhom) {
+   991→        g.leader = { agentCode: truongNhom.agentCode, agentName: truongNhom.agentName, position: truongNhom.position };
+   992→        continue;
+   993→      }
+   994→
+   995→      // Fallback: Tìm trong Recruiter table theo mã nhóm hoặc tên nhóm
+   996→      const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom || r.nhom === g.maNhom);
+   997→      const rBan = groupRecruiters.find(r => {
+   998→        const pos = norm(r.position || '').toLowerCase().trim();
+   999→        return pos === 'trưởng ban';
+  1000→      });
+  1001→      if (rBan) {
+  1002→        g.leader = { agentCode: rBan.agentCode, agentName: rBan.agentName, position: rBan.position };
+  1003→        continue;
+  1004→      }
+  1005→      const rNhom = groupRecruiters.find(r => {
+  1006→        const pos = norm(r.position || '').toLowerCase().trim();
+  1007→        return pos === 'trưởng nhóm';
+  1008→      });
+  1009→      if (rNhom) {
+  1010→        g.leader = { agentCode: rNhom.agentCode, agentName: rNhom.agentName, position: rNhom.position };
+  1011→      }
+  1012→    }
+  1013→
+  1014→    // Step 2: Map doanh số vào nhóm ĐÃ CÓ
+  1015→    // Dùng mã nhóm (maNhom) để ánh xạ, hỗ trợ case-insensitive
+  1016→    const mapKeyIndex = new Map<string, string>(); // lowercase → actual key
+  1017→    for (const key of map.keys()) {
+  1018→      mapKeyIndex.set(key.toLowerCase(), key);
+  1019→    }
+  1020→
+  1021→    // TẤT CẢ chế độ: dùng displayContracts (nguồn duy nhất) cho FYP, AFYP, contractCount
+  1022→    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+  1023→    const contractByNhom = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number }>();
+  1024→    for (const c of displayContracts) {
+  1025→      if (!c.maNhom) continue;
+  1026→      const existing = contractByNhom.get(c.maNhom);
+  1027→      if (existing) {
+  1028→        existing.totalFYP += c.pdt10DT;
+  1029→        existing.totalAFYP += c.afyp;
+  1030→        existing.contractCount += 1;
+  1031→      } else {
+  1032→        contractByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1 });
+  1033→      }
+  1034→    }
+  1035→    for (const [cNhom, cData] of contractByNhom) {
+  1036→      const actualKey = map.get(cNhom) ? cNhom : mapKeyIndex.get(cNhom.toLowerCase());
+  1037→      const g = actualKey ? map.get(actualKey) : null;
+  1038→      if (g) {
+  1039→        g.totalFYP += cData.totalFYP;
+  1040→        g.totalAFYP += cData.totalAFYP;
+  1041→        g.contractCount += cData.contractCount;
+  1042→      }
+  1043→    }
+  1044→    // Tính lượt HĐ từ Contracts cho từng nhóm
+  1045→    for (const [maNhom, g] of map) {
+  1046→      const groupContracts = displayContracts.filter(c => c.maNhom === maNhom || (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase()));
+  1047→      g.activityRounds = calculateLuot(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1048→    }
+  1049→
+  1050→    // Step 4: Calculate memberCount từ Staff table
+  1051→    for (const g of Array.from(map.values())) {
+  1052→      g.memberCount = staffList.filter(s => s.maNhom === g.maNhom).length;
+  1053→    }
+  1054→
+  1055→    return Array.from(map.values());
+  1056→  }, [displayContracts, targetType, conditionType, staffList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  1057→
+  1058→  // Phase 2: Split contracts by date and compute bonus — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
+  1059→  const phase2Results = useMemo(() => {
+  1060→    if (!usePhase2 || !phase2StartDate) return null;
+  1061→    const p2Start = new Date(phase2StartDate);
+  1062→
+  1063→    const isAFYP = conditionType === 'total_afyp';
+  1064→    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+  1065→
+  1066→    // TẤT CẢ chế độ: dùng Contracts (nguồn duy nhất), chia theo effectiveDate
+  1067→    const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
+  1068→    const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+  1069→
+  1070→    // Calculate Phase 1 and Phase 2 bonus
+  1071→    let phase1Bonus = 0;
+  1072→    let phase2Bonus = 0;
+  1073→
+  1074→    if (targetType === 'nhom') {
+  1075→      if (isActivityRoundMode(conditionType)) {
+  1076→        // Gộp HĐ theo nhóm + tính lượt
+  1077→        const phase1ByNhom = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
+  1078→        for (const c of phase1Contracts) {
+  1079→          if (!c.maNhom) continue;
+  1080→          const existing = phase1ByNhom.get(c.maNhom);
+  1081→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1082→          else { phase1ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 }); }
+  1083→        }
+  1084→        for (const [nhom, data] of phase1ByNhom) {
+  1085→          const groupContracts = phase1Contracts.filter(c => c.maNhom === nhom);
+  1086→          data.activityRounds = calculateLuot(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1087→          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers);
+  1088→          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
+  1089→        }
+  1090→        const phase2ByNhom = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
+  1091→        for (const c of phase2Contracts) {
+  1092→          if (!c.maNhom) continue;
+  1093→          const existing = phase2ByNhom.get(c.maNhom);
+  1094→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1095→          else { phase2ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 }); }
+  1096→        }
+  1097→        for (const [nhom, data] of phase2ByNhom) {
+  1098→          const groupContracts = phase2Contracts.filter(c => c.maNhom === nhom);
+  1099→          data.activityRounds = calculateLuot(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1100→          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers2);
+  1101→          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
+  1102→        }
+  1103→      } else {
+  1104→        // total_ip / total_afyp cho nhóm: gộp HĐ theo nhóm
+  1105→        const phase1ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1106→        for (const c of phase1Contracts) {
+  1107→          if (!c.maNhom) continue;
+  1108→          const existing = phase1ByNhom.get(c.maNhom);
+  1109→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1110→          else { phase1ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1111→        }
+  1112→        for (const [, data] of phase1ByNhom) {
+  1113→          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+  1114→          phase1Bonus += getBonusAmountWithTiers(value, bonusTiers);
+  1115→        }
+  1116→        const phase2ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1117→        for (const c of phase2Contracts) {
+  1118→          if (!c.maNhom) continue;
+  1119→          const existing = phase2ByNhom.get(c.maNhom);
+  1120→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1121→          else { phase2ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1122→        }
+  1123→        for (const [, data] of phase2ByNhom) {
+  1124→          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+  1125→          phase2Bonus += getBonusAmountWithTiers(value, bonusTiers2);
+  1126→        }
+  1127→      }
+  1128→    } else if (targetType === 'nyd') {
+  1129→      // NYD Phase 1: tính từ Contracts
+  1130→      const agentFYPLookupP1 = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1131→      for (const c of phase1Contracts) {
+  1132→        const key = c.agentCode;
+  1133→        if (!key) continue;
+  1134→        const existing = agentFYPLookupP1.get(key);
+  1135→        if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1136→        else { agentFYPLookupP1.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1137→      }
+  1138→      for (const r of recruiterList) {
+  1139→        const recruited = phase1Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+  1140→        const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+  1141→        if (isActivityRoundMode(conditionType)) {
+  1142→          let filteredAgents = recruitedAgents;
+  1143→          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+  1144→          if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+  1145→          let recruitCount = 0;
+  1146→          for (const agentCode of filteredAgents) {
+  1147→            const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
+  1148→            recruitCount += calculateLuot(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1149→          }
+  1150→          const { tier } = calculateBonusWithTiers(recruitCount, bonusTiers);
+  1151→          if (tier) phase1Bonus += computeBonusFromTier(tier, recruitCount, recruitCount);
+  1152→        } else {
+  1153→          let recruitFYP = 0;
+  1154→          for (const agentCode of recruitedAgents) {
+  1155→            const rv = agentFYPLookupP1.get(agentCode);
+  1156→            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+  1157→          }
+  1158→          const ownRV = agentFYPLookupP1.get(r.agentCode);
+  1159→          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
+  1160→          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+  1161→          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+  1162→          if (tier) phase1Bonus += computeBonusFromTier(tier, value);
+  1163→        }
+  1164→      }
+  1165→      // NYD Phase 2
+  1166→      const agentFYPLookupP2 = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1167→      for (const c of phase2Contracts) {
+  1168→        const key = c.agentCode;
+  1169→        if (!key) continue;
+  1170→        const existing = agentFYPLookupP2.get(key);
+  1171→        if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1172→        else { agentFYPLookupP2.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1173→      }
+  1174→      for (const r of recruiterList) {
+  1175→        const recruited = phase2Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
+  1176→        const recruitedAgents = new Set(recruited.map(c => c.agentCode));
+  1177→        if (isActivityRoundMode(conditionType)) {
+  1178→          let filteredAgents = recruitedAgents;
+  1179→          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+  1180→          if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+  1181→          let recruitCount = 0;
+  1182→          for (const agentCode of filteredAgents) {
+  1183→            const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
+  1184→            recruitCount += calculateLuot(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1185→          }
+  1186→          const { tier } = calculateBonusWithTiers(recruitCount, bonusTiers2);
+  1187→          if (tier) phase2Bonus += computeBonusFromTier(tier, recruitCount, recruitCount);
+  1188→        } else {
+  1189→          let recruitFYP = 0;
+  1190→          for (const agentCode of recruitedAgents) {
+  1191→            const rv = agentFYPLookupP2.get(agentCode);
+  1192→            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+  1193→          }
+  1194→          const ownRV = agentFYPLookupP2.get(r.agentCode);
+  1195→          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
+  1196→          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+  1197→          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+  1198→          if (tier) phase2Bonus += computeBonusFromTier(tier, value);
+  1199→        }
+  1200→      }
+  1201→    } else {
+  1202→      // TVV total mode: aggregate by agentCode from Contracts
+  1203→      if (isActivityRoundMode(conditionType)) {
+  1204→        const phase1AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1205→        for (const c of phase1Contracts) {
+  1206→          const key = c.agentCode;
+  1207→          if (!key) continue;
+  1208→          const existing = phase1AgentMap.get(key);
+  1209→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1210→          else { phase1AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1211→        }
+  1212→        for (const [agentCode, data] of phase1AgentMap) {
+  1213→          const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
+  1214→          const rounds = calculateLuot(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1215→          const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers);
+  1216→          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, rounds);
+  1217→        }
+  1218→        const phase2AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1219→        for (const c of phase2Contracts) {
+  1220→          const key = c.agentCode;
+  1221→          if (!key) continue;
+  1222→          const existing = phase2AgentMap.get(key);
+  1223→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1224→          else { phase2AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1225→        }
+  1226→        for (const [agentCode, data] of phase2AgentMap) {
+  1227→          const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
+  1228→          const rounds = calculateLuot(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+  1229→          const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers2);
+  1230→          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, rounds);
+  1231→        }
+  1232→      } else {
+  1233→        const phase1AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1234→        for (const c of phase1Contracts) {
+  1235→          const key = c.agentCode;
+  1236→          if (!key) continue;
+  1237→          const existing = phase1AgentMap.get(key);
+  1238→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1239→          else { phase1AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1240→        }
+  1241→        for (const [, data] of phase1AgentMap) {
+  1242→          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+  1243→          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+  1244→          if (tier) phase1Bonus += computeBonusFromTier(tier, value);
+  1245→        }
+  1246→        const phase2AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
+  1247→        for (const c of phase2Contracts) {
+  1248→          const key = c.agentCode;
+  1249→          if (!key) continue;
+  1250→          const existing = phase2AgentMap.get(key);
+  1251→          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
+  1252→          else { phase2AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
+  1253→        }
+  1254→        for (const [, data] of phase2AgentMap) {
+  1255→          const value = isAFYP ? data.totalAFYP : data.totalFYP;
+  1256→          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+  1257→          if (tier) phase2Bonus += computeBonusFromTier(tier, value);
+  1258→        }
+  1259→      }
+  1260→    }
+  1261→
+  1262→    const phase1Count = phase1Contracts.length;
+  1263→    const phase2Count = phase2Contracts.length;
+  1264→    return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
+  1265→  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, recruiterList, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  1266→
+  1267→  // Helper: get the value for comparison based on condition type
+  1268→  const getContractValue = useCallback((c: Contract): number => {
+  1269→    if (conditionType === 'per_contract_afyp') return c.afyp;
+  1270→    return c.pdt10DT;
+  1271→  }, [conditionType]);
+  1272→
+  1273→  const getEntityValue = useCallback((contracts: Contract[]): number => {
+  1274→    if (conditionType === 'total_afyp') return contracts.reduce((sum, c) => sum + c.afyp, 0);
+  1275→    return contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+  1276→  }, [conditionType]);
+  1277→
+  1278→  const getGroupValue = useCallback((g: GroupData): number => {
+  1279→    if (conditionType === 'total_afyp') return g.totalAFYP;
+  1280→    return g.totalFYP;
+  1281→  }, [conditionType]);
+  1282→
+  1283→  // Helper: kiểm tra 1 TVV có đạt điều kiện của chương trình tham chiếu không
+  1284→  // Dùng cho conditionType = 'tvv_pass_count'
+  1285→  const checkTVVPassContest = useCallback((agentCode: string, agentContracts: Contract[]): boolean => {
+  1286→    if (!referenceContestId) return false;
+  1287→    const refContest = savedContests.find(sc => sc.id === referenceContestId);
+  1288→    if (!refContest) return false;
+  1289→
+  1290→    const refCondition = refContest.conditionType as ConditionType;
+  1291→    const refTiers: BonusTier[] = (() => { try { return JSON.parse(refContest.bonusTiers); } catch { return []; } })();
+  1292→    if (refTiers.length === 0) return false;
+  1293→
+  1294→    // Tính giá trị cho TVV theo điều kiện của CTĐK tham chiếu
+  1295→    const isAFYP = refCondition === 'total_afyp';
+  1296→    const isPerContract = isPerContractMode(refCondition);
+  1297→    const isActivity = isActivityRoundMode(refCondition);
+  1298→    const refLuotThreshold = isStandardMode(refCondition)
+  1299→      ? (refContest.luotHDCTThreshold ?? 12_000_000)
+  1300→      : (refContest.luotHDThreshold ?? 3_000_000);
+  1301→
+  1302→    if (isPerContract) {
+  1303→      // Per-contract: TVV đạt nếu có ít nhất 1 HĐ đạt mức thưởng thấp nhất
+  1304→      const minFYP = refTiers[0]?.minFYP ?? 0;
+  1305→      return agentContracts.some(c => {
+  1306→        const value = refCondition === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
+  1307→        return value >= minFYP;
+  1308→      });
+  1309→    }
+  1310→
+  1311→    if (isActivity) {
+  1312→      // Activity round: TVV đạt nếu số lượt HĐ >= mức thấp nhất
+  1313→      const minRounds = refTiers[0]?.minFYP ?? 0;
+  1314→      const luot = calculateLuot(agentContracts, refLuotThreshold, refCondition, refContest.tvv90MaxMonths ?? 3, refContest.tvv90MinIP ?? 12_000_000);
+  1315→      return luot >= minRounds;
+  1316→    }
+  1317→
+  1318→    // Total mode: TVV đạt nếu tổng IP/AFYP >= mức thấp nhất
+  1319→    const minFYP = refTiers[0]?.minFYP ?? 0;
+  1320→    const value = isAFYP
+  1321→      ? agentContracts.reduce((s, c) => s + c.afyp, 0)
+  1322→      : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
+  1323→    return value >= minFYP;
+  1324→  }, [referenceContestId, savedContests]);
+  1325→
+  1326→  // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
+  1327→  const getGroupTVVPassCount = useCallback((g: GroupData): number => {
+  1328→    if (conditionType !== 'tvv_pass_count' || !referenceContestId) return 0;
+  1329→    // Lấy danh sách unique TVV trong nhóm
+  1330→    const agentCodes = new Set(g.contracts.map(c => c.agentCode).filter(Boolean));
+  1331→    // Thêm TVV từ staffList trong nhóm (không có HĐ vẫn tính, nhưng sẽ không đạt)
+  1332→    const groupStaff = staffList.filter(s => s.maNhom === g.maNhom);
+  1333→    for (const s of groupStaff) agentCodes.add(s.agentCode);
+  1334→
+  1335→    let count = 0;
+  1336→    for (const code of agentCodes) {
+  1337→      const agentContracts = displayContracts.filter(c => c.agentCode === code);
+  1338→      if (checkTVVPassContest(code, agentContracts)) count++;
+  1339→    }
+  1340→    return count;
+  1341→  }, [conditionType, referenceContestId, displayContracts, staffList, checkTVVPassContest]);
+  1342→
+  1343→  // Helper: kiểm tra điều kiện bổ sung Tổng AFYP / Tổng IP cho 1 entity (TVV/nhóm/NTD)
+  1344→  // Trả về { passed, totalAFYP, totalIP } — passed=true nếu đạt tất cả điều kiện
+  1345→  const checkSecondaryTotalCondition = useCallback((contracts: Contract[]): { passed: boolean; totalAFYP: number; totalIP: number } => {
+  1346→    const totalAFYP = contracts.reduce((sum, c) => sum + c.afyp, 0);
+  1347→    const totalIP = contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+  1348→    if (!useSecondaryCondition) return { passed: true, totalAFYP, totalIP };
+  1349→    let passed = true;
+  1350→    if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) passed = false;
+  1351→    if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) passed = false;
+  1352→    return { passed, totalAFYP, totalIP };
+  1353→  }, [useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin]);
+  1354→
+  1355→  const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
+  1356→    const totalFYP = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+  1357→    const { tier } = calculateBonus(totalFYP); const remaining = getRemainingToNextTier(totalFYP);
+  1358→    const bonus = tier ? computeBonusFromTier(tier, totalFYP) : 0;
+  1359→    return { totalFYP, bonus, tier, remaining };
+  1360→  }, [displayContracts, calculateBonus, getRemainingToNextTier]);
+  1361→
+  1362→  const addBonusTier = () => setBonusTiers([...bonusTiers, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
+  1363→  const removeBonusTier = (id: string) => { setBonusTiers(bonusTiers.filter((t) => t.id !== id)); };
+  1364→  const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(bonusTiers.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  1365→
+  1366→  const addBonusTier2 = () => setBonusTiers2([...bonusTiers2, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
+  1367→  const removeBonusTier2 = (id: string) => { setBonusTiers2(bonusTiers2.filter((t) => t.id !== id)); };
+  1368→  const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers2(bonusTiers2.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  1369→
+  1370→  // Save contest with all new fields
+  1371→  const handleSaveContest = async () => {
+  1372→    if (!contestTitle) { toast({ title: 'Lỗi', description: 'Nhập tên chương trình' }); return; }
+  1373→    setIsSaving(true);
+  1374→    try {
+  1375→      const res = await fetch('/api/contests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+  1376→        title: contestTitle, startDate, endDate, issueDate: issueStartDate || undefined,
+  1377→        conditionType, targetType, bonusTiers: JSON.stringify(bonusTiers),
+  1378→        posterUrl, participants: JSON.stringify(subjectCodes),
+  1379→        usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
+  1380→        bonusTiers2: JSON.stringify(bonusTiers2),
+  1381→        useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
+  1382→        secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
+  1383→        secondaryTotalAFYPMin, secondaryTotalIPMin,
+  1384→        hideNotAchieved, includeIndividualNTD, includeIndividualTN,
+  1385→        luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
+  1386→        referenceContestId: referenceContestId || undefined,
+  1387→      }) });
+  1388→      if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
+  1389→      else {
+  1390→        let errMsg = 'Không thể lưu';
+  1391→        try { const errData = await res.json(); errMsg = errData.error || errData.details || errMsg; } catch {}
+  1392→        toast({ title: 'Lỗi lưu', description: errMsg, variant: 'destructive' });
+  1393→      }
+  1394→    } catch (err) { toast({ title: 'Lỗi lưu', description: String(err), variant: 'destructive' }); }
+  1395→    finally { setIsSaving(false); }
+  1396→  };
+  1397→
+  1398→  // Load contest with all new fields
+  1399→  const handleLoadContest = (contestId: string) => {
+  1400→    setSelectedContestId(contestId); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
+  1401→    setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
+  1402→    setConditionType(contest.conditionType as ConditionType);
+  1403→    setTargetType((contest.targetType || 'tvv') as TargetType);
+  1404→    if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
+  1405→    setIssueEndDate(''); // issueEndDate not stored in contest yet
+  1406→    try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers); } catch { /* ignore */ }
+  1407→    if (contest.posterUrl) setPosterUrl(contest.posterUrl); else setPosterUrl('');
+  1408→    try { const parts = JSON.parse(contest.participants || '[]'); if (Array.isArray(parts) && parts.length > 0) setThiDuaSubjects(parts.join('\n')); else setThiDuaSubjects(''); } catch { setThiDuaSubjects(''); }
+  1409→    // Phase 2
+  1410→    setUsePhase2(contest.usePhase2 ?? false);
+  1411→    setPhase2StartDate(contest.phase2StartDate ? new Date(contest.phase2StartDate).toISOString().slice(0, 10) : '');
+  1412→    setPhase2EndDate(contest.phase2EndDate ? new Date(contest.phase2EndDate).toISOString().slice(0, 10) : '');
+  1413→    try { const tiers2 = JSON.parse(contest.bonusTiers2 || '[]'); if (Array.isArray(tiers2)) setBonusTiers2(tiers2); } catch { /* ignore */ }
+  1414→    // Secondary condition
+  1415→    setUseSecondaryCondition(contest.useSecondaryCondition ?? false);
+  1416→    setSecondaryAFYPMin(contest.secondaryAFYPMin ?? 0);
+  1417→    setSecondaryIPMin(contest.secondaryIPMin ?? 0);
+  1418→    setSecondaryLuotHDMin(contest.secondaryLuotHDMin ?? 0);
+  1419→    setSecondaryLuotHDCMin(contest.secondaryLuotHDCMin ?? 0);
+  1420→    setSecondaryLuotHDFilter((contest.secondaryLuotHDFilter as 'all' | 'tvvm') ?? 'all');
+  1421→    setSecondaryLuotHDCFilter((contest.secondaryLuotHDCFilter as 'all' | 'tvvm') ?? 'all');
+  1422→    setSecondaryTotalAFYPMin(contest.secondaryTotalAFYPMin ?? 0);
+  1423→    setSecondaryTotalIPMin(contest.secondaryTotalIPMin ?? 0);
+  1424→    // Options
+  1425→    setHideNotAchieved(contest.hideNotAchieved ?? false);
+  1426→    setIncludeIndividualNTD(contest.includeIndividualNTD ?? false);
+  1427→    setIncludeIndividualTN(contest.includeIndividualTN ?? false);
+  1428→    // Thresholds
+  1429→    setLuotHDThreshold(contest.luotHDThreshold ?? 3_000_000);
+  1430→    setLuotHDCTThreshold(contest.luotHDCTThreshold ?? 12_000_000);
+  1431→    setTvv90MaxMonths(contest.tvv90MaxMonths ?? 3);
+  1432→    setTvv90MinIP(contest.tvv90MinIP ?? 12_000_000);
+  1433→    // Reference contest for tvv_pass_count
+  1434→    setReferenceContestId(contest.referenceContestId || '');
+  1435→    setTimeout(() => handleSearchRef.current(), 100);
+  1436→  };
+  1437→
+  1438→  const handleDeleteContest = async (id: string) => {
+  1439→    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
+  1440→    catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
+  1441→    setDeleteConfirmId(null);
+  1442→  };
+  1443→
+  1444→  // handleImportFromUrl removed — data sourced from Quản lý page only
+  1445→
+  1446→  const handlePrint = () => {
+  1447→    if (!printRef.current) return; const printWindow = window.open('', '_blank'); if (!printWindow) return;
+  1448→    const styles = `<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',Arial,sans-serif;padding:20px;background:white;color:#1a1a1a}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#064e3b;color:white;padding:8px 6px;text-align:center;font-weight:700;font-size:11px}td{padding:6px;border-bottom:1px solid #e5e7eb;font-size:12px;white-space:nowrap}tr:nth-child(even){background:#f9fafb}.bonus-col{background:#ecfdf5;font-weight:700;color:#047857}</style>`;
+  1449→    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body>${printRef.current.innerHTML}</body></html>`);
+  1450→    printWindow.document.close(); setTimeout(() => { printWindow.print(); }, 500);
+  1451→  };
+  1452→
+  1453→  const handleCopyText = () => {
+  1454→    if (displayContracts.length === 0 && nydData.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
+  1455→    const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+  1456→    let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
+  1457→    sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} lượt` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
+  1458→    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+  1459→    if (targetType === 'nyd') {
+  1460→      nydData.map(n => {
+  1461→        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+  1462→        const { tier } = calculateBonus(value);
+  1463→        return { nyd: n, tier, value };
+  1464→      }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value }, idx) => {
+  1465→        const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} Lượt` : formatNumber(value);
+  1466→        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualTN ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
+  1467→      });
+  1468→    } else if (targetType === 'nhom') {
+  1469→      [...groupedData].map((g) => {
+  1470→        const groupPhase = getGroupPhaseBonus(g);
+  1471→        const tier = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+  1472→        return { group: g, tier, groupPhase };
+  1473→      }).sort((a, b) => {
+  1474→        const aValue = isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
+  1475→        const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
+  1476→        return bValue - aValue;
+  1477→      }).forEach(({ group: g, tier, groupPhase }, idx) => {
+  1478→        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
+  1479→        // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
+  1480→        const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
+  1481→        if (usePhase2 && phase2StartDate) {
+  1482→          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+  1483→        } else {
+  1484→          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+  1485→        }
+  1486→      });
+  1487→    } else if (isPerContractMode(conditionType)) {
+  1488→      [...displayContracts].map((c) => {
+  1489→        const tier = calculateBonus(getContractValue(c)).tier;
+  1490→        const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+  1491→        return { contract: c, tier, phaseInfo };
+  1492→      }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).forEach(({ contract: c, tier, phaseInfo }, idx) => {
+  1493→        if (usePhase2 && phase2StartDate) {
+  1494→          text += `${idx + 1}. ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.pdt10DT)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
+  1495→        } else {
+  1496→          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.pdt10DT)} | ${tier ? `Thưởng: ${formatBonus(tier, c.pdt10DT)}` : 'Chưa đạt'}\n`;
+  1497→        }
+  1498→      });
+  1499→    } else {
+  1500→      // total_ip / total_afyp mode: use tvvTotalRows (includes TVV with 0 contracts)
+  1501→      const isAFYP = conditionType === 'total_afyp';
+  1502→      tvvTotalRows.forEach(({ agent, value, tier }, idx) => {
+  1503→        const valueLabel = isAFYP ? `AFYP: ${formatNumber(value)}` : `IP: ${formatNumber(value)}`;
+  1504→        text += `${idx + 1}. ${agent.nhom || agent.maNhom} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, value)}` : 'Chưa đạt'}\n`;
+  1505→      });
+  1506→    }
+  1507→    navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
+  1508→  };
+  1509→
+  1510→  const handleExport = async () => {
+  1511→    try {
+  1512→    if (displayContracts.length === 0 && nydData.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
+  1513→    let headers: string[];
+  1514→    let rows: (string | number)[][];
+  1515→    let merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+  1516→
+  1517→    // Supplementary total column flags
+  1518→    const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
+  1519→    const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
+  1520→
+  1521→    if (targetType === 'nyd') {
+  1522→      // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
+  1523→      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+  1524→      rows = [];
+  1525→      merges = [];
+  1526→      let currentRow = 1; // row 0 = header
+  1527→      const sortedNYD = [...nydData].sort((a, b) => {
+  1528→        const aVal = isActivityRoundMode(conditionType) ? a.recruitCount : (a.recruitFYP + (includeIndividualTN ? a.ownFYP : 0));
+  1529→        const bVal = isActivityRoundMode(conditionType) ? b.recruitCount : (b.recruitFYP + (includeIndividualTN ? b.ownFYP : 0));
+  1530→        return bVal - aVal;
+  1531→      });
+  1532→      sortedNYD.forEach((n, nIdx) => {
+  1533→        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+  1534→        const { tier } = calculateBonus(value);
+  1535→        // Check supplementary total condition
+  1536→        const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
+  1537→        const sc = checkSecondaryTotalCondition(nydContracts);
+  1538→        const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1539→        const startRow = currentRow;
+  1540→        const contracts = n.contracts || [];
+  1541→        if (contracts.length === 0) {
+  1542→          // NTD không có HĐ, vẫn ghi 1 dòng
+  1543→          const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName, n.position || '', isActivityRoundMode(conditionType) ? n.recruitCount : value];
+  1544→          if (includeIndividualTN) row.push(n.ownFYP);
+  1545→          if (expSecAFYP) row.push(sc.totalAFYP);
+  1546→          if (expSecIP) row.push(sc.totalIP);
+  1547→          row.push('', '', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
+  1548→          if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+  1549→          row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1550→          rows.push(row);
+  1551→          currentRow++;
+  1552→        } else {
+  1553→          const sortedContracts = [...contracts].sort((a, b) => b.pdt10DT - a.pdt10DT);
+  1554→          sortedContracts.forEach((c, cIdx) => {
+  1555→            const row: (string | number)[] = [
+  1556→              cIdx === 0 ? nIdx + 1 : '',
+  1557→              n.nhom || '',
+  1558→              cIdx === 0 ? n.nydCode : '',
+  1559→              cIdx === 0 ? n.nydName : '',
+  1560→              cIdx === 0 ? (n.position || '') : '',
+  1561→              cIdx === 0 ? (isActivityRoundMode(conditionType) ? n.recruitCount : value) : '',
+  1562→            ];
+  1563→            if (includeIndividualTN) row.push(cIdx === 0 ? n.ownFYP : '');
+  1564→            if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
+  1565→            if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+  1566→            row.push(
+  1567→              c.agentName || '',
+  1568→              c.contractNumber || '',
+  1569→              c.effectiveDate ? formatDate(c.effectiveDate) : '',
+  1570→              c.issueDate ? formatDate(c.issueDate) : '',
+  1571→              c.pdt10DT,
+  1572→              c.afyp,
+  1573→              cIdx === 0 ? value : '',
+  1574→              c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+  1575→            );
+  1576→            if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
+  1577→            row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '') : '');
+  1578→            row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+  1579→            rows.push(row);
+  1580→            currentRow++;
+  1581→          });
+  1582→          // Merge cells for NTD-level columns
+  1583→          if (sortedContracts.length > 1) {
+  1584→            const endRow = currentRow - 1;
+  1585→            const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
+  1586→            // STT col 0
+  1587→            merges.push({ s: { r: startRow, c: 0 }, e: { r: endRow, c: 0 } });
+  1588→            // Nhóm col 1
+  1589→            merges.push({ s: { r: startRow, c: 1 }, e: { r: endRow, c: 1 } });
+  1590→            // Mã ĐL col 2
+  1591→            merges.push({ s: { r: startRow, c: 2 }, e: { r: endRow, c: 2 } });
+  1592→            // Họ tên NTD col 3
+  1593→            merges.push({ s: { r: startRow, c: 3 }, e: { r: endRow, c: 3 } });
+  1594→            // Chức vụ col 4
+  1595→            merges.push({ s: { r: startRow, c: 4 }, e: { r: endRow, c: 4 } });
+  1596→            // Điều kiện col 5
+  1597→            merges.push({ s: { r: startRow, c: 5 }, e: { r: endRow, c: 5 } });
+  1598→            let mergeOffset = 0;
+  1599→            if (includeIndividualTN) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
+  1600→            // Supplementary cols (6 + mergeOffset ... 6 + mergeOffset + secOffset - 1)
+  1601→            for (let ci = 0; ci < secOffset; ci++) {
+  1602→              merges.push({ s: { r: startRow, c: 6 + mergeOffset + ci }, e: { r: endRow, c: 6 + mergeOffset + ci } });
+  1603→            }
+  1604→            // Tổng cộng col (12 + mergeOffset + secOffset)
+  1605→            const tongCol = 12 + mergeOffset + secOffset;
+  1606→            merges.push({ s: { r: startRow, c: tongCol }, e: { r: endRow, c: tongCol } });
+  1607→            // Ngày BĐLV col (13 + mergeOffset + secOffset)
+  1608→            merges.push({ s: { r: startRow, c: 13 + mergeOffset + secOffset }, e: { r: endRow, c: 13 + mergeOffset + secOffset } });
+  1609→            if (showRateColumn) {
+  1610→              const rateCol = 14 + mergeOffset + secOffset;
+  1611→              merges.push({ s: { r: startRow, c: rateCol }, e: { r: endRow, c: rateCol } });
+  1612→              const thuongCol = 15 + mergeOffset + secOffset;
+  1613→              merges.push({ s: { r: startRow, c: thuongCol }, e: { r: endRow, c: thuongCol } });
+  1614→              const ghichuCol = 16 + mergeOffset + secOffset;
+  1615→              merges.push({ s: { r: startRow, c: ghichuCol }, e: { r: endRow, c: ghichuCol } });
+  1616→            } else {
+  1617→              const thuongCol = 14 + mergeOffset + secOffset;
+  1618→              merges.push({ s: { r: startRow, c: thuongCol }, e: { r: endRow, c: thuongCol } });
+  1619→              const ghichuCol = 15 + mergeOffset + secOffset;
+  1620→              merges.push({ s: { r: startRow, c: ghichuCol }, e: { r: endRow, c: ghichuCol } });
+  1621→            }
+  1622→          }
+  1623→        }
+  1624→      });
+  1625→    } else if (targetType === 'nhom') {
+  1626→      // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
+  1627→      const condHeader = isTVVPassCountMode(conditionType) ? 'TVV đạt CTĐK' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+  1628→      if (usePhase2) {
+  1629→        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+  1630→      } else {
+  1631→        headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+  1632→      }
+  1633→      const secOffset = (expSecAFYP ? 1 : 0) + (expSecIP ? 1 : 0);
+  1634→      rows = [];
+  1635→      merges = [];
+  1636→      let currentRow = 1;
+  1637→      const sortedGroups = [...groupedData].map((g) => {
+  1638→        const groupPhase = getGroupPhaseBonus(g);
+  1639→        const tvvPassCount = getGroupTVVPassCount(g);
+  1640→        const tier = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
+  1641→        const tierNoPhase = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(g.totalFYP).tier;
+  1642→        return { g, tier: usePhase2 ? tier : tierNoPhase, groupPhase, tvvPassCount };
+  1643→      }).sort((a, b) => {
+  1644→        const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.g.activityRounds : a.g.totalFYP;
+  1645→        const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.g.activityRounds : b.g.totalFYP;
+  1646→        return bValue - aValue;
+  1647→      });
+  1648→      sortedGroups.forEach(({ g, tier, groupPhase, tvvPassCount }, gIdx) => {
+  1649→        const startRow = currentRow;
+  1650→        const contracts = [...(g.contracts || [])].sort((a, b) => b.pdt10DT - a.pdt10DT);
+  1651→        const condValue = isTVVPassCountMode(conditionType) ? getGroupTVVPassCount(g) : isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : g.totalFYP;
+  1652→        // Check supplementary total condition
+  1653→        const sc = checkSecondaryTotalCondition(g.contracts || []);
+  1654→        const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1655→        if (contracts.length === 0) {
+  1656→          const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
+  1657→          if (expSecAFYP) row.push(sc.totalAFYP);
+  1658→          if (expSecIP) row.push(sc.totalIP);
+  1659→          row.push('', '', '', '', '', g.totalFYP);
+  1660→          if (usePhase2) {
+  1661→            row.push(groupPhase.phase1Bonus || '', groupPhase.phase2Bonus || '', groupPhase.phase1Bonus + groupPhase.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1662→          } else {
+  1663→            if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+  1664→            row.push(effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1665→          }
+  1666→          rows.push(row);
+  1667→          currentRow++;
+  1668→        } else {
+  1669→          contracts.forEach((c, cIdx) => {
+  1670→            const row: (string | number)[] = [
+  1671→              cIdx === 0 ? gIdx + 1 : '',
+  1672→              cIdx === 0 ? (g.nhom || g.maNhom) : '',
+  1673→              cIdx === 0 ? (g.leader?.agentCode || '') : '',
+  1674→              cIdx === 0 ? (g.leader?.agentName || '') : '',
+  1675→              cIdx === 0 ? (g.leader?.position || '') : '',
+  1676→              cIdx === 0 ? condValue : '',
+  1677→            ];
+  1678→            if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
+  1679→            if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+  1680→            row.push(
+  1681→              c.agentName || '',
+  1682→              c.contractNumber || '',
+  1683→              c.effectiveDate ? formatDate(c.effectiveDate) : '',
+  1684→              c.issueDate ? formatDate(c.issueDate) : '',
+  1685→              c.pdt10DT,
+  1686→              c.afyp,
+  1687→              cIdx === 0 ? g.totalFYP : '',
+  1688→            );
+  1689→            if (usePhase2) {
+  1690→              row.push(
+  1691→                cIdx === 0 ? (groupPhase.phase1Bonus || '') : '',
+  1692→                cIdx === 0 ? (groupPhase.phase2Bonus || '') : '',
+  1693→                cIdx === 0 ? (groupPhase.phase1Bonus + groupPhase.phase2Bonus || '') : '',
+  1694→                cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '',
+  1695→              );
+  1696→            } else {
+  1697→              if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
+  1698→              row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '') : '');
+  1699→              row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+  1700→            }
+  1701→            rows.push(row);
+  1702→            currentRow++;
+  1703→          });
+  1704→          // Merge cells cho nhóm
+  1705→          if (contracts.length > 1) {
+  1706→            const endRow = currentRow - 1;
+  1707→            // STT, Nhóm, Mã TTN, Tên TTN, Chức vụ, condHeader
+  1708→            for (let c = 0; c <= 5; c++) {
+  1709→              merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+  1710→            }
+  1711→            // Supplementary cols
+  1712→            for (let ci = 0; ci < secOffset; ci++) {
+  1713→              merges.push({ s: { r: startRow, c: 6 + ci }, e: { r: endRow, c: 6 + ci } });
+  1714→            }
+  1715→            // Tổng cộng col (12 + secOffset)
+  1716→            merges.push({ s: { r: startRow, c: 12 + secOffset }, e: { r: endRow, c: 12 + secOffset } });
+  1717→            if (usePhase2) {
+  1718→              for (let c = 13 + secOffset; c <= 16 + secOffset; c++) {
+  1719→                merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+  1720→              }
+  1721→            } else {
+  1722→              if (showRateColumn) {
+  1723→                for (let c = 13 + secOffset; c <= 15 + secOffset; c++) {
+  1724→                  merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+  1725→                }
+  1726→              } else {
+  1727→                for (let c = 13 + secOffset; c <= 14 + secOffset; c++) {
+  1728→                  merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+  1729→                }
+  1730→              }
+  1731→            }
+  1732→          }
+  1733→        }
+  1734→      });
+  1735→    } else {
+  1736→      // TVV
+  1737→      if (isPerContractMode(conditionType)) {
+  1738→        // TVV per-contract: thêm Số hợp đồng, Ngày hiệu lực, Ngày phát hành
+  1739→        if (usePhase2) {
+  1740→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+  1741→          rows = [...displayContracts].map((c) => {
+  1742→            const { tier } = calculateBonus(c.pdt10DT);
+  1743→            const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+  1744→            // Check supplementary total for this TVV's contracts
+  1745→            const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+  1746→            const sc = checkSecondaryTotalCondition(agentContracts);
+  1747→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1748→            return { c, tier, effectiveTier, phaseInfo, sc };
+  1749→          }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier, effectiveTier, phaseInfo, sc }, idx) => {
+  1750→            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), c.pdt10DT];
+  1751→            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
+  1752→            if (expSecAFYP) base.push(sc.totalAFYP);
+  1753→            if (expSecIP) base.push(sc.totalIP);
+  1754→            base.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1755→            return base;
+  1756→          });
+  1757→        } else {
+  1758→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+  1759→          rows = [...displayContracts].map((c) => {
+  1760→            const { tier } = calculateBonus(c.pdt10DT);
+  1761→            const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+  1762→            const sc = checkSecondaryTotalCondition(agentContracts);
+  1763→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1764→            return { c, tier, effectiveTier, sc };
+  1765→          }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier, effectiveTier, sc }, idx) => {
+  1766→            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), c.pdt10DT];
+  1767→            if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
+  1768→            if (expSecAFYP) base.push(sc.totalAFYP);
+  1769→            if (expSecIP) base.push(sc.totalIP);
+  1770→            if (showRateColumn) base.push(effectiveTier ? formatRate(effectiveTier) : '');
+  1771→            base.push(effectiveTier ? formatBonusAmount(effectiveTier, c.pdt10DT) : '');
+  1772→            base.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1773→            return base;
+  1774→          });
+  1775→        }
+  1776→      } else {
+  1777→        // total_ip / total_afyp: thêm cột Tổng (gộp ô tất cả dòng)
+  1778→        const isAFYP = conditionType === 'total_afyp';
+  1779→        if (usePhase2) {
+  1780→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+  1781→          const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
+  1782→          const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
+  1783→          rows = tvvTotalRows.map(({ agent, value, tier, phaseInfo }, idx) => {
+  1784→            // Check supplementary total condition for this TVV
+  1785→            const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+  1786→            const sc = checkSecondaryTotalCondition(agentContracts);
+  1787→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1788→            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+  1789→            if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
+  1790→            if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
+  1791→            row.push(idx === 0 ? grandTotal : '');
+  1792→            row.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1793→            return row;
+  1794→          });
+  1795→          if (tvvTotalRows.length > 1) {
+  1796→            merges.push({ s: { r: 1, c: 5 + secOffset }, e: { r: tvvTotalRows.length, c: 5 + secOffset } });
+  1797→          }
+  1798→        } else {
+  1799→          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+  1800→          const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
+  1801→          const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
+  1802→          rows = tvvTotalRows.map(({ agent, value, tier }, idx) => {
+  1803→            const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+  1804→            const sc = checkSecondaryTotalCondition(agentContracts);
+  1805→            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1806→            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+  1807→            if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
+  1808→            if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
+  1809→            row.push(idx === 0 ? grandTotal : '');
+  1810→            if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
+  1811→            row.push(effectiveTier ? formatBonusAmount(effectiveTier, value) : '');
+  1812→            row.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+  1813→            return row;
+  1814→          });
+  1815→          if (tvvTotalRows.length > 1) {
+  1816→            merges.push({ s: { r: 1, c: 5 + secOffset }, e: { r: tvvTotalRows.length, c: 5 + secOffset } });
+  1817→          }
+  1818→        }
+  1819→      }
+  1820→    }
+  1821→    const XLSX = await import('xlsx');
+  1822→    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  1823→    // Auto-size columns
+  1824→    const colWidths = headers.map((h, i) => {
+  1825→      const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] || '').length));
+  1826→      return { wch: Math.min(maxLen + 2, 30) };
+  1827→    });
+  1828→    ws['!cols'] = colWidths;
+  1829→    if (merges.length > 0) ws['!merges'] = merges;
+  1830→    const wb = XLSX.utils.book_new();
+  1831→    XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi đua');
+  1832→
+  1833→    // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
+  1834→    if (displayContracts.length > 0) {
+  1835→      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+  1836→      // Build detail rows with bonus values for merging
+  1837→      const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
+  1838→
+  1839→      // Helper: compute bonus for a group of contracts (same key = same TVV / same nhóm / same NTD)
+  1840→      const getBonusForGroup = (groupKey: string): string => {
+  1841→        if (targetType === 'nhom') {
+  1842→          const g = groupedData.find(g => g.maNhom === groupKey);
+  1843→          if (!g) return '';
+  1844→          const value = isActivityRoundMode(conditionType) ? g.activityRounds : g.totalFYP;
+  1845→          const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
+  1846→          // Check supplementary condition
+  1847→          const sc = checkSecondaryTotalCondition(g.contracts || []);
+  1848→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1849→          return effectiveTier ? formatBonusAmount(effectiveTier, g.totalFYP, g.activityRounds) : '';
+  1850→        }
+  1851→        if (targetType === 'nyd') {
+  1852→          const n = nydData.find(n => n.nydCode === groupKey);
+  1853→          if (!n) return '';
+  1854→          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+  1855→          const { tier } = calculateBonus(value);
+  1856→          const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
+  1857→          const sc = checkSecondaryTotalCondition(nydContracts);
+  1858→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1859→          return effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '';
+  1860→        }
+  1861→        // TVV total mode
+  1862→        if (targetType === 'tvv' && isTotalMode(conditionType)) {
+  1863→          const tr = tvvTotalRows.find(r => r.agent.agentCode === groupKey);
+  1864→          if (!tr) return '';
+  1865→          const agentContracts = displayContracts.filter(c => c.agentCode === groupKey);
+  1866→          const sc = checkSecondaryTotalCondition(agentContracts);
+  1867→          const effectiveTier = sc.passed ? tr.tier : (expSecAFYP || expSecIP ? null : tr.tier);
+  1868→          return effectiveTier ? formatBonusAmount(effectiveTier, tr.value) : '';
+  1869→        }
+  1870→        return '';
+  1871→      };
+  1872→
+  1873→      // Build rows: each contract gets its own row, but THƯỞNG is only shown on first row of group
+  1874→      type DetailRow = { data: (string | number)[]; groupKey: string };
+  1875→      const detailRowData: DetailRow[] = displayContracts.map((c) => {
+  1876→        let groupKey = '';
+  1877→        let bonusValue: string | number = '';
+  1878→        if (needMerge) {
+  1879→          if (targetType === 'nhom') {
+  1880→            groupKey = c.maNhom || '';
+  1881→          } else if (targetType === 'nyd') {
+  1882→            groupKey = c.maDaiLyTD || c.recruiterCode || '';
+  1883→          } else if (targetType === 'tvv' && isTotalMode(conditionType)) {
+  1884→            groupKey = c.agentCode || '';
+  1885→          }
+  1886→        } else {
+  1887→          // TVV per_contract: each contract has its own bonus
+  1888→          const { tier } = calculateBonus(c.pdt10DT);
+  1889→          const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+  1890→          const sc = checkSecondaryTotalCondition(agentContracts);
+  1891→          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+  1892→          bonusValue = effectiveTier ? formatBonusAmount(effectiveTier, c.pdt10DT) : '';
+  1893→        }
+  1894→        return {
+  1895→          data: [
+  1896→            0, // STT placeholder, will be set below
+  1897→            c.ban || '',
+  1898→            c.nhom || c.maNhom || '',
+  1899→            c.maNhom || '',
+  1900→            c.agentCode || '',
+  1901→            c.agentName || '',
+  1902→            c.position || '',
+  1903→            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+  1904→            c.contractNumber || '',
+  1905→            c.effectiveDate ? formatDate(c.effectiveDate) : '',
+  1906→            c.issueDate ? formatDate(c.issueDate) : '',
+  1907→            c.pdt10DT,
+  1908→            c.afyp,
+  1909→            c.ad || c.leaderAgentCode || '',
+  1910→            c.tinhLuot3tr || '',
+  1911→            c.maDaiLyTD || '',
+  1912→            bonusValue,
+  1913→          ],
+  1914→          groupKey,
+  1915→        };
+  1916→      });
+  1917→
+  1918→      // Set STT
+  1919→      detailRowData.forEach((r, idx) => { r.data[0] = idx + 1; });
+  1920→
+  1921→      // Fill THƯỞNG for first row of each group when merging
+  1922→      const detailMerges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+  1923→      if (needMerge) {
+  1924→        // Group rows by key, preserving order
+  1925→        const groupFirstRow = new Map<string, number>();
+  1926→        const groupRowCount = new Map<string, number>();
+  1927→        detailRowData.forEach((r, idx) => {
+  1928→          if (!groupFirstRow.has(r.groupKey)) {
+  1929→            groupFirstRow.set(r.groupKey, idx);
+  1930→          }
+  1931→          groupRowCount.set(r.groupKey, (groupRowCount.get(r.groupKey) || 0) + 1);
+  1932→        });
+  1933→        // Set bonus value on first row of each group
+  1934→        for (const [key, firstIdx] of groupFirstRow) {
+  1935→          const bonus = getBonusForGroup(key);
+  1936→          detailRowData[firstIdx].data[detailHeaders.length - 1] = bonus;
+  1937→          // Create merge range for THƯỞNG column if group has > 1 row
+  1938→          const count = groupRowCount.get(key) || 1;
+  1939→          if (count > 1) {
+  1940→            const colIdx = detailHeaders.length - 1; // THƯỞNG is last column
+  1941→            detailMerges.push({
+  1942→              s: { r: firstIdx + 1, c: colIdx }, // +1 for header row
+  1943→              e: { r: firstIdx + count, c: colIdx },
+  1944→            });
+  1945→          }
+  1946→        }
+  1947→      }
+  1948→
+  1949→      const detailRows: (string | number)[][] = detailRowData.map(r => r.data);
+  1950→      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+  1951→      const detailColWidths = detailHeaders.map((h, i) => {
+  1952→        const maxLen = Math.max(h.length, ...detailRows.map(r => String(r[i] || '').length));
+  1953→        return { wch: Math.min(maxLen + 2, 30) };
+  1954→      });
+  1955→      wsDetail['!cols'] = detailColWidths;
+  1956→      if (detailMerges.length > 0) {
+  1957→        wsDetail['!merges'] = detailMerges;
+  1958→      }
+  1959→      XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
+  1960→    }
+  1961→
+  1962→    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  1963→    } catch (err) {
+  1964→      console.error('[handleExport] Error:', err);
+  1965→      toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
+  1966→    }
+  1967→  };
+  1968→
+  1969→  // Helper: inject a <style> tag that hides all scrollbars via CSS for image capture
+  1970→  const hideScrollbarsStyleId = 'nmc-hide-scrollbars-style';
+  1971→  const hideAllScrollbars = () => {
+  1972→    let style = document.getElementById(hideScrollbarsStyleId) as HTMLStyleElement | null;
+  1973→    if (!style) {
+  1974→      style = document.createElement('style');
+  1975→      style.id = hideScrollbarsStyleId;
+  1976→      style.textContent = `
+  1977→        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+  1978→        *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+  1979→      `;
+  1980→      document.head.appendChild(style);
+  1981→    }
+  1982→  };
+  1983→  const restoreAllScrollbars = () => {
+  1984→    const style = document.getElementById(hideScrollbarsStyleId);
+  1985→    if (style) style.remove();
+  1986→  };
+  1987→
+  1988→  // Download image function - using html-to-image
+  1989→  const handleDownloadImage = async () => {
+  1990→    setIsDownloadingImage(true);
+  1991→    try {
+  1992→      const { toBlob } = await import('html-to-image');
+  1993→      if (!resultContentRef.current) {
+  1994→        toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
+  1995→        return;
+  1996→      }
+  1997→
+  1998→      const el = resultContentRef.current;
+  1999→      const origWidth = el.style.width;
+  2000→      const origOverflow = el.style.overflow;
+
+[showing lines 1-2000 of 3409; use offset=2001 with limit to continue reading]

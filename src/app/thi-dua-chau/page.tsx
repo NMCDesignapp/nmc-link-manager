@@ -90,6 +90,7 @@ interface SavedContest {
   luotHDThreshold?: number; luotHDCTThreshold?: number;
   tvv90MaxMonths?: number; tvv90MinIP?: number;
   referenceContestId?: string;
+  includeTNInPassCount?: boolean;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
@@ -465,6 +466,7 @@ export default function ThiDuaPage() {
   const [tvv90MinIP, setTvv90MinIP] = useState(12_000_000);
   // Reference contest for tvv_pass_count mode
   const [referenceContestId, setReferenceContestId] = useState<string>('');
+  const [includeTNInPassCount, setIncludeTNInPassCount] = useState(false);
 
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -1326,6 +1328,8 @@ export default function ThiDuaPage() {
   // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
   const getGroupTVVPassCount = useCallback((g: GroupData): number => {
     if (conditionType !== 'tvv_pass_count' || !referenceContestId) return 0;
+    // Xác định agentCode của Trưởng Nhóm để loại trừ nếu cần
+    const tnAgentCode = g.leader?.agentCode || '';
     // Lấy danh sách unique TVV trong nhóm
     const agentCodes = new Set(g.contracts.map(c => c.agentCode).filter(Boolean));
     // Thêm TVV từ staffList trong nhóm (không có HĐ vẫn tính, nhưng sẽ không đạt)
@@ -1334,11 +1338,14 @@ export default function ThiDuaPage() {
 
     let count = 0;
     for (const code of agentCodes) {
+      // Mặc định: không đếm cá nhân TN (vì họ đã đạt ở chương trình cá nhân kìa)
+      // Chỉ đếm TN khi includeTNInPassCount = true
+      if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
       const agentContracts = displayContracts.filter(c => c.agentCode === code);
       if (checkTVVPassContest(code, agentContracts)) count++;
     }
     return count;
-  }, [conditionType, referenceContestId, displayContracts, staffList, checkTVVPassContest]);
+  }, [conditionType, referenceContestId, displayContracts, staffList, checkTVVPassContest, includeTNInPassCount]);
 
   // Helper: kiểm tra điều kiện bổ sung Tổng AFYP / Tổng IP cho 1 entity (TVV/nhóm/NTD)
   // Trả về { passed, totalAFYP, totalIP } — passed=true nếu đạt tất cả điều kiện
@@ -1384,6 +1391,7 @@ export default function ThiDuaPage() {
         hideNotAchieved, includeIndividualNTD, includeIndividualTN,
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
         referenceContestId: referenceContestId || undefined,
+        includeTNInPassCount,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
       else {
@@ -1432,6 +1440,7 @@ export default function ThiDuaPage() {
     setTvv90MinIP(contest.tvv90MinIP ?? 12_000_000);
     // Reference contest for tvv_pass_count
     setReferenceContestId(contest.referenceContestId || '');
+    setIncludeTNInPassCount(contest.includeTNInPassCount ?? false);
     setTimeout(() => handleSearchRef.current(), 100);
   };
 
@@ -1475,7 +1484,7 @@ export default function ThiDuaPage() {
         const bValue = isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
         return bValue - aValue;
       }).forEach(({ group: g, tier, groupPhase }, idx) => {
-        const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
+        const valueLabel = isTVVPassCountMode(conditionType) ? `${getGroupTVVPassCount(g)} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''}` : isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
         // Format leader info: Trưởng nhóm (hoặc Trưởng ban với vai trò TN)
         const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
         if (usePhase2 && phase2StartDate) {
@@ -1624,7 +1633,7 @@ export default function ThiDuaPage() {
       });
     } else if (targetType === 'nhom') {
       // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      const condHeader = isTVVPassCountMode(conditionType) ? 'TVV đạt CTĐK' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+      const condHeader = isTVVPassCountMode(conditionType) ? `TVV đạt CTĐK${!includeTNInPassCount ? ' (KO tính TN)' : ''}` : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
       if (usePhase2) {
         headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
       } else {
@@ -2668,6 +2677,16 @@ export default function ThiDuaPage() {
                           );
                         })()}
                         <p className="text-[9px] text-gray-500">Đếm số TVV trong nhóm đạt điều kiện chương trình đã chọn → xếp thưởng theo số lượng</p>
+                        {/* Checkbox: Đếm cả cá nhân TN đạt CTĐK */}
+                        <div className="flex items-center gap-2 p-2 rounded-lg border border-purple-500/30 bg-purple-500/10">
+                          <Checkbox id="includeTNInPassCount" checked={includeTNInPassCount} onCheckedChange={(v) => setIncludeTNInPassCount(!!v)} />
+                          <Label htmlFor="includeTNInPassCount" className="text-xs text-purple-200/80 cursor-pointer flex items-center gap-1">
+                            <UserCheck className="w-3 h-3 text-purple-400" /> Đếm cả cá nhân TN đạt CTĐK
+                          </Label>
+                        </div>
+                        {!includeTNInPassCount && (
+                          <p className="text-[9px] text-amber-400/70 italic">⚠️ Mặc định không đếm TN (vì đã đạt ở chương trình cá nhân). Tích chọn để đếm luôn.</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2962,7 +2981,7 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
-                            {isTVVPassCountMode(conditionType) ? 'TVV đạt CTĐK' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                            {isTVVPassCountMode(conditionType) ? <>{'TVV đạt CTĐK'}{!includeTNInPassCount ? <div className="text-[9px] font-bold text-amber-400 italic">(KO tính TN)</div> : null}</> : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                             {startDate && endDate && !isActivityRoundMode(conditionType) && !isTVVPassCountMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                             {isTVVPassCountMode(conditionType) && referenceContestId && (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? <div className="text-[9px] font-bold text-purple-400 italic">{rc.title}</div> : null; })()}
                           </TableHead>
@@ -3202,7 +3221,7 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-600 whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs whitespace-nowrap">
                             {isTVVPassCountMode(conditionType)
-                              ? <span className="text-gray-900 font-semibold">{tvvPassCount} TVV đạt</span>
+                              ? <span className="text-gray-900 font-semibold">{tvvPassCount} TVV đạt{!includeTNInPassCount && group.leader?.agentCode ? <span className="text-[9px] text-purple-500 ml-1">(KO tính TN)</span> : ''}</span>
                               : isActivityRoundMode(conditionType)
                               ? <span className="text-gray-900">{group.activityRounds} {isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}</span>
                               : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
