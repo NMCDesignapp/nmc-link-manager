@@ -1501,19 +1501,43 @@ export default function QuanLyPage() {
     try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [fetchTvvStruct]);
 
-  // Upsert TVV from uploaded file — cập nhật thông minh: giữ nguyên nếu không đổi, cập nhật nếu thay đổi, thêm mới nếu chưa có, xoá nếu không còn trong DS mới
+  // Upsert TVV from uploaded file — bấm nút → chọn file → upsert thông minh
   const [isReplacingTvv, setIsReplacingTvv] = useState(false);
-  const handleUpsertTvv = useCallback(async () => {
-    if (!confirm('Cập nhật DS TVV?\n\nHệ thống sẽ:\n• Thêm TVV mới\n• Cập nhật TVV có thay đổi (chức vụ, nhóm...)\n• Giữ nguyên TVV không đổi\n• Xoá TVV không còn trong DS mới')) return;
+
+  const handleUpsertTvvFile = useCallback(async (file: File) => {
     setIsReplacingTvv(true);
     try {
-      // Fetch the pre-loaded TVV data
-      const dataRes = await fetch('/data/tvv_import.json');
-      if (!dataRes.ok) { toast({ title: 'Lỗi', description: 'Không thể tải dữ liệu TVV mới', variant: 'destructive' }); return; }
-      const data = await dataRes.json();
-      if (!Array.isArray(data) || data.length === 0) { toast({ title: 'Lỗi', description: 'Dữ liệu TVV trống', variant: 'destructive' }); return; }
-      // Send to API with upsert=true (smart update mode)
-      const res = await fetch('/api/structure/tvv?upsert=true', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      // Đọc file Excel/CSV
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      const dateColumns = ['Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngayBatDau'];
+      const records = jsonData.map(row => {
+        const obj: Record<string, string> = {};
+        Object.entries(row).forEach(([k, v]) => {
+          if (dateColumns.some(dc => k.includes(dc))) {
+            obj[k] = normalizeDateValue(v);
+          } else {
+            obj[k] = String(v ?? '');
+          }
+        });
+        return obj;
+      });
+
+      if (records.length === 0) {
+        toast({ title: 'Lỗi', description: 'File trống hoặc không có dữ liệu hợp lệ', variant: 'destructive' });
+        return;
+      }
+
+      // Gửi lên API với upsert=true
+      const res = await fetch('/api/structure/tvv?upsert=true', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(records),
+      });
+
       if (res.ok) {
         const result = await res.json();
         fetchTvvStruct();
@@ -1523,9 +1547,13 @@ export default function QuanLyPage() {
         if (result.skipped > 0) detail.push(`giữ nguyên ${result.skipped}`);
         if (result.deleted > 0) detail.push(`xoá ${result.deleted}`);
         toast({ title: 'Cập nhật DS TVV thành công', description: detail.join(', ') || result.message });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Lỗi', description: err.error || 'Không thể cập nhật', variant: 'destructive' });
       }
-      else { const err = await res.json(); toast({ title: 'Lỗi', description: err.error || 'Không thể cập nhật', variant: 'destructive' }); }
-    } catch { toast({ title: 'Lỗi', description: 'Không thể cập nhật DS TVV', variant: 'destructive' }); }
+    } catch {
+      toast({ title: 'Lỗi', description: 'Không thể đọc file hoặc cập nhật DS TVV', variant: 'destructive' });
+    }
     finally { setIsReplacingTvv(false); }
   }, [fetchTvvStruct]);
 
@@ -1546,6 +1574,34 @@ export default function QuanLyPage() {
     try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [editingTvv, fetchTvvStruct]);
 
+  // Helper: chuyển Excel serial number thành chuỗi ngày YYYY-MM-DD
+  const excelSerialToDate = (serial: number): string => {
+    // Excel epoch = 1/1/1900, nhưng Excel có bug treating 1900 as leap year → cần trừ 1 nếu serial >= 60
+    const epoch = new Date(1899, 11, 30); // 30/12/1899
+    const date = new Date(epoch.getTime() + serial * 86400000);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  // Helper: chuẩn hoá giá trị ngày từ Excel — xử lý serial number, Date object, string
+  const normalizeDateValue = (v: any): string => {
+    if (v === null || v === undefined || v === '') return '';
+    // Excel serial number (number từ 1 đến ~100000)
+    if (typeof v === 'number' && v > 0 && v < 200000 && Number.isInteger(v) && v > 1000) {
+      return excelSerialToDate(v);
+    }
+    // Date object
+    if (v instanceof Date) {
+      const y = v.getFullYear();
+      const m = String(v.getMonth() + 1).padStart(2, '0');
+      const d = String(v.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(v);
+  };
+
   const handleImportFile = useCallback(async (file: File) => {
     try {
       const XLSX = await import('xlsx');
@@ -1553,10 +1609,17 @@ export default function QuanLyPage() {
       const wb = XLSX.read(arrayBuffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
-      // Convert all values to string
+      // Convert values, đặc biệt xử lý cột ngày
+      const dateColumns = ['Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngayBatDau'];
       const records = jsonData.map(row => {
         const obj: Record<string, string> = {};
-        Object.entries(row).forEach(([k, v]) => { obj[k] = String(v ?? ''); });
+        Object.entries(row).forEach(([k, v]) => {
+          if (dateColumns.some(dc => k.includes(dc))) {
+            obj[k] = normalizeDateValue(v);
+          } else {
+            obj[k] = String(v ?? '');
+          }
+        });
         return obj;
       });
       setImportPreview(records);
@@ -3973,8 +4036,15 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
           <div className="ml-auto">
-            <Button variant="ghost" size="sm" onClick={handleUpsertTvv} disabled={isReplacingTvv} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
-              {isReplacingTvv ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang cập nhật...</> : <><RefreshCw className="w-3 h-3 mr-1" /> Cập nhật DS TVV</>}
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              id="tvv-upsert-file-input"
+              onChange={e => { const file = e.target.files?.[0]; if (file) handleUpsertTvvFile(file); e.target.value = ''; }}
+            />
+            <Button variant="ghost" size="sm" disabled={isReplacingTvv} onClick={() => document.getElementById('tvv-upsert-file-input')?.click()} className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10">
+              {isReplacingTvv ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang cập nhật...</> : <><Upload className="w-3 h-3 mr-1" /> Cập nhật DS TVV</>}
             </Button>
           </div>
         </div>

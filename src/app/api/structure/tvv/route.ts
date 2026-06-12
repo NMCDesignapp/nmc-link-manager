@@ -1,25 +1,46 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Helper: safe date parse
+// Helper: chuyển Excel serial number thành Date
+function excelSerialToDate(serial: number): Date {
+  // Excel epoch = 30/12/1899 (bù bug 1900 leap year)
+  const epoch = new Date(1899, 11, 30);
+  return new Date(epoch.getTime() + serial * 86400000);
+}
+
+// Helper: safe date parse — hỗ trợ YYYY-MM-DD, DD/MM/YYYY, DD.MM.YYYY, Excel serial number, Date object
 function safeDate(v: any): Date | null {
   if (!v) return null;
-  if (v instanceof Date) return v;
-  const s = String(v);
+  if (v instanceof Date) {
+    return isNaN(v.getTime()) ? null : v;
+  }
+  // Excel serial number (số nguyên > 1000, đại diện cho ngày từ ~1903 trở đi)
+  if (typeof v === 'number' && Number.isInteger(v) && v > 1000 && v < 200000) {
+    return excelSerialToDate(v);
+  }
+  const s = String(v).trim();
+  if (!s) return null;
+  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00Z');
+  // DD/MM/YYYY hoặc DD.MM.YYYY hoặc DD-MM-YYYY
   const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
   if (dmy) return new Date(Date.UTC(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1])));
+  // Thử parse chung
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
 
-// Helper: compare two date values (both may be Date, string, or null)
+// Helper: compare two date values — chỉ so sánh phần ngày (YYYY-MM-DD), bỏ qua timezone
 function datesEqual(a: Date | null, b: Date | null): boolean {
   if (a === null && b === null) return true;
   if (a === null || b === null) return false;
-  const ta = a instanceof Date ? a.getTime() : new Date(a).getTime();
-  const tb = b instanceof Date ? b.getTime() : new Date(b).getTime();
-  return ta === tb;
+  const toDayStr = (d: Date) => {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+  return toDayStr(a) === toDayStr(b);
 }
 
 // GET /api/structure/tvv
