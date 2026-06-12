@@ -25,8 +25,10 @@ export async function GET() {
 }
 
 // POST /api/structure/tvv - Create single or batch
+// ?replaceAll=true → xóa tất cả TVV cũ rồi import mới (dùng khi cập nhật DS từ file)
 export async function POST(request: NextRequest) {
   try {
+    const replaceAll = request.nextUrl.searchParams.get('replaceAll') === 'true';
     const body = await request.json();
 
     // Helper to extract field from multiple possible column names
@@ -55,18 +57,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Mã TVV trùng trong file: ${uniqueDupes.join(', ')}` }, { status: 409 });
       }
 
-      // Check for duplicate agentCode against existing DB records
-      const existingTVV = await db.tVVStruct.findMany({
-        where: { agentCode: { in: batchCodes } },
-        select: { agentCode: true },
-      });
-      if (existingTVV.length > 0) {
-        const existingCodes = existingTVV.map(t => t.agentCode);
-        return NextResponse.json({ error: `Mã TVV đã tồn tại trong hệ thống: ${existingCodes.join(', ')}` }, { status: 409 });
+      // If replaceAll mode, delete all existing records first
+      if (replaceAll) {
+        await db.tVVStruct.deleteMany({});
+      } else {
+        // Check for duplicate agentCode against existing DB records
+        const existingTVV = await db.tVVStruct.findMany({
+          where: { agentCode: { in: batchCodes } },
+          select: { agentCode: true },
+        });
+        if (existingTVV.length > 0) {
+          const existingCodes = existingTVV.map(t => t.agentCode);
+          return NextResponse.json({ error: `Mã TVV đã tồn tại trong hệ thống: ${existingCodes.join(', ')}` }, { status: 409 });
+        }
       }
 
-      const result = await db.tVVStruct.createMany({ data: records });
-      return NextResponse.json({ message: `Đã nhập ${result.count} TVV`, count: result.count });
+      // Import in batches of 500 to avoid query size limits
+      let totalImported = 0;
+      const batchSize = 500;
+      for (let i = 0; i < records.length; i += batchSize) {
+        const batch = records.slice(i, i + batchSize);
+        const result = await db.tVVStruct.createMany({ data: batch });
+        totalImported += result.count;
+      }
+      return NextResponse.json({ message: `Đã nhập ${totalImported} TVV`, count: totalImported });
     }
 
     // Single create - also support Vietnamese field names from CSV import
@@ -92,8 +106,15 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/structure/tvv
+// ?id=xxx → xóa 1 record
+// ?deleteAll=true → xóa tất cả
 export async function DELETE(request: NextRequest) {
   try {
+    const deleteAll = request.nextUrl.searchParams.get('deleteAll');
+    if (deleteAll === 'true') {
+      const result = await db.tVVStruct.deleteMany({});
+      return NextResponse.json({ success: true, deleted: result.count });
+    }
     const id = request.nextUrl.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Thiếu id' }, { status: 400 });
     await db.tVVStruct.delete({ where: { id } });
