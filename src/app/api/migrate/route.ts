@@ -98,6 +98,13 @@ export async function PATCH() {
       if (e?.message?.includes('already exists')) results.push('secondaryTotalIPMin already exists');
       else results.push('Error adding secondaryTotalIPMin: ' + String(e));
     }
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "referenceContestId" TEXT NOT NULL DEFAULT ''`);
+      results.push('Added referenceContestId to Contest');
+    } catch (e: any) {
+      if (e?.message?.includes('already exists')) results.push('referenceContestId already exists');
+      else results.push('Error adding referenceContestId: ' + String(e));
+    }
 
     return NextResponse.json({ message: 'Column migration completed', results });
   } catch (error) {

@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       secondaryTotalAFYPMin, secondaryTotalIPMin,
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
+      referenceContestId,
     } = body as {
       title: string;
       startDate: string;
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
       luotHDCTThreshold?: number;
       tvv90MaxMonths?: number;
       tvv90MinIP?: number;
+      referenceContestId?: string;
     };
 
     if (!title || !startDate || !endDate) {
@@ -97,6 +99,7 @@ export async function POST(request: NextRequest) {
       luotHDCTThreshold: luotHDCTThreshold ?? 12_000_000,
       tvv90MaxMonths: tvv90MaxMonths ?? 3,
       tvv90MinIP: tvv90MinIP ?? 12_000_000,
+      referenceContestId: referenceContestId || '',
     };
 
     if (existing) {

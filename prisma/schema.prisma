@@ -149,6 +149,7 @@ model Contest {
   luotHDCTThreshold Float  @default(12000000)
   tvv90MaxMonths   Float  @default(3)
   tvv90MinIP       Float  @default(12000000)
+  referenceContestId String @default("")
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")
