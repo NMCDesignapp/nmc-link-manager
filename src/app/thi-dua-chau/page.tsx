@@ -37,7 +37,7 @@ interface Contract {
 
 interface BonusTier {
   id: string; minFYP: number; maxFYP: number | null; bonusAmount: number;
-  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'percent_fyc'; bonusText: string; bonusPercent: number;
+  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc'; bonusText: string; bonusPercent: number;
 }
 
 interface GroupLeader {
@@ -186,6 +186,11 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
     const calculated = rounds ? tier.bonusAmount * rounds : 0;
     return rounds ? `${formatCurrency(tier.bonusAmount)}/lượt × ${rounds} = ${formatCurrency(calculated)}` : `${formatCurrency(tier.bonusAmount)}/lượt`;
   }
+  if (tier.bonusType === 'money_per_tvv') {
+    const tvvCount = rounds || 0; // rounds param doubles as tvvCount for tvv_pass_count
+    const calculated = tvvCount ? tier.bonusAmount * tvvCount : 0;
+    return tvvCount ? `${formatCurrency(tier.bonusAmount)}/TVV × ${tvvCount} = ${formatCurrency(calculated)}` : `${formatCurrency(tier.bonusAmount)}/TVV`;
+  }
   return formatCurrency(tier.bonusAmount);
 }
 
@@ -212,6 +217,7 @@ function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): nu
   if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
   if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
   if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
+  if (tier.bonusType === 'money_per_tvv') return tier.bonusAmount * (rounds || 0); // rounds doubles as tvvCount
   return tier.bonusAmount;
 }
 
@@ -220,6 +226,7 @@ function BonusTypeIcon({ type, className }: { type: string; className?: string }
   if (type === 'percent') return <Percent className={className} />;
   if (type === 'percent_fyc') return <Percent className={className} />;
   if (type === 'money_per_round') return <Layers className={className} />;
+  if (type === 'money_per_tvv') return <UserCheck className={className} />;
   return <Sparkles className={className} />;
 }
 
@@ -254,6 +261,7 @@ const BONUS_TYPE_BUTTONS = [
   ['percent', '% IP', Percent, 'bg-violet-600'],
   ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'],
   ['money_per_round', '/Lượt', Layers, 'bg-teal-600'],
+  ['money_per_tvv', '/TVV', UserCheck, 'bg-indigo-600'],
 ] as const;
 
 // ContestPoster Component - supports white & gradient variants
@@ -412,9 +420,9 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
               )}
               <div>
                 <Label className="text-[9px] text-emerald-300/70">
-                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
                 </Label>
-                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round'
+                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
                   ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
                   : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
                     ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
@@ -580,13 +588,13 @@ export default function ThiDuaPage() {
     return calculateBonusWithTiers(fyp, bonusTiers);
   }, [calculateBonusWithTiers, bonusTiers]);
 
-  const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[]): number => {
+  const getBonusAmountWithTiers = useCallback((fyp: number, tiers: BonusTier[], rounds?: number): number => {
     const { tier } = calculateBonusWithTiers(fyp, tiers); if (!tier) return 0;
-    return computeBonusFromTier(tier, fyp);
+    return computeBonusFromTier(tier, fyp, rounds);
   }, [calculateBonusWithTiers]);
 
-  const getBonusAmount = useCallback((fyp: number): number => {
-    return getBonusAmountWithTiers(fyp, bonusTiers);
+  const getBonusAmount = useCallback((fyp: number, rounds?: number): number => {
+    return getBonusAmountWithTiers(fyp, bonusTiers, rounds);
   }, [getBonusAmountWithTiers, bonusTiers]);
 
   const getRemainingToNextTier = useCallback((fyp: number): number | null => {
@@ -1524,7 +1532,7 @@ export default function ThiDuaPage() {
       }).forEach(({ group: g, tier, groupPhase, tvvPassCount }, idx) => {
         if (isTVVPassCountMode(conditionType)) {
           // Bảng đơn giản cho TVV đạt thi đua
-          const bonusLabel = tier ? `Thưởng: ${formatBonus(tier, tvvPassCount)}` : 'Chưa đạt';
+          const bonusLabel = tier ? `Thưởng: ${formatBonus(tier, 0, tvvPassCount)}` : 'Chưa đạt';
           text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leader?.agentCode || '—'} | ${g.leader?.agentName || '—'} | ${tvvPassCount} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''} | ${bonusLabel}\n`;
         } else {
           const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
@@ -1696,7 +1704,7 @@ export default function ThiDuaPage() {
             g.leader?.agentCode || '',
             g.leader?.agentName || '',
             tvvPassCount,
-            effectiveTier ? formatBonusAmount(effectiveTier, tvvPassCount) : '',
+            effectiveTier ? formatBonusAmount(effectiveTier, 0, tvvPassCount) : '',
             !effectiveTier && remaining !== null ? `Cần thêm ${remaining} TVV` : !effectiveTier ? 'Chưa đạt' : '',
           ];
           rows.push(row);
@@ -2274,7 +2282,7 @@ export default function ThiDuaPage() {
     const nhomTotalBonus = groupedData.reduce((sum, g) => {
       if (isTVVPassCountMode(conditionType)) {
         const passCount = getGroupTVVPassCount(g);
-        return sum + getBonusAmount(passCount);
+        return sum + getBonusAmount(passCount, passCount);
       }
       if (isActivityRoundMode(conditionType)) return sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP);
       return sum + getBonusAmount(g.totalFYP);
@@ -3314,7 +3322,7 @@ export default function ThiDuaPage() {
                               <span className="text-gray-900 font-bold text-base">{tvvPassCount}</span>
                               <span className="text-gray-500 text-xs ml-1">TVV</span>
                             </TableCell>
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, tvvPassCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : effectiveTier.bonusType === 'money_per_tvv' ? <UserCheck className="w-4 h-4 text-indigo-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, 0, tvvPassCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                             <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {remaining} TVV</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
                         );
