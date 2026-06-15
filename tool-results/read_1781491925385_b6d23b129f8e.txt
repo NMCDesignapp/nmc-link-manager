@@ -1,0 +1,690 @@
+     1→'use client'
+     2→
+     3→import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+     4→import { useRouter } from 'next/navigation'
+     5→import { Link, Category } from '@/lib/types'
+     6→import { LinkCard } from '@/components/link-card'
+     7→import { IframeModal } from '@/components/iframe-modal'
+     8→import { AddLinkModal } from '@/components/add-link-modal'
+     9→import { StatsPanel } from '@/components/stats-panel'
+    10→import { MonthlyCalendar } from '@/components/monthly-calendar'
+    11→import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database } from 'lucide-react'
+    12→import { SettingsPanel } from '@/components/settings-panel'
+    13→import { DesktopBigClock } from '@/components/desktop-big-clock'
+    14→import { useSettings } from '@/hooks/use-settings'
+    15→import { cn } from '@/lib/utils'
+    16→import useSWR, { mutate } from 'swr'
+    17→import { motion, AnimatePresence, staggerContainer, staggerItem, glowPulseAnimation } from '@/lib/animations'
+    18→
+    19→const fetcher = async (url: string) => {
+    20→  const res = await fetch(url)
+    21→  if (!res.ok) {
+    22→    const error = new Error('An error occurred while fetching the data.')
+    23→    throw error
+    24→  }
+    25→  return res.json()
+    26→}
+    27→
+    28→// Neon divider component with stronger glow
+    29→function NeonDivider({ color = '#00ff88' }: { color?: string }) {
+    30→  return (
+    31→    <div className="relative h-6 flex items-center justify-center">
+    32→      <div
+    33→        className="w-full h-[1px]"
+    34→        style={{
+    35→          background: `linear-gradient(90deg, transparent, ${color}60, ${color}, ${color}60, transparent)`,
+    36→          boxShadow: `0 0 8px ${color}40, 0 0 16px ${color}20`,
+    37→        }}
+    38→      />
+    39→      {/* Glow pulse effect */}
+    40→      <motion.div
+    41→        className="absolute h-[1px] left-0 right-0"
+    42→        style={{
+    43→          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+    44→        }}
+    45→        animate={{
+    46→          opacity: [0.3, 1, 0.3],
+    47→          scaleX: [0.5, 1, 0.5],
+    48→        }}
+    49→        transition={{
+    50→          duration: 3,
+    51→          repeat: Infinity,
+    52→          ease: 'easeInOut',
+    53→        }}
+    54→      />
+    55→    </div>
+    56→  )
+    57→}
+    58→
+    59→// Creative N•M•C text with neon effects - horizontal layout with flowing chevron arrows
+    60→function NMCLogo({ color = '#00ff88' }: { color?: string }) {
+    61→  const parts = ['N', '•', 'M', '•', 'C']
+    62→
+    63→  // Flowing chevron arrow stream - spans from edge toward center text
+    64→  // Uses SVG with animated sweep mask for ultra-smooth flowing light effect
+    65→  const ArrowStream = ({ direction }: { direction: 'left' | 'right' }) => {
+    66→    const isLeft = direction === 'left'
+    67→    const count = 18
+    68→    const spacing = 14
+    69→    const svgW = count * spacing
+    70→    const svgH = 22
+    71→
+    72→    return (
+    73→      <div className="flex-1 min-w-0 overflow-hidden" style={{ height: '24px' }}>
+    74→        <svg
+    75→          width="100%"
+    76→          height="100%"
+    77→          viewBox={`0 0 ${svgW} ${svgH}`}
+    78→          preserveAspectRatio="none"
+    79→        >
+    80→          <defs>
+    81→            {/* Proximity fade gradient - chevrons near text are brighter */}
+    82→            <linearGradient id={`fade-${direction}`} x1="0%" y1="0%" x2="100%" y2="0%">
+    83→              {isLeft ? (
+    84→                <>
+    85→                  <stop offset="0%" stopColor={color} stopOpacity="0.06" />
+    86→                  <stop offset="80%" stopColor={color} stopOpacity="0.45" />
+    87→                  <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+    88→                </>
+    89→              ) : (
+    90→                <>
+    91→                  <stop offset="0%" stopColor={color} stopOpacity="0.6" />
+    92→                  <stop offset="20%" stopColor={color} stopOpacity="0.45" />
+    93→                  <stop offset="100%" stopColor={color} stopOpacity="0.06" />
+    94→                </>
+    95→              )}
+    96→            </linearGradient>
+    97→
+    98→            {/* Sweep gradient for animated glow - moves from edge toward text */}
+    99→            <linearGradient id={`sweep-${direction}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={svgW} y2="0">
+   100→              <stop stopColor="white" stopOpacity="0">
+   101→                <animate
+   102→                  attributeName="offset"
+   103→                  values={isLeft ? '-0.25;-0.25;1.25' : '1.25;1.25;-0.25'}
+   104→                  keyTimes="0;0.55;1"
+   105→                  dur="2.2s"
+   106→                  repeatCount="indefinite"
+   107→                />
+   108→              </stop>
+   109→              <stop stopColor="white" stopOpacity="1">
+   110→                <animate
+   111→                  attributeName="offset"
+   112→                  values={isLeft ? '-0.12;-0.12;1.38' : '1.38;1.38;-0.12'}
+   113→                  keyTimes="0;0.55;1"
+   114→                  dur="2.2s"
+   115→                  repeatCount="indefinite"
+   116→                />
+   117→              </stop>
+   118→              <stop stopColor="white" stopOpacity="0">
+   119→                <animate
+   120→                  attributeName="offset"
+   121→                  values={isLeft ? '0;0;1.5' : '1.5;1.5;0'}
+   122→                  keyTimes="0;0.55;1"
+   123→                  dur="2.2s"
+   124→                  repeatCount="indefinite"
+   125→                />
+   126→              </stop>
+   127→            </linearGradient>
+   128→
+   129→            <mask id={`mask-${direction}`}>
+   130→              <rect x="0" y="0" width={svgW} height={svgH} fill={`url(#sweep-${direction})`} />
+   131→            </mask>
+   132→          </defs>
+   133→
+   134→          {/* Base chevrons - always dimly visible */}
+   135→          {Array.from({ length: count }).map((_, i) => {
+   136→            const x = i * spacing
+   137→            return (
+   138→              <path
+   139→                key={i}
+   140→                d={isLeft
+   141→                  ? `M${x + 4} 4 L${x + 10} 11 L${x + 4} 18`
+   142→                  : `M${x + 10} 4 L${x + 4} 11 L${x + 10} 18`
+   143→                }
+   144→                fill="none"
+   145→                stroke={`url(#fade-${direction})`}
+   146→                strokeWidth="1.2"
+   147→                strokeLinecap="round"
+   148→                strokeLinejoin="round"
+   149→              />
+   150→            )
+   151→          })}
+   152→
+   153→          {/* Glow chevrons - revealed by sweeping mask */}
+   154→          <g mask={`url(#mask-${direction})`} style={{ filter: `drop-shadow(0 0 4px ${color})` }}>
+   155→            {Array.from({ length: count }).map((_, i) => {
+   156→              const x = i * spacing
+   157→              return (
+   158→                <path
+   159→                  key={`g${i}`}
+   160→                  d={isLeft
+   161→                    ? `M${x + 4} 4 L${x + 10} 11 L${x + 4} 18`
+   162→                    : `M${x + 10} 4 L${x + 4} 11 L${x + 10} 18`
+   163→                  }
+   164→                  fill="none"
+   165→                  stroke={color}
+   166→                  strokeWidth="2"
+   167→                  strokeLinecap="round"
+   168→                  strokeLinejoin="round"
+   169→                />
+   170→              )
+   171→            })}
+   172→          </g>
+   173→        </svg>
+   174→      </div>
+   175→    )
+   176→  }
+   177→
+   178→  return (
+   179→    <div className="flex items-center w-full">
+   180→      {/* Left arrows: flowing right → toward text */}
+   181→      <ArrowStream direction="left" />
+   182→
+   183→      {/* N•M•C text */}
+   184→      <div className="flex items-center justify-center gap-0.5 flex-shrink-0 px-1">
+   185→        {parts.map((part, i) => {
+   186→          const isBullet = part === '•'
+   187→          return (
+   188→            <motion.span
+   189→              key={i}
+   190→              className="relative inline-block leading-none"
+   191→              style={{
+   192→                fontSize: isBullet ? '1.5rem' : '3rem',
+   193→                fontWeight: isBullet ? 400 : 900,
+   194→                fontFamily: '"Outfit", system-ui, sans-serif',
+   195→                color: isBullet ? `${color}60` : color,
+   196→                textShadow: isBullet
+   197→                  ? `0 0 6px ${color}30`
+   198→                  : `0 0 10px ${color}80, 0 0 30px ${color}40, 0 0 60px ${color}20, 0 0 100px ${color}10`,
+   199→                letterSpacing: isBullet ? '0' : '0.05em',
+   200→              }}
+   201→              initial={{ opacity: 0, y: 20 }}
+   202→              animate={{ opacity: 1, y: 0 }}
+   203→              transition={{
+   204→                delay: 0.1 + i * 0.08,
+   205→                duration: 0.5,
+   206→                ease: [0.25, 0.46, 0.45, 0.94],
+   207→              }}
+   208→            >
+   209→              {part}
+   210→              {!isBullet && (
+   211→                <motion.div
+   212→                  className="absolute inset-0 pointer-events-none"
+   213→                  style={{
+   214→                    background: `linear-gradient(180deg, transparent 0%, ${color}30 50%, transparent 100%)`,
+   215→                    backgroundSize: '100% 200%',
+   216→                  }}
+   217→                  animate={{
+   218→                    backgroundPosition: ['0% 0%', '0% 200%'],
+   219→                  }}
+   220→                  transition={{
+   221→                    duration: 2 + i * 0.3,
+   222→                    repeat: Infinity,
+   223→                    ease: 'linear',
+   224→                    delay: i * 0.2,
+   225→                  }}
+   226→                />
+   227→              )}
+   228→            </motion.span>
+   229→          )
+   230→        })}
+   231→      </div>
+   232→
+   233→      {/* Right arrows: flowing left ← toward text */}
+   234→      <ArrowStream direction="right" />
+   235→    </div>
+   236→  )
+   237→}
+   238→
+   239→export default function Home() {
+   240→  const router = useRouter()
+   241→  const { data: linksData, isLoading: linksLoading, isValidating: linksValidating, error: linksError } = useSWR<Link[]>('/api/links', fetcher, {
+   242→    revalidateOnFocus: false,
+   243→    revalidateOnReconnect: false,
+   244→    dedupingInterval: 30000,
+   245→    keepPreviousData: true,
+   246→    fallbackData: [],
+   247→  })
+   248→  const { data: categoriesData, error: categoriesError } = useSWR<Category[]>('/api/categories', fetcher, {
+   249→    revalidateOnFocus: false,
+   250→    revalidateOnReconnect: false,
+   251→    dedupingInterval: 30000,
+   252→    keepPreviousData: true,
+   253→    fallbackData: [],
+   254→  })
+   255→  const { data: stats, error: statsError } = useSWR('/api/stats', fetcher, {
+   256→    revalidateOnFocus: false,
+   257→    revalidateOnReconnect: false,
+   258→    dedupingInterval: 30000,
+   259→  })
+   260→
+   261→  const links = useMemo(() => Array.isArray(linksData) ? linksData : [], [linksData])
+   262→  const categories = useMemo(() => Array.isArray(categoriesData) ? categoriesData : [], [categoriesData])
+   263→  const { settings } = useSettings()
+   264→
+   265→  // Apply neon color from server settings (no localStorage)
+   266→  useEffect(() => {
+   267→    if (settings?.neon_color) {
+   268→      document.documentElement.style.setProperty('--primary', settings.neon_color)
+   269→    }
+   270→  }, [settings?.neon_color])
+   271→
+   272→  const [selectedLink, setSelectedLink] = useState<Link | null>(null)
+   273→  const [editingLink, setEditingLink] = useState<Link | null>(null)
+   274→  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+   275→  const [isStatsOpen, setIsStatsOpen] = useState(false)
+   276→  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+   277→  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+   278→  const [modalKey, setModalKey] = useState(0)
+   279→
+   280→  const handleAddOrUpdateLink = async (data: Partial<Link>) => {
+   281→    setSaveStatus('saving')
+   282→    try {
+   283→      let res: Response
+   284→      if (data.id) {
+   285→        res = await fetch(`/api/links/${data.id}`, {
+   286→          method: 'PATCH',
+   287→          headers: { 'Content-Type': 'application/json' },
+   288→          body: JSON.stringify(data),
+   289→        })
+   290→      } else {
+   291→        res = await fetch('/api/links', {
+   292→          method: 'POST',
+   293→          headers: { 'Content-Type': 'application/json' },
+   294→          body: JSON.stringify(data),
+   295→        })
+   296→      }
+   297→
+   298→      if (!res.ok) {
+   299→        const errorData = await res.json().catch(() => ({}))
+   300→        throw new Error(errorData.error || 'Failed to save link')
+   301→      }
+   302→
+   303→      if (data.category && data.category !== 'General') {
+   304→        const existingCat = categories.find(c => c.name === data.category)
+   305→        if (!existingCat) {
+   306→          await fetch('/api/categories', {
+   307→            method: 'POST',
+   308→            headers: { 'Content-Type': 'application/json' },
+   309→            body: JSON.stringify({ name: data.category, color: '#3b82f6' }),
+   310→          })
+   311→          mutate('/api/categories')
+   312→        }
+   313→      }
+   314→
+   315→      setSaveStatus('success')
+   316→      setTimeout(() => setSaveStatus('idle'), 2000)
+   317→      // Optimistic update: mutate with revalidation to prevent flash
+   318→      mutate('/api/links', async (current) => {
+   319→        const res = await fetch('/api/links')
+   320→        if (!res.ok) throw new Error()
+   321→        return res.json()
+   322→      }, { revalidate: true })
+   323→      mutate('/api/stats')
+   324→      setEditingLink(null)
+   325→    } catch (error) {
+   326→      console.error('Failed to save link:', error)
+   327→      setSaveStatus('error')
+   328→      setTimeout(() => setSaveStatus('idle'), 3000)
+   329→    }
+   330→  }
+   331→
+   332→  const handleExport = (format: 'json' | 'csv') => {
+   333→    window.open(`/api/export?format=${format}&category=all`, '_blank')
+   334→  }
+   335→
+   336→  const neonColor = settings.neon_color || '#00ff88'
+   337→
+   338→  const handleOpenLink = useCallback((link: Link) => {
+   339→    setModalKey(k => k + 1)
+   340→    setSelectedLink(link)
+   341→  }, [])
+   342→
+   343→  const handleCloseLink = useCallback(() => {
+   344→    setSelectedLink(null)
+   345→  }, [])
+   346→
+   347→  return (
+   348→    <div className="h-screen flex flex-col overflow-hidden">
+   349→      {/* Save Status Toast */}
+   350→      <AnimatePresence>
+   351→        {saveStatus !== 'idle' && (
+   352→          <motion.div
+   353→            initial={{ opacity: 0, y: -50, scale: 0.8 }}
+   354→            animate={{ opacity: 1, y: 0, scale: 1 }}
+   355→            exit={{ opacity: 0, y: -50, scale: 0.8 }}
+   356→            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 shadow-lg"
+   357→            style={{
+   358→              background: saveStatus === 'success' ? 'rgba(0, 255, 136, 0.15)' : saveStatus === 'error' ? 'rgba(255, 68, 68, 0.15)' : 'rgba(0, 255, 136, 0.1)',
+   359→              border: `1px solid ${saveStatus === 'success' ? 'rgba(0, 255, 136, 0.3)' : saveStatus === 'error' ? 'rgba(255, 68, 68, 0.3)' : 'rgba(0, 255, 136, 0.2)'}`,
+   360→              color: saveStatus === 'error' ? '#ff4444' : neonColor,
+   361→              backdropFilter: 'blur(12px)',
+   362→            }}
+   363→          >
+   364→            {saveStatus === 'saving' && (
+   365→              <>
+   366→                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+   367→                Đang lưu...
+   368→              </>
+   369→            )}
+   370→            {saveStatus === 'success' && (
+   371→              <>
+   372→                <Check className="w-4 h-4" />
+   373→                Đã lưu thành công!
+   374→              </>
+   375→            )}
+   376→            {saveStatus === 'error' && (
+   377→              <>
+   378→                <AlertCircle className="w-4 h-4" />
+   379→                Lưu thất bại!
+   380→              </>
+   381→            )}
+   382→          </motion.div>
+   383→        )}
+   384→      </AnimatePresence>
+   385→
+   386→      {/* ===== MOBILE LAYOUT: vertical (unchanged) ===== */}
+   387→      <div className="flex flex-col h-full md:hidden">
+   388→        {/* Header */}
+   389→        <motion.header
+   390→          className="max-w-lg mx-auto w-full px-4 pt-10 pb-3 text-center relative flex-shrink-0"
+   391→          initial={{ opacity: 0, y: -20 }}
+   392→          animate={{ opacity: 1, y: 0 }}
+   393→          transition={{ duration: 0.5 }}
+   394→        >
+   395→          <NMCLogo color={neonColor} />
+   396→          <motion.div
+   397→            className="flex items-center justify-center gap-2 mt-1"
+   398→            initial={{ opacity: 0 }}
+   399→            animate={{ opacity: 1 }}
+   400→            transition={{ delay: 0.5, duration: 0.5 }}
+   401→          >
+   402→            <p className="text-xs text-muted-foreground">{settings.profile_bio}</p>
+   403→            <motion.button
+   404→              onClick={() => setIsSettingsOpen(true)}
+   405→              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+   406→              style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+   407→              animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+   408→              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   409→              whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+   410→              whileTap={{ scale: 0.85 }}
+   411→            >
+   412→              <Settings className="w-3 h-3" style={{ color: neonColor }} />
+   413→            </motion.button>
+   414→          </motion.div>
+   415→        </motion.header>
+   416→
+   417→        <div className="max-w-lg mx-auto w-full px-6 flex-shrink-0"><NeonDivider color={neonColor} /></div>
+   418→
+   419→        <motion.div className="max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-3 gap-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+   420→          <motion.button
+   421→            onClick={() => router.push('/thi-dua-chau')}
+   422→            className="py-2.5 rounded-none flex items-center justify-center gap-1 text-xs font-bold text-white relative overflow-hidden"
+   423→            style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+   424→            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
+   425→            whileTap={{ scale: 0.97 }}
+   426→          >
+   427→            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   428→              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   429→            </div>
+   430→            <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
+   431→          </motion.button>
+   432→          <motion.button
+   433→            onClick={() => router.push('/vinh-danh')}
+   434→            className="py-2.5 rounded-none flex items-center justify-center gap-1 text-xs font-bold text-white relative overflow-hidden"
+   435→            style={{ background: 'rgba(168,85,247,0.12)', border: '1.5px solid #a855f760', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(168,85,247,0.2)' }}
+   436→            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(168,85,247,0.35)' }}
+   437→            whileTap={{ scale: 0.97 }}
+   438→          >
+   439→            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   440→              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #a855f7, transparent)', boxShadow: '0 0 8px #a855f780, 0 0 16px #a855f740', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   441→            </div>
+   442→            <Award className="w-4 h-4 relative z-10" /> <span className="relative z-10">Vinh Danh</span>
+   443→          </motion.button>
+   444→          <motion.button
+   445→            onClick={() => router.push('/quan-ly')}
+   446→            className="py-2.5 rounded-none flex items-center justify-center gap-1 text-xs font-bold text-white relative overflow-hidden"
+   447→            style={{ background: 'rgba(16,185,129,0.12)', border: '1.5px solid #10b98160', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(16,185,129,0.2)' }}
+   448→            whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(16,185,129,0.35)' }}
+   449→            whileTap={{ scale: 0.97 }}
+   450→          >
+   451→            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   452→              <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #10b981, transparent)', boxShadow: '0 0 8px #10b98180, 0 0 16px #10b98140', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   453→            </div>
+   454→            <Database className="w-4 h-4 relative z-10" /> <span className="relative z-10">Quản Lý</span>
+   455→          </motion.button>
+   456→        </motion.div>
+   457→
+   458→        <div className="flex-1 overflow-y-auto min-h-0">
+   459→          <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
+   460→            {linksLoading && links.length === 0 ? (
+   461→              <div className="grid grid-cols-2 gap-2">
+   462→                {[1, 2, 3, 4].map(i => (
+   463→                  <motion.div key={i} className="h-20 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
+   464→                    <div className="h-full rounded-xl skeleton-pulse" />
+   465→                  </motion.div>
+   466→                ))}
+   467→              </div>
+   468→            ) : linksError && links.length === 0 ? (
+   469→              <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+   470→                <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+   471→                  <Link2 className="w-10 h-10 text-primary" />
+   472→                </motion.div>
+   473→                <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
+   474→              </motion.div>
+   475→            ) : links.length === 0 && !linksLoading ? (
+   476→              <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+   477→                <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+   478→                  <Link2 className="w-10 h-10 text-primary" />
+   479→                </motion.div>
+   480→                <p className="text-muted-foreground text-xs">Chưa có liên kết nào. Mở Cài đặt để thêm.</p>
+   481→              </motion.div>
+   482→            ) : (
+   483→              <motion.div className="grid grid-cols-2 gap-2" variants={staggerContainer} initial="initial" animate="animate">
+   484→                <AnimatePresence mode="popLayout">
+   485→                  {links.map((link, index) => (
+   486→                    <motion.div key={link.id} variants={staggerItem} layout layoutId={`mobile-link-${link.id}`}>
+   487→                      <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
+   488→                    </motion.div>
+   489→                  ))}
+   490→                </AnimatePresence>
+   491→              </motion.div>
+   492→            )}
+   493→          </div>
+   494→        </div>
+   495→
+   496→        <div className="flex-shrink-0">
+   497→          <div className="max-w-lg mx-auto w-full px-6 pt-1"><NeonDivider color={neonColor} /></div>
+   498→          <motion.div className="max-w-lg mx-auto w-full px-4 pt-2 pb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
+   499→            <div className="rounded-xl p-3" style={{ background: 'rgba(14, 14, 30, 0.85)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
+   500→              <MonthlyCalendar neonColor={neonColor} compact />
+   501→            </div>
+   502→          </motion.div>
+   503→        </div>
+   504→      </div>
+   505→
+   506→      {/* ===== DESKTOP LAYOUT: horizontal - left: functions, right: calendar ===== */}
+   507→      <div className="hidden md:flex md:flex-row md:h-full md:w-full">
+   508→        {/* LEFT SIDE: Logo + Thi Đua + Links - vertically centered */}
+   509→        <div className="flex flex-col h-full md:w-[40%] lg:w-[38%] xl:w-[36%] flex-shrink-0 pt-6 pb-4">
+   510→          {/* Header */}
+   511→          <motion.header
+   512→            className="w-full px-8 pb-3 text-center relative flex-shrink-0"
+   513→            initial={{ opacity: 0, y: -20 }}
+   514→            animate={{ opacity: 1, y: 0 }}
+   515→            transition={{ duration: 0.5 }}
+   516→          >
+   517→            <NMCLogo color={neonColor} />
+   518→            <motion.div
+   519→              className="flex items-center justify-center gap-2 mt-1.5"
+   520→              initial={{ opacity: 0 }}
+   521→              animate={{ opacity: 1 }}
+   522→              transition={{ delay: 0.5, duration: 0.5 }}
+   523→            >
+   524→              <p className="text-sm text-muted-foreground">{settings.profile_bio}</p>
+   525→              <motion.button
+   526→                onClick={() => setIsSettingsOpen(true)}
+   527→                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+   528→                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+   529→                animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+   530→                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   531→                whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+   532→                whileTap={{ scale: 0.85 }}
+   533→              >
+   534→                <Settings className="w-3.5 h-3.5" style={{ color: neonColor }} />
+   535→              </motion.button>
+   536→            </motion.div>
+   537→          </motion.header>
+   538→
+   539→          <div className="w-full px-8 flex-shrink-0"><NeonDivider color={neonColor} /></div>
+   540→
+   541→          <motion.div className="w-full px-8 py-3 flex-shrink-0 grid grid-cols-3 gap-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+   542→            <motion.button
+   543→              onClick={() => router.push('/thi-dua-chau')}
+   544→              className="py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+   545→              style={{ background: 'rgba(245,158,11,0.12)', border: '1.5px solid #f59e0b60', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(245,158,11,0.2)' }}
+   546→              whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(245,158,11,0.35)' }}
+   547→              whileTap={{ scale: 0.97 }}
+   548→            >
+   549→              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   550→                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)', boxShadow: '0 0 8px #f59e0b80, 0 0 16px #f59e0b40', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   551→              </div>
+   552→              <Trophy className="w-4 h-4 relative z-10" /> <span className="relative z-10">Thi Đua</span>
+   553→            </motion.button>
+   554→            <motion.button
+   555→              onClick={() => router.push('/vinh-danh')}
+   556→              className="py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+   557→              style={{ background: 'rgba(168,85,247,0.12)', border: '1.5px solid #a855f760', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(168,85,247,0.2)' }}
+   558→              whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(168,85,247,0.35)' }}
+   559→              whileTap={{ scale: 0.97 }}
+   560→            >
+   561→              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   562→                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #a855f7, transparent)', boxShadow: '0 0 8px #a855f780, 0 0 16px #a855f740', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   563→              </div>
+   564→              <Award className="w-4 h-4 relative z-10" /> <span className="relative z-10">Vinh Danh</span>
+   565→            </motion.button>
+   566→            <motion.button
+   567→              onClick={() => router.push('/quan-ly')}
+   568→              className="py-3 rounded-none flex items-center justify-center gap-2 text-sm font-bold text-white relative overflow-hidden"
+   569→              style={{ background: 'rgba(16,185,129,0.12)', border: '1.5px solid #10b98160', boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 12px rgba(16,185,129,0.2)' }}
+   570→              whileHover={{ y: -3, boxShadow: '0 8px 25px rgba(0,0,0,0.6), 0 0 25px rgba(16,185,129,0.35)' }}
+   571→              whileTap={{ scale: 0.97 }}
+   572→            >
+   573→              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   574→                <motion.div className="absolute h-[2px] w-[40%]" style={{ background: 'linear-gradient(90deg, transparent, #10b981, transparent)', boxShadow: '0 0 8px #10b98180, 0 0 16px #10b98140', top: -1, left: 0 }} animate={{ x: ['-100%', '300%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }} />
+   575→              </div>
+   576→              <Database className="w-4 h-4 relative z-10" /> <span className="relative z-10">Quản Lý</span>
+   577→            </motion.button>
+   578→          </motion.div>
+   579→
+   580→          {/* Links grid - scrollable when many buttons */}
+   581→          <div className="flex-1 min-h-0 px-8 overflow-y-auto scrollbar-none">
+   582→            <div className="w-full pt-1 pb-4">
+   583→              {linksLoading && links.length === 0 ? (
+   584→                <div className="grid grid-cols-2 gap-3">
+   585→                  {[1, 2, 3, 4].map(i => (
+   586→                    <motion.div key={i} className="h-24 rounded-xl bg-card border border-border/50" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }}>
+   587→                      <div className="h-full rounded-xl skeleton-pulse" />
+   588→                    </motion.div>
+   589→                  ))}
+   590→                </div>
+   591→              ) : linksError && links.length === 0 ? (
+   592→                <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+   593→                  <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+   594→                    <Link2 className="w-10 h-10 text-primary" />
+   595→                  </motion.div>
+   596→                  <p className="text-muted-foreground text-xs">Lỗi tải dữ liệu. Kéo xuống để thử lại.</p>
+   597→                </motion.div>
+   598→              ) : links.length === 0 && !linksLoading ? (
+   599→                <motion.div className="text-center py-8" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+   600→                  <motion.div className="opacity-30 mb-3 mx-auto w-10 h-10 flex items-center justify-center" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+   601→                    <Link2 className="w-10 h-10 text-primary" />
+   602→                  </motion.div>
+   603→                  <p className="text-muted-foreground text-xs">Chưa có liên kết nào. Mở Cài đặt để thêm.</p>
+   604→                </motion.div>
+   605→              ) : (
+   606→                <motion.div className="grid grid-cols-2 gap-3" variants={staggerContainer} initial="initial" animate="animate">
+   607→                  <AnimatePresence mode="popLayout">
+   608→                    {links.map((link, index) => (
+   609→                      <motion.div key={link.id} variants={staggerItem} layout layoutId={`desktop-link-${link.id}`}>
+   610→                        <LinkCard link={link} index={index} neonColor={neonColor} onOpen={handleOpenLink} />
+   611→                      </motion.div>
+   612→                    ))}
+   613→                  </AnimatePresence>
+   614→                </motion.div>
+   615→              )}
+   616→            </div>
+   617→          </div>
+   618→
+   619→          {/* Big Clock - centered in remaining space */}
+   620→          <div className="flex-1 flex items-center justify-center px-4 pb-4 min-h-0">
+   621→            <DesktopBigClock neonColor={neonColor} />
+   622→          </div>
+   623→        </div>
+   624→
+   625→        {/* Vertical Neon Divider between left and right */}
+   626→        <div className="flex-shrink-0 flex items-center justify-center w-4">
+   627→          <div className="w-[1px] h-[65%] rounded-full" style={{
+   628→            background: `linear-gradient(180deg, transparent, ${neonColor}40, ${neonColor}80, ${neonColor}40, transparent)`,
+   629→            boxShadow: `0 0 12px ${neonColor}30`,
+   630→          }} />
+   631→        </div>
+   632→
+   633→        {/* RIGHT SIDE: Calendar - wider, shorter */}
+   634→        <motion.div
+   635→          className="flex-1 flex items-start justify-center py-4 px-2 lg:px-4 xl:px-6 overflow-y-auto"
+   636→          initial={{ opacity: 0, x: 40 }}
+   637→          animate={{ opacity: 1, x: 0 }}
+   638→          transition={{ delay: 0.4, duration: 0.6 }}
+   639→        >
+   640→          <div
+   641→            className="rounded-none p-3 lg:p-4 w-full max-w-[900px] flex-shrink-0"
+   642→            style={{
+   643→              background: 'rgba(16, 16, 42, 0.95)',
+   644→              border: `1.5px solid ${neonColor}30`,
+   645→              backdropFilter: 'blur(20px)',
+   646→              boxShadow: `0 12px 48px rgba(0,0,0,0.5), 0 0 50px ${neonColor}12, inset 0 0 30px ${neonColor}05`,
+   647→            }}
+   648→          >
+   649→            <MonthlyCalendar neonColor={neonColor} compact={false} desktopBright />
+   650→          </div>
+   651→        </motion.div>
+   652→      </div>
+   653→
+   654→      {/* Modals */}
+   655→      <AnimatePresence>
+   656→        {selectedLink && (
+   657→          <IframeModal key={`modal-${modalKey}`} link={selectedLink} onClose={handleCloseLink} />
+   658→        )}
+   659→      </AnimatePresence>
+   660→
+   661→      <AddLinkModal
+   662→        isOpen={isAddModalOpen}
+   663→        editingLink={editingLink}
+   664→        categories={categories}
+   665→        onClose={() => {
+   666→          setIsAddModalOpen(false)
+   667→          setEditingLink(null)
+   668→        }}
+   669→        onSubmit={handleAddOrUpdateLink}
+   670→      />
+   671→
+   672→      <StatsPanel isOpen={isStatsOpen} stats={stats} onClose={() => setIsStatsOpen(false)} onExport={handleExport} />
+   673→
+   674→      <SettingsPanel
+   675→        isOpen={isSettingsOpen}
+   676→        onClose={() => setIsSettingsOpen(false)}
+   677→        onAddLink={() => {
+   678→          setEditingLink(null)
+   679→          setIsAddModalOpen(true)
+   680→        }}
+   681→        onEditLink={(link) => {
+   682→          setEditingLink(link)
+   683→          setIsAddModalOpen(true)
+   684→        }}
+   685→        onOpenStats={() => setIsStatsOpen(true)}
+   686→      />
+   687→    </div>
+   688→  )
+   689→}
+   690→
