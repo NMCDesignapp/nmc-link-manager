@@ -1,0 +1,2002 @@
+     1→/* ================= CONFIGURATION ================= */
+     2→var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSoPJmFD2PgIQ5xCLPa3GMXxqgXYPGnuhApo4bE8ZWGSN8orekzv9LDL8M3-WevPGMFs0NwREroNjBT/pub?output=csv";
+     3→try { var _ovCSV = localStorage.getItem('kpi_link_CSV_URL'); if (_ovCSV) CSV_URL = _ovCSV; } catch(e) {}
+     4→var PHU_CAP_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCqo7JTvbIEiUfmolZudGqKIJu_34TZ4yWMsmJPb-HwSihOtApWCxve2f4fhWmGs_K57duSjztxSB1/pub?output=csv";
+     5→try { var _ovPC = localStorage.getItem('kpi_link_PHU_CAP_CSV_URL'); if (_ovPC) PHU_CAP_CSV_URL = _ovPC; HIERARCHY_CSV_URL = PHU_CAP_CSV_URL; } catch(e) {}
+     6→var HIERARCHY_CSV_URL = PHU_CAP_CSV_URL;
+     7→var DATA = [], HIERARCHY_DATA = [], NOW = new Date(), CUR_YEAR = NOW.getFullYear(), CUR_MONTH = String(NOW.getMonth() + 1).padStart(2, '0');
+     8→
+     9→var timeState = { detail: CUR_MONTH, calendar: CUR_MONTH };
+    10→var dashboardState = { ky: '', adGroups: {} };
+    11→
+    12→var CO_CAU = {
+    13→    "PHÒNG 1": ["UY", "TRÍ"],
+    14→    "PHÒNG 2": ["CÓ", "LONG"],
+    15→    "PHÒNG 3": ["TRANG", "DANH"],
+    16→    "BANCA - PA": ["BANCA"]
+    17→};
+    18→
+    19→var MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+    20→var FUNCS = [
+    21→    { id: "Q1", n: "Quý 1", ms: ["01", "02", "03"] },
+    22→    { id: "Q2", n: "Quý 2", ms: ["04", "05", "06"] },
+    23→    { id: "Q3", n: "Quý 3", ms: ["07", "08", "09"] },
+    24→    { id: "Q4", n: "Quý 4", ms: ["10", "11", "12"] },
+    25→    { id: "Y", n: "Cả năm", ms: "ALL" }
+    26→];
+    27→
+    28→/* ================= UTILITIES ================= */
+    29→var $ = function(id) { return document.getElementById(id); };
+    30→var num = function(v) {
+    31→    if (v === null || v === undefined) return 0;
+    32→    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    33→    var s = String(v).trim();
+    34→    if (!s) return 0;
+    35→    s = s.replace(/\s/g, '').replace(/%/g, '');
+    36→    if (s.indexOf(',') !== -1 && s.indexOf('.') !== -1) {
+    37→        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+    38→            s = s.replace(/\./g, '').replace(',', '.');
+    39→        } else {
+    40→            s = s.replace(/,/g, '');
+    41→        }
+    42→    } else if (s.indexOf(',') !== -1) {
+    43→        s = s.replace(',', '.');
+    44→    }
+    45→    s = s.replace(/[^0-9.\-]/g, '');
+    46→    var n = Number(s);
+    47→    return isFinite(n) ? n : 0;
+    48→};
+    49→var fmt = function(n) { return new Intl.NumberFormat('vi-VN').format(n); };
+    50→function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    51→
+    52→function animateValue(el, end, dur) {
+    53→    if (!dur) dur = 900;
+    54→    if (!end) { el.textContent = fmt(end); return; }
+    55→    var start = 0;
+    56→    var st = null;
+    57→    var step = function(ts) {
+    58→        if (!st) st = ts;
+    59→        var p = Math.min((ts - st) / dur, 1);
+    60→        // EaseOutCubic
+    61→        var ease = 1 - Math.pow(1 - p, 3);
+    62→        el.textContent = fmt(Math.floor(end * ease));
+    63→        if (p < 1) requestAnimationFrame(step);
+    64→    };
+    65→    requestAnimationFrame(step);
+    66→}
+    67→
+    68→function animatePct(el, target, dur, dec) {
+    69→    if (!dur) dur = 900;
+    70→    if (dec === undefined) dec = 0;
+    71→    var st = null;
+    72→    var step = function(ts) {
+    73→        if (!st) st = ts;
+    74→        var p = Math.min((ts - st) / dur, 1);
+    75→        var ease = 1 - Math.pow(1 - p, 3);
+    76→        el.textContent = (target * ease).toFixed(dec) + '%';
+    77→        if (p < 1) requestAnimationFrame(step);
+    78→    };
+    79→    requestAnimationFrame(step);
+    80→}
+    81→
+    82→function toast(msg, type) {
+    83→    var c = document.querySelector('.tw'); 
+    84→    if(!c) return; // Only works inside td-page views or create a global toast container
+    85→    // Simple fallback for main view if needed, but main view doesn't use toast() much currently.
+    86→    // Assuming toast is called from Race/Policy context mainly.
+    87→    
+    88→    var t = document.createElement('div');
+    89→    t.className = 'ts ' + (type === 'err' ? 'err' : type === 'ok' ? 'ok' : '');
+    90→    var ic = { ok: 'fa-circle-check', err: 'fa-circle-exclamation', info: 'fa-circle-info' };
+    91→    var cl = { ok: '#27ae60', err: 'var(--td-red)', info: 'var(--td-accent)' };
+    92→    
+    93→    t.innerHTML = '<i class="fa-solid ' + (ic[type] || ic.info) + '" style="color:' + (cl[type] || cl.info) + '"></i>' + esc(msg);
+    94→    c.appendChild(t);
+    95→    requestAnimationFrame(function() { requestAnimationFrame(function() { t.classList.add('show'); }); });
+    96→    setTimeout(function() {
+    97→        t.classList.remove('show');
+    98→        setTimeout(function() { t.remove(); }, 400);
+    99→    }, 3500);
+   100→}
+   101→
+   102→/* ================= NAVIGATION ================= */
+   103→function go(viewId) {
+   104→    document.body.style.overflow = '';
+   105→    
+   106→    // Close modals if any are open
+   107→    [tdPage, poPage, clbPage].forEach(function(pg) {
+   108→        if (!pg) return;
+   109→        ['PwMdl', 'CfmDel', 'Mdl', 'Popup'].forEach(function(s) {
+   110→            var el = pg.gid(s);
+   111→            if (el) el.classList.remove('open');
+   112→        });
+   113→    });
+   114→
+   115→    document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+   116→    $(viewId).classList.add('active');
+   117→    window.scrollTo({ top: 0, behavior: 'smooth' });
+   118→
+   119→    if (viewId === 'view-detail') {
+   120→        renderDtPicker();
+   121→        renderDetail();
+   122→    } else if (viewId === 'view-calendar') {
+   123→        renderCalFilter();
+   124→        if (!_calLoaded) {
+   125→            _calLoaded = true;
+   126→            calLoadUserEntries().then(function() { renderCalendar(); });
+   127→        } else {
+   128→            renderCalendar();
+   129→        }
+   130→    } else if (viewId === 'view-race') {
+   131→        tdPage.init();
+   132→    } else if (viewId === 'view-policy') {
+   133→        poPage.init();
+   134→    } else if (viewId === 'view-clb') {
+   135→        clbPage.init();
+   136→    }
+   137→}
+   138→
+   139→/* ================= MAIN DASHBOARD LOGIC ================= */
+   140→function pctColor(p) {
+   141→    return '#f2d38d';
+   142→}
+   143→function glowCls(pct) { return pct >= 100 ? ' glow-full' : ''; }
+   144→function normalizeHeaderName(v) {
+   145→    return String(v || '')
+   146→        .replace(/^\uFEFF/, '')
+   147→        .trim()
+   148→        .normalize('NFD')
+   149→        .replace(/[\u0300-\u036f]/g, '')
+   150→        .replace(/[đĐ]/g, 'd')
+   151→        .replace(/[^a-zA-Z0-9]+/g, '_')
+   152→        .replace(/^_+|_+$/g, '')
+   153→        .toLowerCase();
+   154→}
+   155→function normalizeCsvRows(rows) {
+   156→    return (rows || []).map(function(row) {
+   157→        var out = {};
+   158→        Object.keys(row || {}).forEach(function(key) {
+   159→            var cleanKey = normalizeHeaderName(key);
+   160→            if (!cleanKey) return;
+   161→            /* Xử lý trùng lặp header "nhom" trong sheet Phụ cấp:
+   162→               PapaParse đổi cột thứ 2 thành "nhom_1".
+   163→               - "nhom" (cột 1) = tên AD (quản lý) → ánh xạ thành "ad"
+   164→               - "nhom_1" (cột 2) = tên nhóm phụ → ánh xạ thành "nhom" */
+   165→            if (cleanKey === 'nhom_1') {
+   166→                /* Di chuyển giá trị "nhom" cũ sang "ad", đặt nhóm phụ vào "nhom" */
+   167→                if (out.hasOwnProperty('nhom')) { out['ad'] = out['nhom']; }
+   168→                cleanKey = 'nhom';
+   169→            }
+   170→            out[cleanKey] = row[key];
+   171→        });
+   172→        return out;
+   173→    });
+   174→}
+   175→function fmtTyTrong(v) {
+   176→    var n = num(v);
+   177→    if (!isFinite(n)) n = 0;
+   178→    if (Math.abs(n % 1) < 0.001) return fmt(Math.round(n)) + '%';
+   179→    return n.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '%';
+   180→}
+   181→function normText(v) { return String(v || '').trim().toUpperCase(); }
+   182→function normKey(v) {
+   183→    return String(v || '')
+   184→        .normalize('NFD')
+   185→        .replace(/[\u0300-\u036f]/g, '')
+   186→        .replace(/Đ/g, 'D')
+   187→        .replace(/đ/g, 'd')
+   188→        .toUpperCase()
+   189→        .replace(/[^A-Z0-9]/g, '');
+   190→}
+   191→function rowMonthVal(row, monthIdx) { return num(row[String(monthIdx)]); }
+   192→function adMatches(rowAd, adKey, managerName) {
+   193→    var ra = normKey(rowAd), ak = normKey(adKey), mn = normKey(managerName);
+   194→    if (!ra) return false;
+   195→    return (!!ak && (ra === ak || ra.indexOf(ak) !== -1 || ak.indexOf(ra) !== -1)) ||
+   196→           (!!mn && (ra === mn || ra.indexOf(mn) !== -1 || mn.indexOf(ra) !== -1));
+   197→}
+   198→function roleRank(chucVu) {
+   199→    var key = normText(chucVu);
+   200→    if (key === 'TB' || key === 'TN') return 0;
+   201→    if (key === 'TTN') return 1;
+   202→    if (key === 'TVV') return 2;
+   203→    return 99;
+   204→}
+   205→function sortMembers(members) {
+   206→    members.sort(function(a, b) {
+   207→        var oa = roleRank(a.chucVu), ob = roleRank(b.chucVu);
+   208→        if (oa !== ob) return oa - ob;
+   209→        return normText(a.ten).localeCompare(normText(b.ten), 'vi');
+   210→    });
+   211→    return members;
+   212→}
+   213→function buildMonths() {
+   214→    return Array(12).fill(0);
+   215→}
+   216→function collectManagedMembers(rows, adKey, managerName) {
+   217→    var members = [];
+   218→    rows.forEach(function(row) {
+   219→        if (!adMatches(row.ad, adKey, managerName)) return;
+   220→        var maSo = String(row.ma_so || '').trim();
+   221→        var ten = String(row.tvv || '').trim();
+   222→        var chucVu = String(row.chuc_vu || '').trim();
+   223→        if (!maSo && !ten && !chucVu) return;
+   224→        var months = [];
+   225→        for (var m = 1; m <= 12; m++) months.push(rowMonthVal(row, m));
+   226→        members.push({ maSo: maSo || '--', ten: ten || '--', chucVu: chucVu || '--', months: months, ngayCap: String(row.ngay_cap || '').trim() });
+   227→    });
+   228→    return sortMembers(members);
+   229→}
+   230→function collectManagedGroups(rows, adKey, managerName) {
+   231→    var map = {};
+   232→    rows.forEach(function(row) {
+   233→        if (!adMatches(row.ad, adKey, managerName)) return;
+   234→        var groupName = String(row.nhom || '').trim();
+   235→        var maSo = String(row.ma_so || '').trim();
+   236→        var ten = String(row.tvv || '').trim();
+   237→        var chucVu = String(row.chuc_vu || '').trim();
+   238→        if (!groupName || (!maSo && !ten && !chucVu)) return;
+   239→
+   240→        if (!map[groupName]) {
+   241→            map[groupName] = {
+   242→                name: groupName,
+   243→                leader: '--',
+   244→                leaderRole: 99,
+   245→                totals: buildMonths(),
+   246→                members: []
+   247→            };
+   248→        }
+   249→
+   250→        var group = map[groupName];
+   251→        var months = [];
+   252→        for (var m = 1; m <= 12; m++) {
+   253→            var mv = rowMonthVal(row, m);
+   254→            months.push(mv);
+   255→            group.totals[m - 1] += mv;
+   256→        }
+   257→
+   258→        group.members.push({
+   259→            maSo: maSo || '--',
+   260→            ten: ten || '--',
+   261→            chucVu: chucVu || '--',
+   262→            months: months,
+   263→            ngayCap: String(row.ngay_cap || '').trim()
+   264→        });
+   265→
+   266→        var rank = roleRank(chucVu);
+   267→        if (rank <= 1 && (group.leaderRole > rank || group.leader === '--')) {
+   268→            group.leader = ten || maSo || '--';
+   269→            group.leaderRole = rank;
+   270→        } else if (group.leader === '--' && ten) {
+   271→            group.leader = ten;
+   272→            group.leaderRole = rank;
+   273→        }
+   274→    });
+   275→
+   276→    return Object.keys(map).sort(function(a, b) {
+   277→        return a.localeCompare(b, 'vi');
+   278→    }).map(function(name) {
+   279→        var group = map[name];
+   280→        sortMembers(group.members);
+   281→        return group;
+   282→    });
+   283→}
+   284→function buildTeamBoard(group, idx) {
+   285→    if (!group) return '';
+   286→    var stats = computeGroupStats(group.members || []);
+   287→    // Thông tin nhóm thu gọn
+   288→    var infoHtml = '<div class="team-info-summary">' +
+   289→        '<div><span>Tên nhóm:</span> ' + esc(group.name) + '</div>' +
+   290→        '<div><span>Thủ lĩnh:</span> ' + esc(group.leader || '--') + '</div>' +
+   291→        '<div><span>Số lượng:</span> ' + stats.total + '</div>' +
+   292→        '<div><span>Lượt HD:</span> ' + stats.luotHD + '</div>' +
+   293→        '<div><span>Lượt HD chuẩn:</span> ' + stats.luotHDChuan + '</div>' +
+   294→        '<div><span>TVVm (&lt;12t):</span> ' + stats.tvvMoi + '</div>' +
+   295→        '</div>';
+   296→    // Phần danh sách thành viên giữ nguyên (bảng IP chi tiết, header 2 dòng)
+   297→    var memberHead = '<thead>' +
+   298→        '<tr>' +
+   299→        '<th rowspan="2" class="mini-col">STT</th>' +
+   300→'<th rowspan="2" class="code-col">Mã số</th>' +
+   301→        '<th rowspan="2" class="name-col">Họ tên</th>' +
+   302→        '<th rowspan="2" class="cv-col">CV</th>' +
+   303→        '<th colspan="7" class="ip-group">IP</th>' +
+   304→        '</tr>' +
+   305→        '<tr>';
+   306→    for (var mm = 3; mm <= 9; mm++) memberHead += '<th class="mini-col ip-sub">T' + mm + '</th>';
+   307→    memberHead += '</tr></thead>';
+   308→    var memberRows = (group.members || []).map(function(member, memberIdx) {
+   309→        var row = '<tr><td class="label">' + (memberIdx + 1) + '</td><td class="code-cell">' + esc(member.maSo) + '</td><td class="name">' + esc(member.ten) + '</td><td class="cv-cell">' + esc(member.chucVu) + '</td>';
+   310→        for (var mi = 2; mi <= 8; mi++) { var mv = member.months[mi] || 0; row += '<td class="month' + (mv > 0 ? ' has-val' : '') + '">' + esc(fmt(mv)) + '</td>'; }
+   311→        row += '</tr>';
+   312→        return row;
+   313→    }).join('');
+   314→    var memberTable = '<div class="ad-team-wrap"><table class="ad-team-table member">' + memberColgroup() + memberHead + '<tbody>' + memberRows + '</tbody></table></div>';
+   315→    
+   316→    return '<div class="ad-team-board">' +
+   317→        '<div class="ad-team-sec sec-info"><div class="ad-team-cap">Thông tin nhóm</div>' + infoHtml + '</div>' +
+   318→        '<div class="ad-team-sec sec-list"><div class="ad-team-cap">Danh sách thành viên</div>' + memberTable + '</div>' +
+   319→        '</div>';
+   320→}
+   321→function parseNgayCap(str) {
+   322→    if (!str) return null;
+   323→    var s = String(str).trim();
+   324→    if (!s) return null;
+   325→    // Try DD/MM/YYYY or DD-MM-YYYY first
+   326→    var m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+   327→    if (m) {
+   328→        var d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
+   329→        if (y < 100) y += 2000;
+   330→        if (mo >= 1 && mo <= 12 && y > 1900) return { year: y, month: mo };
+   331→    }
+   332→    // Try YYYY-MM-DD
+   333→    m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+   334→    if (m) {
+   335→        var y2 = parseInt(m[1], 10), mo2 = parseInt(m[2], 10);
+   336→        if (mo2 >= 1 && mo2 <= 12 && y2 > 1900) return { year: y2, month: mo2 };
+   337→    }
+   338→    // Fallback: native Date
+   339→    var dt = new Date(s);
+   340→    if (!isNaN(dt.getTime())) return { year: dt.getFullYear(), month: dt.getMonth() + 1 };
+   341→    return null;
+   342→}
+   343→function computeGroupStats(members) {
+   344→    var total = 0, luotHD = 0, luotHDChuan = 0, tvvMoi = 0;
+   345→    var nowY = NOW.getFullYear(), nowM = NOW.getMonth() + 1;
+   346→    (members || []).forEach(function(m) {
+   347→        total++;
+   348→        // Lượt HD: count months (all 12 months) where IP >= 3 (triệu)
+   349→        // Lượt HD chuẩn: same but IP >= 12 (triệu)
+   350→        var months = m.months || [];
+   351→        for (var i = 0; i < 12; i++) {
+   352→            var v = +months[i] || 0;
+   353→            if (v >= 3) luotHD++;
+   354→            if (v >= 12) luotHDChuan++;
+   355→        }
+   356→        // TVVm (<12t): any member with ngayCap within 12 months from today (count by month, not day)
+   357→        var d = parseNgayCap(m.ngayCap);
+   358→        if (d) {
+   359→            var diff = (nowY - d.year) * 12 + (nowM - d.month);
+   360→            if (diff >= 0 && diff <= 12) tvvMoi++;
+   361→        }
+   362→    });
+   363→    return { total: total, luotHD: luotHD, luotHDChuan: luotHDChuan, tvvMoi: tvvMoi };
+   364→}
+   365→function memberColgroup() {
+   366→    return '<colgroup>' +
+   367→        '<col class="cg-stt">' +
+   368→        '<col class="cg-code">' +
+   369→        '<col class="cg-name">' +
+   370→        '<col class="cg-cv">' +
+   371→        '<col class="cg-ip"><col class="cg-ip"><col class="cg-ip"><col class="cg-ip"><col class="cg-ip"><col class="cg-ip"><col class="cg-ip">' +
+   372→        '</colgroup>';
+   373→}
+   374→function buildMemberOnlyBoard(title, members) {
+   375→    var stats = computeGroupStats(members || []);
+   376→    var statsHtml = '<div class="team-info-summary">' +
+   377→        '<div><span>Số lượng:</span> ' + stats.total + '</div>' +
+   378→        '<div><span>Lượt HD:</span> ' + stats.luotHD + '</div>' +
+   379→        '<div><span>Lượt HD chuẩn:</span> ' + stats.luotHDChuan + '</div>' +
+   380→        '<div><span>TVVm (&lt;12t):</span> ' + stats.tvvMoi + '</div>' +
+   381→        '</div>';
+   382→    var memberHead = '<thead>' +
+   383→        '<tr>' +
+   384→        '<th rowspan="2" class="mini-col">STT</th>' +
+   385→'<th rowspan="2" class="code-col">Mã số</th>' +
+   386→        '<th rowspan="2" class="name-col">Họ tên</th>' +
+   387→        '<th rowspan="2" class="cv-col">CV</th>' +
+   388→        '<th colspan="7" class="ip-group">IP</th>' +
+   389→        '</tr>' +
+   390→        '<tr>';
+   391→    for (var mm = 3; mm <= 9; mm++) memberHead += '<th class="mini-col ip-sub">T' + mm + '</th>';
+   392→    memberHead += '</tr></thead>';
+   393→    var memberRows = (members || []).map(function(member, memberIdx) {
+   394→        var row = '<tr><td class="label">' + (memberIdx + 1) + '</td><td class="code-cell">' + esc(member.maSo) + '</td><td class="name">' + esc(member.ten) + '</td><td class="cv-cell">' + esc(member.chucVu) + '</td>';
+   395→        for (var mi = 2; mi <= 8; mi++) { var mv = member.months[mi] || 0; row += '<td class="month' + (mv > 0 ? ' has-val' : '') + '">' + esc(fmt(mv)) + '</td>'; }
+   396→        row += '</tr>';
+   397→        return row;
+   398→    }).join('');
+   399→    return '<div class="ad-team-board">' +
+   400→        '<div class="ad-team-sec"><div class="ad-team-cap">' + esc(title || 'Danh sách TVV') + '</div>' +
+   401→        statsHtml +
+   402→        '<div class="ad-team-wrap"><table class="ad-team-table member">' + memberColgroup() + memberHead + '<tbody>' + memberRows + '</tbody></table></div>' +
+   403→        '</div></div>';
+   404→}
+   405→function renderPhongDrill(card) {
+   406→    if (!card) return;
+   407→    var adKey = card.getAttribute('data-ad-key') || '';
+   408→    var drill = card.querySelector('.phong-drill');
+   409→    var entry = dashboardState.adGroups[adKey];
+   410→    if (!drill) return;
+   411→    if (!entry || !entry.members || !entry.members.length) {
+   412→        drill.innerHTML = '<div class="ad-empty">Chưa có TVV.</div>';
+   413→        return;
+   414→    }
+   415→    drill.innerHTML =
+   416→        '<div class="ad-drill-head"><span>Danh sách TVV</span><span>' + entry.members.length + ' TVV</span></div>' +
+   417→        buildMemberOnlyBoard(entry.title || entry.managerName, entry.members);
+   418→}
+   419→function renderAdDrill(card) {
+   420→    if (!card) return;
+   421→    var adKey = card.getAttribute('data-ad-key') || '';
+   422→    var drill = card.querySelector('.ad-drill');
+   423→    var entry = dashboardState.adGroups[adKey];
+   424→    if (!drill) return;
+   425→    /* Debug: log drill-down attempt */
+   426→    console.log('[KPI-DEBUG] renderAdDrill | adKey:', adKey, '| entry:', entry ? 'found' : 'NOT FOUND', '| groups:', entry && entry.groups ? entry.groups.length : 0);
+   427→    if (!entry || ((!entry.groups || !entry.groups.length) && (!entry.members || !entry.members.length))) {
+   428→        drill.innerHTML = '<div class="ad-empty">Chưa có nhóm quản lý.</div>';
+   429→        return;
+   430→    }
+   431→    if (entry.mode === 'members') {
+   432→        drill.innerHTML =
+   433→            '<div class="ad-drill-head"><span>Danh sách TVV</span><span>' + entry.members.length + ' TVV</span></div>' +
+   434→            buildMemberOnlyBoard(entry.title || entry.managerName, entry.members);
+   435→        return;
+   436→    }
+   437→    if (!entry.groups || !entry.groups.length) {
+   438→        drill.innerHTML = '<div class="ad-empty">Chưa có nhóm quản lý.</div>';
+   439→        return;
+   440→    }
+   441→    var activeGroup = card.getAttribute('data-open-group') || entry.groups[0].name;
+   442→    var activeIdx = entry.groups.findIndex(function(group) { return group.name === activeGroup; });
+   443→    if (activeIdx < 0) activeIdx = 0;
+   444→    var active = entry.groups[activeIdx];
+   445→    card.setAttribute('data-open-group', active.name);
+   446→    drill.innerHTML =
+   447→        '<div class="ad-drill-head"><span>Nhóm thuộc quyền</span><span>' + entry.groups.length + ' nhóm</span></div>' +
+   448→        '<div class="ad-group-list">' +
+   449→        entry.groups.map(function(group) {
+   450→            return '<button type="button" class="ad-group-btn ' + (group.name === active.name ? 'on' : '') + '" data-group-name="' + esc(group.name) + '">' + esc(group.name) + '<span class="cnt">(' + group.members.length + ')</span></button>';
+   451→        }).join('') +
+   452→        '</div>' +
+   453→        buildTeamBoard(active, activeIdx);
+   454→}
+   455→/* Desktop: show AD detail when clicking table row */
+   456→function showAdDetailView(adKey, info) {
+   457→    /* ★ Toggle drill-down panel below the AD table row */
+   458→    var adRow = document.querySelector('.dsk-ad-table tbody tr[data-ad-key="' + adKey + '"]');
+   459→    if (!adRow || !info) return;
+   460→
+   461→    /* Remove any existing drill-down rows */
+   462→    var existingDrill = adRow.parentNode.querySelector('.dsk-ad-drill-row');
+   463→    if (existingDrill) {
+   464→        existingDrill.remove();
+   465→        return; /* toggle off */
+   466→    }
+   467→    /* Remove drills from other tables too */
+   468→    document.querySelectorAll('.dsk-ad-drill-row').forEach(function(r) { r.remove(); });
+   469→
+   470→    /* Build drill-down content */
+   471→    var drillContent = '';
+   472→    if (info.mode === 'members' && info.members && info.members.length) {
+   473→        drillContent = '<div class="ad-drill-head"><span>Danh sách TVV</span><span>' + info.members.length + ' TVV</span></div>';
+   474→        drillContent += buildMemberOnlyBoard(info.title || info.managerName, info.members);
+   475→    } else if (info.mode === 'groups' && info.groups && info.groups.length) {
+   476→        var active = info.groups[0];
+   477→        drillContent = '<div class="ad-drill-head"><span>Nhóm thuộc quyền</span><span>' + info.groups.length + ' nhóm</span></div>';
+   478→        drillContent += '<div class="ad-group-list">';
+   479→        info.groups.forEach(function(group) {
+   480→            drillContent += '<button type="button" class="ad-group-btn on" data-ad-drill-key="' + esc(adKey) + '" data-group-name="' + esc(group.name) + '">' + esc(group.name) + '<span class="cnt">(' + group.members.length + ')</span></button>';
+   481→        });
+   482→        drillContent += '</div>';
+   483→        drillContent += buildTeamBoard(active, 0);
+   484→    } else {
+   485→        drillContent = '<div class="ad-empty">Chưa có dữ liệu.</div>';
+   486→    }
+   487→
+   488→    /* Insert drill row after the clicked row */
+   489→    var drillRow = document.createElement('tr');
+   490→    drillRow.className = 'dsk-ad-drill-row';
+   491→    var colSpan = adRow.cells.length;
+   492→    drillRow.innerHTML = '<td colspan="' + colSpan + '" style="padding:0;background:#0d1a2e">' + drillContent + '</td>';
+   493→    adRow.parentNode.insertBefore(drillRow, adRow.nextSibling);
+   494→}
+   495→
+   496→function bindDashboardEvents() {
+   497→    if (document.body.dataset.mainDashBound === '1') return;
+   498→    document.body.dataset.mainDashBound = '1';
+   499→    document.addEventListener('click', function(e) {
+   500→        // Desktop: AD table row click → show detail view
+   501→        var adRow = e.target.closest('.dsk-ad-table tbody tr[data-ad-key]');
+   502→        if (adRow) {
+   503→            var adKey = adRow.getAttribute('data-ad-key');
+   504→            if (adKey && dashboardState.adGroups[adKey]) {
+   505→                var info = dashboardState.adGroups[adKey];
+   506→                showAdDetailView(adKey, info);
+   507→            }
+   508→            return;
+   509→        }
+   510→        // Ad group button click
+   511→        var groupBtn = e.target.closest('.ad-group-btn');
+   512→        if (groupBtn) {
+   513→            /* ★ Desktop drill-down group button */
+   514→            var drillRow = groupBtn.closest('.dsk-ad-drill-row');
+   515→            if (drillRow) {
+   516→                e.preventDefault();
+   517→                e.stopPropagation();
+   518→                var adDrillKey = groupBtn.getAttribute('data-ad-drill-key') || '';
+   519→                var groupName = groupBtn.getAttribute('data-group-name') || '';
+   520→                var info = dashboardState.adGroups[adDrillKey];
+   521→                if (info && info.groups) {
+   522→                    var activeIdx = info.groups.findIndex(function(g) { return g.name === groupName; });
+   523→                    if (activeIdx < 0) activeIdx = 0;
+   524→                    /* Update active button styling */
+   525→                    drillRow.querySelectorAll('.ad-group-btn').forEach(function(b) { b.classList.remove('on'); });
+   526→                    groupBtn.classList.add('on');
+   527→                    /* Rebuild team board */
+   528→                    var teamBoard = drillRow.querySelector('.ad-team-board');
+   529→                    if (teamBoard) {
+   530→                        teamBoard.outerHTML = buildTeamBoard(info.groups[activeIdx], activeIdx);
+   531→                    }
+   532→                }
+   533→                return;
+   534→            }
+   535→            /* Mobile card group button */
+   536→            var ownerCard = groupBtn.closest('.kpi-ad[data-ad-key]');
+   537→            if (ownerCard) {
+   538→                e.preventDefault();
+   539→                e.stopPropagation();
+   540→                ownerCard.setAttribute('data-open-group', groupBtn.getAttribute('data-group-name') || '');
+   541→                renderAdDrill(ownerCard);
+   542→            }
+   543→            return;
+   544→        }
+   545→        // Ad card toggle
+   546→        var adCard = e.target.closest('.kpi-ad[data-ad-key]');
+   547→        if (adCard && $('main-content').contains(adCard) && !e.target.closest('.ad-team-board')) {
+   548→            var isOpen = adCard.classList.contains('open');
+   549→            document.querySelectorAll('.kpi-ad.open').forEach(function(card) {
+   550→                if (card !== adCard) {
+   551→                    card.classList.remove('open');
+   552→                    card.removeAttribute('data-open-group');
+   553→                }
+   554→            });
+   555→            if (isOpen) {
+   556→                adCard.classList.remove('open');
+   557→                adCard.removeAttribute('data-open-group');
+   558→            } else {
+   559→                adCard.classList.add('open');
+   560→                renderAdDrill(adCard);
+   561→            }
+   562→            return;
+   563→        }
+   564→        // Phong banca card toggle (mobile or desktop)
+   565→        var phongCard = e.target.closest('.kpi-phong.banca[data-ad-key], .kpi-ad.is-phong.banca[data-ad-key]');
+   566→        if (phongCard && $('main-content').contains(phongCard) && !e.target.closest('.ad-team-board')) {
+   567→            var isOpen = phongCard.classList.contains('open');
+   568→            document.querySelectorAll('.kpi-phong.banca.open, .kpi-ad.is-phong.banca.open').forEach(function(card) {
+   569→                if (card !== phongCard) card.classList.remove('open');
+   570→            });
+   571→            if (isOpen) {
+   572→                phongCard.classList.remove('open');
+   573→            } else {
+   574→                phongCard.classList.add('open');
+   575→                renderPhongDrill(phongCard);
+   576→            }
+   577→        }
+   578→    });
+   579→}
+   580→function miniProgressHTML(cp, extraCls) {
+   581→    return '<div class="mini-progress ' + (extraCls || '') + '"><div class="mini-progress-fill" data-w="' + cp + '%"></div></div>';
+   582→}
+   583→
+   584→function progressColor(pct) {
+   585→    var p = Math.max(0, Math.min(100, pct || 0));
+   586→    var hue = 0 + (120 * (p / 100));
+   587→    return 'hsl(' + hue + ', 68%, 52%)';
+   588→}
+   589→var DATA_CACHE_KEY = 'kpi-bvnt-ag-data-cache-v1';
+   590→
+   591→function saveDataCache(rows) {
+   592→    try {
+   593→        localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+   594→            ts: Date.now(),
+   595→            rows: rows || []
+   596→        }));
+   597→    } catch (e) {}
+   598→}
+   599→
+   600→function loadDataCache() {
+   601→    try {
+   602→        var raw = localStorage.getItem(DATA_CACHE_KEY);
+   603→        if (!raw) return null;
+   604→        var parsed = JSON.parse(raw);
+   605→        if (!parsed || !Array.isArray(parsed.rows) || !parsed.rows.length) return null;
+   606→        return normalizeCsvRows(parsed.rows);
+   607→    } catch (e) {
+   608→        return null;
+   609→    }
+   610→}
+   611→function loadCsv(url) {
+   612→    return new Promise(function(resolve, reject) {
+   613→        var separator = url.indexOf('?') !== -1 ? '&' : '?';
+   614→        Papa.parse(url + separator + 't=' + Date.now(), {
+   615→            download: true,
+   616→            header: true,
+   617→            skipEmptyLines: true,
+   618→            transformHeader: function(header) { return normalizeHeaderName(header); },
+   619→            complete: function(res) { resolve(normalizeCsvRows(res.data || [])); },
+   620→            error: function(err) { reject(err || new Error('Load CSV failed')); }
+   621→        });
+   622→    });
+   623→}
+   624→
+   625→function formatKyLabel(ky) {
+   626→    if (!ky) return '--';
+   627→    var v = String(ky).trim();
+   628→    var monthMatch = v.match(/(\d{2})$/);
+   629→    if (/Q[1-4]$/i.test(v)) return v.match(/Q[1-4]$/i)[0].toUpperCase();
+   630→    if (/(?:H1|6T)$/i.test(v)) return '6T';
+   631→    if (/(?:Y|NAM|NĂM)$/i.test(v)) return 'Năm';
+   632→    if (/^\d{4}-\d{2}$/.test(v) && monthMatch) return monthMatch[1];
+   633→    if (/^\d{2}$/.test(v)) return v;
+   634→    return v.replace(/^\d{4}-/, '');
+   635→}
+   636→
+   637→function kySortWeight(ky) {
+   638→    var label = formatKyLabel(ky);
+   639→    if (/^\d{2}$/.test(label)) return parseInt(label, 10);
+   640→    if (/^Q[1-4]$/i.test(label)) return 20 + parseInt(label.slice(1), 10);
+   641→    if (label === '6T') return 30;
+   642→    if (label === 'Năm') return 31;
+   643→    return 99;
+   644→}
+   645→
+   646→function renderKySelect(kyList, selectedKy) {
+   647→    var wrap = $('select-ky-wrap');
+   648→    var btn = $('select-ky');
+   649→    var menu = $('select-ky-menu');
+   650→    if (!wrap || !btn || !menu) return;
+   651→
+   652→    btn.textContent = formatKyLabel(selectedKy || kyList[0] || '--');
+   653→    btn.dataset.value = selectedKy || '';
+   654→    btn.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+   655→    menu.innerHTML = kyList.map(function(ky) {
+   656→        return '<button type="button" class="ctrl-select-opt ' + (ky === selectedKy ? 'on' : '') + '" data-ky="' + esc(ky) + '">' + esc(formatKyLabel(ky)) + '</button>';
+   657→    }).join('');
+   658→
+   659→    menu.querySelectorAll('.ctrl-select-opt').forEach(function(opt) {
+   660→        opt.addEventListener('click', function() {
+   661→            var ky = opt.getAttribute('data-ky');
+   662→            wrap.classList.remove('open');
+   663→            btn.setAttribute('aria-expanded', 'false');
+   664→            renderKySelect(kyList, ky);
+   665→            renderMain(ky);
+   666→        });
+   667→    });
+   668→}
+   669→
+   670→async function syncData() {
+   671→    var btn = $('sync-btn');
+   672→    btn.classList.add('loading');
+   673→    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+   674→
+   675→    var cachedRows = loadDataCache();
+   676→    if (cachedRows && cachedRows.length) {
+   677→        DATA = cachedRows;
+   678→        $('skeleton-main').style.display = 'none';
+   679→        initApp();
+   680→    } else {
+   681→        $('skeleton-main').style.display = '';
+   682→    }
+   683→    var els = ['error-main', 'kpi-company', 'nav-grid', 'sec-divider', 'main-content', 'link-divider', 'link-grid'];
+   684→    for (var i = 0; i < els.length; i++) { var el = $(els[i]); if (el) el.style.display = 'none'; }
+   685→
+   686→    try {
+   687→        var results = await Promise.all([
+   688→            loadCsv(CSV_URL),
+   689→            loadCsv(HIERARCHY_CSV_URL)
+   690→        ]);
+   691→        DATA = results[0] || [];
+   692→        HIERARCHY_DATA = results[1] || [];
+   693→        saveDataCache(DATA);
+   694→        btn.classList.remove('loading');
+   695→        btn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+   696→        $('skeleton-main').style.display = 'none';
+   697→
+   698→        if (!DATA.length) {
+   699→            $('error-main').style.display = '';
+   700→            return;
+   701→        }
+   702→        initApp();
+   703→    } catch (e) {
+   704→        btn.classList.remove('loading');
+   705→        btn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+   706→        $('skeleton-main').style.display = 'none';
+   707→        $('error-main').style.display = '';
+   708→    }
+   709→}
+   710→
+   711→function initApp() {
+   712→    /* Luôn tạo đủ 12 tháng của năm hiện tại + các kỳ tổng hợp */
+   713→    var kyList = [], seen = {};
+   714→    /* 1) Thêm 12 tháng cố định */
+   715→    for (var m = 1; m <= 12; m++) {
+   716→        var mk = CUR_YEAR + '-' + String(m).padStart(2, '0');
+   717→        if (!seen[mk]) { seen[mk] = true; kyList.push(mk); }
+   718→    }
+   719→    /* 2) Thêm các kỳ tổng hợp từ dữ liệu (6T, Q1-Q4, NAM) */
+   720→    DATA.forEach(function(x) {
+   721→        if (x.ky && x.ky.indexOf(CUR_YEAR.toString()) !== -1 && !seen[x.ky]) {
+   722→            seen[x.ky] = true;
+   723→            kyList.push(x.ky);
+   724→        }
+   725→    });
+   726→    kyList.sort(function(a, b) { return kySortWeight(a) - kySortWeight(b); });
+   727→
+   728→    var dk = CUR_YEAR + '-' + CUR_MONTH;
+   729→    var selectedKy = kyList.indexOf(dk) !== -1 ? dk : (kyList[0] || '');
+   730→    renderKySelect(kyList, selectedKy);
+   731→    renderMain(selectedKy);
+   732→
+   733→    var wrap = $('select-ky-wrap');
+   734→    var btn = $('select-ky');
+   735→    if (wrap && btn && !wrap.dataset.bound) {
+   736→        btn.addEventListener('click', function() {
+   737→            var isOpen = wrap.classList.toggle('open');
+   738→            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+   739→        });
+   740→        document.addEventListener('click', function(e) {
+   741→            if (!wrap.contains(e.target)) {
+   742→                wrap.classList.remove('open');
+   743→                btn.setAttribute('aria-expanded', 'false');
+   744→            }
+   745→        });
+   746→        wrap.dataset.bound = '1';
+   747→    }
+   748→}
+   749→
+   750→function renderNoticeBar(ky) {
+   751→    var bar = $('notice-bar');
+   752→    if (!bar) return;
+   753→
+   754→    var seen = {}, items = [];
+   755→    DATA.forEach(function(x) {
+   756→        var msg = (x.thong_bao || '').trim();
+   757→        if (!msg) return;
+   758→        if (ky && x.ky && x.ky !== ky) return;
+   759→        if (!seen[msg]) {
+   760→            seen[msg] = true;
+   761→            items.push(msg);
+   762→        }
+   763→    });
+   764→
+   765→    if (!items.length) {
+   766→        bar.classList.remove('show');
+   767→        document.body.classList.remove('has-notice');
+   768→        bar.innerHTML = '';
+   769→        return;
+   770→    }
+   771→
+   772→    var html = items.map(function(msg) {
+   773→        return '<span class="notice-item"><i class="fa-solid fa-bullhorn"></i><span>' + esc(msg) + '</span></span>';
+   774→    }).join('');
+   775→
+   776→    bar.innerHTML = '<div class="notice-track">' + html + html + '</div>';
+   777→    bar.classList.add('show');
+   778→    document.body.classList.add('has-notice');
+   779→}
+   780→
+   781→function renderLinkButtons(ky) {
+   782→    var divider = $('link-divider');
+   783→    var grid = $('link-grid');
+   784→    if (!divider || !grid) return;
+   785→
+   786→    var seen = {}, items = [];
+   787→    DATA.forEach(function(x) {
+   788→        /* Link buttons luôn hiện, không lọc theo kỳ */
+   789→        var name = (x.ten_nhan_vien || '').trim();
+   790→        var link = (x.lien_ket || '').trim();
+   791→        if (!name || !link || !/^https?:\/\//i.test(link)) return;
+   792→
+   793→        var label = name;
+   794→        var key = label + '|' + link;
+   795→        if (seen[key]) return;
+   796→        seen[key] = true;
+   797→        items.push({ label: label, link: link });
+   798→    });
+   799→
+   800→    if (!items.length) {
+   801→        divider.style.display = 'none';
+   802→        grid.style.display = 'none';
+   803→        grid.innerHTML = '';
+   804→        return;
+   805→    }
+   806→
+   807→    grid.innerHTML = items.map(function(item) {
+   808→        return '<a class="link-btn" href="' + esc(item.link) + '" target="_blank" rel="noopener noreferrer">' +
+   809→            '<i class="fa-solid fa-arrow-up-right-from-square"></i><span>' + esc(item.label) + '</span></a>';
+   810→    }).join('');
+   811→    divider.style.display = '';
+   812→    grid.style.display = 'grid';
+   813→}
+   814→
+   815→/* ===== AFYP CHART RENDERER ===== */
+   816→function renderAfypChart() {
+   817→    var wrap = $('afyp-chart-wrap');
+   818→    if (!wrap) return;
+   819→    if (window.innerWidth < 900) { wrap.style.display = 'none'; return; }
+   820→    wrap.style.display = '';
+   821→
+   822→    /* Tính AFYP + KH theo tháng — chỉ dùng số AD cấp phòng (giống renderMain) */
+   823→    var adKeys = [];
+   824→    for (var pN in CO_CAU) CO_CAU[pN].forEach(function(k) { adKeys.push(k); });
+   825→    var months = [];
+   826→    var totalAfyp = 0, totalKh = 0;
+   827→    var curM = parseInt(CUR_MONTH, 10);
+   828→    for (var m = 1; m <= 12; m++) {
+   829→        var mk = CUR_YEAR + '-' + String(m).padStart(2, '0');
+   830→        var mRows = DATA.filter(function(x) { return x.ky === mk && x.ten_nhan_vien; });
+   831→        var afyp = 0, kh = 0;
+   832→        adKeys.forEach(function(adKey) {
+   833→            var row = mRows.find(function(x) {
+   834→                var ten = normKey(x.ten_nhan_vien);
+   835→                var key = normKey(adKey);
+   836→                return ten && key && (ten === key || ten.indexOf(key) !== -1 || key.indexOf(ten) !== -1);
+   837→            });
+   838→            if (row) { afyp += num(row.afyp); kh += num(row.ke_hoach_afyp); }
+   839→        });
+   840→        months.push({ month: m, label: 'T' + m, afyp: afyp, kh: kh });
+   841→        if (m <= curM) { totalAfyp += afyp; totalKh += kh; }
+   842→    }
+   843→
+   844→    var hasData = months.some(function(d) { return d.afyp > 0 || d.kh > 0; });
+   845→    if (!hasData) { wrap.style.display = 'none'; return; }
+   846→
+   847→    /* Summary */
+   848→    var sumEl = $('afyp-chart-summary');
+   849→    if (sumEl) {
+   850→        var fmtBig = function(v) { return v >= 1e9 ? (v/1e9).toFixed(2) + ' tỷ' : v >= 1e6 ? (v/1e6).toFixed(0) + ' tr' : v >= 1e3 ? (v/1e3).toFixed(0) + 'k' : v.toFixed(0); };
+   851→        var avgPct = totalKh > 0 ? (totalAfyp / totalKh * 100) : 0;
+   852→        var avgPctClass = avgPct >= 100 ? 'green' : avgPct >= 70 ? 'gold' : 'red';
+   853→        sumEl.innerHTML = '<div class="sum-item"><div class="sum-label">Tổng AFYP (T1-T' + curM + ')</div><div class="sum-val">' + fmtBig(totalAfyp) + '</div></div>' +
+   854→            '<div class="sum-item"><div class="sum-label">Tổng KH (T1-T' + curM + ')</div><div class="sum-val">' + fmtBig(totalKh) + '</div></div>' +
+   855→            '<div class="sum-item"><div class="sum-label">Đạt KH</div><div class="sum-val ' + avgPctClass + '">' + avgPct.toFixed(1) + '%</div></div>';
+   856→    }
+   857→
+   858→    /* ===== PROFESSIONAL SVG CHART ===== */
+   859→    var chartEl = $('afyp-chart');
+   860→    var elW = chartEl.offsetWidth || 600;
+   861→    var elH = chartEl.offsetHeight || 500;
+   862→
+   863→    /* Dùng tọa độ pixel thực tế cho precision */
+   864→    var W = elW, H = elH;
+   865→    var padL = 68, padR = 20, padT = 30, padB = 40;
+   866→    var chartW = W - padL - padR;
+   867→    var chartH = H - padT - padB;
+   868→
+   869→    var maxVal = Math.max(1, Math.max.apply(null, months.map(function(d) { return Math.max(d.afyp, d.kh); })));
+   870→    var niceMax = Math.pow(10, Math.floor(Math.log10(maxVal)));
+   871→    if (maxVal / niceMax > 5) niceMax *= 10;
+   872→    else if (maxVal / niceMax > 2) niceMax *= 5;
+   873→    else if (maxVal / niceMax > 1) niceMax *= 2;
+   874→    maxVal = niceMax;
+   875→
+   876→    var slotW = chartW / 12;
+   877→    var barW = slotW * 0.55;
+   878→    var khBarW = barW + 6;
+   879→
+   880→    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">';
+   881→
+   882→    /* === DEFS: gradients, filters === */
+   883→    svg += '<defs>';
+   884→    /* AFYP bar gradients by status */
+   885→    svg += '<linearGradient id="barGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>';
+   886→    svg += '<linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient>';
+   887→    svg += '<linearGradient id="barRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#dc2626"/></linearGradient>';
+   888→    svg += '<linearGradient id="barKh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/><stop offset="100%" stop-color="#1e40af" stop-opacity="0.18"/></linearGradient>';
+   889→    /* Area fill under trend line */
+   890→    svg += '<linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.02"/></linearGradient>';
+   891→    /* Glow filter for line */
+   892→    svg += '<filter id="glowLine" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+   893→    /* Shadow for bars */
+   894→    svg += '<filter id="barShadow" x="-10%" y="-5%" width="120%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/></filter>';
+   895→    svg += '</defs>';
+   896→
+   897→    /* === GRID LINES + Y-AXIS LABELS === */
+   898→    for (var gi = 0; gi <= 5; gi++) {
+   899→        var gy = padT + chartH - (chartH * gi / 5);
+   900→        svg += '<line x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + gy.toFixed(1) + '" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="' + (gi === 0 ? '0' : '4,4') + '"/>';
+   901→        var gVal = maxVal * gi / 5;
+   902→        var gLabel = gVal >= 1e9 ? (gVal / 1e9).toFixed(1) + ' tỷ' : gVal >= 1e6 ? (gVal / 1e6).toFixed(0) + ' tr' : gVal >= 1e3 ? (gVal / 1e3).toFixed(0) + 'k' : gVal.toFixed(0);
+   903→        svg += '<text x="' + (padL - 8) + '" y="' + (gy + 4).toFixed(1) + '" fill="#6b8aaa" font-size="11" text-anchor="end" font-family="inherit">' + gLabel + '</text>';
+   904→    }
+   905→
+   906→    /* === BARS === */
+   907→    var fmtShort = function(v) { return v >= 1e9 ? (v/1e9).toFixed(1) + ' tỷ' : v >= 1e6 ? (v/1e6).toFixed(0) + ' tr' : v >= 1e3 ? (v/1e3).toFixed(0) + 'k' : v.toFixed(0); };
+   908→    var linePoints = [];
+   909→    var areaPoints = [];
+   910→
+   911→    for (var mi = 0; mi < 12; mi++) {
+   912→        var d = months[mi];
+   913→        var cx = padL + slotW * mi + slotW / 2;
+   914→
+   915→        /* KH bar (nền rộng hơn, mờ) */
+   916→        if (d.kh > 0) {
+   917→            var khH = d.kh / maxVal * chartH;
+   918→            var khX = cx - khBarW / 2;
+   919→            svg += '<rect x="' + khX.toFixed(1) + '" y="' + (padT + chartH - khH).toFixed(1) + '" width="' + khBarW.toFixed(1) + '" height="' + khH.toFixed(1) + '" rx="5" fill="url(#barKh)"/>';
+   920→        }
+   921→
+   922→        /* AFYP bar (gradient + shadow + rounded top) */
+   923→        if (d.afyp > 0) {
+   924→            var afypH = d.afyp / maxVal * chartH;
+   925→            var pct = d.kh > 0 ? (d.afyp / d.kh * 100) : 0;
+   926→            var gradId = pct >= 100 ? 'barGreen' : pct >= 70 ? 'barGold' : 'barRed';
+   927→            var barX = cx - barW / 2;
+   928→            svg += '<rect x="' + barX.toFixed(1) + '" y="' + (padT + chartH - afypH).toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + afypH.toFixed(1) + '" rx="5" fill="url(#' + gradId + ')" filter="url(#barShadow)"/>';
+   929→
+   930→            /* Giá trị trên đầu cột */
+   931→            var valColor = pct >= 100 ? '#4ade80' : pct >= 70 ? '#fbbf24' : '#f87171';
+   932→            svg += '<text x="' + cx.toFixed(1) + '" y="' + (padT + chartH - afypH - 8).toFixed(1) + '" fill="' + valColor + '" font-size="11" font-weight="700" text-anchor="middle" font-family="inherit">' + fmtShort(d.afyp) + '</text>';
+   933→
+   934→            /* Tỷ lệ % nhỏ dưới giá trị */
+   935→            if (d.kh > 0) {
+   936→                svg += '<text x="' + cx.toFixed(1) + '" y="' + (padT + chartH - afypH - 20).toFixed(1) + '" fill="' + valColor + '" font-size="9" font-weight="600" text-anchor="middle" opacity="0.7" font-family="inherit">' + pct.toFixed(0) + '%</text>';
+   937→            }
+   938→
+   939→            /* Line point */
+   940→            linePoints.push(cx.toFixed(1) + ',' + (padT + chartH - afypH).toFixed(1));
+   941→            areaPoints.push(cx.toFixed(1) + ',' + (padT + chartH - afypH).toFixed(1));
+   942→        }
+   943→
+   944→        /* Month label */
+   945→        svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - 12) + '" fill="#8faabe" font-size="11" text-anchor="middle" font-weight="600" font-family="inherit">' + d.label + '</text>';
+   946→    }
+   947→
+   948→    /* === AREA FILL under trend line === */
+   949→    if (areaPoints.length > 1) {
+   950→        var areaPath = 'M' + areaPoints[0];
+   951→        for (var ai = 1; ai < areaPoints.length; ai++) areaPath += ' L' + areaPoints[ai];
+   952→        /* Close to baseline */
+   953→        var lastParts = areaPoints[areaPoints.length - 1].split(',');
+   954→        var firstParts = areaPoints[0].split(',');
+   955→        areaPath += ' L' + lastParts[0] + ',' + (padT + chartH);
+   956→        areaPath += ' L' + firstParts[0] + ',' + (padT + chartH);
+   957→        areaPath += ' Z';
+   958→        svg += '<path d="' + areaPath + '" fill="url(#areaFill)"/>';
+   959→    }
+   960→
+   961→    /* === TREND LINE with glow === */
+   962→    if (linePoints.length > 1) {
+   963→        svg += '<polyline points="' + linePoints.join(' ') + '" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowLine)"/>';
+   964→        /* Dots */
+   965→        linePoints.forEach(function(pt) {
+   966→            var parts = pt.split(',');
+   967→            svg += '<circle cx="' + parts[0] + '" cy="' + parts[1] + '" r="5" fill="#0b1a2e" stroke="#38bdf8" stroke-width="2.5"/>';
+   968→            svg += '<circle cx="' + parts[0] + '" cy="' + parts[1] + '" r="2" fill="#38bdf8"/>';
+   969→        });
+   970→    }
+   971→
+   972→    svg += '</svg>';
+   973→
+   974→    /* Legend */
+   975→    var legendHtml = '<div class="chart-legend">' +
+   976→        '<div class="legend-item"><div class="legend-dot" style="background:linear-gradient(180deg,#3b82f6,#1e40af);opacity:0.4;width:12px;height:12px;border-radius:3px"></div>Kế hoạch</div>' +
+   977→        '<div class="legend-item"><div class="legend-dot" style="background:linear-gradient(180deg,#4ade80,#16a34a);width:12px;height:12px;border-radius:3px"></div>Đạt KH</div>' +
+   978→        '<div class="legend-item"><div class="legend-dot" style="background:linear-gradient(180deg,#fbbf24,#d97706);width:12px;height:12px;border-radius:3px"></div>Gần đạt</div>' +
+   979→        '<div class="legend-item"><div class="legend-dot" style="background:linear-gradient(180deg,#f87171,#dc2626);width:12px;height:12px;border-radius:3px"></div>Chưa đạt</div>' +
+   980→        '<div class="legend-item"><div class="legend-dot" style="background:#38bdf8;border-radius:50%;width:10px;height:10px;box-shadow:0 0 6px #38bdf8"></div>Xu hướng</div>' +
+   981→        '</div>';
+   982→
+   983→    chartEl.innerHTML = svg + legendHtml;
+   984→}
+   985→
+   986→function renderMain(ky) {
+   987→    var kyRows = DATA.filter(function(x) { return x.ky === ky; });
+   988→    var list = kyRows.filter(function(x) { return x.ten_nhan_vien; });
+   989→    var box = $('main-content'), ctyBox = $('kpi-company');
+   990→    ctyBox.innerHTML = '';
+   991→    dashboardState.ky = ky;
+   992→    dashboardState.adGroups = {};
+   993→    renderNoticeBar(ky);
+   994→    renderLinkButtons(ky);
+   995→    
+   996→    $('kpi-company').style.display = '';
+   997→    $('nav-grid').style.display = '';
+   998→    $('sec-divider').style.display = '';
+   999→    $('main-content').style.display = '';
+  1000→
+  1001→    var total = { ten: 'Công Ty', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, tyTrongWeighted: 0, tyTrongCount: 0 }, delay = 0;
+  1002→    var htmlParts = [];
+  1003→
+  1004→    for (let pName in CO_CAU) {
+  1005→        let p = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, tyTrongWeighted: 0, tyTrongCount: 0, ads: [], noAds: pName === 'BANCA - PA' };
+  1006→        
+  1007→        CO_CAU[pName].forEach(function(adKey) {
+  1008→            var row = list.find(function(x) {
+  1009→                var ten = normKey(x.ten_nhan_vien);
+  1010→                var key = normKey(adKey);
+  1011→                return ten && key && (ten === key || ten.indexOf(key) !== -1 || key.indexOf(ten) !== -1);
+  1012→            });
+  1013→            if (row) {
+  1014→                var tyTrong = num(row.ty_trong);
+  1015→                var groups = collectManagedGroups(HIERARCHY_DATA, adKey, row.ten_nhan_vien);
+  1016→                var membersOnly = p.noAds ? collectManagedMembers(HIERARCHY_DATA, adKey, row.ten_nhan_vien) : [];
+  1017→                /* Debug: log group collection results */
+  1018→                console.log('[KPI-DEBUG]', adKey, '| HIERARCHY rows:', HIERARCHY_DATA.length, '| groups:', groups.length, '| membersOnly:', membersOnly.length);
+  1019→                if (HIERARCHY_DATA.length > 0 && groups.length === 0 && !p.noAds) {
+  1020→                    var sampleRow = HIERARCHY_DATA[0];
+  1021→                    console.log('[KPI-DEBUG] Sample HIERARCHY row keys:', Object.keys(sampleRow).join(','));
+  1022→                    console.log('[KPI-DEBUG] Sample row.ad:', sampleRow.ad, '| row.nhom:', sampleRow.nhom);
+  1023→                }
+  1024→                var d = {
+  1025→                    ten: row.ten_nhan_vien,
+  1026→                    managerKey: adKey,
+  1027→                    afyp: num(row.afyp),
+  1028→                    kh: num(row.ke_hoach_afyp),
+  1029→                    lhd: num(row.luot_hoa_dong),
+  1030→                    td: num(row.tuyen_dung),
+  1031→                    hdChuan: num(row.luot_hd_chuan),
+  1032→                    tyTrong: tyTrong,
+  1033→                    groups: groups,
+  1034→                    membersOnly: membersOnly
+  1035→                };
+  1036→                dashboardState.adGroups[adKey] = p.noAds
+  1037→                    ? { managerName: row.ten_nhan_vien, mode: 'members', title: p.ten, members: membersOnly }
+  1038→                    : { managerName: row.ten_nhan_vien, mode: 'groups', groups: groups };
+  1039→                p.ads.push(d);
+  1040→                p.afyp += d.afyp;
+  1041→                p.kh += d.kh;
+  1042→                p.lhd += d.lhd;
+  1043→                p.td += d.td;
+  1044→                p.hdChuan += d.hdChuan;
+  1045→                if (!p.noAds) {
+  1046→                    p.tyTrongWeighted += (d.afyp > 0 ? d.afyp : 1) * tyTrong;
+  1047→                    p.tyTrongCount += (d.afyp > 0 ? d.afyp : 1);
+  1048→                }
+  1049→            }
+  1050→        });
+  1051→
+  1052→        p.tyTrong = p.tyTrongCount? (p.tyTrongWeighted / p.tyTrongCount) : 0;
+  1053→
+  1054→        /* Wrap phong + ads in dept-section for desktop grid */
+  1055→        var deptHtml = '<div class="dept-section">';
+  1056→        deptHtml += buildPhongCard(p, delay);
+  1057→        delay += 60;
+  1058→
+  1059→        if (p.ads.length && !p.noAds) {
+  1060→            /* Always render both mobile cards + desktop table; CSS handles visibility */
+  1061→            deptHtml += '<div class="ad-grid">';
+  1062→            p.ads.forEach(function(ad) {
+  1063→                deptHtml += buildAdCard(ad, delay);
+  1064→                delay += 30;
+  1065→            });
+  1066→            deptHtml += '</div>';
+  1067→            deptHtml += buildAdTable(p.ads, delay);
+  1068→        }
+  1069→        deptHtml += '</div>';
+  1070→        htmlParts.push(deptHtml);
+  1071→        delay += 60;
+  1072→
+  1073→        total.afyp += p.afyp;
+  1074→        total.kh += p.kh;
+  1075→        total.lhd += p.lhd;
+  1076→        total.td += p.td;
+  1077→        total.hdChuan += p.hdChuan;
+  1078→        total.tyTrongWeighted += p.tyTrongWeighted;
+  1079→        total.tyTrongCount += p.tyTrongCount;
+  1080→    }
+  1081→
+  1082→    total.tyTrong = total.tyTrongCount? (total.tyTrongWeighted / total.tyTrongCount) : 0;
+  1083→
+  1084→    box.innerHTML = htmlParts.join('');
+  1085→    /* Always render both company layouts; CSS will show the correct one */
+  1086→    ctyBox.innerHTML = buildCtyCard(total) + buildCtyStrip(total);
+  1087→    /* Desktop: move company card before desktop-split */
+  1088→    if (window.innerWidth >= 900) {
+  1089→        var split = $('desktop-split');
+  1090→        if (split && ctyBox.parentNode !== split.parentNode) {
+  1091→            split.parentNode.insertBefore(ctyBox, split);
+  1092→        }
+  1093→    }
+  1094→    bindDashboardEvents();
+  1095→    triggerAnimations();
+  1096→    renderAfypChart();
+  1097→}
+  1098→
+  1099→/* ===== DESKTOP-SPECIFIC BUILDERS ===== */
+  1100→
+  1101→/* Company strip: horizontal banner with KPI tiles */
+  1102→function buildCtyStrip(item) {
+  1103→    var pct = item.kh ? (item.afyp / item.kh * 100) : 0, cp = Math.min(pct, 100);
+  1104→    var pctClass = pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red';
+  1105→    return '<div class="dsk-company">' +
+  1106→        '<div class="dsk-cty-left">' +
+  1107→        '<div class="dsk-cty-label"><i class="fa-solid fa-trophy" style="color:#f2b24d;margin-right:4px"></i>Tổng Công Ty</div>' +
+  1108→        '<div class="dsk-cty-pct" data-pct="' + pct + '">0%</div>' +
+  1109→        '<div class="dsk-cty-prog-wrap"><div class="dsk-cty-prog"><div class="dsk-cty-prog-fill" data-w="' + cp + '%"></div></div></div>' +
+  1110→        '<div class="dsk-cty-afyp" data-count="' + item.afyp + '">0</div>' +
+  1111→        '<div class="dsk-cty-kh">KH: ' + fmt(item.kh) + '</div>' +
+  1112→        '</div>' +
+  1113→        '<div class="dsk-cty-right">' +
+  1114→        '<div class="dsk-cty-tile hd"><div class="dsk-cty-tile-label">Lượt HĐ</div><div class="dsk-cty-tile-val" data-count="' + item.lhd + '">0</div></div>' +
+  1115→        '<div class="dsk-cty-tile td"><div class="dsk-cty-tile-label">Tuyển dụng</div><div class="dsk-cty-tile-val" data-count="' + item.td + '">0</div></div>' +
+  1116→        '<div class="dsk-cty-tile chuan"><div class="dsk-cty-tile-label">Lượt chuẩn</div><div class="dsk-cty-tile-val" data-count="' + item.hdChuan + '">0</div></div>' +
+  1117→        '<div class="dsk-cty-tile ip"><div class="dsk-cty-tile-label">IP/AFYP</div><div class="dsk-cty-tile-val">' + esc(fmtTyTrong(item.tyTrong)) + '</div></div>' +
+  1118→        '</div>' +
+  1119→        '</div>';
+  1120→}
+  1121→
+  1122→/* AD table: compact table for desktop department sections */
+  1123→function buildAdTable(ads, delay) {
+  1124→    var html = '<div class="dsk-ad-wrap"><table class="dsk-ad-table">';
+  1125→    html += '<thead><tr>' +
+  1126→        '<th>AD</th><th>% KH</th><th>AFYP</th><th>KH</th><th>HĐ</th><th>TD</th><th>Chuẩn</th><th>IP</th><th></th>' +
+  1127→        '</tr></thead><tbody>';
+  1128→    ads.forEach(function(ad, i) {
+  1129→        var pct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+  1130→        var cp = Math.min(pct, 100);
+  1131→        var pctClass = pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red';
+  1132→        var progStart = progressColor(Math.max(pct - 24, 0));
+  1133→        var progEnd = progressColor(pct);
+  1134→        var khTrd = Math.round(num(ad.kh) / 1000000);
+  1135→        html += '<tr class="anim-in" data-ad-key="' + esc(ad.managerKey || '') + '" style="animation-delay:' + (delay + i * 30) + 'ms">' +
+  1136→            '<td><span class="dsk-ad-name">' + esc(ad.ten) + '</span></td>' +
+  1137→            '<td><span class="dsk-ad-pct ' + pctClass + '">' + pct.toFixed(0) + '%</span></td>' +
+  1138→            '<td>' + fmt(ad.afyp) + '</td>' +
+  1139→            '<td class="dsk-ad-kh-cell">' + (khTrd ? khTrd + 'trđ' : '--') + '</td>' +
+  1140→            '<td>' + ad.lhd + '</td>' +
+  1141→            '<td>' + ad.td + '</td>' +
+  1142→            '<td>' + ad.hdChuan + '</td>' +
+  1143→            '<td>' + esc(fmtTyTrong(ad.tyTrong)) + '</td>' +
+  1144→            '<td><span class="dsk-ad-mini-prog"><span class="dsk-ad-mini-prog-fill" data-w="' + cp + '%" style="background:linear-gradient(90deg,' + progStart + ',' + progEnd + ')"></span></span></td>' +
+  1145→            '</tr>';
+  1146→    });
+  1147→    html += '</tbody></table></div>';
+  1148→    return html;
+  1149→}
+  1150→
+  1151→function subsHTML(lhd, td, hdc, cls) {
+  1152→    var c = cls || '';
+  1153→    return '<div class="subs-row ' + c + '">' +
+  1154→        '<div class="sub-pill"><span class="sub-label">Lượt HĐ</span> <span class="sub-num" data-count="' + lhd + '">0</span></div>' +
+  1155→        '<div class="sub-pill"><span class="sub-label">Tuyển dụng</span> <span class="sub-num" data-count="' + td + '">0</span></div>' +
+  1156→        '<div class="sub-pill"><span class="sub-label">HĐ chuẩn</span> <span class="sub-num" data-count="' + hdc + '">0</span></div>' +
+  1157→        '</div>';
+  1158→}
+  1159→
+  1160→function buildCtyCard(item) {
+  1161→    var pct = item.kh ? (item.afyp / item.kh * 100) : 0, cp = Math.min(pct, 100), pc = pctColor(pct);
+  1162→    return '<div class="kpi-card kpi-cty anim-in' + glowCls(pct) + '">' +
+  1163→        '<div class="cty-inner">' +
+  1164→        '<div class="cty-head">' +
+  1165→        '<div class="cty-name"><i class="fa-solid fa-trophy"></i><span>Tổng Công Ty</span></div>' +
+  1166→        '<div class="cty-pct-num" data-pct="' + pct + '">0%</div>' +
+  1167→        '</div>' +
+  1168→        '<div class="cty-body">' +
+  1169→        '<div class="afyp-kh-row">' +
+  1170→        '<span class="afyp-big" data-count="' + item.afyp + '">0</span>' +
+  1171→        '<span class="kh-small">/ KH: ' + fmt(item.kh) + '</span>' +
+  1172→        '</div>' +
+  1173→        '<div class="cty-progress"><div class="cty-progress-fill" data-w="' + cp + '%"></div></div>' +
+  1174→        '</div>' +
+  1175→        '<div class="cty-stats">' +
+  1176→        '<div class="cty-stat hd"><div class="cty-stat-label">Lượt HĐ</div><div class="cty-stat-val" data-count="' + item.lhd + '">0</div></div>' +
+  1177→        '<div class="cty-stat td"><div class="cty-stat-label">TD</div><div class="cty-stat-val" data-count="' + item.td + '">0</div></div>' +
+  1178→        '<div class="cty-stat chuan"><div class="cty-stat-label">Lượt chuẩn</div><div class="cty-stat-val" data-count="' + item.hdChuan + '">0</div></div>' +
+  1179→        '<div class="cty-stat ip"><div class="cty-stat-label">IP/AFYP</div><div class="cty-stat-val">' + esc(fmtTyTrong(item.tyTrong)) + '</div></div>' +
+  1180→        '</div>' +
+  1181→        '</div>' +
+  1182→        '</div>';
+  1183→}
+  1184→
+  1185→function buildPhongCard(item, delay) {
+  1186→    var hasPlan = !item.noAds;
+  1187→    var pct = hasPlan && item.kh ? (item.afyp / item.kh * 100) : 0, cp = Math.min(pct, 100), pc = pctColor(pct);
+  1188→    var bancaKey = item.noAds && item.ads && item.ads[0] ? item.ads[0].managerKey : '';
+  1189→    var afypTrd = Math.round(num(item.afyp) / 1000000);
+  1190→    var khTrd = Math.round(num(item.kh) / 1000000);
+  1191→
+  1192→    /* Progress bar gradient for desktop card */
+  1193→    var progStart = progressColor(Math.max(pct - 24, 0));
+  1194→    var progEnd = progressColor(pct);
+  1195→
+  1196→    /* === MOBILE phong card (original, hidden on desktop via CSS) === */
+  1197→    var html = '<div class="kpi-card kpi-phong ' + (item.noAds ? 'banca ' : '') + 'anim-in' + glowCls(pct) + '"' + (bancaKey ? ' data-ad-key="' + esc(bancaKey) + '"' : '') + ' style="animation-delay:' + delay + 'ms">' +
+  1198→        '<div class="phong-inner">' +
+  1199→        '<div class="phong-head">' +
+  1200→        '<span class="phong-name"><i class="fa-solid fa-clipboard"></i>Tổng hợp ' + item.ten + '</span>' +
+  1201→        (hasPlan ? '<span class="phong-pct" data-pct="' + pct + '">0%</span>' : '') +
+  1202→        '</div>' +
+  1203→        '<div class="phong-body">' +
+  1204→        '<div class="afyp-kh-row">' +
+  1205→        '<span class="afyp-big" data-count="' + item.afyp + '">0</span>' +
+  1206→        (hasPlan ? '<span class="kh-small">/ KH: ' + fmt(item.kh) + '</span>' : '') +
+  1207→        '</div>' +
+  1208→        (hasPlan ? '<div class="phong-progress"><div class="phong-progress-fill" data-w="' + cp + '%"></div></div>' : '') +
+  1209→        '</div>' +
+  1210→        '<div class="phong-stats">' +
+  1211→        '<div class="phong-stat hd"><div class="phong-stat-label">Lượt HĐ</div><div class="phong-stat-val" data-count="' + item.lhd + '">0</div></div>' +
+  1212→        (hasPlan ? '<div class="phong-stat td"><div class="phong-stat-label">TD</div><div class="phong-stat-val" data-count="' + item.td + '">0</div></div>' : '') +
+  1213→        '<div class="phong-stat chuan"><div class="phong-stat-label">Lượt chuẩn</div><div class="phong-stat-val" data-count="' + item.hdChuan + '">0</div></div>' +
+  1214→        (!item.noAds ? '<div class="phong-stat ip"><div class="phong-stat-label">IP/AFYP</div><div class="phong-stat-val">' + esc(fmtTyTrong(item.tyTrong)) + '</div></div>' : '') +
+  1215→        '</div>' +
+  1216→        (item.noAds ? '<div class="phong-drill"></div>' : '') +
+  1217→        '</div>' +
+  1218→        '</div>' +
+  1219→        '</div>';
+  1220→
+  1221→    /* === DESKTOP phong card — same structure as AD card, just is-phong class for different color === */
+  1222→    html += '<div class="kpi-ad is-phong ' + (item.noAds ? 'banca ' : '') + 'anim-in' + glowCls(pct) + '"' + (bancaKey ? ' data-ad-key="' + esc(bancaKey) + '"' : '') + ' style="animation-delay:' + delay + 'ms">' +
+  1223→        '<div class="ad-inner">' +
+  1224→        '<div class="ad-top">' +
+  1225→        '<div class="ad-left">' +
+  1226→        '<div class="ad-name-row"><span class="ad-name"><i class="fa-solid fa-clipboard"></i>' + esc(item.ten) + '</span><span class="ad-pct">' + (hasPlan ? pct.toFixed(0) + '%' : '') + '</span></div>' +
+  1227→        (hasPlan ? '<span class="ad-kh">KH: ' + fmt(item.kh) + 'trđ</span>' : '') +
+  1228→        '</div>' +
+  1229→        '<div class="ad-right"><div class="ad-stats">' +
+  1230→        '<div class="ad-stat afyp"><span class="ad-stat-label">AFYP</span><span class="ad-stat-val"><span class="ad-stat-val-main" data-count="' + afypTrd + '">0</span><span class="ad-stat-unit">trđ</span></span></div>' +
+  1231→        (hasPlan ? '<div class="ad-stat kh"><span class="ad-stat-label">KH</span><span class="ad-stat-val"><span class="ad-stat-val-main" data-count="' + khTrd + '">0</span><span class="ad-stat-unit">trđ</span></span></div>' : '') +
+  1232→        '<div class="ad-stat lhd"><span class="ad-stat-label">Lượt HĐ</span><span class="ad-stat-val" data-count="' + item.lhd + '">0</span></div>' +
+  1233→        (hasPlan ? '<div class="ad-stat td"><span class="ad-stat-label">TD</span><span class="ad-stat-val" data-count="' + item.td + '">0</span></div>' : '') +
+  1234→        '<div class="ad-stat chuan"><span class="ad-stat-label">Chuẩn</span><span class="ad-stat-val" data-count="' + item.hdChuan + '">0</span></div>' +
+  1235→        (!item.noAds ? '<div class="ad-stat ip"><span class="ad-stat-label">IP/AFYP</span><span class="ad-stat-val">' + esc(fmtTyTrong(item.tyTrong)) + '</span></div>' : '') +
+  1236→        '</div>' +
+  1237→        (hasPlan ? '<div class="ad-progress"><div class="ad-progress-fill" data-w="' + cp + '%" style="background:linear-gradient(90deg,' + progStart + ',' + progEnd + ')"></div></div>' : '') +
+  1238→        '</div>' +
+  1239→        '</div>' +
+  1240→        (item.noAds ? '<div class="ad-drill"></div>' : '') +
+  1241→        '</div>' +
+  1242→        '</div>';
+  1243→
+  1244→    return html;
+  1245→}
+  1246→
+  1247→function buildAdCard(item, delay) {
+  1248→    var pct = item.kh ? (item.afyp / item.kh * 100) : 0, cp = Math.min(pct, 100);
+  1249→    var progStart = progressColor(Math.max(pct - 24, 0));
+  1250→    var progEnd = progressColor(pct);
+  1251→    return '<div class="kpi-ad anim-in' + glowCls(pct) + '" data-ad-key="' + esc(item.managerKey || '') + '" style="animation-delay:' + delay + 'ms">' +
+  1252→        '<div class="ad-inner">' +
+  1253→        '<div class="ad-top">' +
+  1254→        '<div class="ad-left">' +
+  1255→        '<div class="ad-name-row"><span class="ad-name" title="'+esc(item.ten)+'">' + esc(item.ten) + '</span><span class="ad-pct">' + pct.toFixed(0) + '%</span></div>' +
+  1256→        '<span class="ad-kh">KH: ' + fmt(item.kh) + 'trđ</span>' +
+  1257→        '</div>' +
+  1258→        '<div class="ad-right"><div class="ad-stats">' +
+  1259→        '<div class="ad-stat afyp"><span class="ad-stat-label">AFYP</span><span class="ad-stat-val">' + fmt(item.afyp) + '<span class="ad-stat-unit">đ</span></span></div>' +
+  1260→        '<div class="ad-stat lhd"><span class="ad-stat-label">Lượt HĐ</span><span class="ad-stat-val" data-count="' + item.lhd + '">0</span></div>' +
+  1261→        '<div class="ad-stat td"><span class="ad-stat-label">TD</span><span class="ad-stat-val" data-count="' + item.td + '">0</span></div>' +
+  1262→        '<div class="ad-stat chuan"><span class="ad-stat-label">L.Chuẩn</span><span class="ad-stat-val" data-count="' + item.hdChuan + '">0</span></div>' +
+  1263→        '<div class="ad-stat ip"><span class="ad-stat-label">IP/AFYP</span><span class="ad-stat-val">' + esc(fmtTyTrong(item.tyTrong)) + '</span></div>' +
+  1264→        '</div>' +
+  1265→        '<div class="ad-progress"><div class="ad-progress-fill" data-w="' + cp + '%" style="background:linear-gradient(90deg,' + progStart + ',' + progEnd + ')"></div></div></div>' +
+  1266→        '</div>' +
+  1267→        '<div class="ad-drill"></div>' +
+  1268→        '</div>' +
+  1269→        '</div>';
+  1270→}
+  1271→
+  1272→function triggerAnimations() {
+  1273→    requestAnimationFrame(function() {
+  1274→        var allFills = document.querySelectorAll('.mini-progress-fill[data-w],.cty-progress-fill[data-w],.phong-progress-fill[data-w],.ad-progress-fill[data-w],.dsk-cty-prog-fill[data-w],.dsk-ad-mini-prog-fill[data-w]');
+  1275→        for (var i = 0; i < allFills.length; i++) allFills[i].style.width = allFills[i].dataset.w;
+  1276→        var allCounts = document.querySelectorAll('[data-count]');
+  1277→        for (var i = 0; i < allCounts.length; i++) animateValue(allCounts[i], num(allCounts[i].dataset.count));
+  1278→        var allPcts = document.querySelectorAll('[data-pct]');
+  1279→        for (var i = 0; i < allPcts.length; i++) animatePct(allPcts[i], parseFloat(allPcts[i].dataset.pct));
+  1280→    });
+  1281→}
+  1282→
+  1283→/* ================= DETAIL VIEW LOGIC ================= */
+  1284→function getDetailVal(row, tid) {
+  1285→    var afyp = 0, kh = 0;
+  1286→    if (!isNaN(tid)) {
+  1287→        var m = parseInt(tid);
+  1288→        afyp = num(row['t' + m]);
+  1289→        kh = num(row['kh' + m]);
+  1290→    } else if (tid === 'H1') {
+  1291→        for (var hm = 1; hm <= 6; hm++) {
+  1292→            afyp += num(row['t' + hm]);
+  1293→            kh += num(row['kh' + hm]);
+  1294→        }
+  1295→    } else if (tid === 'Y') {
+  1296→        for (var m = 1; m <= 12; m++) {
+  1297→            afyp += num(row['t' + m]);
+  1298→            kh += num(row['kh' + m]);
+  1299→        }
+  1300→    } else {
+  1301→        var f = FUNCS.find(function(x) { return x.id === tid; });
+  1302→        if (f) f.ms.forEach(function(m) {
+  1303→            afyp += num(row['t' + parseInt(m)]);
+  1304→            kh += num(row['kh' + parseInt(m)]);
+  1305→        });
+  1306→    }
+  1307→    return { afyp: afyp, kh: kh };
+  1308→}
+  1309→
+  1310→function renderDtPicker() {
+  1311→    var cur = timeState.detail;
+  1312→    var mBox = $('dt-months'), fBox = $('dt-funcs');
+  1313→    var mH = '';
+  1314→    for (var i = 1; i <= 12; i++) {
+  1315→        var m = String(i).padStart(2, '0');
+  1316→        mH += '<button class="month-cell ' + (cur === m ? 'on' : '') + '" onclick="pickDt(\'' + m + '\')"><span class="mc-label">T' + i + '</span></button>';
+  1317→    }
+  1318→    mH += '<button class="month-cell func-cell-inline ' + (cur === 'H1' ? 'on' : '') + '" onclick="pickDt(\'H1\')" style="font-size:8px;font-weight:800;background:' + (cur === 'H1' ? '' : '#0a3434') + ';border-color:' + (cur === 'H1' ? '' : '#008080') + ';color:' + (cur === 'H1' ? '' : '#b9ffff') + '">6T</button>';
+  1319→    FUNCS.forEach(function(f) {
+  1320→        mH += '<button class="month-cell func-cell-inline ' + (cur === f.id ? 'on' : '') + '" onclick="pickDt(\'' + f.id + '\')" style="font-size:8px;font-weight:800;background:' + (cur === f.id ? '' : '#251e47') + ';border-color:' + (cur === f.id ? '' : '#3b2b63') + ';color:' + (cur === f.id ? '' : '#c4b8f0') + '">' + f.n.replace('Quý ', 'Q').replace('Cả năm', 'Năm') + '</button>';
+  1321→    });
+  1322→    mBox.classList.add('compact-filter');
+  1323→    mBox.innerHTML = mH;
+  1324→    fBox.innerHTML = '';
+  1325→    fBox.style.display = 'none';
+  1326→}
+  1327→
+  1328→function getTotalForMonth(m) {
+  1329→    var total = 0;
+  1330→    DATA.filter(function(x) { return x.ten_nhan_vien && x.ten_nhan_vien.indexOf('Nhóm') === 0; }).forEach(function(r) {
+  1331→        total += num(r['t' + m]);
+  1332→    });
+  1333→    return total;
+  1334→}
+  1335→
+  1336→function detailMetaText(t) {
+  1337→    if (!isNaN(t)) return 'Tháng ' + t + '/' + CUR_YEAR + ' — Chỉ tiêu 8.0% năm';
+  1338→    if (t === 'H1') return '6 tháng đầu năm ' + CUR_YEAR + ' — Chỉ tiêu 8.0% năm';
+  1339→    if (t === 'Y') return 'Toàn năm ' + CUR_YEAR + ' — Chỉ tiêu 8.0% năm';
+  1340→    var f = FUNCS.find(function(x) { return x.id === t; });
+  1341→    return (f ? f.n + ' ' + CUR_YEAR : 'Tháng ' + CUR_MONTH + '/' + CUR_YEAR) + ' — Chỉ tiêu 8.0% năm';
+  1342→}
+  1343→
+  1344→window.pickDt = function(v) {
+  1345→    timeState.detail = v;
+  1346→    renderDtPicker();
+  1347→    renderDetail();
+  1348→};
+  1349→
+  1350→function renderDetail() {
+  1351→    var box = $('detail-list');
+  1352→    $('detail-meta').textContent = detailMetaText(timeState.detail);
+  1353→    var t = timeState.detail;
+  1354→    var rows = DATA.filter(function(x) { return x.ten_nhan_vien && x.ten_nhan_vien.indexOf('Nhóm') === 0; });
+  1355→    
+  1356→    var items = rows.map(function(r) {
+  1357→        var v = getDetailVal(r, t);
+  1358→        var name = r.ten_nhan_vien.replace(/^Nhóm\s*/i, '');
+  1359→        /* ★ Giá trị t1-t12, kh1-kh12 là VNĐ raw → chia 1.000.000 cho đơn vị trđ */
+  1360→        var afypTrd = Math.round(v.afyp / 1000000);
+  1361→        var khTrd = Math.round(v.kh / 1000000);
+  1362→        var pct = khTrd ? (afypTrd / khTrd * 100) : 0;
+  1363→        return { name: name, afyp: afypTrd, kh: khTrd, pct: pct };
+  1364→    });
+  1365→
+  1366→    items.sort(function(a, b) { return b.pct - a.pct; });
+  1367→    renderTop3(items);
+  1368→    if (!items.length) {
+  1369→        box.innerHTML = '<div class="empty-state">Chưa có dữ liệu nhóm</div>';
+  1370→        return;
+  1371→    }
+  1372→
+  1373→    var delay = 0;
+  1374→    var htmlParts = [];
+  1375→    items.forEach(function(it, idx) {
+  1376→        var fill = Math.min(it.pct, 100);
+  1377→        var pc = it.pct >= 90 ? '#7de8c8' : it.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
+  1378→        htmlParts.push('<div class="grp-item ' + (idx < 3 ? 'is-top' : '') + '" style="animation-delay:' + delay + 'ms">' +
+  1379→            '<div class="grp-fill" data-w="' + fill + '%"></div>' +
+  1380→            '<div class="grp-top-row">' +
+  1381→            '<span class="grp-name">Nhóm ' + esc(it.name) + '</span>' +
+  1382→            '<span class="grp-pct" data-pct="' + it.pct + '" style="color:' + pc + '">0%</span>' +
+  1383→            '</div>' +
+  1384→            '<div class="grp-bot-row">' +
+  1385→            '<span class="grp-stats-inline"><span class="grp-stat-main">TH: <span data-count="' + it.afyp + '">0</span>trđ</span><span class="grp-stat-kh">/ KH: ' + fmt(it.kh) + 'trđ</span></span>' +
+  1386→            '</div>' +
+  1387→            '<div class="grp-prog-row"><div class="grp-prog"><div class="grp-prog-fill" data-w="' + fill + '%"></div></div></div>' +
+  1388→            '</div>');
+  1389→        delay += 40;
+  1390→    });
+  1391→    box.innerHTML = htmlParts.join('');
+  1392→
+  1393→    requestAnimationFrame(function() {
+  1394→        var allFills = box.querySelectorAll('.grp-fill[data-w],.grp-prog-fill[data-w]');
+  1395→        for (var i = 0; i < allFills.length; i++) allFills[i].style.width = allFills[i].dataset.w;
+  1396→        var allCounts = box.querySelectorAll('[data-count]');
+  1397→        for (var i = 0; i < allCounts.length; i++) animateValue(allCounts[i], num(allCounts[i].dataset.count));
+  1398→        var allPcts = box.querySelectorAll('[data-pct]');
+  1399→        for (var i = 0; i < allPcts.length; i++) animatePct(allPcts[i], parseFloat(allPcts[i].dataset.pct), 900, 1);
+  1400→    });
+  1401→}
+  1402→
+  1403→function renderTop3(items) {
+  1404→    var box = $('top3-container');
+  1405→    if (!items || !items.length) { box.innerHTML = ''; return; }
+  1406→    
+  1407→    var filtered = items.filter(function(x) { return x.kh > 0; });
+  1408→    if (!filtered.length) {
+  1409→        box.innerHTML = '<div class="top3-empty"><i class="fa-solid fa-chart-simple" style="margin-right:6px;opacity:.4"></i>Chưa có dữ liệu kế hoạch</div>';
+  1410→        return;
+  1411→    }
+  1412→
+  1413→    filtered.sort(function(a, b) { return b.pct - a.pct; });
+  1414→    var top = filtered.slice(0, 3), order = [null, null, null], cls = ['t3-silver', 't3-gold', 't3-bronze'];
+  1415→    
+  1416→    order[0] = top.length > 1 ? top[1] : null; // Silver (Left)
+  1417→    order[1] = top[0]; // Gold (Center)
+  1418→    order[2] = top.length > 2 ? top[2] : null; // Bronze (Right)
+  1419→
+  1420→    var crowns = ['<i class="fa-solid fa-award"></i>', '<i class="fa-solid fa-crown"></i>', '<i class="fa-solid fa-medal"></i>'];
+  1421→    var h = '<div class="top3-section"><div class="top3-grid">';
+  1422→    for (var i = 0; i < 3; i++) {
+  1423→        var item = order[i];
+  1424→        if (!item) { h += '<div></div>'; continue; }
+  1425→        var isF = i === 1;
+  1426→        h += '<div class="top3-card ' + (isF ? 'top3-first ' : '') + cls[i] + '" style="animation-delay:' + (i * 80) + 'ms">' +
+  1427→            (isF? '<div class="top3-crown">' + crowns[i] + '</div>' : '') +
+  1428→            '<div class="top3-rank"><span class="top3-rank-num">' + (i === 0 ? '2' : i === 1 ? '1' : '3') + '</span></div>' +
+  1429→            '<div class="top3-name">Nhóm ' + esc(item.name) + '</div>' +
+  1430→            '<div class="top3-val"><span data-count="' + item.afyp + '">0</span>trđ</div>' +
+  1431→            '<div class="top3-bar"></div>' +
+  1432→            '<div class="top3-pct">' + item.pct.toFixed(1) + '%</div>' +
+  1433→            '</div>';
+  1434→    }
+  1435→    h += '</div></div>';
+  1436→    box.innerHTML = h;
+  1437→
+  1438→    requestAnimationFrame(function() {
+  1439→        box.querySelectorAll('[data-count]').forEach(function(el) { animateValue(el, num(el.dataset.count), 800); });
+  1440→    });
+  1441→}
+  1442→
+  1443→/* ================= CALENDAR VIEW LOGIC ================= */
+  1444→function renderCalendar() {
+  1445→    var box = $('calendar-body');
+  1446→    var t = timeState.calendar;
+  1447→    var selMonths = [];
+  1448→
+  1449→    if (!isNaN(t)) {
+  1450→        selMonths = [String(parseInt(t)).padStart(2, '0')];
+  1451→    } else if (t === 'Y') {
+  1452→        selMonths = MONTHS.slice();
+  1453→    } else {
+  1454→        var f = FUNCS.find(function(x) { return x.id === t; });
+  1455→        if (f) selMonths = f.ms.slice();
+  1456→    }
+  1457→
+  1458→    var rows = DATA.filter(function(x) {
+  1459→        if (!x.thangkh) return false;
+  1460→        var m = String(parseInt(x.thangkh)).padStart(2, '0');
+  1461→        return selMonths.indexOf(m) !== -1;
+  1462→    }).sort(function(a, b) { return num(a.ngay_kh) - num(b.ngay_kh); });
+  1463→
+  1464→    // Merge user entries from Neon API
+  1465→    var userRows = (_calUserEntries || []).filter(function(x) {
+  1466→        if (!x.thangkh) return false;
+  1467→        return selMonths.indexOf(x.thangkh) !== -1;
+  1468→    });
+  1469→
+  1470→    if (!selMonths.length) {
+  1471→        box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-style:italic;font-size:13px">Chưa có kế hoạch cho kỳ này</div>';
+  1472→        return;
+  1473→    }
+  1474→
+  1475→    var month = selMonths[0];
+  1476→    var monthNum = parseInt(month, 10);
+  1477→    var daysInMonth = new Date(CUR_YEAR, monthNum, 0).getDate();
+  1478→    var weekdayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  1479→    var byDay = {};
+  1480→    var htmlParts = [];
+  1481→
+  1482→    rows.forEach(function(r) {
+  1483→        var day = num(r.ngay_kh);
+  1484→        if (!day || day < 1 || day > daysInMonth) return;
+  1485→        if (!byDay[day]) byDay[day] = [];
+  1486→        r._isUser = false;
+  1487→        byDay[day].push(r);
+  1488→    });
+  1489→
+  1490→    // Add user entries
+  1491→    userRows.forEach(function(r) {
+  1492→        var day = num(r.ngay_kh);
+  1493→        if (!day || day < 1 || day > daysInMonth) return;
+  1494→        if (!byDay[day]) byDay[day] = [];
+  1495→        r._isUser = true;
+  1496→        byDay[day].push(r);
+  1497→    });
+  1498→
+  1499→    for (var day = 1; day <= daysInMonth; day++) {
+  1500→        var dateObj = new Date(CUR_YEAR, monthNum - 1, day);
+  1501→        var weekday = dateObj.getDay();
+  1502→        var plans = byDay[day] || [];
+  1503→        var isToday = day === NOW.getDate() && month === CUR_MONTH;
+  1504→        var rowCls = ['cal-row'];
+  1505→        if (isToday) rowCls.push('is-today');
+  1506→        if (weekday === 6 || weekday === 0) rowCls.push('is-weekend');
+  1507→        if (weekday === 0) rowCls.push('is-sunday');
+  1508→
+  1509→        // Check if any plan is user entry for row highlighting
+  1510→        var hasUserEntry = plans.some(function(r) { return r._isUser; });
+  1511→        if (hasUserEntry) rowCls.push('cal-entry-user');
+  1512→
+  1513→        var contentHtml = plans.length? plans.map(function(r) {
+  1514→            return '<span class="cal-line">' + esc(r.noi_dung || '') + '</span>';
+  1515→        }).join('') : '<span class="cal-empty"></span>';
+  1516→
+  1517→        var ownerMap = {}, owners = [];
+  1518→        plans.forEach(function(r) {
+  1519→            var owner = '';
+  1520→            if (r.phu_trach) {
+  1521→                owner = String(r.phu_trach).trim();
+  1522→            }
+  1523→            if (!owner) {
+  1524→                var altKeys = ['p_trach','ptrach','nguoi_phu_trach','nguoi_thuc_hien'];
+  1525→                for (var ai = 0; ai < altKeys.length; ai++) {
+  1526→                    if (r[altKeys[ai]]) { owner = String(r[altKeys[ai]]).trim(); break; }
+  1527→                }
+  1528→            }
+  1529→            if (!owner) {
+  1530→                for (var k in r) {
+  1531→                    if (!r.hasOwnProperty(k)) continue;
+  1532→                    var nk = String(k).toLowerCase();
+  1533→                    if (nk === 'phu_trach' || nk.indexOf('trach') !== -1 || nk === 'p_trach' || nk === 'ptrach' || nk === 'nguoi_thuc_hien' || nk.indexOf('nguoi_phu') !== -1 || nk.indexOf('phu_trach') !== -1 || nk.indexOf('p_tr') !== -1) {
+  1534→                        var v = String(r[k] || '').trim();
+  1535→                        if (v) { owner = v; break; }
+  1536→                    }
+  1537→                }
+  1538→            }
+  1539→            if (!owner && r.phong_ban) {
+  1540→                owner = String(r.phong_ban).trim();
+  1541→            }
+  1542→            if (owner && !ownerMap[owner]) {
+  1543→                ownerMap[owner] = true;
+  1544→                owners.push(owner);
+  1545→            }
+  1546→        });
+  1547→        var ownerHtml = owners.length? owners.map(function(owner) {
+  1548→            return '<span class="cal-line">' + esc(owner) + '</span>';
+  1549→        }).join('') : '';
+  1550→
+  1551→        htmlParts.push('<div class="' + rowCls.join(' ') + '" style="animation-delay:' + ((day - 1) * 22) + 'ms">' +
+  1552→            '<div class="cal-day"><span class="cal-day-num">' + day + '</span><span class="cal-day-week">' + weekdayNames[weekday] + '</span></div>' +
+  1553→            '<div class="cal-text">' + contentHtml + '</div>' +
+  1554→            '<div class="cal-owner">' + ownerHtml + '</div>' +
+  1555→            '</div>');
+  1556→    }
+  1557→    box.innerHTML = htmlParts.join('');
+  1558→}
+  1559→
+  1560→function renderCalFilter() {
+  1561→    var cur = timeState.calendar;
+  1562→    var mBox = $('cal-filter'), fBox = $('cal-func');
+  1563→    var mH = '';
+  1564→    for (var i = 1; i <= 12; i++) {
+  1565→        var m = String(i).padStart(2, '0');
+  1566→        mH += '<button class="cal-fbtn ' + (cur === m ? 'on' : '') + '" onclick="pickCal(\'' + m + '\')">T' + i + '</button>';
+  1567→    }
+  1568→    mBox.innerHTML = mH;
+  1569→    fBox.innerHTML = '';
+  1570→    fBox.style.display = 'none';
+  1571→}
+  1572→
+  1573→window.pickCal = function(v) {
+  1574→    timeState.calendar = v;
+  1575→    renderCalFilter();
+  1576→    renderCalendar();
+  1577→};
+  1578→
+  1579→/* ================= CALENDAR INLINE EDITOR (Neon API) ================= */
+  1580→var CAL_API_BASE = '/api/entries';
+  1581→var _calUnlocked = false;
+  1582→var _calSelectedPT = '';
+  1583→var _calEditingId = 0;
+  1584→var _calUserEntries = []; // cache từ Neon API
+  1585→
+  1586→// API base URL — tự động detect Vercel domain
+  1587→function calApiUrl(path) {
+  1588→    var base = window.location.origin;
+  1589→    // Nếu chạy local, dùng Vercel URL
+  1590→    if (base.indexOf('localhost') !== -1 || base.indexOf('127.0.0.1') !== -1) {
+  1591→        base = 'https://angiang2026.vercel.app';
+  1592→    }
+  1593→    return base + path;
+  1594→}
+  1595→
+  1596→// Open calendar popup
+  1597→window.calOpenPopup = function() {
+  1598→    var overlay = document.getElementById('cal-popup-overlay');
+  1599→    var popup = document.getElementById('cal-popup');
+  1600→    if (!overlay || !popup) return;
+  1601→    overlay.classList.add('open');
+  1602→    popup.classList.add('open');
+  1603→    document.body.style.overflow = 'hidden';
+  1604→    // Reset form
+  1605→    if (!_calUnlocked) {
+  1606→        var form = document.getElementById('cal-popup-form');
+  1607→        if (form) form.classList.remove('open');
+  1608→        var pwInput = document.getElementById('cal-popup-pw-input');
+  1609→        var pwBtn = document.getElementById('cal-popup-pw-btn');
+  1610→        if (pwInput) { pwInput.value = ''; pwInput.style.borderColor = ''; }
+  1611→        if (pwBtn) { pwBtn.textContent = 'Mở khóa'; pwBtn.classList.remove('unlocked'); }
+  1612→    }
+  1613→    calPopupRenderList();
+  1614→};
+  1615→
+  1616→// Close calendar popup
+  1617→window.calClosePopup = function() {
+  1618→    var overlay = document.getElementById('cal-popup-overlay');
+  1619→    var popup = document.getElementById('cal-popup');
+  1620→    if (overlay) overlay.classList.remove('open');
+  1621→    if (popup) popup.classList.remove('open');
+  1622→    document.body.style.overflow = '';
+  1623→};
+  1624→
+  1625→// Unlock popup with password
+  1626→window.calPopupUnlock = function() {
+  1627→    var pwInput = document.getElementById('cal-popup-pw-input');
+  1628→    var pwBtn = document.getElementById('cal-popup-pw-btn');
+  1629→    var form = document.getElementById('cal-popup-form');
+  1630→    if (!pwInput || !pwBtn || !form) return;
+  1631→
+  1632→    if (_calUnlocked) {
+  1633→        _calUnlocked = false;
+  1634→        pwBtn.textContent = 'Mở khóa';
+  1635→        pwBtn.classList.remove('unlocked');
+  1636→        form.classList.remove('open');
+  1637→        pwInput.value = '';
+  1638→        return;
+  1639→    }
+  1640→
+  1641→    if (pwInput.value === '123456') {
+  1642→        _calUnlocked = true;
+  1643→        pwBtn.textContent = 'Đã mở khóa ✓';
+  1644→        pwBtn.classList.add('unlocked');
+  1645→        form.classList.add('open');
+  1646→        // Set default month to current calendar view
+  1647→        var curMonth = timeState.calendar;
+  1648→        if (curMonth && !isNaN(curMonth)) {
+  1649→            var mSel = document.getElementById('cal-popup-month');
+  1650→            if (mSel) mSel.value = String(parseInt(curMonth)).padStart(2, '0');
+  1651→        }
+  1652→        // Set default day to today
+  1653→        var dayInput = document.getElementById('cal-popup-day');
+  1654→        if (dayInput && !dayInput.value) {
+  1655→            dayInput.value = NOW.getDate();
+  1656→        }
+  1657→        calPopupValidateForm();
+  1658→    } else {
+  1659→        pwInput.style.borderColor = '#ff6b6b';
+  1660→        pwInput.value = '';
+  1661→        pwInput.setAttribute('placeholder', 'Sai mật khẩu!');
+  1662→        setTimeout(function() {
+  1663→            pwInput.style.borderColor = '';
+  1664→            pwInput.setAttribute('placeholder', 'Nhập mật khẩu...');
+  1665→        }, 1500);
+  1666→    }
+  1667→};
+  1668→
+  1669→// Pick phu_trach inside popup
+  1670→window.calPopupPickPT = function(btn) {
+  1671→    var pt = btn.getAttribute('data-pt');
+  1672→    var allBtns = document.querySelectorAll('.cal-popup-pt-btn');
+  1673→    if (_calSelectedPT === pt) {
+  1674→        _calSelectedPT = '';
+  1675→        allBtns.forEach(function(b) { b.classList.remove('on'); });
+  1676→    } else {
+  1677→        _calSelectedPT = pt;
+  1678→        allBtns.forEach(function(b) { b.classList.remove('on'); });
+  1679→        btn.classList.add('on');
+  1680→    }
+  1681→    calPopupValidateForm();
+  1682→};
+  1683→
+  1684→// Validate popup form
+  1685→function calPopupValidateForm() {
+  1686→    var day = document.getElementById('cal-popup-day');
+  1687→    var content = document.getElementById('cal-popup-content');
+  1688→    var saveBtn = document.getElementById('cal-popup-save-btn');
+  1689→    if (!saveBtn) return;
+  1690→    var valid = day && day.value && content && content.value.trim() && _calSelectedPT;
+  1691→    saveBtn.disabled = !valid;
+  1692→}
+  1693→
+  1694→// Save entry via popup
+  1695→window.calPopupSaveEntry = async function() {
+  1696→    var day = document.getElementById('cal-popup-day');
+  1697→    var month = document.getElementById('cal-popup-month');
+  1698→    var content = document.getElementById('cal-popup-content');
+  1699→    var saveBtn = document.getElementById('cal-popup-save-btn');
+  1700→    var statusEl = document.getElementById('cal-popup-status');
+  1701→
+  1702→    if (!day || !month || !content || !saveBtn) return;
+  1703→
+  1704→    var ngay_kh = parseInt(day.value);
+  1705→    var thangkh = month.value;
+  1706→    var noi_dung = content.value.trim();
+  1707→    var phu_trach = _calSelectedPT;
+  1708→
+  1709→    if (!ngay_kh || !thangkh || !noi_dung || !phu_trach) return;
+  1710→
+  1711→    saveBtn.disabled = true;
+  1712→    saveBtn.textContent = 'Đang lưu...';
+  1713→    if (statusEl) { statusEl.style.display = 'inline'; statusEl.className = 'cal-popup-status loading'; statusEl.textContent = 'Đang gửi...'; }
+  1714→
+  1715→    try {
+  1716→        var isEdit = _calEditingId > 0;
+  1717→        var url = calApiUrl('/api/entries' + (isEdit ? '?id=' + _calEditingId + '&pw=123456' : ''));
+  1718→        var response = await fetch(url, {
+  1719→            method: isEdit ? 'PUT' : 'POST',
+  1720→            headers: { 'Content-Type': 'application/json' },
+  1721→            body: JSON.stringify({ ngay_kh: ngay_kh, thangkh: thangkh, noi_dung: noi_dung, phu_trach: phu_trach })
+  1722→        });
+  1723→
+  1724→        if (!response.ok) {
+  1725→            var errData = await response.json().catch(function() { return {}; });
+  1726→            throw new Error(errData.error || 'Lỗi server');
+  1727→        }
+  1728→
+  1729→        // Clear form
+  1730→        content.value = '';
+  1731→        _calSelectedPT = '';
+  1732→        _calEditingId = 0;
+  1733→        document.querySelectorAll('.cal-popup-pt-btn').forEach(function(b) { b.classList.remove('on'); });
+  1734→
+  1735→        saveBtn.textContent = 'Đã lưu ✓';
+  1736→        if (statusEl) { statusEl.className = 'cal-popup-status ok'; statusEl.textContent = 'Lưu thành công!'; }
+  1737→
+  1738→        setTimeout(function() {
+  1739→            saveBtn.textContent = 'Lưu';
+  1740→            saveBtn.disabled = true;
+  1741→            if (statusEl) statusEl.style.display = 'none';
+  1742→        }, 2000);
+  1743→
+  1744→        // Refresh calendar
+  1745→        await calLoadUserEntries();
+  1746→        renderCalendar();
+  1747→        calPopupRenderList();
+  1748→
+  1749→    } catch (err) {
+  1750→        console.error('[CalSave]', err);
+  1751→        saveBtn.textContent = 'Lưu';
+  1752→        saveBtn.disabled = false;
+  1753→        if (statusEl) { statusEl.className = 'cal-popup-status err'; statusEl.textContent = 'Lỗi: ' + err.message; }
+  1754→        setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 3000);
+  1755→    }
+  1756→};
+  1757→
+  1758→// Edit entry from popup list
+  1759→window.calPopupEditEntry = function(id) {
+  1760→    var entry = _calUserEntries.find(function(e) { return e.id === id; });
+  1761→    if (!entry) return;
+  1762→    _calEditingId = id;
+  1763→    var dayInput = document.getElementById('cal-popup-day');
+  1764→    var monthSel = document.getElementById('cal-popup-month');
+  1765→    var contentInput = document.getElementById('cal-popup-content');
+  1766→    var saveBtn = document.getElementById('cal-popup-save-btn');
+  1767→
+  1768→    if (dayInput) dayInput.value = entry.ngay_kh;
+  1769→    if (monthSel) monthSel.value = entry.thangkh;
+  1770→    if (contentInput) contentInput.value = entry.noi_dung || '';
+  1771→
+  1772→    _calSelectedPT = entry.phu_trach || '';
+  1773→    document.querySelectorAll('.cal-popup-pt-btn').forEach(function(b) {
+  1774→        b.classList.toggle('on', b.getAttribute('data-pt') === _calSelectedPT);
+  1775→    });
+  1776→
+  1777→    if (saveBtn) saveBtn.textContent = 'Cập nhật';
+  1778→    calPopupValidateForm();
+  1779→};
+  1780→
+  1781→// Delete entry from popup list
+  1782→window.calPopupDeleteEntry = async function(id) {
+  1783→    if (!confirm('Xóa mục này?')) return;
+  1784→    try {
+  1785→        var response = await fetch(calApiUrl('/api/entries?id=' + id + '&pw=123456'), {
+  1786→            method: 'DELETE'
+  1787→        });
+  1788→        if (!response.ok) throw new Error('Xóa thất bại');
+  1789→        await calLoadUserEntries();
+  1790→        renderCalendar();
+  1791→        calPopupRenderList();
+  1792→    } catch (err) {
+  1793→        alert('Lỗi xóa: ' + err.message);
+  1794→    }
+  1795→};
+  1796→
+  1797→// Render entry list in popup
+  1798→function calPopupRenderList() {
+  1799→    var listEl = document.getElementById('cal-popup-list-items');
+  1800→    if (!listEl) return;
+  1801→    var curMonth = timeState.calendar;
+  1802→    var month = !isNaN(curMonth) ? String(parseInt(curMonth)).padStart(2, '0') : '';
+  1803→    var entries = (_calUserEntries || []).filter(function(e) {
+  1804→        if (!month) return true;
+  1805→        return e.thangkh === month;
+  1806→    }).sort(function(a, b) { return num(a.ngay_kh) - num(b.ngay_kh); });
+  1807→
+  1808→    if (!entries.length) {
+  1809→        listEl.innerHTML = '<div class="cal-popup-empty">Chưa có kế hoạch nào</div>';
+  1810→        return;
+  1811→    }
+  1812→
+  1813→    var html = '';
+  1814→    entries.forEach(function(e) {
+  1815→        html += '<div class="cal-popup-item">' +
+  1816→            '<span class="cal-popup-item-day">' + (e.ngay_kh || '') + '</span>' +
+  1817→            '<span class="cal-popup-item-content" title="' + esc(e.noi_dung || '') + '">' + esc(e.noi_dung || '') + '</span>' +
+  1818→            '<span class="cal-popup-item-pt">' + esc(e.phu_trach || '') + '</span>' +
+  1819→            '<button class="cal-popup-item-btn edit" onclick="calPopupEditEntry(' + e.id + ')" title="Sửa"><i class="fa-solid fa-pen"></i></button>' +
+  1820→            '<button class="cal-popup-item-btn del" onclick="calPopupDeleteEntry(' + e.id + ')" title="Xóa"><i class="fa-solid fa-trash"></i></button>' +
+  1821→            '</div>';
+  1822→    });
+  1823→    listEl.innerHTML = html;
+  1824→}
+  1825→
+  1826→// Add event listeners for popup validation
+  1827→setTimeout(function() {
+  1828→    var dayEl = document.getElementById('cal-popup-day');
+  1829→    var contentEl = document.getElementById('cal-popup-content');
+  1830→    if (dayEl) dayEl.addEventListener('input', calPopupValidateForm);
+  1831→    if (contentEl) contentEl.addEventListener('input', calPopupValidateForm);
+  1832→}, 500);
+  1833→
+  1834→// Load user entries from API
+  1835→async function calLoadUserEntries() {
+  1836→    try {
+  1837→        // Load entries for all 12 months to have them ready
+  1838→        var promises = [];
+  1839→        for (var m = 1; m <= 12; m++) {
+  1840→            var month = String(m).padStart(2, '0');
+  1841→            promises.push(
+  1842→                fetch(calApiUrl('/api/entries?month=' + month))
+  1843→                    .then(function(r) { return r.ok ? r.json() : []; })
+  1844→                    .catch(function() { return []; })
+  1845→            );
+  1846→        }
+  1847→        var results = await Promise.all(promises);
+  1848→        _calUserEntries = [];
+  1849→        results.forEach(function(entries) {
+  1850→            _calUserEntries = _calUserEntries.concat(entries);
+  1851→        });
+  1852→    } catch (err) {
+  1853→        console.error('[CalLoad]', err);
+  1854→        _calUserEntries = [];
+  1855→    }
+  1856→}
+  1857→
+  1858→// Load user entries when calendar view is shown
+  1859→var _calLoaded = false;
+  1860→
+  1861→/* ================= RACE / POLICY PAGE FACTORY ================= */
+  1862→var TD_PW = '922129';
+  1863→var TD_SID = '1Mzag5EkMGO8YVnNDbLi7YBxuH3b6nlMknxdHsIuDA60';
+  1864→try { var _ovSID = localStorage.getItem('kpi_link_TD_SID'); if (_ovSID) TD_SID = _ovSID; } catch(e) {}
+  1865→var TD_TAB = 'DanhSach';
+  1866→var TD_SCR = 'https://script.google.com/macros/s/AKfycbxuXDIIH5b1snWjaXUK87Kk6wx3Fs1hP4MG7akfhCVx7Cj_wSLJpeAEKcO-uJSadPRb/exec';
+  1867→try { var _ovSCR = localStorage.getItem('kpi_link_TD_SCR'); if (_ovSCR) TD_SCR = _ovSCR; } catch(e) {}
+  1868→
+  1869→function TD_gdc() { return 'https://docs.google.com/spreadsheets/d/' + TD_SID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(TD_TAB); }
+  1870→function TD_gtc(t) { return 'https://docs.google.com/spreadsheets/d/' + TD_SID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(t); }
+  1871→function TD_gdcAlt() { return 'https://docs.google.com/spreadsheets/d/' + TD_SID + '/export?format=csv&sheet=' + encodeURIComponent(TD_TAB); }
+  1872→function TD_gtcAlt(t) { return 'https://docs.google.com/spreadsheets/d/' + TD_SID + '/export?format=csv&sheet=' + encodeURIComponent(t); }
+  1873→function TD_csv(text) { if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1); return Papa.parse(text, { header: false, skipEmptyLines: 'greedy' }).data; }
+  1874→function TD_fd(d) { if (!d) return '--'; var p = d.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d; }
+  1875→function TD_fdi(d) { if (!d) return ''; var p = d.split('/'); if (p.length === 3 && p[2].length === 4) return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0'); if (d.indexOf('-') !== -1) return d; return ''; }
+  1876→function TD_fdo(d) { if (!d) return ''; var p = d.split('-'); if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0]; return d; }
+  1877→function TD_ced(rc, dc) {
+  1878→    var c = 0;
+  1879→    for (var i = 0; i < dc; i++) {
+  1880→        var val = String(rc[i] || '').trim().toLowerCase();
+  1881→        if (val === 'đạt' || val === '10000001111') c++;
+  1882→    }
+  1883→    return c;
+  1884→}
+  1885→async function TD_fetchText(urls) {
+  1886→    var lastErr = new Error('Không tải được dữ liệu');
+  1887→    for (var i = 0; i < urls.length; i++) {
+  1888→        try {
+  1889→            var res = await fetch(urls[i], { cache: 'no-store' });
+  1890→            if (!res.ok) throw new Error('HTTP ' + res.status);
+  1891→            var text = await res.text();
+  1892→            if (text && text.trim()) return text;
+  1893→        } catch (e) {
+  1894→            lastErr = e;
+  1895→        }
+  1896→    }
+  1897→    throw lastErr;
+  1898→}
+  1899→
+  1900→/* Compact group filter pinned to top-right of each table wrapper.
+  1901→   groupColIdx = 0-based data column index of the "nhom" column,
+  1902→   tdOffset    = number of leading <td> in tbody rows before data cells (1 if STT auto-prepended, 0 otherwise). */
+  1903→function TD_attachGroupFilter(ct, groupColIdx, tdOffset) {
+  1904→    if (groupColIdx == null || groupColIdx < 0) return;
+  1905→    if (tdOffset == null) tdOffset = 1;
+  1906→    var wraps = ct.querySelectorAll('.ptw');
+  1907→    wraps.forEach(function(wrap) {
+  1908→        var table = wrap.querySelector('table');
+  1909→        if (!table || !table.tBodies.length) return;
+  1910→        var tbody = table.tBodies[0];
+  1911→        var rows = Array.prototype.slice.call(tbody.rows);
+  1912→        if (rows.length < 2) return;
+  1913→        var tdIdx = groupColIdx + tdOffset;
+  1914→        var counts = {};
+  1915→        rows.forEach(function(tr) {
+  1916→            var td = tr.cells[tdIdx];
+  1917→            if (!td) return;
+  1918→            var v = (td.textContent || '').trim();
+  1919→            if (v) counts[v] = (counts[v] || 0) + 1;
+  1920→        });
+  1921→        var keys = Object.keys(counts).sort(function(a, b) { return a.localeCompare(b, 'vi'); });
+  1922→        if (keys.length < 2) return;
+  1923→        /* Remove any previous filter bar that belongs to this wrapper */
+  1924→        var prev = wrap.previousElementSibling;
+  1925→        if (prev && prev.classList && prev.classList.contains('tbl-filter-bar')) prev.remove();
+  1926→        var holder = document.createElement('div');
+  1927→        holder.className = 'tbl-filter-bar';
+  1928→        var pill = document.createElement('div');
+  1929→        pill.className = 'tbl-filter';
+  1930→        var optsHtml = '<option value="">Tất cả nhóm</option>';
+  1931→        keys.forEach(function(k) {
+  1932→            optsHtml += '<option value="' + esc(k) + '">' + esc(k) + ' (' + counts[k] + ')</option>';
+  1933→        });
+  1934→        pill.innerHTML = '<i class="fa-solid fa-filter"></i><select aria-label="Lọc theo nhóm">' + optsHtml + '</select>';
+  1935→        holder.appendChild(pill);
+  1936→        wrap.parentNode.insertBefore(holder, wrap);
+  1937→        var sel = pill.querySelector('select');
+  1938→        sel.addEventListener('change', function() {
+  1939→            var v = sel.value;
+  1940→            pill.classList.toggle('active', !!v);
+  1941→            rows.forEach(function(tr) {
+  1942→                var td = tr.cells[tdIdx];
+  1943→                if (!v) { tr.style.display = ''; return; }
+  1944→                tr.style.display = (td && (td.textContent || '').trim() === v) ? '' : 'none';
+  1945→            });
+  1946→        });
+  1947→        sel.addEventListener('click', function(e) { e.stopPropagation(); });
+  1948→    });
+  1949→}
+  1950→
+  1951→function TD_ws(data) {
+  1952→    return fetch(TD_SCR, {
+  1953→        method: 'POST',
+  1954→        headers: { 'Content-Type': 'application/json' },
+  1955→        body: JSON.stringify(data)
+  1956→    }).then(function(r) { return r.json(); }).then(function(r) {
+  1957→        if (!r.ok) throw new Error(r.error || 'Lỗi ghi');
+  1958→        return true;
+  1959→    }).catch(function() { return false; });
+  1960→}
+  1961→
+  1962→function createTDPage(cfg) {
+  1963→    var P = cfg.prefix, pv = cfg.varName;
+  1964→    var s = { programs: [], adm: false, er: null, dr: null, pd: null, ddOpen: false, inited: false, csvData: null, csvName: '' };
+  1965→
+  1966→    function gid(id) { return document.getElementById(id); }
+  1967→    
+  1968→    function ha() {
+  1969→        ['LoadW', 'ErrW', 'EmptyW', 'Grid'].forEach(function(k) { gid(P + k).style.display = 'none'; });
+  1970→        gid(P + 'SyncOk').style.display = 'none';
+  1971→        gid(P + 'SyncErr').style.display = 'none';
+  1972→    }
+  1973→
+  1974→    function ca() {
+  1975→        try { s.adm = sessionStorage.getItem('td_a') === '1'; } catch (e) { s.adm = false; }
+  1976→        uu();
+  1977→    }
+  1978→
+  1979→    function sa(v) {
+  1980→        s.adm = v;
+  1981→        try { sessionStorage.setItem('td_a', v ? '1' : '0'); } catch (e) { }
+  1982→        uu();
+  1983→    }
+  1984→
+  1985→    function uu() {
+  1986→        var a = gid(P + 'AdmBtn');
+  1987→        if (a) a.classList.toggle('on', s.adm);
+  1988→        ['DdLinks', 'DdOut', 'DdLock'].forEach(function(id) {
+  1989→            var el = gid(P + id);
+  1990→            if (el) el.style.display = s.adm ? 'flex': 'none';
+  1991→        });
+  1992→        var sp = gid(P + 'DdSep');
+  1993→        if (sp) sp.style.display = s.adm ? 'block': 'none';
+  1994→        
+  1995→        var pe = gid(P + 'PopEdt');
+  1996→        if (pe) pe.style.display = s.adm ? 'flex': 'none';
+  1997→        
+  1998→        gid(P + 'Container').querySelectorAll('.pcard-acts').forEach(function(el) {
+  1999→            el.style.display = s.adm ? 'flex': 'none';
+  2000→        });
+
+[showing lines 1-2000 of 3959; use offset=2001 with limit to continue reading]

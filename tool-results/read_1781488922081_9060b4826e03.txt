@@ -1,0 +1,502 @@
+  3001→            }
+  3002→            var hasHighlight = false;
+  3003→            for (var pi = 0; pi < parts.length; pi++) {
+  3004→                if (parts[pi].highlight) { hasHighlight = true; break; }
+  3005→            }
+  3006→            if (!hasHighlight) return escH(text);
+  3007→            var html = '';
+  3008→            var needBr = false;
+  3009→            for (var pj = 0; pj < parts.length; pj++) {
+  3010→                if (parts[pj].highlight) {
+  3011→                    if (parts[pj].newline) {
+  3012→                        html += '<span class="pct-newline">' + escH(parts[pj].text) + '</span>';
+  3013→                    } else {
+  3014→                        if (needBr) html += '<br>';
+  3015→                        html += '<span class="ve-highlight">' + escH(parts[pj].text) + '</span>';
+  3016→                    }
+  3017→                    needBr = false;
+  3018→                } else {
+  3019→                    var t = escH(parts[pj].text);
+  3020→                    if (t) {
+  3021→                        html += t;
+  3022→                        needBr = true;
+  3023→                    }
+  3024→                }
+  3025→            }
+  3026→            return html;
+  3027→        }
+  3028→
+  3029→        /* === TẠO HTML TIÊU ĐỀ === */
+  3030→        /* ★ Hỗ trợ 2 hoặc 3 hàng header:
+  3031→           - Không có condition + CHỈ TIÊU/THỰC HIỆN: 1 hàng
+  3032→           - Có condition, không CHỈ TIÊU/THỰC HIỆN: 2 hàng (hRow1 + hRow2)
+  3033→           - Có CHỈ TIÊU/THỰC HIỆN: 3 hàng (hRow0 + hRow1 + hRow2)
+  3034→        */
+  3035→        var totalHeaderRows = 1;
+  3036→        if (hasCond) totalHeaderRows = 2;
+  3037→        if (hasChiThucGrouping) totalHeaderRows = 3;
+  3038→
+  3039→        var hRow0 = ''; /* Hàng 0 (top): CHỈ TIÊU / THỰC HIỆN grouping — chỉ khi hasChiThucGrouping */
+  3040→        var hRow1 = ''; /* Hàng 1: info + numdata + percent + cond-top(gộp) + money */
+  3041→        var hRow2 = ''; /* Hàng 2: chỉ cond-bot (chi tiết điều kiện) */
+  3042→
+  3043→        var chiTieuProcessed = false;
+  3044→        var thucHienProcessed = false;
+  3045→        var thucHienLKProcessed = false;
+  3046→        var condProcessed = {};
+  3047→
+  3048→        for (var hi = 0; hi < dc; hi++) {
+  3049→            var cat = colCats[hi];
+  3050→            var hdrText = formatHeaderText(hd[hi] || ('Cột ' + (hi + 1)));
+  3051→            var hCls = '';
+  3052→
+  3053→            /* ★ Kiểm tra cột có thuộc CHỈ TIÊU, THỰC HIỆN, hoặc THỰC HIỆN LŨY KẾ không */
+  3054→            var inChiTieu = hasChiThucGrouping && chiTieuRange && hi >= chiTieuRange.start && hi <= chiTieuRange.end;
+  3055→            var inThucHien = hasChiThucGrouping && thucHienRange && hi >= thucHienRange.start && hi <= thucHienRange.end;
+  3056→            var inThucHienLK = hasChiThucGrouping && thucHienLKRange && hi >= thucHienLKRange.start && hi <= thucHienLKRange.end;
+  3057→
+  3058→            if (cat === 'info') {
+  3059→                /* Cột 1–4: nền #000044, chữ trắng → rowspan = totalHeaderRows */
+  3060→                hCls = 'h-info';
+  3061→                if (hi === sttColIdx) hCls += ' pst-h';
+  3062→                if (hasChiThucGrouping) {
+  3063→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3064→                } else {
+  3065→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3066→                }
+  3067→            } else if (cat === 'textInfo') {
+  3068→                hCls = 'h-text-info';
+  3069→                if (hasChiThucGrouping) {
+  3070→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3071→                } else {
+  3072→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3073→                }
+  3074→            } else if (cat === 'nameInfo') {
+  3075→                /* ★ Cột tên người (TVV, NTD...): header giống textInfo */
+  3076→                hCls = 'h-text-info';
+  3077→                if (hasChiThucGrouping) {
+  3078→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3079→                } else {
+  3080→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3081→                }
+  3082→            } else if (cat === 'numdata') {
+  3083→                hCls = 'h-num';
+  3084→                if (inThucHienLK) {
+  3085→                    /* ★ THỰC HIỆN LŨY KẾ group */
+  3086→                    if (!thucHienLKProcessed) {
+  3087→                        var lkSpan = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3088→                        hRow0 += '<th class="h-thuc-hien-lk" colspan="' + lkSpan + '">THỰC HIỆN LŨY KẾ</th>';
+  3089→                        thucHienLKProcessed = true;
+  3090→                    }
+  3091→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3092→                } else if (inThucHien) {
+  3093→                    /* ★ THỰC HIỆN group: thêm hRow0 header (1 lần) + hRow1 header */
+  3094→                    if (!thucHienProcessed) {
+  3095→                        var thSpan = thucHienRange.end - thucHienRange.start + 1;
+  3096→                        hRow0 += '<th class="h-thuc-hien" colspan="' + thSpan + '">THỰC HIỆN</th>';
+  3097→                        thucHienProcessed = true;
+  3098→                    }
+  3099→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3100→                } else if (hasChiThucGrouping) {
+  3101→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3102→                } else {
+  3103→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3104→                }
+  3105→            } else if (cat === 'numdataFyp') {
+  3106→                hCls = 'h-num-fyp';
+  3107→                if (inThucHienLK) {
+  3108→                    if (!thucHienLKProcessed) {
+  3109→                        var lkSpan2 = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3110→                        hRow0 += '<th class="h-thuc-hien-lk" colspan="' + lkSpan2 + '">THỰC HIỆN LŨY KẾ</th>';
+  3111→                        thucHienLKProcessed = true;
+  3112→                    }
+  3113→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3114→                } else if (inThucHien) {
+  3115→                    if (!thucHienProcessed) {
+  3116→                        var thSpan2 = thucHienRange.end - thucHienRange.start + 1;
+  3117→                        hRow0 += '<th class="h-thuc-hien" colspan="' + thSpan2 + '">THỰC HIỆN</th>';
+  3118→                        thucHienProcessed = true;
+  3119→                    }
+  3120→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3121→                } else if (hasChiThucGrouping) {
+  3122→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3123→                } else {
+  3124→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3125→                }
+  3126→            } else if (cat === 'numdataFyc') {
+  3127→                hCls = 'h-num-fyc';
+  3128→                if (inThucHienLK) {
+  3129→                    if (!thucHienLKProcessed) {
+  3130→                        var lkSpanFyc = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3131→                        hRow0 += '<th class="h-thuc-hien-lk" colspan="' + lkSpanFyc + '">THỰC HIỆN LŨY KẾ</th>';
+  3132→                        thucHienLKProcessed = true;
+  3133→                    }
+  3134→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3135→                } else if (inThucHien) {
+  3136→                    if (!thucHienProcessed) {
+  3137→                        var thSpanFyc = thucHienRange.end - thucHienRange.start + 1;
+  3138→                        hRow0 += '<th class="h-thuc-hien" colspan="' + thSpanFyc + '">THỰC HIỆN</th>';
+  3139→                        thucHienProcessed = true;
+  3140→                    }
+  3141→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3142→                } else if (hasChiThucGrouping) {
+  3143→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3144→                } else {
+  3145→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3146→                }
+  3147→            } else if (cat === 'numdataIp') {
+  3148→                hCls = 'h-num-ip';
+  3149→                if (inThucHienLK) {
+  3150→                    if (!thucHienLKProcessed) {
+  3151→                        var lkSpan3 = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3152→                        hRow0 += '<th class="h-thuc-hien-lk" colspan="' + lkSpan3 + '">THỰC HIỆN LŨY KẾ</th>';
+  3153→                        thucHienLKProcessed = true;
+  3154→                    }
+  3155→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3156→                } else if (inThucHien) {
+  3157→                    if (!thucHienProcessed) {
+  3158→                        var thSpan3 = thucHienRange.end - thucHienRange.start + 1;
+  3159→                        hRow0 += '<th class="h-thuc-hien" colspan="' + thSpan3 + '">THỰC HIỆN</th>';
+  3160→                        thucHienProcessed = true;
+  3161→                    }
+  3162→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3163→                } else if (hasChiThucGrouping) {
+  3164→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3165→                } else {
+  3166→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3167→                }
+  3168→            } else if (cat === 'percent') {
+  3169→                hCls = 'h-percent';
+  3170→                if (inThucHienLK) {
+  3171→                    if (!thucHienLKProcessed) {
+  3172→                        var lkSpan4 = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3173→                        hRow0 += '<th class="h-thuc-hien-lk" colspan="' + lkSpan4 + '">THỰC HIỆN LŨY KẾ</th>';
+  3174→                        thucHienLKProcessed = true;
+  3175→                    }
+  3176→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3177→                } else if (inThucHien) {
+  3178→                    if (!thucHienProcessed) {
+  3179→                        var thSpan4 = thucHienRange.end - thucHienRange.start + 1;
+  3180→                        hRow0 += '<th class="h-thuc-hien" colspan="' + thSpan4 + '">THỰC HIỆN</th>';
+  3181→                        thucHienProcessed = true;
+  3182→                    }
+  3183→                    hRow1 += '<th class="' + hCls + '" rowspan="2">' + hdrText + '</th>';
+  3184→                } else if (hasChiThucGrouping) {
+  3185→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3186→                } else {
+  3187→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3188→                }
+  3189→            } else if (cat === 'money') {
+  3190→                hCls = 'h-money';
+  3191→                if (hasChiThucGrouping) {
+  3192→                    hRow0 += '<th class="' + hCls + '" rowspan="3">' + hdrText + '</th>';
+  3193→                } else {
+  3194→                    hRow1 += '<th class="' + hCls + '" rowspan="' + totalHeaderRows + '">' + hdrText + '</th>';
+  3195→                }
+  3196→            } else if (cat === 'condition') {
+  3197→                /* ★ Xử lý THỰC HIỆN header cho condition columns trong thucHienRange */
+  3198→                if (inThucHien && !thucHienProcessed) {
+  3199→                    var thSpanCond = thucHienRange.end - thucHienRange.start + 1;
+  3200→                    hRow0 += '<th class="h-thuc-hien" colspan="' + thSpanCond + '">THỰC HIỆN</th>';
+  3201→                    thucHienProcessed = true;
+  3202→                }
+  3203→                /* ★ CHỈ TIÊU group: condition columns */
+  3204→                if (inChiTieu && !chiTieuProcessed) {
+  3205→                    /* hRow0: CHỈ TIÊU header */
+  3206→                    var ctSpan = chiTieuRange.end - chiTieuRange.start + 1;
+  3207→                    hRow0 += '<th class="h-chi-tieu" colspan="' + ctSpan + '">CHỈ TIÊU</th>';
+  3208→                    chiTieuProcessed = true;
+  3209→                }
+  3210→                /* Tìm group chứa cột này */
+  3211→                var grp = null;
+  3212→                for (var gci = 0; gci < condGroups.length; gci++) {
+  3213→                    if (hi >= condGroups[gci].start && hi <= condGroups[gci].end) { grp = condGroups[gci]; break; }
+  3214→                }
+  3215→                if (grp && !condProcessed[grp.start]) {
+  3216→                    /* Hàng trên: gộp colspan, chỉ hiện tên danh hiệu/mức */
+  3217→                    var span = grp.end - grp.start + 1;
+  3218→                    var gCls = 'h-cond-top h-cond-g' + (grp.groupIdx % 5);
+  3219→                    /* ★ Phát hiện nhóm điều kiện chứa vé hoặc % → thêm class xanh lá */
+  3220→                    var gHasVe = false, gHasPct = false;
+  3221→                    for (var gvei = grp.start; gvei <= grp.end; gvei++) {
+  3222→                        var gveHdr = String(hd[gvei] || '').trim();
+  3223→                        if (/\d+\s*vé/i.test(gveHdr)) gHasVe = true;
+  3224→                        if (gveHdr.indexOf('%') >= 0) gHasPct = true;
+  3225→                    }
+  3226→                    if (gHasVe) gCls += ' h-cond-ve';
+  3227→                    if (gHasPct) gCls += ' h-cond-pct';
+  3228→                    hRow1 += '<th class="' + gCls + '" colspan="' + span + '">' + escH(grp.topLabel) + '</th>';
+  3229→                    condProcessed[grp.start] = true;
+  3230→                }
+  3231→                /* Hàng dưới: chi tiết điều kiện — trích phần SAU topLabel */
+  3232→                var rawH = String(hd[hi] || '').trim();
+  3233→                /* Tìm group chứa cột này để lấy topLabel */
+  3234→                var condGrpForBot = null;
+  3235→                for (var bgci2 = 0; bgci2 < condGroups.length; bgci2++) {
+  3236→                    if (hi >= condGroups[bgci2].start && hi <= condGroups[bgci2].end) { condGrpForBot = condGroups[bgci2]; break; }
+  3237→                }
+  3238→                /* ★ XỬ LÝ RIÊNG: Thi đua TCS → hiển thị đầy đủ tiêu đề cột (không trích botText) */
+  3239→                /* VD: "SLHĐ >= 6" hiện đủ thay vì chỉ ">= 6" */
+  3240→                var botText;
+  3241→                if (isTD_TCS) {
+  3242→                    botText = rawH;
+  3243→                } else {
+  3244→                    botText = (condGrpForBot && rawH.indexOf(condGrpForBot.topLabel) === 0)
+  3245→                        ? extractBotText(rawH, condGrpForBot.topLabel)
+  3246→                        : extractBotText(rawH, extractTopLabel(rawH));
+  3247→                }
+  3248→                /* ★ Định dạng botText: "01 vé", "02 vé", "%" → xuống hàng, đỏ, in đậm, nền nổi bật */
+  3249→                var formattedBot = isTD_TCS ? escH(botText) : formatCondBotText(botText, rawH);
+  3250→                /* Group class cho màu */
+  3251→                var botCls = 'h-cond-bot';
+  3252→                if (condGrpForBot) botCls += ' h-cond-g' + (condGrpForBot.groupIdx % 5);
+  3253→                /* ★ Phát hiện cột điều kiện chứa vé hoặc % → thêm class xanh lá */
+  3254→                if (/\d+\s*vé/i.test(rawH)) botCls += ' h-cond-ve';
+  3255→                if (rawH.indexOf('%') >= 0) botCls += ' h-cond-pct';
+  3256→                hRow2 += '<th class="' + botCls + '">' + formattedBot + '</th>';
+  3257→            }
+  3258→        }
+  3259→
+  3260→        var theadHtml = '';
+  3261→        if (hasChiThucGrouping) {
+  3262→            theadHtml += '<tr class="chi-thuc-row">' + hRow0 + '</tr>';
+  3263→            theadHtml += '<tr>' + hRow1 + '</tr>';
+  3264→            theadHtml += '<tr class="cond-row">' + hRow2 + '</tr>';
+  3265→        } else {
+  3266→            theadHtml += '<tr>' + hRow1 + '</tr>';
+  3267→            if (hasCond) {
+  3268→                theadHtml += '<tr class="cond-row">' + hRow2 + '</tr>';
+  3269→            }
+  3270→        }
+  3271→
+  3272→        /* === TẠO HTML NỘI DUNG === */
+  3273→        var data = all.slice(1);
+  3274→
+  3275→        /* ★ SẮP XẾP DÒNG THEO TỔNG IP / TỔNG FYP GIẢM DẦN */
+  3276→        (function sortDataByMainCol() {
+  3277→            /* Ưu tiên 1: cột "Tổng IP" */
+  3278→            /* Ưu tiên 2: cột "Tổng FYP" */
+  3279→            /* Ưu tiên 3: cột có chứa "tong" + ("ip" hoặc "fyp") */
+  3280→            /* Ưu tiên 4: cột numdata/numdataFyp cuối cùng */
+  3281→            var sortCol = -1;
+  3282→            for (var sci = 0; sci < dc; sci++) {
+  3283→                var sh = hk(hd[sci] || '');
+  3284→                if (sh === 'tong ip') { sortCol = sci; break; }
+  3285→            }
+  3286→            if (sortCol < 0) {
+  3287→                for (var sci2 = 0; sci2 < dc; sci2++) {
+  3288→                    var sh2 = hk(hd[sci2] || '');
+  3289→                    if (sh2 === 'tong fyp') { sortCol = sci2; break; }
+  3290→                }
+  3291→            }
+  3292→            if (sortCol < 0) {
+  3293→                /* Tìm cột header chứa "tong" + ("ip" hoặc "fyp") */
+  3294→                for (var sci3 = 0; sci3 < dc; sci3++) {
+  3295→                    var sh3 = hk(hd[sci3] || '');
+  3296→                    if (/tong/.test(sh3) && /(ip|fyp)/.test(sh3)) { sortCol = sci3; break; }
+  3297→                }
+  3298→            }
+  3299→            if (sortCol < 0) {
+  3300→                /* Fallback: cột numdata hoặc numdataFyp hoặc numdataFyc cuối cùng */
+  3301→                for (var sci4 = dc - 1; sci4 >= infoColCount; sci4--) {
+  3302→                    var cat = colCats[sci4];
+  3303→                    if (cat === 'numdata' || cat === 'numdataFyp' || cat === 'numdataFyc' || cat === 'numdataIp') { sortCol = sci4; break; }
+  3304→                }
+  3305→            }
+  3306→            if (sortCol < 0) return; /* không tìm thấy cột sắp xếp → giữ nguyên */
+  3307→
+  3308→            /* Hàm parse số từ chuỗi CSV (hỗ trợ định dạng Việt Nam: 1.234,56) */
+  3309→            function parseNum(s) {
+  3310→                var v = String(s || '').trim().replace(/\s/g, '');
+  3311→                if (!v) return -Infinity;
+  3312→                /* Dấu chấm = hàng nghìn, dấu phẩy = thập phân (Việt Nam) */
+  3313→                var n = Number(v.replace(/\./g, '').replace(',', '.'));
+  3314→                return isFinite(n) ? n : -Infinity;
+  3315→            }
+  3316→
+  3317→            data.sort(function(a, b) {
+  3318→                var va = parseNum(a[sortCol]);
+  3319→                var vb = parseNum(b[sortCol]);
+  3320→                return vb - va; /* giảm dần */
+  3321→            });
+  3322→
+  3323→            /* Cập nhật lại số thứ tự STT sau khi sắp xếp */
+  3324→            if (sttColIdx >= 0) {
+  3325→                for (var si = 0; si < data.length; si++) {
+  3326→                    if (data[si]) data[si][sttColIdx] = String(si + 1);
+  3327→                }
+  3328→            }
+  3329→        })();
+  3330→
+  3331→        /* ★ Tìm cột textInfo cuối cùng → dùng để căn lề trái (Người TD) */
+  3332→        var lastTextInfoCol = -1;
+  3333→        for (var ltic = dc - 1; ltic >= infoColCount; ltic--) {
+  3334→            if (colCats[ltic] === 'textInfo') { lastTextInfoCol = ltic; break; }
+  3335→        }
+  3336→
+  3337→        var bHtml = '';
+  3338→        for (var r = 0; r < data.length; r++) {
+  3339→            var rc = data[r] || [];
+  3340→            bHtml += '<tr data-row-index="' + r + '">';
+  3341→            /* Đếm số cột condition đã qua để tính shade */
+  3342→            var condCounter = 0;
+  3343→            for (var c = 0; c < dc; c++) {
+  3344→                var val = rc[c] || '';
+  3345→                var rawVal = String(val).trim();
+  3346→                var header = hd[c] || ('Cột ' + (c + 1));
+  3347→                var cat2 = colCats[c];
+  3348→
+  3349→                /* Format giá trị hiển thị - định dạng số */
+  3350→                var displayVal = rawVal;
+  3351→                var compact = rawVal.replace(/\s/g, '');
+  3352→                if (/^-?\d+(?:[.,]\d+)?$/.test(compact)) {
+  3353→                    var n = Number(compact.replace(/\./g, '').replace(',', '.'));
+  3354→                    if (isFinite(n)) {
+  3355→                        var kh2 = hk(header);
+  3356→                        if (/(thuong|thu nhap|du kien|fyp|fyc|afyp|doanh so|tien|tong fyp|tong fyc)/.test(kh2)) {
+  3357→                            displayVal = n.toLocaleString('vi-VN');
+  3358→                        } else if (/(sl|so luong|tvv|count|tong|quy mo)/.test(kh2)) {
+  3359→                            displayVal = n.toLocaleString('vi-VN');
+  3360→                        }
+  3361→                    }
+  3362→                }
+  3363→
+  3364→                /* === BƯỚC 1: Xác định class CSS theo nhóm cột === */
+  3365→                var tdCls = '';
+  3366→                if (cat2 === 'info') {
+  3367→                    var align = infoAlign(c);
+  3368→                    tdCls = 'd-info-' + align;
+  3369→                    if (c === sttColIdx) tdCls = 'pst';
+  3370→                } else if (cat2 === 'textInfo') {
+  3371→                    tdCls = 'd-text-info';
+  3372→                    /* ★ Cột textInfo cuối cùng (Người TD) → căn lề trái */
+  3373→                    if (c === lastTextInfoCol) tdCls = 'd-text-info d-text-info-last';
+  3374→                } else if (cat2 === 'nameInfo') {
+  3375→                    /* ★ Cột tên người (TVV, NTD, Họ tên...): căn trái, padding */
+  3376→                    tdCls = 'd-text-info d-name-left';
+  3377→                } else if (cat2 === 'numdata') {
+  3378→                    tdCls = 'd-numdata';
+  3379→                } else if (cat2 === 'numdataFyp') {
+  3380→                    tdCls = 'd-numdata-fyp';
+  3381→                } else if (cat2 === 'numdataFyc') {
+  3382→                    tdCls = 'd-numdata-fyc';
+  3383→                } else if (cat2 === 'numdataIp') {
+  3384→                    tdCls = 'd-numdata-ip';
+  3385→                } else if (cat2 === 'percent') {
+  3386→                    var pctNum = parseFloat(rawVal.replace('%', '').replace(',', '.'));
+  3387→                    if (!isNaN(pctNum) && pctNum > 0) {
+  3388→                        tdCls = 'd-percent-pos';
+  3389→                    } else {
+  3390→                        tdCls = 'd-percent-zero';
+  3391→                    }
+  3392→                } else if (cat2 === 'condition') {
+  3393→                    /* Tìm group index cho cột này → dùng màu theo nhóm */
+  3394→                    var cellGrp = null;
+  3395→                    for (var cgci = 0; cgci < condGroups.length; cgci++) {
+  3396→                        if (c >= condGroups[cgci].start && c <= condGroups[cgci].end) { cellGrp = condGroups[cgci]; break; }
+  3397→                    }
+  3398→                    if (cellGrp) {
+  3399→                        tdCls = 'd-cond d-cond-g' + (cellGrp.groupIdx % 5);
+  3400→                    } else {
+  3401→                        tdCls = 'd-cond';
+  3402→                    }
+  3403→                    /* ★ Phát hiện cột điều kiện chứa vé hoặc % → thêm class xanh lá */
+  3404→                    var hdrForCls = String(hd[c] || '').trim();
+  3405→                    if (/\d+\s*vé/i.test(hdrForCls)) tdCls += ' d-cond-ve';
+  3406→                    if (hdrForCls.indexOf('%') >= 0) tdCls += ' d-cond-pct';
+  3407→                    condCounter++;
+  3408→                } else if (cat2 === 'money') {
+  3409→                    tdCls = 'd-money';
+  3410→                } else {
+  3411→                    tdCls = 'd-numdata';
+  3412→                }
+  3413→
+  3414→                /* ★ Thêm class d-date-wrap cho cột có ngày tháng */
+  3415→                if (dateColSet[c]) {
+  3416→                    tdCls += ' d-date-wrap';
+  3417→                }
+  3418→
+  3419→                /* === BƯỚC 2: Xác định nội dung ô — áp dụng quy tắc giá trị đặc biệt === */
+  3420→                /* ★ QUAN TRỌNG: Các quy tắc này áp dụng cho TẤT CẢ cột, không chỉ condition */
+  3421→                var cellContent = '';
+  3422→
+  3423→                /* ★ Chuẩn hóa giá trị để kiểm tra */
+  3424→                var valNorm = rawVal.replace(/[\s\u00A0]+/g, '').toLowerCase();
+  3425→                /* ★ Chuẩn hóa thêm: bỏ dấu chấm (ngàn) để bắt "11.111" = 11111 */
+  3426→                var valNormNoDot = valNorm.replace(/\./g, '');
+  3427→
+  3428→                if (cat2 === 'info') {
+  3429→                    /* Cột info: hiển thị bình thường */
+  3430→                    cellContent = escH(displayVal);
+  3431→                } else if (valNorm === '11111' || valNormNoDot === '11111') {
+  3432→                    /* ★ Số 11111 (có thể có khoảng trắng) → luôn chuyển thành "Đạt" với dấu tích */
+  3433→                    cellContent = '<span class="dat-badge"><i class="fa-solid fa-check"></i>Đạt</span>';
+  3434→                } else if (valNorm === 'đạt' || valNorm === 'dat') {
+  3435→                    /* Chữ "Đạt" → làm nổi bật với dấu tích */
+  3436→                    cellContent = '<span class="dat-badge"><i class="fa-solid fa-check"></i>Đạt</span>';
+  3437→                } else if (/^thiếu/i.test(rawVal) || /^chưa\s*đạt/i.test(rawVal) || valNorm === 'chuadat' || valNorm === 'chuađat') {
+  3438→                    /* ★ "Thiếu...", "chưa đạt" → đỏ, in nghiêng, KHÔNG in đậm */
+  3439→                    cellContent = '<span class="thieu-val">' + escH(displayVal) + '</span>';
+  3440→                } else if (/^-\d[\d.,]*/.test(rawVal) && cat2 !== 'money') {
+  3441→                    /* ★ Giá trị âm (như -76, -100, -0.5, -1,234) trong cột không phải money → đỏ, in nghiêng, KHÔNG in đậm */
+  3442→                    cellContent = '<span class="thieu-val">' + escH(displayVal) + '</span>';
+  3443→                } else if (cat2 === 'money') {
+  3444→                    /* Phần thưởng: in nghiêng, bỏ icon cúp */
+  3445→                    if (rawVal && rawVal !== '0' && rawVal !== '-' && rawVal !== '') {
+  3446→                        cellContent = '<span class="thuong-highlight">' + escH(displayVal) + '</span>';
+  3447→                    } else {
+  3448→                        cellContent = escH(displayVal);
+  3449→                    }
+  3450→                } else {
+  3451→                    /* Các ô còn lại: hiển thị bình thường */
+  3452→                    cellContent = escH(displayVal);
+  3453→                }
+  3454→
+  3455→                /* ★ Nếu cột điều kiện có % trong header → thêm con số % xuống dòng */
+  3456→                if (cat2 === 'condition' && String(hd[c] || '').indexOf('%') >= 0 && rawVal && rawVal !== '0' && rawVal !== '') {
+  3457→                    /* Thêm label % dưới giá trị */
+  3458→                    if (cellContent.indexOf('dat-badge') < 0 && cellContent.indexOf('thieu-val') < 0) {
+  3459→                        cellContent = cellContent + '<span class="pct-body-val">%</span>';
+  3460→                    }
+  3461→                }
+  3462→
+  3463→                bHtml += '<td class="' + tdCls + '">' + cellContent + '</td>';
+  3464→            }
+  3465→            bHtml += '</tr>';
+  3466→        }
+  3467→
+  3468→        /* === LẮP RÁP BẢNG === */
+  3469→        /* Tạo colgroup để quản lý độ rộng cột — thu gọn tối đa */
+  3470→        /* ★ Khi có phân tầng CHỈ TIÊU/THỰC HIỆN → các cột con trong cùng nhóm phải bằng nhau */
+  3471→        var colgroupHtml = '<colgroup>';
+  3472→        /* Tính chiều rộng bằng nhau cho CHỈ TIÊU, THỰC HIỆN và THỰC HIỆN LŨY KẾ groups */
+  3473→        var chiTieuColWidth = '';
+  3474→        var thucHienColWidth = '';
+  3475→        var thucHienLKColWidth = '';
+  3476→        if (hasChiThucGrouping) {
+  3477→            /* CHỈ TIÊU columns: condition cols — rộng vừa */
+  3478→            var ctColCount = chiTieuRange.end - chiTieuRange.start + 1;
+  3479→            chiTieuColWidth = 'width:' + Math.max(50, Math.floor(350 / ctColCount)) + 'px;min-width:40px';
+  3480→            /* THỰC HIỆN columns: numdata cols — rộng vừa */
+  3481→            var thColCount = thucHienRange.end - thucHienRange.start + 1;
+  3482→            thucHienColWidth = 'width:' + Math.max(50, Math.floor(350 / thColCount)) + 'px;min-width:40px';
+  3483→            /* THỰC HIỆN LŨY KẾ columns */
+  3484→            if (thucHienLKRange) {
+  3485→                var lkColCount = thucHienLKRange.end - thucHienLKRange.start + 1;
+  3486→                thucHienLKColWidth = 'width:' + Math.max(50, Math.floor(350 / lkColCount)) + 'px;min-width:40px';
+  3487→            }
+  3488→        }
+  3489→        for (var cgi = 0; cgi < dc; cgi++) {
+  3490→            var cgCat = colCats[cgi];
+  3491→            /* ★ Kiểm tra cột có thuộc CHỈ TIÊU, THỰC HIỆN, hoặc THỰC HIỆN LŨY KẾ group không */
+  3492→            var cgInChiTieu = hasChiThucGrouping && chiTieuRange && cgi >= chiTieuRange.start && cgi <= chiTieuRange.end;
+  3493→            var cgInThucHien = hasChiThucGrouping && thucHienRange && cgi >= thucHienRange.start && cgi <= thucHienRange.end;
+  3494→            var cgInThucHienLK = hasChiThucGrouping && thucHienLKRange && cgi >= thucHienLKRange.start && cgi <= thucHienLKRange.end;
+  3495→
+  3496→            if (cgi === sttColIdx) {
+  3497→                colgroupHtml += '<col style="width:28px;min-width:22px">';
+  3498→            } else if (cgCat === 'info' || cgi < infoColCount) {
+  3499→                /* Cột info: quy tắc — cột lẻ (Nhóm, Họ tên...) rộng hơn, cột chẵn hẹp */
+  3500→                if (cgi % 2 === 1) {
+
+[showing lines 3001-3500 of 3959; use offset=3501 with limit to continue reading]

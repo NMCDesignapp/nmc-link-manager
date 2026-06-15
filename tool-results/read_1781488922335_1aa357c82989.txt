@@ -1,0 +1,459 @@
+  3501→                    /* Cột lẻ = Nhóm, Họ tên → rộng hơn, căn trái */
+  3502→                    colgroupHtml += '<col style="min-width:60px">';
+  3503→                } else {
+  3504→                    /* Cột chẵn = STT, mã, số... → hẹp, căn giữa */
+  3505→                    colgroupHtml += '<col style="width:45px;min-width:32px">';
+  3506→                }
+  3507→            } else if (cgInChiTieu) {
+  3508→                /* ★ CHỈ TIÊU group → cột bằng nhau */
+  3509→                colgroupHtml += '<col style="' + chiTieuColWidth + '">';
+  3510→            } else if (cgInThucHien) {
+  3511→                /* ★ THỰC HIỆN group → cột bằng nhau */
+  3512→                colgroupHtml += '<col style="' + thucHienColWidth + '">';
+  3513→            } else if (cgInThucHienLK) {
+  3514→                /* ★ THỰC HIỆN LŨY KẾ group → cột bằng nhau */
+  3515→                colgroupHtml += '<col style="' + thucHienLKColWidth + '">';
+  3516→            } else if (dateColSet[cgi]) {
+  3517→                /* ★ Cột có ngày tháng → đủ rộng cho ngày dd/mm/yyyy */
+  3518→                colgroupHtml += '<col style="width:92px;min-width:78px">';
+  3519→            } else if (cgCat === 'textInfo') {
+  3520→                /* ★ Cột textInfo (sau info group) → rộng vừa cho tên, không kéo dãn */
+  3521→                colgroupHtml += '<col style="width:80px;min-width:40px">';
+  3522→            } else if (cgCat === 'nameInfo') {
+  3523→                /* ★ Cột tên người (TVV, NTD...) → rộng cho tên, căn trái */
+  3524→                colgroupHtml += '<col style="width:100px;min-width:60px">';
+  3525→            } else if (/tvv/i.test(String(hd[cgi] || '').trim())) {
+  3526→                /* ★ Cột TVV/TVVM (số lượng tư vấn viên) → rộng hơn để hiển thị đủ */
+  3527→                colgroupHtml += '<col style="width:62px;min-width:45px">';
+  3528→            } else {
+  3529→                colgroupHtml += '<col style="min-width:30px">';
+  3530→            }
+  3531→        }
+  3532→        colgroupHtml += '</colgroup>';
+  3533→        var tableHtml = '<div class="ptw"><table class="pt">' + colgroupHtml + '<thead>' + theadHtml + '</thead><tbody>' + bHtml + '</tbody></table></div>';
+  3534→        ct.innerHTML = tableHtml;
+  3535→        TD_attachGroupFilter(ct, groupCol, 0);
+  3536→
+  3537→        /* === CẬP NHẬT STICKY TOP CHO HÀNG HEADER === */
+  3538→        if (hasChiThucGrouping) {
+  3539→            /* 3 hàng header: chi-thuc-row → row1 → cond-row */
+  3540→            try {
+  3541→                var row0El = ct.querySelector('.pt thead tr.chi-thuc-row');
+  3542→                var row1El = ct.querySelector('.pt thead tr:nth-child(2)');
+  3543→                var row2El = ct.querySelector('.pt thead tr.cond-row');
+  3544→                if (row0El) {
+  3545→                    var h0 = row0El.offsetHeight;
+  3546→                    /* Row 1: sticky top = h0 */
+  3547→                    if (row1El) {
+  3548→                        row1El.querySelectorAll('th').forEach(function(th) {
+  3549→                            th.style.top = h0 + 'px';
+  3550→                            th.style.zIndex = '3';
+  3551→                        });
+  3552→                    }
+  3553→                    /* Row 2 (cond-row): sticky top = h0 + h1 */
+  3554→                    if (row2El && row1El) {
+  3555→                        var h1 = row1El.offsetHeight;
+  3556→                        row2El.querySelectorAll('th').forEach(function(th) {
+  3557→                            th.style.top = (h0 + h1) + 'px';
+  3558→                            th.style.zIndex = '3';
+  3559→                        });
+  3560→                    }
+  3561→                }
+  3562→            } catch(e) {}
+  3563→        } else if (hasCond) {
+  3564→            try {
+  3565→                var firstRowH = ct.querySelector('.pt thead tr:first-child');
+  3566→                if (firstRowH) {
+  3567→                    var fHeight = firstRowH.offsetHeight;
+  3568→                    var secondRowCells = ct.querySelectorAll('.pt thead tr.cond-row th');
+  3569→                    secondRowCells.forEach(function(th) {
+  3570→                        th.style.top = fHeight + 'px';
+  3571→                        th.style.zIndex = '3';
+  3572→                    });
+  3573→                }
+  3574→            } catch(e) {}
+  3575→        }
+  3576→
+  3577→        /* Row click highlight */
+  3578→        ct.querySelectorAll('tbody tr').forEach(function(row) {
+  3579→            row.addEventListener('click', function() {
+  3580→                ct.querySelectorAll('tbody tr.is-focus').forEach(function(ar) { ar.classList.remove('is-focus'); });
+  3581→                row.classList.add('is-focus');
+  3582→            });
+  3583→        });
+  3584→    }
+  3585→
+  3586→    /* === EXPORT EXCEL === */
+  3587→    function expXls() {
+  3588→        if (!s.csvData || !s.csvData.length) { toast('Chưa có dữ liệu để tải', 'err'); return; }
+  3589→        var all = s.csvData;
+  3590→        var progName = s.csvName || 'Du_lieu';
+  3591→
+  3592→        /* === PHÂN LOẠI CỘT (giống hệt hàm rpt) === */
+  3593→        var hk = function(v) { return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim(); };
+  3594→        var infoColCount = 5;
+  3595→        var isTD_TCS = progName && /tcs/i.test(hk(progName));
+  3596→
+  3597→        function colCategory(header, colIdx) {
+  3598→            var raw = String(header||'').trim(); var k = hk(raw);
+  3599→            if (colIdx < infoColCount) return 'info';
+  3600→            if (/\d+\s*vé/i.test(raw) || /\bve\b/i.test(k) && /vàng|bach kim|bạc kim|kim cương|kim cuong/i.test(k)) return 'condition';
+  3601→            var rawNoParen = raw.replace(/\([^)]*\)/g, '');
+  3602→            if (!/>=|<=|[\u2265\u2264]/.test(rawNoParen) && />=|<=|[\u2265\u2264]/.test(raw)) return 'numdataIp';
+  3603→            if (/>=|<=|>[^=]|<(?!=)|[\u2265\u2264]/.test(raw)) return 'condition';
+  3604→            if (/chi\s*tieu|dieu\s*kien/i.test(raw)) return 'condition';
+  3605→            if (/thuong|ph\s+thuong|tien.*thuong|thu.*nhap|du.*kien/i.test(raw)) return 'money';
+  3606→            if (/(thuong|ph thuong|tien thuong|thu nhap|du kien thuong)/.test(k)) return 'money';
+  3607→            if (/\bfyc\b/i.test(raw) || /\bfyc\b/.test(k)) return 'numdataFyc';
+  3608→            if (raw.indexOf('%') >= 0) return 'percent';
+  3609→            if (/(ty le|tlht|phan tram)/.test(k)) return 'percent';
+  3610→            if (/(ngay|thang lam|chang|so luong|sl tvv|ngay hieu luc|ngay cap|thoi gian|chuc vu|^cv$|thoi han|ngay bat dau|ngay ket thuc|han)/.test(k)) return 'textInfo';
+  3611→            /* ★ Cột tên người (TVV, NTD, Họ tên, Người TD...) → nameInfo */
+  3612→            if (/(^tvv$|^ntd$|ho\s*ten|nguoi\s*td|nguoi\s*tuyen\s*dung|ten\s*tvv|ten\s*ntd)/.test(k)) return 'nameInfo';
+  3613→            if (/^fyp|fyp/i.test(raw) || /\bfyp\b/.test(k)) return 'numdataFyp';
+  3614→            if (/(afyp|ip|tong|quy mo|tvv hd|doanh so|so tien|hdc|thuc hien|kenh|so hd)/.test(k)) return 'numdata';
+  3615→            return 'numdata';
+  3616→        }
+  3617→
+  3618→        var hd = all[0] || [];
+  3619→        var dc = hd.length;
+  3620→        while (dc > 0 && !String(hd[dc-1]||'').trim()) { var hasD=false; for(var rr=1;rr<all.length;rr++){if(all[rr]&&String(all[rr][dc-1]||'').trim()){hasD=true;break;}} if(hasD)break; dc--; }
+  3621→        if (dc === 0) { toast('Không có dữ liệu', 'err'); return; }
+  3622→
+  3623→        /* Kiểm tra STT */
+  3624→        var hasSttCol = (hk(hd[0])==='stt'||hk(hd[0]).indexOf('stt')===0||/xep hang/.test(hk(hd[0])));
+  3625→        if (!hasSttCol) { hd.unshift('STT'); dc++; for(var sr=1;sr<all.length;sr++){if(all[sr])all[sr].unshift(String(sr));} infoColCount=5; }
+  3626→        else { infoColCount=5; }
+  3627→
+  3628→        var colCats = [];
+  3629→        for (var ci=0; ci<dc; ci++) colCats.push(colCategory(hd[ci], ci));
+  3630→
+  3631→        if (isTD_TCS) { for(var tci=infoColCount;tci<dc;tci++){var tch=hk(hd[tci]);if(/nguoi\s*td|nguoi\s*tuyen\s*dung/.test(tch)){colCats[tci]='textInfo';}} }
+  3632→
+  3633→        /* Phát hiện condition bị sai */
+  3634→        for(var sci=infoColCount;sci<dc;sci++){
+  3635→            if(colCats[sci]==='condition'||colCats[sci]==='money'||colCats[sci]==='percent'||colCats[sci]==='numdataIp'||colCats[sci]==='numdataFyp'||colCats[sci]==='numdataFyc') continue;
+  3636→            var hasCondVal=false;
+  3637→            for(var sri=1;sri<all.length;sri++){var sv=String(all[sri]&&all[sri][sci]||'').trim();var svn=sv.replace(/[\s\u00A0]+/g,'');if(svn==='11111'||/^Thiếu/i.test(sv)||/^Chưa\s*đạt/i.test(sv)){hasCondVal=true;break;}}
+  3638→            if(hasCondVal) colCats[sci]='condition';
+  3639→        }
+  3640→
+  3641→        /* Gom nhóm condition */
+  3642→        var condGroups=[];
+  3643→        for(var ii=0;ii<dc;ii++){
+  3644→            if(colCats[ii]==='condition'){
+  3645→                var start=ii; while(ii+1<dc&&colCats[ii+1]==='condition')ii++;
+  3646→                condGroups.push({start:start,end:ii,groupIdx:condGroups.length});
+  3647→            }
+  3648→        }
+  3649→
+  3650→        /* === MAPPING STYLE CHO EXCEL === */
+  3651→        var hStyles = {
+  3652→            info:      'background:#000044;color:#ffffff;font-weight:bold;text-align:center;',
+  3653→            textInfo:  'background:#103667;color:#ffffff;font-weight:bold;text-align:center;',
+  3654→            nameInfo:  'background:#1B3A5C;color:#d4e0f0;font-weight:bold;text-align:left;',
+  3655→            numdata:   'background:#002200;color:#ffffff;font-weight:bold;text-align:center;',
+  3656→            numdataFyp:'background:#1a5c1a;color:#ccffcc;font-weight:bold;text-align:center;',
+  3657→            numdataFyc:'background:#0d47a1;color:#ffffff;font-weight:bold;text-align:center;',
+  3658→            numdataIp: 'background:#1a3d1a;color:#ccffcc;font-weight:bold;text-align:center;',
+  3659→            percent:   'background:orangered;color:#00008B;font-weight:bold;text-align:center;',
+  3660→            money:     'background:#000044;color:#FFD700;font-weight:bold;text-align:center;',
+  3661→            condition: 'background:#BD6B09;color:#00008B;font-weight:bold;text-align:center;',
+  3662→            condBot:   'background:#EC870E;color:#00008B;font-weight:bold;text-align:center;'
+  3663→        };
+  3664→        var condGroupTopColors = ['#B8860B','#607D8B','#00695C','#2E7D32','#7B1FA2'];
+  3665→        var condGroupBotColors = ['#DAA520','#90A4AE','#00897B','#4CAF50','#AB47BC'];
+  3666→        var condGroupCellBgs   = ['#FFF8DC','#ECEFF1','#E0F2F1','#E0F2E0','#F0E0F8'];
+  3667→
+  3668→        var dStyles = {
+  3669→            info:      'background:#ffffff;color:#1e3a5f;text-align:center;',
+  3670→            infoLeft:  'background:#ffffff;color:#1e3a5f;text-align:left;padding-left:6px;',
+  3671→            textInfo:  'background:#CAE5E8;color:#1e3a5f;text-align:center;',
+  3672→            nameInfo:  'background:#ffffff;color:#111111;text-align:left;padding-left:6px;',
+  3673→            numdata:   'background:#CCCCFF;color:#111111;text-align:center;font-weight:600;',
+  3674→            numdataFyp:'background:#D4EDDA;color:#1a3a1a;text-align:center;font-weight:700;',
+  3675→            numdataFyc:'background:transparent;color:#cc0000;text-align:center;font-style:italic;',
+  3676→            numdataIp: 'background:#DBDBFF;color:#111111;text-align:center;font-weight:600;',
+  3677→            percentPos:'background:#FFFFCC;color:#111111;text-align:center;font-weight:700;font-style:italic;',
+  3678→            percentZero:'background:transparent;color:#999999;text-align:center;font-style:italic;',
+  3679→            condition: 'background:lemonchiffon;color:#111111;text-align:center;font-weight:600;',
+  3680→            money:     'background:lightyellow;color:#000044;text-align:center;font-weight:900;',
+  3681→            datBadge:  'background:#22c55e;color:#ffffff;font-weight:bold;text-align:center;',
+  3682→            thieu:     'background:transparent;color:red;font-style:italic;',
+  3683→            thuongHL:  'background:lightyellow;color:#000044;font-weight:900;text-align:center;font-style:italic;'
+  3684→        };
+  3685→
+  3686→        /* Hàm tìm condGroup cho 1 cột */
+  3687→        function getCondGroup(c) {
+  3688→            for(var g=0;g<condGroups.length;g++){if(c>=condGroups[g].start&&c<=condGroups[g].end) return condGroups[g];} return null;
+  3689→        }
+  3690→
+  3691→        /* === TẠO HTML EXCEL === */
+  3692→        var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>' + esc(progName) + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td,th{font-family:Tahoma,Arial,sans-serif;font-size:11px;padding:3px 5px;border:1px solid #ccc;white-space:nowrap;}th{font-size:10px;}</style></head><body><table border="1" cellspacing="0" cellpadding="3" style="mso-number-format:\\#">';
+  3693→
+  3694→        /* === HÀNG TIÊU ĐỀ === */
+  3695→        /* Tìm xem có condition không → 2 hàng header */
+  3696→        var hasCond = colCats.some(function(c){return c==='condition';});
+  3697→
+  3698→        /* Hàng 1: header chính */
+  3699→        html += '<tr>';
+  3700→        for(var h1=0;h1<dc;h1++){
+  3701→            var cat1=colCats[h1];
+  3702→            var hdr1=String(hd[h1]||'').trim();
+  3703→            var s1='';
+  3704→            if(cat1==='condition'){
+  3705→                var cg1=getCondGroup(h1);
+  3706→                if(cg1&&h1===cg1.start){
+  3707→                    var topLbl=hdr1.replace(/\([^)]*\)/g,'').replace(/>=|<=|[\u2265\u2264].*/g,'').trim();
+  3708→                    var gIdx=cg1.groupIdx%5;
+  3709→                    var gTopBg=condGroupTopColors[gIdx]||'#BD6B09';
+  3710→                    s1='background:'+gTopBg+';color:#ffffff;font-weight:bold;text-align:center;';
+  3711→                    var span=cg1.end-cg1.start+1;
+  3712→                    html+='<th colspan="'+span+'" style="'+s1+'">'+esc(topLbl)+'</th>';
+  3713→                }
+  3714→                /* Skip các cột condition không phải start của group */
+  3715→            } else {
+  3716→                s1=hStyles[cat1]||hStyles.numdata;
+  3717→                html+='<th style="'+s1+'">'+esc(hdr1)+'</th>';
+  3718→            }
+  3719→        }
+  3720→        html+='</tr>';
+  3721→
+  3722→        /* Hàng 2: header chi tiết (chỉ condition cols) */
+  3723→        if(hasCond){
+  3724→            html+='<tr>';
+  3725→            for(var h2=0;h2<dc;h2++){
+  3726→                var cat2=colCats[h2];
+  3727→                if(cat2==='condition'){
+  3728→                    var cg2=getCondGroup(h2);
+  3729→                    var hdr2=String(hd[h2]||'').trim();
+  3730→                    var gIdx2=cg2?cg2.groupIdx%5:0;
+  3731→                    var gBotBg=condGroupBotColors[gIdx2]||'#EC870E';
+  3732→                    var s2='background:'+gBotBg+';color:#00008B;font-weight:bold;text-align:center;';
+  3733→                    html+='<th style="'+s2+'">'+esc(hdr2)+'</th>';
+  3734→                } else {
+  3735→                    /* Non-condition cols: rowspan=2 trong hàng 1, bỏ qua hàng 2 */
+  3736→                }
+  3737→            }
+  3738→            html+='</tr>';
+  3739→        }
+  3740→
+  3741→        /* === HÀNG DỮ LIỆU === */
+  3742→        var data = all.slice(1);
+  3743→        for(var r=0;r<data.length;r++){
+  3744→            var rc=data[r]||[];
+  3745→            html+='<tr>';
+  3746→            for(var c=0;c<dc;c++){
+  3747→                var val=String(rc[c]||'').trim();
+  3748→                var cat=colCats[c];
+  3749→                var cs='';
+  3750→
+  3751→                /* Format giá trị hiển thị - giữ số nguyên gốc, không thêm dấu chấm phân cách */
+  3752→                var displayVal=val;
+  3753→                var compact=val.replace(/\s/g,'');
+  3754→                var isNumeric=/^-?\d+(?:[.,]\d+)?$/.test(compact);
+  3755→                if(isNumeric){
+  3756→                    /* Bỏ dấu chấm phân cách hàng nghìn, giữ nguyên các chữ số */
+  3757→                    displayVal=compact.replace(/\./g,'').replace(',','.');
+  3758→                }
+  3759→
+  3760→                /* Xác định style theo loại cột */
+  3761→                var valNorm=val.replace(/[\s\u00A0]+/g,'').toLowerCase();
+  3762→                var valNormNoDot=valNorm.replace(/\./g,'');
+  3763→
+  3764→                if(cat==='info'){
+  3765→                    cs=c%2===1?dStyles.infoLeft:dStyles.info;
+  3766→                } else if(cat==='textInfo'){
+  3767→                    cs=dStyles.textInfo;
+  3768→                } else if(cat==='numdata'){
+  3769→                    cs=dStyles.numdata;
+  3770→                } else if(cat==='numdataFyp'){
+  3771→                    cs=dStyles.numdataFyp;
+  3772→                } else if(cat==='numdataFyc'){
+  3773→                    cs=dStyles.numdataFyc;
+  3774→                } else if(cat==='numdataIp'){
+  3775→                    cs=dStyles.numdataIp;
+  3776→                } else if(cat==='percent'){
+  3777→                    var pctNum=parseFloat(val.replace('%','').replace(',','.'));
+  3778→                    cs=(!isNaN(pctNum)&&pctNum>0)?dStyles.percentPos:dStyles.percentZero;
+  3779→                } else if(cat==='condition'){
+  3780→                    var cg=getCondGroup(c);
+  3781→                    if(cg){
+  3782→                        var gci=cg.groupIdx%5;
+  3783→                        cs='background:'+(condGroupCellBgs[gci]||'lemonchiffon')+';color:#111111;text-align:center;font-weight:600;';
+  3784→                    } else {
+  3785→                        cs=dStyles.condition;
+  3786→                    }
+  3787→                } else if(cat==='money'){
+  3788→                    cs=dStyles.money;
+  3789→                } else {
+  3790→                    cs=dStyles.numdata;
+  3791→                }
+  3792→
+  3793→                /* Xử lý giá trị đặc biệt */
+  3794→                var cellContent='';
+  3795→                if(valNorm==='11111'||valNormNoDot==='11111'){
+  3796→                    cs=dStyles.datBadge;
+  3797→                    cellContent='✓ Đạt';
+  3798→                } else if(valNorm==='đạt'||valNorm==='dat'){
+  3799→                    cs=dStyles.datBadge;
+  3800→                    cellContent='✓ Đạt';
+  3801→                } else if(/^thiếu/i.test(val)||/^chưa\s*đạt/i.test(val)||valNorm==='chuadat'){
+  3802→                    cs=dStyles.thieu;
+  3803→                    cellContent=esc(displayVal);
+  3804→                } else if(/^-\d[\d.,]*/.test(val)&&cat!=='money'){
+  3805→                    cs=dStyles.thieu;
+  3806→                    cellContent=esc(displayVal);
+  3807→                } else if(cat==='money'&&val&&val!=='0'&&val!=='-'&&val!==''){
+  3808→                    cs=dStyles.thuongHL;
+  3809→                    cellContent=esc(displayVal);
+  3810→                } else {
+  3811→                    cellContent=esc(displayVal);
+  3812→                }
+  3813→
+  3814→                /* Thêm mso-number-format để Excel không tự thêm dấu chấm phân cách */
+  3815→                var numFmt='';
+  3816→                if(isNumeric && cat!=='info' && cat!=='textInfo' && cat!=='condition'){
+  3817→                    numFmt='mso-number-format:"\\#";';
+  3818→                }
+  3819→                html+='<td style="'+cs+numFmt+'">'+cellContent+'</td>';
+  3820→            }
+  3821→            html+='</tr>';
+  3822→        }
+  3823→
+  3824→        html+='</table></body></html>';
+  3825→
+  3826→        /* Tạo blob và tải */
+  3827→        var blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=UTF-8' });
+  3828→        var url = URL.createObjectURL(blob);
+  3829→        var a = document.createElement('a');
+  3830→        a.href = url;
+  3831→        a.download = progName.replace(/[^\w\s\-àáạảãâầấậẩẫèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗùúụủũưừứựửữỳýỵỷỹĐđ]/g, '').trim() || 'Du_lieu';
+  3832→        a.download += '.xls';
+  3833→        document.body.appendChild(a);
+  3834→        a.click();
+  3835→        document.body.removeChild(a);
+  3836→        URL.revokeObjectURL(url);
+  3837→        toast('Đã tải file Excel (có định dạng)', 'ok');
+  3838→    }
+  3839→
+  3840→    function buildHTML() {
+  3841→        return '<div class="td-bg-a"></div><div class="tw" id="' + P + 'Tw"></div>' +
+  3842→            '<nav class="td-topnav"><div class="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">' +
+  3843→            '<div class="flex items-center gap-3">' +
+  3844→            '<button class="admin-btn" onclick="go(\'view-main\')" aria-label="Quay lại"><i class="fa-solid fa-arrow-left"></i></button>' +
+  3845→            '<span class="td-sub-title">' + esc(cfg.title) + '</span></div>' +
+  3846→            '<div class="flex items-center gap-3">' +
+  3847→            '<span class="sync-badge" id="' + P + 'SyncOk" style="display:none"><i class="fa-solid fa-cloud"></i>Đã đồng bộ</span>' +
+  3848→            '<span class="err-badge" id="' + P + 'SyncErr" style="display:none"><i class="fa-solid fa-cloud-xmark"></i>Lỗi</span>' +
+  3849→            '<span class="text-xs px-2.5 py-1 rounded-full border items-center gap-1" style="border-color:var(--td-border);color:var(--td-fgm);display:none" id="' + P + 'CntB"><i class="fa-solid fa-layer-group" style="font-size:9px"></i><span id="' + P + 'CntN">0</span></span>' +
+  3850→            '<div style="position:relative" id="' + P + 'AdmWrap">' +
+  3851→            '<button class="admin-btn" id="' + P + 'AdmBtn" onclick="' + pv + '.togDD()" aria-label="Quản trị"><i class="fa-solid fa-user-shield"></i></button>' +
+  3852→            '<div class="admin-dd" id="' + P + 'AdmDD">' +
+  3853→            '<button class="dd-item" onclick="' + pv + '.admLinks()" id="' + P + 'DdLinks" style="display:none"><i class="fa-solid fa-link"></i>Cập nhật liên kết</button>' +
+  3854→            '<button class="dd-item" onclick="' + pv + '.admReload()"><i class="fa-solid fa-arrows-rotate"></i>Đồng bộ ngay</button>' +
+  3855→            '<button class="dd-item" onclick="' + pv + '.admOut()" id="' + P + 'DdOut" style="display:none"><i class="fa-solid fa-right-from-bracket"></i>Đăng xuất</button>' +
+  3856→            '<div class="dd-sep" id="' + P + 'DdSep" style="display:none"></div>' +
+  3857→            '<button class="dd-item dng" onclick="' + pv + '.admLock()" id="' + P + 'DdLock" style="display:none"><i class="fa-solid fa-lock"></i>Khóa quản trị</button>' +
+  3858→            '</div></div></div></div>' +
+  3859→            '<div class="td-sub-line-wrap"><div class="td-sub-line"></div></div>' +
+  3860→            '</nav>' +
+  3861→            '<div id="' + P + 'Container" class="relative z-10">' +
+  3862→            '<div class="td-shell">' +
+  3863→            '<div id="' + P + 'LoadW" style="display:none"><div class="loading-g"><i class="fa-solid fa-cloud-arrow-down block"></i><p class="text-base font-semibold mb-1">Đang đồng bộ...</p></div></div>' +
+  3864→            '<div id="' + P + 'ErrW" style="display:none"><div class="err-g"><i class="fa-solid fa-circle-exclamation block"></i><p class="text-base font-semibold mb-1" style="color:var(--td-fg)">Lỗi kết nối</p><p class="text-sm" id="' + P + 'ErrMsg" style="color:var(--td-fgm)"></p></div></div>' +
+  3865→            '<div id="' + P + 'EmptyW"><div class="empty-g"><i class="fa-regular fa-folder-open block"></i><p class="text-base font-semibold mb-1">' + esc(cfg.emptyTitle) + '</p><p class="text-sm" style="color:var(--td-fgm)">' + esc(cfg.emptyDesc) + '</p></div></div>' +
+  3866→            '<div class="card-grid" id="' + P + 'Grid" style="display:none"></div>' +
+  3867→            '</div></div>' +
+  3868→            '<div class="pop-bg" id="' + P + 'Popup"><div class="pop-box" id="' + P + 'PopBox"><div class="pop-head"><div class="pop-media" id="' + P + 'PopPoster"></div><div class="pop-bar"><div class="pop-bar-head"><button type="button" onclick="' + pv + '.cpop()" class="pop-back" style="position:static;flex-shrink:0" aria-label="Trở về"><i class="fa-solid fa-arrow-left"></i></button><div class="pop-bar-main"><h2 class="fd text-xl font-bold" id="' + P + 'PopName"></h2><div class="pop-meta"><span class="tag" id="' + P + 'PopTag"></span><p class="pop-subline" id="' + P + 'PopSub"></p></div></div><div class="flex gap-2 mt-1 shrink-0"><button onclick="' + pv + '.expXls()" class="ca-btn" style="opacity:1;position:static;background:#1a7a3a;border-color:#2ecc71" aria-label="Tải Excel" title="Tải file Excel"><i class="fa-solid fa-file-excel"></i></button><button onclick="' + pv + '.efp()" class="ca-btn edt" style="opacity:1;position:static;display:none" id="' + P + 'PopEdt" aria-label="Sửa"><i class="fa-solid fa-pen"></i></button></div></div></div></div><div class="pop-ct" id="' + P + 'PopCt"></div></div></div>' +
+  3869→            '<div class="pw-bg" id="' + P + 'PwMdl"><div class="pw-box"><div class="pw-ico"><i class="fa-solid fa-shield-halved"></i></div><h3 class="fd text-lg font-bold mb-1">Quản trị viên</h3><p class="text-xs mb-5" style="color:var(--td-fgm)">Nhập mật khẩu để tiếp tục</p><input type="password" class="pw-inp" id="' + P + 'PwInp" placeholder="Mật khẩu" autocomplete="off"><p class="pw-err" id="' + P + 'PwErr"></p><button onclick="' + pv + '.spw()" class="bp" style="width:100%;margin-top:16px"><i class="fa-solid fa-unlock mr-2"></i>Xác nhận</button><button onclick="' + pv + '.cpw()" class="bs" style="width:100%;margin-top:8px">Huỷ</button></div></div>' +
+  3870→            '<div class="mdl-bg" id="' + P + 'Mdl"><div class="mdl-box"><div class="flex items-center justify-between mb-5"><div><h3 class="fd text-lg font-bold" id="' + P + 'MTtl">Sửa cột & hàng</h3><p class="text-xs mt-0.5" style="color:var(--td-fgm)" id="' + P + 'MSub"></p></div><button onclick="' + pv + '.cm()" class="w-8 h-8 rounded-lg flex items-center justify-content:center" style="color:var(--td-fgm);background:none;border:none;cursor:pointer" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></div><div class="space-y-4"><div><div class="flex items-center justify-between mb-2"><label class="fl mb-0"><i class="fa-solid fa-table-columns"></i>Số cột & hàng</label><button type="button" class="abtn" id="' + P + 'AutoBtn" onclick="' + pv + '.autoDet()"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Tự động</button></div><div class="grid grid-cols-2 gap-3"><div><input type="number" class="inp" id="' + P + 'MCols" placeholder="Cột" min="1" max="20"></div><div><input type="number" class="inp" id="' + P + 'MRows" placeholder="Hàng" min="1" max="500"></div></div></div></div><div class="flex gap-3 mt-6"><button onclick="' + pv + '.savePrg()" class="bp flex-1"><i class="fa-solid fa-check mr-2"></i>Lưu lên Sheet</button><button onclick="' + pv + '.cm()" class="bs">Huỷ</button></div></div></div>' +
+  3871→            '<div class="mdl-bg" id="' + P + 'LinksMdl"><div class="mdl-box" style="max-height:85vh;overflow-y:auto"><div class="flex items-center justify-between mb-5"><div><h3 class="fd text-lg font-bold">Cập nhật liên kết</h3><p class="text-xs mt-0.5" style="color:var(--td-fgm)">Dán link mới để thay đổi nguồn dữ liệu</p></div><button onclick="' + pv + '.cLinks()" class="w-8 h-8 rounded-lg flex items-center justify-content:center" style="color:var(--td-fgm);background:none;border:none;cursor:pointer" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></div><div class="space-y-4"><div style="padding:10px 12px;border-radius:10px;background:rgba(108,199,138,0.08);border:1px solid rgba(108,199,138,0.2)"><div style="font-size:11px;font-weight:800;color:#6cc78a;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em"><i class="fa-solid fa-house" style="margin-right:6px"></i>Trang Chính (Dashboard)</div><div><label class="fl"><i class="fa-solid fa-database"></i>Dữ liệu KPI chính – AFYP, HĐ, Tuyển dụng...</label><div class="flex gap-2"><input type="url" class="inp flex-1" id="' + P + 'LnkCSV" placeholder="Dán link CSV Google Sheet"><button onclick="' + pv + '.svLnk(&#39;CSV_URL&#39;,&#39;' + P + 'LnkCSV&#39;)" class="bp text-xs px-3">Lưu</button></div></div><div style="margin-top:10px"><label class="fl"><i class="fa-solid fa-sitemap"></i>Phụ cấp & Cơ cấu tổ chức – Nhóm, TVV...</label><div class="flex gap-2"><input type="url" class="inp flex-1" id="' + P + 'LnkPC" placeholder="Dán link CSV Google Sheet"><button onclick="' + pv + '.svLnk(&#39;PHU_CAP_CSV_URL&#39;,&#39;' + P + 'LnkPC&#39;)" class="bp text-xs px-3">Lưu</button></div></div></div><div style="padding:10px 12px;border-radius:10px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2)"><div style="font-size:11px;font-weight:800;color:#f5c842;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em"><i class="fa-solid fa-trophy" style="margin-right:6px"></i>Trang Thi Đua / Chính Sách / CLB</div><div><label class="fl"><i class="fa-solid fa-table"></i>Google Sheet ID – Bảng dữ liệu thi đua</label><div class="flex gap-2"><input type="text" class="inp flex-1" id="' + P + 'LnkSID" placeholder="Dán Sheet ID"><button onclick="' + pv + '.svLnk(&#39;TD_SID&#39;,&#39;' + P + 'LnkSID&#39;)" class="bp text-xs px-3">Lưu</button></div></div><div style="margin-top:10px"><label class="fl"><i class="fa-solid fa-code"></i>Script URL – Ghi dữ liệu lên Sheet</label><div class="flex gap-2"><input type="url" class="inp flex-1" id="' + P + 'LnkSCR" placeholder="Dán link Google Apps Script"><button onclick="' + pv + '.svLnk(&#39;TD_SCR&#39;,&#39;' + P + 'LnkSCR&#39;)" class="bp text-xs px-3">Lưu</button></div></div></div></div></div></div>' +
+  3872→            '<div class="cfm-bg" id="' + P + 'CfmDel"><div class="cfm-box"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3" style="color:var(--td-red)"></i><p class="text-base font-semibold mb-1">Xóa chương trình?</p><p class="text-sm mb-5" style="color:var(--td-fgm)" id="' + P + 'CfmTxt"></p></div><div class="flex gap-3 justify-center"><button onclick="' + pv + '.ddl()" class="bp text-sm px-5" style="background:linear-gradient(135deg,var(--td-red),#8a2a22);border-radius:8px"><i class="fa-solid fa-trash mr-1"></i>Xóa</button><button onclick="' + pv + '.ccf()" class="bs text-sm px-5">Huỷ</button></div></div></div>';
+  3873→    }
+  3874→
+  3875→    function init() {
+  3876→        var container = gid(cfg.containerId);
+  3877→        if (!s.inited) {
+  3878→            container.innerHTML = buildHTML();
+  3879→            gid(P + 'PwInp').addEventListener('keydown', function(e) { if (e.key === 'Enter') spw(); });
+  3880→            gid(P + 'Mdl').addEventListener('click', function(e) { if (e.target === e.currentTarget) cm(); });
+  3881→            gid(P + 'LinksMdl').addEventListener('click', function(e) { if (e.target === e.currentTarget) cLinks(); });
+  3882→            gid(P + 'Popup').addEventListener('click', function(e) { if (e.target === e.currentTarget) cpop(); });
+  3883→            document.addEventListener('click', function(e) {
+  3884→                if (gid(P + 'AdmWrap') && !gid(P + 'AdmWrap').contains(e.target)) {
+  3885→                    s.ddOpen = false;
+  3886→                    gid(P + 'AdmDD').classList.remove('show');
+  3887→                }
+  3888→            });
+  3889→            s.inited = true;
+  3890→        }
+  3891→        ca();
+  3892→        lfs();
+  3893→    }
+  3894→
+  3895→
+  3896→    return {
+  3897→        gid: gid, init: init, togDD: togDD, admLinks: admLinks, admReload: admReload, admOut: admOut, admLock: admLock, na: na, spw: spw, cpw: cpw, cpop: cpop, rpop: rpop, efp: efp, expXls: expXls, cm: cm, cLinks: cLinks, svLnk: svLnk, autoDet: autoDet, savePrg: savePrg, ad: ad, ccf: ccf, ddl: ddl, oe: oe, op: op
+  3898→    };
+  3899→};
+  3900→
+  3901→var tdPage = createTDPage({
+  3902→    prefix: 'td', varName: 'tdPage', containerId: 'view-race', title: 'Tiến Độ Thi Đua', badge: 'Thi đua', badgeIcon: 'fa-trophy', emptyTitle: 'Chưa có chương trình thi đua', emptyDesc: 'Nhấn icon <i class="fa-solid fa-user-shield" style="color:var(--td-accent)"></i> để quản trị.', filterFn: function(n) { return /^thi\s*đua/i.test(n); }
+  3903→});
+  3904→
+  3905→var poPage = createTDPage({
+  3906→    prefix: 'po', varName: 'poPage', containerId: 'view-policy', title: 'Chính Sách', badge: 'Chính sách', badgeIcon: 'fa-book', emptyTitle: 'Chưa có chính sách nào', emptyDesc: 'Nhấn icon <i class="fa-solid fa-user-shield" style="color:var(--td-accent)"></i> để quản trị.', filterFn: function(n) { return /^chính\s*sách/i.test(n); }
+  3907→});
+  3908→
+  3909→var clbPage = createTDPage({
+  3910→    prefix: 'cb', varName: 'clbPage', containerId: 'view-clb', title: 'CLB Sao Việt', badge: 'CLB', badgeIcon: 'fa-star', emptyTitle: 'Chưa có chương trình CLB nào', emptyDesc: 'Nhấn icon <i class="fa-solid fa-user-shield" style="color:var(--td-accent)"></i> để quản trị.', filterFn: function(n) { return /CLB/i.test(n); }
+  3911→});
+  3912→
+  3913→document.addEventListener('keydown', function(e) {
+  3914→    if (e.key === 'Escape') {
+  3915→        // Close calendar popup if open
+  3916→        var calOverlay = document.getElementById('cal-popup-overlay');
+  3917→        if (calOverlay && calOverlay.classList.contains('open')) {
+  3918→            calClosePopup();
+  3919→            return;
+  3920→        }
+  3921→        [tdPage, poPage, clbPage].forEach(function(pg) {
+  3922→            if (!pg) return;
+  3923→            ['PwMdl', 'CfmDel', 'Mdl', 'Popup'].forEach(function(s) {
+  3924→                var el = pg.gid(s);
+  3925→                if (el && el.classList.contains('open')) {
+  3926→                    if (s === 'PwMdl') pg.cpw();
+  3927→                    else if (s === 'CfmDel') pg.ccf();
+  3928→                    else if (s === 'Popup') pg.cpop();
+  3929→                    else if (s === 'Mdl') pg.cm();
+  3930→                }
+  3931→            });
+  3932→        });
+  3933→    }
+  3934→});
+  3935→
+  3936→function renderTodayPill() {
+  3937→    var el = document.getElementById('today-pill');
+  3938→    if (!el) return;
+  3939→    var d = new Date();
+  3940→    var dd = String(d.getDate()).padStart(2, '0');
+  3941→    var mm = String(d.getMonth() + 1).padStart(2, '0');
+  3942→    var yy = d.getFullYear();
+  3943→    el.innerHTML = '<i class="fa-solid fa-calendar-day"></i><span class="cdp-day">' + dd + '/' + mm + '/' + yy + '</span>';
+  3944→}
+  3945→renderTodayPill();
+  3946→setInterval(renderTodayPill, 60000);
+  3947→
+  3948→syncData();
+  3949→
+  3950→/* Resize: cập nhật biểu đồ AFYP + re-render desktop layout */
+  3951→var _afypResizeTimer;
+  3952→window.addEventListener('resize', function() {
+  3953→    clearTimeout(_afypResizeTimer);
+  3954→    _afypResizeTimer = setTimeout(function() {
+  3955→        renderAfypChart();
+  3956→        /* On significant resize, re-render to switch between desktop/mobile layouts */
+  3957→    }, 200);
+  3958→});
+  3959→
