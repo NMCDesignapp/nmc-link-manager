@@ -1545,15 +1545,17 @@ export default function ThiDuaPage() {
         }
       });
     } else if (isPerContractMode(conditionType)) {
+      const perContractLabel = isAFYP ? 'AFYP' : 'IP';
       [...displayContracts].map((c) => {
-        const tier = calculateBonus(getContractValue(c)).tier;
-        const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
-        return { contract: c, tier, phaseInfo };
-      }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).forEach(({ contract: c, tier, phaseInfo }, idx) => {
+        const cValue = getContractValue(c);
+        const tier = calculateBonus(cValue).tier;
+        const phaseInfo = getRowPhaseBonus(cValue, c.effectiveDate);
+        return { contract: c, cValue, tier, phaseInfo };
+      }).sort((a, b) => b.cValue - a.cValue).forEach(({ contract: c, cValue, tier, phaseInfo }, idx) => {
         if (usePhase2 && phase2StartDate) {
-          text += `${idx + 1}. ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.pdt10DT)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
+          text += `${idx + 1}. ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | ${perContractLabel}: ${formatNumber(cValue)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | IP: ${formatNumber(c.pdt10DT)} | ${tier ? `Thưởng: ${formatBonus(tier, c.pdt10DT)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | ${perContractLabel}: ${formatNumber(cValue)} | ${tier ? `Thưởng: ${formatBonus(tier, cValue)}` : 'Chưa đạt'}\n`;
         }
       });
     } else {
@@ -1823,25 +1825,43 @@ export default function ThiDuaPage() {
       // TVV
       if (isPerContractMode(conditionType)) {
         // TVV per-contract: thêm Số hợp đồng, Ngày hiệu lực, Ngày phát hành
+        const mainColLabel = isAFYP ? 'AFYP' : 'IP';
         if (usePhase2) {
+<<<<<<< HEAD
           headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
           rows = [...displayContracts].map((c) => {
             const { tier } = calculateBonus(c.pdt10DT);
             const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+=======
+          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', mainColLabel, ...(useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP ? ['AFYP'] : []), ...(useSecondaryCondition && secondaryIPMin > 0 && isAFYP ? ['IP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          rows = [...displayContracts].map((c) => {
+            const cValue = getContractValue(c);
+            const { tier } = calculateBonus(cValue);
+            const phaseInfo = getRowPhaseBonus(cValue, c.effectiveDate);
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
             // Check supplementary total for this TVV's contracts
             const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
             const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+<<<<<<< HEAD
             return { c, tier, effectiveTier, phaseInfo, sc };
           }).sort((a, b) => b.c.pdt10DT - a.c.pdt10DT).map(({ c, tier, effectiveTier, phaseInfo, sc }, idx) => {
             const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), c.pdt10DT];
             if (useSecondaryCondition && secondaryAFYPMin > 0) base.push(c.afyp);
+=======
+            return { c, cValue, tier, effectiveTier, phaseInfo, sc };
+          }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, phaseInfo, sc }, idx) => {
+            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
+            if (useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP) base.push(c.afyp);
+            if (useSecondaryCondition && secondaryIPMin > 0 && isAFYP) base.push(c.pdt10DT);
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
             if (expSecAFYP) base.push(sc.totalAFYP);
             if (expSecIP) base.push(sc.totalIP);
             base.push(phaseInfo.phase1Bonus || '', phaseInfo.phase2Bonus || '', phaseInfo.phase1Bonus + phaseInfo.phase2Bonus || '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
             return base;
           });
         } else {
+<<<<<<< HEAD
           headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', ...(useSecondaryCondition && secondaryAFYPMin > 0 ? ['AFYP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           rows = [...displayContracts].map((c) => {
             const { tier } = calculateBonus(c.pdt10DT);
@@ -1856,6 +1876,24 @@ export default function ThiDuaPage() {
             if (expSecIP) base.push(sc.totalIP);
             if (showRateColumn) base.push(effectiveTier ? formatRate(effectiveTier) : '');
             base.push(effectiveTier ? formatBonusAmount(effectiveTier, c.pdt10DT) : '');
+=======
+          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', mainColLabel, ...(useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP ? ['AFYP'] : []), ...(useSecondaryCondition && secondaryIPMin > 0 && isAFYP ? ['IP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+          rows = [...displayContracts].map((c) => {
+            const cValue = getContractValue(c);
+            const { tier } = calculateBonus(cValue);
+            const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
+            const sc = checkSecondaryTotalCondition(agentContracts);
+            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+            return { c, cValue, tier, effectiveTier, sc };
+          }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, sc }, idx) => {
+            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
+            if (useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP) base.push(c.afyp);
+            if (useSecondaryCondition && secondaryIPMin > 0 && isAFYP) base.push(c.pdt10DT);
+            if (expSecAFYP) base.push(sc.totalAFYP);
+            if (expSecIP) base.push(sc.totalIP);
+            if (showRateColumn) base.push(effectiveTier ? formatRate(effectiveTier) : '');
+            base.push(effectiveTier ? formatBonusAmount(effectiveTier, cValue) : '');
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
             base.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
             return base;
           });
@@ -3118,10 +3156,16 @@ export default function ThiDuaPage() {
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Mã số</TableHead>
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center">Họ tên</TableHead>
                           <TableHead className="text-yellow-100 text-center w-[85px] font-bold uppercase">Ngày HL</TableHead>
-                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">IP</TableHead>
-                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
+                          <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">{isAFYP ? 'AFYP' : 'IP'}</TableHead>
+                          {useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP && (
                             <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
                           )}
+<<<<<<< HEAD
+=======
+                          {useSecondaryCondition && secondaryIPMin > 0 && isAFYP && (
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">IP</TableHead>
+                          )}
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
@@ -3373,16 +3417,28 @@ export default function ThiDuaPage() {
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
+<<<<<<< HEAD
                       const { tier } = calculateBonus(c.pdt10DT);
                       const remaining = getRemainingToNextTier(c.pdt10DT);
                       const phaseInfo = getRowPhaseBonus(c.pdt10DT, c.effectiveDate);
+=======
+                      const cValue = getContractValue(c);
+                      const { tier } = calculateBonus(cValue);
+                      const remaining = getRemainingToNextTier(cValue);
+                      const phaseInfo = getRowPhaseBonus(cValue, c.effectiveDate);
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
                       // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho TVV
                       const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
                       const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
                       const secondaryPassed = secondaryCheck.passed;
                       const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+<<<<<<< HEAD
                       return { contract: c, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
                     }).sort((a, b) => b.contract.pdt10DT - a.contract.pdt10DT).map(({ contract, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
+=======
+                      return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
+                    }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
                       if (hideNotAchieved && !tier) return null;
                       if (!contract.nhom && !contract.maNhom) return null;
                       return (
@@ -3392,10 +3448,16 @@ export default function ThiDuaPage() {
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap">{contract.agentName}</TableCell>
                           <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(contract.effectiveDate)}</TableCell>
-                          <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(contract.pdt10DT)}</TableCell>
-                          {useSecondaryCondition && secondaryAFYPMin > 0 && (
+                          <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(cValue)}</TableCell>
+                          {useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP && (
                             <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(contract.afyp)}</TableCell>
                           )}
+<<<<<<< HEAD
+=======
+                          {useSecondaryCondition && secondaryIPMin > 0 && isAFYP && (
+                            <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(contract.pdt10DT)}</TableCell>
+                          )}
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && (
@@ -3422,7 +3484,11 @@ export default function ThiDuaPage() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
+<<<<<<< HEAD
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, contract.pdt10DT)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+=======
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, cValue)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+>>>>>>> 1bb372b (fix: per_contract_afyp mode shows AFYP column instead of IP in results table, copy, and export)
                           )}
                           <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
