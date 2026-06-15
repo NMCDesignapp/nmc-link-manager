@@ -1,0 +1,1176 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+     4→import {
+     5→  Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
+     6→  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal
+     7→} from 'lucide-react';
+     8→
+     9→/* ================= CSS ================= */
+    10→const CSS = `
+    11→@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+    12→:root {
+    13→  --bg: #021616; --bg2: #032c2c; --bg-card: #171f2b; --fg: #f3efe7;
+    14→  --muted: #9a9184; --accent: #6cc78a; --accent-strong: #ffc505;
+    15→  --accent-glow: #b1a85552; --green: #659c6c; --red: #9f5f52;
+    16→  --blue: #7d8ca3; --border: #ffffff1a; --gold: #c6a56a;
+    17→  --track: #201a14; --track-fill: #d8bb86; --track-soft: #6f5740;
+    18→  --notice-h: 44px;
+    19→}
+    20→*, *::before, *::after { box-sizing: border-box; }
+    21→button { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+    22→.kpi-app { background: var(--bg); font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+    23→.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0e2240 0%, var(--bg) 70%); }
+    24→.kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .18; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
+    25→.kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #091c36; top: -15%; left: -10%; }
+    26→.kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0b1530; bottom: -10%; right: -10%; animation-delay: -6s; }
+    27→.kpi-app .bg-orb-3 { width: 300px; height: 300px; background: #0d2040; top: 50%; left: 60%; animation-delay: -12s; }
+    28→@keyframes orbFloat { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.08); } 100% { transform: translate(-15px,15px) scale(.95); } }
+    29→
+    30→.kpi-app .app-wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 24px; }
+    31→@media (min-width: 900px) { .kpi-app .app-wrap { max-width: none; padding: 24px 0; } }
+    32→
+    33→.kpi-app .view { display: none; animation: viewIn .4s ease-out; }
+    34→.kpi-app .view.active { display: block; }
+    35→@keyframes viewIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    36→@keyframes cardSlideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    37→
+    38→/* Hero */
+    39→.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; background: linear-gradient(135deg, #ffffff 0%, #dff4ff 28%, #8fd0ff 54%, #6cc78a 82%, #d7fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    40→.kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #d9b65a; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
+    41→
+    42→/* Controls */
+    43→.kpi-app .ctrl-bar { display: flex; gap: 8px; margin-top: 20px; flex-wrap: nowrap; align-items: stretch; }
+    44→.kpi-app .ctrl-select-wrap { position: relative; flex: 1 1 0; min-width: 0; }
+    45→.kpi-app .ctrl-select { width: 100%; height: 48px; padding: 0; border-radius: 12px; background: rgba(212,168,67,.08); backdrop-filter: blur(8px); border: 1px solid #d4a84373; color: #f2d38d; font-weight: 800; font-size: 13px; outline: none; font-family: inherit; cursor: pointer; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    46→.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 0; width: 280px; max-width: calc(100vw - 32px); background: #12223bcc; border: 1px solid #ffffff14; border-radius: 12px; box-shadow: 0 18px 36px #00000055; backdrop-filter: blur(12px); padding: 8px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 238px; overflow-y: auto; }
+    47→.kpi-app .ctrl-select-wrap.open .ctrl-select-popup { display: grid; }
+    48→.kpi-app .ctrl-select-opt { min-height: 34px; border-radius: 9px; border: 1px solid #ffffff10; background: #ffffff08; color: #dbe7f5; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
+    49→.kpi-app .ctrl-select-opt:hover { background: #ffffff14; color: #fff; }
+    50→.kpi-app .ctrl-select-opt.on { background: linear-gradient(135deg, var(--accent), #f59e0b); color: #000; border-color: #f4c261; box-shadow: 0 6px 18px #c6a56a45; }
+    51→.kpi-app .btn-sync { flex: 1 1 0; height: 48px; padding: 0 8px; border-radius: 12px; border: 1px solid #d4a84373; background: rgba(212,168,67,.08); backdrop-filter: blur(8px); color: #f2d38d; font-weight: 900; font-size: 13px; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, background .2s; }
+    52→.kpi-app .btn-sync:hover { background: rgba(212,168,67,.14); transform: translateY(-1px); }
+    53→.kpi-app .btn-sync:active { transform: scale(.96); }
+    54→.kpi-app .btn-sync.loading { pointer-events: none; opacity: .7; }
+    55→
+    56→/* Company Card */
+    57→.kpi-app #kpi-company { margin-top: 32px; }
+    58→.kpi-app .kpi-cty { background: linear-gradient(180deg, #1b2f49, #172a43); border: 1.5px solid #d6a34866; border-top: 4px solid #f2b24d; box-shadow: 0 20px 50px #0000005c, inset 0 1px 0 #ffffff14; padding: 18px 20px 22px; margin-bottom: 10px; border-radius: 14px; position: relative; overflow: hidden; }
+    59→.kpi-app .kpi-cty.glow-full { border-color: #f2d38d; box-shadow: 0 0 0 2px #f2d38d6b, 0 24px 54px #00000066, 0 0 34px #f2d38d38; }
+    60→.kpi-app .kpi-cty.glow-full::before, .kpi-app .kpi-ad.glow-full::before { content: 'HTKH'; position: absolute; top: 10px; left: 10px; z-index: 4; padding: 4px 8px; border-radius: 999px; background: linear-gradient(135deg, #a8ffa8, #6fff6f); color: #2d5c26; font-size: 10px; font-weight: 900; letter-spacing: .05em; box-shadow: 0 8px 18px #73f26e35; }
+    61→.kpi-app .cty-inner { position: relative; z-index: 1; }
+    62→.kpi-app .cty-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    63→.kpi-app .cty-name { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 900; text-transform: uppercase; color: #ff9f2f; }
+    64→.kpi-app .cty-pct-num { font-size: clamp(2rem, 6vw, 2.5rem); font-weight: 900; line-height: 1; color: #e0c48c; }
+    65→.kpi-app .cty-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(180px, 340px); gap: 18px; align-items: center; }
+    66→.kpi-app .afyp-kh-row { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+    67→.kpi-app .afyp-big { font-weight: 900; line-height: 1.1; color: #fff; }
+    68→.kpi-app .kh-small { font-weight: 400; color: #b7aa982e; font-size: .8em; }
+    69→.kpi-app .cty .afyp-big { font-size: clamp(2rem, 6vw, 2.7rem); }
+    70→.kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #5a83b8; font-weight: 700; }
+    71→.kpi-app .cty-progress { width: 100%; height: 22px; border-radius: 999px; background: #9cc6f04d; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
+    72→.kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #11b76f, #16cb74); will-change: width; }
+    73→.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 18px; }
+    74→.kpi-app .cty-stat { border-radius: 16px; padding: 11px 8px 10px; text-align: center; border: 1px solid #ffffff0d; }
+    75→.kpi-app .cty-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: #9db3d2; }
+    76→.kpi-app .cty-stat-val { font-size: 26px; font-weight: 900; line-height: 1; }
+    77→.kpi-app .cty-stat.hd { background: #233f64; } .kpi-app .cty-stat.hd .cty-stat-val { color: #7fc2ff; }
+    78→.kpi-app .cty-stat.td { background: #3a345f; } .kpi-app .cty-stat.td .cty-stat-val { color: #d8b7ff; }
+    79→.kpi-app .cty-stat.chuan { background: #0e4453; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #16e0d3; }
+    80→.kpi-app .cty-stat.ip { background: #4b3825; } .kpi-app .cty-stat.ip .cty-stat-val { color: #ffd789; }
+    81→
+    82→/* Phong Card */
+    83→.kpi-app .kpi-phong { background: linear-gradient(180deg, #20457a, #1b3d70); border: 1px solid #5ca2ec55; margin-top: 20px; box-shadow: 0 12px 26px #00000030, inset 0 1px 0 #ffffff10; padding: 16px 18px 18px; border-radius: 18px; position: relative; overflow: hidden; }
+    84→.kpi-app .kpi-phong.glow-full { border-color: #ffd58c; box-shadow: 0 0 0 2px #ffd58c55, 0 18px 34px #00000042, 0 0 28px #ffd58c2c; }
+    85→.kpi-app .phong-inner { position: relative; z-index: 1; }
+    86→.kpi-app .phong-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    87→.kpi-app .phong-name { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 900; text-transform: uppercase; color: #d9ebff; }
+    88→.kpi-app .phong-pct { font-size: 19px; font-weight: 900; color: #e0c48c; white-space: nowrap; }
+    89→.kpi-app .phong-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(160px, 280px); gap: 16px; align-items: center; }
+    90→.kpi-app .phong .afyp-big { font-size: clamp(1.9rem, 5vw, 2.4rem); color: #fff; }
+    91→.kpi-app .phong .kh-small { font-size: clamp(.8rem, 2vw, .95rem); color: #7da6d9; font-weight: 700; }
+    92→.kpi-app .phong-progress { width: 100%; height: 22px; border-radius: 999px; overflow: hidden; background: #f3dcc04d; box-shadow: inset 0 1px 2px #00000033; }
+    93→.kpi-app .phong-progress-fill { width: 0; height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #ff941f, #ff9f2b); will-change: width; }
+    94→.kpi-app .phong-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 15px; }
+    95→.kpi-app .phong-stat { border-radius: 16px; padding: 11px 8px 10px; text-align: center; border: 1px solid #ffffff0d; }
+    96→.kpi-app .phong-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: #9fc0e2; }
+    97→.kpi-app .phong-stat-val { font-size: 25px; font-weight: 900; line-height: 1; }
+    98→.kpi-app .phong-stat.hd { background: #264f87; } .kpi-app .phong-stat.hd .phong-stat-val { color: #9bd0ff; }
+    99→.kpi-app .phong-stat.td { background: #3f4389; } .kpi-app .phong-stat.td .phong-stat-val { color: #f0b8ff; }
+   100→.kpi-app .phong-stat.chuan { background: #0d5b72; } .kpi-app .phong-stat.chuan .phong-stat-val { color: #18e0e7; }
+   101→.kpi-app .phong-stat.ip { background: #635136; } .kpi-app .phong-stat.ip .phong-stat-val { color: #ffd07f; }
+   102→
+   103→/* AD Card */
+   104→.kpi-app .ad-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; margin-bottom: 8px; }
+   105→.kpi-app .kpi-ad { background: linear-gradient(180deg, #f0f2f5, #e4e8ec); border: 1px solid #c8cdd4; box-shadow: 0 4px 12px #00000018, inset 0 1px 0 #ffffff; border-radius: 8px; padding: 7px 10px 6px; cursor: pointer; transition: box-shadow .22s, transform .22s; position: relative; overflow: hidden; }
+   106→.kpi-app .kpi-ad:hover { transform: translateY(-1px); }
+   107→.kpi-app .kpi-ad.glow-full { border-color: #f2c46e; background: linear-gradient(180deg, #fff8e8, #f5ecd0); box-shadow: 0 0 0 2px #f2c46e55, 0 0 14px #f2c46e30; }
+   108→.kpi-app .ad-inner { position: relative; z-index: 1; }
+   109→.kpi-app .ad-top { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2.4fr); gap: 8px; align-items: center; }
+   110→.kpi-app .ad-left { min-width: 0; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+   111→.kpi-app .ad-name-row { display: flex; align-items: center; justify-content: center; gap: 5px; }
+   112→.kpi-app .ad-name { font-size: 13px; font-weight: 900; color: #1a2a3a; }
+   113→.kpi-app .ad-pct { font-size: 14px; font-weight: 900; line-height: 1; color: #2a6a9a; white-space: nowrap; }
+   114→.kpi-app .ad-kh { margin-top: 2px; display: block; font-size: 8px; color: #6a7a8a; font-weight: 700; }
+   115→.kpi-app .ad-stats { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0,.9fr)); gap: 3px; }
+   116→.kpi-app .ad-stat { min-width: 0; border-radius: 6px; padding: 5px 3px 4px; text-align: center; border: 1px solid #d0d4da; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+   117→.kpi-app .ad-stat-label { display: block; font-size: 7px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   118→.kpi-app .ad-stat-val { font-size: 12px; font-weight: 900; white-space: nowrap; line-height: 1; }
+   119→.kpi-app .ad-stat.afyp { background: #dce8f4; } .kpi-app .ad-stat.afyp .ad-stat-val { color: #1a3a5a; }
+   120→.kpi-app .ad-stat.lhd { background: #d4ecf4; } .kpi-app .ad-stat.lhd .ad-stat-val { color: #1a4a6a; }
+   121→.kpi-app .ad-stat.td { background: #e4d8f0; } .kpi-app .ad-stat.td .ad-stat-val { color: #4a3080; }
+   122→.kpi-app .ad-stat.chuan { background: #d0f0e8; } .kpi-app .ad-stat.chuan .ad-stat-val { color: #106050; }
+   123→.kpi-app .ad-stat.ip { background: #e8f0d8; } .kpi-app .ad-stat.ip .ad-stat-val { color: #3a5a10; }
+   124→.kpi-app .ad-progress { margin-top: 4px; height: 4px; border-radius: 999px; overflow: hidden; background: #c8ccd2; }
+   125→.kpi-app .ad-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width .9s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #d84b42, #4caf50); will-change: width; }
+   126→.kpi-app .ad-stat-unit { font-size: .58em; font-weight: 800; margin-left: 2px; opacity: .85; }
+   127→
+   128→/* Navigation */
+   129→.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+   130→.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; grid-column: 1 / -1; }
+   131→.kpi-app .nav-btn { padding: 14px 10px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .2s; position: relative; overflow: hidden; }
+   132→.kpi-app .nav-btn:hover { transform: translateY(-2px); }
+   133→.kpi-app .nav-btn:active { transform: scale(.97); }
+   134→.kpi-app .nav-btn .nav-icon { font-size: 14px; line-height: 1; }
+   135→.kpi-app .nav-detail { background: linear-gradient(135deg, #1e40af, #1e3a8a); box-shadow: 0 6px 18px #1e40af66; }
+   136→.kpi-app .nav-plan { background: linear-gradient(135deg, #059669, #065f46); box-shadow: 0 6px 18px #05966966; }
+   137→.kpi-app .nav-race { background: linear-gradient(135deg, #0c4a6e, #082f49); box-shadow: 0 6px 18px #0c4a6e80; border: 1.5px solid #38bdf840; }
+   138→.kpi-app .nav-policy { background: linear-gradient(135deg, #6d28d9, #4c1d95); box-shadow: 0 6px 18px #6d28d966; border: 1.5px solid #a78bfa40; }
+   139→.kpi-app .nav-clb { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 6px 18px #b4530966; border: 1.5px solid #fbbf2440; }
+   140→
+   141→/* Section Divider */
+   142→.kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
+   143→
+   144→/* KPI Stack */
+   145→.kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+   146→.kpi-app .dept-section { display: flex; flex-direction: column; gap: 0; }
+   147→
+   148→/* Skeleton */
+   149→.kpi-app .skel { border-radius: 12px; background: linear-gradient(90deg, #ffffff08 25%, #ffffff0f 50%, #ffffff08 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+   150→@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+   151→.kpi-app .skel-cty { height: 140px; margin-bottom: 10px; margin-top: 32px; }
+   152→.kpi-app .skel-phong { height: 70px; margin-top: 12px; }
+   153→.kpi-app .skel-ad { height: 50px; }
+   154→
+   155→/* Error */
+   156→.kpi-app .error-state { background: #ef44440d; border: 1px solid #ef44441f; border-radius: 16px; padding: 40px 20px; text-align: center; }
+   157→.kpi-app .error-state p { color: #fca5a5; font-size: 13px; margin-bottom: 16px; }
+   158→
+   159→/* Detail View */
+   160→.kpi-app .detail-shell { margin-top: 10px; margin-left: auto; margin-right: auto; max-width: 100%; }
+   161→.kpi-app .detail-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; position: sticky; top: 0; z-index: 50; padding: 4px 0; }
+   162→.kpi-app .btn-back-u { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all .2s; flex-shrink: 0; }
+   163→.kpi-app .btn-back-u:hover { color: var(--accent); background: #fbbf240f; }
+   164→.kpi-app .detail-hero { text-align: center; padding: 4px 0 2px; }
+   165→.kpi-app .detail-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; text-transform: uppercase; color: #ffb12b; letter-spacing: -.03em; line-height: 1.05; }
+   166→.kpi-app .detail-meta { margin-top: 6px; font-size: 12px; color: #7da0cb; font-weight: 500; }
+   167→.kpi-app .month-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 14px; }
+   168→.kpi-app .month-cell { padding: 6px 2px 5px; border-radius: 8px; border: 1px solid #008080; background: #0a3434; color: #b9ffff; cursor: pointer; font-family: inherit; text-align: center; transition: all .2s; display: flex; align-items: center; justify-content: center; }
+   169→.kpi-app .month-cell:hover { background: #0d4b4b; color: #f3ffff; }
+   170→.kpi-app .month-cell.on { background: #008080; color: #003b3b; box-shadow: 0 6px 16px #00808033; }
+   171→.kpi-app .month-cell .mc-label { font-size: 9px; font-weight: 800; }
+   172→.kpi-app .detail-list-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 5px; }
+   173→.kpi-app .grp-item { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px 5px; border-radius: 10px; background: #1e2f46; border: 1px solid #008080; overflow: hidden; animation: cardSlideIn .4s ease-out both; transition: transform .2s, border-color .2s; }
+   174→.kpi-app .grp-item:hover { border-color: #008080; transform: translateY(-1px); }
+   175→.kpi-app .grp-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2b4a6a, #365d84); opacity: .55; transition: width .9s cubic-bezier(.22,1,.36,1); }
+   176→.kpi-app .grp-item.is-top .grp-fill { background: linear-gradient(90deg, #1a5c54, #22796e); opacity: .6; }
+   177→.kpi-app .grp-item > * { position: relative; z-index: 1; }
+   178→.kpi-app .grp-top-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+   179→.kpi-app .grp-name { font-weight: 800; font-size: 12px; color: #e8f0f8; line-height: 1.2; flex: 1; }
+   180→.kpi-app .grp-pct { font-size: 12px; font-weight: 900; white-space: nowrap; flex-shrink: 0; }
+   181→.kpi-app .grp-bot-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+   182→.kpi-app .grp-stats-inline { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+   183→.kpi-app .grp-stat-main { font-size: 10px; font-weight: 700; color: #b8d0ea; white-space: nowrap; }
+   184→.kpi-app .grp-stat-kh { font-size: 10px; font-weight: 600; color: #5a7da0; white-space: nowrap; }
+   185→.kpi-app .grp-prog-row { margin-top: 2px; }
+   186→.kpi-app .grp-prog { height: 4px; border-radius: 999px; overflow: hidden; background: #ffffff14; width: 100%; }
+   187→.kpi-app .grp-prog-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #4a9fd4, #7dc8f0); transition: width .9s cubic-bezier(.22,1,.36,1); will-change: width; }
+   188→.kpi-app .grp-item.is-top .grp-prog-fill { background: linear-gradient(90deg, #2fbfa8, #4ee8cc); }
+   189→
+   190→/* Top 3 Podium */
+   191→.kpi-app .top3-section { margin-top: 18px; }
+   192→.kpi-app .top3-grid { display: grid; grid-template-columns: 1fr 1.32fr 1fr; gap: 12px; align-items: end; max-width: 700px; margin: 0 auto; }
+   193→.kpi-app .top3-card { border-radius: 12px; padding: 12px 8px 10px; text-align: center; animation: cardSlideIn .5s ease-out both; position: relative; overflow: hidden; box-shadow: 0 8px 20px #00000040; }
+   194→.kpi-app .top3-rank { font-size: 13px; font-weight: 900; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+   195→.kpi-app .top3-rank-num { font-size: 10px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+   196→.kpi-app .top3-name { font-size: 10px; font-weight: 900; color: #fff8ec; margin-bottom: 5px; line-height: 1.2; padding: 0 2px; text-shadow: 0 1px 1px rgba(0,0,0,.28); }
+   197→.kpi-app .top3-val { font-size: 11px; font-weight: 900; color: #fff8ec; margin-bottom: 3px; text-shadow: 0 1px 1px rgba(0,0,0,.24); }
+   198→.kpi-app .top3-bar { height: 2px; border-radius: 999px; margin: 5px auto 4px; width: 60%; opacity: .8; }
+   199→.kpi-app .top3-pct { font-size: 10px; font-weight: 800; color: rgba(255,248,236,.9); text-shadow: 0 1px 1px rgba(0,0,0,.22); }
+   200→.kpi-app .top3-crown { font-size: 14px; margin-bottom: 5px; }
+   201→.kpi-app .top3-first { padding-top: 16px; padding-bottom: 14px; z-index: 2; transform: translateY(-6px); }
+   202→.kpi-app .top3-first .top3-name { font-size: 11px; }
+   203→.kpi-app .top3-first .top3-val { font-size: 13px; }
+   204→.kpi-app .t3-gold { background: linear-gradient(145deg, #fff2b6 0%, #e7c76c 18%, #c9942f 38%, #f7df89 56%, #b6801f 78%, #f4d774 100%); border: 1.5px solid #f2d27a; color: #4c3105; }
+   205→.kpi-app .t3-gold .top3-rank-num { background: linear-gradient(145deg, #fff3c5, #d6a22d 72%, #b17d1c); color: #4a3005; }
+   206→.kpi-app .t3-gold .top3-bar { background: linear-gradient(90deg, transparent, rgba(150,102,18,.85), transparent); }
+   207→.kpi-app .t3-gold .top3-name, .kpi-app .t3-gold .top3-val, .kpi-app .t3-gold .top3-pct { color: #4a3005; text-shadow: none; }
+   208→.kpi-app .t3-silver { background: linear-gradient(145deg, #f5f8fc 0%, #cfd7e1 22%, #9ca9b6 42%, #edf2f7 58%, #7f8b98 82%, #dfe5eb 100%); border: 1.5px solid #d8e0e8; color: #243240; }
+   209→.kpi-app .t3-silver .top3-rank-num { background: linear-gradient(145deg, #ffffff, #b8c2cc 70%, #8a97a5); color: #23303e; }
+   210→.kpi-app .t3-silver .top3-bar { background: linear-gradient(90deg, transparent, rgba(78,93,108,.8), transparent); }
+   211→.kpi-app .t3-silver .top3-name, .kpi-app .t3-silver .top3-val, .kpi-app .t3-silver .top3-pct { color: #223140; text-shadow: none; }
+   212→.kpi-app .t3-bronze { background: linear-gradient(145deg, #f2cfb3 0%, #d49763 20%, #a65e31 42%, #e1ad7d 58%, #7f431f 84%, #c98552 100%); border: 1.5px solid #d6a06f; color: #40200f; }
+   213→.kpi-app .t3-bronze .top3-rank-num { background: linear-gradient(145deg, #f4dbc5, #ba7340 72%, #8b4d25); color: #3d1f10; }
+   214→.kpi-app .t3-bronze .top3-bar { background: linear-gradient(90deg, transparent, rgba(112,55,23,.82), transparent); }
+   215→.kpi-app .t3-bronze .top3-name, .kpi-app .t3-bronze .top3-val, .kpi-app .t3-bronze .top3-pct { color: #3d1f10; text-shadow: none; }
+   216→
+   217→/* Calendar View */
+   218→.kpi-app .sub-header { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0; position: sticky; top: 0; z-index: 50; }
+   219→.kpi-app .sub-header .btn-back-u { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+   220→.kpi-app .sub-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; color: #ffb12b; text-transform: uppercase; letter-spacing: -.03em; text-align: center; line-height: 1.05; }
+   221→.kpi-app .sub-line-wrap { padding: 0 24px; margin-top: 12px; }
+   222→.kpi-app .sub-line { height: 1px; background: linear-gradient(90deg, transparent, #d4a84340, #d4a84366, #d4a84340, transparent); }
+   223→.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 14px; }
+   224→.kpi-app .cal-fbtn { padding: 7px 2px; border-radius: 7px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 9px; text-align: center; transition: all .2s; }
+   225→.kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
+   226→.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 14px #0080804d; font-weight: 900; }
+   227→.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 50px #0000004d; border: 1px solid #00808066; border-bottom: 4px solid #008080; margin-top: 16px; }
+   228→.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; padding: 14px 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; text-align: center; border-radius: 8px 8px 0 0; }
+   229→.kpi-app .cal-head span { padding: 0 10px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
+   230→.kpi-app .cal-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
+   231→.kpi-app .cal-row:hover { background: #eef9f9; }
+   232→.kpi-app .cal-row.is-today { background: #e0f2fe; box-shadow: inset 0 0 0 2px #38bdf8; }
+   233→.kpi-app .cal-row.is-weekend { background: #e8f4f0; }
+   234→.kpi-app .cal-row.is-sunday { background: #f5e8e8; }
+   235→.kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+   236→.kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
+   237→.kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
+   238→.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; align-items: center; background: #f7ffff; }
+   239→.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; align-items: center; justify-content: center; text-align: center; background: #f7ffff; word-break: break-word; }
+   240→.kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
+   241→.kpi-app .cal-line { display: block; }
+   242→
+   243→/* Desktop */
+   244→.kpi-app .desktop-split { display: none; }
+   245→.kpi-app .dsk-company { display: none; }
+   246→.kpi-app .dsk-ad-wrap { display: none; }
+   247→.kpi-app .kpi-ad.is-phong { display: none; }
+   248→.kpi-app .afyp-chart-wrap { display: none; background: linear-gradient(145deg, #070e1a, #0c1b30, #0a1628); border: 1px solid #1a3355; border-radius: 16px; padding: 16px 18px 18px; box-shadow: 0 12px 40px #00000050; }
+   249→.kpi-app .afyp-chart-title { font-size: .82rem; font-weight: 700; color: #a0d4f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+   250→.kpi-app .afyp-chart { position: relative; width: 100%; height: 240px; }
+   251→.kpi-app .afyp-chart svg { width: 100%; height: 100%; }
+   252→.kpi-app .afyp-chart-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+   253→.kpi-app .sum-item { background: linear-gradient(135deg, #0a1a2e, #0d2240); border: 1px solid #1a3355; border-radius: 10px; padding: 8px 10px; text-align: center; }
+   254→.kpi-app .sum-label { font-size: .58rem; font-weight: 700; color: #5a8aaa; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+   255→.kpi-app .sum-val { font-size: .85rem; font-weight: 900; color: #e0f0ff; line-height: 1.1; }
+   256→.kpi-app .sum-val.green { color: #4ade80; } .kpi-app .sum-val.gold { color: #fbbf24; } .kpi-app .sum-val.red { color: #f87171; }
+   257→.kpi-app .chart-legend { display: flex; gap: 12px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+   258→.kpi-app .legend-item { display: flex; align-items: center; gap: 6px; font-size: .7rem; color: #7aa0be; }
+   259→.kpi-app .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+   260→
+   261→@media (min-width: 900px) {
+   262→  .kpi-app .afyp-chart-wrap { display: block; }
+   263→  .kpi-app .app-wrap { max-width: none; }
+   264→  .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
+   265→  .kpi-app #view-main header { max-width: 1800px; width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
+   266→  .kpi-app .hero-title { font-size: 1.1rem !important; margin: 0 !important; }
+   267→  .kpi-app .hero-sub { display: none; }
+   268→  .kpi-app .ctrl-bar { margin-top: 0 !important; }
+   269→  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
+   270→  .kpi-app .nav-row-3 { display: contents; }
+   271→  .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
+   272→  .kpi-app .kpi-cty { display: none !important; }
+   273→  .kpi-app .dsk-company { display: flex; align-items: stretch; gap: 0; background: linear-gradient(135deg, #0f1f38, #162d50, #0f1f38); border: 1px solid #2a4a72; border-radius: 14px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008; }
+   274→  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; justify-content: center; padding: 20px 28px; background: linear-gradient(135deg, #f2b24d18, #d4a84308); border-right: 2px solid #f2b24d44; min-width: 220px; }
+   275→  .kpi-app .dsk-cty-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #d4a843; margin-bottom: 6px; }
+   276→  .kpi-app .dsk-cty-pct { font-size: 2.4rem; font-weight: 900; line-height: 1; color: #f2d38d; }
+   277→  .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
+   278→  .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #1a2a44; overflow: hidden; }
+   279→  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e0a030, #f2c860); transition: width 1s cubic-bezier(.22,1,.36,1); }
+   280→  .kpi-app .dsk-cty-afyp { margin-top: 8px; font-size: 1.1rem; font-weight: 900; color: #fff; }
+   281→  .kpi-app .dsk-cty-kh { font-size: .7rem; font-weight: 600; color: #5a8aba; }
+   282→  .kpi-app .dsk-cty-right { display: flex; flex: 1; gap: 0; align-items: stretch; }
+   283→  .kpi-app .dsk-cty-tile { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 12px; border-right: 1px solid #1a3050; position: relative; }
+   284→  .kpi-app .dsk-cty-tile:last-child { border-right: none; }
+   285→  .kpi-app .dsk-cty-tile-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #7a9aba; margin-bottom: 6px; }
+   286→  .kpi-app .dsk-cty-tile-val { font-size: 1.6rem; font-weight: 900; line-height: 1; }
+   287→  .kpi-app .dsk-cty-tile.hd .dsk-cty-tile-val { color: #7fc2ff; }
+   288→  .kpi-app .dsk-cty-tile.td .dsk-cty-tile-val { color: #d8b7ff; }
+   289→  .kpi-app .dsk-cty-tile.chuan .dsk-cty-tile-val { color: #16e0d3; }
+   290→  .kpi-app .dsk-cty-tile.ip .dsk-cty-tile-val { color: #ffd789; }
+   291→  .kpi-app .desktop-split { display: grid; grid-template-columns: 38% 62%; gap: 20px; width: 100%; max-width: 1800px; align-self: center; align-items: start; margin-top: 20px; }
+   292→  .kpi-app .split-left { display: none; }
+   293→  .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: sticky; top: 16px; align-self: start; }
+   294→  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; }
+   295→  .kpi-app .afyp-chart { min-height: 320px; }
+   296→  .kpi-app .kpi-phong { display: none !important; }
+   297→  .kpi-app .kpi-ad.is-phong { display: block; background: linear-gradient(180deg, #e8f0fa, #d4e2f4); border: 1px solid #7aacdc88; border-top: 3px solid #3a8ad4; border-radius: 14px; padding: 16px 18px 18px; }
+   298→  .kpi-app .kpi-ad.is-phong .ad-name { color: #1a4a7a; }
+   299→  .kpi-app .kpi-ad.is-phong .ad-pct { color: #1a6ab4; }
+   300→  .kpi-app .ad-grid { display: none !important; }
+   301→  .kpi-app .dsk-ad-wrap { display: block; margin-top: 8px; }
+   302→  .kpi-app .dsk-ad-table { display: table; width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; background: #0a1525; border-radius: 8px; overflow: hidden; border: 1px solid #1a2a44; }
+   303→  .kpi-app .dsk-ad-table thead th { padding: 6px 6px 5px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a8aaa; background: #0d1a2e; border-bottom: 1px solid #1a2a44; text-align: center; white-space: nowrap; }
+   304→  .kpi-app .dsk-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+   305→  .kpi-app .dsk-ad-table tbody tr { cursor: pointer; transition: background .15s; }
+   306→  .kpi-app .dsk-ad-table tbody tr:hover { background: #142440; }
+   307→  .kpi-app .dsk-ad-table tbody td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #0f1e34; font-weight: 700; white-space: nowrap; color: #c8d8ea; }
+   308→  .kpi-app .dsk-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
+   309→  .kpi-app .dsk-ad-name { font-weight: 900; color: #e0f0ff; }
+   310→  .kpi-app .dsk-ad-pct { font-weight: 900; }
+   311→  .kpi-app .dsk-ad-pct.green { color: #4ade80; } .kpi-app .dsk-ad-pct.gold { color: #fbbf24; } .kpi-app .dsk-ad-pct.red { color: #f87171; }
+   312→  .kpi-app .dsk-ad-mini-prog { width: 40px; height: 4px; border-radius: 99px; background: #1a2a44; display: inline-block; vertical-align: middle; overflow: hidden; }
+   313→  .kpi-app .dsk-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
+   314→  /* Desktop detail */
+   315→  .kpi-app #view-detail .detail-shell { max-width: 1200px; width: 100%; margin: 0 auto; padding: 16px 24px; }
+   316→  .kpi-app #view-detail .detail-list-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 1200px; width: 100%; margin: 0 auto; }
+   317→  /* Desktop calendar */
+   318→  .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin-left: auto; margin-right: auto; }
+   319→}
+   320→/* Responsive mobile */
+   321→@media (max-width: 640px) {
+   322→  .kpi-app .ctrl-bar { gap: 6px; margin-top: 14px; }
+   323→  .kpi-app .ctrl-select { width: 100%; height: 44px; border-radius: 10px; font-size: 11px; }
+   324→  .kpi-app .btn-sync { height: 44px; font-size: 11px; border-radius: 10px; }
+   325→  .kpi-app .cty-body { grid-template-columns: 1fr; gap: 14px; }
+   326→  .kpi-app .phong-body { grid-template-columns: 1fr; gap: 10px; }
+   327→  .kpi-app .phong-progress { height: 12px; }
+   328→  .kpi-app .nav-grid { gap: 7px; margin-top: 18px; }
+   329→  .kpi-app .nav-btn { padding: 11px 9px; border-radius: 10px; font-size: 10px; min-height: 46px; }
+   330→  .kpi-app .ad-top { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; }
+   331→  .kpi-app .ad-name { font-size: 11px; }
+   332→  .kpi-app .ad-pct { font-size: 11px; }
+   333→  .kpi-app .ad-stat-label { font-size: 5.5px; }
+   334→  .kpi-app .ad-stat-val { font-size: 9px; }
+   335→  .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
+   336→  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 3px; }
+   337→  .kpi-app .cal-fbtn { padding: 5px 1px; border-radius: 6px; min-height: 28px; font-size: 8px; }
+   338→  .kpi-app .cal-row { grid-template-columns: 46px minmax(0,1fr) 58px; }
+   339→  .kpi-app .cal-head { grid-template-columns: 46px minmax(0,1fr) 58px; }
+   340→  .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
+   341→  .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
+   342→  .kpi-app .month-cell .mc-label { font-size: 8px; }
+   343→}
+   344→`;
+   345→
+   346→/* ================= TYPES ================= */
+   347→interface Contract {
+   348→  id: string; agentCode: string; agentName: string; position: string;
+   349→  ban: string; nhom: string; maNhom: string; maBanNhom: string;
+   350→  ad: string; effectiveDate: string; afyp: number; fyp: number;
+   351→  pdt10DT: number; tinhLuot3tr: number; ngayBatDauLamViec: string | null;
+   352→}
+   353→interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
+   354→interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
+   355→interface LeaderInfo { id: string; agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; }
+   356→interface CalendarEvent { id: number; title: string; date: string; color: string; }
+   357→
+   358→interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
+   359→interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; }
+   360→interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
+   361→interface GroupDetail { name: string; afyp: number; kh: number; pct: number; }
+   362→
+   363→/* ================= CONSTANTS ================= */
+   364→const CO_CAU: Record<string, string[]> = {
+   365→  'PHÒNG 1': ['UY', 'TRÍ'],
+   366→  'PHÒNG 2': ['CÓ', 'LONG'],
+   367→  'PHÒNG 3': ['TRANG', 'DANH'],
+   368→  'BANCA - PA': ['BANCA'],
+   369→};
+   370→const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+   371→const WEEKDAY_NAMES = ['CN','T2','T3','T4','T5','T6','T7'];
+   372→
+   373→/* ================= UTILITIES ================= */
+   374→function num(v: unknown): number {
+   375→  if (v === null || v === undefined) return 0;
+   376→  if (typeof v === 'number') return isFinite(v) ? v : 0;
+   377→  const s = String(v).trim().replace(/\s/g, '').replace(/%/g, '');
+   378→  if (!s) return 0;
+   379→  const n = Number(s.replace(/[^0-9.\-]/g, ''));
+   380→  return isFinite(n) ? n : 0;
+   381→}
+   382→function fmt(n: number): string { return new Intl.NumberFormat('vi-VN').format(n); }
+   383→function fmtBig(v: number): string {
+   384→  if (v >= 1e9) return (v/1e9).toFixed(2) + ' tỷ';
+   385→  if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
+   386→  if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
+   387→  return v.toFixed(0);
+   388→}
+   389→function fmtTyTrong(v: number): string {
+   390→  if (!isFinite(v) || isNaN(v)) return '0%';
+   391→  if (Math.abs(v % 1) < 0.001) return fmt(Math.round(v)) + '%';
+   392→  return v.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '%';
+   393→}
+   394→function fmtShort(v: number): string {
+   395→  if (v >= 1e9) return (v/1e9).toFixed(1) + ' tỷ';
+   396→  if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
+   397→  if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
+   398→  return v.toFixed(0);
+   399→}
+   400→function progressColor(pct: number): string {
+   401→  const p = Math.max(0, Math.min(100, pct || 0));
+   402→  const hue = 0 + (120 * (p / 100));
+   403→  return `hsl(${hue}, 68%, 52%)`;
+   404→}
+   405→function glowCls(pct: number): string { return pct >= 100 ? ' glow-full' : ''; }
+   406→function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red'; }
+   407→function normKey(v: string): string {
+   408→  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g,'D').replace(/đ/g,'d').toUpperCase().replace(/[^A-Z0-9]/g, '');
+   409→}
+   410→function getMonthFromDate(d: string | null | undefined): string {
+   411→  if (!d) return '';
+   412→  try {
+   413→    const dt = new Date(d);
+   414→    if (isNaN(dt.getTime())) return '';
+   415→    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+   416→  } catch { return ''; }
+   417→}
+   418→function getMonthNum(d: string | null | undefined): number {
+   419→  if (!d) return 0;
+   420→  try { const dt = new Date(d); return isNaN(dt.getTime()) ? 0 : dt.getMonth() + 1; } catch { return 0; }
+   421→}
+   422→
+   423→/* ================= ANIMATION HOOKS ================= */
+   424→function useAnimateValue(ref: React.RefObject<HTMLElement | null>, end: number, dur = 900) {
+   425→  useEffect(() => {
+   426→    const el = ref.current;
+   427→    if (!el) return;
+   428→    let st: number | null = null;
+   429→    let raf: number;
+   430→    const step = (ts: number) => {
+   431→      if (!st) st = ts;
+   432→      const p = Math.min((ts - st) / dur, 1);
+   433→      const ease = 1 - Math.pow(1 - p, 3);
+   434→      el.textContent = fmt(Math.floor(end * ease));
+   435→      if (p < 1) raf = requestAnimationFrame(step);
+   436→    };
+   437→    raf = requestAnimationFrame(step);
+   438→    return () => cancelAnimationFrame(raf);
+   439→  }, [ref, end, dur]);
+   440→}
+   441→
+   442→function useAnimatePct(ref: React.RefObject<HTMLElement | null>, target: number, dur = 900, dec = 0) {
+   443→  useEffect(() => {
+   444→    const el = ref.current;
+   445→    if (!el) return;
+   446→    let st: number | null = null;
+   447→    let raf: number;
+   448→    const step = (ts: number) => {
+   449→      if (!st) st = ts;
+   450→      const p = Math.min((ts - st) / dur, 1);
+   451→      const ease = 1 - Math.pow(1 - p, 3);
+   452→      el.textContent = (target * ease).toFixed(dec) + '%';
+   453→      if (p < 1) raf = requestAnimationFrame(step);
+   454→    };
+   455→    raf = requestAnimationFrame(step);
+   456→    return () => cancelAnimationFrame(raf);
+   457→  }, [ref, target, dur, dec]);
+   458→}
+   459→
+   460→/* ================= ANIMATED NUMBER COMPONENT ================= */
+   461→function AnimNum({ value, className }: { value: number; className?: string }) {
+   462→  const ref = useRef<HTMLSpanElement>(null);
+   463→  useAnimateValue(ref, value);
+   464→  return <span ref={ref} className={className}>0</span>;
+   465→}
+   466→function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; className?: string }) {
+   467→  const ref = useRef<HTMLSpanElement>(null);
+   468→  useAnimatePct(ref, value, 900, dec);
+   469→  return <span ref={ref} className={className}>0%</span>;
+   470→}
+   471→
+   472→/* ================= MAIN COMPONENT ================= */
+   473→export default function KPIDashboard() {
+   474→  const [rawData, setRawData] = useState<{
+   475→    contracts: Contract[]; staff: Staff[]; revenue: Revenue[];
+   476→    leaders: LeaderInfo[];
+   477→  } | null>(null);
+   478→  const [loading, setLoading] = useState(true);
+   479→  const [error, setError] = useState(false);
+   480→  const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
+   481→  const [selectedKy, setSelectedKy] = useState('');
+   482→  const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
+   483→  const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+   484→  const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+   485→  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+   486→  const [syncing, setSyncing] = useState(false);
+   487→
+   488→  const NOW = useMemo(() => new Date(), []);
+   489→  const CUR_YEAR = NOW.getFullYear();
+   490→  const CUR_MONTH = String(NOW.getMonth() + 1).padStart(2, '0');
+   491→
+   492→  /* Fetch data */
+   493→  const fetchData = useCallback(async () => {
+   494→    setSyncing(true);
+   495→    try {
+   496→      const res = await fetch('/api/quan-ly/all');
+   497→      if (!res.ok) throw new Error('Failed');
+   498→      const data = await res.json();
+   499→      setRawData(data);
+   500→      setError(false);
+   501→    } catch {
+   502→      setError(true);
+   503→    } finally {
+   504→      setLoading(false);
+   505→      setSyncing(false);
+   506→    }
+   507→  }, []);
+   508→
+   509→  useEffect(() => { fetchData(); }, [fetchData]);
+   510→
+   511→  /* Fetch calendar events */
+   512→  useEffect(() => {
+   513→    if (view !== 'calendar') return;
+   514→    const year = CUR_YEAR;
+   515→    const month = `${year}-${calMonth}`;
+   516→    fetch(`/api/calendar?month=${month}`).then(r => r.ok ? r.json() : []).then(setCalendarEvents).catch(() => setCalendarEvents([]));
+   517→  }, [view, calMonth, CUR_YEAR]);
+   518→
+   519→  /* Period list */
+   520→  const kyList = useMemo(() => {
+   521→    const list: string[] = [];
+   522→    const seen = new Set<string>();
+   523→    for (let m = 1; m <= 12; m++) {
+   524→      const mk = `${CUR_YEAR}-${String(m).padStart(2, '0')}`;
+   525→      if (!seen.has(mk)) { seen.add(mk); list.push(mk); }
+   526→    }
+   527→    return list;
+   528→  }, [CUR_YEAR]);
+   529→
+   530→  useEffect(() => {
+   531→    if (!selectedKy && kyList.length) {
+   532→      const dk = `${CUR_YEAR}-${CUR_MONTH}`;
+   533→      setSelectedKy(kyList.includes(dk) ? dk : kyList[0]);
+   534→    }
+   535→  }, [kyList, selectedKy, CUR_YEAR, CUR_MONTH]);
+   536→
+   537→  /* Compute dashboard data */
+   538→  const dashboard = useMemo(() => {
+   539→    if (!rawData) return null;
+   540→    const { contracts, staff, revenue } = rawData;
+   541→    const ky = selectedKy;
+   542→    if (!ky) return null;
+   543→
+   544→    const monthNum = parseInt(ky.split('-')[1] || '0', 10);
+   545→
+   546→    // Filter contracts by effectiveDate in selected month
+   547→    const monthContracts = contracts.filter(c => {
+   548→      const cm = getMonthFromDate(c.effectiveDate);
+   549→      return cm === ky;
+   550→    });
+   551→
+   552→    // Filter staff by startDate in selected month
+   553→    const monthStaff = staff.filter(s => {
+   554→      const sm = getMonthFromDate(s.startDate);
+   555→      return sm === ky;
+   556→    });
+   557→
+   558→    // Get revenue data for the selected month
+   559→    const monthRevenue = revenue.filter(r => r.month === ky);
+   560→
+   561→    // Build revenue map by maNhom for quick lookup
+   562→    const revByNhom: Record<string, Revenue> = {};
+   563→    monthRevenue.forEach(r => { revByNhom[r.maNhom] = r; });
+   564→
+   565→    // Compute per-Phong and per-AD data
+   566→    const total: TotalData = { afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0 };
+   567→    let tyTrongWeighted = 0, tyTrongCount = 0;
+   568→    const phongs: PhongData[] = [];
+   569→
+   570→    for (const pName in CO_CAU) {
+   571→      const adKeys = CO_CAU[pName];
+   572→      const isBanca = pName === 'BANCA - PA';
+   573→      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: isBanca };
+   574→
+   575→      adKeys.forEach(adKey => {
+   576→        // Find AD manager name from leaders
+   577→        const leader = rawData.leaders.find(l => normKey(l.agentName).includes(normKey(adKey)) || normKey(adKey).includes(normKey(l.agentName)));
+   578→        const managerName = leader?.agentName || adKey;
+   579→
+   580→        // Find contracts for this AD
+   581→        const adContracts = monthContracts.filter(c => {
+   582→          const adNorm = normKey(c.ad || '');
+   583→          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
+   584→        });
+   585→
+   586→        // Get revenue for this AD's groups
+   587→        let adKh = 0;
+   588→        const adRevEntries = monthRevenue.filter(r => {
+   589→          const nameNorm = normKey(r.agentName || '');
+   590→          return nameNorm && (nameNorm === normKey(adKey) || nameNorm.includes(normKey(adKey)) || normKey(adKey).includes(nameNorm));
+   591→        });
+   592→        adRevEntries.forEach(r => { adKh += num(r.totalAFYP) * 0; }); // Revenue is actual, not plan
+   593→
+   594→        const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
+   595→        const lhd = adContracts.length;
+   596→        const td = monthStaff.filter(s => {
+   597→          const adNorm = normKey(s.nhom || '');
+   598→          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)));
+   599→        }).length;
+   600→        const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 3).length;
+   601→        const ip = adContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+   602→        const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
+   603→
+   604→        // Use revenue as plan if available
+   605→        const revEntry = adRevEntries[0];
+   606→        const kh = revEntry ? num(revEntry.totalAFYP) : 0;
+   607→
+   608→        const d: ADData = { ten: managerName, managerKey: adKey, afyp, kh, lhd, td, hdChuan, tyTrong };
+   609→        p.ads.push(d);
+   610→        p.afyp += afyp; p.kh += kh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
+   611→        if (!isBanca) { tyTrongWeighted += (afyp > 0 ? afyp : 1) * tyTrong; tyTrongCount += (afyp > 0 ? afyp : 1); }
+   612→      });
+   613→
+   614→      p.tyTrong = tyTrongCount ? (tyTrongWeighted / tyTrongCount) : 0;
+   615→      phongs.push(p);
+   616→      total.afyp += p.afyp; total.kh += p.kh; total.lhd += p.lhd; total.td += p.td; total.hdChuan += p.hdChuan;
+   617→    }
+   618→
+   619→    total.tyTrong = tyTrongCount ? (tyTrongWeighted / tyTrongCount) : 0;
+   620→    return { total, phongs, monthContracts };
+   621→  }, [rawData, selectedKy]);
+   622→
+   623→  /* Compute detail data */
+   624→  const detailData = useMemo(() => {
+   625→    if (!rawData) return [];
+   626→    const { contracts, revenue } = rawData;
+   627→    const m = parseInt(detailMonth, 10);
+   628→    if (!m) return [];
+   629→    const ky = `${CUR_YEAR}-${detailMonth}`;
+   630→
+   631→    // Group contracts by nhom
+   632→    const groupMap: Record<string, { afyp: number; count: number; ip: number }> = {};
+   633→    contracts.filter(c => getMonthFromDate(c.effectiveDate) === ky).forEach(c => {
+   634→      const g = c.nhom || 'Khác';
+   635→      if (!groupMap[g]) groupMap[g] = { afyp: 0, count: 0, ip: 0 };
+   636→      groupMap[g].afyp += num(c.afyp);
+   637→      groupMap[g].count++;
+   638→      groupMap[g].ip += num(c.pdt10DT);
+   639→    });
+   640→
+   641→    // Get revenue (as plan) per group
+   642→    const revByGroup: Record<string, number> = {};
+   643→    revenue.filter(r => r.month === ky).forEach(r => {
+   644→      const g = r.nhom || r.maNhom;
+   645→      if (g) revByGroup[g] = (revByGroup[g] || 0) + num(r.totalAFYP);
+   646→    });
+   647→
+   648→    const items: GroupDetail[] = Object.entries(groupMap).map(([name, data]) => {
+   649→      const afypTrd = Math.round(data.afyp / 1000000);
+   650→      const khTrd = Math.round((revByGroup[name] || 0) / 1000000);
+   651→      const pct = khTrd ? (afypTrd / khTrd * 100) : 0;
+   652→      return { name, afyp: afypTrd, kh: khTrd, pct };
+   653→    });
+   654→
+   655→    items.sort((a, b) => b.pct - a.pct);
+   656→    return items;
+   657→  }, [rawData, detailMonth, CUR_YEAR]);
+   658→
+   659→  /* Monthly AFYP chart data */
+   660→  const chartData = useMemo(() => {
+   661→    if (!rawData) return [];
+   662→    const months: { month: number; label: string; afyp: number; kh: number }[] = [];
+   663→    const adKeys = Object.values(CO_CAU).flat();
+   664→    const curM = parseInt(CUR_MONTH, 10);
+   665→
+   666→    for (let m = 1; m <= 12; m++) {
+   667→      const mk = `${CUR_YEAR}-${String(m).padStart(2, '0')}`;
+   668→      const mContracts = rawData.contracts.filter(c => getMonthFromDate(c.effectiveDate) === mk);
+   669→
+   670→      let afyp = 0;
+   671→      adKeys.forEach(adKey => {
+   672→        mContracts.filter(c => {
+   673→          const adNorm = normKey(c.ad || '');
+   674→          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
+   675→        }).forEach(c => { afyp += num(c.afyp); });
+   676→      });
+   677→
+   678→      months.push({ month: m, label: `T${m}`, afyp, kh: 0 });
+   679→    }
+   680→    return months;
+   681→  }, [rawData, CUR_YEAR, CUR_MONTH]);
+   682→
+   683→  /* Format ky label */
+   684→  const formatKyLabel = (ky: string) => {
+   685→    if (!ky) return '--';
+   686→    const monthMatch = ky.match(/(\d{2})$/);
+   687→    if (/^\d{4}-\d{2}$/.test(ky) && monthMatch) return `T${parseInt(monthMatch[1])}`;
+   688→    return ky.replace(/^\d{4}-/, '');
+   689→  };
+   690→
+   691→  /* Calendar render data */
+   692→  const calendarRows = useMemo(() => {
+   693→    const monthNum = parseInt(calMonth, 10);
+   694→    if (!monthNum) return [];
+   695→    const daysInMonth = new Date(CUR_YEAR, monthNum, 0).getDate();
+   696→    const rows: { day: number; weekday: number; events: CalendarEvent[]; isToday: boolean; isWeekend: boolean; isSunday: boolean }[] = [];
+   697→
+   698→    for (let day = 1; day <= daysInMonth; day++) {
+   699→      const dateObj = new Date(CUR_YEAR, monthNum - 1, day);
+   700→      const weekday = dateObj.getDay();
+   701→      const dateStr = `${CUR_YEAR}-${calMonth}-${String(day).padStart(2, '0')}`;
+   702→      const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+   703→      rows.push({
+   704→        day, weekday, events: dayEvents,
+   705→        isToday: day === NOW.getDate() && calMonth === CUR_MONTH,
+   706→        isWeekend: weekday === 6,
+   707→        isSunday: weekday === 0,
+   708→      });
+   709→    }
+   710→    return rows;
+   711→  }, [calMonth, CUR_YEAR, calendarEvents, NOW, CUR_MONTH]);
+   712→
+   713→  /* Render AFYP Chart SVG */
+   714→  const renderChart = () => {
+   715→    if (typeof window === 'undefined' || !chartData.some(d => d.afyp > 0)) return null;
+   716→    const hasData = chartData.some(d => d.afyp > 0);
+   717→    if (!hasData) return null;
+   718→
+   719→    const W = 600, H = 320;
+   720→    const padL = 68, padR = 20, padT = 30, padB = 40;
+   721→    const chartW = W - padL - padR;
+   722→    const chartH = H - padT - padB;
+   723→    const maxVal = Math.max(1, ...chartData.map(d => d.afyp));
+   724→    const niceMax = Math.pow(10, Math.floor(Math.log10(maxVal))) * (maxVal / Math.pow(10, Math.floor(Math.log10(maxVal))) > 5 ? 10 : maxVal / Math.pow(10, Math.floor(Math.log10(maxVal))) > 2 ? 5 : 2);
+   725→    const slotW = chartW / 12;
+   726→    const barW = slotW * 0.55;
+   727→
+   728→    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">`;
+   729→    svg += '<defs>';
+   730→    svg += '<linearGradient id="barGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>';
+   731→    svg += '<linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient>';
+   732→    svg += '<linearGradient id="barRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#dc2626"/></linearGradient>';
+   733→    svg += '<filter id="barShadow" x="-10%" y="-5%" width="120%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/></filter>';
+   734→    svg += '</defs>';
+   735→
+   736→    for (let gi = 0; gi <= 5; gi++) {
+   737→      const gy = padT + chartH - (chartH * gi / 5);
+   738→      svg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="${gi===0?'0':'4,4'}"/>`;
+   739→      const gVal = niceMax * gi / 5;
+   740→      svg += `<text x="${padL-8}" y="${(gy+4).toFixed(1)}" fill="#6b8aaa" font-size="11" text-anchor="end" font-family="inherit">${fmtShort(gVal)}</text>`;
+   741→    }
+   742→
+   743→    const linePoints: string[] = [];
+   744→    chartData.forEach((d, mi) => {
+   745→      const cx = padL + slotW * mi + slotW / 2;
+   746→      if (d.afyp > 0) {
+   747→        const afypH = d.afyp / niceMax * chartH;
+   748→        const pct = 0;
+   749→        const gradId = pct >= 100 ? 'barGreen' : pct >= 70 ? 'barGold' : 'barRed';
+   750→        const barX = cx - barW / 2;
+   751→        svg += `<rect x="${barX.toFixed(1)}" y="${(padT+chartH-afypH).toFixed(1)}" width="${barW.toFixed(1)}" height="${afypH.toFixed(1)}" rx="5" fill="url(#${gradId})" filter="url(#barShadow)"/>`;
+   752→        svg += `<text x="${cx.toFixed(1)}" y="${(padT+chartH-afypH-8).toFixed(1)}" fill="#fbbf24" font-size="11" font-weight="700" text-anchor="middle" font-family="inherit">${fmtShort(d.afyp)}</text>`;
+   753→        linePoints.push(`${cx.toFixed(1)},${(padT+chartH-afypH).toFixed(1)}`);
+   754→      }
+   755→      svg += `<text x="${cx.toFixed(1)}" y="${H-12}" fill="#8faabe" font-size="11" text-anchor="middle" font-weight="600" font-family="inherit">${d.label}</text>`;
+   756→    });
+   757→
+   758→    if (linePoints.length > 1) {
+   759→      svg += `<polyline points="${linePoints.join(' ')}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+   760→      linePoints.forEach(pt => {
+   761→        const [cx, cy] = pt.split(',');
+   762→        svg += `<circle cx="${cx}" cy="${cy}" r="5" fill="#0b1a2e" stroke="#38bdf8" stroke-width="2.5"/>`;
+   763→        svg += `<circle cx="${cx}" cy="${cy}" r="2" fill="#38bdf8"/>`;
+   764→      });
+   765→    }
+   766→
+   767→    svg += '</svg>';
+   768→    return svg;
+   769→  };
+   770→
+   771→  /* Render helpers */
+   772→  const pct = dashboard ? (dashboard.total.kh ? (dashboard.total.afyp / dashboard.total.kh * 100) : 0) : 0;
+   773→  const cp = Math.min(pct, 100);
+   774→
+   775→  /* Detail top 3 */
+   776→  const top3Items = detailData.filter(x => x.kh > 0).slice(0, 3);
+   777→  const top3Order = [top3Items.length > 1 ? top3Items[1] : null, top3Items[0] || null, top3Items.length > 2 ? top3Items[2] : null];
+   778→  const crowns = [<Award key="a" size={14} />, <Crown key="c" size={14} />, <Medal key="m" size={14} />];
+   779→  const cls3 = ['t3-silver', 't3-gold', 't3-bronze'];
+   780→
+   781→  return (
+   782→    <div className="kpi-app">
+   783→      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+   784→      <div className="bg-scene" aria-hidden="true">
+   785→        <div className="bg-orb bg-orb-1" />
+   786→        <div className="bg-orb bg-orb-2" />
+   787→        <div className="bg-orb bg-orb-3" />
+   788→      </div>
+   789→
+   790→      <div className="app-wrap">
+   791→        {/* ===== MAIN VIEW ===== */}
+   792→        <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
+   793→          <header className="text-center">
+   794→            <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
+   795→            <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
+   796→            <div className="ctrl-bar">
+   797→              <div className={`ctrl-select-wrap ${kyDropdownOpen ? 'open' : ''}`}>
+   798→                <button type="button" className="ctrl-select" onClick={() => setKyDropdownOpen(!kyDropdownOpen)}>
+   799→                  <CalendarDays size={14} style={{ color: '#d4a843' }} />
+   800→                  {formatKyLabel(selectedKy)}
+   801→                  <ChevronDown size={12} />
+   802→                </button>
+   803→                <div className="ctrl-select-popup" role="listbox">
+   804→                  {kyList.map(ky => (
+   805→                    <button key={ky} className={`ctrl-select-opt ${ky === selectedKy ? 'on' : ''}`}
+   806→                      onClick={() => { setSelectedKy(ky); setKyDropdownOpen(false); }}>
+   807→                      {formatKyLabel(ky)}
+   808→                    </button>
+   809→                  ))}
+   810→                </div>
+   811→              </div>
+   812→              <button className={`btn-sync ${syncing ? 'loading' : ''}`} onClick={fetchData} title="Đồng bộ">
+   813→                <RotateCw size={14} style={{ color: '#d4a843' }} className={syncing ? 'animate-spin' : ''} />
+   814→              </button>
+   815→            </div>
+   816→          </header>
+   817→
+   818→          {loading && (
+   819→            <div id="skeleton-main">
+   820→              <div className="skel skel-cty" />
+   821→              <div className="skel skel-phong" />
+   822→              <div className="skel skel-ad" />
+   823→              <div className="skel skel-ad" />
+   824→              <div className="skel skel-phong" />
+   825→            </div>
+   826→          )}
+   827→
+   828→          {error && (
+   829→            <div className="error-state">
+   830→              <p>Không thể tải dữ liệu. Vui lòng thử lại.</p>
+   831→              <button className="btn-sync" onClick={fetchData}>Thử lại</button>
+   832→            </div>
+   833→          )}
+   834→
+   835→          {dashboard && !loading && (
+   836→            <>
+   837→              {/* Company Card (Mobile) */}
+   838→              <div id="kpi-company">
+   839→                <div className={`kpi-card kpi-cty anim-in${glowCls(pct)}`}>
+   840→                  <div className="cty-inner">
+   841→                    <div className="cty-head">
+   842→                      <div className="cty-name"><Trophy size={16} style={{ color: '#ffc46b' }} /><span>Tổng Công Ty</span></div>
+   843→                      <div className="cty-pct-num"><AnimPct value={pct} /></div>
+   844→                    </div>
+   845→                    <div className="cty-body">
+   846→                      <div className="afyp-kh-row">
+   847→                        <span className="afyp-big"><AnimNum value={dashboard.total.afyp} /></span>
+   848→                        <span className="kh-small">/ KH: {fmt(dashboard.total.kh)}</span>
+   849→                      </div>
+   850→                      <div className="cty-progress"><div className="cty-progress-fill" style={{ width: `${cp}%` }} /></div>
+   851→                    </div>
+   852→                    <div className="cty-stats">
+   853→                      <div className="cty-stat hd"><div className="cty-stat-label">Lượt HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
+   854→                      <div className="cty-stat td"><div className="cty-stat-label">TD</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
+   855→                      <div className="cty-stat chuan"><div className="cty-stat-label">Lượt chuẩn</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+   856→                      <div className="cty-stat ip"><div className="cty-stat-label">IP/AFYP</div><div className="cty-stat-val">{fmtTyTrong(dashboard.total.tyTrong)}</div></div>
+   857→                    </div>
+   858→                  </div>
+   859→                </div>
+   860→
+   861→                {/* Desktop Company Strip */}
+   862→                <div className="dsk-company">
+   863→                  <div className="dsk-cty-left">
+   864→                    <div className="dsk-cty-label"><Trophy size={12} style={{ color: '#f2b24d', marginRight: 4 }} />Tổng Công Ty</div>
+   865→                    <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
+   866→                    <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>
+   867→                    <div className="dsk-cty-afyp"><AnimNum value={dashboard.total.afyp} /></div>
+   868→                    <div className="dsk-cty-kh">KH: {fmt(dashboard.total.kh)}</div>
+   869→                  </div>
+   870→                  <div className="dsk-cty-right">
+   871→                    <div className="dsk-cty-tile hd"><div className="dsk-cty-tile-label">Lượt HĐ</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.lhd} /></div></div>
+   872→                    <div className="dsk-cty-tile td"><div className="dsk-cty-tile-label">Tuyển dụng</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.td} /></div></div>
+   873→                    <div className="dsk-cty-tile chuan"><div className="dsk-cty-tile-label">Lượt chuẩn</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+   874→                    <div className="dsk-cty-tile ip"><div className="dsk-cty-tile-label">IP/AFYP</div><div className="dsk-cty-tile-val">{fmtTyTrong(dashboard.total.tyTrong)}</div></div>
+   875→                  </div>
+   876→                </div>
+   877→              </div>
+   878→
+   879→              {/* Navigation Grid */}
+   880→              <nav className="nav-grid" aria-label="Điều hướng">
+   881→                <button className="nav-btn nav-detail" onClick={() => setView('detail')}>
+   882→                  <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
+   883→                </button>
+   884→                <button className="nav-btn nav-plan" onClick={() => setView('calendar')}>
+   885→                  <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
+   886→                </button>
+   887→                <div className="nav-row-3">
+   888→                  <a className="nav-btn nav-race" href="/thi-dua-chau">
+   889→                    <span className="nav-icon"><Flag size={14} /></span> Thi đua
+   890→                  </a>
+   891→                  <button className="nav-btn nav-policy">
+   892→                    <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
+   893→                  </button>
+   894→                  <button className="nav-btn nav-clb">
+   895→                    <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+   896→                  </button>
+   897→                </div>
+   898→              </nav>
+   899→
+   900→              {/* Desktop Split Layout */}
+   901→              <div className="desktop-split">
+   902→                <div className="split-left" id="split-company" />
+   903→                <div className="split-center" id="split-chart">
+   904→                  <div className="afyp-chart-wrap">
+   905→                    <div className="afyp-chart-title"><BarChart3 size={14} style={{ color: '#38bdf8' }} /> Biến động AFYP theo tháng</div>
+   906→                    <div className="afyp-chart-summary">
+   907→                      <div className="sum-item"><div className="sum-label">Tổng AFYP (T1-T{CUR_MONTH})</div><div className="sum-val">{fmtBig(chartData.slice(0, parseInt(CUR_MONTH)).reduce((s,d) => s+d.afyp, 0))}</div></div>
+   908→                      <div className="sum-item"><div className="sum-label">Tháng cao nhất</div><div className="sum-val">{fmtBig(Math.max(...chartData.map(d => d.afyp)))}</div></div>
+   909→                      <div className="sum-item"><div className="sum-label">TB/tháng</div><div className="sum-val">{fmtBig(chartData.reduce((s,d) => s+d.afyp, 0) / 12)}</div></div>
+   910→                    </div>
+   911→                    <div className="afyp-chart" dangerouslySetInnerHTML={{ __html: renderChart() || '' }} />
+   912→                    <div className="chart-legend">
+   913→                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#4ade80,#16a34a)' }} />Đạt KH</div>
+   914→                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#fbbf24,#d97706)' }} />Gần đạt</div>
+   915→                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#f87171,#dc2626)' }} />Chưa đạt</div>
+   916→                      <div className="legend-item"><div className="legend-dot" style={{ background: '#38bdf8', borderRadius: '50%' }} />Xu hướng</div>
+   917→                    </div>
+   918→                  </div>
+   919→                </div>
+   920→                <div className="split-right" id="split-depts">
+   921→                  <div className="section-divider">Chi tiết các phòng</div>
+   922→                  <div className="kpi-stack">
+   923→                    {dashboard.phongs.map((phong, pi) => {
+   924→                      const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
+   925→                      const pCp = Math.min(pPct, 100);
+   926→                      const progStart = progressColor(Math.max(pPct - 24, 0));
+   927→                      const progEnd = progressColor(pPct);
+   928→                      const afypTrd = Math.round(phong.afyp / 1000000);
+   929→                      const khTrd = Math.round(phong.kh / 1000000);
+   930→
+   931→                      return (
+   932→                        <div className="dept-section" key={pi}>
+   933→                          {/* Mobile Phong Card */}
+   934→                          <div className={`kpi-card kpi-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+   935→                            <div className="phong-inner">
+   936→                              <div className="phong-head">
+   937→                                <span className="phong-name"><Clipboard size={15} style={{ color: '#ffcf8a' }} />Tổng hợp {phong.ten}</span>
+   938→                                {!phong.noAds && <span className="phong-pct"><AnimPct value={pPct} /></span>}
+   939→                              </div>
+   940→                              <div className="phong-body">
+   941→                                <div className="afyp-kh-row">
+   942→                                  <span className="afyp-big"><AnimNum value={phong.afyp} /></span>
+   943→                                  {!phong.noAds && <span className="kh-small">/ KH: {fmt(phong.kh)}</span>}
+   944→                                </div>
+   945→                                {!phong.noAds && <div className="phong-progress"><div className="phong-progress-fill" style={{ width: `${pCp}%` }} /></div>}
+   946→                              </div>
+   947→                              <div className="phong-stats">
+   948→                                <div className="phong-stat hd"><div className="phong-stat-label">Lượt HĐ</div><div className="phong-stat-val"><AnimNum value={phong.lhd} /></div></div>
+   949→                                <div className="phong-stat td"><div className="phong-stat-label">TD</div><div className="phong-stat-val"><AnimNum value={phong.td} /></div></div>
+   950→                                <div className="phong-stat chuan"><div className="phong-stat-label">Lượt chuẩn</div><div className="phong-stat-val"><AnimNum value={phong.hdChuan} /></div></div>
+   951→                                {!phong.noAds && <div className="phong-stat ip"><div className="phong-stat-label">IP/AFYP</div><div className="phong-stat-val">{fmtTyTrong(phong.tyTrong)}</div></div>}
+   952→                              </div>
+   953→                            </div>
+   954→                          </div>
+   955→
+   956→                          {/* Desktop Phong Card */}
+   957→                          <div className={`kpi-ad is-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+   958→                            <div className="ad-inner">
+   959→                              <div className="ad-top">
+   960→                                <div className="ad-left">
+   961→                                  <div className="ad-name-row"><span className="ad-name"><Clipboard size={14} style={{ color: '#3a8ad4', marginRight: 4 }} />{phong.ten}</span><span className="ad-pct">{!phong.noAds ? `${pPct.toFixed(0)}%` : ''}</span></div>
+   962→                                  {!phong.noAds && <span className="ad-kh">KH: {fmt(phong.kh)}trđ</span>}
+   963→                                </div>
+   964→                                <div className="ad-right">
+   965→                                  <div className="ad-stats">
+   966→                                    <div className="ad-stat afyp"><span className="ad-stat-label">AFYP</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={afypTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>
+   967→                                    {!phong.noAds && <div className="ad-stat kh"><span className="ad-stat-label">KH</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={khTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>}
+   968→                                    <div className="ad-stat lhd"><span className="ad-stat-label">Lượt HĐ</span><span className="ad-stat-val"><AnimNum value={phong.lhd} /></span></div>
+   969→                                    {!phong.noAds && <div className="ad-stat td"><span className="ad-stat-label">TD</span><span className="ad-stat-val"><AnimNum value={phong.td} /></span></div>}
+   970→                                    <div className="ad-stat chuan"><span className="ad-stat-label">Chuẩn</span><span className="ad-stat-val"><AnimNum value={phong.hdChuan} /></span></div>
+   971→                                    {!phong.noAds && <div className="ad-stat ip"><span className="ad-stat-label">IP/AFYP</span><span className="ad-stat-val">{fmtTyTrong(phong.tyTrong)}</span></div>}
+   972→                                  </div>
+   973→                                  {!phong.noAds && <div className="ad-progress"><div className="ad-progress-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>}
+   974→                                </div>
+   975→                              </div>
+   976→                            </div>
+   977→                          </div>
+   978→
+   979→                          {/* AD Cards (Mobile) */}
+   980→                          {!phong.noAds && (
+   981→                            <div className="ad-grid">
+   982→                              {phong.ads.map((ad, ai) => {
+   983→                                const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+   984→                                const aCp = Math.min(aPct, 100);
+   985→                                const aProgStart = progressColor(Math.max(aPct - 24, 0));
+   986→                                const aProgEnd = progressColor(aPct);
+   987→                                return (
+   988→                                  <div className={`kpi-ad anim-in${glowCls(aPct)}`} key={ai} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
+   989→                                    <div className="ad-inner">
+   990→                                      <div className="ad-top">
+   991→                                        <div className="ad-left">
+   992→                                          <div className="ad-name-row"><span className="ad-name">{ad.ten}</span><span className="ad-pct">{aPct.toFixed(0)}%</span></div>
+   993→                                          <span className="ad-kh">KH: {fmt(ad.kh)}trđ</span>
+   994→                                        </div>
+   995→                                        <div className="ad-right">
+   996→                                          <div className="ad-stats">
+   997→                                            <div className="ad-stat afyp"><span className="ad-stat-label">AFYP</span><span className="ad-stat-val">{fmt(ad.afyp)}<span className="ad-stat-unit">đ</span></span></div>
+   998→                                            <div className="ad-stat lhd"><span className="ad-stat-label">Lượt HĐ</span><span className="ad-stat-val"><AnimNum value={ad.lhd} /></span></div>
+   999→                                            <div className="ad-stat td"><span className="ad-stat-label">TD</span><span className="ad-stat-val"><AnimNum value={ad.td} /></span></div>
+  1000→                                            <div className="ad-stat chuan"><span className="ad-stat-label">L.Chuẩn</span><span className="ad-stat-val"><AnimNum value={ad.hdChuan} /></span></div>
+  1001→                                            <div className="ad-stat ip"><span className="ad-stat-label">IP/AFYP</span><span className="ad-stat-val">{fmtTyTrong(ad.tyTrong)}</span></div>
+  1002→                                          </div>
+  1003→                                          <div className="ad-progress"><div className="ad-progress-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></div>
+  1004→                                        </div>
+  1005→                                      </div>
+  1006→                                    </div>
+  1007→                                  </div>
+  1008→                                );
+  1009→                              })}
+  1010→                            </div>
+  1011→                          )}
+  1012→
+  1013→                          {/* AD Table (Desktop) */}
+  1014→                          {!phong.noAds && (
+  1015→                            <div className="dsk-ad-wrap">
+  1016→                              <table className="dsk-ad-table">
+  1017→                                <thead><tr><th>AD</th><th>% KH</th><th>AFYP</th><th>KH</th><th>HĐ</th><th>TD</th><th>Chuẩn</th><th>IP</th><th></th></tr></thead>
+  1018→                                <tbody>
+  1019→                                  {phong.ads.map((ad, ai) => {
+  1020→                                    const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+  1021→                                    const aCp = Math.min(aPct, 100);
+  1022→                                    const aPctCls = pctClass(aPct);
+  1023→                                    const aProgStart = progressColor(Math.max(aPct - 24, 0));
+  1024→                                    const aProgEnd = progressColor(aPct);
+  1025→                                    const khTrd = Math.round(ad.kh / 1000000);
+  1026→                                    return (
+  1027→                                      <tr key={ai} className="anim-in" style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
+  1028→                                        <td><span className="dsk-ad-name">{ad.ten}</span></td>
+  1029→                                        <td><span className={`dsk-ad-pct ${aPctCls}`}>{aPct.toFixed(0)}%</span></td>
+  1030→                                        <td>{fmt(ad.afyp)}</td>
+  1031→                                        <td className="dsk-ad-kh-cell">{khTrd ? `${khTrd}trđ` : '--'}</td>
+  1032→                                        <td>{ad.lhd}</td>
+  1033→                                        <td>{ad.td}</td>
+  1034→                                        <td>{ad.hdChuan}</td>
+  1035→                                        <td>{fmtTyTrong(ad.tyTrong)}</td>
+  1036→                                        <td><span className="dsk-ad-mini-prog"><span className="dsk-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span></td>
+  1037→                                      </tr>
+  1038→                                    );
+  1039→                                  })}
+  1040→                                </tbody>
+  1041→                              </table>
+  1042→                            </div>
+  1043→                          )}
+  1044→                        </div>
+  1045→                      );
+  1046→                    })}
+  1047→                  </div>
+  1048→                </div>
+  1049→              </div>
+  1050→            </>
+  1051→          )}
+  1052→        </section>
+  1053→
+  1054→        {/* ===== DETAIL VIEW ===== */}
+  1055→        <section className={`view ${view === 'detail' ? 'active' : ''}`} id="view-detail" role="region">
+  1056→          <div className="detail-shell">
+  1057→            <div className="detail-topbar">
+  1058→              <button className="btn-back-u" onClick={() => setView('main')} aria-label="Quay lại"><ArrowLeft size={18} /></button>
+  1059→              <div style={{ width: 38, height: 38, flexShrink: 0 }} />
+  1060→            </div>
+  1061→            <div className="detail-hero">
+  1062→              <div className="detail-title">Chi Tiết Ban Nhóm</div>
+  1063→              <div className="detail-meta">Tháng {detailMonth}/{CUR_YEAR} — Chỉ tiêu 8.0% năm</div>
+  1064→            </div>
+  1065→            <div className="month-grid">
+  1066→              {MONTHS.map(m => (
+  1067→                <button key={m} className={`month-cell ${detailMonth === m ? 'on' : ''}`} onClick={() => setDetailMonth(m)}>
+  1068→                  <span className="mc-label">T{parseInt(m)}</span>
+  1069→                </button>
+  1070→              ))}
+  1071→              <button className={`month-cell ${detailMonth === 'H1' ? 'on' : ''}`} onClick={() => setDetailMonth('H1')} style={{ fontSize: 8, fontWeight: 800, background: detailMonth === 'H1' ? '' : '#0a3434', borderColor: detailMonth === 'H1' ? '' : '#008080', color: detailMonth === 'H1' ? '' : '#b9ffff' }}>6T</button>
+  1072→              {['Q1','Q2','Q3','Q4','Y'].map(f => (
+  1073→                <button key={f} className={`month-cell ${detailMonth === f ? 'on' : ''}`} onClick={() => setDetailMonth(f)} style={{ fontSize: 8, fontWeight: 800, background: detailMonth === f ? '' : '#251e47', borderColor: detailMonth === f ? '' : '#3b2b63', color: detailMonth === f ? '' : '#c4b8f0' }}>
+  1074→                  {f === 'Y' ? 'Năm' : f}
+  1075→                </button>
+  1076→              ))}
+  1077→            </div>
+  1078→
+  1079→            {/* Top 3 Podium */}
+  1080→            {top3Items.length > 0 && (
+  1081→              <div className="top3-section">
+  1082→                <div className="top3-grid">
+  1083→                  {top3Order.map((item, i) => {
+  1084→                    if (!item) return <div key={i} />;
+  1085→                    const isF = i === 1;
+  1086→                    return (
+  1087→                      <div className={`top3-card ${isF ? 'top3-first ' : ''}${cls3[i]}`} key={i} style={{ animationDelay: `${i * 80}ms` }}>
+  1088→                        {isF && <div className="top3-crown">{crowns[i]}</div>}
+  1089→                        <div className="top3-rank"><span className="top3-rank-num">{i === 0 ? '2' : i === 1 ? '1' : '3'}</span></div>
+  1090→                        <div className="top3-name">Nhóm {item.name}</div>
+  1091→                        <div className="top3-val"><AnimNum value={item.afyp} />trđ</div>
+  1092→                        <div className="top3-bar" />
+  1093→                        <div className="top3-pct">{item.pct.toFixed(1)}%</div>
+  1094→                      </div>
+  1095→                    );
+  1096→                  })}
+  1097→                </div>
+  1098→              </div>
+  1099→            )}
+  1100→
+  1101→            {/* Group List */}
+  1102→            <div className="detail-list-wrap">
+  1103→              {detailData.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chưa có dữ liệu nhóm</div>}
+  1104→              {detailData.map((item, idx) => {
+  1105→                const fill = Math.min(item.pct, 100);
+  1106→                const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
+  1107→                return (
+  1108→                  <div className={`grp-item ${idx < 3 ? 'is-top' : ''}`} key={idx} style={{ animationDelay: `${idx * 40}ms` }}>
+  1109→                    <div className="grp-fill" style={{ width: `${fill}%` }} />
+  1110→                    <div className="grp-top-row">
+  1111→                      <span className="grp-name">Nhóm {item.name}</span>
+  1112→                      <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
+  1113→                    </div>
+  1114→                    <div className="grp-bot-row">
+  1115→                      <span className="grp-stats-inline">
+  1116→                        <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
+  1117→                        <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
+  1118→                      </span>
+  1119→                    </div>
+  1120→                    <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
+  1121→                  </div>
+  1122→                );
+  1123→              })}
+  1124→            </div>
+  1125→          </div>
+  1126→        </section>
+  1127→
+  1128→        {/* ===== CALENDAR VIEW ===== */}
+  1129→        <section className={`view ${view === 'calendar' ? 'active' : ''}`} id="view-calendar" role="region">
+  1130→          <div className="sub-header">
+  1131→            <button className="btn-back-u" onClick={() => setView('main')} aria-label="Quay lại"><ArrowLeft size={18} /></button>
+  1132→            <span className="sub-title">Kế Hoạch Khung</span>
+  1133→          </div>
+  1134→          <div className="sub-line-wrap"><div className="sub-line" /></div>
+  1135→          <div className="cal-filter">
+  1136→            {MONTHS.map(m => (
+  1137→              <button key={m} className={`cal-fbtn ${calMonth === m ? 'on' : ''}`} onClick={() => setCalMonth(m)}>T{parseInt(m)}</button>
+  1138→            ))}
+  1139→          </div>
+  1140→          <div className="cal-wrap">
+  1141→            <div className="cal-head">
+  1142→              <span>Ngày</span>
+  1143→              <span>Nội dung kế hoạch</span>
+  1144→              <span>Loại</span>
+  1145→            </div>
+  1146→            <div>
+  1147→              {calendarRows.map(row => {
+  1148→                const rowCls = ['cal-row'];
+  1149→                if (row.isToday) rowCls.push('is-today');
+  1150→                if (row.isWeekend) rowCls.push('is-weekend');
+  1151→                if (row.isSunday) rowCls.push('is-sunday');
+  1152→                return (
+  1153→                  <div className={rowCls.join(' ')} key={row.day} style={{ animationDelay: `${(row.day - 1) * 22}ms` }}>
+  1154→                    <div className="cal-day">
+  1155→                      <span className="cal-day-num">{row.day}</span>
+  1156→                      <span className="cal-day-week">{WEEKDAY_NAMES[row.weekday]}</span>
+  1157→                    </div>
+  1158→                    <div className="cal-text">
+  1159→                      {row.events.length > 0
+  1160→                        ? row.events.map((e, ei) => <span className="cal-line" key={ei}>{e.title}</span>)
+  1161→                        : <span className="cal-empty" />}
+  1162→                    </div>
+  1163→                    <div className="cal-owner">
+  1164→                      {row.events.map((e, ei) => <span className="cal-line" key={ei} style={{ color: e.color }}>{e.color}</span>)}
+  1165→                    </div>
+  1166→                  </div>
+  1167→                );
+  1168→              })}
+  1169→            </div>
+  1170→          </div>
+  1171→        </section>
+  1172→      </div>
+  1173→    </div>
+  1174→  );
+  1175→}
+  1176→

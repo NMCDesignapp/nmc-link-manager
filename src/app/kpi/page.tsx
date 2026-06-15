@@ -347,8 +347,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 interface Contract {
   id: string; agentCode: string; agentName: string; position: string;
   ban: string; nhom: string; maNhom: string; maBanNhom: string;
-  ad: string; effectiveDate: string; afyp: number; fyp: number;
+  ad: string; effectiveDate: string; issueDate: string | null; afyp: number; fyp: number;
   pdt10DT: number; tinhLuot3tr: number; ngayBatDauLamViec: string | null;
+  thangTD: string | null; namTD: string | null; thangHL: string | null;
 }
 interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
 interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
@@ -357,7 +358,7 @@ interface CalendarEvent { id: number; title: string; date: string; color: string
 
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
 interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; }
-interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
+interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; }
 interface GroupDetail { name: string; afyp: number; kh: number; pct: number; }
 
 /* ================= CONSTANTS ================= */
@@ -418,6 +419,39 @@ function getMonthFromDate(d: string | null | undefined): string {
 function getMonthNum(d: string | null | undefined): number {
   if (!d) return 0;
   try { const dt = new Date(d); return isNaN(dt.getTime()) ? 0 : dt.getMonth() + 1; } catch { return 0; }
+}
+// Get doanh so month from issueDate (Ngày PH), fallback effectiveDate (Ngày HL) — same as quan-ly
+function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string }): Date {
+  const issueD = c.issueDate ? new Date(c.issueDate) : null;
+  if (issueD && !isNaN(issueD.getTime())) return issueD;
+  return new Date(c.effectiveDate);
+}
+// Format currency in compact form (trđ, tỷ)
+function formatKpiCurrency(amount: number): string {
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(3).replace('.', ',')} tỷ`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(3).replace('.', ',')} trđ`;
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(3).replace('.', ',')} ngàn`;
+  return amount.toFixed(0);
+}
+// Period-to-months mapping — same as quan-ly page
+function getPeriodMonths(period: string): number[] {
+  if (period.startsWith('month-')) return [parseInt(period.split('-')[1])];
+  if (period === 'q1') return [1,2,3];
+  if (period === 'q2') return [4,5,6];
+  if (period === 'q3') return [7,8,9];
+  if (period === 'q4') return [10,11,12];
+  if (period === 'h1') return [1,2,3,4,5,6];
+  if (period === 'h2') return [7,8,9,10,11,12];
+  if (period === 'year') return [1,2,3,4,5,6,7,8,9,10,11,12];
+  return [1,2,3,4,5,6,7,8,9,10,11,12];
+}
+function getPeriodLabel(period: string): string {
+  if (period.startsWith('month-')) return `T${period.split('-')[1]}`;
+  if (period.startsWith('q')) return period.replace('q', 'Q').toUpperCase();
+  if (period === 'h1') return 'H1';
+  if (period === 'h2') return 'H2';
+  if (period === 'year') return 'Cả năm';
+  return period;
 }
 
 /* ================= ANIMATION HOOKS ================= */
@@ -484,6 +518,9 @@ export default function KPIDashboard() {
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
+  const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
 
   const NOW = useMemo(() => new Date(), []);
   const CUR_YEAR = NOW.getFullYear();
@@ -507,6 +544,14 @@ export default function KPIDashboard() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  /* Fetch online settings (KPI targets from quan-ly) */
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : {})
+      .then(data => setOnlineSettings(data))
+      .catch(() => setOnlineSettings({}));
+  }, []);
 
   /* Fetch calendar events */
   useEffect(() => {
@@ -534,38 +579,77 @@ export default function KPIDashboard() {
     }
   }, [kyList, selectedKy, CUR_YEAR, CUR_MONTH]);
 
-  /* Compute dashboard data */
+  /* Compute dashboard data — using same logic as quan-ly page */
   const dashboard = useMemo(() => {
     if (!rawData) return null;
     const { contracts, staff, revenue } = rawData;
-    const ky = selectedKy;
-    if (!ky) return null;
 
-    const monthNum = parseInt(ky.split('-')[1] || '0', 10);
-
-    // Filter contracts by effectiveDate in selected month
-    const monthContracts = contracts.filter(c => {
-      const cm = getMonthFromDate(c.effectiveDate);
-      return cm === ky;
+    const currentYear = new Date().getFullYear();
+    // Filter contracts for current year using getDoanhSoMonth (same as quan-ly)
+    const yearContracts = contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
     });
 
-    // Filter staff by startDate in selected month
-    const monthStaff = staff.filter(s => {
-      const sm = getMonthFromDate(s.startDate);
-      return sm === ky;
+    // Apply period filter
+    const periodMonths = getPeriodMonths(overviewPeriod);
+    const periodContracts = yearContracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return periodMonths.includes(d.getMonth() + 1);
     });
 
-    // Get revenue data for the selected month
-    const monthRevenue = revenue.filter(r => r.month === ky);
+    // ========== Company-level KPIs ==========
+    const totalAFYP = periodContracts.reduce((s, c) => s + num(c.afyp), 0);
+    const totalIP = periodContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+    const slHD = periodContracts.length;
+    const luotHoatDong = periodContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
+    const luotHDChuan = periodContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
+    const ipAfypRatio = totalAFYP > 0 ? (totalIP / totalAFYP) * 100 : 0;
 
-    // Build revenue map by maNhom for quick lookup
-    const revByNhom: Record<string, Revenue> = {};
-    monthRevenue.forEach(r => { revByNhom[r.maNhom] = r; });
+    // SL Tuyển dụng: count staff with startDate in selected period months
+    const slTuyenDung = staff.filter(s => {
+      if (!s.startDate) return false;
+      const d = new Date(s.startDate);
+      if (isNaN(d.getTime())) return false;
+      return d.getFullYear() === currentYear && periodMonths.includes(d.getMonth() + 1);
+    }).length;
 
-    // Compute per-Phong and per-AD data
-    const total: TotalData = { afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0 };
-    let tyTrongWeighted = 0, tyTrongCount = 0;
+    // ========== KH (Kế hoạch) AFYP — from online settings ==========
+    // AD plans
+    const adList: { maAD: string }[] = [];
+    for (const pName in CO_CAU) {
+      CO_CAU[pName].forEach(adKey => {
+        adList.push({ maAD: adKey });
+      });
+    }
+    const targetTongAFYP = adList.reduce((s, ad) => {
+      return s + (parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0);
+    }, 0);
+
+    // Monthly KH ratio — sum for selected period
+    let khAFYP = 0;
+    if (targetTongAFYP > 0) {
+      periodMonths.forEach(m => {
+        const mm = String(m).padStart(2, '0');
+        const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+        if (ratio > 0) khAFYP += targetTongAFYP * ratio / 100;
+      });
+    }
+
+    const total: TotalData = {
+      afyp: totalAFYP,
+      kh: khAFYP,
+      lhd: luotHoatDong,
+      td: slTuyenDung,
+      hdChuan: luotHDChuan,
+      tyTrong: ipAfypRatio,
+      totalIP,
+      slHD,
+    };
+
+    // ========== Per-Phong and per-AD data ==========
     const phongs: PhongData[] = [];
+    let tyTrongWeighted = 0, tyTrongCount = 0;
 
     for (const pName in CO_CAU) {
       const adKeys = CO_CAU[pName];
@@ -578,47 +662,46 @@ export default function KPIDashboard() {
         const managerName = leader?.agentName || adKey;
 
         // Find contracts for this AD
-        const adContracts = monthContracts.filter(c => {
+        const adContracts = periodContracts.filter(c => {
           const adNorm = normKey(c.ad || '');
           return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
         });
 
-        // Get revenue for this AD's groups
-        let adKh = 0;
-        const adRevEntries = monthRevenue.filter(r => {
-          const nameNorm = normKey(r.agentName || '');
-          return nameNorm && (nameNorm === normKey(adKey) || nameNorm.includes(normKey(adKey)) || normKey(adKey).includes(nameNorm));
-        });
-        adRevEntries.forEach(r => { adKh += num(r.totalAFYP) * 0; }); // Revenue is actual, not plan
-
         const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
-        const lhd = adContracts.length;
-        const td = monthStaff.filter(s => {
+        const ip = adContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+        const lhd = adContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
+        const td = staff.filter(s => {
           const adNorm = normKey(s.nhom || '');
           return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)));
         }).length;
-        const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 3).length;
-        const ip = adContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+        const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
-        // Use revenue as plan if available
-        const revEntry = adRevEntries[0];
-        const kh = revEntry ? num(revEntry.totalAFYP) : 0;
+        // KH for this AD from settings
+        const adKh = parseFloat(onlineSettings[`nmc-kh-ad-${adKey}`] || '0') || 0;
+        // Calculate AD KH for selected period using monthly ratios
+        let adPeriodKh = 0;
+        if (adKh > 0) {
+          periodMonths.forEach(m => {
+            const mm = String(m).padStart(2, '0');
+            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+            if (ratio > 0) adPeriodKh += adKh * ratio / 100;
+          });
+        }
 
-        const d: ADData = { ten: managerName, managerKey: adKey, afyp, kh, lhd, td, hdChuan, tyTrong };
+        const d: ADData = { ten: managerName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
         p.ads.push(d);
-        p.afyp += afyp; p.kh += kh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
+        p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
         if (!isBanca) { tyTrongWeighted += (afyp > 0 ? afyp : 1) * tyTrong; tyTrongCount += (afyp > 0 ? afyp : 1); }
       });
 
       p.tyTrong = tyTrongCount ? (tyTrongWeighted / tyTrongCount) : 0;
       phongs.push(p);
-      total.afyp += p.afyp; total.kh += p.kh; total.lhd += p.lhd; total.td += p.td; total.hdChuan += p.hdChuan;
     }
 
-    total.tyTrong = tyTrongCount ? (tyTrongWeighted / tyTrongCount) : 0;
-    return { total, phongs, monthContracts };
-  }, [rawData, selectedKy]);
+    total.tyTrong = totalAFYP > 0 ? (totalIP / totalAFYP * 100) : 0;
+    return { total, phongs, periodContracts };
+  }, [rawData, overviewPeriod, onlineSettings]);
 
   /* Compute detail data */
   const detailData = useMemo(() => {
@@ -661,11 +744,14 @@ export default function KPIDashboard() {
     if (!rawData) return [];
     const months: { month: number; label: string; afyp: number; kh: number }[] = [];
     const adKeys = Object.values(CO_CAU).flat();
-    const curM = parseInt(CUR_MONTH, 10);
+    const currentYear = new Date().getFullYear();
 
     for (let m = 1; m <= 12; m++) {
-      const mk = `${CUR_YEAR}-${String(m).padStart(2, '0')}`;
-      const mContracts = rawData.contracts.filter(c => getMonthFromDate(c.effectiveDate) === mk);
+      const mk = `${currentYear}-${String(m).padStart(2, '0')}`;
+      const mContracts = rawData.contracts.filter(c => {
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() + 1 === m;
+      });
 
       let afyp = 0;
       adKeys.forEach(adKey => {
@@ -675,10 +761,16 @@ export default function KPIDashboard() {
         }).forEach(c => { afyp += num(c.afyp); });
       });
 
-      months.push({ month: m, label: `T${m}`, afyp, kh: 0 });
+      // KH for this month
+      const targetTongAFYP = adKeys.reduce((s, adKey) => s + (parseFloat(onlineSettings[`nmc-kh-ad-${adKey}`] || '0') || 0), 0);
+      const mm = String(m).padStart(2, '0');
+      const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+      const kh = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
+
+      months.push({ month: m, label: `T${m}`, afyp, kh });
     }
     return months;
-  }, [rawData, CUR_YEAR, CUR_MONTH]);
+  }, [rawData, onlineSettings]);
 
   /* Format ky label */
   const formatKyLabel = (ky: string) => {
@@ -710,23 +802,22 @@ export default function KPIDashboard() {
     return rows;
   }, [calMonth, CUR_YEAR, calendarEvents, NOW, CUR_MONTH]);
 
-  /* Render AFYP Chart SVG */
+  /* Render AFYP Chart SVG — with KH line */
   const renderChart = () => {
-    if (typeof window === 'undefined' || !chartData.some(d => d.afyp > 0)) return null;
-    const hasData = chartData.some(d => d.afyp > 0);
-    if (!hasData) return null;
+    if (typeof window === 'undefined' || !chartData.some(d => d.afyp > 0 || d.kh > 0)) return null;
 
     const W = 600, H = 320;
     const padL = 68, padR = 20, padT = 30, padB = 40;
     const chartW = W - padL - padR;
     const chartH = H - padT - padB;
-    const maxVal = Math.max(1, ...chartData.map(d => d.afyp));
+    const maxVal = Math.max(1, ...chartData.map(d => Math.max(d.afyp, d.kh)));
     const niceMax = Math.pow(10, Math.floor(Math.log10(maxVal))) * (maxVal / Math.pow(10, Math.floor(Math.log10(maxVal))) > 5 ? 10 : maxVal / Math.pow(10, Math.floor(Math.log10(maxVal))) > 2 ? 5 : 2);
     const slotW = chartW / 12;
-    const barW = slotW * 0.55;
+    const barW = slotW * 0.45;
 
     let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">`;
     svg += '<defs>';
+    svg += '<linearGradient id="barCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0284c7"/></linearGradient>';
     svg += '<linearGradient id="barGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>';
     svg += '<linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient>';
     svg += '<linearGradient id="barRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#dc2626"/></linearGradient>';
@@ -740,28 +831,44 @@ export default function KPIDashboard() {
       svg += `<text x="${padL-8}" y="${(gy+4).toFixed(1)}" fill="#6b8aaa" font-size="11" text-anchor="end" font-family="inherit">${fmtShort(gVal)}</text>`;
     }
 
-    const linePoints: string[] = [];
+    // KH line points
+    const khLinePoints: string[] = [];
+    chartData.forEach((d, mi) => {
+      const cx = padL + slotW * mi + slotW / 2;
+      if (d.kh > 0) {
+        const khH = d.kh / niceMax * chartH;
+        khLinePoints.push(`${cx.toFixed(1)},${(padT+chartH-khH).toFixed(1)}`);
+      }
+    });
+
+    // AFYP bars
+    const afypLinePoints: string[] = [];
     chartData.forEach((d, mi) => {
       const cx = padL + slotW * mi + slotW / 2;
       if (d.afyp > 0) {
         const afypH = d.afyp / niceMax * chartH;
-        const pct = 0;
-        const gradId = pct >= 100 ? 'barGreen' : pct >= 70 ? 'barGold' : 'barRed';
+        const khPct = d.kh > 0 ? (d.afyp / d.kh * 100) : 0;
+        const gradId = khPct >= 100 ? 'barGreen' : khPct >= 70 ? 'barGold' : 'barCyan';
         const barX = cx - barW / 2;
-        svg += `<rect x="${barX.toFixed(1)}" y="${(padT+chartH-afypH).toFixed(1)}" width="${barW.toFixed(1)}" height="${afypH.toFixed(1)}" rx="5" fill="url(#${gradId})" filter="url(#barShadow)"/>`;
-        svg += `<text x="${cx.toFixed(1)}" y="${(padT+chartH-afypH-8).toFixed(1)}" fill="#fbbf24" font-size="11" font-weight="700" text-anchor="middle" font-family="inherit">${fmtShort(d.afyp)}</text>`;
-        linePoints.push(`${cx.toFixed(1)},${(padT+chartH-afypH).toFixed(1)}`);
+        svg += `<rect x="${barX.toFixed(1)}" y="${(padT+chartH-afypH).toFixed(1)}" width="${barW.toFixed(1)}" height="${afypH.toFixed(1)}" rx="4" fill="url(#${gradId})" filter="url(#barShadow)"/>`;
+        svg += `<text x="${cx.toFixed(1)}" y="${(padT+chartH-afypH-8).toFixed(1)}" fill="#fbbf24" font-size="10" font-weight="700" text-anchor="middle" font-family="inherit">${fmtShort(d.afyp)}</text>`;
+        afypLinePoints.push(`${cx.toFixed(1)},${(padT+chartH-afypH).toFixed(1)}`);
       }
       svg += `<text x="${cx.toFixed(1)}" y="${H-12}" fill="#8faabe" font-size="11" text-anchor="middle" font-weight="600" font-family="inherit">${d.label}</text>`;
     });
 
-    if (linePoints.length > 1) {
-      svg += `<polyline points="${linePoints.join(' ')}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
-      linePoints.forEach(pt => {
+    // KH line
+    if (khLinePoints.length > 1) {
+      svg += `<polyline points="${khLinePoints.join(' ')}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3"/>`;
+      khLinePoints.forEach(pt => {
         const [cx, cy] = pt.split(',');
-        svg += `<circle cx="${cx}" cy="${cy}" r="5" fill="#0b1a2e" stroke="#38bdf8" stroke-width="2.5"/>`;
-        svg += `<circle cx="${cx}" cy="${cy}" r="2" fill="#38bdf8"/>`;
+        svg += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#0b1a2e" stroke="#f59e0b" stroke-width="2"/>`;
       });
+    }
+
+    // AFYP trend line
+    if (afypLinePoints.length > 1) {
+      svg += `<polyline points="${afypLinePoints.join(' ')}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
 
     svg += '</svg>';
@@ -794,19 +901,40 @@ export default function KPIDashboard() {
             <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
             <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
             <div className="ctrl-bar">
-              <div className={`ctrl-select-wrap ${kyDropdownOpen ? 'open' : ''}`}>
-                <button type="button" className="ctrl-select" onClick={() => setKyDropdownOpen(!kyDropdownOpen)}>
+              <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
+                <button type="button" className="ctrl-select" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
                   <CalendarDays size={14} style={{ color: '#d4a843' }} />
-                  {formatKyLabel(selectedKy)}
+                  {getPeriodLabel(overviewPeriod)}
                   <ChevronDown size={12} />
                 </button>
-                <div className="ctrl-select-popup" role="listbox">
-                  {kyList.map(ky => (
-                    <button key={ky} className={`ctrl-select-opt ${ky === selectedKy ? 'on' : ''}`}
-                      onClick={() => { setSelectedKy(ky); setKyDropdownOpen(false); }}>
-                      {formatKyLabel(ky)}
+                <div className="ctrl-select-popup" role="listbox" style={{ width: '320px', maxWidth: 'calc(100vw - 32px)' }}>
+                  {/* Months */}
+                  <p style={{ gridColumn: '1/-1', fontSize: '10px', fontWeight: 800, color: '#9db3d2', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '2px 0' }}>Tháng</p>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const key = `month-${i + 1}`;
+                    return (
+                      <button key={key} className={`ctrl-select-opt ${overviewPeriod === key ? 'on' : ''}`}
+                        onClick={() => { setOverviewPeriod(key); setPeriodDropdownOpen(false); }}>
+                        T{i + 1}
+                      </button>
+                    );
+                  })}
+                  {/* Quarters */}
+                  <p style={{ gridColumn: '1/-1', fontSize: '10px', fontWeight: 800, color: '#9db3d2', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '2px 0', marginTop: '4px' }}>Quý</p>
+                  {(['q1', 'q2', 'q3', 'q4'] as const).map(q => (
+                    <button key={q} className={`ctrl-select-opt ${overviewPeriod === q ? 'on' : ''}`}
+                      onClick={() => { setOverviewPeriod(q); setPeriodDropdownOpen(false); }}>
+                      {q.replace('q', 'Q').toUpperCase()}
                     </button>
                   ))}
+                  {/* Half / Year */}
+                  <p style={{ gridColumn: '1/-1', fontSize: '10px', fontWeight: 800, color: '#9db3d2', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '2px 0', marginTop: '4px' }}>Khác</p>
+                  <button className={`ctrl-select-opt ${overviewPeriod === 'h1' ? 'on' : ''}`}
+                    onClick={() => { setOverviewPeriod('h1'); setPeriodDropdownOpen(false); }}>H1</button>
+                  <button className={`ctrl-select-opt ${overviewPeriod === 'h2' ? 'on' : ''}`}
+                    onClick={() => { setOverviewPeriod('h2'); setPeriodDropdownOpen(false); }}>H2</button>
+                  <button className={`ctrl-select-opt ${overviewPeriod === 'year' ? 'on' : ''}`}
+                    onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
               <button className={`btn-sync ${syncing ? 'loading' : ''}`} onClick={fetchData} title="Đồng bộ">
@@ -844,16 +972,20 @@ export default function KPIDashboard() {
                     </div>
                     <div className="cty-body">
                       <div className="afyp-kh-row">
-                        <span className="afyp-big"><AnimNum value={dashboard.total.afyp} /></span>
-                        <span className="kh-small">/ KH: {fmt(dashboard.total.kh)}</span>
+                        <span className="afyp-big" style={{ fontSize: 'clamp(1.6rem, 5vw, 2.2rem)' }}>{formatKpiCurrency(dashboard.total.afyp)}</span>
+                        {dashboard.total.kh > 0 && <span className="kh-small">/ KH: {formatKpiCurrency(dashboard.total.kh)}</span>}
                       </div>
-                      <div className="cty-progress"><div className="cty-progress-fill" style={{ width: `${cp}%` }} /></div>
+                      {dashboard.total.kh > 0 && <div className="cty-progress"><div className="cty-progress-fill" style={{ width: `${cp}%` }} /></div>}
                     </div>
                     <div className="cty-stats">
                       <div className="cty-stat hd"><div className="cty-stat-label">Lượt HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
                       <div className="cty-stat td"><div className="cty-stat-label">TD</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
-                      <div className="cty-stat chuan"><div className="cty-stat-label">Lượt chuẩn</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                      <div className="cty-stat ip"><div className="cty-stat-label">IP/AFYP</div><div className="cty-stat-val">{fmtTyTrong(dashboard.total.tyTrong)}</div></div>
+                      <div className="cty-stat chuan"><div className="cty-stat-label">HĐ Chuẩn</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+                      <div className="cty-stat ip"><div className="cty-stat-label">IP/AFYP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
+                    </div>
+                    <div className="cty-stats" style={{ marginTop: '8px' }}>
+                      <div className="cty-stat hd"><div className="cty-stat-label">Tổng IP</div><div className="cty-stat-val" style={{ fontSize: '18px' }}>{formatKpiCurrency(dashboard.total.totalIP)}</div></div>
+                      <div className="cty-stat td"><div className="cty-stat-label">SL HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                     </div>
                   </div>
                 </div>
@@ -863,15 +995,17 @@ export default function KPIDashboard() {
                   <div className="dsk-cty-left">
                     <div className="dsk-cty-label"><Trophy size={12} style={{ color: '#f2b24d', marginRight: 4 }} />Tổng Công Ty</div>
                     <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
-                    <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>
-                    <div className="dsk-cty-afyp"><AnimNum value={dashboard.total.afyp} /></div>
-                    <div className="dsk-cty-kh">KH: {fmt(dashboard.total.kh)}</div>
+                    {dashboard.total.kh > 0 && <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>}
+                    <div className="dsk-cty-afyp">{formatKpiCurrency(dashboard.total.afyp)}</div>
+                    {dashboard.total.kh > 0 && <div className="dsk-cty-kh">KH: {formatKpiCurrency(dashboard.total.kh)}</div>}
                   </div>
                   <div className="dsk-cty-right">
                     <div className="dsk-cty-tile hd"><div className="dsk-cty-tile-label">Lượt HĐ</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.lhd} /></div></div>
                     <div className="dsk-cty-tile td"><div className="dsk-cty-tile-label">Tuyển dụng</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.td} /></div></div>
-                    <div className="dsk-cty-tile chuan"><div className="dsk-cty-tile-label">Lượt chuẩn</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                    <div className="dsk-cty-tile ip"><div className="dsk-cty-tile-label">IP/AFYP</div><div className="dsk-cty-tile-val">{fmtTyTrong(dashboard.total.tyTrong)}</div></div>
+                    <div className="dsk-cty-tile chuan"><div className="dsk-cty-tile-label">HĐ Chuẩn</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+                    <div className="dsk-cty-tile ip"><div className="dsk-cty-tile-label">IP/AFYP</div><div className="dsk-cty-tile-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
+                    <div className="dsk-cty-tile hd"><div className="dsk-cty-tile-label">Tổng IP</div><div className="dsk-cty-tile-val" style={{ fontSize: '16px' }}>{formatKpiCurrency(dashboard.total.totalIP)}</div></div>
+                    <div className="dsk-cty-tile td"><div className="dsk-cty-tile-label">SL HĐ</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                   </div>
                 </div>
               </div>
@@ -910,9 +1044,9 @@ export default function KPIDashboard() {
                     </div>
                     <div className="afyp-chart" dangerouslySetInnerHTML={{ __html: renderChart() || '' }} />
                     <div className="chart-legend">
+                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#38bdf8,#0284c7)' }} />AFYP Thực hiện</div>
                       <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#4ade80,#16a34a)' }} />Đạt KH</div>
-                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#fbbf24,#d97706)' }} />Gần đạt</div>
-                      <div className="legend-item"><div className="legend-dot" style={{ background: 'linear-gradient(180deg,#f87171,#dc2626)' }} />Chưa đạt</div>
+                      <div className="legend-item"><div className="legend-dot" style={{ background: '#f59e0b', borderRadius: '50%' }} />Kế hoạch</div>
                       <div className="legend-item"><div className="legend-dot" style={{ background: '#38bdf8', borderRadius: '50%' }} />Xu hướng</div>
                     </div>
                   </div>
