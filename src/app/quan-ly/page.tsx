@@ -144,7 +144,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
-  { key: 'report', label: 'Chính sách đại lý', icon: BookOpen, synced: false },
+  { key: 'report', label: 'Chính sách đại lý', icon: BookOpen, synced: false, hasSub: true },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
 ];
 
@@ -1063,6 +1063,7 @@ export default function QuanLyPage() {
   const [revenueSub, setRevenueSub] = useState<RevenueSubKey>('all');
   const [revenueNhomFilter, setRevenueNhomFilter] = useState<string>('');
   const [revenueExpanded, setRevenueExpanded] = useState(false);
+  const [policyExpanded, setPolicyExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -2908,8 +2909,7 @@ export default function QuanLyPage() {
   ];
 
   // ========== RENDER: Chính sách đại lý ==========
-  const [policyOpen, setPolicyOpen] = useState<string | null>(null);
-  const togglePolicy = (key: string) => setPolicyOpen(prev => prev === key ? null : key);
+  const [policyOpen, setPolicyOpen] = useState<string | null>('tvvm');
 
   // Thưởng Quý TVV filters
   const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string>('');
@@ -3461,71 +3461,29 @@ export default function QuanLyPage() {
   };
 
   const renderPolicy = () => {
+    if (!policyOpen) {
+      return (
+        <div className="flex items-center justify-center h-40 text-gray-300 text-xs italic">
+          Chọn khoản thưởng bên trái để xem chi tiết
+        </div>
+      );
+    }
+    const item = POLICY_ITEMS.find(i => i.key === policyOpen);
+    if (!item) return null;
+    const Icon = item.icon;
     return (
-      <div className="flex gap-0">
-        {/* Left sidebar — accordion menu (matching main sidebar style: dark + emerald) */}
-        <div className="w-[220px] flex-shrink-0 bg-[#0e0e18]/95 backdrop-blur-md border-r border-emerald-500/30">
-          <div className="p-2 space-y-0.5">
-            {POLICY_ITEMS.map(item => {
-              const isActive = policyOpen === item.key;
-              const Icon = item.icon;
-              return (
-                <div key={item.key}>
-                  <button
-                    onClick={() => togglePolicy(item.key)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate flex-1 text-left text-[12px] leading-tight">{item.label}</span>
-                    {isActive
-                      ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
-                      : <ChevronRight className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />}
-                  </button>
-                  {/* Active section description (inline) */}
-                  {isActive && (
-                    <div className="ml-6 mt-0.5 mb-1 px-2 py-1 text-[9px] text-emerald-300/50 italic border-l border-emerald-500/20">
-                      {item.desc}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+      <div className="space-y-3">
+        {/* Section header */}
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+          <div className="w-7 h-7 flex items-center justify-center text-white rounded-md" style={{ backgroundColor: item.color }}>
+            <Icon className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
+            <p className="text-[9px] text-gray-400">{item.desc}</p>
           </div>
         </div>
-
-        {/* Right content area */}
-        <div className="flex-1 min-w-0 pl-3">
-          {policyOpen ? (
-            <div className="space-y-3">
-              {/* Section header */}
-              {(() => {
-                const item = POLICY_ITEMS.find(i => i.key === policyOpen);
-                if (!item) return null;
-                const Icon = item.icon;
-                return (
-                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                    <div className="w-7 h-7 flex items-center justify-center text-white rounded-md" style={{ backgroundColor: item.color }}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
-                      <p className="text-[9px] text-gray-400">{item.desc}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-              {renderPolicyContent(policyOpen)}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-40 text-gray-300 text-xs italic">
-              Chọn khoản thưởng bên trái để xem chi tiết
-            </div>
-          )}
-        </div>
+        {renderPolicyContent(policyOpen)}
       </div>
     );
   };
@@ -4265,11 +4223,40 @@ export default function QuanLyPage() {
           <div className="p-2 space-y-0.5">
             {SHEETS.map((sheet, index) => {
               const isActive = activeSheet === sheet.key;
-              const isExpanded = sheet.hasSub && revenueExpanded && activeSheet === 'revenue';
+              // Each hasSub sheet gets its own expanded flag
+              const isExpanded = sheet.hasSub && (
+                (sheet.key === 'revenue' && revenueExpanded) ||
+                (sheet.key === 'report' && policyExpanded)
+              );
+              const handleSubToggle = () => {
+                if (sheet.key === 'revenue') setRevenueExpanded(!revenueExpanded);
+                else if (sheet.key === 'report') setPolicyExpanded(!policyExpanded);
+              };
+              // Build sub-items list + click handler based on sheet
+              const subItems: { key: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] =
+                sheet.key === 'revenue'
+                  ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                  : sheet.key === 'report'
+                  ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
+                  : [];
+              const activeSubKey: string | null =
+                sheet.key === 'revenue' ? revenueSub
+                : sheet.key === 'report' ? policyOpen
+                : null;
+              const handleSubClick = (subKey: string) => {
+                if (sheet.key === 'revenue') {
+                  setActiveSheet('revenue');
+                  setRevenueSub(subKey as RevenueSubKey);
+                } else if (sheet.key === 'report') {
+                  setActiveSheet('report');
+                  setPolicyOpen(subKey);
+                }
+                setSidebarOpen(false);
+              };
               return (
                 <div key={sheet.key}>
                   <button
-                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) setRevenueExpanded(!revenueExpanded); setSidebarOpen(false); }}
+                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) handleSubToggle(); setSidebarOpen(false); }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                       isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 neon-glow' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                     }`}
@@ -4277,24 +4264,27 @@ export default function QuanLyPage() {
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate flex-1 text-left">{sheet.label}</span>
                     {hasSectionLink(sheet.key) && <Link2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
-                    {sheet.hasSub && (revenueExpanded && activeSheet === 'revenue' ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
+                    {sheet.hasSub && (isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
                   </button>
-                  {/* Revenue sub-items */}
-                  {sheet.hasSub && isExpanded && (
+                  {/* Sub-items (revenue months OR policy items) */}
+                  {sheet.hasSub && isExpanded && subItems.length > 0 && (
                     <div className="ml-6 mt-0.5 space-y-0.5">
-                      {MONTHS.map(m => (
-                        <button
-                          key={m.key}
-                          onClick={() => { setActiveSheet('revenue'); setRevenueSub(m.key); setSidebarOpen(false); }}
-                          className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
-                            revenueSub === m.key ? 'bg-emerald-500/20 text-emerald-300' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
-                          }`}
-                        >
-                          {m.key === 'all' ? <TrendingUp className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
-                          <span>{m.label}</span>
-                          {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5 text-emerald-400" />}
-                        </button>
-                      ))}
+                      {subItems.map(s => {
+                        const subActive = activeSubKey === s.key;
+                        return (
+                          <button
+                            key={s.key}
+                            onClick={() => handleSubClick(s.key)}
+                            className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
+                              subActive ? 'bg-emerald-500/20 text-emerald-300' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
+                            }`}
+                          >
+                            <s.Icon className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate flex-1 text-left">{s.label}</span>
+                            {hasSectionLink(`${sheet.key}-${s.key}`) && <Link2 className="w-2.5 h-2.5 text-emerald-400" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
