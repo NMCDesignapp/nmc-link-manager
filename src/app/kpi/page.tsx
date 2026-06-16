@@ -100,6 +100,33 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .phong-stat.chuan { background: #0d5b72; } .kpi-app .phong-stat.chuan .phong-stat-val { color: #18e0e7; }
 .kpi-app .phong-stat.ip { background: #635136; } .kpi-app .phong-stat.ip .phong-stat-val { color: #ffd07f; }
 
+/* Mobile Phong Section */
+.kpi-app .mobile-phong-section { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.kpi-app .mobile-phong-main-card { border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px #00000050; }
+.kpi-app .mobile-phong-main-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 12px; background: linear-gradient(135deg, #e8a838, #d49428); }
+.kpi-app .mobile-phong-main-name { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .06em; }
+.kpi-app .mobile-phong-main-pct { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 12px #ffffff44; white-space: nowrap; }
+.kpi-app .mobile-phong-main-body { padding: 10px 14px 12px; background: #0e2240; }
+.kpi-app .mobile-phong-main-afyp { font-size: 1.5rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; text-shadow: 0 0 16px #f2b24d33; }
+.kpi-app .mobile-phong-main-kh { font-size: 10px; font-weight: 700; color: #6a9ac8; margin-top: 2px; }
+.kpi-app .mobile-phong-main-prog { height: 6px; border-radius: 99px; background: #1a2a44; margin-top: 6px; overflow: hidden; }
+.kpi-app .mobile-phong-main-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e0a030, #f2c860); transition: width 1s cubic-bezier(.22,1,.36,1); }
+.kpi-app .mobile-phong-sub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.kpi-app .mobile-phong-sub { border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 2px 8px #00000060, 0 0 12px #00000030; }
+.kpi-app .mobile-phong-sub-head { padding: 4px 4px 3px; text-align: center; }
+.kpi-app .mobile-phong-sub-val { font-size: 14px; font-weight: 900; line-height: 1.1; white-space: nowrap; text-shadow: 0 0 10px currentColor; }
+.kpi-app .mobile-phong-sub-label { font-size: 6.5px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 1px 3px #00000066; }
+.kpi-app .mobile-phong-sub-body { width: 100%; background: #0c1e38; padding: 8px 3px; text-align: center; box-shadow: inset 0 2px 6px #00000044; }
+.kpi-app .mobile-phong-sub.hd .mobile-phong-sub-head { background: #2a6cb8; box-shadow: inset 0 -2px 4px #1a4c8866; } .kpi-app .mobile-phong-sub.hd .mobile-phong-sub-val { color: #6cb8f8; }
+.kpi-app .mobile-phong-sub.td .mobile-phong-sub-head { background: #7a68b0; box-shadow: inset 0 -2px 4px #5a489066; } .kpi-app .mobile-phong-sub.td .mobile-phong-sub-val { color: #c0a8f0; }
+.kpi-app .mobile-phong-sub.chuan .mobile-phong-sub-head { background: #208a9a; box-shadow: inset 0 -2px 4px #106a7a66; } .kpi-app .mobile-phong-sub.chuan .mobile-phong-sub-val { color: #58d8e8; }
+.kpi-app .mobile-phong-sub.ip .mobile-phong-sub-head { background: #b89838; box-shadow: inset 0 -2px 4px #98782866; } .kpi-app .mobile-phong-sub.ip .mobile-phong-sub-val { color: #f0d060; }
+
+/* Hide mobile phong section on desktop */
+@media (min-width: 900px) {
+  .kpi-app .mobile-phong-section { display: none; }
+}
+
 /* AD Card */
 .kpi-app .ad-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; margin-bottom: 8px; }
 .kpi-app .kpi-ad { background: linear-gradient(180deg, #f0f2f5, #e4e8ec); border: 1px solid #c8cdd4; box-shadow: 0 4px 12px #00000018, inset 0 1px 0 #ffffff; border-radius: 8px; padding: 7px 10px 6px; cursor: pointer; transition: box-shadow .22s, transform .22s; position: relative; overflow: hidden; }
@@ -1030,6 +1057,68 @@ export default function KPIDashboard() {
                   </button>
                 </div>
               </nav>
+
+              {/* Mobile Phong Cards — hidden on desktop */}
+              <div className="mobile-phong-section">
+                <div className="section-divider" style={{ marginTop: 6 }}>Tiến Độ Khu Vực</div>
+                {dashboard.phongs.map((phong, pi) => {
+                  const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
+                  const pCp = Math.min(pPct, 100);
+                  return (
+                    <div key={pi}>
+                      {/* Main indicator card */}
+                      <div className="mobile-phong-main-card">
+                        <div className="mobile-phong-main-head">
+                          <span className="mobile-phong-main-name"><Clipboard size={12} style={{ color: '#fff8' }} />{phong.ten}</span>
+                          {!phong.noAds && <span className="mobile-phong-main-pct"><AnimPct value={pPct} /></span>}
+                        </div>
+                        <div className="mobile-phong-main-body">
+                          <div className="mobile-phong-main-afyp">{formatKpiCurrency(phong.afyp)}</div>
+                          {!phong.noAds && <>
+                            <div className="mobile-phong-main-kh">KH: {formatKpiCurrency(phong.kh)}</div>
+                            <div className="mobile-phong-main-prog"><div className="mobile-phong-main-prog-fill" style={{ width: `${pCp}%` }} /></div>
+                          </>}
+                        </div>
+                      </div>
+                      {/* Sub-indicator grid */}
+                      <div className="mobile-phong-sub-grid" style={{ marginTop: 5 }}>
+                        <div className="mobile-phong-sub hd">
+                          <div className="mobile-phong-sub-head">
+                            <div className="mobile-phong-sub-label">Lượt HĐ</div>
+                          </div>
+                          <div className="mobile-phong-sub-body">
+                            <div className="mobile-phong-sub-val"><AnimNum value={phong.lhd} /></div>
+                          </div>
+                        </div>
+                        <div className="mobile-phong-sub td">
+                          <div className="mobile-phong-sub-head">
+                            <div className="mobile-phong-sub-label">TD</div>
+                          </div>
+                          <div className="mobile-phong-sub-body">
+                            <div className="mobile-phong-sub-val"><AnimNum value={phong.td} /></div>
+                          </div>
+                        </div>
+                        <div className="mobile-phong-sub chuan">
+                          <div className="mobile-phong-sub-head">
+                            <div className="mobile-phong-sub-label">HĐ Chuẩn</div>
+                          </div>
+                          <div className="mobile-phong-sub-body">
+                            <div className="mobile-phong-sub-val"><AnimNum value={phong.hdChuan} /></div>
+                          </div>
+                        </div>
+                        {!phong.noAds && <div className="mobile-phong-sub ip">
+                          <div className="mobile-phong-sub-head">
+                            <div className="mobile-phong-sub-label">IP/AFYP</div>
+                          </div>
+                          <div className="mobile-phong-sub-body">
+                            <div className="mobile-phong-sub-val">{phong.tyTrong.toFixed(1)}%</div>
+                          </div>
+                        </div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Desktop Split Layout */}
               <div className="desktop-split">
