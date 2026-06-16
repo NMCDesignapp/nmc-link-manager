@@ -2978,7 +2978,14 @@ export default function QuanLyPage() {
     }
 
     // Filter chỉ TVVm (≤ 12 tháng theo định nghĩa trang thi đua)
-    const tvvmList = tvvStructList.filter(tvv => isTVVm(tvv.ngayBatDau));
+    // Bỏ Ban Ca và TVV không có nhóm
+    const tvvmList = tvvStructList.filter(tvv => {
+      if (!isTVVm(tvv.ngayBatDau)) return false;
+      if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false; // bỏ nhóm trống
+      const nhomName = (banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '').toLowerCase();
+      if (nhomName.includes('ban ca') || nhomName.includes('banca')) return false; // bỏ Ban Ca
+      return true;
+    });
 
     // Build TVVm rows
     const tvvmRows = tvvmList.map((tvv) => {
@@ -3020,9 +3027,18 @@ export default function QuanLyPage() {
         chang: changInfo.chang,
         relativeMonth: changInfo.relativeMonth,
         tongIPThang,
-        thuongThang: 0 as number,
+        thuongThang: tongIPThang >= 12_000_000 ? 1_000_000 : 0,
         tongIPChang,
-        thuongChang: 0 as number,
+        thuongChang: (() => {
+          if (changInfo.chang === 1) {
+            if (tongIPChang >= 100_000_000) return 6_000_000; // 3tr chặng + 3tr xuất phát nhanh
+            if (tongIPChang >= 50_000_000) return 3_000_000;
+            return 0;
+          } else if (changInfo.chang >= 2 && changInfo.chang <= 4) {
+            return tongIPChang >= 100_000_000 ? 3_000_000 : 0;
+          }
+          return 0;
+        })(),
         tenNguoiTD: nguoiTD,
       };
     });
