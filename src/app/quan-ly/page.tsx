@@ -3397,21 +3397,24 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
-              {/* Row 2: FYP thresholds */}
+              {/* Row 2: FYP thresholds — compact */}
               <tr style={{ backgroundColor: '#D97706' }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[9px] h-7 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309' }}>
-                    {tier.label}
+                  <th key={idx} className="text-white font-bold text-[8px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '14px', lineHeight: '1' }}>
+                    {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates */}
-              <tr style={{ backgroundColor: '#F59E0B' }}>
-                {TIERS.map((tier, idx) => (
-                  <th key={idx} className="font-black text-[11px] h-7 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', color: '#78350F' }}>
-                    {tier.rate}%
-                  </th>
-                ))}
+              {/* Row 3: Percentage rates — compact + gradient */}
+              <tr>
+                {TIERS.map((tier, idx) => {
+                  const gradientColors = ['#FEF9C3', '#FEF08A', '#FDE047', '#FACC15', '#EAB308', '#CA8A04'];
+                  return (
+                    <th key={idx} className="font-black text-[9px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '14px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F' }}>
+                      {tier.rate}%
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -3439,15 +3442,19 @@ export default function QuanLyPage() {
                       <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#D1FAE5', color: '#047857' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
-                      {row.tierBonuses.map((bonus, tIdx) => (
-                        <td key={tIdx} className="text-[11px] font-bold text-center whitespace-nowrap p-1 align-middle" style={{
-                          borderColor: '#D1FAE5',
-                          backgroundColor: bonus > 0 ? '#FEF3C7' : 'transparent',
-                          color: bonus > 0 ? '#92400E' : '#D1D5DB',
-                        }}>
-                          {bonus > 0 ? formatCurrency(bonus) : '—'}
-                        </td>
-                      ))}
+                      {row.tierBonuses.map((bonus, tIdx) => {
+                        const gradientBg = ['#FFFBEB', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'];
+                        const gradientText = ['#92400E', '#92400E', '#78350F', '#78350F', '#713F12', '#713F12'];
+                        return (
+                          <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
+                            borderColor: '#D1FAE5',
+                            backgroundColor: bonus > 0 ? gradientBg[tIdx] : 'transparent',
+                            color: bonus > 0 ? gradientText[tIdx] : '#D1D5DB',
+                          }}>
+                            {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
+                          </td>
+                        );
+                      })}
                       <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? formatCurrency(row.tienThuong) : '—'}</td>
                       <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
                     </tr>
@@ -3461,8 +3468,8 @@ export default function QuanLyPage() {
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYC)}</td>
                   {totalTierBonuses.map((bonus, idx) => (
-                    <td key={idx} className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: bonus > 0 ? '#FDE68A' : '#6EE7B7' }}>
-                      {bonus > 0 ? formatCurrency(bonus) : '—'}
+                    <td key={idx} className="text-[10px] italic font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: bonus > 0 ? '#FDE68A' : '#6EE7B7' }}>
+                      {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
                     </td>
                   ))}
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A' }}>{totalTienThuong > 0 ? formatCurrency(totalTienThuong) : '—'}</td>
