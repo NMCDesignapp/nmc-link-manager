@@ -70,14 +70,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #5a83b8; font-weight: 700; }
 .kpi-app .cty-progress { width: 100%; height: 22px; border-radius: 999px; background: #9cc6f04d; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
 .kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #11b76f, #16cb74); will-change: width; }
-.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 18px; }
-.kpi-app .cty-stat { border-radius: 16px; padding: 11px 8px 10px; text-align: center; border: 1px solid #ffffff0d; }
-.kpi-app .cty-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: #9db3d2; }
-.kpi-app .cty-stat-val { font-size: 26px; font-weight: 900; line-height: 1; }
+.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 14px; }
+.kpi-app .cty-stat { border-radius: 10px; padding: 8px 5px 7px; text-align: center; border: 1px solid #ffffff0d; }
+.kpi-app .cty-stat-label { font-size: 8px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; color: #9db3d2; letter-spacing: .02em; }
+.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1; }
 .kpi-app .cty-stat.hd { background: #233f64; } .kpi-app .cty-stat.hd .cty-stat-val { color: #7fc2ff; }
 .kpi-app .cty-stat.td { background: #3a345f; } .kpi-app .cty-stat.td .cty-stat-val { color: #d8b7ff; }
 .kpi-app .cty-stat.chuan { background: #0e4453; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #16e0d3; }
 .kpi-app .cty-stat.ip { background: #4b3825; } .kpi-app .cty-stat.ip .cty-stat-val { color: #ffd789; }
+.kpi-app .cty-stat.ns { background: #1a4a2e; } .kpi-app .cty-stat.ns .cty-stat-val { color: #6be89a; }
+.kpi-app .cty-stat.dl { background: #3a3525; } .kpi-app .cty-stat.dl .cty-stat-val { color: #e0c080; }
+.kpi-app .cty-stat.sl { background: #2a3a50; } .kpi-app .cty-stat.sl .cty-stat-val { color: #a8c8e8; }
 
 /* Phong Card */
 .kpi-app .kpi-phong { background: linear-gradient(180deg, #20457a, #1b3d70); border: 1px solid #5ca2ec55; margin-top: 20px; box-shadow: 0 12px 26px #00000030, inset 0 1px 0 #ffffff10; padding: 16px 18px 18px; border-radius: 18px; position: relative; overflow: hidden; }
@@ -1095,25 +1098,24 @@ export default function KPIDashboard() {
                 <div className={`kpi-card kpi-cty anim-in${glowCls(pct)}`}>
                   <div className="cty-inner">
                     <div className="cty-head">
-                      <div className="cty-name"><Trophy size={16} style={{ color: '#ffc46b' }} /><span>Tổng Công Ty</span></div>
+                      <div className="cty-name"><Trophy size={16} style={{ color: '#ffc46b' }} /><span>Công Ty</span></div>
                       <div className="cty-pct-num"><AnimPct value={pct} /></div>
                     </div>
                     <div className="cty-body">
                       <div className="afyp-kh-row">
                         <span className="afyp-big" style={{ fontSize: 'clamp(1.6rem, 5vw, 2.2rem)' }}>{formatKpiCurrency(dashboard.total.afyp)}</span>
-                        {dashboard.total.kh > 0 && <span className="kh-small">/ KH: {formatKpiCurrency(dashboard.total.kh)}</span>}
+                        {dashboard.total.kh > 0 && <span className="kh-small">/ {formatKpiCurrency(dashboard.total.kh)}</span>}
                       </div>
                       {dashboard.total.kh > 0 && <div className="cty-progress"><div className="cty-progress-fill" style={{ width: `${cp}%` }} /></div>}
                     </div>
                     <div className="cty-stats">
                       <div className="cty-stat hd"><div className="cty-stat-label">Lượt HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
-                      <div className="cty-stat td"><div className="cty-stat-label">TD</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
+                      <div className="cty-stat td"><div className="cty-stat-label">Tuyển dụng</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
                       <div className="cty-stat chuan"><div className="cty-stat-label">HĐ Chuẩn</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                      <div className="cty-stat ip"><div className="cty-stat-label">IP/AFYP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
-                    </div>
-                    <div className="cty-stats" style={{ marginTop: '8px' }}>
-                      <div className="cty-stat hd"><div className="cty-stat-label">Tổng IP</div><div className="cty-stat-val" style={{ fontSize: '18px' }}>{formatKpiCurrency(dashboard.total.totalIP)}</div></div>
-                      <div className="cty-stat td"><div className="cty-stat-label">SL HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
+                      <div className="cty-stat ip"><div className="cty-stat-label">Tỷ Trọng IP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
+                      <div className="cty-stat ns"><div className="cty-stat-label">Năng Suất</div><div className="cty-stat-val">{dashboard.total.nangSuat.toFixed(2)}</div></div>
+                      <div className="cty-stat dl"><div className="cty-stat-label">Đo Lường HĐ</div><div className="cty-stat-val">{dashboard.total.doLonHD >= 1000 ? (dashboard.total.doLonHD / 1000).toFixed(1) : dashboard.total.doLonHD.toFixed(1)}<span style={{ fontSize: '9px', opacity: .65 }}> trđ</span></div></div>
+                      <div className="cty-stat sl" style={{ gridColumn: '2' }}><div className="cty-stat-label">SL HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                     </div>
                   </div>
                 </div>
