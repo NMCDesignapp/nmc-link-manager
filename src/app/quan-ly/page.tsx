@@ -3014,11 +3014,21 @@ export default function QuanLyPage() {
         tongIPChang = changContractsList.reduce((s, c) => s + c.pdt10DT, 0);
       }
 
-      // Get recruiter name
-      const nguoiTD = recruiterMap.get(tvv.agentCode) || '';
+      // Get nhóm name
+      const nhomName = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '';
+
+      // Get recruiter name from DS NTD — tìm trong recruiters theo nhóm
+      // Trưởng nhóm, trưởng ban đều có quyền tuyển
+      let nguoiTD = recruiterMap.get(tvv.agentCode) || '';
+      if (!nguoiTD) {
+        // Tìm từ DS NTD theo mã nhóm
+        const nhomRecruiter = recruiters.find(r => r.nhom === tvv.maBanNhom || r.agentCode === tvv.maBanNhom);
+        if (nhomRecruiter) nguoiTD = nhomRecruiter.agentName;
+      }
 
       return {
         stt: 0 as number,
+        nhom: nhomName,
         maTVV: tvv.agentCode,
         hoTen: tvv.agentName,
         ngayBatDau: tvv.ngayBatDau,
@@ -3088,7 +3098,7 @@ export default function QuanLyPage() {
           <Table className="text-xs bg-white" style={{ borderRadius: 0 }}>
             <TableHeader>
               <TableRow className="hover:bg-[#1E3A5F]" style={{ backgroundColor: '#1E3A5F' }}>
-                <TableHead className="text-white text-center w-[36px] font-bold uppercase text-[10px]" style={{ borderRadius: 0, borderColor: '#2A5080' }}>STT</TableHead>
+                <TableHead className="text-white text-center min-w-[70px] font-bold uppercase text-[10px]" style={{ borderRadius: 0, borderColor: '#2A5080' }}>NHÓM</TableHead>
                 <TableHead className="text-white min-w-[55px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>MÃ TVV</TableHead>
                 <TableHead className="text-white min-w-[90px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>HỌ TÊN TVV</TableHead>
                 <TableHead className="text-white min-w-[75px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>NGÀY BĐ LV</TableHead>
@@ -3122,7 +3132,7 @@ export default function QuanLyPage() {
                       </TableRow>
                     )}
                     <TableRow className="bg-white hover:bg-blue-50 transition-colors" style={{ borderRadius: 0 }}>
-                      <TableCell className="text-center text-gray-500 text-[10px] font-bold" style={{ borderColor: '#D0E4F5' }}>{row.stt}</TableCell>
+                      <TableCell className="text-[10px] text-gray-700 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</TableCell>
                       <TableCell className="font-mono text-[10px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</TableCell>
                       <TableCell className="text-[10px] text-gray-900 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</TableCell>
                       <TableCell className="text-[10px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
@@ -3130,10 +3140,10 @@ export default function QuanLyPage() {
                         <span className="font-bold" style={{ color: changTextColors[row.chang] }}>{row.changXetThuong}</span>
                         <span className="text-gray-400 ml-1 text-[8px]">T{row.relativeMonth}</span>
                       </TableCell>
-                      <TableCell className="text-[10px] text-blue-700 font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', color: row.thuongThang > 0 ? '#059669' : '#9CA3AF' }}>{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] text-blue-700 font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', color: row.thuongChang > 0 ? '#059669' : '#9CA3AF' }}>{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
                       <TableCell className="text-[10px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</TableCell>
                     </TableRow>
                   </React.Fragment>
@@ -3143,10 +3153,10 @@ export default function QuanLyPage() {
               {tvvmRows.length > 0 && (
                 <TableRow style={{ backgroundColor: '#1E3A5F' }}>
                   <TableCell colSpan={5} className="text-right text-white font-black text-[10px] uppercase pr-3" style={{ borderColor: '#2A5080' }}>TỔNG CỘNG ({tvvmRows.length} TVVm)</TableCell>
-                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
-                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
-                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
-                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</TableCell>
+                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
+                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#FBBF24' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
+                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
+                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</TableCell>
                   <TableCell style={{ borderColor: '#2A5080' }}></TableCell>
                 </TableRow>
               )}
