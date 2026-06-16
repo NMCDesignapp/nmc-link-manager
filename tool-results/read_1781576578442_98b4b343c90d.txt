@@ -1,0 +1,302 @@
+   200→   200→.kpi-app .detail-meta { margin-top: 6px; font-size: 12px; color: #7da0cb; font-weight: 500; }
+   201→   201→.kpi-app .month-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 14px; }
+   202→   202→.kpi-app .month-cell { padding: 6px 2px 5px; border-radius: 8px; border: 1px solid #008080; background: #0a3434; color: #b9ffff; cursor: pointer; font-family: inherit; text-align: center; transition: all .2s; display: flex; align-items: center; justify-content: center; }
+   203→   203→.kpi-app .month-cell:hover { background: #0d4b4b; color: #f3ffff; }
+   204→   204→.kpi-app .month-cell.on { background: #008080; color: #003b3b; box-shadow: 0 6px 16px #00808033; }
+   205→   205→.kpi-app .month-cell .mc-label { font-size: 9px; font-weight: 800; }
+   206→   206→.kpi-app .detail-list-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 5px; }
+   207→   207→.kpi-app .grp-item { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px 5px; border-radius: 10px; background: #1e2f46; border: 1px solid #008080; overflow: hidden; animation: cardSlideIn .4s ease-out both; transition: transform .2s, border-color .2s; }
+   208→   208→.kpi-app .grp-item:hover { border-color: #008080; transform: translateY(-1px); }
+   209→   209→.kpi-app .grp-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2b4a6a, #365d84); opacity: .55; transition: width .9s cubic-bezier(.22,1,.36,1); }
+   210→   210→.kpi-app .grp-item.is-top .grp-fill { background: linear-gradient(90deg, #1a5c54, #22796e); opacity: .6; }
+   211→   211→.kpi-app .grp-item > * { position: relative; z-index: 1; }
+   212→   212→.kpi-app .grp-top-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+   213→   213→.kpi-app .grp-name { font-weight: 800; font-size: 12px; color: #e8f0f8; line-height: 1.2; flex: 1; }
+   214→   214→.kpi-app .grp-tn-name { font-size: 9px; font-weight: 600; color: #8ab8e0; line-height: 1.2; font-style: italic; }
+   215→   215→.kpi-app .grp-pct { font-size: 12px; font-weight: 900; white-space: nowrap; flex-shrink: 0; }
+   216→   216→.kpi-app .grp-bot-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+   217→   217→.kpi-app .grp-stats-inline { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+   218→   218→.kpi-app .grp-stat-main { font-size: 10px; font-weight: 700; color: #b8d0ea; white-space: nowrap; }
+   219→   219→.kpi-app .grp-stat-kh { font-size: 10px; font-weight: 600; color: #5a7da0; white-space: nowrap; }
+   220→   220→.kpi-app .grp-prog-row { margin-top: 2px; }
+   221→   221→.kpi-app .grp-prog { height: 4px; border-radius: 999px; overflow: hidden; background: #ffffff14; width: 100%; }
+   222→   222→.kpi-app .grp-prog-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #4a9fd4, #7dc8f0); transition: width .9s cubic-bezier(.22,1,.36,1); will-change: width; }
+   223→   223→.kpi-app .grp-item.is-top .grp-prog-fill { background: linear-gradient(90deg, #2fbfa8, #4ee8cc); }
+   224→   224→
+   225→   225→/* Detail View Hierarchy */
+   226→   226→.kpi-app .dt-phong { margin-top: 14px; border-radius: 10px; overflow: hidden; background: #0e1c30; border: 1px solid #1a3050; }
+   227→   227→.kpi-app .dt-phong-head { padding: 8px 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #ffe0a0; background: linear-gradient(135deg, #c89828, #a87818); }
+   228→   228→.kpi-app .dt-ad { padding: 0 6px; }
+   229→   229→.kpi-app .dt-ad-head { padding: 6px 10px; margin-top: 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #a0c8f0; border-left: 3px solid #3a7cc8; background: #0a1a2e; border-radius: 0 6px 6px 0; }
+   230→   230→.kpi-app .dt-bn { margin-top: 4px; }
+   231→   231→.kpi-app .dt-bn .grp-item { margin: 0; }
+   232→   232→.kpi-app .dt-tvv-list { padding: 4px 8px 6px 20px; display: flex; flex-wrap: wrap; gap: 3px 8px; background: #0a1525; border-radius: 0 0 8px 8px; }
+   233→   233→.kpi-app .dt-tvv { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; line-height: 1.3; }
+   234→   234→.kpi-app .dt-tvv-idx { color: #3a5a7a; font-weight: 700; min-width: 10px; }
+   235→   235→.kpi-app .dt-tvv-name { color: #c8d8ea; font-weight: 700; }
+   236→   236→.kpi-app .dt-tvv-role { font-size: 7px; font-weight: 800; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: .02em; }
+   237→   237→.kpi-app .dt-tvv-role.role-tb { background: #d4a03044; color: #f0d070; }
+   238→   238→.kpi-app .dt-tvv-role.role-tn { background: #3a7cc844; color: #7ab8f0; }
+   239→   239→.kpi-app .dt-tvv-role.role-tvv { background: #2a4a6044; color: #8aa0b8; }
+   240→   240→
+   241→   241→/* Top 3 Podium */
+   242→   242→.kpi-app .top3-section { margin-top: 18px; }
+   243→   243→.kpi-app .top3-grid { display: grid; grid-template-columns: 1fr 1.32fr 1fr; gap: 12px; align-items: end; max-width: 700px; margin: 0 auto; }
+   244→   244→.kpi-app .top3-card { border-radius: 12px; padding: 12px 8px 10px; text-align: center; animation: cardSlideIn .5s ease-out both; position: relative; overflow: hidden; box-shadow: 0 8px 20px #00000040; }
+   245→   245→.kpi-app .top3-rank { font-size: 13px; font-weight: 900; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+   246→   246→.kpi-app .top3-rank-num { font-size: 10px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+   247→   247→.kpi-app .top3-name { font-size: 10px; font-weight: 900; color: #fff8ec; margin-bottom: 5px; line-height: 1.2; padding: 0 2px; text-shadow: 0 1px 1px rgba(0,0,0,.28); }
+   248→   248→.kpi-app .top3-val { font-size: 11px; font-weight: 900; color: #fff8ec; margin-bottom: 3px; text-shadow: 0 1px 1px rgba(0,0,0,.24); }
+   249→   249→.kpi-app .top3-bar { height: 2px; border-radius: 999px; margin: 5px auto 4px; width: 60%; opacity: .8; }
+   250→   250→.kpi-app .top3-pct { font-size: 10px; font-weight: 800; color: rgba(255,248,236,.9); text-shadow: 0 1px 1px rgba(0,0,0,.22); }
+   251→   251→.kpi-app .top3-crown { font-size: 14px; margin-bottom: 5px; }
+   252→   252→.kpi-app .top3-first { padding-top: 16px; padding-bottom: 14px; z-index: 2; transform: translateY(-6px); }
+   253→   253→.kpi-app .top3-first .top3-name { font-size: 11px; }
+   254→   254→.kpi-app .top3-first .top3-val { font-size: 13px; }
+   255→   255→.kpi-app .t3-gold { background: linear-gradient(145deg, #fff2b6 0%, #e7c76c 18%, #c9942f 38%, #f7df89 56%, #b6801f 78%, #f4d774 100%); border: 1.5px solid #f2d27a; color: #4c3105; }
+   256→   256→.kpi-app .t3-gold .top3-rank-num { background: linear-gradient(145deg, #fff3c5, #d6a22d 72%, #b17d1c); color: #4a3005; }
+   257→   257→.kpi-app .t3-gold .top3-bar { background: linear-gradient(90deg, transparent, rgba(150,102,18,.85), transparent); }
+   258→   258→.kpi-app .t3-gold .top3-name, .kpi-app .t3-gold .top3-val, .kpi-app .t3-gold .top3-pct { color: #4a3005; text-shadow: none; }
+   259→   259→.kpi-app .t3-silver { background: linear-gradient(145deg, #f5f8fc 0%, #cfd7e1 22%, #9ca9b6 42%, #edf2f7 58%, #7f8b98 82%, #dfe5eb 100%); border: 1.5px solid #d8e0e8; color: #243240; }
+   260→   260→.kpi-app .t3-silver .top3-rank-num { background: linear-gradient(145deg, #ffffff, #b8c2cc 70%, #8a97a5); color: #23303e; }
+   261→   261→.kpi-app .t3-silver .top3-bar { background: linear-gradient(90deg, transparent, rgba(78,93,108,.8), transparent); }
+   262→   262→.kpi-app .t3-silver .top3-name, .kpi-app .t3-silver .top3-val, .kpi-app .t3-silver .top3-pct { color: #223140; text-shadow: none; }
+   263→   263→.kpi-app .t3-bronze { background: linear-gradient(145deg, #f2cfb3 0%, #d49763 20%, #a65e31 42%, #e1ad7d 58%, #7f431f 84%, #c98552 100%); border: 1.5px solid #d6a06f; color: #40200f; }
+   264→   264→.kpi-app .t3-bronze .top3-rank-num { background: linear-gradient(145deg, #f4dbc5, #ba7340 72%, #8b4d25); color: #3d1f10; }
+   265→   265→.kpi-app .t3-bronze .top3-bar { background: linear-gradient(90deg, transparent, rgba(112,55,23,.82), transparent); }
+   266→   266→.kpi-app .t3-bronze .top3-name, .kpi-app .t3-bronze .top3-val, .kpi-app .t3-bronze .top3-pct { color: #3d1f10; text-shadow: none; }
+   267→   267→
+   268→   268→/* Calendar View */
+   269→   269→.kpi-app .sub-header { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0; position: sticky; top: 0; z-index: 50; }
+   270→   270→.kpi-app .sub-header .btn-back-u { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+   271→   271→.kpi-app .sub-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; color: #ffb12b; text-transform: uppercase; letter-spacing: -.03em; text-align: center; line-height: 1.05; }
+   272→   272→.kpi-app .sub-line-wrap { padding: 0 24px; margin-top: 12px; }
+   273→   273→.kpi-app .sub-line { height: 1px; background: linear-gradient(90deg, transparent, #d4a84340, #d4a84366, #d4a84340, transparent); }
+   274→   274→.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 14px; }
+   275→   275→.kpi-app .cal-fbtn { padding: 7px 2px; border-radius: 7px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 9px; text-align: center; transition: all .2s; }
+   276→   276→.kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
+   277→   277→.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 14px #0080804d; font-weight: 900; }
+   278→   278→.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 50px #0000004d; border: 1px solid #00808066; border-bottom: 4px solid #008080; margin-top: 16px; }
+   279→   279→.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; padding: 14px 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; text-align: center; border-radius: 8px 8px 0 0; }
+   280→   280→.kpi-app .cal-head span { padding: 0 10px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
+   281→   281→.kpi-app .cal-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
+   282→   282→.kpi-app .cal-row:hover { background: #eef9f9; }
+   283→   283→.kpi-app .cal-row.is-today { background: #e0f2fe; box-shadow: inset 0 0 0 2px #38bdf8; }
+   284→   284→.kpi-app .cal-row.is-weekend { background: #e8f4f0; }
+   285→   285→.kpi-app .cal-row.is-sunday { background: #f5e8e8; }
+   286→   286→.kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+   287→   287→.kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
+   288→   288→.kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
+   289→   289→.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; align-items: center; background: #f7ffff; }
+   290→   290→.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; align-items: center; justify-content: center; text-align: center; background: #f7ffff; word-break: break-word; }
+   291→   291→.kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
+   292→   292→.kpi-app .cal-line { display: block; }
+   293→   293→
+   294→   294→/* Desktop */
+   295→   295→.kpi-app .desktop-split { display: none; }
+   296→   296→.kpi-app .dsk-company { display: none; }
+   297→   297→.kpi-app .dsk-ad-wrap { display: none; }
+   298→   298→.kpi-app .kpi-ad.is-phong { display: none; }
+   299→   299→.kpi-app .afyp-chart-wrap { display: none; background: linear-gradient(145deg, #070e1a, #0c1b30, #0a1628); border: 1px solid #1a3355; border-radius: 16px; padding: 16px 18px 18px; box-shadow: 0 12px 40px #00000050; }
+   300→   300→.kpi-app .afyp-chart-title { font-size: .82rem; font-weight: 700; color: #a0d4f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+   301→   301→.kpi-app .afyp-chart { position: relative; width: 100%; height: 240px; }
+   302→   302→.kpi-app .afyp-chart svg { width: 100%; height: 100%; }
+   303→   303→.kpi-app .afyp-chart-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+   304→   304→.kpi-app .sum-item { background: linear-gradient(135deg, #0a1a2e, #0d2240); border: 1px solid #1a3355; border-radius: 10px; padding: 8px 10px; text-align: center; }
+   305→   305→.kpi-app .sum-label { font-size: .58rem; font-weight: 700; color: #5a8aaa; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+   306→   306→.kpi-app .sum-val { font-size: .85rem; font-weight: 900; color: #e0f0ff; line-height: 1.1; }
+   307→   307→.kpi-app .sum-val.green { color: #4ade80; } .kpi-app .sum-val.gold { color: #fbbf24; } .kpi-app .sum-val.red { color: #f87171; }
+   308→   308→.kpi-app .chart-legend { display: flex; gap: 12px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+   309→   309→.kpi-app .legend-item { display: flex; align-items: center; gap: 6px; font-size: .7rem; color: #7aa0be; }
+   310→   310→.kpi-app .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+   311→   311→
+   312→   312→@media (min-width: 900px) {
+   313→   313→  .kpi-app .mob-region-wrap { display: none; }
+   314→   314→  .kpi-app .region-divider { display: none; }
+   315→   315→  .kpi-app .afyp-chart-wrap { display: block; }
+   316→   316→  .kpi-app .app-wrap { max-width: none; }
+   317→   317→  .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
+   318→   318→  .kpi-app #view-main header { max-width: 1800px; width: 100%; margin-bottom: 0; }
+   319→   319→  .kpi-app .main-header { display: flex; align-items: center; gap: 10px; }
+   320→   320→  .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
+   321→   321→  .kpi-app .main-header .btn-back-u { width: 32px; height: 32px; border-radius: 8px; }
+   322→   322→  .kpi-app .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem) !important; margin: 0 !important; }
+   323→   323→  .kpi-app .hero-sub { display: none; }
+   324→   324→  .kpi-app .ctrl-bar { margin-top: 0 !important; }
+   325→   325→  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
+   326→   326→  .kpi-app .nav-row-3 { display: contents; }
+   327→   327→  .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
+   328→   328→  .kpi-app .kpi-cty { display: none !important; }
+   329→   329→  .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
+   330→   330→  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 4px; }
+   331→   331→  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+   332→   332→  .kpi-app .dsk-cty-main-head { padding: 8px 16px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
+   333→   333→  .kpi-app .dsk-cty-main-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: #fff; }
+   334→   334→  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 14px 18px 14px; background: #132a4a; }
+   335→   335→  .kpi-app .dsk-cty-pct { font-size: 2.6rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
+   336→   336→  .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
+   337→   337→  .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px #00000044; }
+   338→   338→  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 10px #40d89044; }
+   339→   339→  .kpi-app .dsk-cty-afyp { margin-top: 10px; font-size: 1.2rem; font-weight: 900; color: #fff; }
+   340→   340→  .kpi-app .dsk-cty-kh { font-size: .72rem; font-weight: 700; color: #6ab0e8; }
+   341→   341→  .kpi-app .dsk-cty-right { display: flex; flex-direction: column; flex: 1; gap: 4px; }
+   342→   342→  .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 1; }
+   343→   343→  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 8px; display: flex; flex-direction: column; }
+   344→   344→  .kpi-app .dsk-cty-kpi-head { padding: 7px 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+   345→   345→  .kpi-app .dsk-cty-kpi-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+   346→   346→  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 8px; text-align: center; }
+   347→   347→  .kpi-app .dsk-cty-kpi-val { font-size: 1.3rem; font-weight: 900; line-height: 1; text-shadow: 0 0 10px currentColor; }
+   348→   348→  .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
+   349→   349→  .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-head { background: #8a7ab8; } .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-val { color: #b8a8e0; }
+   350→   350→  .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-head { background: #2a9aaa; } .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-val { color: #60d0d8; }
+   351→   351→  .kpi-app .dsk-cty-kpi.ip .dsk-cty-kpi-head { background: #c8a848; } .kpi-app .dsk-cty-kpi.ip .dsk-cty-kpi-val { color: #f0d070; }
+   352→   352→  .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-head { background: #5a9a68; } .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-val { color: #80d890; }
+   353→   353→  .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-head { background: #a08050; } .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-val { color: #e0b870; }
+   354→   354→  .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-head { background: #6a88a8; } .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-val { color: #a0c0e0; }
+   355→   355→  .kpi-app .dsk-cty-progress { width: 100%; height: 4px; background: #0d1e36; }
+   356→   356→  .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px #40d89033; }
+   357→   357→  .kpi-app .desktop-split { display: grid; grid-template-columns: 38% 62%; gap: 20px; width: 100%; max-width: 1800px; align-self: center; align-items: start; margin-top: 20px; }
+   358→   358→  .kpi-app .split-left { display: none; }
+   359→   359→  .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: sticky; top: 16px; align-self: start; }
+   360→   360→  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; }
+   361→   361→  .kpi-app .afyp-chart { min-height: 320px; }
+   362→   362→  .kpi-app .region-divider { display: none !important; }
+   363→   363→  .kpi-app .kpi-phong { display: none !important; }
+   364→   364→  .kpi-app .kpi-ad.is-phong { display: block; background: linear-gradient(180deg, #e8f0fa, #d4e2f4); border: 1px solid #7aacdc88; border-top: 3px solid #3a8ad4; border-radius: 14px; padding: 16px 18px 18px; }
+   365→   365→  .kpi-app .kpi-ad.is-phong .ad-name { color: #1a4a7a; }
+   366→   366→  .kpi-app .kpi-ad.is-phong .ad-pct { color: #1a6ab4; }
+   367→   367→  .kpi-app .ad-grid { display: none !important; }
+   368→   368→  .kpi-app .dsk-ad-wrap { display: block; margin-top: 8px; }
+   369→   369→  .kpi-app .dsk-ad-table { display: table; width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; background: #0a1525; border-radius: 8px; overflow: hidden; border: 1px solid #1a2a44; }
+   370→   370→  .kpi-app .dsk-ad-table thead th { padding: 6px 6px 5px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a8aaa; background: #0d1a2e; border-bottom: 1px solid #1a2a44; text-align: center; white-space: nowrap; }
+   371→   371→  .kpi-app .dsk-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+   372→   372→  .kpi-app .dsk-ad-table tbody tr { cursor: pointer; transition: background .15s; }
+   373→   373→  .kpi-app .dsk-ad-table tbody tr:hover { background: #142440; }
+   374→   374→  .kpi-app .dsk-ad-table tbody td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #0f1e34; font-weight: 700; white-space: nowrap; color: #c8d8ea; }
+   375→   375→  .kpi-app .dsk-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
+   376→   376→  .kpi-app .dsk-ad-name { font-weight: 900; color: #e0f0ff; }
+   377→   377→  .kpi-app .dsk-ad-pct { font-weight: 900; }
+   378→   378→  .kpi-app .dsk-ad-pct.green { color: #4ade80; } .kpi-app .dsk-ad-pct.gold { color: #fbbf24; } .kpi-app .dsk-ad-pct.red { color: #f87171; }
+   379→   379→  .kpi-app .dsk-ad-mini-prog { width: 40px; height: 4px; border-radius: 99px; background: #1a2a44; display: inline-block; vertical-align: middle; overflow: hidden; }
+   380→   380→  .kpi-app .dsk-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
+   381→   381→  /* Desktop detail */
+   382→   382→  .kpi-app #view-detail .detail-shell { max-width: 1200px; width: 100%; margin: 0 auto; padding: 16px 24px; }
+   383→   383→  .kpi-app #view-detail .detail-list-wrap { display: flex; flex-direction: column; gap: 0; max-width: 1200px; width: 100%; margin: 0 auto; }
+   384→   384→  .kpi-app #view-detail .dt-phong { max-width: 800px; width: 100%; margin-left: auto; margin-right: auto; }
+   385→   385→  /* Desktop calendar */
+   386→   386→  .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin-left: auto; margin-right: auto; }
+   387→   387→}
+   388→   388→/* Responsive mobile */
+   389→   389→@media (max-width: 640px) {
+   390→   390→  .kpi-app .ctrl-bar { gap: 6px; margin-top: 10px; }
+   391→   391→  .kpi-app .ctrl-select { height: 34px; }
+   392→   392→  .kpi-app .ctrl-hint { font-size: 9px; }
+   393→   393→  .kpi-app .sync-status { width: 34px; height: 34px; }
+   394→   394→  .kpi-app .cty-body { grid-template-columns: 1fr; gap: 10px; }
+   395→   395→  .kpi-app .phong-body { grid-template-columns: 1fr; gap: 10px; }
+   396→   396→  .kpi-app .phong-main-prog { height: 5px; }
+   397→   397→  .kpi-app .phong-sub-grid { grid-template-columns: repeat(4,1fr); gap: 4px; }
+   398→   398→  .kpi-app .phong-sub-label { font-size: 5.5px; }
+   399→   399→  .kpi-app .phong-sub-val { font-size: 12px; }
+   400→   400→  .kpi-app .phong-sub-head { padding: 4px 2px; }
+   401→   401→  .kpi-app .phong-sub-body { padding: 6px 2px; }
+   402→   402→  .kpi-app .phong-main-name { font-size: 10px; }
+   403→   403→  .kpi-app .phong-main-pct { font-size: 15px; }
+   404→   404→  .kpi-app .phong-main-afyp { font-size: 1.3rem; }
+   405→   405→  .kpi-app .nav-grid { gap: 7px; margin-top: 18px; }
+   406→   406→  .kpi-app .nav-btn { padding: 11px 9px; border-radius: 10px; font-size: 10px; min-height: 46px; }
+   407→   407→  .kpi-app .ad-top { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; }
+   408→   408→  .kpi-app .ad-name { font-size: 11px; }
+   409→   409→  .kpi-app .ad-pct { font-size: 11px; }
+   410→   410→  .kpi-app .ad-stat-label { font-size: 5.5px; }
+   411→   411→  .kpi-app .ad-stat-val { font-size: 9px; }
+   412→   412→  .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
+   413→   413→  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 3px; }
+   414→   414→  .kpi-app .cal-fbtn { padding: 5px 1px; border-radius: 6px; min-height: 28px; font-size: 8px; }
+   415→   415→  .kpi-app .cal-row { grid-template-columns: 46px minmax(0,1fr) 58px; }
+   416→   416→  .kpi-app .cal-head { grid-template-columns: 46px minmax(0,1fr) 58px; }
+   417→   417→  .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
+   418→   418→  .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
+   419→   419→  .kpi-app .month-cell .mc-label { font-size: 8px; }
+   420→   420→  .kpi-app .main-header .btn-back-u { width: 34px; height: 34px; }
+   421→   421→}
+   422→   422→`;
+   423→   423→
+   424→   424→/* ================= TYPES ================= */
+   425→   425→interface Contract {
+   426→   426→  id: string; agentCode: string; agentName: string; position: string;
+   427→   427→  ban: string; nhom: string; maNhom: string; maBanNhom: string;
+   428→   428→  ad: string; effectiveDate: string; issueDate: string | null; afyp: number; fyp: number;
+   429→   429→  pdt10DT: number; tinhLuot3tr: number; ngayBatDauLamViec: string | null;
+   430→   430→  thangTD: string | null; namTD: string | null; thangHL: string | null;
+   431→   431→}
+   432→   432→interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
+   433→   433→interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
+   434→   434→interface LeaderInfo { id: string; agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; }
+   435→   435→interface CalendarEvent { id: number; title: string; date: string; color: string; }
+   436→   436→interface ADStructure { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
+   437→   437→interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: string; }
+   438→   438→interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string; note: string; }
+   439→   439→interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
+   440→   440→
+   441→   441→interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
+   442→   442→interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; }
+   443→   443→interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
+   444→   444→interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
+   445→   445→
+   446→   446→/* ================= CONSTANTS ================= */
+   447→   447→const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+   448→   448→const WEEKDAY_NAMES = ['CN','T2','T3','T4','T5','T6','T7'];
+   449→   449→
+   450→   450→/* ================= UTILITIES ================= */
+   451→   451→function num(v: unknown): number {
+   452→   452→  if (v === null || v === undefined) return 0;
+   453→   453→  if (typeof v === 'number') return isFinite(v) ? v : 0;
+   454→   454→  const s = String(v).trim().replace(/\s/g, '').replace(/%/g, '');
+   455→   455→  if (!s) return 0;
+   456→   456→  const n = Number(s.replace(/[^0-9.\-]/g, ''));
+   457→   457→  return isFinite(n) ? n : 0;
+   458→   458→}
+   459→   459→function fmt(n: number): string { return new Intl.NumberFormat('vi-VN').format(n); }
+   460→   460→function fmtBig(v: number): string {
+   461→   461→  if (v >= 1e9) return (v/1e9).toFixed(2) + ' tỷ';
+   462→   462→  if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
+   463→   463→  if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
+   464→   464→  return v.toFixed(0);
+   465→   465→}
+   466→   466→function fmtTyTrong(v: number): string {
+   467→   467→  if (!isFinite(v) || isNaN(v)) return '0%';
+   468→   468→  if (Math.abs(v % 1) < 0.001) return fmt(Math.round(v)) + '%';
+   469→   469→  return v.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '%';
+   470→   470→}
+   471→   471→function fmtShort(v: number): string {
+   472→   472→  if (v >= 1e9) return (v/1e9).toFixed(1) + ' tỷ';
+   473→   473→  if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
+   474→   474→  if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
+   475→   475→  return v.toFixed(0);
+   476→   476→}
+   477→   477→function progressColor(pct: number): string {
+   478→   478→  const p = Math.max(0, Math.min(100, pct || 0));
+   479→   479→  const hue = 0 + (120 * (p / 100));
+   480→   480→  return `hsl(${hue}, 68%, 52%)`;
+   481→   481→}
+   482→   482→function glowCls(pct: number): string { return pct >= 100 ? ' glow-full' : ''; }
+   483→   483→function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red'; }
+   484→   484→function normKey(v: string): string {
+   485→   485→  return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g,'D').replace(/đ/g,'d').toUpperCase().replace(/[^A-Z0-9]/g, '');
+   486→   486→}
+   487→   487→function getMonthFromDate(d: string | null | undefined): string {
+   488→   488→  if (!d) return '';
+   489→   489→  try {
+   490→   490→    const dt = new Date(d);
+   491→   491→    if (isNaN(dt.getTime())) return '';
+   492→   492→    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+   493→   493→  } catch { return ''; }
+   494→   494→}
+   495→   495→function getMonthNum(d: string | null | undefined): number {
+   496→   496→  if (!d) return 0;
+   497→   497→  try { const dt = new Date(d); return isNaN(dt.getTime()) ? 0 : dt.getMonth() + 1; } catch { return 0; }
+   498→   498→}
+   499→   499→// Get doanh so month from issueDate (Ngày PH), fallback effectiveDate (Ngày HL) — same as quan-ly
+
+[showing lines 200-499 of 1613; use offset=500 with limit to continue reading]
