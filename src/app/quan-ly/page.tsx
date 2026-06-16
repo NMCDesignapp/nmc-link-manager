@@ -3100,10 +3100,10 @@ export default function QuanLyPage() {
           ))}
         </div>
 
-        {/* Result Table — White bg, dark blue header, thin blue border, square corners */}
-        <div className="bg-white border" style={{ borderColor: '#93C5FD', borderRadius: 0 }}>
+        {/* Result Table — White bg, dark blue header, thin blue border, square corners, sticky header */}
+        <div className="bg-white border" style={{ borderColor: '#93C5FD', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <Table className="text-xs bg-white" style={{ borderRadius: 0 }}>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10">
               <TableRow className="hover:bg-[#1E3A5F]" style={{ backgroundColor: '#1E3A5F' }}>
                 <TableHead className="text-white text-center w-[32px] font-bold uppercase text-[11px]" style={{ borderRadius: 0, borderColor: '#2A5080' }}>STT</TableHead>
                 <TableHead className="text-white min-w-[70px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>NHÓM</TableHead>
