@@ -2923,23 +2923,48 @@ export default function QuanLyPage() {
   ];
 
   // ========== TVVm Table Data ==========
+  // isTVVm: TVV mới — có thời gian làm việc ≤ 12 tháng (giống định nghĩa trang thi đua)
+  const isTVVm = (startDate: string | null, maxMonths: number = 12): boolean => {
+    if (!startDate) return false;
+    const start = new Date(startDate);
+    const now = new Date();
+    const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    return diffMonths <= maxMonths;
+  };
+
+  // Tính chặng xét thưởng dựa trên tháng bắt đầu làm việc
+  // Tháng bắt đầu = tháng thứ 1, tháng 1-3 = Chặng 1, tháng 4-6 = Chặng 2, v.v.
+  const getChangInfo = (startDate: string | null): { chang: number; label: string; monthRange: string; relativeMonth: number } => {
+    if (!startDate) return { chang: 0, label: '—', monthRange: '', relativeMonth: 0 };
+    const start = new Date(startDate);
+    const now = new Date();
+    // Tháng tương đối: tháng bắt đầu = 1
+    const relativeMonth = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+    const chang = Math.min(Math.ceil(relativeMonth / 3), 4);
+    const changLabels = ['', 'Chặng 1', 'Chặng 2', 'Chặng 3', 'Chặng 4'];
+    // Tính range tháng trong chặng
+    const changStart = (chang - 1) * 3 + 1;
+    const changEnd = chang * 3;
+    const startMonthNum = start.getMonth() + 1; // Tháng bắt đầu trong năm
+    const rangeStart = new Date(start.getFullYear(), start.getMonth() + (changStart - 1), 1);
+    const rangeEnd = new Date(start.getFullYear(), start.getMonth() + changEnd, 0); // last day
+    const monthRange = `${rangeStart.getMonth() + 1}/${rangeStart.getFullYear() % 100} - ${rangeEnd.getMonth() + 1}/${rangeEnd.getFullYear() % 100}`;
+    return { chang, label: changLabels[chang], monthRange, relativeMonth };
+  };
+
   const renderTvvMTable = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
-    const currentMonthStr = String(currentMonth).padStart(2, '0');
 
     // Build a map of agentCode → recruiter name from contracts
     const recruiterMap = new Map<string, string>();
     for (const c of contracts) {
       if (c.maDaiLyTD && c.agentCode) {
-        // The recruiter for this TVV is maDaiLyTD, find recruiter name
         if (!recruiterMap.has(c.agentCode)) {
-          // Find recruiter name from recruiters list or from other contracts
           const recruiter = recruiters.find(r => r.agentCode === c.maDaiLyTD);
           if (recruiter) {
             recruiterMap.set(c.agentCode, recruiter.agentName);
           } else {
-            // Try to find name from contract data where agentCode === maDaiLyTD
             const recruiterContract = contracts.find(rc => rc.agentCode === c.maDaiLyTD);
             if (recruiterContract) {
               recruiterMap.set(c.agentCode, recruiterContract.agentName);
@@ -2951,11 +2976,14 @@ export default function QuanLyPage() {
       }
     }
 
-    // Build TVVm rows from tvvStructList
-    const tvvmRows = tvvStructList.map((tvv, idx) => {
-      // Look up nhóm name from banNhomList
+    // Filter chỉ TVVm (≤ 12 tháng theo định nghĩa trang thi đua)
+    const tvvmList = tvvStructList.filter(tvv => isTVVm(tvv.ngayBatDau));
+
+    // Build TVVm rows
+    const tvvmRows = tvvmList.map((tvv) => {
       const nhomItem = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom);
       const nhomName = nhomItem?.tenBanNhom || tvv.maBanNhom || '';
+      const changInfo = getChangInfo(tvv.ngayBatDau);
 
       // Calculate Tổng IP tháng hiện tại for this TVV
       const monthContracts = contracts.filter(c => {
@@ -2965,52 +2993,84 @@ export default function QuanLyPage() {
       });
       const tongIPThang = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
 
-      // Calculate Tổng IP chặng (full year for now, will be configurable later)
-      const changContracts = contracts.filter(c => {
-        if (c.agentCode !== tvv.agentCode) return false;
-        const d = getDoanhSoMonth(c);
-        return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
-      });
-      const tongIPChang = changContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      // Calculate Tổng IP chặng: chỉ tính IP trong khoảng tháng của chặng hiện tại
+      let tongIPChang = 0;
+      if (tvv.ngayBatDau && changInfo.chang > 0) {
+        const changStart = (changInfo.chang - 1) * 3 + 1; // relative month
+        const changEnd = changInfo.chang * 3;
+        const start = new Date(tvv.ngayBatDau);
+        const rangeStart = new Date(start.getFullYear(), start.getMonth() + (changStart - 1), 1);
+        const rangeEnd = new Date(start.getFullYear(), start.getMonth() + changEnd, 0); // last day of end month
+        const changContractsList = contracts.filter(c => {
+          if (c.agentCode !== tvv.agentCode) return false;
+          const d = getDoanhSoMonth(c);
+          return !isNaN(d.getTime()) && d >= rangeStart && d <= new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate(), 23, 59, 59);
+        });
+        tongIPChang = changContractsList.reduce((s, c) => s + c.pdt10DT, 0);
+      }
 
       // Get recruiter name
       const nguoiTD = recruiterMap.get(tvv.agentCode) || '';
 
       return {
-        stt: idx + 1,
+        stt: 0 as number,
         nhom: nhomName,
         maTVV: tvv.agentCode,
         hoTen: tvv.agentName,
         ngayBatDau: tvv.ngayBatDau,
-        changXetThuong: '', // Will be configured later
+        changXetThuong: changInfo.label,
+        changMonthRange: changInfo.monthRange,
+        chang: changInfo.chang,
+        relativeMonth: changInfo.relativeMonth,
         tongIPThang,
-        thuongThang: 0, // Will be calculated later
+        thuongThang: 0 as number,
         tongIPChang,
-        thuongChang: 0, // Will be calculated later
+        thuongChang: 0 as number,
         tenNguoiTD: nguoiTD,
       };
     });
 
+    // Sắp xếp theo chặng 1 → 4, trong mỗi chặng theo nhóm
+    tvvmRows.sort((a, b) => {
+      if (a.chang !== b.chang) return a.chang - b.chang;
+      if (a.nhom !== b.nhom) return a.nhom.localeCompare(b.nhom);
+      return a.hoTen.localeCompare(b.hoTen);
+    });
+
+    // Gán STT sau khi sort
+    tvvmRows.forEach((row, idx) => { row.stt = idx + 1; });
+
+    // Thống kê theo chặng
+    const changStats = [1, 2, 3, 4].map(c => ({
+      chang: c,
+      label: `Chặng ${c}`,
+      count: tvvmRows.filter(r => r.chang === c).length,
+      ipThang: tvvmRows.filter(r => r.chang === c).reduce((s, r) => s + r.tongIPThang, 0),
+      ipChang: tvvmRows.filter(r => r.chang === c).reduce((s, r) => s + r.tongIPChang, 0),
+    }));
+
+    // Màu cho mỗi chặng
+    const changColors: Record<number, { bg: string; border: string; text: string; label: string }> = {
+      1: { bg: 'bg-rose-900/40', border: 'border-rose-500/30', text: 'text-rose-300', label: 'Chặng 1 (T1-3)' },
+      2: { bg: 'bg-amber-900/40', border: 'border-amber-500/30', text: 'text-amber-300', label: 'Chặng 2 (T4-6)' },
+      3: { bg: 'bg-emerald-900/40', border: 'border-emerald-500/30', text: 'text-emerald-300', label: 'Chặng 3 (T7-9)' },
+      4: { bg: 'bg-sky-900/40', border: 'border-sky-500/30', text: 'text-sky-300', label: 'Chặng 4 (T10-12)' },
+    };
+
     return (
       <div className="space-y-3">
-        {/* Summary stats */}
+        {/* Summary stats theo chặng */}
         <div className="grid grid-cols-4 gap-2">
-          <div className="bg-violet-900/40 border border-violet-500/30 rounded-lg px-3 py-2 text-center">
-            <p className="text-[9px] font-bold text-violet-300 uppercase tracking-wider">Tổng TVVm</p>
-            <p className="text-lg font-black text-violet-200">{tvvmRows.length}</p>
-          </div>
-          <div className="bg-emerald-900/40 border border-emerald-500/30 rounded-lg px-3 py-2 text-center">
-            <p className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">IP tháng</p>
-            <p className="text-sm font-black text-emerald-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</p>
-          </div>
-          <div className="bg-amber-900/40 border border-amber-500/30 rounded-lg px-3 py-2 text-center">
-            <p className="text-[9px] font-bold text-amber-300 uppercase tracking-wider">IP chặng</p>
-            <p className="text-sm font-black text-amber-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</p>
-          </div>
-          <div className="bg-rose-900/40 border border-rose-500/30 rounded-lg px-3 py-2 text-center">
-            <p className="text-[9px] font-bold text-rose-300 uppercase tracking-wider">Thưởng</p>
-            <p className="text-sm font-black text-rose-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang + r.thuongChang, 0))}</p>
-          </div>
+          {changStats.map(cs => {
+            const cc = changColors[cs.chang];
+            return (
+              <div key={cs.chang} className={`${cc.bg} border ${cc.border} rounded-lg px-3 py-2 text-center`}>
+                <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">{cc.label}</p>
+                <p className={`text-lg font-black ${cc.text}`}>{cs.count}</p>
+                <p className="text-[8px] text-white/30">IP chặng: {formatSmartCurrency(cs.ipChang)}</p>
+              </div>
+            );
+          })}
         </div>
 
         {/* Result Table - similar to thi đua */}
@@ -3023,7 +3083,7 @@ export default function QuanLyPage() {
                 <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-[10px] text-center">MÃ TVV</TableHead>
                 <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-[10px] text-center">HỌ TÊN TVV</TableHead>
                 <TableHead className="text-yellow-100 min-w-[75px] font-bold uppercase text-[10px] text-center">NGÀY BĐ LV</TableHead>
-                <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center bg-violet-800/60">CHẶNG XÉT THƯỞNG</TableHead>
+                <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-[10px] text-center bg-violet-800/60">CHẶNG XÉT THƯỞNG</TableHead>
                 <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center">TỔNG IP<br/><span className="text-[8px] text-yellow-300/60 normal-case">(tháng {currentMonth})</span></TableHead>
                 <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-[10px] text-center bg-emerald-800/70">THƯỞNG THÁNG</TableHead>
                 <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center bg-amber-800/60">TỔNG IP CHẶNG</TableHead>
@@ -3035,28 +3095,47 @@ export default function QuanLyPage() {
               {tvvmRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={11} className="text-center text-white/30 py-8 italic text-xs">
-                    Chưa có dữ liệu TVVm. Vui lòng nhập cấu trúc TVV trước.
+                    Chưa có TVVm (TVV mới ≤ 12 tháng). Vui lòng nhập cấu trúc TVV trước.
                   </TableCell>
                 </TableRow>
-              ) : tvvmRows.map((row) => (
-                <TableRow key={row.maTVV} className="hover:bg-violet-500/10 border-violet-500/20 transition-colors">
-                  <TableCell className="text-center text-violet-300/60 text-[10px] font-bold">{row.stt}</TableCell>
-                  <TableCell className="text-[10px] text-violet-200 whitespace-nowrap font-medium">{row.nhom}</TableCell>
-                  <TableCell className="font-mono text-[10px] text-violet-300/80 whitespace-nowrap">{row.maTVV}</TableCell>
-                  <TableCell className="text-[10px] text-white whitespace-nowrap font-semibold">{row.hoTen}</TableCell>
-                  <TableCell className="text-[10px] text-violet-300/70 whitespace-nowrap">{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
-                  <TableCell className="text-[10px] text-violet-300 text-center whitespace-nowrap bg-violet-800/20">{row.changXetThuong || '—'}</TableCell>
-                  <TableCell className="text-[10px] text-emerald-300 font-bold text-right whitespace-nowrap">{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
-                  <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
-                  <TableCell className="text-[10px] text-amber-300 font-bold text-right whitespace-nowrap">{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
-                  <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
-                  <TableCell className="text-[10px] text-white/70 whitespace-nowrap">{row.tenNguoiTD || '—'}</TableCell>
-                </TableRow>
-              ))}
+              ) : tvvmRows.map((row, idx) => {
+                // Chặng separator row
+                const prevRow = idx > 0 ? tvvmRows[idx - 1] : null;
+                const showChangHeader = !prevRow || prevRow.chang !== row.chang;
+                const cc = changColors[row.chang] || changColors[1];
+                return (
+                  <React.Fragment key={row.maTVV}>
+                    {showChangHeader && (
+                      <TableRow className={`${cc.bg} border-t-2 ${cc.border}`}>
+                        <TableCell colSpan={11} className={`py-1.5 px-3 text-[10px] font-black uppercase tracking-wider ${cc.text}`}>
+                          {cc.label} — {changStats.find(cs => cs.chang === row.chang)?.count} TVVm
+                          <span className="text-white/20 ml-2 font-normal normal-case">({row.changMonthRange})</span>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow className="hover:bg-violet-500/10 border-violet-500/20 transition-colors">
+                      <TableCell className="text-center text-violet-300/60 text-[10px] font-bold">{row.stt}</TableCell>
+                      <TableCell className="text-[10px] text-violet-200 whitespace-nowrap font-medium">{row.nhom}</TableCell>
+                      <TableCell className="font-mono text-[10px] text-violet-300/80 whitespace-nowrap">{row.maTVV}</TableCell>
+                      <TableCell className="text-[10px] text-white whitespace-nowrap font-semibold">{row.hoTen}</TableCell>
+                      <TableCell className="text-[10px] text-violet-300/70 whitespace-nowrap">{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
+                      <TableCell className="text-[10px] text-center whitespace-nowrap bg-violet-800/20">
+                        <span className={`font-bold ${cc.text}`}>{row.changXetThuong}</span>
+                        <span className="text-white/20 ml-1 text-[8px]">T{row.relativeMonth}</span>
+                      </TableCell>
+                      <TableCell className="text-[10px] text-emerald-300 font-bold text-right whitespace-nowrap">{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] text-amber-300 font-bold text-right whitespace-nowrap">{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
+                      <TableCell className="text-[10px] text-white/70 whitespace-nowrap">{row.tenNguoiTD || '—'}</TableCell>
+                    </TableRow>
+                  </React.Fragment>
+                );
+              })}
               {/* Total row */}
               {tvvmRows.length > 0 && (
                 <TableRow className="bg-violet-900/40 hover:bg-violet-900/40 border-t-2 border-violet-500/40">
-                  <TableCell colSpan={6} className="text-right text-yellow-200 font-black text-[10px] uppercase pr-3">Tổng cộng</TableCell>
+                  <TableCell colSpan={6} className="text-right text-yellow-200 font-black text-[10px] uppercase pr-3">Tổng cộng ({tvvmRows.length} TVVm)</TableCell>
                   <TableCell className="text-[10px] text-emerald-200 font-black text-right whitespace-nowrap">{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
                   <TableCell className="text-[10px] text-emerald-100 font-black text-center whitespace-nowrap bg-emerald-800/30">{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
                   <TableCell className="text-[10px] text-amber-200 font-black text-right whitespace-nowrap">{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
