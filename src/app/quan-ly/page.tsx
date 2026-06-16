@@ -3115,9 +3115,9 @@ export default function QuanLyPage() {
                   <React.Fragment key={row.maTVV}>
                     {showChangHeader && (
                       <TableRow style={{ backgroundColor: changBgColors[row.chang] }}>
-                        <TableCell colSpan={10} className="py-1.5 px-3 text-[10px] font-black uppercase tracking-wider" style={{ color: changTextColors[row.chang], borderRadius: 0, borderColor: '#B4D4F0' }}>
+                        <TableCell colSpan={10} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider" style={{ color: changTextColors[row.chang], borderRadius: 0, borderColor: '#B4D4F0', lineHeight: '1.3' }}>
                           {changLabels[row.chang]} — {changStats.find(cs => cs.chang === row.chang)?.count || 0} TVVm
-                          <span className="ml-2 font-normal normal-case text-[9px]" style={{ color: changTextColors[row.chang] + '99' }}>({row.changMonthRange})</span>
+                          <span className="ml-1 font-normal normal-case text-[8px]" style={{ color: changTextColors[row.chang] + '99' }}>({row.changMonthRange})</span>
                         </TableCell>
                       </TableRow>
                     )}
