@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
         maBanNhom: getVal(r, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm') || '',
         chucVu: getVal(r, 'chucVu', 'Chức vụ', 'Chức vụ TVV') || '',
         ngayBatDau: safeDate(getVal(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc')),
+        maTVVTuyendung: getVal(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD') || '',
         note: getVal(r, 'note', 'Ghi chú') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
               existing.agentName === rec.agentName &&
               existing.maBanNhom === rec.maBanNhom &&
               existing.chucVu === rec.chucVu &&
+              existing.maTVVTuyendung === rec.maTVVTuyendung &&
               existing.note === rec.note &&
               datesEqual(existing.ngayBatDau, rec.ngayBatDau);
 
@@ -146,6 +148,7 @@ export async function POST(request: NextRequest) {
                   maBanNhom: rec.maBanNhom,
                   chucVu: rec.chucVu,
                   ngayBatDau: rec.ngayBatDau,
+                  maTVVTuyendung: rec.maTVVTuyendung,
                   note: rec.note,
                 },
               });
@@ -204,13 +207,14 @@ export async function POST(request: NextRequest) {
     const maBanNhom = getVal(body, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm');
     const chucVu = getVal(body, 'chucVu', 'Chức vụ', 'Chức vụ TVV');
     const ngayBatDau = getVal(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc');
+    const maTVVTuyendung = getVal(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD');
     const note = getVal(body, 'note', 'Ghi chú');
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({
       where: { agentCode },
-      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), note: note || '' },
-      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), note: note || '' },
+      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
+      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
     });
     return NextResponse.json(item, { status: 201 });
   } catch (error: any) {

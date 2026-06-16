@@ -221,13 +221,14 @@ model BanNhom {
 }
 
 model TVVStruct {
-  id          String   @id @default(uuid())
-  agentCode   String   @unique
-  agentName   String
-  maBanNhom   String   @default("")
-  chucVu      String   @default("")
-  ngayBatDau  DateTime?
-  note        String   @default("")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  agentCode       String   @unique
+  agentName       String
+  maBanNhom       String   @default("")
+  chucVu          String   @default("")
+  ngayBatDau      DateTime?
+  maTVVTuyendung  String   @default("")
+  note            String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

@@ -86,7 +86,7 @@ interface Recruiter {
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
-interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
+interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; maTVVTuyendung: string; note: string; }
 
 // Merge range for spreadsheet
 interface MergeRange {
@@ -1256,7 +1256,7 @@ export default function QuanLyPage() {
   const [newPhong, setNewPhong] = useState({ maPhong: '', tenPhong: '', note: '' });
   const [newAD, setNewAD] = useState({ maAD: '', tenAD: '', maPhong: '', note: '' });
   const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' });
-  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' });
+  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '' });
 
   // Edit state
   const [editingPhong, setEditingPhong] = useState<PhongItem | null>(null);
@@ -1479,7 +1479,7 @@ export default function QuanLyPage() {
   }, [newBanNhom, fetchBanNhom]);
   const handleAddTvv = useCallback(async () => {
     if (!newTvv.agentCode || !newTvv.agentName) return;
-    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', note: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [newTvv, fetchTvvStruct]);
 
   const handleDeletePhong = useCallback(async (id: string) => {
@@ -1569,7 +1569,7 @@ export default function QuanLyPage() {
   }, [editingBanNhom, fetchBanNhom]);
   const handleEditTvv = useCallback(async () => {
     if (!editingTvv) return;
-    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', maTVVTuyendung: editingTvv.maTVVTuyendung || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [editingTvv, fetchTvvStruct]);
 
   // Helper: chuyển Excel serial number thành chuỗi ngày YYYY-MM-DD
@@ -3019,13 +3019,18 @@ export default function QuanLyPage() {
       // Get nhóm name
       const nhomName = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '';
 
-      // Get recruiter name from DS NTD — tìm trong recruiters theo nhóm
-      // Trưởng nhóm, trưởng ban đều có quyền tuyển
-      let nguoiTD = recruiterMap.get(tvv.agentCode) || '';
-      if (!nguoiTD) {
-        // Tìm từ DS NTD theo mã nhóm
-        const nhomRecruiter = recruiters.find(r => r.nhom === tvv.maBanNhom || r.agentCode === tvv.maBanNhom);
-        if (nhomRecruiter) nguoiTD = nhomRecruiter.agentName;
+      // Get recruiter name — ưu tiên maTVVTuyendung từ cấu trúc TVV
+      let nguoiTD = '';
+      if (tvv.maTVVTuyendung && tvv.maTVVTuyendung.trim()) {
+        const tdTVV = tvvStructList.find(t => t.agentCode === tvv.maTVVTuyendung.trim());
+        nguoiTD = tdTVV ? tdTVV.agentName : tvv.maTVVTuyendung;
+      } else {
+        // Fallback: tìm từ contracts
+        nguoiTD = recruiterMap.get(tvv.agentCode) || '';
+        if (!nguoiTD) {
+          const nhomRecruiter = recruiters.find(r => r.nhom === tvv.maBanNhom || r.agentCode === tvv.maBanNhom);
+          if (nhomRecruiter) nguoiTD = nhomRecruiter.agentName;
+        }
       }
 
       return {
@@ -3655,6 +3660,7 @@ export default function QuanLyPage() {
                                           <span className="text-gray-400 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
                                           <span className="text-gray-700 text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
                                           {t.chucVu && <span className="text-emerald-700 text-[9px] flex-shrink-0 font-semibold">{t.chucVu}</span>}
+                                          {t.maTVVTuyendung && <span className="text-violet-600 text-[9px] flex-shrink-0">TD: {t.maTVVTuyendung}</span>}
                                           {t.ngayBatDau && <span className="text-gray-400 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
                                           <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
@@ -3735,6 +3741,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newTvv.maBanNhom} onChange={e => setNewTvv(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: BN001" /></div>
             <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={newTvv.maTVVTuyendung} onChange={e => setNewTvv(p => ({ ...p, maTVVTuyendung: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Thêm</Button></DialogFooter>
@@ -3800,6 +3807,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={editingTvv.maBanNhom} onChange={e => setEditingTvv(t => t ? { ...t, maBanNhom: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? toInputDate(editingTvv.ngayBatDau) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={editingTvv.maTVVTuyendung || ''} onChange={e => setEditingTvv(t => t ? { ...t, maTVVTuyendung: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             </div>
           )}
@@ -3874,7 +3882,7 @@ export default function QuanLyPage() {
                 importTier === 'phong' ? 'maPhong\ttenPhong\tnote\nP001\tPhòng KD\tGhi chú'
                 : importTier === 'ad' ? 'maAD\ttenAD\tmaPhong\tnote\nAD001\tNguyễn Văn A\tP001\tGhi chú'
                 : importTier === 'bannhom' ? 'maBanNhom\ttenBanNhom\tmaAD\tnote\nBN001\tBan 1\tAD001\tGhi chú'
-                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tGhi chú'
+                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tmaTVVTuyendung\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tTV099\tGhi chú'
               } />
             </details>
           </div>

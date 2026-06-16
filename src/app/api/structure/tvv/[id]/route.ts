@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.maBanNhom !== undefined) data.maBanNhom = body.maBanNhom;
     if (body.chucVu !== undefined) data.chucVu = body.chucVu;
     if (body.ngayBatDau !== undefined) data.ngayBatDau = body.ngayBatDau ? safeDate(body.ngayBatDau) : null;
+    if (body.maTVVTuyendung !== undefined) data.maTVVTuyendung = body.maTVVTuyendung;
     if (body.note !== undefined) data.note = body.note;
     const item = await db.tVVStruct.update({ where: { id }, data });
     return NextResponse.json(item);
