@@ -3140,20 +3140,20 @@ export default function QuanLyPage() {
                       </TableRow>
                     )}
                     <TableRow className="bg-white hover:bg-blue-50 transition-colors" style={{ borderRadius: 0 }}>
-                      <TableCell className="text-center text-gray-500 text-[11px] font-bold" style={{ borderColor: '#D0E4F5' }}>{row.stt}</TableCell>
-                      <TableCell className="text-[11px] text-gray-700 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</TableCell>
-                      <TableCell className="font-mono text-[11px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</TableCell>
-                      <TableCell className="text-[11px] text-gray-900 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</TableCell>
+                      <TableCell className="text-center text-gray-400 text-[11px]" style={{ borderColor: '#D0E4F5' }}>{row.stt}</TableCell>
+                      <TableCell className="text-[11px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</TableCell>
+                      <TableCell className="font-mono text-[11px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</TableCell>
+                      <TableCell className="text-[11px] text-gray-800 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</TableCell>
                       <TableCell className="text-[11px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
                       <TableCell className="text-[11px] text-center whitespace-nowrap" style={{ backgroundColor: changBgColors[row.chang] + '80', borderColor: '#D0E4F5' }}>
                         <span className="font-bold" style={{ color: changTextColors[row.chang] }}>{row.changXetThuong}</span>
                         <span className="text-gray-400 ml-1 text-[9px]">T{row.relativeMonth}</span>
                       </TableCell>
                       <TableCell className="text-[11px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
-                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-amber-500" />{formatCurrency(row.thuongThang)}</> : '—'}</TableCell>
                       <TableCell className="text-[11px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
-                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
-                      <TableCell className="text-[11px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-emerald-600" />{formatCurrency(row.thuongChang)}</> : '—'}</TableCell>
+                      <TableCell className="text-[11px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</TableCell>
                     </TableRow>
                   </React.Fragment>
                 );
