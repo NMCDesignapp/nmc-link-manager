@@ -3156,15 +3156,224 @@ export default function QuanLyPage() {
                   </React.Fragment>
                 );
               })}
-              {/* Total row */}
+              {/* Total row — sticky bottom so always visible */}
               {tvvmRows.length > 0 && (
-                <tr style={{ backgroundColor: '#1E3A5F' }}>
+                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#1E3A5F' }}>
                   <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#2A5080' }}>TỔNG CỘNG ({tvvmRows.length} TVVm)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#FBBF24' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</td>
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</td>
-                  <td className="p-2 align-middle" style={{ borderColor: '#2A5080' }}></td>
+                  <td className="p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}></td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== THƯỞNG QUÝ TVV ==========
+  const renderThuongQuyTVV = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentQuarter = Math.ceil(currentMonth / 3); // 1-4
+
+    // Determine quarter month range
+    const quarterStartMonth = (currentQuarter - 1) * 3 + 1;
+    const quarterEndMonth = currentQuarter * 3;
+    const quarterLabel = `Quý ${currentQuarter} (T${quarterStartMonth}-T${quarterEndMonth})`;
+
+    // Tier thresholds and rates
+    const TIERS = [
+      { label: 'FYP ≥ 24tr', rate: 8, minFYP: 24_000_000 },
+      { label: 'FYP ≥ 60tr', rate: 10, minFYP: 60_000_000 },
+      { label: 'FYP ≥ 90tr', rate: 13, minFYP: 90_000_000 },
+      { label: 'FYP ≥ 150tr', rate: 15, minFYP: 150_000_000 },
+      { label: 'FYP ≥ 250tr', rate: 18, minFYP: 250_000_000 },
+      { label: 'FYP ≥ 350tr', rate: 20, minFYP: 350_000_000 },
+    ];
+
+    // Build TVV list — exclude Ban Ca, chỉ TVV có nhóm
+    const tvvList = tvvStructList.filter(tvv => {
+      if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
+      const nhomName = (banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '').toLowerCase();
+      if (nhomName.includes('ban ca') || nhomName.includes('banca')) return false;
+      return true;
+    });
+
+    // Calculate FYP per TVV for current quarter
+    const tvvRows = tvvList.map((tvv) => {
+      // Tổng FYP Quý = sum of pdt10DT for contracts in the quarter months
+      const quarterContracts = contracts.filter(c => {
+        if (c.agentCode !== tvv.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        if (isNaN(d.getTime())) return false;
+        if (d.getFullYear() !== currentYear) return false;
+        const m = d.getMonth() + 1;
+        return m >= quarterStartMonth && m <= quarterEndMonth;
+      });
+      const tongFYPQuy = quarterContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      const fyc = tongFYPQuy * 0.25; // FYC dự kiến 25%
+
+      // Determine tier — find the highest tier the TVV qualifies for
+      let achievedTier = -1;
+      for (let i = TIERS.length - 1; i >= 0; i--) {
+        if (tongFYPQuy >= TIERS[i].minFYP) {
+          achievedTier = i;
+          break;
+        }
+      }
+
+      // Calculate bonus per tier column — show FYC * rate for achieved tier, dash for others
+      const tierBonuses = TIERS.map((tier, idx) => {
+        if (idx === achievedTier) return fyc * (tier.rate / 100);
+        return 0;
+      });
+
+      const nhomName = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '';
+
+      return {
+        stt: 0 as number,
+        nhom: nhomName,
+        maTVV: tvv.agentCode,
+        hoTen: tvv.agentName,
+        tongFYPQuy,
+        fyc,
+        achievedTier,
+        tierBonuses,
+      };
+    });
+
+    // Sort: theo nhóm, rồi theo tên
+    tvvRows.sort((a, b) => {
+      const nhomCmp = a.nhom.localeCompare(b.nhom);
+      if (nhomCmp !== 0) return nhomCmp;
+      return a.hoTen.localeCompare(b.hoTen);
+    });
+
+    // Assign STT
+    tvvRows.forEach((row, idx) => { row.stt = idx + 1; });
+
+    // Group by NHÓM for separators
+    const nhomGroups: { nhom: string; startIndex: number; count: number }[] = [];
+    tvvRows.forEach((row, idx) => {
+      if (idx === 0 || row.nhom !== tvvRows[idx - 1].nhom) {
+        nhomGroups.push({ nhom: row.nhom, startIndex: idx, count: 1 });
+      } else {
+        nhomGroups[nhomGroups.length - 1].count++;
+      }
+    });
+
+    // Totals
+    const totalFYPQuy = tvvRows.reduce((s, r) => s + r.tongFYPQuy, 0);
+    const totalFYC = tvvRows.reduce((s, r) => s + r.fyc, 0);
+    const totalTierBonuses = TIERS.map((_, idx) => tvvRows.reduce((s, r) => s + r.tierBonuses[idx], 0));
+
+    // Count TVV per tier
+    const tierCounts = TIERS.map((_, idx) => tvvRows.filter(r => r.achievedTier === idx).length);
+
+    return (
+      <div className="space-y-3">
+        {/* Quarter summary */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">{quarterLabel}</p>
+            <p className="text-lg font-black text-emerald-700">{tvvRows.length}</p>
+            <p className="text-[8px] text-gray-400">TVV</p>
+          </div>
+          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">TỔNG FYP QUÝ</p>
+            <p className="text-lg font-black text-emerald-700">{formatSmartCurrency(totalFYPQuy)}</p>
+          </div>
+          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">TỔNG FYC</p>
+            <p className="text-lg font-black text-emerald-700">{formatSmartCurrency(totalFYC)}</p>
+          </div>
+          {/* Tier counts */}
+          {TIERS.map((tier, idx) => (
+            <div key={idx} className="bg-white border px-2 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+              <p className="text-[8px] font-bold text-emerald-700">{tier.rate}%</p>
+              <p className="text-base font-black text-emerald-700">{tierCounts[idx]}</p>
+              <p className="text-[7px] text-gray-400">TVV</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Table */}
+        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+            <thead className="sticky top-0 z-10">
+              {/* Row 1: Main headers */}
+              <tr style={{ backgroundColor: '#065F46' }}>
+                <th rowSpan={2} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th rowSpan={2} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
+                <th rowSpan={2} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th rowSpan={2} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>PHÂN TẦNG</th>
+              </tr>
+              {/* Row 2: Sub-headers for PHÂN TẦNG */}
+              <tr style={{ backgroundColor: '#047857' }}>
+                {TIERS.map((tier, idx) => (
+                  <th key={idx} className="text-white font-bold text-[10px] h-8 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#059669' }}>
+                    <span className="block leading-tight">{tier.rate}%</span>
+                    <span className="block text-[8px] font-normal opacity-75">{tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tvvRows.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.</td>
+                </tr>
+              ) : tvvRows.map((row, idx) => {
+                // Nhóm separator
+                const prevRow = idx > 0 ? tvvRows[idx - 1] : null;
+                const showNhomHeader = !prevRow || prevRow.nhom !== row.nhom;
+                return (
+                  <React.Fragment key={row.maTVV}>
+                    {showNhomHeader && (
+                      <tr style={{ backgroundColor: '#D1FAE5' }}>
+                        <td colSpan={12} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider p-2 align-middle whitespace-nowrap" style={{ color: '#065F46', borderColor: '#A7F3D0', lineHeight: '1.3' }}>
+                          {row.nhom || '(Chưa phân nhóm)'} — {nhomGroups.find(g => g.nhom === row.nhom)?.count || 0} TVV
+                        </td>
+                      </tr>
+                    )}
+                    <tr className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                      <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                      <td className="text-[11px] text-gray-600 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                      <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
+                      <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
+                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#D1FAE5', color: '#047857' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
+                      {row.tierBonuses.map((bonus, tIdx) => (
+                        <td key={tIdx} className="text-[11px] font-bold text-center whitespace-nowrap p-1 align-middle" style={{
+                          borderColor: '#D1FAE5',
+                          backgroundColor: bonus > 0 ? '#FEF3C7' : '#F9FAFB',
+                          color: bonus > 0 ? '#92400E' : '#D1D5DB',
+                        }}>
+                          {bonus > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-amber-500" />{formatCurrency(bonus)}</> : '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+              {/* Total row — sticky bottom */}
+              {tvvRows.length > 0 && (
+                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
+                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({tvvRows.length} TVV)</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYPQuy)}</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYC)}</td>
+                  {totalTierBonuses.map((bonus, idx) => (
+                    <td key={idx} className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: bonus > 0 ? '#FDE68A' : '#6EE7B7' }}>
+                      {bonus > 0 ? formatCurrency(bonus) : '—'}
+                    </td>
+                  ))}
                 </tr>
               )}
             </tbody>
@@ -3204,9 +3413,11 @@ export default function QuanLyPage() {
         {POLICY_ITEMS.find(item => item.key === policyOpen) ? (
           <div className="space-y-3">
             {policyOpen === 'tvvm' ? renderTvvMTable() : (
-              <div className="text-center py-8 text-white/25 text-xs italic">
-                Nội dung chính sách sẽ được cấu hình tại đây.
-              </div>
+              policyOpen === 'quy-tvv' ? renderThuongQuyTVV() : (
+                <div className="text-center py-8 text-white/25 text-xs italic">
+                  Nội dung chính sách sẽ được cấu hình tại đây.
+                </div>
+              )
             )}
           </div>
         ) : null}
