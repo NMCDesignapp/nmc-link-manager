@@ -3366,14 +3366,14 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
-                <th colSpan={6} className="text-white font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E' }}>TỶ LỆ THƯỞNG</th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[9px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E', height: '16px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
               {/* Row 2: FYP thresholds — compact */}
               <tr style={{ backgroundColor: '#D97706' }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[8px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '14px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white font-bold text-[7px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '11px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
@@ -3383,7 +3383,7 @@ export default function QuanLyPage() {
                 {TIERS.map((tier, idx) => {
                   const gradientColors = ['#FEF9C3', '#FEF08A', '#FDE047', '#FACC15', '#EAB308', '#CA8A04'];
                   return (
-                    <th key={idx} className="font-black text-[9px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '14px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F' }}>
+                    <th key={idx} className="font-black text-[7px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '11px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F' }}>
                       {tier.rate}%
                     </th>
                   );
@@ -3415,17 +3415,14 @@ export default function QuanLyPage() {
                           color: isAchieved ? '#065F46' : '#92400E',
                         }}>
                           {isAchieved ? (
-                            <span className="flex items-center justify-center gap-0.5">
-                              <span className="text-[9px]">🏆</span>
-                              <span className="font-bold italic text-[9px]">ĐẠT</span>
-                            </span>
+                            <span className="font-bold italic text-[9px]">ĐẠT</span>
                           ) : (
                             <span className="text-[9px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}</span>
                           )}
                         </td>
                       );
                     })}
-                    <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? formatCurrency(row.tienThuong) : '—'}</td>
+                    <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? <span className="flex items-center justify-center gap-1"><span className="text-[10px]">💰</span>{formatCurrency(row.tienThuong)}</span> : '—'}</td>
                     <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
                   </tr>
                 );
