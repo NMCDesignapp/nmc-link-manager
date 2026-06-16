@@ -127,30 +127,34 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .phong-main { display: none; }
 .kpi-app .phong-stats { display: none; }
 
-/* AD Card */
-.kpi-app .ad-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; margin-bottom: 8px; }
-.kpi-app .kpi-ad { background: linear-gradient(180deg, #f0f2f5, #e4e8ec); border: 1px solid #c8cdd4; box-shadow: 0 4px 12px #00000018, inset 0 1px 0 #ffffff; border-radius: 8px; padding: 7px 10px 6px; cursor: pointer; transition: box-shadow .22s, transform .22s; position: relative; overflow: hidden; }
-.kpi-app .kpi-ad:hover { transform: translateY(-1px); }
-.kpi-app .kpi-ad.glow-full { border-color: #f2c46e; background: linear-gradient(180deg, #fff8e8, #f5ecd0); box-shadow: 0 0 0 2px #f2c46e55, 0 0 14px #f2c46e30; }
-.kpi-app .ad-inner { position: relative; z-index: 1; }
-.kpi-app .ad-top { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2.4fr); gap: 8px; align-items: center; }
-.kpi-app .ad-left { min-width: 0; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-.kpi-app .ad-name-row { display: flex; align-items: center; justify-content: center; gap: 5px; }
-.kpi-app .ad-name { font-size: 13px; font-weight: 900; color: #1a2a3a; }
-.kpi-app .ad-pct { font-size: 14px; font-weight: 900; line-height: 1; color: #2a6a9a; white-space: nowrap; }
-.kpi-app .ad-kh { margin-top: 2px; display: block; font-size: 8px; color: #6a7a8a; font-weight: 700; }
-.kpi-app .ad-stats { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0,.9fr)); gap: 3px; }
-.kpi-app .ad-stat { min-width: 0; border-radius: 6px; padding: 5px 3px 4px; text-align: center; border: 1px solid #d0d4da; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.kpi-app .ad-stat-label { display: block; font-size: 7px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .03em; }
-.kpi-app .ad-stat-val { font-size: 12px; font-weight: 900; white-space: nowrap; line-height: 1; }
-.kpi-app .ad-stat.afyp { background: #dce8f4; } .kpi-app .ad-stat.afyp .ad-stat-val { color: #1a3a5a; }
-.kpi-app .ad-stat.lhd { background: #d4ecf4; } .kpi-app .ad-stat.lhd .ad-stat-val { color: #1a4a6a; }
-.kpi-app .ad-stat.td { background: #e4d8f0; } .kpi-app .ad-stat.td .ad-stat-val { color: #4a3080; }
-.kpi-app .ad-stat.chuan { background: #d0f0e8; } .kpi-app .ad-stat.chuan .ad-stat-val { color: #106050; }
-.kpi-app .ad-stat.ip { background: #e8f0d8; } .kpi-app .ad-stat.ip .ad-stat-val { color: #3a5a10; }
-.kpi-app .ad-progress { margin-top: 4px; height: 4px; border-radius: 999px; overflow: hidden; background: #c8ccd2; }
-.kpi-app .ad-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width .9s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #d84b42, #4caf50); will-change: width; }
-.kpi-app .ad-stat-unit { font-size: .58em; font-weight: 800; margin-left: 2px; opacity: .85; }
+/* Mobile Region Table */
+.kpi-app .mob-region-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.kpi-app .mob-phong-block { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px #00000060; border: 1px solid #2a4a6a; }
+.kpi-app .mob-phong-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: linear-gradient(135deg, #d49428, #c0841e); }
+.kpi-app .mob-phong-title { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
+.kpi-app .mob-phong-pct { font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #ffffff44; }
+.kpi-app .mob-phong-summary { display: flex; align-items: baseline; gap: 6px; padding: 8px 12px 6px; background: #0e1e34; }
+.kpi-app .mob-phong-afyp { font-size: 1.3rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; }
+.kpi-app .mob-phong-kh { font-size: .7rem; color: #5a9ac8; font-weight: 700; }
+.kpi-app .mob-phong-prog { height: 5px; background: #0a1830; margin: 0 12px 8px; border-radius: 99px; overflow: hidden; }
+.kpi-app .mob-phong-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); }
+.kpi-app .mob-ad-table { width: 100%; border-collapse: collapse; font-size: 11px; background: #0c1a2e; }
+.kpi-app .mob-ad-table thead th { padding: 5px 4px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a9ac0; background: #0a1428; border-bottom: 1px solid #1a3050; text-align: center; white-space: nowrap; }
+.kpi-app .mob-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .mob-ad-table tbody td { padding: 7px 4px; text-align: center; border-bottom: 1px solid #0f1e34; font-weight: 700; white-space: nowrap; color: #b8d0ea; font-size: 11px; }
+.kpi-app .mob-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .mob-ad-table tbody tr:last-child td { border-bottom: none; }
+.kpi-app .mob-ad-name { font-weight: 900; color: #e0f0ff; font-size: 11px; }
+.kpi-app .mob-ad-pct { font-weight: 900; font-size: 12px; }
+.kpi-app .mob-ad-pct.green { color: #4ade80; } .kpi-app .mob-ad-pct.gold { color: #fbbf24; } .kpi-app .mob-ad-pct.red { color: #f87171; }
+.kpi-app .mob-ad-afyp { color: #7fc8ff; font-weight: 900; }
+.kpi-app .mob-ad-kh { color: #5a8ab0; }
+.kpi-app .mob-ad-mini-prog { display: inline-block; width: 36px; height: 3px; border-radius: 99px; background: #1a2a44; vertical-align: middle; overflow: hidden; }
+.kpi-app .mob-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
+
+/* Desktop-only AD table */
+.kpi-app .ad-grid { display: none; }
+.kpi-app .kpi-ad { display: none; }
 
 /* Navigation */
 .kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
@@ -306,6 +310,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
 @media (min-width: 900px) {
+  .kpi-app .mob-region-wrap { display: none; }
+  .kpi-app .region-divider { display: none; }
   .kpi-app .afyp-chart-wrap { display: block; }
   .kpi-app .app-wrap { max-width: none; }
   .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
@@ -1223,6 +1229,67 @@ export default function KPIDashboard() {
               {/* Region Divider - Mobile */}
               <div className="region-divider">
                 <span className="region-divider-title">Tiến Độ Khu Vực</span>
+              </div>
+
+              {/* Mobile Region Tables */}
+              <div className="mob-region-wrap">
+                {dashboard.phongs.map((phong, pi) => {
+                  const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
+                  const pCp = Math.min(pPct, 100);
+                  return (
+                    <div className="mob-phong-block" key={pi}>
+                      {/* Phong Header */}
+                      <div className="mob-phong-header">
+                        <span className="mob-phong-title"><Clipboard size={12} style={{ color: '#fff' }} />{phong.ten}</span>
+                        {!phong.noAds && <span className="mob-phong-pct"><AnimPct value={pPct} /></span>}
+                      </div>
+                      {/* Phong Summary */}
+                      <div className="mob-phong-summary">
+                        <span className="mob-phong-afyp"><AnimNum value={phong.afyp} /></span>
+                        {!phong.noAds && <span className="mob-phong-kh">/ {fmt(phong.kh)}đ</span>}
+                      </div>
+                      {!phong.noAds && <div className="mob-phong-prog"><div className="mob-phong-prog-fill" style={{ width: `${pCp}%` }} /></div>}
+                      {/* AD Table */}
+                      {!phong.noAds && phong.ads.length > 0 && (
+                        <table className="mob-ad-table">
+                          <thead>
+                            <tr>
+                              <th>AD</th>
+                              <th>% KH</th>
+                              <th>AFYP</th>
+                              <th>KH</th>
+                              <th>HD</th>
+                              <th>TD</th>
+                              <th>Chuẩn</th>
+                              <th>IP</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {phong.ads.map((ad, ai) => {
+                              const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+                              const aCp = Math.min(aPct, 100);
+                              const aPctCls = pctClass(aPct);
+                              const khTrd = Math.round(ad.kh / 1000000);
+                              const afypTrd = Math.round(ad.afyp / 1000000);
+                              return (
+                                <tr key={ai}>
+                                  <td><span className="mob-ad-name">{ad.ten}</span></td>
+                                  <td><span className={`mob-ad-pct ${aPctCls}`}>{aPct.toFixed(0)}%</span></td>
+                                  <td><span className="mob-ad-afyp">{afypTrd > 0 ? `${fmt(afypTrd)}` : '0'}</span></td>
+                                  <td><span className="mob-ad-kh">{khTrd > 0 ? `${khTrd}` : '--'}</span></td>
+                                  <td>{ad.lhd}</td>
+                                  <td>{ad.td}</td>
+                                  <td>{ad.hdChuan}</td>
+                                  <td>{fmtTyTrong(ad.tyTrong)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Desktop Split Layout */}
