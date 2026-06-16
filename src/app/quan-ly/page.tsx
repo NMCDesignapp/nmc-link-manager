@@ -3199,11 +3199,9 @@ export default function QuanLyPage() {
       { label: 'FYP ≥ 350tr', rate: 20, minFYP: 350_000_000 },
     ];
 
-    // Build TVV list — exclude Ban Ca, chỉ TVV có nhóm
+    // Build TVV list — chỉ TVV có nhóm
     const tvvList = tvvStructList.filter(tvv => {
       if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
-      const nhomName = (banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '').toLowerCase();
-      if (nhomName.includes('ban ca') || nhomName.includes('banca')) return false;
       return true;
     });
 
@@ -3299,27 +3297,15 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-3">
-        {/* Quarter summary — compact */}
+        {/* Quarter summary — compact: chỉ số TVV đạt + tổng tiền thưởng */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
             <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">{quarterLabel}</p>
-            <p className="text-sm font-black text-emerald-700">{filteredRows.length} <span className="text-[8px] font-normal text-gray-400">TVV</span></p>
-          </div>
-          <div className="bg-emerald-700 border px-2.5 py-1.5 text-center" style={{ borderColor: '#047857', borderRadius: 0 }}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-200">ĐẠT THƯỞNG</p>
-            <p className="text-sm font-black text-white">{tvvDatThuong} <span className="text-[8px] font-normal text-emerald-200">/ {filteredRows.length}</span></p>
+            <p className="text-sm font-black text-emerald-700">{tvvDatThuong} <span className="text-[8px] font-normal text-gray-400">/ {filteredRows.length} TVV đạt</span></p>
           </div>
           <div className="bg-amber-600 border px-2.5 py-1.5 text-center" style={{ borderColor: '#B45309', borderRadius: 0 }}>
             <p className="text-[8px] font-bold uppercase tracking-wider text-amber-100">TỔNG TIỀN THƯỞNG</p>
             <p className="text-sm font-black text-white">{formatSmartCurrency(totalTienThuong)}</p>
-          </div>
-          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">TỔNG FYP</p>
-            <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYPQuy)}</p>
-          </div>
-          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">FYC (25%)</p>
-            <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYC)}</p>
           </div>
         </div>
 
@@ -3417,16 +3403,25 @@ export default function QuanLyPage() {
                     <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
                     <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
                     <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#D1FAE5', color: '#047857' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
-                    {row.tierBonuses.map((bonus, tIdx) => {
+                    {TIERS.map((tier, tIdx) => {
+                      const isAchieved = tIdx <= row.achievedTier && row.achievedTier >= 0;
+                      const deficit = row.tongFYPQuy < tier.minFYP ? tier.minFYP - row.tongFYPQuy : 0;
                       const gradientBg = ['#FFFBEB', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'];
-                      const gradientText = ['#92400E', '#92400E', '#78350F', '#78350F', '#713F12', '#713F12'];
+                      const achievedGreen = ['#DCFCE7', '#BBF7D0', '#86EFAC', '#6EE7B7', '#34D399', '#10B981'];
                       return (
                         <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
-                          borderColor: '#D1FAE5',
-                          backgroundColor: bonus > 0 ? gradientBg[tIdx] : 'transparent',
-                          color: bonus > 0 ? gradientText[tIdx] : '#D1D5DB',
+                          borderColor: isAchieved ? '#86EFAC' : '#D1FAE5',
+                          backgroundColor: isAchieved ? achievedGreen[tIdx] : gradientBg[tIdx],
+                          color: isAchieved ? '#065F46' : '#92400E',
                         }}>
-                          {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
+                          {isAchieved ? (
+                            <span className="flex items-center justify-center gap-0.5">
+                              <span className="text-[9px]">🏆</span>
+                              <span className="font-bold italic text-[9px]">ĐẠT</span>
+                            </span>
+                          ) : (
+                            <span className="text-[9px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}</span>
+                          )}
                         </td>
                       );
                     })}
