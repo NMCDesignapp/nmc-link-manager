@@ -3448,44 +3448,76 @@ export default function QuanLyPage() {
     );
   };
 
+  const renderPolicyContent = (key: string) => {
+    switch (key) {
+      case 'tvvm': return renderTvvMTable();
+      case 'quy-tvv': return renderThuongQuyTVV();
+      default: return (
+        <div className="text-center py-12 text-gray-300 text-xs italic">
+          Nội dung chính sách sẽ được cấu hình tại đây.
+        </div>
+      );
+    }
+  };
+
   const renderPolicy = () => {
     return (
-      <div>
-        {/* Policy sub-tabs — horizontally scrollable */}
-        <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex gap-0">
+        {/* Left sidebar — accordion menu */}
+        <div className="w-[220px] flex-shrink-0 border-r border-gray-100 bg-white">
           {POLICY_ITEMS.map(item => {
             const isActive = policyOpen === item.key;
             const Icon = item.icon;
             return (
-              <button
-                key={item.key}
-                onClick={() => togglePolicy(item.key)}
-                className={`px-3 py-1.5 rounded-[2px] text-[11px] font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
-                  isActive
-                    ? 'text-white shadow-sm'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-violet-50 shadow-sm'
-                }`}
-                style={isActive ? { backgroundColor: item.color } : undefined}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {item.label}
-              </button>
+              <div key={item.key}>
+                <button
+                  onClick={() => togglePolicy(item.key)}
+                  className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors border-b border-gray-50 ${
+                    isActive
+                      ? 'text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={isActive ? { backgroundColor: item.color } : undefined}
+                >
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="text-[11px] font-bold leading-tight flex-1">{item.label}</span>
+                  {isActive ? <ChevronDown className="w-3 h-3 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-40" />}
+                </button>
+                {/* Accordion content rendered inline on mobile-sm screens */}
+              </div>
             );
           })}
         </div>
 
-        {/* Policy content */}
-        {POLICY_ITEMS.find(item => item.key === policyOpen) ? (
-          <div className="space-y-3">
-            {policyOpen === 'tvvm' ? renderTvvMTable() : (
-              policyOpen === 'quy-tvv' ? renderThuongQuyTVV() : (
-                <div className="text-center py-8 text-white/25 text-xs italic">
-                  Nội dung chính sách sẽ được cấu hình tại đây.
-                </div>
-              )
-            )}
-          </div>
-        ) : null}
+        {/* Right content area */}
+        <div className="flex-1 min-w-0 pl-3">
+          {policyOpen ? (
+            <div className="space-y-3">
+              {/* Section header */}
+              {(() => {
+                const item = POLICY_ITEMS.find(i => i.key === policyOpen);
+                if (!item) return null;
+                const Icon = item.icon;
+                return (
+                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                    <div className="w-7 h-7 flex items-center justify-center text-white" style={{ backgroundColor: item.color }}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
+                      <p className="text-[9px] text-gray-400">{item.desc}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+              {renderPolicyContent(policyOpen)}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-gray-300 text-xs italic">
+              Chọn khoản thưởng bên trái để xem chi tiết
+            </div>
+          )}
+        </div>
       </div>
     );
   };
