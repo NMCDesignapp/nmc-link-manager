@@ -17,7 +17,7 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
-  Menu, ChevronLeft, UserPlus,
+  Menu, ChevronLeft, UserPlus, BookOpen,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -125,7 +125,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'spreadsheet';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
@@ -144,9 +144,8 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
-  { key: 'report', label: 'Báo cáo', icon: BarChart3, synced: false },
+  { key: 'report', label: 'Chính sách đại lý', icon: BookOpen, synced: false },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
-  { key: 'spreadsheet', label: 'Trang tính', icon: Calculator, synced: false },
 ];
 
 // Templates
@@ -1301,7 +1300,7 @@ export default function QuanLyPage() {
   // Per-section settings state (derived from onlineSettings) - use useMemo for efficiency
   const sectionLinks = useMemo(() => {
     const links: Record<string, string> = {};
-    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure',
       'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
       'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
     allKeys.forEach(key => {
@@ -1313,7 +1312,7 @@ export default function QuanLyPage() {
 
   const sectionSyncs = useMemo(() => {
     const syncs: Record<string, boolean> = {};
-    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure', 'spreadsheet',
+    const allKeys = ['leaders', 'recruiters', 'revenue', 'structure',
       'revenue-01', 'revenue-02', 'revenue-03', 'revenue-04', 'revenue-05', 'revenue-06',
       'revenue-07', 'revenue-08', 'revenue-09', 'revenue-10', 'revenue-11', 'revenue-12', 'revenue-all'];
     allKeys.forEach(key => {
@@ -1386,7 +1385,6 @@ export default function QuanLyPage() {
       kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
-      spreadsheet: async () => {},
     };
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
@@ -2267,7 +2265,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Row 1: Core Revenue KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {[
           { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
           { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: targetTongIP, targetFmt: formatKpiCurrency(targetTongIP), bg: '#059669', hasKH: true },
@@ -2293,8 +2291,8 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-1.5 py-1.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-xs sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2302,7 +2300,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Row 2: Secondary KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', hasKH: true },
@@ -2329,8 +2327,8 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-2 py-2.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-1.5 py-1.5 sm:px-3 sm:py-3 text-center">
+                <p className="text-xs sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2909,812 +2907,16 @@ export default function QuanLyPage() {
     { f: 'maDaiLyTD', l: 'MÃ ĐL TD', type: 'text' as const },
   ];
 
-  // ========== RENDER: Report ==========
-  const renderReport = () => {
-    // Available columns for calculation — chỉ tiêu theo quy tắc
-    const calcColumns = [
-      { key: 'pdt10DT', label: 'Tổng IP', type: 'sum_field' as const },
-      { key: 'afyp', label: 'Tổng AFYP', type: 'sum_field' as const },
-      { key: '_luotHoatDong', label: 'Lượt HĐ', type: 'count_condition' as const },
-      { key: '_luotHoatDongChuan', label: 'Lượt HĐ chuẩn', type: 'count_condition' as const },
-      { key: '_soLuotHD', label: 'Số lượt HĐ', type: 'count_rows' as const },
-      { key: '_slTuyenDung', label: 'SL tuyển dụng', type: 'count_condition' as const },
-    ];
-
-    // Available columns for conditions (includes date & text fields)
-    const conditionColumns = [
-      { key: 'pdt10DT', label: 'IP (PĐT + 10% ĐT)', type: 'number' as const },
-      { key: 'afyp', label: 'AFYP', type: 'number' as const },
-      { key: 'fyp', label: 'FYP', type: 'number' as const },
-      { key: 'tinhLuot3tr', label: 'TÍNH LƯỢT 3 tr', type: 'number' as const },
-      { key: 'phiDongThem', label: 'Phí đóng thêm', type: 'number' as const },
-      { key: 'ngayBatDauLamViec', label: 'Ngày bắt đầu làm việc', type: 'date' as const },
-      { key: 'ngayBatDauLamViec2', label: 'Ngày BĐLV 2', type: 'date' as const },
-      { key: 'effectiveDate', label: 'Ngày hiệu lực', type: 'date' as const },
-      { key: 'issueDate', label: 'Ngày phát hành', type: 'date' as const },
-      { key: 'thangTD', label: 'Tháng TD', type: 'number' as const },
-      { key: 'namTD', label: 'Năm TD', type: 'number' as const },
-      { key: 'thangHL', label: 'Tháng HL', type: 'number' as const },
-      { key: 'agentCode', label: 'Mã TVV', type: 'text' as const },
-      { key: 'agentName', label: 'Tên TVV', type: 'text' as const },
-      { key: 'nhom', label: 'Nhóm', type: 'text' as const },
-      { key: 'ad', label: 'AD', type: 'text' as const },
-      { key: 'ban', label: 'Phòng/Ban', type: 'text' as const },
-      { key: 'maNhom', label: 'Mã nhóm', type: 'text' as const },
-      { key: 'position', label: 'Chức vụ', type: 'text' as const },
-      { key: 'dkDongPhi', label: 'ĐK đóng phí', type: 'text' as const },
-      { key: 'hopDongToChuc', label: 'HĐ tổ chức', type: 'text' as const },
-      { key: 'maDaiLyTD', label: 'Mã ĐL TD (NTD)', type: 'text' as const },
-    ];
-
-    // Helper: evaluate a condition on a contract item
-    const evaluateCondition = (item: any, cond: { column: string; operator: string; value: string }): boolean => {
-      if (!cond.column || !cond.operator || !cond.value) return true;
-      const colDef = conditionColumns.find(c => c.key === cond.column);
-      if (!colDef) return true;
-
-      const rawVal = item[cond.column];
-
-      if (colDef.type === 'number') {
-        const numVal = parseFloat(String(rawVal || 0)) || 0;
-        const numCond = parseFloat(cond.value) || 0;
-        switch (cond.operator) {
-          case '>=': return numVal >= numCond;
-          case '<=': return numVal <= numCond;
-          case '>': return numVal > numCond;
-          case '<': return numVal < numCond;
-          case '=': return numVal === numCond;
-          case '!=': return numVal !== numCond;
-          default: return true;
-        }
-      } else if (colDef.type === 'date') {
-        const dateVal = rawVal ? new Date(rawVal) : null;
-        if (!dateVal || isNaN(dateVal.getTime())) return false;
-        // For date conditions, value is in months (số tháng)
-        const monthsNum = parseFloat(cond.value) || 0;
-        const now = new Date();
-        const diffMs = now.getTime() - dateVal.getTime();
-        const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44);
-        switch (cond.operator) {
-          case '>=': return diffMonths >= monthsNum;
-          case '<=': return diffMonths <= monthsNum;
-          case '>': return diffMonths > monthsNum;
-          case '<': return diffMonths < monthsNum;
-          case '=': return Math.abs(diffMonths - monthsNum) < 1;
-          case '!=': return Math.abs(diffMonths - monthsNum) >= 1;
-          default: return true;
-        }
-      } else {
-        // text
-        const strVal = String(rawVal || '').toLowerCase();
-        const strCond = cond.value.toLowerCase();
-        switch (cond.operator) {
-          case '=': return strVal === strCond;
-          case '!=': return strVal !== strCond;
-          case 'contains': return strVal.includes(strCond);
-          case 'not_contains': return !strVal.includes(strCond);
-          case 'starts': return strVal.startsWith(strCond);
-          default: return true;
-        }
-      }
-    };
-
-    // Filter contracts by date range (use issueDate for revenue grouping)
-    const currentYear = new Date().getFullYear();
-    let filteredData = contracts.filter(c => {
-      const d = new Date(c.issueDate || c.effectiveDate);
-      if (isNaN(d.getTime())) return false;
-      if (d.getFullYear() !== currentYear) return false;
-      if (reportMonthFrom) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m < reportMonthFrom) return false; }
-      if (reportMonthTo) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m > reportMonthTo) return false; }
-      return true;
-    });
-
-    // Apply conditions
-    if (reportConditions.length > 0) {
-      filteredData = filteredData.filter(c =>
-        reportConditions.every(cond => evaluateCondition(c, cond))
-      );
-    }
-
-    // Also use revenue data for revenue-based columns
-    const isRevenueColumn = ['totalFYP', 'totalAFYP', 'contractCount', 'activityRounds'].includes(reportColumn);
-
-    // Group by subject — use structure lists as the base (like thi-đua page)
-    // Build mapping: contract → which AD / BanNhom it belongs to
-    const grouped = new Map<string, { key: string; label: string; items: any[]; extra1: string; extra2: string; extra3?: string }>();
-
-    if (reportSubject === 'nhom') {
-      // Use banNhomList from structure as the base list
-      for (const bn of banNhomList) {
-        // Find parent AD for this bannhom
-        const parentAD = adList.find(a => a.maAD === bn.maAD);
-        grouped.set(bn.maBanNhom, {
-          key: bn.maBanNhom,
-          label: bn.tenBanNhom,
-          items: [],
-          extra1: '', // will fill with TN name
-          extra2: parentAD?.tenAD || '',
-          extra3: '', // will fill with TN agent code
-        });
-        // Look up Trưởng Nhóm from leaders or TVVStruct
-        const tnLeader = leaders.find(l => l.maNhom === bn.maBanNhom || l.nhom === bn.tenBanNhom);
-        if (tnLeader) {
-          grouped.get(bn.maBanNhom)!.extra1 = tnLeader.agentName;
-          (grouped.get(bn.maBanNhom) as any).extra3 = tnLeader.agentCode;
-        } else {
-          const tnTVV = tvvStructList.find(t => t.maBanNhom === bn.maBanNhom && (t.chucVu?.toLowerCase().includes('trưởng') || t.chucVu?.toLowerCase().includes('tn')));
-          if (tnTVV) {
-            grouped.get(bn.maBanNhom)!.extra1 = tnTVV.agentName;
-            (grouped.get(bn.maBanNhom) as any).extra3 = tnTVV.agentCode;
-          }
-        }
-      }
-      // Map contracts to their nhóm using maBanNhom or nhom/maNhom
-      for (const c of filteredData) {
-        // Try maBanNhom first, then maNhom, then nhom name match
-        let matchedKey = c.maBanNhom && grouped.has(c.maBanNhom) ? c.maBanNhom
-          : c.maNhom && grouped.has(c.maNhom) ? c.maNhom
-          : '';
-        if (!matchedKey) {
-          // Try matching by tên nhóm
-          const found = banNhomList.find(bn => bn.tenBanNhom === c.nhom);
-          if (found) matchedKey = found.maBanNhom;
-        }
-        if (matchedKey && grouped.has(matchedKey)) {
-          grouped.get(matchedKey)!.items.push(c);
-        } else {
-          // Unmatched — put in a catch-all group
-          const catchKey = '__unmatched__';
-          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.nhom || '(Chưa phân nhóm)', items: [], extra1: '', extra2: '' });
-          grouped.get(catchKey)!.items.push(c);
-        }
-      }
-    } else if (reportSubject === 'ad') {
-      // Use adList from structure as the base list
-      for (const ad of adList) {
-        // Find parent Phong for this AD
-        const parentPhong = phongList.find(p => p.maPhong === ad.maPhong);
-        grouped.set(ad.maAD, {
-          key: ad.maAD,
-          label: ad.tenAD,
-          items: [],
-          extra1: parentPhong?.tenPhong || '',
-          extra2: '',
-        });
-      }
-      // Map contracts to their AD
-      // Build a mapping: maBanNhom → maAD (from structure)
-      const bnToAD = new Map<string, string>();
-      for (const bn of banNhomList) {
-        if (bn.maAD) bnToAD.set(bn.maBanNhom, bn.maAD);
-      }
-      for (const c of filteredData) {
-        // Try to find AD via maBanNhom → structure mapping
-        let matchedADKey = '';
-        if (c.maBanNhom && bnToAD.has(c.maBanNhom)) {
-          matchedADKey = bnToAD.get(c.maBanNhom)!;
-        }
-        // Fallback: try matching by ad name against adList
-        if (!matchedADKey && c.ad) {
-          const found = adList.find(a => a.tenAD === c.ad);
-          if (found) matchedADKey = found.maAD;
-        }
-        if (matchedADKey && grouped.has(matchedADKey)) {
-          grouped.get(matchedADKey)!.items.push(c);
-        } else {
-          // Unmatched
-          const catchKey = '__unmatched__';
-          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.ad || '(Chưa có AD)', items: [], extra1: '', extra2: '' });
-          grouped.get(catchKey)!.items.push(c);
-        }
-      }
-    } else if (reportSubject === 'ntd') {
-      // ntd — group by maDaiLyTD (Người tuyển dụng)
-      // Build NTD groups from contracts' maDaiLyTD field
-      const ntdSet = new Map<string, string>(); // code → name
-      for (const c of filteredData) {
-        const ntdCode = c.maDaiLyTD;
-        if (!ntdCode) continue;
-        if (!ntdSet.has(ntdCode)) {
-          // Try to find name from recruiters list
-          const rec = recruiters.find(r => r.agentCode === ntdCode);
-          ntdSet.set(ntdCode, rec?.agentName || ntdCode);
-        }
-      }
-      for (const [code, name] of ntdSet) {
-        grouped.set(code, { key: code, label: name, items: [], extra1: '', extra2: '' });
-      }
-      for (const c of filteredData) {
-        const ntdCode = c.maDaiLyTD;
-        if (!ntdCode) {
-          // Contracts without NTD go to unmatched
-          const catchKey = '__unmatched__';
-          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: '(Chưa có NTD)', items: [], extra1: '', extra2: '' });
-          grouped.get(catchKey)!.items.push(c);
-          continue;
-        }
-        // Skip NTD's own contracts if toggle is off
-        if (!reportIncludeNTDOwn && c.agentCode === ntdCode) continue;
-        if (grouped.has(ntdCode)) {
-          grouped.get(ntdCode)!.items.push(c);
-        }
-      }
-    } else if (reportSubject === 'phong') {
-      // phong - use phongList from structure
-      for (const p of phongList) {
-        grouped.set(p.maPhong, {
-          key: p.maPhong,
-          label: p.tenPhong,
-          items: [],
-          extra1: '',
-          extra2: '',
-        });
-      }
-      // Map contracts to their phòng
-      const adToPhong = new Map<string, string>();
-      for (const ad of adList) {
-        if (ad.maPhong) adToPhong.set(ad.maAD, ad.maPhong);
-      }
-      const bnToAD = new Map<string, string>();
-      for (const bn of banNhomList) {
-        if (bn.maAD) bnToAD.set(bn.maBanNhom, bn.maAD);
-      }
-      for (const c of filteredData) {
-        let matchedPhongKey = '';
-        // Try: maBanNhom → AD → Phong
-        if (c.maBanNhom && bnToAD.has(c.maBanNhom)) {
-          const adKey = bnToAD.get(c.maBanNhom)!;
-          if (adToPhong.has(adKey)) matchedPhongKey = adToPhong.get(adKey)!;
-        }
-        // Fallback: ban name match
-        if (!matchedPhongKey && c.ban) {
-          const found = phongList.find(p => p.tenPhong === c.ban);
-          if (found) matchedPhongKey = found.maPhong;
-        }
-        if (matchedPhongKey && grouped.has(matchedPhongKey)) {
-          grouped.get(matchedPhongKey)!.items.push(c);
-        } else {
-          const catchKey = '__unmatched__';
-          if (!grouped.has(catchKey)) grouped.set(catchKey, { key: catchKey, label: c.ban || '(Chưa có phòng)', items: [], extra1: '', extra2: '' });
-          grouped.get(catchKey)!.items.push(c);
-        }
-      }
-    }
-
-    // Use revenue data if needed
-    if (isRevenueColumn && revenue.length > 0) {
-      const revFiltered = revenue.filter(r => {
-        if (reportMonthFrom && r.month < `${currentYear}-${reportMonthFrom}`) return false;
-        if (reportMonthTo && r.month > `${currentYear}-${reportMonthTo}`) return false;
-        return r.month.startsWith(String(currentYear));
-      });
-      // Keep structure-based groups, map revenue into them
-      for (const r of revFiltered) {
-        let matchedKey = '';
-        if (reportSubject === 'nhom') {
-          matchedKey = r.maNhom && grouped.has(r.maNhom) ? r.maNhom : '';
-          if (!matchedKey) {
-            const found = banNhomList.find(bn => bn.tenBanNhom === r.nhom);
-            if (found) matchedKey = found.maBanNhom;
-          }
-        } else if (reportSubject === 'ad') {
-          // revenue doesn't have maAD, try to find via maNhom → bannhom → AD
-          if (r.maNhom) {
-            const bn = banNhomList.find(b => b.maBanNhom === r.maNhom);
-            if (bn && bn.maAD && grouped.has(bn.maAD)) matchedKey = bn.maAD;
-          }
-        } else {
-          // phong — revenue doesn't directly map to phong
-        }
-        if (matchedKey && grouped.has(matchedKey)) {
-          grouped.get(matchedKey)!.items.push(r);
-        }
-      }
-    }
-
-    // Calculate values
-    const colLabel = calcColumns.find(c => c.key === reportColumn)?.label || reportColumn;
-
-    // Helper: check if a TVV is "mới" (≤12 months) based on ngayBatDauLamViec
-    const isTVVm = (item: any): boolean => {
-      const sd = item.ngayBatDauLamViec;
-      if (!sd) return true; // no start date = new TVV, ≤12 months
-      const diff = (Date.now() - new Date(sd).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-      return diff <= 12;
-    };
-
-    // Helper: compute a metric for a group of contracts
-    const computeMetric = (items: any[], metric: string, tvvmOnly: boolean): number => {
-      // Filter by TVVm if checkbox is checked
-      const filtered = tvvmOnly ? items.filter(isTVVm) : items;
-
-      if (metric === 'pdt10DT') {
-        return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.pdt10DT || 0)) || 0), 0);
-      } else if (metric === 'afyp') {
-        return filtered.reduce((s: number, item: any) => s + (parseFloat(String(item.afyp || 0)) || 0), 0);
-      } else if (metric === '_luotHoatDong') {
-        // Đếm số dòng hợp đồng có giá trị >= 3 triệu tại cột TÍNH LƯỢT 3tr
-        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 3000000).length;
-      } else if (metric === '_luotHoatDongChuan') {
-        // Đếm số dòng hợp đồng có giá trị >= 12 triệu tại cột TÍNH LƯỢT 3tr
-        return filtered.filter((item: any) => (parseFloat(String(item.tinhLuot3tr || 0)) || 0) >= 12000000).length;
-      } else if (metric === '_soLuotHD') {
-        // Đếm số dòng có dữ liệu
-        return filtered.length;
-      } else if (metric === '_slTuyenDung') {
-        // SL tuyển dụng: đếm TVV trong nhóm/đối tượng có ngày bắt đầu làm việc trong khoảng thời gian
-        // Lấy danh sách agentCode từ items (contracts)
-        const agentCodes = new Set(filtered.map((item: any) => item.agentCode).filter(Boolean));
-        // Đếm từ tvvStructList những TVV thuộc nhóm này và có ngày bắt đầu trong khoảng
-        return tvvStructList.filter(t => {
-          if (!agentCodes.has(t.agentCode) && !items.some((item: any) => item.maBanNhom === t.maBanNhom)) return false;
-          if (!t.ngayBatDau) return false;
-          const d = new Date(t.ngayBatDau);
-          if (isNaN(d.getTime())) return false;
-          if (d.getFullYear() !== currentYear) return false;
-          if (reportMonthFrom) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m < reportMonthFrom) return false; }
-          if (reportMonthTo) { const m = String(d.getMonth() + 1).padStart(2, '0'); if (m > reportMonthTo) return false; }
-          return true;
-        }).length;
-      }
-      return 0;
-    };
-
-    // Helper: check if metric is a count type (not currency)
-    const isCountMetric = (key: string) => ['_luotHoatDong', '_luotHoatDongChuan', '_soLuotHD', '_slTuyenDung'].includes(key);
-
-    const results = Array.from(grouped.entries()).map(([key, group]) => {
-      const value = computeMetric(group.items, reportColumn, reportTVVm);
-
-      // Optional 2nd column
-      let value2: number | null = null;
-      if (reportColumn2) {
-        value2 = computeMetric(group.items, reportColumn2, reportTVVm2);
-      }
-
-      const target = parseFloat(reportTarget) || 0;
-      const pct = target > 0 ? (value / target) * 100 : 0;
-      return { key, label: group.label, value, value2, target, pct, extra1: group.extra1, extra2: group.extra2, extra3: (group as any).extra3 || '', hasData: group.items.length > 0 };
-    })
-    // Chỉ hiện những đối tượng có trong cấu trúc (không hiện dòng ngoài đối tượng)
-    .filter(r => r.key !== '__unmatched__')
-    .sort((a, b) => b.value - a.value);
-
-    const totalValue = results.reduce((s, r) => s + r.value, 0);
-    const totalTarget = parseFloat(reportTarget) || 0;
-    const totalPct = totalTarget > 0 ? (totalValue / totalTarget) * 100 : 0;
-    const col2Label = (calcColumns.find(c => c.key === reportColumn2)?.label || '') + (reportTVVm2 && reportColumn2 ? ' TVVm' : '');
-    const col1DisplayLabel = colLabel + (reportTVVm ? ' TVVm' : '');
-
-    const subjectLabel = reportSubject === 'nhom' ? 'Nhóm' : reportSubject === 'ad' ? 'AD' : reportSubject === 'ntd' ? 'NTD' : 'Phòng';
-    const title = reportTitle || `${col1DisplayLabel}${reportColumn2 ? ` / ${col2Label}` : ''} theo ${subjectLabel}${reportSubject === 'ntd' && !reportIncludeNTDOwn ? ' (không tính HĐ cá nhân)' : ''}`;
-
-    // Build condition description for display
-    const condDescParts = reportConditions.filter(c => c.column && c.operator && c.value).map(c => {
-      const colName = conditionColumns.find(cc => cc.key === c.column)?.label || c.column;
-      const opLabel = { '>=': '≥', '<=': '≤', '>': '>', '<': '<', '=': '=', '!=': '≠', 'contains': 'chứa', 'not_contains': 'không chứa', 'starts': 'bắt đầu bằng' }[c.operator] || c.operator;
-      const colType = conditionColumns.find(cc => cc.key === c.column)?.type;
-      const valLabel = colType === 'date' ? `${c.value} tháng` : c.value;
-      return `${colName} ${opLabel} ${valLabel}`;
-    });
-    const condDesc = condDescParts.length > 0 ? condDescParts.join(' ∧ ') : '';
-
+  // ========== RENDER: Chính sách đại lý ==========
+  const renderPolicy = () => {
     return (
       <div className="space-y-4">
-        {/* Config panel */}
-        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4">
-          <h3 className="text-sm font-bold text-emerald-300 mb-3 flex items-center gap-1.5">
-            <BarChart3 className="w-4 h-4" /> Cấu hình báo cáo
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {/* 1. Đối tượng */}
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Đối tượng</label>
-              <select value={reportSubject} onChange={e => setReportSubject(e.target.value as any)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
-                <option value="phong">Phòng</option>
-                <option value="ad">AD</option>
-                <option value="nhom">Nhóm</option>
-                <option value="ntd">Người TD</option>
-              </select>
-            </div>
-            {/* NTD toggle */}
-            {reportSubject === 'ntd' && (
-              <div>
-                <label className="text-[10px] font-bold text-white/70 mb-1 block">NTD tính cả HĐ cá nhân?</label>
-                <button
-                  onClick={() => setReportIncludeNTDOwn(!reportIncludeNTDOwn)}
-                  className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2 flex items-center gap-1.5"
-                >
-                  {reportIncludeNTDOwn ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5 text-amber-400" />}
-                  {reportIncludeNTDOwn ? 'Có' : 'Không'}
-                </button>
-              </div>
-            )}
-            {/* 2. Cột tính chính */}
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Cột tính</label>
-              <select value={reportColumn} onChange={e => setReportColumn(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
-                {calcColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-              <button
-                onClick={() => setReportTVVm(!reportTVVm)}
-                className="mt-1 flex items-center gap-1 text-[10px] font-medium"
-              >
-                {reportTVVm ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-gray-500" />}
-                <span className={reportTVVm ? 'text-emerald-300' : 'text-white/40'}>Chỉ TVVm (≤12 tháng)</span>
-              </button>
-            </div>
-            {/* 3. Cột thứ 2 */}
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Cột thứ 2 (tuỳ chọn)</label>
-              <select value={reportColumn2} onChange={e => setReportColumn2(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
-                <option value="">— Không —</option>
-                {calcColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-              {reportColumn2 && (
-                <button
-                  onClick={() => setReportTVVm2(!reportTVVm2)}
-                  className="mt-1 flex items-center gap-1 text-[10px] font-medium"
-                >
-                  {reportTVVm2 ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-gray-500" />}
-                  <span className={reportTVVm2 ? 'text-emerald-300' : 'text-white/40'}>Chỉ TVVm (≤12 tháng)</span>
-                </button>
-              )}
-            </div>
-            {/* 5. Kế hoạch */}
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Kế hoạch (CT)</label>
-              <input type="text" value={reportTarget} onChange={e => setReportTarget(e.target.value)} placeholder="Nhập số..." className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
-            </div>
-            {/* 6. Thời gian */}
-            <div className="flex gap-1">
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-white/70 mb-1 block">Từ tháng</label>
-                <select value={reportMonthFrom} onChange={e => setReportMonthFrom(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
-                  <option value="">T1</option><option value="01">T1</option><option value="02">T2</option><option value="03">T3</option><option value="04">T4</option><option value="05">T5</option><option value="06">T6</option><option value="07">T7</option><option value="08">T8</option><option value="09">T9</option><option value="10">T10</option><option value="11">T11</option><option value="12">T12</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-white/70 mb-1 block">Đến</label>
-                <select value={reportMonthTo} onChange={e => setReportMonthTo(e.target.value)} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2">
-                  <option value="">T12</option><option value="01">T1</option><option value="02">T2</option><option value="03">T3</option><option value="04">T4</option><option value="05">T5</option><option value="06">T6</option><option value="07">T7</option><option value="08">T8</option><option value="09">T9</option><option value="10">T10</option><option value="11">T11</option><option value="12">T12</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Conditions */}
-          <div className="mt-3 border border-amber-500/20 rounded-lg p-3 bg-amber-500/5">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
-                <Target className="w-3 h-3" /> Điều kiện lọc
-              </label>
-              <button
-                onClick={() => setReportConditions(prev => [...prev, { column: '', operator: '>=', value: '' }])}
-                className="text-[10px] font-bold text-amber-300 hover:text-amber-200 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
-              >
-                <Plus className="w-3 h-3" /> Thêm điều kiện
-              </button>
-            </div>
-            {reportConditions.length === 0 && (
-              <p className="text-[10px] text-white/30 italic">Chưa có điều kiện. Nhấn "Thêm điều kiện" để lọc dữ liệu (VD: Ngày BĐLV ≥ 3 tháng, IP &gt; 3.000.000...)</p>
-            )}
-            <div className="space-y-1.5">
-              {reportConditions.map((cond, idx) => {
-                const colDef = conditionColumns.find(c => c.key === cond.column);
-                const colType = colDef?.type || 'number';
-                const isDate = colType === 'date';
-                const isText = colType === 'text';
-                return (
-                  <div key={idx} className="flex items-center gap-1.5">
-                    <select
-                      value={cond.column}
-                      onChange={e => {
-                        const newCol = e.target.value;
-                        const newType = conditionColumns.find(c => c.key === newCol)?.type || 'number';
-                        setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, column: newCol, operator: newType === 'text' ? 'contains' : '>=' } : c));
-                      }}
-                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-1.5 flex-shrink-0 w-[160px]"
-                    >
-                      <option value="">— Chọn cột —</option>
-                      {conditionColumns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                    </select>
-                    <select
-                      value={cond.operator}
-                      onChange={e => setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, operator: e.target.value } : c))}
-                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-1.5 w-[60px]"
-                    >
-                      {isText ? (
-                        <>
-                          <option value="=">=</option>
-                          <option value="!=">≠</option>
-                          <option value="contains">Chứa</option>
-                          <option value="not_contains">Không chứa</option>
-                          <option value="starts">Bắt đầu</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value=">=">≥</option>
-                          <option value="<=">≤</option>
-                          <option value=">">&gt;</option>
-                          <option value="<">&lt;</option>
-                          <option value="=">=</option>
-                          <option value="!=">≠</option>
-                        </>
-                      )}
-                    </select>
-                    <input
-                      type={isText ? 'text' : 'number'}
-                      value={cond.value}
-                      onChange={e => setReportConditions(prev => prev.map((c, i) => i === idx ? { ...c, value: e.target.value } : c))}
-                      placeholder={isDate ? 'Số tháng...' : isText ? 'Nội dung...' : 'Giá trị...'}
-                      className="h-7 text-[10px] bg-gray-800 border border-amber-500/30 text-white rounded px-2 flex-1 min-w-[80px]"
-                    />
-                    {isDate && <span className="text-[9px] text-amber-300/60 shrink-0">tháng</span>}
-                    <button
-                      onClick={() => setReportConditions(prev => prev.filter((_, i) => i !== idx))}
-                      className="h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded shrink-0"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Row 3: Title + Note */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Tiêu đề báo cáo</label>
-              <input type="text" value={reportTitle} onChange={e => setReportTitle(e.target.value)} placeholder={title} className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-white/70 mb-1 block">Ghi chú</label>
-              <input type="text" value={reportNote} onChange={e => setReportNote(e.target.value)} placeholder="Nội dung ghi chú..." className="w-full h-8 text-xs bg-gray-800 border border-emerald-500/30 text-white rounded px-2" />
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-extrabold text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.3)]">Chính sách đại lý</h2>
         </div>
-
-        {/* Report result - light theme table */}
-        <div className="bg-[#0e0e18]/80 backdrop-blur-md border border-emerald-500/30 rounded-lg p-4" id="report-content">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-extrabold text-emerald-300 neon-text">{title}</h3>
-              {reportNote && <p className="text-[10px] text-white/50 mt-0.5">{reportNote}</p>}
-              <p className="text-[10px] text-white/40 mt-0.5">
-                Năm {currentYear}{reportMonthFrom || reportMonthTo ? ` | Tháng ${reportMonthFrom || '01'} - ${reportMonthTo || '12'}` : ''} | {results.length} đối tượng | {filteredData.length} HĐ
-              </p>
-              {condDesc && <p className="text-[10px] text-amber-300/60 mt-0.5">Điều kiện: {condDesc}</p>}
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setReportPopupOpen(true)} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><BarChart3 className="w-3 h-3 mr-1" /> Xem popup</Button>
-              <Button onClick={() => {
-                const el = document.getElementById('report-content');
-                if (!el) return;
-                import('html-to-image').then(mod => {
-                  mod.toPng(el, { backgroundColor: '#0e0e18', pixelRatio: 2 }).then((dataUrl: string) => {
-                    const a = document.createElement('a'); a.href = dataUrl; a.download = `bao-cao-${Date.now()}.png`; a.click();
-                  });
-                }).catch(() => toast({ title: 'Lỗi xuất ảnh', variant: 'destructive' }));
-              }} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-7 text-xs"><Download className="w-3 h-3 mr-1" /> Tải ảnh</Button>
-            </div>
-          </div>
-
-          {/* Total bar */}
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-3">
-            <div className="flex items-center justify-between">
-              <span className="text-white/80 text-xs font-bold">TỔNG CỘNG</span>
-              <div className="flex items-center gap-4">
-                <span className="text-emerald-300 text-sm font-extrabold">{isCountMetric(reportColumn) ? formatNumber(totalValue) : formatCurrency(totalValue)}</span>
-                {reportColumn2 && <span className="text-sky-300 text-sm font-extrabold">{isCountMetric(reportColumn2) ? formatNumber(results.reduce((s, r) => s + (r.value2 || 0), 0)) : formatCurrency(results.reduce((s, r) => s + (r.value2 || 0), 0))}</span>}
-                {totalTarget > 0 && (
-                  <span className={`text-sm font-extrabold ${totalPct >= 100 ? 'text-emerald-300' : totalPct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>
-                    {totalPct.toFixed(1)}% / {formatCurrency(totalTarget)}
-                  </span>
-                )}
-              </div>
-            </div>
-            {totalTarget > 0 && <Progress value={Math.min(totalPct, 100)} className="h-2 mt-2 bg-gray-800 [&>div]:bg-emerald-400" />}
-          </div>
-
-          {/* Results table - LIGHT THEME */}
-          <div className="overflow-auto max-h-[calc(100vh-520px)] bg-white rounded-lg border border-green-200" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
-            <table className="w-full">
-              <thead className="sticky top-0 z-10 bg-emerald-600 border-b border-emerald-700">
-                <tr className="[&>th]:whitespace-nowrap">
-                  <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}
-                  {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên nhóm</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã ĐL TN</th>}
-                  {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên TN</th>}
-                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã phòng</th>}
-                  {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng</th>}
-                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã NTD</th>}
-                  {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Người TD</th>}
-                  <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col1DisplayLabel}</th>
-                  {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col2Label}</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Kế hoạch</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Tỷ lệ</th>}
-                  {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Tiến độ</th>}
-                  <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Ghi chú</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r, i) => (
-                  <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
-                    <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{i + 1}</td>
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1}</td>}
-                    {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra2}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.extra3 || '—'}</td>}
-                    {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1 || '—'}</td>}
-                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                    {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                    {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                    <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
-                    {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
-                    {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200 whitespace-nowrap">{formatCurrency(r.target)}</td>}
-                    {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 whitespace-nowrap ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
-                    {totalTarget > 0 && <td className="px-3 py-2 border border-green-200 whitespace-nowrap"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
-                    <td className="px-1 py-1 border border-green-200 whitespace-nowrap">
-                      <input
-                        type="text"
-                        value={reportRowNotes[r.key] || ''}
-                        onChange={e => setReportRowNotes(prev => ({ ...prev, [r.key]: e.target.value }))}
-                        className="w-full h-6 text-[10px] bg-white border border-green-200 rounded px-1.5 text-gray-800 focus:outline-none focus:border-green-400"
-                        placeholder="Ghi chú..."
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="text-center py-10 text-white/30 text-sm italic">
+          Chưa có mục chính sách nào. Vui lòng tạo mới.
         </div>
-
-        {/* ========== Report Popup Dialog ========== */}
-        <Dialog open={reportPopupOpen} onOpenChange={setReportPopupOpen}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a2e] border-emerald-500/30 p-0">
-            {/* Action bar */}
-            <div className="sticky top-0 z-10 bg-[#1a1a2e] border-b border-emerald-500/20 px-3 py-2 flex items-center justify-between">
-              <DialogTitle className="text-emerald-400 text-sm font-bold">Báo cáo - Popup</DialogTitle>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={async () => {
-                  try {
-                    const XLSX = await import('xlsx');
-                    const headers: string[] = ['STT'];
-                    if (reportSubject === 'ad') headers.push('Mã AD', 'Phòng KD', 'AD');
-                    if (reportSubject === 'nhom') headers.push('AD', 'Tên nhóm', 'Mã ĐL TN', 'Tên TN');
-                    if (reportSubject === 'phong') headers.push('Mã phòng', 'Phòng');
-                    if (reportSubject === 'ntd') headers.push('Mã NTD', 'Người TD');
-                    headers.push(col1DisplayLabel);
-                    if (reportColumn2) headers.push(col2Label);
-                    if (totalTarget > 0) headers.push('Kế hoạch', 'Tỷ lệ');
-                    headers.push('Ghi chú');
-                    const rows = results.map((r, i) => {
-                      const row: (string | number)[] = [i + 1];
-                      if (reportSubject === 'ad') { row.push(r.key, r.extra1 || '', r.label); }
-                      if (reportSubject === 'nhom') { row.push(r.extra2 || '', r.label, r.extra3 || '', r.extra1 || ''); }
-                      if (reportSubject === 'phong') { row.push(r.key, r.label); }
-                      if (reportSubject === 'ntd') { row.push(r.key, r.label); }
-                      row.push(isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value));
-                      if (reportColumn2) row.push(isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0));
-                      if (totalTarget > 0) { row.push(formatCurrency(r.target), r.pct.toFixed(1) + '%'); }
-                      row.push(reportRowNotes[r.key] || '');
-                      return row;
-                    });
-                    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-                    const colWidths = headers.map((h, ci) => {
-                      const maxLen = Math.max(h.length, ...rows.map(r => String(r[ci] || '').length));
-                      return { wch: Math.min(maxLen + 2, 30) };
-                    });
-                    ws['!cols'] = colWidths;
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo');
-                    XLSX.writeFile(wb, `bao-cao-${Date.now()}.xlsx`);
-                  } catch { toast({ title: 'Lỗi xuất Excel', variant: 'destructive' }); }
-                }} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10"><FileSpreadsheet className="w-3 h-3 mr-1" />XLSX</Button>
-                <Button variant="outline" size="sm" onClick={async () => {
-                  const el = reportPopupRef.current;
-                  if (!el) return;
-                  try {
-                    const { toPng } = await import('html-to-image');
-                    const dataUrl = await toPng(el, { backgroundColor: '#ffffff', pixelRatio: 2 });
-                    const a = document.createElement('a'); a.href = dataUrl; a.download = `bao-cao-${Date.now()}.png`; a.click();
-                  } catch { toast({ title: 'Lỗi xuất ảnh', variant: 'destructive' }); }
-                }} className="border-emerald-500/30 text-emerald-400 h-7 text-xs hover:bg-emerald-500/10"><Download className="w-3 h-3 mr-1" />Tải ảnh</Button>
-              </div>
-            </div>
-
-            <div ref={reportPopupRef} className="px-3 py-2 bg-white">
-              {/* Report header in popup */}
-              <div className="mb-3">
-                <h3 className="text-base font-extrabold text-green-700">{title}</h3>
-                {reportNote && <p className="text-[10px] text-gray-500 mt-0.5">{reportNote}</p>}
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  Năm {currentYear}{reportMonthFrom || reportMonthTo ? ` | Tháng ${reportMonthFrom || '01'} - ${reportMonthTo || '12'}` : ''} | {results.length} đối tượng | {filteredData.length} HĐ
-                </p>
-              </div>
-
-              {/* Total bar in popup */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700 text-xs font-bold">TỔNG CỘNG</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-green-700 text-sm font-extrabold">{isCountMetric(reportColumn) ? formatNumber(totalValue) : formatCurrency(totalValue)}</span>
-                    {reportColumn2 && <span className="text-blue-700 text-sm font-extrabold">{isCountMetric(reportColumn2) ? formatNumber(results.reduce((s, r) => s + (r.value2 || 0), 0)) : formatCurrency(results.reduce((s, r) => s + (r.value2 || 0), 0))}</span>}
-                    {totalTarget > 0 && (
-                      <span className={`text-sm font-extrabold ${totalPct >= 100 ? 'text-green-700' : totalPct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>
-                        {totalPct.toFixed(1)}% / {formatCurrency(totalTarget)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {totalTarget > 0 && <Progress value={Math.min(totalPct, 100)} className="h-2 mt-2 bg-gray-200 [&>div]:bg-green-600" />}
-              </div>
-
-              {/* Table in popup - light theme */}
-              <div className="overflow-auto border border-green-200 rounded-lg">
-                <table className="w-full">
-                  <thead className="bg-emerald-600 border-b border-emerald-700">
-                    <tr className="[&>th]:whitespace-nowrap">
-                      <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">STT</th>
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã AD</th>}
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng KD</th>}
-                      {reportSubject === 'ad' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">AD</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên nhóm</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã ĐL TN</th>}
-                      {reportSubject === 'nhom' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Tên TN</th>}
-                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã phòng</th>}
-                      {reportSubject === 'phong' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Phòng</th>}
-                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Mã NTD</th>}
-                      {reportSubject === 'ntd' && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Người TD</th>}
-                      <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col1DisplayLabel}</th>
-                      {reportColumn2 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">{col2Label}</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Kế hoạch</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-right text-[10px] text-white font-bold uppercase border border-emerald-700">Tỷ lệ</th>}
-                      {totalTarget > 0 && <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700 w-[120px]">Tiến độ</th>}
-                      <th className="px-3 py-2 text-left text-[10px] text-white font-bold uppercase border border-emerald-700">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((r, i) => (
-                      <tr key={r.key} className="border-b border-green-200 hover:bg-green-50/50">
-                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{i + 1}</td>
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1}</td>}
-                        {reportSubject === 'ad' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra2}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.extra3 || '—'}</td>}
-                        {reportSubject === 'nhom' && <td className="px-3 py-2 text-[11px] text-gray-800 font-medium border border-green-200 whitespace-nowrap">{r.extra1 || '—'}</td>}
-                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                        {reportSubject === 'phong' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-600 font-mono border border-green-200 whitespace-nowrap">{r.key}</td>}
-                        {reportSubject === 'ntd' && <td className="px-3 py-2 text-[11px] text-gray-900 font-bold border border-green-200 whitespace-nowrap">{r.label}</td>}
-                        <td className="px-3 py-2 text-[11px] text-green-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn) ? formatNumber(r.value) : formatCurrency(r.value)}</td>
-                        {reportColumn2 && <td className="px-3 py-2 text-[11px] text-blue-700 font-extrabold text-right border border-green-200 whitespace-nowrap">{isCountMetric(reportColumn2) ? formatNumber(r.value2 || 0) : formatCurrency(r.value2 || 0)}</td>}
-                        {totalTarget > 0 && <td className="px-3 py-2 text-[11px] text-gray-700 text-right border border-green-200 whitespace-nowrap">{formatCurrency(r.target)}</td>}
-                        {totalTarget > 0 && <td className={`px-3 py-2 text-[11px] font-bold text-right border border-green-200 whitespace-nowrap ${r.pct >= 100 ? 'text-green-700' : r.pct >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{r.pct.toFixed(1)}%</td>}
-                        {totalTarget > 0 && <td className="px-3 py-2 border border-green-200 whitespace-nowrap"><Progress value={Math.min(r.pct, 100)} className="h-1.5 bg-gray-200 [&>div]:bg-green-600" /></td>}
-                        <td className="px-3 py-2 text-[11px] text-gray-800 border border-green-200 whitespace-nowrap">{reportRowNotes[r.key] || ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   };
@@ -4402,9 +3604,8 @@ export default function QuanLyPage() {
       case 'recruiters': return renderRecruiters();
       case 'revenue': return renderRevenue();
       case 'kehoach': return renderKeHoach();
-      case 'report': return renderReport();
+      case 'report': return renderPolicy();
       case 'structure': return renderStructure();
-      case 'spreadsheet': return <SpreadsheetSheet onlineSettings={onlineSettings} saveSetting={saveSetting} />;
     }
   };
 
@@ -4674,7 +3875,6 @@ export default function QuanLyPage() {
                   { key: 'recruiters', label: 'DS Người TD' },
                   { key: 'revenue', label: 'Doanh thu' },
                   { key: 'structure', label: 'Cấu trúc' },
-                  { key: 'spreadsheet', label: 'Trang tính' },
                   ...MONTHS.map(m => ({ key: `revenue-${m.key}`, label: `Doanh thu - ${m.label}` })),
                 ].map(section => {
                   const link = onlineSettings[`nmc-link-${section.key}`] || '';
