@@ -2928,8 +2928,10 @@ export default function QuanLyPage() {
     if (!startDate) return false;
     const start = new Date(startDate);
     const now = new Date();
+    // Tháng bắt đầu = tháng 1, nên relativeMonth = diffMonths + 1
+    // TVVm khi relativeMonth ≤ 12, tức là diffMonths < 12
     const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-    return diffMonths <= maxMonths;
+    return diffMonths < maxMonths;
   };
 
   // Tính chặng xét thưởng dựa trên tháng bắt đầu làm việc
@@ -3098,22 +3100,23 @@ export default function QuanLyPage() {
           <Table className="text-xs bg-white" style={{ borderRadius: 0 }}>
             <TableHeader>
               <TableRow className="hover:bg-[#1E3A5F]" style={{ backgroundColor: '#1E3A5F' }}>
-                <TableHead className="text-white text-center min-w-[70px] font-bold uppercase text-[10px]" style={{ borderRadius: 0, borderColor: '#2A5080' }}>NHÓM</TableHead>
-                <TableHead className="text-white min-w-[55px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>MÃ TVV</TableHead>
-                <TableHead className="text-white min-w-[90px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>HỌ TÊN TVV</TableHead>
-                <TableHead className="text-white min-w-[75px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>NGÀY BĐ LV</TableHead>
-                <TableHead className="text-white min-w-[90px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>CHẶNG XÉT THƯỞNG</TableHead>
-                <TableHead className="text-white min-w-[70px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP<br/><span className="text-[8px] font-normal normal-case">(tháng {currentMonth})</span></TableHead>
-                <TableHead className="text-white min-w-[65px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG THÁNG</TableHead>
-                <TableHead className="text-white min-w-[70px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP CHẶNG</TableHead>
-                <TableHead className="text-white min-w-[65px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG CHẶNG</TableHead>
-                <TableHead className="text-white min-w-[90px] font-bold uppercase text-[10px] text-center" style={{ borderColor: '#2A5080' }}>NGƯỜI TUYỂN DỤNG</TableHead>
+                <TableHead className="text-white text-center w-[32px] font-bold uppercase text-[11px]" style={{ borderRadius: 0, borderColor: '#2A5080' }}>STT</TableHead>
+                <TableHead className="text-white min-w-[70px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>NHÓM</TableHead>
+                <TableHead className="text-white min-w-[55px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>MÃ TVV</TableHead>
+                <TableHead className="text-white min-w-[100px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>HỌ TÊN TVV</TableHead>
+                <TableHead className="text-white min-w-[80px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>NGÀY BĐ LV</TableHead>
+                <TableHead className="text-white min-w-[90px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>CHẶNG XÉT THƯỞNG</TableHead>
+                <TableHead className="text-white min-w-[75px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">(tháng {currentMonth})</span></TableHead>
+                <TableHead className="text-white min-w-[70px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG THÁNG</TableHead>
+                <TableHead className="text-white min-w-[75px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP CHẶNG</TableHead>
+                <TableHead className="text-white min-w-[70px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG CHẶNG</TableHead>
+                <TableHead className="text-white min-w-[100px] font-bold uppercase text-[11px] text-center" style={{ borderColor: '#2A5080' }}>NGƯỜI TUYỂN DỤNG</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tvvmRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-gray-400 py-8 italic text-xs bg-white">
+                  <TableCell colSpan={11} className="text-center text-gray-400 py-8 italic text-xs bg-white">
                     Chưa có TVVm (TVV mới ≤ 12 tháng). Vui lòng nhập cấu trúc TVV trước.
                   </TableCell>
                 </TableRow>
@@ -3125,26 +3128,27 @@ export default function QuanLyPage() {
                   <React.Fragment key={row.maTVV}>
                     {showChangHeader && (
                       <TableRow style={{ backgroundColor: changBgColors[row.chang] }}>
-                        <TableCell colSpan={10} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider" style={{ color: changTextColors[row.chang], borderRadius: 0, borderColor: '#B4D4F0', lineHeight: '1.3' }}>
+                        <TableCell colSpan={11} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider" style={{ color: changTextColors[row.chang], borderRadius: 0, borderColor: '#B4D4F0', lineHeight: '1.3' }}>
                           {changLabels[row.chang]} — {changStats.find(cs => cs.chang === row.chang)?.count || 0} TVVm
                           <span className="ml-1 font-normal normal-case text-[8px]" style={{ color: changTextColors[row.chang] + '99' }}>({row.changMonthRange})</span>
                         </TableCell>
                       </TableRow>
                     )}
                     <TableRow className="bg-white hover:bg-blue-50 transition-colors" style={{ borderRadius: 0 }}>
-                      <TableCell className="text-[10px] text-gray-700 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</TableCell>
-                      <TableCell className="font-mono text-[10px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</TableCell>
-                      <TableCell className="text-[10px] text-gray-900 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</TableCell>
-                      <TableCell className="text-[10px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
-                      <TableCell className="text-[10px] text-center whitespace-nowrap" style={{ backgroundColor: changBgColors[row.chang] + '80', borderColor: '#D0E4F5' }}>
+                      <TableCell className="text-center text-gray-500 text-[11px] font-bold" style={{ borderColor: '#D0E4F5' }}>{row.stt}</TableCell>
+                      <TableCell className="text-[11px] text-gray-700 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</TableCell>
+                      <TableCell className="font-mono text-[11px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</TableCell>
+                      <TableCell className="text-[11px] text-gray-900 whitespace-nowrap font-semibold" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</TableCell>
+                      <TableCell className="text-[11px] text-gray-500 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
+                      <TableCell className="text-[11px] text-center whitespace-nowrap" style={{ backgroundColor: changBgColors[row.chang] + '80', borderColor: '#D0E4F5' }}>
                         <span className="font-bold" style={{ color: changTextColors[row.chang] }}>{row.changXetThuong}</span>
-                        <span className="text-gray-400 ml-1 text-[8px]">T{row.relativeMonth}</span>
+                        <span className="text-gray-400 ml-1 text-[9px]">T{row.relativeMonth}</span>
                       </TableCell>
-                      <TableCell className="text-[10px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
-                      <TableCell className="text-[10px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-right whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
+                      <TableCell className="text-[11px] font-bold text-center whitespace-nowrap" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
+                      <TableCell className="text-[11px] text-gray-600 whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</TableCell>
                     </TableRow>
                   </React.Fragment>
                 );
@@ -3152,11 +3156,11 @@ export default function QuanLyPage() {
               {/* Total row */}
               {tvvmRows.length > 0 && (
                 <TableRow style={{ backgroundColor: '#1E3A5F' }}>
-                  <TableCell colSpan={5} className="text-right text-white font-black text-[10px] uppercase pr-3" style={{ borderColor: '#2A5080' }}>TỔNG CỘNG ({tvvmRows.length} TVVm)</TableCell>
-                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
-                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#FBBF24' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
-                  <TableCell className="text-[10px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
-                  <TableCell className="text-[10px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</TableCell>
+                  <TableCell colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3" style={{ borderColor: '#2A5080' }}>TỔNG CỘNG ({tvvmRows.length} TVVm)</TableCell>
+                  <TableCell className="text-[11px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
+                  <TableCell className="text-[11px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#FBBF24' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
+                  <TableCell className="text-[11px] text-white font-black text-right whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
+                  <TableCell className="text-[11px] font-black text-center whitespace-nowrap" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</TableCell>
                   <TableCell style={{ borderColor: '#2A5080' }}></TableCell>
                 </TableRow>
               )}
