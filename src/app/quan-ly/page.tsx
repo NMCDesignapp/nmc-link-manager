@@ -3288,51 +3288,39 @@ export default function QuanLyPage() {
     // Assign STT after filter
     filteredRows.forEach((row, idx) => { row.stt = idx + 1; });
 
-    // Group by NHÓM for separators (on filtered rows)
-    const nhomGroups: { nhom: string; startIndex: number; count: number }[] = [];
-    filteredRows.forEach((row, idx) => {
-      if (idx === 0 || row.nhom !== filteredRows[idx - 1].nhom) {
-        nhomGroups.push({ nhom: row.nhom, startIndex: idx, count: 1 });
-      } else {
-        nhomGroups[nhomGroups.length - 1].count++;
-      }
-    });
-
     // Totals (from filtered rows)
     const totalFYPQuy = filteredRows.reduce((s, r) => s + r.tongFYPQuy, 0);
     const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
-    const totalTierBonuses = TIERS.map((_, idx) => filteredRows.reduce((s, r) => s + r.tierBonuses[idx], 0));
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
     const totalSoLanDatTQ = filteredRows.reduce((s, r) => s + r.soLanDatTQ, 0);
 
-    // Count TVV per tier
-    const tierCounts = TIERS.map((_, idx) => tvvRows.filter(r => r.achievedTier === idx).length);
+    // Count TVV đạt thưởng (achievedTier >= 0)
+    const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
 
     return (
       <div className="space-y-3">
-        {/* Quarter summary */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">{quarterLabel}</p>
-            <p className="text-lg font-black text-emerald-700">{filteredRows.length}</p>
-            <p className="text-[8px] text-gray-400">TVV</p>
+        {/* Quarter summary — compact */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">{quarterLabel}</p>
+            <p className="text-sm font-black text-emerald-700">{filteredRows.length} <span className="text-[8px] font-normal text-gray-400">TVV</span></p>
           </div>
-          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">TỔNG FYP QUÝ</p>
-            <p className="text-lg font-black text-emerald-700">{formatSmartCurrency(totalFYPQuy)}</p>
+          <div className="bg-emerald-700 border px-2.5 py-1.5 text-center" style={{ borderColor: '#047857', borderRadius: 0 }}>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-200">ĐẠT THƯỞNG</p>
+            <p className="text-sm font-black text-white">{tvvDatThuong} <span className="text-[8px] font-normal text-emerald-200">/ {filteredRows.length}</span></p>
           </div>
-          <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">TỔNG FYC</p>
-            <p className="text-lg font-black text-emerald-700">{formatSmartCurrency(totalFYC)}</p>
+          <div className="bg-amber-600 border px-2.5 py-1.5 text-center" style={{ borderColor: '#B45309', borderRadius: 0 }}>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-amber-100">TỔNG TIỀN THƯỞNG</p>
+            <p className="text-sm font-black text-white">{formatSmartCurrency(totalTienThuong)}</p>
           </div>
-          {/* Tier counts */}
-          {TIERS.map((tier, idx) => (
-            <div key={idx} className="bg-white border px-2 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-              <p className="text-[8px] font-bold text-emerald-700">{tier.rate}%</p>
-              <p className="text-base font-black text-emerald-700">{tierCounts[idx]}</p>
-              <p className="text-[7px] text-gray-400">TVV</p>
-            </div>
-          ))}
+          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">TỔNG FYP</p>
+            <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYPQuy)}</p>
+          </div>
+          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">FYC (25%)</p>
+            <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYC)}</p>
+          </div>
         </div>
 
         {/* Filters */}
@@ -3388,7 +3376,6 @@ export default function QuanLyPage() {
               {/* Row 1: Main headers — PHÂN TẦNG merged label */}
               <tr style={{ backgroundColor: '#065F46' }}>
                 <th rowSpan={3} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th rowSpan={3} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
@@ -3420,57 +3407,43 @@ export default function QuanLyPage() {
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
+                  <td colSpan={13} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
               ) : filteredRows.map((row, idx) => {
-                // Nhóm separator
-                const prevRow = idx > 0 ? filteredRows[idx - 1] : null;
-                const showNhomHeader = !prevRow || prevRow.nhom !== row.nhom;
                 return (
-                  <React.Fragment key={row.maTVV}>
-                    {showNhomHeader && (
-                      <tr style={{ backgroundColor: '#D1FAE5' }}>
-                        <td colSpan={14} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider p-2 align-middle whitespace-nowrap" style={{ color: '#065F46', borderColor: '#A7F3D0', lineHeight: '1.3' }}>
-                          {row.nhom || '(Chưa phân nhóm)'} — {nhomGroups.find(g => g.nhom === row.nhom)?.count || 0} TVV
+                  <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                    <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                    <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
+                    <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                    <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
+                    <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#D1FAE5', color: '#047857' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
+                    {row.tierBonuses.map((bonus, tIdx) => {
+                      const gradientBg = ['#FFFBEB', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'];
+                      const gradientText = ['#92400E', '#92400E', '#78350F', '#78350F', '#713F12', '#713F12'];
+                      return (
+                        <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
+                          borderColor: '#D1FAE5',
+                          backgroundColor: bonus > 0 ? gradientBg[tIdx] : 'transparent',
+                          color: bonus > 0 ? gradientText[tIdx] : '#D1D5DB',
+                        }}>
+                          {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
                         </td>
-                      </tr>
-                    )}
-                    <tr className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
-                      <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
-                      <td className="text-[11px] text-gray-600 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
-                      <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
-                      <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
-                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
-                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#D1FAE5', color: '#047857' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
-                      {row.tierBonuses.map((bonus, tIdx) => {
-                        const gradientBg = ['#FFFBEB', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'];
-                        const gradientText = ['#92400E', '#92400E', '#78350F', '#78350F', '#713F12', '#713F12'];
-                        return (
-                          <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
-                            borderColor: '#D1FAE5',
-                            backgroundColor: bonus > 0 ? gradientBg[tIdx] : 'transparent',
-                            color: bonus > 0 ? gradientText[tIdx] : '#D1D5DB',
-                          }}>
-                            {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
-                          </td>
-                        );
-                      })}
-                      <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? formatCurrency(row.tienThuong) : '—'}</td>
-                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
-                    </tr>
-                  </React.Fragment>
+                      );
+                    })}
+                    <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? formatCurrency(row.tienThuong) : '—'}</td>
+                    <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
+                  </tr>
                 );
               })}
               {/* Total row — sticky bottom */}
               {filteredRows.length > 0 && (
                 <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
+                  <td colSpan={3} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYC)}</td>
-                  {totalTierBonuses.map((bonus, idx) => (
-                    <td key={idx} className="text-[10px] italic font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: bonus > 0 ? '#FDE68A' : '#6EE7B7' }}>
-                      {bonus > 0 ? `${(bonus / 1_000_000).toFixed(bonus % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}
-                    </td>
+                  {/* 6 tier columns — empty in total */}
+                  {[0,1,2,3,4,5].map(i => (
+                    <td key={i} className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
                   ))}
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A' }}>{totalTienThuong > 0 ? formatCurrency(totalTienThuong) : '—'}</td>
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#86EFAC' }}>{totalSoLanDatTQ > 0 ? totalSoLanDatTQ : '—'}</td>
