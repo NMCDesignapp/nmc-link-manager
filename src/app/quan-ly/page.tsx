@@ -3463,30 +3463,38 @@ export default function QuanLyPage() {
   const renderPolicy = () => {
     return (
       <div className="flex gap-0">
-        {/* Left sidebar — accordion menu */}
-        <div className="w-[220px] flex-shrink-0 border-r border-gray-100 bg-white">
-          {POLICY_ITEMS.map(item => {
-            const isActive = policyOpen === item.key;
-            const Icon = item.icon;
-            return (
-              <div key={item.key}>
-                <button
-                  onClick={() => togglePolicy(item.key)}
-                  className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors border-b border-gray-50 ${
-                    isActive
-                      ? 'text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                  style={isActive ? { backgroundColor: item.color } : undefined}
-                >
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="text-[11px] font-bold leading-tight flex-1">{item.label}</span>
-                  {isActive ? <ChevronDown className="w-3 h-3 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-40" />}
-                </button>
-                {/* Accordion content rendered inline on mobile-sm screens */}
-              </div>
-            );
-          })}
+        {/* Left sidebar — accordion menu (matching main sidebar style: dark + emerald) */}
+        <div className="w-[220px] flex-shrink-0 bg-[#0e0e18]/95 backdrop-blur-md border-r border-emerald-500/30">
+          <div className="p-2 space-y-0.5">
+            {POLICY_ITEMS.map(item => {
+              const isActive = policyOpen === item.key;
+              const Icon = item.icon;
+              return (
+                <div key={item.key}>
+                  <button
+                    onClick={() => togglePolicy(item.key)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate flex-1 text-left text-[12px] leading-tight">{item.label}</span>
+                    {isActive
+                      ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
+                      : <ChevronRight className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />}
+                  </button>
+                  {/* Active section description (inline) */}
+                  {isActive && (
+                    <div className="ml-6 mt-0.5 mb-1 px-2 py-1 text-[9px] text-emerald-300/50 italic border-l border-emerald-500/20">
+                      {item.desc}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Right content area */}
@@ -3500,7 +3508,7 @@ export default function QuanLyPage() {
                 const Icon = item.icon;
                 return (
                   <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                    <div className="w-7 h-7 flex items-center justify-center text-white" style={{ backgroundColor: item.color }}>
+                    <div className="w-7 h-7 flex items-center justify-center text-white rounded-md" style={{ backgroundColor: item.color }}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
