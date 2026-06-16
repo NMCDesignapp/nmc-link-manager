@@ -1,30 +1,31 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check
 } from 'lucide-react';
 
 /* ================= CSS ================= */
 const CSS = `
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
 :root {
-  --bg: #021616; --bg2: #032c2c; --bg-card: #171f2b; --fg: #f3efe7;
-  --muted: #9a9184; --accent: #6cc78a; --accent-strong: #ffc505;
-  --accent-glow: #b1a85552; --green: #659c6c; --red: #9f5f52;
-  --blue: #7d8ca3; --border: #ffffff1a; --gold: #c6a56a;
-  --track: #201a14; --track-fill: #d8bb86; --track-soft: #6f5740;
+  --bg: #041828; --bg2: #0a2a40; --bg-card: #12243a; --fg: #f0f4f8;
+  --muted: #8a9ab0; --accent: #5ee89c; --accent-strong: #ffd040;
+  --accent-glow: #5ee89c52; --green: #4ade80; --red: #f87171;
+  --blue: #60a5fa; --border: #ffffff1a; --gold: #e8b84a;
+  --track: #0d1e30; --track-fill: #3de890; --track-soft: #1a5a3a;
   --notice-h: 44px;
 }
 *, *::before, *::after { box-sizing: border-box; }
 button { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
 .kpi-app { background: var(--bg); font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0e2240 0%, var(--bg) 70%); }
-.kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .18; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
-.kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #091c36; top: -15%; left: -10%; }
-.kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0b1530; bottom: -10%; right: -10%; animation-delay: -6s; }
-.kpi-app .bg-orb-3 { width: 300px; height: 300px; background: #0d2040; top: 50%; left: 60%; animation-delay: -12s; }
+.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0c2850 0%, var(--bg) 70%); }
+.kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .22; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
+.kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #0a3060; top: -15%; left: -10%; }
+.kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0c2050; bottom: -10%; right: -10%; animation-delay: -6s; }
+.kpi-app .bg-orb-3 { width: 300px; height: 300px; background: #104070; top: 50%; left: 60%; animation-delay: -12s; }
 @keyframes orbFloat { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.08); } 100% { transform: translate(-15px,15px) scale(.95); } }
 
 .kpi-app .app-wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 24px; }
@@ -36,99 +37,95 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes cardSlideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Hero */
-.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; background: linear-gradient(135deg, #ffffff 0%, #dff4ff 28%, #8fd0ff 54%, #6cc78a 82%, #d7fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #d9b65a; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
+.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #e0c060; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
+.kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
+.kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
+.kpi-app .main-header .btn-back-u:hover { color: #6cc78a; background: rgba(108,199,138,.12); border-color: #6cc78a44; }
+.kpi-app .main-header > div { flex: 1; text-align: center; }
+.kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
 
 /* Controls */
-.kpi-app .ctrl-bar { display: flex; gap: 8px; margin-top: 20px; flex-wrap: nowrap; align-items: stretch; }
-.kpi-app .ctrl-select-wrap { position: relative; flex: 1 1 0; min-width: 0; }
-.kpi-app .ctrl-select { width: 100%; height: 48px; padding: 0; border-radius: 12px; background: rgba(212,168,67,.08); backdrop-filter: blur(8px); border: 1px solid #d4a84373; color: #f2d38d; font-weight: 800; font-size: 13px; outline: none; font-family: inherit; cursor: pointer; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 0; width: 280px; max-width: calc(100vw - 32px); background: #12223bcc; border: 1px solid #ffffff14; border-radius: 12px; box-shadow: 0 18px 36px #00000055; backdrop-filter: blur(12px); padding: 8px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 238px; overflow-y: auto; }
+.kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; }
+.kpi-app .ctrl-select-wrap { position: relative; }
+.kpi-app .ctrl-select { height: 36px; padding: 0 12px; border-radius: 99px; background: rgba(255,255,255,.06); border: 1.5px solid #2a4a70; color: #90b0d0; font-weight: 600; font-size: 11px; outline: none; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
+.kpi-app .ctrl-select:hover { background: rgba(255,255,255,.1); border-color: #3a7cc8; color: #c8e0ff; }
+.kpi-app .ctrl-select .ctrl-icon { display: inline-flex; color: #60b0f0; }
+.kpi-app .ctrl-hint { font-style: italic; font-size: 10px; color: #5a7a9a; font-weight: 400; white-space: nowrap; }
+.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 280px; max-width: calc(100vw - 32px); background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
 .kpi-app .ctrl-select-wrap.open .ctrl-select-popup { display: grid; }
-.kpi-app .ctrl-select-opt { min-height: 34px; border-radius: 9px; border: 1px solid #ffffff10; background: #ffffff08; color: #dbe7f5; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
-.kpi-app .ctrl-select-opt:hover { background: #ffffff14; color: #fff; }
-.kpi-app .ctrl-select-opt.on { background: linear-gradient(135deg, var(--accent), #f59e0b); color: #000; border-color: #f4c261; box-shadow: 0 6px 18px #c6a56a45; }
-.kpi-app .btn-sync { flex: 1 1 0; height: 48px; padding: 0 8px; border-radius: 12px; border: 1px solid #d4a84373; background: rgba(212,168,67,.08); backdrop-filter: blur(8px); color: #f2d38d; font-weight: 900; font-size: 13px; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, background .2s; }
-.kpi-app .btn-sync:hover { background: rgba(212,168,67,.14); transform: translateY(-1px); }
-.kpi-app .btn-sync:active { transform: scale(.96); }
-.kpi-app .btn-sync.loading { pointer-events: none; opacity: .7; }
+.kpi-app .ctrl-select-opt { min-height: 34px; border-radius: 8px; border: 1px solid #2a4a70; background: #132a4a; color: #c0d8f0; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
+.kpi-app .ctrl-select-opt:hover { background: #1a3a5e; color: #fff; border-color: #3a7cc8; }
+.kpi-app .ctrl-select-opt.on { background: linear-gradient(135deg, #3a7cc8, #2a6ab8); color: #fff; border-color: #5090d8; box-shadow: 0 4px 12px #3a7cc844; }
+.kpi-app .sync-status { position: relative; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #0a2a3a; border: 1.5px solid #1a5a3a; flex-shrink: 0; }
+.kpi-app .sync-status .sync-check { color: #4ade80; }
+.kpi-app .sync-status.syncing { border-color: #c8a848; animation: syncPulse 1s ease-in-out infinite; }
+.kpi-app .sync-status.syncing .sync-check { display: none; }
+.kpi-app .sync-status .sync-spinner { display: none; color: #fbbf24; animation: spin 1s linear infinite; }
+.kpi-app .sync-status.syncing .sync-spinner { display: inline-flex; }
+@keyframes syncPulse { 0%,100% { box-shadow: 0 0 0 0 #c8a84844; } 50% { box-shadow: 0 0 0 6px #c8a84800; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* Company Card */
 .kpi-app #kpi-company { margin-top: 32px; }
-.kpi-app .kpi-cty { background: linear-gradient(180deg, #1b2f49, #172a43); border: 1.5px solid #d6a34866; border-top: 4px solid #f2b24d; box-shadow: 0 20px 50px #0000005c, inset 0 1px 0 #ffffff14; padding: 18px 20px 22px; margin-bottom: 10px; border-radius: 14px; position: relative; overflow: hidden; }
+.kpi-app .kpi-cty { background: linear-gradient(180deg, #1a3460, #152c52); border: 1.5px solid #e0a84066; border-top: 4px solid #f2b24d; box-shadow: 0 20px 50px #0000005c, inset 0 1px 0 #ffffff14; padding: 18px 20px 22px; margin-bottom: 10px; border-radius: 14px; position: relative; overflow: hidden; }
 .kpi-app .kpi-cty.glow-full { border-color: #f2d38d; box-shadow: 0 0 0 2px #f2d38d6b, 0 24px 54px #00000066, 0 0 34px #f2d38d38; }
 .kpi-app .kpi-cty.glow-full::before, .kpi-app .kpi-ad.glow-full::before { content: 'HTKH'; position: absolute; top: 10px; left: 10px; z-index: 4; padding: 4px 8px; border-radius: 999px; background: linear-gradient(135deg, #a8ffa8, #6fff6f); color: #2d5c26; font-size: 10px; font-weight: 900; letter-spacing: .05em; box-shadow: 0 8px 18px #73f26e35; }
 .kpi-app .cty-inner { position: relative; z-index: 1; }
 .kpi-app .cty-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.kpi-app .cty-name { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 900; text-transform: uppercase; color: #ff9f2f; }
-.kpi-app .cty-pct-num { font-size: clamp(2rem, 6vw, 2.5rem); font-weight: 900; line-height: 1; color: #e0c48c; }
+.kpi-app .cty-name { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 900; text-transform: uppercase; color: #ffb040; }
+.kpi-app .cty-pct-num { font-size: clamp(2rem, 6vw, 2.5rem); font-weight: 900; line-height: 1; color: #ffe0a0; }
 .kpi-app .cty-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(180px, 340px); gap: 18px; align-items: center; }
 .kpi-app .afyp-kh-row { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
 .kpi-app .afyp-big { font-weight: 900; line-height: 1.1; color: #fff; }
 .kpi-app .kh-small { font-weight: 400; color: #b7aa982e; font-size: .8em; }
 .kpi-app .cty .afyp-big { font-size: clamp(2rem, 6vw, 2.7rem); }
-.kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #5a83b8; font-weight: 700; }
-.kpi-app .cty-progress { width: 100%; height: 22px; border-radius: 999px; background: #9cc6f04d; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
-.kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #11b76f, #16cb74); will-change: width; }
-.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 14px; }
-.kpi-app .cty-stat { border-radius: 10px; padding: 8px 5px 7px; text-align: center; border: 1px solid #ffffff0d; }
-.kpi-app .cty-stat-label { font-size: 8px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; color: #9db3d2; letter-spacing: .02em; }
-.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1; }
-.kpi-app .cty-stat.hd { background: #233f64; } .kpi-app .cty-stat.hd .cty-stat-val { color: #7fc2ff; }
-.kpi-app .cty-stat.td { background: #3a345f; } .kpi-app .cty-stat.td .cty-stat-val { color: #d8b7ff; }
-.kpi-app .cty-stat.chuan { background: #0e4453; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #16e0d3; }
-.kpi-app .cty-stat.ip { background: #4b3825; } .kpi-app .cty-stat.ip .cty-stat-val { color: #ffd789; }
-.kpi-app .cty-stat.ns { background: #1a4a2e; } .kpi-app .cty-stat.ns .cty-stat-val { color: #6be89a; }
-.kpi-app .cty-stat.dl { background: #3a3525; } .kpi-app .cty-stat.dl .cty-stat-val { color: #e0c080; }
-.kpi-app .cty-stat.sl { background: #2a3a50; } .kpi-app .cty-stat.sl .cty-stat-val { color: #a8c8e8; }
+.kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #6ab0e8; font-weight: 700; }
+.kpi-app .cty-progress { width: 100%; height: 12px; border-radius: 99px; background: #1a3050; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
+.kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); will-change: width; box-shadow: 0 0 8px #40d89044; }
+.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; margin-top: 14px; }
+.kpi-app .cty-stat { border-radius: 6px; padding: 8px 4px 7px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
+.kpi-app .cty-stat-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
+.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
+.kpi-app .cty-stat.hd { background: #3a7cc8; } .kpi-app .cty-stat.hd .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.td { background: #8a7ab8; } .kpi-app .cty-stat.td .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.chuan { background: #2a9aaa; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.ip { background: #c8a848; } .kpi-app .cty-stat.ip .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.ns { background: #5a9a68; } .kpi-app .cty-stat.ns .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.dl { background: #a08050; } .kpi-app .cty-stat.dl .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.sl { background: #6a88a8; } .kpi-app .cty-stat.sl .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-progress-bar { margin-top: 10px; width: 100%; height: 5px; border-radius: 99px; background: #1a2a44; overflow: hidden; }
+.kpi-app .cty-progress-bar-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #11b76f, #16cb74); }
 
-/* Phong Card */
-.kpi-app .kpi-phong { background: linear-gradient(180deg, #20457a, #1b3d70); border: 1px solid #5ca2ec55; margin-top: 20px; box-shadow: 0 12px 26px #00000030, inset 0 1px 0 #ffffff10; padding: 16px 18px 18px; border-radius: 18px; position: relative; overflow: hidden; }
-.kpi-app .kpi-phong.glow-full { border-color: #ffd58c; box-shadow: 0 0 0 2px #ffd58c55, 0 18px 34px #00000042, 0 0 28px #ffd58c2c; }
-.kpi-app .phong-inner { position: relative; z-index: 1; }
-.kpi-app .phong-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.kpi-app .phong-name { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 900; text-transform: uppercase; color: #d9ebff; }
-.kpi-app .phong-pct { font-size: 19px; font-weight: 900; color: #e0c48c; white-space: nowrap; }
-.kpi-app .phong-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(160px, 280px); gap: 16px; align-items: center; }
-.kpi-app .phong .afyp-big { font-size: clamp(1.9rem, 5vw, 2.4rem); color: #fff; }
-.kpi-app .phong .kh-small { font-size: clamp(.8rem, 2vw, .95rem); color: #7da6d9; font-weight: 700; }
-.kpi-app .phong-progress { width: 100%; height: 22px; border-radius: 999px; overflow: hidden; background: #f3dcc04d; box-shadow: inset 0 1px 2px #00000033; }
-.kpi-app .phong-progress-fill { width: 0; height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #ff941f, #ff9f2b); will-change: width; }
-.kpi-app .phong-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 15px; }
-.kpi-app .phong-stat { border-radius: 16px; padding: 11px 8px 10px; text-align: center; border: 1px solid #ffffff0d; }
-.kpi-app .phong-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: #9fc0e2; }
-.kpi-app .phong-stat-val { font-size: 25px; font-weight: 900; line-height: 1; }
-.kpi-app .phong-stat.hd { background: #264f87; } .kpi-app .phong-stat.hd .phong-stat-val { color: #9bd0ff; }
-.kpi-app .phong-stat.td { background: #3f4389; } .kpi-app .phong-stat.td .phong-stat-val { color: #f0b8ff; }
-.kpi-app .phong-stat.chuan { background: #0d5b72; } .kpi-app .phong-stat.chuan .phong-stat-val { color: #18e0e7; }
-.kpi-app .phong-stat.ip { background: #635136; } .kpi-app .phong-stat.ip .phong-stat-val { color: #ffd07f; }
-
-/* Mobile Phong Section */
-.kpi-app .mobile-phong-section { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-.kpi-app .mobile-phong-main-card { border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px #00000050; }
-.kpi-app .mobile-phong-main-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 12px; background: linear-gradient(135deg, #e8a838, #d49428); }
-.kpi-app .mobile-phong-main-name { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .06em; }
-.kpi-app .mobile-phong-main-pct { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 12px #ffffff44; white-space: nowrap; }
-.kpi-app .mobile-phong-main-body { padding: 10px 14px 12px; background: #0e2240; }
-.kpi-app .mobile-phong-main-afyp { font-size: 1.5rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; text-shadow: 0 0 16px #f2b24d33; }
-.kpi-app .mobile-phong-main-kh { font-size: 10px; font-weight: 700; color: #6a9ac8; margin-top: 2px; }
-.kpi-app .mobile-phong-main-prog { height: 6px; border-radius: 99px; background: #1a2a44; margin-top: 6px; overflow: hidden; }
-.kpi-app .mobile-phong-main-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e0a030, #f2c860); transition: width 1s cubic-bezier(.22,1,.36,1); }
-.kpi-app .mobile-phong-sub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.kpi-app .mobile-phong-sub { border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 2px 8px #00000060, 0 0 12px #00000030; }
-.kpi-app .mobile-phong-sub-head { padding: 4px 4px 3px; text-align: center; }
-.kpi-app .mobile-phong-sub-val { font-size: 14px; font-weight: 900; line-height: 1.1; white-space: nowrap; text-shadow: 0 0 10px currentColor; }
-.kpi-app .mobile-phong-sub-label { font-size: 6.5px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 1px 3px #00000066; }
-.kpi-app .mobile-phong-sub-body { width: 100%; background: #0c1e38; padding: 8px 3px; text-align: center; box-shadow: inset 0 2px 6px #00000044; }
-.kpi-app .mobile-phong-sub.hd .mobile-phong-sub-head { background: #2a6cb8; box-shadow: inset 0 -2px 4px #1a4c8866; } .kpi-app .mobile-phong-sub.hd .mobile-phong-sub-val { color: #6cb8f8; }
-.kpi-app .mobile-phong-sub.td .mobile-phong-sub-head { background: #7a68b0; box-shadow: inset 0 -2px 4px #5a489066; } .kpi-app .mobile-phong-sub.td .mobile-phong-sub-val { color: #c0a8f0; }
-.kpi-app .mobile-phong-sub.chuan .mobile-phong-sub-head { background: #208a9a; box-shadow: inset 0 -2px 4px #106a7a66; } .kpi-app .mobile-phong-sub.chuan .mobile-phong-sub-val { color: #58d8e8; }
-.kpi-app .mobile-phong-sub.ip .mobile-phong-sub-head { background: #b89838; box-shadow: inset 0 -2px 4px #98782866; } .kpi-app .mobile-phong-sub.ip .mobile-phong-sub-val { color: #f0d060; }
-
-/* Hide mobile phong section on desktop */
-@media (min-width: 900px) {
-  .kpi-app .mobile-phong-section { display: none; }
-}
+/* Phong Card - New Design (Mobile) */
+.kpi-app .kpi-phong { background: transparent; border: none; margin-top: 10px; box-shadow: none; border-radius: 0; overflow: visible; position: relative; }
+.kpi-app .kpi-phong.glow-full { border-color: transparent; box-shadow: none; }
+.kpi-app .phong-inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 6px; }
+.kpi-app .phong-main-card { border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px #00000050; }
+.kpi-app .phong-main-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 12px; background: linear-gradient(135deg, #e8a838, #d49428); }
+.kpi-app .phong-main-name { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .06em; }
+.kpi-app .phong-main-pct { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 12px #ffffff44; white-space: nowrap; }
+.kpi-app .phong-main-body { padding: 10px 14px 12px; background: #0e2240; }
+.kpi-app .phong-main-afyp-row { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.kpi-app .phong-main-afyp { font-size: 1.5rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; text-shadow: 0 0 16px #f2b24d33; }
+.kpi-app .phong-main-kh { font-size: .75rem; color: #6ab0e8; font-weight: 700; }
+.kpi-app .phong-main-prog { width: 100%; height: 6px; border-radius: 99px; overflow: hidden; background: #0a1830; margin-top: 8px; }
+.kpi-app .phong-main-prog-fill { width: 0; height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); will-change: width; box-shadow: 0 0 8px #40d89044; }
+.kpi-app .phong-sub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.kpi-app .phong-sub { border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 2px 8px #00000060, 0 0 12px #00000030; }
+.kpi-app .phong-sub-head { width: 100%; padding: 5px 3px; text-align: center; }
+.kpi-app .phong-sub-label { font-size: 6.5px; font-weight: 900; text-transform: uppercase; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; text-shadow: 0 1px 3px #00000066; }
+.kpi-app .phong-sub-body { width: 100%; background: #0c1e38; padding: 8px 3px; text-align: center; box-shadow: inset 0 2px 6px #00000044; }
+.kpi-app .phong-sub-val { font-size: 14px; font-weight: 900; line-height: 1.1; white-space: nowrap; text-shadow: 0 0 10px currentColor; }
+.kpi-app .phong-sub.hd .phong-sub-head { background: #2a6cb8; box-shadow: inset 0 -2px 4px #1a4c8866; } .kpi-app .phong-sub.hd .phong-sub-body { border: 1px solid #2a6cb866; border-top: none; } .kpi-app .phong-sub.hd .phong-sub-val { color: #6cb8f8; }
+.kpi-app .phong-sub.td .phong-sub-head { background: #7a68b0; box-shadow: inset 0 -2px 4px #5a489066; } .kpi-app .phong-sub.td .phong-sub-body { border: 1px solid #7a68b066; border-top: none; } .kpi-app .phong-sub.td .phong-sub-val { color: #c0a8f0; }
+.kpi-app .phong-sub.chuan .phong-sub-head { background: #208a9a; box-shadow: inset 0 -2px 4px #106a7a66; } .kpi-app .phong-sub.chuan .phong-sub-body { border: 1px solid #208a9a66; border-top: none; } .kpi-app .phong-sub.chuan .phong-sub-val { color: #58d8e8; }
+.kpi-app .phong-sub.ip .phong-sub-head { background: #b89838; box-shadow: inset 0 -2px 4px #98782866; } .kpi-app .phong-sub.ip .phong-sub-body { border: 1px solid #b8983866; border-top: none; } .kpi-app .phong-sub.ip .phong-sub-val { color: #f0d060; }
+.kpi-app .phong-progress-bar { display: none; }
+/* Legacy phong classes hidden on mobile */
+.kpi-app .phong-head { display: none; }
+.kpi-app .phong-main { display: none; }
+.kpi-app .phong-stats { display: none; }
 
 /* AD Card */
 .kpi-app .ad-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; margin-bottom: 8px; }
@@ -144,7 +141,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .ad-kh { margin-top: 2px; display: block; font-size: 8px; color: #6a7a8a; font-weight: 700; }
 .kpi-app .ad-stats { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0,.9fr)); gap: 3px; }
 .kpi-app .ad-stat { min-width: 0; border-radius: 6px; padding: 5px 3px 4px; text-align: center; border: 1px solid #d0d4da; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.kpi-app .ad-stat-label { display: block; font-size: 7px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-app .ad-stat-label { display: block; font-size: 7px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .03em; }
 .kpi-app .ad-stat-val { font-size: 12px; font-weight: 900; white-space: nowrap; line-height: 1; }
 .kpi-app .ad-stat.afyp { background: #dce8f4; } .kpi-app .ad-stat.afyp .ad-stat-val { color: #1a3a5a; }
 .kpi-app .ad-stat.lhd { background: #d4ecf4; } .kpi-app .ad-stat.lhd .ad-stat-val { color: #1a4a6a; }
@@ -170,6 +167,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
+.kpi-app .region-divider { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; }
+.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #2a5a8a, transparent); }
+.kpi-app .region-divider-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .2em; color: #5ee89c; white-space: nowrap; }
 
 /* KPI Stack */
 .kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
@@ -189,8 +189,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Detail View */
 .kpi-app .detail-shell { margin-top: 10px; margin-left: auto; margin-right: auto; max-width: 100%; }
 .kpi-app .detail-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; position: sticky; top: 0; z-index: 50; padding: 4px 0; }
-.kpi-app .btn-back-u { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all .2s; flex-shrink: 0; }
-.kpi-app .btn-back-u:hover { color: var(--accent); background: #fbbf240f; }
+.kpi-app .btn-back-u { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; border: none; background: rgba(255,255,255,.05); color: var(--muted); cursor: pointer; transition: all .2s; flex-shrink: 0; }
+.kpi-app .btn-back-u:hover { color: var(--accent); background: rgba(108,199,138,.1); }
 .kpi-app .detail-hero { text-align: center; padding: 4px 0 2px; }
 .kpi-app .detail-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; text-transform: uppercase; color: #ffb12b; letter-spacing: -.03em; line-height: 1.05; }
 .kpi-app .detail-meta { margin-top: 6px; font-size: 12px; color: #7da0cb; font-weight: 500; }
@@ -207,6 +207,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .grp-item > * { position: relative; z-index: 1; }
 .kpi-app .grp-top-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .kpi-app .grp-name { font-weight: 800; font-size: 12px; color: #e8f0f8; line-height: 1.2; flex: 1; }
+.kpi-app .grp-tn-name { font-size: 9px; font-weight: 600; color: #8ab8e0; line-height: 1.2; font-style: italic; }
 .kpi-app .grp-pct { font-size: 12px; font-weight: 900; white-space: nowrap; flex-shrink: 0; }
 .kpi-app .grp-bot-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .kpi-app .grp-stats-inline { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
@@ -216,6 +217,22 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .grp-prog { height: 4px; border-radius: 999px; overflow: hidden; background: #ffffff14; width: 100%; }
 .kpi-app .grp-prog-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #4a9fd4, #7dc8f0); transition: width .9s cubic-bezier(.22,1,.36,1); will-change: width; }
 .kpi-app .grp-item.is-top .grp-prog-fill { background: linear-gradient(90deg, #2fbfa8, #4ee8cc); }
+
+/* Detail View Hierarchy */
+.kpi-app .dt-phong { margin-top: 14px; border-radius: 10px; overflow: hidden; background: #0e1c30; border: 1px solid #1a3050; }
+.kpi-app .dt-phong-head { padding: 8px 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #ffe0a0; background: linear-gradient(135deg, #c89828, #a87818); }
+.kpi-app .dt-ad { padding: 0 6px; }
+.kpi-app .dt-ad-head { padding: 6px 10px; margin-top: 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #a0c8f0; border-left: 3px solid #3a7cc8; background: #0a1a2e; border-radius: 0 6px 6px 0; }
+.kpi-app .dt-bn { margin-top: 4px; }
+.kpi-app .dt-bn .grp-item { margin: 0; }
+.kpi-app .dt-tvv-list { padding: 4px 8px 6px 20px; display: flex; flex-wrap: wrap; gap: 3px 8px; background: #0a1525; border-radius: 0 0 8px 8px; }
+.kpi-app .dt-tvv { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; line-height: 1.3; }
+.kpi-app .dt-tvv-idx { color: #3a5a7a; font-weight: 700; min-width: 10px; }
+.kpi-app .dt-tvv-name { color: #c8d8ea; font-weight: 700; }
+.kpi-app .dt-tvv-role { font-size: 7px; font-weight: 800; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: .02em; }
+.kpi-app .dt-tvv-role.role-tb { background: #d4a03044; color: #f0d070; }
+.kpi-app .dt-tvv-role.role-tn { background: #3a7cc844; color: #7ab8f0; }
+.kpi-app .dt-tvv-role.role-tvv { background: #2a4a6044; color: #8aa0b8; }
 
 /* Top 3 Podium */
 .kpi-app .top3-section { margin-top: 18px; }
@@ -292,37 +309,51 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .afyp-chart-wrap { display: block; }
   .kpi-app .app-wrap { max-width: none; }
   .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
-  .kpi-app #view-main header { max-width: 1800px; width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
-  .kpi-app .hero-title { font-size: 1.1rem !important; margin: 0 !important; }
+  .kpi-app #view-main header { max-width: 1800px; width: 100%; margin-bottom: 0; }
+  .kpi-app .main-header { display: flex; align-items: center; gap: 10px; }
+  .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
+  .kpi-app .main-header .btn-back-u { width: 32px; height: 32px; border-radius: 8px; }
+  .kpi-app .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem) !important; margin: 0 !important; }
   .kpi-app .hero-sub { display: none; }
   .kpi-app .ctrl-bar { margin-top: 0 !important; }
   .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
   .kpi-app .nav-row-3 { display: contents; }
   .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
   .kpi-app .kpi-cty { display: none !important; }
-  .kpi-app .dsk-company { display: flex; align-items: stretch; gap: 0; background: linear-gradient(135deg, #0f1f38, #162d50, #0f1f38); border: 1px solid #2a4a72; border-radius: 14px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008; }
-  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; justify-content: center; padding: 20px 28px; background: linear-gradient(135deg, #f2b24d18, #d4a84308); border-right: 2px solid #f2b24d44; min-width: 220px; }
-  .kpi-app .dsk-cty-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #d4a843; margin-bottom: 6px; }
-  .kpi-app .dsk-cty-pct { font-size: 2.4rem; font-weight: 900; line-height: 1; color: #f2d38d; }
+  .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
+  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 4px; }
+  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+  .kpi-app .dsk-cty-main-head { padding: 8px 16px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
+  .kpi-app .dsk-cty-main-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: #fff; }
+  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 14px 18px 14px; background: #132a4a; }
+  .kpi-app .dsk-cty-pct { font-size: 2.6rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
   .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
-  .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #1a2a44; overflow: hidden; }
-  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e0a030, #f2c860); transition: width 1s cubic-bezier(.22,1,.36,1); }
-  .kpi-app .dsk-cty-afyp { margin-top: 8px; font-size: 1.1rem; font-weight: 900; color: #fff; }
-  .kpi-app .dsk-cty-kh { font-size: .7rem; font-weight: 600; color: #5a8aba; }
-  .kpi-app .dsk-cty-right { display: flex; flex: 1; gap: 0; align-items: stretch; }
-  .kpi-app .dsk-cty-tile { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 12px; border-right: 1px solid #1a3050; position: relative; }
-  .kpi-app .dsk-cty-tile:last-child { border-right: none; }
-  .kpi-app .dsk-cty-tile-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #7a9aba; margin-bottom: 6px; }
-  .kpi-app .dsk-cty-tile-val { font-size: 1.6rem; font-weight: 900; line-height: 1; }
-  .kpi-app .dsk-cty-tile.hd .dsk-cty-tile-val { color: #7fc2ff; }
-  .kpi-app .dsk-cty-tile.td .dsk-cty-tile-val { color: #d8b7ff; }
-  .kpi-app .dsk-cty-tile.chuan .dsk-cty-tile-val { color: #16e0d3; }
-  .kpi-app .dsk-cty-tile.ip .dsk-cty-tile-val { color: #ffd789; }
+  .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px #00000044; }
+  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 10px #40d89044; }
+  .kpi-app .dsk-cty-afyp { margin-top: 10px; font-size: 1.2rem; font-weight: 900; color: #fff; }
+  .kpi-app .dsk-cty-kh { font-size: .72rem; font-weight: 700; color: #6ab0e8; }
+  .kpi-app .dsk-cty-right { display: flex; flex-direction: column; flex: 1; gap: 4px; }
+  .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 1; }
+  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 8px; display: flex; flex-direction: column; }
+  .kpi-app .dsk-cty-kpi-head { padding: 7px 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 8px; text-align: center; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1.3rem; font-weight: 900; line-height: 1; text-shadow: 0 0 10px currentColor; }
+  .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
+  .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-head { background: #8a7ab8; } .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-val { color: #b8a8e0; }
+  .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-head { background: #2a9aaa; } .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-val { color: #60d0d8; }
+  .kpi-app .dsk-cty-kpi.ip .dsk-cty-kpi-head { background: #c8a848; } .kpi-app .dsk-cty-kpi.ip .dsk-cty-kpi-val { color: #f0d070; }
+  .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-head { background: #5a9a68; } .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-val { color: #80d890; }
+  .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-head { background: #a08050; } .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-val { color: #e0b870; }
+  .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-head { background: #6a88a8; } .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-val { color: #a0c0e0; }
+  .kpi-app .dsk-cty-progress { width: 100%; height: 4px; background: #0d1e36; }
+  .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px #40d89033; }
   .kpi-app .desktop-split { display: grid; grid-template-columns: 38% 62%; gap: 20px; width: 100%; max-width: 1800px; align-self: center; align-items: start; margin-top: 20px; }
   .kpi-app .split-left { display: none; }
   .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: sticky; top: 16px; align-self: start; }
   .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; }
   .kpi-app .afyp-chart { min-height: 320px; }
+  .kpi-app .region-divider { display: none !important; }
   .kpi-app .kpi-phong { display: none !important; }
   .kpi-app .kpi-ad.is-phong { display: block; background: linear-gradient(180deg, #e8f0fa, #d4e2f4); border: 1px solid #7aacdc88; border-top: 3px solid #3a8ad4; border-radius: 14px; padding: 16px 18px 18px; }
   .kpi-app .kpi-ad.is-phong .ad-name { color: #1a4a7a; }
@@ -343,18 +374,28 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
   /* Desktop detail */
   .kpi-app #view-detail .detail-shell { max-width: 1200px; width: 100%; margin: 0 auto; padding: 16px 24px; }
-  .kpi-app #view-detail .detail-list-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .kpi-app #view-detail .detail-list-wrap { display: flex; flex-direction: column; gap: 0; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .kpi-app #view-detail .dt-phong { max-width: 800px; width: 100%; margin-left: auto; margin-right: auto; }
   /* Desktop calendar */
   .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin-left: auto; margin-right: auto; }
 }
 /* Responsive mobile */
 @media (max-width: 640px) {
-  .kpi-app .ctrl-bar { gap: 6px; margin-top: 14px; }
-  .kpi-app .ctrl-select { width: 100%; height: 44px; border-radius: 10px; font-size: 11px; }
-  .kpi-app .btn-sync { height: 44px; font-size: 11px; border-radius: 10px; }
-  .kpi-app .cty-body { grid-template-columns: 1fr; gap: 14px; }
+  .kpi-app .ctrl-bar { gap: 6px; margin-top: 10px; }
+  .kpi-app .ctrl-select { height: 34px; }
+  .kpi-app .ctrl-hint { font-size: 9px; }
+  .kpi-app .sync-status { width: 34px; height: 34px; }
+  .kpi-app .cty-body { grid-template-columns: 1fr; gap: 10px; }
   .kpi-app .phong-body { grid-template-columns: 1fr; gap: 10px; }
-  .kpi-app .phong-progress { height: 12px; }
+  .kpi-app .phong-main-prog { height: 5px; }
+  .kpi-app .phong-sub-grid { grid-template-columns: repeat(4,1fr); gap: 4px; }
+  .kpi-app .phong-sub-label { font-size: 5.5px; }
+  .kpi-app .phong-sub-val { font-size: 12px; }
+  .kpi-app .phong-sub-head { padding: 4px 2px; }
+  .kpi-app .phong-sub-body { padding: 6px 2px; }
+  .kpi-app .phong-main-name { font-size: 10px; }
+  .kpi-app .phong-main-pct { font-size: 15px; }
+  .kpi-app .phong-main-afyp { font-size: 1.3rem; }
   .kpi-app .nav-grid { gap: 7px; margin-top: 18px; }
   .kpi-app .nav-btn { padding: 11px 9px; border-radius: 10px; font-size: 10px; min-height: 46px; }
   .kpi-app .ad-top { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; }
@@ -370,6 +411,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
   .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
   .kpi-app .month-cell .mc-label { font-size: 8px; }
+  .kpi-app .main-header .btn-back-u { width: 34px; height: 34px; }
 }
 `;
 
@@ -385,9 +427,8 @@ interface Staff { id: string; agentCode: string; agentName: string; nhom: string
 interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
 interface LeaderInfo { id: string; agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; }
 interface CalendarEvent { id: number; title: string; date: string; color: string; }
-
-interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADStructure { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
+interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: string; }
 interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string; note: string; }
 interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
 
@@ -534,6 +575,7 @@ function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; c
 
 /* ================= MAIN COMPONENT ================= */
 export default function KPIDashboard() {
+  const router = useRouter();
   const [rawData, setRawData] = useState<{
     contracts: Contract[]; staff: Staff[]; revenue: Revenue[];
     leaders: LeaderInfo[];
@@ -1028,17 +1070,21 @@ export default function KPIDashboard() {
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
-          <header className="text-center">
-            <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
-            <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
+          <header>
+            <div className="main-header">
+              <button className="btn-back-u" onClick={() => router.push('/')} aria-label="Trở về"><ArrowLeft size={18} /></button>
+              <div>
+                <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
+                <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
+              </div>
+            </div>
             <div className="ctrl-bar">
+              <span className="ctrl-hint">chọn thời gian xem</span>
               <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
                 <button type="button" className="ctrl-select" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
-                  <CalendarDays size={14} style={{ color: '#d4a843' }} />
-                  {getPeriodLabel(overviewPeriod)}
-                  <ChevronDown size={12} />
+                  <span className="ctrl-icon"><CalendarDays size={15} /></span>
                 </button>
-                <div className="ctrl-select-popup" role="listbox" style={{ width: '320px', maxWidth: 'calc(100vw - 32px)' }}>
+                <div className="ctrl-select-popup" role="listbox">
                   {/* Months */}
                   <p style={{ gridColumn: '1/-1', fontSize: '10px', fontWeight: 800, color: '#9db3d2', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '2px 0' }}>Tháng</p>
                   {Array.from({ length: 12 }, (_, i) => {
@@ -1068,8 +1114,9 @@ export default function KPIDashboard() {
                     onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
-              <button className={`btn-sync ${syncing ? 'loading' : ''}`} onClick={fetchData} title="Đồng bộ">
-                <RotateCw size={14} style={{ color: '#d4a843' }} className={syncing ? 'animate-spin' : ''} />
+              <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
+                <span className="sync-check"><Check size={16} /></span>
+                <span className="sync-spinner"><RotateCw size={14} /></span>
               </button>
             </div>
           </header>
@@ -1103,40 +1150,52 @@ export default function KPIDashboard() {
                     </div>
                     <div className="cty-body">
                       <div className="afyp-kh-row">
-                        <span className="afyp-big" style={{ fontSize: 'clamp(1.6rem, 5vw, 2.2rem)' }}>{formatKpiCurrency(dashboard.total.afyp)}</span>
-                        {dashboard.total.kh > 0 && <span className="kh-small">/ {formatKpiCurrency(dashboard.total.kh)}</span>}
+                        <span className="afyp-big" style={{ fontSize: 'clamp(1.6rem, 5.5vw, 2.4rem)' }}>{fmt(dashboard.total.afyp)}<span style={{ fontSize: '0.4em', fontWeight: 600, color: '#8ab8e0', marginLeft: 3 }}>đ</span></span>
+                        {dashboard.total.kh > 0 && <span className="kh-small">/{fmt(Math.round(dashboard.total.kh))}<span style={{ fontSize: '0.75em', color: '#6ab0e8', marginLeft: 2 }}>đ</span></span>}
                       </div>
                       {dashboard.total.kh > 0 && <div className="cty-progress"><div className="cty-progress-fill" style={{ width: `${cp}%` }} /></div>}
                     </div>
                     <div className="cty-stats">
-                      <div className="cty-stat hd"><div className="cty-stat-label">Lượt HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
-                      <div className="cty-stat td"><div className="cty-stat-label">Tuyển dụng</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
-                      <div className="cty-stat chuan"><div className="cty-stat-label">HĐ Chuẩn</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                      <div className="cty-stat ip"><div className="cty-stat-label">Tỷ Trọng IP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
-                      <div className="cty-stat ns"><div className="cty-stat-label">Năng Suất</div><div className="cty-stat-val">{dashboard.total.nangSuat.toFixed(2)}</div></div>
-                      <div className="cty-stat dl"><div className="cty-stat-label">Đo Lường HĐ</div><div className="cty-stat-val">{dashboard.total.doLonHD >= 1000 ? (dashboard.total.doLonHD / 1000).toFixed(1) : dashboard.total.doLonHD.toFixed(1)}<span style={{ fontSize: '9px', opacity: .65 }}> trđ</span></div></div>
-                      <div className="cty-stat sl" style={{ gridColumn: '2' }}><div className="cty-stat-label">SL HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
+                      <div className="cty-stat hd"><div className="cty-stat-label">LƯỢT HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
+                      <div className="cty-stat td"><div className="cty-stat-label">TUYỂN DỤNG</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
+                      <div className="cty-stat chuan"><div className="cty-stat-label">LƯỢT HĐ CHUẨN</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+                      <div className="cty-stat ip"><div className="cty-stat-label">TỶ TRỌNG IP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}</div></div>
+                      <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toFixed(2)}</div></div>
+                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ (TRĐ)</div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toFixed(1)}</div></div>
+                      <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                     </div>
+
                   </div>
                 </div>
 
                 {/* Desktop Company Strip */}
                 <div className="dsk-company">
-                  <div className="dsk-cty-left">
-                    <div className="dsk-cty-label"><Trophy size={12} style={{ color: '#f2b24d', marginRight: 4 }} />Tổng Công Ty</div>
-                    <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
-                    {dashboard.total.kh > 0 && <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>}
-                    <div className="dsk-cty-afyp">{formatKpiCurrency(dashboard.total.afyp)}</div>
-                    {dashboard.total.kh > 0 && <div className="dsk-cty-kh">KH: {formatKpiCurrency(dashboard.total.kh)}</div>}
+                  <div className="dsk-cty-top">
+                    <div className="dsk-cty-left">
+                      <div className="dsk-cty-main-head"><Trophy size={13} style={{ color: '#fff' }} /><span className="dsk-cty-main-label">Công Ty</span></div>
+                      <div className="dsk-cty-main-body">
+                        <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
+                        {dashboard.total.kh > 0 && <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>}
+                        <div className="dsk-cty-afyp">{fmt(dashboard.total.afyp)}<span style={{ fontSize: '0.4em', fontWeight: 600, color: '#8ab8e0', marginLeft: 3 }}>đ</span></div>
+                        {dashboard.total.kh > 0 && <div className="dsk-cty-kh">/ KH: {fmt(Math.round(dashboard.total.kh))}đ</div>}
+                      </div>
+                    </div>
+                    <div className="dsk-cty-right">
+                      <div className="dsk-cty-tier">
+                        <div className="dsk-cty-kpi hd"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.lhd} /></div></div></div>
+                        <div className="dsk-cty-kpi td"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TUYỂN DỤNG</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.td} /></div></div></div>
+                        <div className="dsk-cty-kpi chuan"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ CHUẨN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.hdChuan} /></div></div></div>
+                        <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.tyTrong.toFixed(1)}</div></div></div>
+                      </div>
+                      <div className="dsk-cty-tier">
+                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toFixed(2)}</div></div></div>
+                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ (TRĐ)</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toFixed(1)}</div></div></div>
+                        <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
+                        <div></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="dsk-cty-right">
-                    <div className="dsk-cty-tile hd"><div className="dsk-cty-tile-label">Lượt HĐ</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.lhd} /></div></div>
-                    <div className="dsk-cty-tile td"><div className="dsk-cty-tile-label">Tuyển dụng</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.td} /></div></div>
-                    <div className="dsk-cty-tile chuan"><div className="dsk-cty-tile-label">HĐ Chuẩn</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                    <div className="dsk-cty-tile ip"><div className="dsk-cty-tile-label">IP/AFYP</div><div className="dsk-cty-tile-val">{dashboard.total.tyTrong.toFixed(1)}%</div></div>
-                    <div className="dsk-cty-tile hd"><div className="dsk-cty-tile-label">Tổng IP</div><div className="dsk-cty-tile-val" style={{ fontSize: '16px' }}>{formatKpiCurrency(dashboard.total.totalIP)}</div></div>
-                    <div className="dsk-cty-tile td"><div className="dsk-cty-tile-label">SL HĐ</div><div className="dsk-cty-tile-val"><AnimNum value={dashboard.total.slHD} /></div></div>
-                  </div>
+                  {dashboard.total.kh > 0 && <div className="dsk-cty-progress"><div className="dsk-cty-progress-fill" style={{ width: `${cp}%` }} /></div>}
                 </div>
               </div>
 
@@ -1161,66 +1220,9 @@ export default function KPIDashboard() {
                 </div>
               </nav>
 
-              {/* Mobile Phong Cards — hidden on desktop */}
-              <div className="mobile-phong-section">
-                <div className="section-divider" style={{ marginTop: 6 }}>Tiến Độ Khu Vực</div>
-                {dashboard.phongs.map((phong, pi) => {
-                  const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
-                  const pCp = Math.min(pPct, 100);
-                  return (
-                    <div key={pi}>
-                      {/* Main indicator card */}
-                      <div className="mobile-phong-main-card">
-                        <div className="mobile-phong-main-head">
-                          <span className="mobile-phong-main-name"><Clipboard size={12} style={{ color: '#fff8' }} />{phong.ten}</span>
-                          {!phong.noAds && <span className="mobile-phong-main-pct"><AnimPct value={pPct} /></span>}
-                        </div>
-                        <div className="mobile-phong-main-body">
-                          <div className="mobile-phong-main-afyp">{formatKpiCurrency(phong.afyp)}</div>
-                          {!phong.noAds && <>
-                            <div className="mobile-phong-main-kh">KH: {formatKpiCurrency(phong.kh)}</div>
-                            <div className="mobile-phong-main-prog"><div className="mobile-phong-main-prog-fill" style={{ width: `${pCp}%` }} /></div>
-                          </>}
-                        </div>
-                      </div>
-                      {/* Sub-indicator grid */}
-                      <div className="mobile-phong-sub-grid" style={{ marginTop: 5 }}>
-                        <div className="mobile-phong-sub hd">
-                          <div className="mobile-phong-sub-head">
-                            <div className="mobile-phong-sub-label">Lượt HĐ</div>
-                          </div>
-                          <div className="mobile-phong-sub-body">
-                            <div className="mobile-phong-sub-val"><AnimNum value={phong.lhd} /></div>
-                          </div>
-                        </div>
-                        <div className="mobile-phong-sub td">
-                          <div className="mobile-phong-sub-head">
-                            <div className="mobile-phong-sub-label">TD</div>
-                          </div>
-                          <div className="mobile-phong-sub-body">
-                            <div className="mobile-phong-sub-val"><AnimNum value={phong.td} /></div>
-                          </div>
-                        </div>
-                        <div className="mobile-phong-sub chuan">
-                          <div className="mobile-phong-sub-head">
-                            <div className="mobile-phong-sub-label">HĐ Chuẩn</div>
-                          </div>
-                          <div className="mobile-phong-sub-body">
-                            <div className="mobile-phong-sub-val"><AnimNum value={phong.hdChuan} /></div>
-                          </div>
-                        </div>
-                        {!phong.noAds && <div className="mobile-phong-sub ip">
-                          <div className="mobile-phong-sub-head">
-                            <div className="mobile-phong-sub-label">IP/AFYP</div>
-                          </div>
-                          <div className="mobile-phong-sub-body">
-                            <div className="mobile-phong-sub-val">{phong.tyTrong.toFixed(1)}%</div>
-                          </div>
-                        </div>}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Region Divider - Mobile */}
+              <div className="region-divider">
+                <span className="region-divider-title">Tiến Độ Khu Vực</span>
               </div>
 
               {/* Desktop Split Layout */}
@@ -1259,22 +1261,26 @@ export default function KPIDashboard() {
                           {/* Mobile Phong Card */}
                           <div className={`kpi-card kpi-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
                             <div className="phong-inner">
-                              <div className="phong-head">
-                                <span className="phong-name"><Clipboard size={15} style={{ color: '#ffcf8a' }} />Tổng hợp {phong.ten}</span>
-                                {!phong.noAds && <span className="phong-pct"><AnimPct value={pPct} /></span>}
-                              </div>
-                              <div className="phong-body">
-                                <div className="afyp-kh-row">
-                                  <span className="afyp-big"><AnimNum value={phong.afyp} /></span>
-                                  {!phong.noAds && <span className="kh-small">/ KH: {fmt(phong.kh)}</span>}
+                              {/* Main Indicator Card */}
+                              <div className="phong-main-card">
+                                <div className="phong-main-head">
+                                  <span className="phong-main-name"><Clipboard size={13} style={{ color: '#fff' }} />{phong.ten}</span>
+                                  {!phong.noAds && <span className="phong-main-pct"><AnimPct value={pPct} /></span>}
                                 </div>
-                                {!phong.noAds && <div className="phong-progress"><div className="phong-progress-fill" style={{ width: `${pCp}%` }} /></div>}
+                                <div className="phong-main-body">
+                                  <div className="phong-main-afyp-row">
+                                    <span className="phong-main-afyp"><AnimNum value={phong.afyp} /></span>
+                                    {!phong.noAds && <span className="phong-main-kh">/{fmt(phong.kh)}đ</span>}
+                                  </div>
+                                  {!phong.noAds && <div className="phong-main-prog"><div className="phong-main-prog-fill" style={{ width: `${pCp}%` }} /></div>}
+                                </div>
                               </div>
-                              <div className="phong-stats">
-                                <div className="phong-stat hd"><div className="phong-stat-label">Lượt HĐ</div><div className="phong-stat-val"><AnimNum value={phong.lhd} /></div></div>
-                                <div className="phong-stat td"><div className="phong-stat-label">TD</div><div className="phong-stat-val"><AnimNum value={phong.td} /></div></div>
-                                <div className="phong-stat chuan"><div className="phong-stat-label">Lượt chuẩn</div><div className="phong-stat-val"><AnimNum value={phong.hdChuan} /></div></div>
-                                {!phong.noAds && <div className="phong-stat ip"><div className="phong-stat-label">IP/AFYP</div><div className="phong-stat-val">{fmtTyTrong(phong.tyTrong)}</div></div>}
+                              {/* Sub Indicators Grid */}
+                              <div className="phong-sub-grid">
+                                <div className="phong-sub hd"><div className="phong-sub-head"><div className="phong-sub-label">LƯỢT HĐ</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.lhd} /></div></div></div>
+                                <div className="phong-sub td"><div className="phong-sub-head"><div className="phong-sub-label">TUYỂN DỤNG</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.td} /></div></div></div>
+                                <div className="phong-sub chuan"><div className="phong-sub-head"><div className="phong-sub-label">LƯỢT HĐ CHUẨN</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.hdChuan} /></div></div></div>
+                                {!phong.noAds && <div className="phong-sub ip"><div className="phong-sub-head"><div className="phong-sub-label">TỶ TRỌNG IP</div></div><div className="phong-sub-body"><div className="phong-sub-val">{phong.tyTrong.toFixed(1)}</div></div></div>}
                               </div>
                             </div>
                           </div>
@@ -1291,10 +1297,10 @@ export default function KPIDashboard() {
                                   <div className="ad-stats">
                                     <div className="ad-stat afyp"><span className="ad-stat-label">AFYP</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={afypTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>
                                     {!phong.noAds && <div className="ad-stat kh"><span className="ad-stat-label">KH</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={khTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>}
-                                    <div className="ad-stat lhd"><span className="ad-stat-label">Lượt HĐ</span><span className="ad-stat-val"><AnimNum value={phong.lhd} /></span></div>
-                                    {!phong.noAds && <div className="ad-stat td"><span className="ad-stat-label">TD</span><span className="ad-stat-val"><AnimNum value={phong.td} /></span></div>}
-                                    <div className="ad-stat chuan"><span className="ad-stat-label">Chuẩn</span><span className="ad-stat-val"><AnimNum value={phong.hdChuan} /></span></div>
-                                    {!phong.noAds && <div className="ad-stat ip"><span className="ad-stat-label">IP/AFYP</span><span className="ad-stat-val">{fmtTyTrong(phong.tyTrong)}</span></div>}
+                                    <div className="ad-stat lhd"><span className="ad-stat-label">LƯỢT HĐ</span><span className="ad-stat-val"><AnimNum value={phong.lhd} /></span></div>
+                                    {!phong.noAds && <div className="ad-stat td"><span className="ad-stat-label">TUYỂN DỤNG</span><span className="ad-stat-val"><AnimNum value={phong.td} /></span></div>}
+                                    <div className="ad-stat chuan"><span className="ad-stat-label">LƯỢT HĐ CHUẨN</span><span className="ad-stat-val"><AnimNum value={phong.hdChuan} /></span></div>
+                                    {!phong.noAds && <div className="ad-stat ip"><span className="ad-stat-label">TỶ TRỌNG IP</span><span className="ad-stat-val">{fmtTyTrong(phong.tyTrong)}</span></div>}
                                   </div>
                                   {!phong.noAds && <div className="ad-progress"><div className="ad-progress-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>}
                                 </div>
@@ -1321,10 +1327,10 @@ export default function KPIDashboard() {
                                         <div className="ad-right">
                                           <div className="ad-stats">
                                             <div className="ad-stat afyp"><span className="ad-stat-label">AFYP</span><span className="ad-stat-val">{fmt(ad.afyp)}<span className="ad-stat-unit">đ</span></span></div>
-                                            <div className="ad-stat lhd"><span className="ad-stat-label">Lượt HĐ</span><span className="ad-stat-val"><AnimNum value={ad.lhd} /></span></div>
-                                            <div className="ad-stat td"><span className="ad-stat-label">TD</span><span className="ad-stat-val"><AnimNum value={ad.td} /></span></div>
-                                            <div className="ad-stat chuan"><span className="ad-stat-label">L.Chuẩn</span><span className="ad-stat-val"><AnimNum value={ad.hdChuan} /></span></div>
-                                            <div className="ad-stat ip"><span className="ad-stat-label">IP/AFYP</span><span className="ad-stat-val">{fmtTyTrong(ad.tyTrong)}</span></div>
+                                            <div className="ad-stat lhd"><span className="ad-stat-label">LƯỢT HĐ</span><span className="ad-stat-val"><AnimNum value={ad.lhd} /></span></div>
+                                            <div className="ad-stat td"><span className="ad-stat-label">TUYỂN DỤNG</span><span className="ad-stat-val"><AnimNum value={ad.td} /></span></div>
+                                            <div className="ad-stat chuan"><span className="ad-stat-label">LƯỢT HĐ CHUẨN</span><span className="ad-stat-val"><AnimNum value={ad.hdChuan} /></span></div>
+                                            <div className="ad-stat ip"><span className="ad-stat-label">TỶ TRỌNG IP</span><span className="ad-stat-val">{fmtTyTrong(ad.tyTrong)}</span></div>
                                           </div>
                                           <div className="ad-progress"><div className="ad-progress-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></div>
                                         </div>
@@ -1340,7 +1346,7 @@ export default function KPIDashboard() {
                           {!phong.noAds && (
                             <div className="dsk-ad-wrap">
                               <table className="dsk-ad-table">
-                                <thead><tr><th>AD</th><th>% KH</th><th>AFYP</th><th>KH</th><th>HĐ</th><th>TD</th><th>Chuẩn</th><th>IP</th><th></th></tr></thead>
+                                <thead><tr><th>AD</th><th>% KH</th><th>AFYP</th><th>KH</th><th>LƯỢT HĐ</th><th>TUYỂN DỤNG</th><th>LƯỢT HĐ CHUẨN</th><th>TỶ TRỌNG IP</th><th></th></tr></thead>
                                 <tbody>
                                   {phong.ads.map((ad, ai) => {
                                     const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
