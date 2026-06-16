@@ -383,18 +383,17 @@ interface Revenue { id: string; month: string; maNhom: string; nhom: string; age
 interface LeaderInfo { id: string; agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; }
 interface CalendarEvent { id: number; title: string; date: string; color: string; }
 
+interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: string; }
+interface ADStructure { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
+interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string; note: string; }
+interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
+
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
 interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; }
-interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; }
-interface GroupDetail { name: string; afyp: number; kh: number; pct: number; }
+interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
+interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
 
 /* ================= CONSTANTS ================= */
-const CO_CAU: Record<string, string[]> = {
-  'PHÒNG 1': ['UY', 'TRÍ'],
-  'PHÒNG 2': ['CÓ', 'LONG'],
-  'PHÒNG 3': ['TRANG', 'DANH'],
-  'BANCA - PA': ['BANCA'],
-};
 const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const WEEKDAY_NAMES = ['CN','T2','T3','T4','T5','T6','T7'];
 
@@ -545,9 +544,13 @@ export default function KPIDashboard() {
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
-  const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  const [overviewPeriod, setOverviewPeriod] = useState<string>(`month-${new Date().getMonth() + 1}`);
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
   const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
+  const [adStructList, setAdStructList] = useState<ADStructure[]>([]);
+  const [phongStructList, setPhongStructList] = useState<PhongStructure[]>([]);
+  const [banNhomStructList, setBanNhomStructList] = useState<BanNhomStructure[]>([]);
+  const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
 
   const NOW = useMemo(() => new Date(), []);
   const CUR_YEAR = NOW.getFullYear();
@@ -578,6 +581,21 @@ export default function KPIDashboard() {
       .then(r => r.ok ? r.json() : {})
       .then(data => setOnlineSettings(data))
       .catch(() => setOnlineSettings({}));
+  }, []);
+
+  /* Fetch AD/Phong/BanNhom/TVV structure — same as quan-ly page */
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/structure/ad').then(r => r.ok ? r.json() : []),
+      fetch('/api/structure/phong').then(r => r.ok ? r.json() : []),
+      fetch('/api/structure/bannhom').then(r => r.ok ? r.json() : []),
+      fetch('/api/structure/tvv').then(r => r.ok ? r.json() : []),
+    ]).then(([ads, phongs, bannhoms, tvvs]) => {
+      setAdStructList(ads);
+      setPhongStructList(phongs);
+      setBanNhomStructList(bannhoms);
+      setTvvStructList(tvvs);
+    }).catch(() => {});
   }, []);
 
   /* Fetch calendar events */
@@ -641,19 +659,18 @@ export default function KPIDashboard() {
       return d.getFullYear() === currentYear && periodMonths.includes(d.getMonth() + 1);
     }).length;
 
-    // ========== KH (Kế hoạch) AFYP — from online settings ==========
-    // AD plans
-    const adList: { maAD: string }[] = [];
-    for (const pName in CO_CAU) {
-      CO_CAU[pName].forEach(adKey => {
-        adList.push({ maAD: adKey });
-      });
-    }
-    const targetTongAFYP = adList.reduce((s, ad) => {
-      return s + (parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0);
-    }, 0);
+    // ========== KH (Kế hoạch) AFYP — from online settings, same keys as quan-ly ==========
+    // Read AD annual plans using maAD from structure (same as quan-ly page)
+    const adPlans = new Map<string, number>();
+    adStructList.forEach(ad => {
+      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
+      adPlans.set(ad.maAD, val);
+    });
 
-    // Monthly KH ratio — sum for selected period
+    // Company total = sum of all AD plans (same as quan-ly)
+    const targetTongAFYP = adStructList.reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
+
+    // Monthly KH ratio — sum for selected period (same formula as quan-ly)
     let khAFYP = 0;
     if (targetTongAFYP > 0) {
       periodMonths.forEach(m => {
@@ -672,23 +689,33 @@ export default function KPIDashboard() {
       tyTrong: ipAfypRatio,
       totalIP,
       slHD,
+      nangSuat: luotHoatDong > 0 ? slHD / luotHoatDong : 0,
+      doLonHD: luotHoatDong > 0 ? totalAFYP / luotHoatDong : 0,
     };
 
     // ========== Per-Phong and per-AD data ==========
     const phongs: PhongData[] = [];
     let tyTrongWeighted = 0, tyTrongCount = 0;
 
-    for (const pName in CO_CAU) {
-      const adKeys = CO_CAU[pName];
-      const isBanca = pName === 'BANCA - PA';
+    // Use DB structure (same as quan-ly) instead of hardcoded CO_CAU
+    const structurePhongs = phongStructList.length > 0 ? phongStructList : [];
+    
+    for (const phongStruct of structurePhongs) {
+      const pName = phongStruct.tenPhong;
+      const isBanca = normKey(pName).includes('BANCA');
       const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: isBanca };
 
-      adKeys.forEach(adKey => {
+      // Find all ADs belonging to this phong via maPhong
+      const phongADs = adStructList.filter(a => a.maPhong === phongStruct.maPhong);
+      
+      phongADs.forEach(adStruct => {
+        const adKey = adStruct.tenAD; // Use AD name as matching key
+        
         // Find AD manager name from leaders
         const leader = rawData.leaders.find(l => normKey(l.agentName).includes(normKey(adKey)) || normKey(adKey).includes(normKey(l.agentName)));
         const managerName = leader?.agentName || adKey;
 
-        // Find contracts for this AD
+        // Find contracts for this AD using name matching
         const adContracts = periodContracts.filter(c => {
           const adNorm = normKey(c.ad || '');
           return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
@@ -704,8 +731,9 @@ export default function KPIDashboard() {
         const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
-        // KH for this AD from settings
-        const adKh = parseFloat(onlineSettings[`nmc-kh-ad-${adKey}`] || '0') || 0;
+        // KH for this AD from settings — directly use maAD from structure
+        const maADKey = adStruct.maAD;
+        const adKh = adPlans.get(maADKey) || 0;
         // Calculate AD KH for selected period using monthly ratios
         let adPeriodKh = 0;
         if (adKh > 0) {
@@ -728,50 +756,124 @@ export default function KPIDashboard() {
 
     total.tyTrong = totalAFYP > 0 ? (totalIP / totalAFYP * 100) : 0;
     return { total, phongs, periodContracts };
-  }, [rawData, overviewPeriod, onlineSettings]);
+  }, [rawData, overviewPeriod, onlineSettings, adStructList, phongStructList]);
 
   /* Compute detail data */
   const detailData = useMemo(() => {
     if (!rawData) return [];
-    const { contracts, revenue } = rawData;
-    const m = parseInt(detailMonth, 10);
-    if (!m) return [];
-    const ky = `${CUR_YEAR}-${detailMonth}`;
+    const { contracts } = rawData;
 
-    // Group contracts by nhom
-    const groupMap: Record<string, { afyp: number; count: number; ip: number }> = {};
-    contracts.filter(c => getMonthFromDate(c.effectiveDate) === ky).forEach(c => {
-      const g = c.nhom || 'Khác';
-      if (!groupMap[g]) groupMap[g] = { afyp: 0, count: 0, ip: 0 };
-      groupMap[g].afyp += num(c.afyp);
-      groupMap[g].count++;
-      groupMap[g].ip += num(c.pdt10DT);
+    // Determine which months to include based on detailMonth filter
+    let selectedMonths: number[];
+    if (detailMonth === 'H1') selectedMonths = [1,2,3,4,5,6];
+    else if (detailMonth === 'Q1') selectedMonths = [1,2,3];
+    else if (detailMonth === 'Q2') selectedMonths = [4,5,6];
+    else if (detailMonth === 'Q3') selectedMonths = [7,8,9];
+    else if (detailMonth === 'Q4') selectedMonths = [10,11,12];
+    else if (detailMonth === 'Y') selectedMonths = [1,2,3,4,5,6,7,8,9,10,11,12];
+    else { const m = parseInt(detailMonth, 10); selectedMonths = m ? [m] : [1,2,3,4,5,6,7,8,9,10,11,12]; }
+
+    // Get period contracts using getDoanhSoMonth (same as main dashboard)
+    const yearContracts = contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+    });
+    const periodContracts = yearContracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return selectedMonths.includes(d.getMonth() + 1);
     });
 
-    // Get revenue (as plan) per group
-    const revByGroup: Record<string, number> = {};
-    revenue.filter(r => r.month === ky).forEach(r => {
-      const g = r.nhom || r.maNhom;
-      if (g) revByGroup[g] = (revByGroup[g] || 0) + num(r.totalAFYP);
+    // Load BanNhom KH from settings (same as quan-ly)
+    const nhomPlans = new Map<string, number>();
+    banNhomStructList.forEach(bn => {
+      const val = parseFloat(onlineSettings[`nmc-kh-nhom-${bn.maBanNhom}`] || '0') || 0;
+      nhomPlans.set(bn.maBanNhom, val);
     });
 
-    const items: GroupDetail[] = Object.entries(groupMap).map(([name, data]) => {
-      const afypTrd = Math.round(data.afyp / 1000000);
-      const khTrd = Math.round((revByGroup[name] || 0) / 1000000);
-      const pct = khTrd ? (afypTrd / khTrd * 100) : 0;
-      return { name, afyp: afypTrd, kh: khTrd, pct };
-    });
+    // Build GroupDetail items from DB structure (Phong > AD > BanNhom)
+    const items: GroupDetail[] = [];
+
+    for (const phongStruct of phongStructList) {
+      const phongADs = adStructList.filter(a => a.maPhong === phongStruct.maPhong);
+
+      for (const adStruct of phongADs) {
+        const adBannhoms = banNhomStructList.filter(bn => bn.maAD === adStruct.maAD);
+
+        for (const bn of adBannhoms) {
+          // Find contracts for this BanNhom via maBanNhom
+          const bnContracts = periodContracts.filter(c => {
+            const cMaBN = c.maBanNhom || '';
+            return cMaBN === bn.maBanNhom;
+          });
+
+          // Also try matching by nhom name if maBanNhom is empty
+          const bnContractsByName = bnContracts.length > 0 ? bnContracts : periodContracts.filter(c => {
+            const cNhom = normKey(c.nhom || '');
+            const bnName = normKey(bn.tenBanNhom);
+            return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
+          });
+
+          const afyp = bnContractsByName.reduce((s, c) => s + num(c.afyp), 0);
+          const afypTrd = Math.round(afyp / 1000000);
+
+          // KH for this BanNhom — annual × monthly ratios for selected period
+          const annualKh = nhomPlans.get(bn.maBanNhom) || 0;
+          let periodKh = 0;
+          if (annualKh > 0) {
+            selectedMonths.forEach(m => {
+              const mm = String(m).padStart(2, '0');
+              const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+              if (ratio > 0) periodKh += annualKh * ratio / 100;
+            });
+          }
+          const khTrd = Math.round(periodKh / 1000000);
+          const pct = khTrd ? (afypTrd / khTrd * 100) : 0;
+
+          // Get TN (Trưởng Nhóm/Ban) only — no TVV as per user request
+          const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3 };
+          const bnTNs = tvvStructList.filter(t =>
+            t.maBanNhom === bn.maBanNhom &&
+            (normKey(t.chucVu).includes('TRUONG') || normKey(t.chucVu).includes('TN'))
+          ).sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
+
+          // Get TN name for display (first TN found)
+          const tnName = bnTNs.length > 0 ? bnTNs[0].agentName : '';
+
+          items.push({
+            name: bn.tenBanNhom,
+            maBanNhom: bn.maBanNhom,
+            tenAD: adStruct.tenAD,
+            maAD: adStruct.maAD,
+            tenPhong: phongStruct.tenPhong,
+            maPhong: phongStruct.maPhong,
+            afyp: afypTrd,
+            kh: khTrd,
+            pct,
+            tnName,
+          });
+        }
+      }
+    }
 
     items.sort((a, b) => b.pct - a.pct);
     return items;
-  }, [rawData, detailMonth, CUR_YEAR]);
+  }, [rawData, detailMonth, CUR_YEAR, banNhomStructList, adStructList, phongStructList, tvvStructList, onlineSettings]);
 
   /* Monthly AFYP chart data */
   const chartData = useMemo(() => {
     if (!rawData) return [];
     const months: { month: number; label: string; afyp: number; kh: number }[] = [];
-    const adKeys = Object.values(CO_CAU).flat();
+    // Use adStructList for AD names (from DB) instead of CO_CAU
+    const adKeys = adStructList.map(a => a.tenAD);
     const currentYear = new Date().getFullYear();
+
+    // Use adStructList for KH calculation (same as quan-ly)
+    const chartAdPlans = new Map<string, number>();
+    adStructList.forEach(ad => {
+      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
+      chartAdPlans.set(ad.maAD, val);
+    });
+    const chartTargetTong = adStructList.reduce((s, ad) => s + (chartAdPlans.get(ad.maAD) || 0), 0);
 
     for (let m = 1; m <= 12; m++) {
       const mk = `${currentYear}-${String(m).padStart(2, '0')}`;
@@ -788,16 +890,15 @@ export default function KPIDashboard() {
         }).forEach(c => { afyp += num(c.afyp); });
       });
 
-      // KH for this month
-      const targetTongAFYP = adKeys.reduce((s, adKey) => s + (parseFloat(onlineSettings[`nmc-kh-ad-${adKey}`] || '0') || 0), 0);
+      // KH for this month — same as quan-ly: annual × ratio / 100
       const mm = String(m).padStart(2, '0');
       const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-      const kh = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
+      const kh = chartTargetTong > 0 && ratio > 0 ? chartTargetTong * ratio / 100 : 0;
 
       months.push({ month: m, label: `T${m}`, afyp, kh });
     }
     return months;
-  }, [rawData, onlineSettings]);
+  }, [rawData, onlineSettings, adStructList]);
 
   /* Format ky label */
   const formatKyLabel = (ky: string) => {
@@ -1283,7 +1384,7 @@ export default function KPIDashboard() {
             </div>
             <div className="detail-hero">
               <div className="detail-title">Chi Tiết Ban Nhóm</div>
-              <div className="detail-meta">Tháng {detailMonth}/{CUR_YEAR} — Chỉ tiêu 8.0% năm</div>
+              <div className="detail-meta">AFYP — {detailMonth === 'Y' ? `Năm ${CUR_YEAR}` : detailMonth === 'H1' ? `6T đầu ${CUR_YEAR}` : detailMonth.startsWith('Q') ? `${detailMonth} ${CUR_YEAR}` : `T${parseInt(detailMonth)}/${CUR_YEAR}`}</div>
             </div>
             <div className="month-grid">
               {MONTHS.map(m => (
@@ -1310,7 +1411,7 @@ export default function KPIDashboard() {
                       <div className={`top3-card ${isF ? 'top3-first ' : ''}${cls3[i]}`} key={i} style={{ animationDelay: `${i * 80}ms` }}>
                         {isF && <div className="top3-crown">{crowns[i]}</div>}
                         <div className="top3-rank"><span className="top3-rank-num">{i === 0 ? '2' : i === 1 ? '1' : '3'}</span></div>
-                        <div className="top3-name">Nhóm {item.name}</div>
+                        <div className="top3-name">{item.name}</div>
                         <div className="top3-val"><AnimNum value={item.afyp} />trđ</div>
                         <div className="top3-bar" />
                         <div className="top3-pct">{item.pct.toFixed(1)}%</div>
@@ -1321,29 +1422,67 @@ export default function KPIDashboard() {
               </div>
             )}
 
-            {/* Group List */}
+            {/* Group List - Hierarchical by Phong > AD > BanNhom */}
             <div className="detail-list-wrap">
               {detailData.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chưa có dữ liệu nhóm</div>}
-              {detailData.map((item, idx) => {
-                const fill = Math.min(item.pct, 100);
-                const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
-                return (
-                  <div className={`grp-item ${idx < 3 ? 'is-top' : ''}`} key={idx} style={{ animationDelay: `${idx * 40}ms` }}>
-                    <div className="grp-fill" style={{ width: `${fill}%` }} />
-                    <div className="grp-top-row">
-                      <span className="grp-name">Nhóm {item.name}</span>
-                      <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
+              {(() => {
+                // Group detailData by Phong, then by AD
+                const byPhong = new Map<string, GroupDetail[]>();
+                detailData.forEach(item => {
+                  const key = item.maPhong;
+                  if (!byPhong.has(key)) byPhong.set(key, []);
+                  byPhong.get(key)!.push(item);
+                });
+                let idx = 0;
+                return Array.from(byPhong.entries()).map(([maPhong, items]) => {
+                  const phongName = items[0]?.tenPhong || maPhong;
+                  const byAD = new Map<string, GroupDetail[]>();
+                  items.forEach(item => {
+                    const key = item.maAD;
+                    if (!byAD.has(key)) byAD.set(key, []);
+                    byAD.get(key)!.push(item);
+                  });
+                  return (
+                    <div className="dt-phong" key={maPhong}>
+                      <div className="dt-phong-head">{phongName}</div>
+                      {Array.from(byAD.entries()).map(([maAD, adItems]) => {
+                        const adName = adItems[0]?.tenAD || maAD;
+                        return (
+                          <div className="dt-ad" key={maAD}>
+                            <div className="dt-ad-head">{adName}</div>
+                            {adItems.map(item => {
+                              const fill = Math.min(item.pct, 100);
+                              const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
+                              idx++;
+                              return (
+                                <div className="dt-bn" key={item.maBanNhom}>
+                                  <div className={`grp-item ${idx <= 3 ? 'is-top' : ''}`} style={{ animationDelay: `${idx * 30}ms` }}>
+                                    <div className="grp-fill" style={{ width: `${fill}%` }} />
+                                    <div className="grp-top-row">
+                                      <span className="grp-name">{item.name}</span>
+                                      <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
+                                    </div>
+                                    {item.tnName && (
+                                      <div className="grp-tn-name">TN: {item.tnName}</div>
+                                    )}
+                                    <div className="grp-bot-row">
+                                      <span className="grp-stats-inline">
+                                        <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
+                                        <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
+                                      </span>
+                                    </div>
+                                    <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="grp-bot-row">
-                      <span className="grp-stats-inline">
-                        <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
-                        <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
-                      </span>
-                    </div>
-                    <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         </section>
