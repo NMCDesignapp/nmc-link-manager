@@ -17,7 +17,7 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
-  Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy,
+  Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -3148,9 +3148,9 @@ export default function QuanLyPage() {
                         <span className="text-gray-400 ml-1 text-[9px]">T{row.relativeMonth}</span>
                       </td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</td>
-                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-amber-500" />{formatCurrency(row.thuongThang)}</> : '—'}</td>
+                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? <><Gift className="w-3.5 h-3.5 inline-block mr-0.5 -mt-0.5 text-red-500" />{formatCurrency(row.thuongThang)}</> : '—'}</td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</td>
-                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-emerald-600" />{formatCurrency(row.thuongChang)}</> : '—'}</td>
+                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? <><Gift className="w-3.5 h-3.5 inline-block mr-0.5 -mt-0.5 text-amber-600" />{formatCurrency(row.thuongChang)}</> : '—'}</td>
                       <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</td>
                     </tr>
                   </React.Fragment>
