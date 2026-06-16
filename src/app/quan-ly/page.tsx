@@ -2911,6 +2911,10 @@ export default function QuanLyPage() {
   const [policyOpen, setPolicyOpen] = useState<string | null>(null);
   const togglePolicy = (key: string) => setPolicyOpen(prev => prev === key ? null : key);
 
+  // Thưởng Quý TVV filters
+  const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string>('');
+  const [quyTvvNameFilter, setQuyTvvNameFilter] = useState<string>('');
+
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
     { key: 'ns-tvv', label: 'Thưởng Năng suất tháng TVV', desc: 'Thưởng năng suất AFYP tháng cho TVV', icon: TrendingUp, color: '#2563EB' },
@@ -3268,32 +3272,38 @@ export default function QuanLyPage() {
       };
     });
 
-    // Sort: theo nhóm, rồi theo tên
-    tvvRows.sort((a, b) => {
-      const nhomCmp = a.nhom.localeCompare(b.nhom);
-      if (nhomCmp !== 0) return nhomCmp;
-      return a.hoTen.localeCompare(b.hoTen);
+    // Sort: theo TỔNG FYP giảm dần
+    tvvRows.sort((a, b) => b.tongFYPQuy - a.tongFYPQuy);
+
+    // Unique NHÓM list for filter
+    const uniqueNhomList = Array.from(new Set(tvvRows.map(r => r.nhom).filter(Boolean))).sort();
+
+    // Apply NHÓM filter
+    const filteredRows = tvvRows.filter(row => {
+      if (quyTvvNhomFilter && row.nhom !== quyTvvNhomFilter) return false;
+      if (quyTvvNameFilter && !row.hoTen.toLowerCase().includes(quyTvvNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(quyTvvNameFilter.toLowerCase())) return false;
+      return true;
     });
 
-    // Assign STT
-    tvvRows.forEach((row, idx) => { row.stt = idx + 1; });
+    // Assign STT after filter
+    filteredRows.forEach((row, idx) => { row.stt = idx + 1; });
 
-    // Group by NHÓM for separators
+    // Group by NHÓM for separators (on filtered rows)
     const nhomGroups: { nhom: string; startIndex: number; count: number }[] = [];
-    tvvRows.forEach((row, idx) => {
-      if (idx === 0 || row.nhom !== tvvRows[idx - 1].nhom) {
+    filteredRows.forEach((row, idx) => {
+      if (idx === 0 || row.nhom !== filteredRows[idx - 1].nhom) {
         nhomGroups.push({ nhom: row.nhom, startIndex: idx, count: 1 });
       } else {
         nhomGroups[nhomGroups.length - 1].count++;
       }
     });
 
-    // Totals
-    const totalFYPQuy = tvvRows.reduce((s, r) => s + r.tongFYPQuy, 0);
-    const totalFYC = tvvRows.reduce((s, r) => s + r.fyc, 0);
-    const totalTierBonuses = TIERS.map((_, idx) => tvvRows.reduce((s, r) => s + r.tierBonuses[idx], 0));
-    const totalTienThuong = tvvRows.reduce((s, r) => s + r.tienThuong, 0);
-    const totalSoLanDatTQ = tvvRows.reduce((s, r) => s + r.soLanDatTQ, 0);
+    // Totals (from filtered rows)
+    const totalFYPQuy = filteredRows.reduce((s, r) => s + r.tongFYPQuy, 0);
+    const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
+    const totalTierBonuses = TIERS.map((_, idx) => filteredRows.reduce((s, r) => s + r.tierBonuses[idx], 0));
+    const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
+    const totalSoLanDatTQ = filteredRows.reduce((s, r) => s + r.soLanDatTQ, 0);
 
     // Count TVV per tier
     const tierCounts = TIERS.map((_, idx) => tvvRows.filter(r => r.achievedTier === idx).length);
@@ -3304,7 +3314,7 @@ export default function QuanLyPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
             <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">{quarterLabel}</p>
-            <p className="text-lg font-black text-emerald-700">{tvvRows.length}</p>
+            <p className="text-lg font-black text-emerald-700">{filteredRows.length}</p>
             <p className="text-[8px] text-gray-400">TVV</p>
           </div>
           <div className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
@@ -3323,6 +3333,52 @@ export default function QuanLyPage() {
               <p className="text-[7px] text-gray-400">TVV</p>
             </div>
           ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+            <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm tên / mã TVV..."
+              value={quyTvvNameFilter}
+              onChange={e => setQuyTvvNameFilter(e.target.value)}
+              className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400"
+            />
+            {quyTvvNameFilter && (
+              <button onClick={() => setQuyTvvNameFilter('')} className="text-gray-400 hover:text-red-500">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setQuyTvvNhomFilter('')}
+              className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                !quyTvvNhomFilter
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+              }`}
+              style={{ borderRadius: 0 }}
+            >
+              Tất cả
+            </button>
+            {uniqueNhomList.map(nhom => (
+              <button
+                key={nhom}
+                onClick={() => setQuyTvvNhomFilter(quyTvvNhomFilter === nhom ? '' : nhom)}
+                className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                  quyTvvNhomFilter === nhom
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                }`}
+                style={{ borderRadius: 0 }}
+              >
+                {nhom}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Table */}
@@ -3359,13 +3415,13 @@ export default function QuanLyPage() {
               </tr>
             </thead>
             <tbody>
-              {tvvRows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.</td>
+                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
-              ) : tvvRows.map((row, idx) => {
+              ) : filteredRows.map((row, idx) => {
                 // Nhóm separator
-                const prevRow = idx > 0 ? tvvRows[idx - 1] : null;
+                const prevRow = idx > 0 ? filteredRows[idx - 1] : null;
                 const showNhomHeader = !prevRow || prevRow.nhom !== row.nhom;
                 return (
                   <React.Fragment key={row.maTVV}>
@@ -3399,9 +3455,9 @@ export default function QuanLyPage() {
                 );
               })}
               {/* Total row — sticky bottom */}
-              {tvvRows.length > 0 && (
+              {filteredRows.length > 0 && (
                 <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({tvvRows.length} TVV)</td>
+                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(totalFYC)}</td>
                   {totalTierBonuses.map((bonus, idx) => (
