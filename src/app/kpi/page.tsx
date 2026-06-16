@@ -126,30 +126,39 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .phong-head { display: none; }
 .kpi-app .phong-main { display: none; }
 .kpi-app .phong-stats { display: none; }
+/* Mobile: hide old phong card design, use mob-region-wrap instead */
+.kpi-app .kpi-phong { display: none; }
 
-/* Mobile Region Table */
-.kpi-app .mob-region-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.kpi-app .mob-phong-block { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px #00000060; border: 1px solid #2a4a6a; }
-.kpi-app .mob-phong-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: linear-gradient(135deg, #d49428, #c0841e); }
+/* Mobile Region Table - Bright Design */
+.kpi-app .mob-region-wrap { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.kpi-app .mob-phong-block { border-radius: 14px; overflow: hidden; box-shadow: 0 6px 24px #00000070, 0 0 0 1px #4a7aaa44; border: 1.5px solid #3a6a9a; }
+.kpi-app .mob-phong-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; background: linear-gradient(135deg, #e8a838, #d49428); }
 .kpi-app .mob-phong-title { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
-.kpi-app .mob-phong-pct { font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #ffffff44; }
-.kpi-app .mob-phong-summary { display: flex; align-items: baseline; gap: 6px; padding: 8px 12px 6px; background: #0e1e34; }
-.kpi-app .mob-phong-afyp { font-size: 1.3rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; }
-.kpi-app .mob-phong-kh { font-size: .7rem; color: #5a9ac8; font-weight: 700; }
-.kpi-app .mob-phong-prog { height: 5px; background: #0a1830; margin: 0 12px 8px; border-radius: 99px; overflow: hidden; }
+.kpi-app .mob-phong-pct { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #ffffff44; }
+.kpi-app .mob-phong-sub-header { display: flex; align-items: baseline; gap: 4px; padding: 8px 14px 4px; background: #1c3050; flex-wrap: wrap; }
+.kpi-app .mob-phong-afyp { font-size: 1.4rem; font-weight: 900; color: #ffe0a0; line-height: 1.1; }
+.kpi-app .mob-phong-kh { font-size: .72rem; color: #8ac8f0; font-weight: 700; }
+.kpi-app .mob-phong-prog { height: 5px; background: #162840; margin: 0 14px 8px; border-radius: 99px; overflow: hidden; }
 .kpi-app .mob-phong-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); }
-.kpi-app .mob-ad-table { width: 100%; border-collapse: collapse; font-size: 11px; background: #0c1a2e; }
-.kpi-app .mob-ad-table thead th { padding: 5px 4px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a9ac0; background: #0a1428; border-bottom: 1px solid #1a3050; text-align: center; white-space: nowrap; }
+.kpi-app .mob-ad-table { width: 100%; border-collapse: collapse; font-size: 11px; background: #1e3250; }
+.kpi-app .mob-ad-table thead th { padding: 6px 5px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #b0d0f0; background: #243a58; border-bottom: 1.5px solid #3a5a80; text-align: center; white-space: nowrap; }
 .kpi-app .mob-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
-.kpi-app .mob-ad-table tbody td { padding: 7px 4px; text-align: center; border-bottom: 1px solid #0f1e34; font-weight: 700; white-space: nowrap; color: #b8d0ea; font-size: 11px; }
+.kpi-app .mob-ad-table tbody td { padding: 8px 5px; text-align: center; border-bottom: 1px solid #2a4468; font-weight: 700; white-space: nowrap; color: #d0e4f8; font-size: 11px; }
 .kpi-app .mob-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
 .kpi-app .mob-ad-table tbody tr:last-child td { border-bottom: none; }
-.kpi-app .mob-ad-name { font-weight: 900; color: #e0f0ff; font-size: 11px; }
+.kpi-app .mob-ad-table .phong-summary-row td { background: #2a4468; font-weight: 900; border-bottom: 2px solid #4a7aaa; }
+.kpi-app .mob-ad-table .phong-summary-row td:first-child { color: #ffd060; font-size: 11px; }
+.kpi-app .mob-ad-table .phong-summary-row .summary-afyp { color: #ffe0a0; font-weight: 900; }
+.kpi-app .mob-ad-table .phong-summary-row .summary-kh { color: #8ac8f0; font-weight: 700; font-size: 10px; }
+.kpi-app .mob-ad-table .phong-summary-row .summary-pct { font-weight: 900; font-size: 12px; }
+.kpi-app .mob-ad-table .phong-summary-row .summary-val { color: #e0f0ff; font-weight: 900; }
+.kpi-app .mob-ad-name { font-weight: 900; color: #e8f4ff; font-size: 11px; }
 .kpi-app .mob-ad-pct { font-weight: 900; font-size: 12px; }
 .kpi-app .mob-ad-pct.green { color: #4ade80; } .kpi-app .mob-ad-pct.gold { color: #fbbf24; } .kpi-app .mob-ad-pct.red { color: #f87171; }
-.kpi-app .mob-ad-afyp { color: #7fc8ff; font-weight: 900; }
-.kpi-app .mob-ad-kh { color: #5a8ab0; }
-.kpi-app .mob-ad-mini-prog { display: inline-block; width: 36px; height: 3px; border-radius: 99px; background: #1a2a44; vertical-align: middle; overflow: hidden; }
+.kpi-app .mob-ad-afyp { color: #90d8ff; font-weight: 900; }
+.kpi-app .mob-ad-kh { color: #7ab0d8; }
+.kpi-app .mob-ad-val { color: #c8e0f8; }
+.kpi-app .mob-ad-mini-prog { display: inline-block; width: 36px; height: 3px; border-radius: 99px; background: #2a4468; vertical-align: middle; overflow: hidden; }
 .kpi-app .mob-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
 
 /* Desktop-only AD table */
@@ -1236,51 +1245,66 @@ export default function KPIDashboard() {
                 {dashboard.phongs.map((phong, pi) => {
                   const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
                   const pCp = Math.min(pPct, 100);
+                  const pPctCls = pctClass(pPct);
+                  const pAfypTrd = Math.round(phong.afyp / 1000000);
+                  const pKhTrd = Math.round(phong.kh / 1000000);
                   return (
                     <div className="mob-phong-block" key={pi}>
-                      {/* Phong Header */}
+                      {/* Phong Header - Tên + % tiến độ */}
                       <div className="mob-phong-header">
                         <span className="mob-phong-title"><Clipboard size={12} style={{ color: '#fff' }} />{phong.ten}</span>
                         {!phong.noAds && <span className="mob-phong-pct"><AnimPct value={pPct} /></span>}
                       </div>
-                      {/* Phong Summary */}
-                      <div className="mob-phong-summary">
-                        <span className="mob-phong-afyp"><AnimNum value={phong.afyp} /></span>
-                        {!phong.noAds && <span className="mob-phong-kh">/ {fmt(phong.kh)}đ</span>}
-                      </div>
-                      {!phong.noAds && <div className="mob-phong-prog"><div className="mob-phong-prog-fill" style={{ width: `${pCp}%` }} /></div>}
-                      {/* AD Table */}
+                      {/* Phong AFYP/KH + Progress */}
+                      {!phong.noAds && (
+                        <>
+                          <div className="mob-phong-sub-header">
+                            <span className="mob-phong-afyp"><AnimNum value={phong.afyp} /><span style={{ fontSize: '0.45em', fontWeight: 600, color: '#8ab8e0', marginLeft: 2 }}>đ</span></span>
+                            <span className="mob-phong-kh">/ KH: {fmt(phong.kh)}đ</span>
+                          </div>
+                          <div className="mob-phong-prog"><div className="mob-phong-prog-fill" style={{ width: `${pCp}%` }} /></div>
+                        </>
+                      )}
+                      {/* Bảng chỉ tiêu - Phong tổng hợp + AD */}
                       {!phong.noAds && phong.ads.length > 0 && (
                         <table className="mob-ad-table">
                           <thead>
                             <tr>
-                              <th>AD</th>
-                              <th>% KH</th>
+                              <th></th>
                               <th>AFYP</th>
                               <th>KH</th>
-                              <th>HD</th>
+                              <th>Lượt HĐ</th>
                               <th>TD</th>
-                              <th>Chuẩn</th>
-                              <th>IP</th>
+                              <th>HĐ Chuẩn</th>
+                              <th>Tỷ Trọng</th>
                             </tr>
                           </thead>
                           <tbody>
+                            {/* Dòng tổng hợp phòng */}
+                            <tr className="phong-summary-row">
+                              <td>Tổng</td>
+                              <td><span className="summary-afyp">{pAfypTrd > 0 ? fmt(pAfypTrd) : '0'}</span></td>
+                              <td><span className="summary-kh">{pKhTrd > 0 ? fmt(pKhTrd) : '--'}</span></td>
+                              <td><span className="summary-val">{phong.lhd}</span></td>
+                              <td><span className="summary-val">{phong.td}</span></td>
+                              <td><span className="summary-val">{phong.hdChuan}</span></td>
+                              <td><span className="summary-val">{fmtTyTrong(phong.tyTrong)}</span></td>
+                            </tr>
+                            {/* Dòng AD */}
                             {phong.ads.map((ad, ai) => {
                               const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
-                              const aCp = Math.min(aPct, 100);
                               const aPctCls = pctClass(aPct);
-                              const khTrd = Math.round(ad.kh / 1000000);
-                              const afypTrd = Math.round(ad.afyp / 1000000);
+                              const aAfypTrd = Math.round(ad.afyp / 1000000);
+                              const aKhTrd = Math.round(ad.kh / 1000000);
                               return (
                                 <tr key={ai}>
                                   <td><span className="mob-ad-name">{ad.ten}</span></td>
-                                  <td><span className={`mob-ad-pct ${aPctCls}`}>{aPct.toFixed(0)}%</span></td>
-                                  <td><span className="mob-ad-afyp">{afypTrd > 0 ? `${fmt(afypTrd)}` : '0'}</span></td>
-                                  <td><span className="mob-ad-kh">{khTrd > 0 ? `${khTrd}` : '--'}</span></td>
-                                  <td>{ad.lhd}</td>
-                                  <td>{ad.td}</td>
-                                  <td>{ad.hdChuan}</td>
-                                  <td>{fmtTyTrong(ad.tyTrong)}</td>
+                                  <td><span className="mob-ad-afyp">{aAfypTrd > 0 ? fmt(aAfypTrd) : '0'}</span></td>
+                                  <td><span className="mob-ad-kh">{aKhTrd > 0 ? fmt(aKhTrd) : '--'}</span></td>
+                                  <td><span className="mob-ad-val">{ad.lhd}</span></td>
+                                  <td><span className="mob-ad-val">{ad.td}</span></td>
+                                  <td><span className="mob-ad-val">{ad.hdChuan}</span></td>
+                                  <td><span className="mob-ad-val">{fmtTyTrong(ad.tyTrong)}</span></td>
                                 </tr>
                               );
                             })}
