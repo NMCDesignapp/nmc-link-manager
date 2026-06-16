@@ -3232,6 +3232,26 @@ export default function QuanLyPage() {
         return 0;
       });
 
+      // Tiền thưởng = FYC * tỷ lệ tầng đạt được
+      const tienThuong = achievedTier >= 0 ? fyc * (TIERS[achievedTier].rate / 100) : 0;
+
+      // Số lần đạt TQ = đếm số quý (từ Q1 đến quý hiện tại) TVV đạt FYP ≥ 24tr
+      let soLanDatTQ = 0;
+      for (let q = 1; q <= currentQuarter; q++) {
+        const qStart = (q - 1) * 3 + 1;
+        const qEnd = q * 3;
+        const qContracts = contracts.filter(c => {
+          if (c.agentCode !== tvv.agentCode) return false;
+          const d = getDoanhSoMonth(c);
+          if (isNaN(d.getTime())) return false;
+          if (d.getFullYear() !== currentYear) return false;
+          const m = d.getMonth() + 1;
+          return m >= qStart && m <= qEnd;
+        });
+        const qFYP = qContracts.reduce((s, c) => s + c.pdt10DT, 0);
+        if (qFYP >= TIERS[0].minFYP) soLanDatTQ++;
+      }
+
       const nhomName = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '';
 
       return {
@@ -3243,6 +3263,8 @@ export default function QuanLyPage() {
         fyc,
         achievedTier,
         tierBonuses,
+        tienThuong,
+        soLanDatTQ,
       };
     });
 
@@ -3270,6 +3292,8 @@ export default function QuanLyPage() {
     const totalFYPQuy = tvvRows.reduce((s, r) => s + r.tongFYPQuy, 0);
     const totalFYC = tvvRows.reduce((s, r) => s + r.fyc, 0);
     const totalTierBonuses = TIERS.map((_, idx) => tvvRows.reduce((s, r) => s + r.tierBonuses[idx], 0));
+    const totalTienThuong = tvvRows.reduce((s, r) => s + r.tienThuong, 0);
+    const totalSoLanDatTQ = tvvRows.reduce((s, r) => s + r.soLanDatTQ, 0);
 
     // Count TVV per tier
     const tierCounts = TIERS.map((_, idx) => tvvRows.filter(r => r.achievedTier === idx).length);
@@ -3314,6 +3338,8 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
                 <th colSpan={6} className="text-white font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E' }}>TỶ LỆ THƯỞNG</th>
+                <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
+                <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
               {/* Row 2: FYP thresholds */}
               <tr style={{ backgroundColor: '#D97706' }}>
@@ -3335,7 +3361,7 @@ export default function QuanLyPage() {
             <tbody>
               {tvvRows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.</td>
+                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.</td>
                 </tr>
               ) : tvvRows.map((row, idx) => {
                 // Nhóm separator
@@ -3345,7 +3371,7 @@ export default function QuanLyPage() {
                   <React.Fragment key={row.maTVV}>
                     {showNhomHeader && (
                       <tr style={{ backgroundColor: '#D1FAE5' }}>
-                        <td colSpan={12} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider p-2 align-middle whitespace-nowrap" style={{ color: '#065F46', borderColor: '#A7F3D0', lineHeight: '1.3' }}>
+                        <td colSpan={14} className="py-0.5 px-3 text-[9px] font-black uppercase tracking-wider p-2 align-middle whitespace-nowrap" style={{ color: '#065F46', borderColor: '#A7F3D0', lineHeight: '1.3' }}>
                           {row.nhom || '(Chưa phân nhóm)'} — {nhomGroups.find(g => g.nhom === row.nhom)?.count || 0} TVV
                         </td>
                       </tr>
@@ -3366,6 +3392,8 @@ export default function QuanLyPage() {
                           {bonus > 0 ? formatCurrency(bonus) : '—'}
                         </td>
                       ))}
+                      <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? formatCurrency(row.tienThuong) : '—'}</td>
+                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
                     </tr>
                   </React.Fragment>
                 );
@@ -3381,6 +3409,8 @@ export default function QuanLyPage() {
                       {bonus > 0 ? formatCurrency(bonus) : '—'}
                     </td>
                   ))}
+                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A' }}>{totalTienThuong > 0 ? formatCurrency(totalTienThuong) : '—'}</td>
+                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#86EFAC' }}>{totalSoLanDatTQ > 0 ? totalSoLanDatTQ : '—'}</td>
                 </tr>
               )}
             </tbody>
