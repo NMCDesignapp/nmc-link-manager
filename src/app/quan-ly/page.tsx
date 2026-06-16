@@ -17,7 +17,7 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, Network, Calculator,
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
-  Menu, ChevronLeft, UserPlus, BookOpen,
+  Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy,
 } from 'lucide-react';
 
 // ==================== TYPES ====================
@@ -2908,14 +2908,58 @@ export default function QuanLyPage() {
   ];
 
   // ========== RENDER: Chính sách đại lý ==========
+  const [policyOpen, setPolicyOpen] = useState<string | null>(null);
+  const togglePolicy = (key: string) => setPolicyOpen(prev => prev === key ? null : key);
+
+  const POLICY_ITEMS = [
+    { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
+    { key: 'ns-tvv', label: 'Thưởng Năng suất tháng TVV', desc: 'Thưởng năng suất AFYP tháng cho TVV', icon: TrendingUp, color: '#2563EB' },
+    { key: 'quy-tvv', label: 'Thưởng Quý TVV', desc: 'Thưởng kết quả kinh doanh quý cho TVV', icon: Award, color: '#059669' },
+    { key: 'tuyen-luyen', label: 'Thưởng Tuyển luyện', desc: 'Thưởng tuyển dụng và huấn luyện TVV mới', icon: UserCheck, color: '#D97706' },
+    { key: 'dong-hanh', label: 'Thưởng Đồng hành', desc: 'Thưởng đồng hành phát triển nhóm', icon: Users, color: '#0891B2' },
+    { key: 'ptkd-tn', label: 'Thưởng Phát triển kinh doanh TN', desc: 'Thưởng phát triển kinh doanh cho Trưởng nhóm', icon: Target, color: '#DC2626' },
+    { key: 'quy-tn', label: 'Thưởng Quý TN', desc: 'Thưởng kết quả kinh doanh quý cho Trưởng nhóm', icon: Trophy, color: '#0D9488' },
+    { key: 'tuyen-ngang', label: 'Thưởng chính sách TTN tuyển ngang', desc: 'Thưởng tuyển dụng ngang cấp cho TTN', icon: Merge, color: '#7C3AED' },
+  ];
+
   const renderPolicy = () => {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.3)]">Chính sách đại lý</h2>
         </div>
-        <div className="text-center py-10 text-white/30 text-sm italic">
-          Chưa có mục chính sách nào. Vui lòng tạo mới.
+        <div className="space-y-2.5">
+          {POLICY_ITEMS.map(item => {
+            const isOpen = policyOpen === item.key;
+            const Icon = item.icon;
+            return (
+              <div key={item.key} className="rounded-xl overflow-hidden border border-white/10" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                {/* Card Header - Clickable */}
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 transition-colors"
+                  style={{ background: isOpen ? item.color : `${item.color}88` }}
+                  onClick={() => togglePolicy(item.key)}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4.5 h-4.5 text-white" size={18} />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-white text-xs font-bold uppercase tracking-wider leading-tight">{item.label}</p>
+                    <p className="text-white/50 text-[10px] mt-0.5 truncate">{item.desc}</p>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-white/50 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {/* Card Body - Expandable */}
+                {isOpen && (
+                  <div className="bg-[#0c0c18] p-4 space-y-3">
+                    <div className="text-center py-8 text-white/25 text-xs italic">
+                      Nội dung chính sách sẽ được cấu hình tại đây.
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
