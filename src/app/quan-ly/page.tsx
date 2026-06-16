@@ -3305,22 +3305,29 @@ export default function QuanLyPage() {
         <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
-              {/* Row 1: Main headers */}
+              {/* Row 1: Main headers — PHÂN TẦNG merged label */}
               <tr style={{ backgroundColor: '#065F46' }}>
-                <th rowSpan={2} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th rowSpan={2} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
-                <th rowSpan={2} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th rowSpan={2} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
-                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
-                <th colSpan={6} className="text-white font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>PHÂN TẦNG</th>
+                <th rowSpan={3} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th rowSpan={3} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
+                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E' }}>TỶ LỆ THƯỞNG</th>
               </tr>
-              {/* Row 2: Sub-headers for PHÂN TẦNG */}
-              <tr style={{ backgroundColor: '#047857' }}>
+              {/* Row 2: FYP thresholds */}
+              <tr style={{ backgroundColor: '#D97706' }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[10px] h-8 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#059669' }}>
-                    <span className="block leading-tight">{tier.rate}%</span>
-                    <span className="block text-[8px] font-normal opacity-75">{tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}</span>
+                  <th key={idx} className="text-white font-bold text-[9px] h-7 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309' }}>
+                    {tier.label}
+                  </th>
+                ))}
+              </tr>
+              {/* Row 3: Percentage rates */}
+              <tr style={{ backgroundColor: '#F59E0B' }}>
+                {TIERS.map((tier, idx) => (
+                  <th key={idx} className="font-black text-[11px] h-7 px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', color: '#78350F' }}>
+                    {tier.rate}%
                   </th>
                 ))}
               </tr>
@@ -3353,10 +3360,10 @@ export default function QuanLyPage() {
                       {row.tierBonuses.map((bonus, tIdx) => (
                         <td key={tIdx} className="text-[11px] font-bold text-center whitespace-nowrap p-1 align-middle" style={{
                           borderColor: '#D1FAE5',
-                          backgroundColor: bonus > 0 ? '#FEF3C7' : '#F9FAFB',
+                          backgroundColor: bonus > 0 ? '#FEF3C7' : 'transparent',
                           color: bonus > 0 ? '#92400E' : '#D1D5DB',
                         }}>
-                          {bonus > 0 ? <><Trophy className="w-3 h-3 inline-block mr-0.5 -mt-0.5 text-amber-500" />{formatCurrency(bonus)}</> : '—'}
+                          {bonus > 0 ? formatCurrency(bonus) : '—'}
                         </td>
                       ))}
                     </tr>
