@@ -83,10 +83,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #6ab0e8; font-weight: 700; }
 .kpi-app .cty-progress { width: 100%; height: 12px; border-radius: 99px; background: #1a3050; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
 .kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); will-change: width; box-shadow: 0 0 8px #40d89044; }
-.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-top: 12px; }
-.kpi-app .cty-stat { border-radius: 6px; padding: 6px 3px 5px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 42px; }
-.kpi-app .cty-stat-label { font-size: 7.5px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .03em; }
-.kpi-app .cty-stat-val { font-size: 15px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
+.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; margin-top: 14px; }
+.kpi-app .cty-stat { border-radius: 6px; padding: 8px 4px 7px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
+.kpi-app .cty-stat-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
+.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
 .kpi-app .cty-stat.hd { background: #3a7cc8; } .kpi-app .cty-stat.hd .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.td { background: #8a7ab8; } .kpi-app .cty-stat.td .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.chuan { background: #2a9aaa; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #ffffff; }
@@ -179,37 +179,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .ad-grid { display: none; }
 .kpi-app .kpi-ad { display: none; }
 
-/* Policy View */
-.kpi-app .policy-sections { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
-.kpi-app .policy-card { border-radius: 14px; overflow: hidden; border: 1.5px solid #3a5a80; background: #0e2240; box-shadow: 0 4px 20px #00000060; }
-.kpi-app .policy-card-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, #6d28d9, #5b21b6); cursor: pointer; }
-.kpi-app .policy-card-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
-.kpi-app .policy-card-title { font-size: 12px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: .04em; flex: 1; }
-.kpi-app .policy-card-toggle { color: rgba(255,255,255,.6); transition: transform .2s; }
-.kpi-app .policy-card.open .policy-card-toggle { transform: rotate(180deg); }
-.kpi-app .policy-card-body { display: none; padding: 14px; background: #0c1a30; }
-.kpi-app .policy-card.open .policy-card-body { display: block; }
-.kpi-app .policy-form { display: flex; flex-direction: column; gap: 10px; }
-.kpi-app .policy-form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
-.kpi-app .policy-field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 80px; }
-.kpi-app .policy-field-label { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #6a9ac0; letter-spacing: .04em; }
-.kpi-app .policy-field input, .kpi-app .policy-field select { height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid #2a4a70; background: #0a1830; color: #d0e4f8; font-size: 12px; font-weight: 700; font-family: inherit; outline: none; width: 100%; }
-.kpi-app .policy-field input:focus, .kpi-app .policy-field select:focus { border-color: #6d28d9; box-shadow: 0 0 0 2px #6d28d944; }
-.kpi-app .policy-calc-btn { height: 34px; padding: 0 16px; border-radius: 8px; border: none; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; font-weight: 900; font-size: 11px; font-family: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: .04em; transition: transform .15s; white-space: nowrap; }
-.kpi-app .policy-calc-btn:hover { transform: translateY(-1px); }
-.kpi-app .policy-calc-btn:active { transform: scale(.97); }
-.kpi-app .policy-result { margin-top: 12px; border-radius: 10px; background: #12243e; border: 1px solid #2a4a70; padding: 12px; display: none; }
-.kpi-app .policy-result.show { display: block; }
-.kpi-app .policy-result-title { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #a78bfa; letter-spacing: .06em; margin-bottom: 8px; }
-.kpi-app .policy-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.kpi-app .policy-result-item { background: #0c1a30; border-radius: 8px; padding: 8px 10px; text-align: center; }
-.kpi-app .policy-result-label { font-size: 7.5px; font-weight: 800; text-transform: uppercase; color: #6a9ac0; margin-bottom: 3px; letter-spacing: .04em; }
-.kpi-app .policy-result-val { font-size: 18px; font-weight: 900; color: #e0f0ff; line-height: 1.1; }
-.kpi-app .policy-result-val.highlight { color: #fbbf24; }
-.kpi-app .policy-empty { text-align: center; padding: 30px 20px; color: #5a7a9a; font-size: 12px; font-style: italic; }
+
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 24px; }
+.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; grid-column: 1 / -1; }
 .kpi-app .nav-btn { padding: 14px 10px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .2s; position: relative; overflow: hidden; }
 .kpi-app .nav-btn:hover { transform: translateY(-2px); }
 .kpi-app .nav-btn:active { transform: scale(.97); }
@@ -217,7 +191,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .nav-detail { background: linear-gradient(135deg, #1e40af, #1e3a8a); box-shadow: 0 6px 18px #1e40af66; }
 .kpi-app .nav-plan { background: linear-gradient(135deg, #059669, #065f46); box-shadow: 0 6px 18px #05966966; }
 .kpi-app .nav-race { background: linear-gradient(135deg, #0c4a6e, #082f49); box-shadow: 0 6px 18px #0c4a6e80; border: 1.5px solid #38bdf840; }
-.kpi-app .nav-policy { background: linear-gradient(135deg, #6d28d9, #4c1d95); box-shadow: 0 6px 18px #6d28d966; border: 1.5px solid #a78bfa40; }
+
 .kpi-app .nav-clb { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 6px 18px #b4530966; border: 1.5px solid #fbbf2440; }
 
 /* Section Divider */
@@ -376,7 +350,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
   .kpi-app .nav-row-3 { display: contents; }
   .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
-  .kpi-app .cty-stats { grid-template-columns: repeat(3,1fr); gap: 4px; }
+
   .kpi-app .kpi-cty { display: none !important; }
   .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
   .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 4px; }
@@ -658,7 +632,7 @@ export default function KPIDashboard() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [view, setView] = useState<'main' | 'detail' | 'calendar' | 'policy'>('main');
+  const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
   const [selectedKy, setSelectedKy] = useState('');
   const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
@@ -1280,12 +1254,20 @@ export default function KPIDashboard() {
                 <button className="nav-btn nav-detail" onClick={() => setView('detail')}>
                   <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
                 </button>
-                <a className="nav-btn nav-race" href="/thi-dua-chau">
-                  <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                </a>
-                <button className="nav-btn nav-policy" onClick={() => setView('policy')}>
-                  <span className="nav-icon"><BookOpen size={14} /></span> Chính sách đại lý
+                <button className="nav-btn nav-plan" onClick={() => setView('calendar')}>
+                  <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
+                <div className="nav-row-3">
+                  <a className="nav-btn nav-race" href="/thi-dua-chau">
+                    <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                  </a>
+                  <button className="nav-btn nav-policy">
+                    <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
+                  </button>
+                  <button className="nav-btn nav-clb">
+                    <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+                  </button>
+                </div>
               </nav>
 
               {/* Region Divider - Mobile */}

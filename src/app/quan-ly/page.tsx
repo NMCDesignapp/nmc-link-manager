@@ -2922,6 +2922,155 @@ export default function QuanLyPage() {
     { key: 'tuyen-ngang', label: 'Thưởng chính sách TTN tuyển ngang', desc: 'Thưởng tuyển dụng ngang cấp cho TTN', icon: Merge, color: '#7C3AED' },
   ];
 
+  // ========== TVVm Table Data ==========
+  const renderTvvMTable = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentMonthStr = String(currentMonth).padStart(2, '0');
+
+    // Build a map of agentCode → recruiter name from contracts
+    const recruiterMap = new Map<string, string>();
+    for (const c of contracts) {
+      if (c.maDaiLyTD && c.agentCode) {
+        // The recruiter for this TVV is maDaiLyTD, find recruiter name
+        if (!recruiterMap.has(c.agentCode)) {
+          // Find recruiter name from recruiters list or from other contracts
+          const recruiter = recruiters.find(r => r.agentCode === c.maDaiLyTD);
+          if (recruiter) {
+            recruiterMap.set(c.agentCode, recruiter.agentName);
+          } else {
+            // Try to find name from contract data where agentCode === maDaiLyTD
+            const recruiterContract = contracts.find(rc => rc.agentCode === c.maDaiLyTD);
+            if (recruiterContract) {
+              recruiterMap.set(c.agentCode, recruiterContract.agentName);
+            } else {
+              recruiterMap.set(c.agentCode, c.maDaiLyTD);
+            }
+          }
+        }
+      }
+    }
+
+    // Build TVVm rows from tvvStructList
+    const tvvmRows = tvvStructList.map((tvv, idx) => {
+      // Look up nhóm name from banNhomList
+      const nhomItem = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom);
+      const nhomName = nhomItem?.tenBanNhom || tvv.maBanNhom || '';
+
+      // Calculate Tổng IP tháng hiện tại for this TVV
+      const monthContracts = contracts.filter(c => {
+        if (c.agentCode !== tvv.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      });
+      const tongIPThang = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // Calculate Tổng IP chặng (full year for now, will be configurable later)
+      const changContracts = contracts.filter(c => {
+        if (c.agentCode !== tvv.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+      });
+      const tongIPChang = changContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // Get recruiter name
+      const nguoiTD = recruiterMap.get(tvv.agentCode) || '';
+
+      return {
+        stt: idx + 1,
+        nhom: nhomName,
+        maTVV: tvv.agentCode,
+        hoTen: tvv.agentName,
+        ngayBatDau: tvv.ngayBatDau,
+        changXetThuong: '', // Will be configured later
+        tongIPThang,
+        thuongThang: 0, // Will be calculated later
+        tongIPChang,
+        thuongChang: 0, // Will be calculated later
+        tenNguoiTD: nguoiTD,
+      };
+    });
+
+    return (
+      <div className="space-y-3">
+        {/* Summary stats */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="bg-violet-900/40 border border-violet-500/30 rounded-lg px-3 py-2 text-center">
+            <p className="text-[9px] font-bold text-violet-300 uppercase tracking-wider">Tổng TVVm</p>
+            <p className="text-lg font-black text-violet-200">{tvvmRows.length}</p>
+          </div>
+          <div className="bg-emerald-900/40 border border-emerald-500/30 rounded-lg px-3 py-2 text-center">
+            <p className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">IP tháng</p>
+            <p className="text-sm font-black text-emerald-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</p>
+          </div>
+          <div className="bg-amber-900/40 border border-amber-500/30 rounded-lg px-3 py-2 text-center">
+            <p className="text-[9px] font-bold text-amber-300 uppercase tracking-wider">IP chặng</p>
+            <p className="text-sm font-black text-amber-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</p>
+          </div>
+          <div className="bg-rose-900/40 border border-rose-500/30 rounded-lg px-3 py-2 text-center">
+            <p className="text-[9px] font-bold text-rose-300 uppercase tracking-wider">Thưởng</p>
+            <p className="text-sm font-black text-rose-200">{formatSmartCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang + r.thuongChang, 0))}</p>
+          </div>
+        </div>
+
+        {/* Result Table - similar to thi đua */}
+        <div className="overflow-x-auto border border-violet-600/50 shadow-sm rounded-lg" style={{ scrollbarWidth: 'thin', scrollbarColor: '#7C3AED transparent' }}>
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="bg-violet-900/80 hover:bg-violet-900/80 [&>th]:whitespace-nowrap">
+                <TableHead className="text-yellow-100 text-center w-[36px] font-bold uppercase text-[10px]">STT</TableHead>
+                <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center">NHÓM</TableHead>
+                <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-[10px] text-center">MÃ TVV</TableHead>
+                <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-[10px] text-center">HỌ TÊN TVV</TableHead>
+                <TableHead className="text-yellow-100 min-w-[75px] font-bold uppercase text-[10px] text-center">NGÀY BĐ LV</TableHead>
+                <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center bg-violet-800/60">CHẶNG XÉT THƯỞNG</TableHead>
+                <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center">TỔNG IP<br/><span className="text-[8px] text-yellow-300/60 normal-case">(tháng {currentMonth})</span></TableHead>
+                <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-[10px] text-center bg-emerald-800/70">THƯỞNG THÁNG</TableHead>
+                <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-[10px] text-center bg-amber-800/60">TỔNG IP CHẶNG</TableHead>
+                <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-[10px] text-center bg-emerald-800/70">THƯỞNG CHẶNG</TableHead>
+                <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-[10px] text-center">NGƯỜI TUYỂN DỤNG</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tvvmRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center text-white/30 py-8 italic text-xs">
+                    Chưa có dữ liệu TVVm. Vui lòng nhập cấu trúc TVV trước.
+                  </TableCell>
+                </TableRow>
+              ) : tvvmRows.map((row) => (
+                <TableRow key={row.maTVV} className="hover:bg-violet-500/10 border-violet-500/20 transition-colors">
+                  <TableCell className="text-center text-violet-300/60 text-[10px] font-bold">{row.stt}</TableCell>
+                  <TableCell className="text-[10px] text-violet-200 whitespace-nowrap font-medium">{row.nhom}</TableCell>
+                  <TableCell className="font-mono text-[10px] text-violet-300/80 whitespace-nowrap">{row.maTVV}</TableCell>
+                  <TableCell className="text-[10px] text-white whitespace-nowrap font-semibold">{row.hoTen}</TableCell>
+                  <TableCell className="text-[10px] text-violet-300/70 whitespace-nowrap">{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</TableCell>
+                  <TableCell className="text-[10px] text-violet-300 text-center whitespace-nowrap bg-violet-800/20">{row.changXetThuong || '—'}</TableCell>
+                  <TableCell className="text-[10px] text-emerald-300 font-bold text-right whitespace-nowrap">{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</TableCell>
+                  <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongThang > 0 ? formatCurrency(row.thuongThang) : '—'}</TableCell>
+                  <TableCell className="text-[10px] text-amber-300 font-bold text-right whitespace-nowrap">{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</TableCell>
+                  <TableCell className="text-[10px] text-emerald-200 font-bold text-center whitespace-nowrap bg-emerald-800/20">{row.thuongChang > 0 ? formatCurrency(row.thuongChang) : '—'}</TableCell>
+                  <TableCell className="text-[10px] text-white/70 whitespace-nowrap">{row.tenNguoiTD || '—'}</TableCell>
+                </TableRow>
+              ))}
+              {/* Total row */}
+              {tvvmRows.length > 0 && (
+                <TableRow className="bg-violet-900/40 hover:bg-violet-900/40 border-t-2 border-violet-500/40">
+                  <TableCell colSpan={6} className="text-right text-yellow-200 font-black text-[10px] uppercase pr-3">Tổng cộng</TableCell>
+                  <TableCell className="text-[10px] text-emerald-200 font-black text-right whitespace-nowrap">{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</TableCell>
+                  <TableCell className="text-[10px] text-emerald-100 font-black text-center whitespace-nowrap bg-emerald-800/30">{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</TableCell>
+                  <TableCell className="text-[10px] text-amber-200 font-black text-right whitespace-nowrap">{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</TableCell>
+                  <TableCell className="text-[10px] text-emerald-100 font-black text-center whitespace-nowrap bg-emerald-800/30">{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  };
+
   const renderPolicy = () => {
     return (
       <div className="space-y-3">
@@ -2952,9 +3101,11 @@ export default function QuanLyPage() {
                 {/* Card Body - Expandable */}
                 {isOpen && (
                   <div className="bg-[#0c0c18] p-4 space-y-3">
-                    <div className="text-center py-8 text-white/25 text-xs italic">
-                      Nội dung chính sách sẽ được cấu hình tại đây.
-                    </div>
+                    {item.key === 'tvvm' ? renderTvvMTable() : (
+                      <div className="text-center py-8 text-white/25 text-xs italic">
+                        Nội dung chính sách sẽ được cấu hình tại đây.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
