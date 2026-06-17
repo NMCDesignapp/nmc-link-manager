@@ -210,10 +210,15 @@ const CONTRACT_COLUMNS = [
 
 // ==================== HELPERS ====================
 // Helper: lấy tháng doanh số từ issueDate (Ngày PH), fallback effectiveDate (Ngày HL)
-function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string }): Date {
+// Trả về Invalid Date nếu cả 2 đều trống (các nơi gọi dùng !isNaN(d.getTime()) để filter)
+function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null }): Date {
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;
-  return new Date(c.effectiveDate);
+  if (c.effectiveDate) {
+    const effD = new Date(c.effectiveDate);
+    if (!isNaN(effD.getTime())) return effD;
+  }
+  return new Date(NaN);
 }
 
 function formatCurrency(n: number): string {
@@ -269,9 +274,9 @@ function toInputDate(val: any): string {
 
 // Helper: format date value for display (Vietnamese format)
 function formatDateDisplay(val: any): string {
-  if (!val) return '—';
+  if (!val) return '';
   const d = new Date(String(val));
-  if (isNaN(d.getTime())) return String(val || '—');
+  if (isNaN(d.getTime())) return String(val || '');
   return d.toLocaleDateString('vi-VN');
 }
 
@@ -1843,8 +1848,8 @@ export default function QuanLyPage() {
             position: String(row['Chức vụ'] || row['position'] || '').trim(),
             ngayBatDauLamViec: parseDateValue(row['Ngày bắt đầu làm việc'] || row['Ngày bắt đầu LV'] || row['Ngày BĐLV'] || row['ngayBatDauLamViec']),
             contractNumber: contractNumber || 'HD_' + Date.now() + '_' + contractRows.length,
-            effectiveDate: effectiveDate || new Date().toISOString().slice(0, 10),
-            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['Ngày PH'] || row['issueDate']) || effectiveDate || new Date().toISOString().slice(0, 10),
+            effectiveDate: effectiveDate || null,
+            issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['Ngày PH'] || row['issueDate']) || null,
             pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['PĐT+10%ĐT'] || row['IP+10%PĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
             fyp: fyp || parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
             nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || '').trim(),

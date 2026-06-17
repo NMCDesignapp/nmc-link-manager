@@ -68,8 +68,8 @@ model Contract {
   maNhom              String    @default("")
   leaderAgentCode     String    @default("")
   ngayBatDauLamViec   DateTime?
-  effectiveDate       DateTime
-  issueDate           DateTime
+  effectiveDate       DateTime?
+  issueDate           DateTime?
   pdt10DT             Float     @default(0)
   fyp                 Float     @default(0)
   nguonDuLieu         String    @default("")
