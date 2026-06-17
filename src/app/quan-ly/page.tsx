@@ -5039,20 +5039,32 @@ export default function QuanLyPage() {
                 {/* For special phong (PA/Banca): render TVV list directly (no AD layer) */}
                 {isSpecial ? (
                   <div className="px-3 py-2" style={{ backgroundColor: '#e5e7eb' }}>
-                    {pBanNhoms.length === 0 && pTVVs.length === 0 ? (
+                    {pTVVs.length === 0 ? (
                       <p className="text-gray-500 text-[9px] italic px-2 py-1.5">Chưa có TVV</p>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
+                        {/* Header row — column labels */}
+                        <div className="flex items-center gap-2 px-2 py-1 text-[9px] font-bold uppercase text-gray-500 bg-gray-200 border-b border-gray-300">
+                          <span className="w-5 text-center">#</span>
+                          <span className="flex-1 min-w-0">HỌ TÊN</span>
+                          <span className="w-[90px] text-left">MÃ SỐ</span>
+                          <span className="w-[80px] text-left">NGÀY BĐ LV</span>
+                          <span className="w-[100px] text-left">CHỨC VỤ</span>
+                          <span className="w-[40px]"></span>
+                        </div>
                         {pTVVs.map((t, idx) => (
-                          <div key={t.id} className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm bg-white border border-gray-200">
-                            <span className="text-[9px] text-gray-400 w-4">{idx + 1}</span>
-                            <UserCog className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-gray-800 text-[11px] font-bold truncate">{t.agentName}</p>
-                              <p className="text-gray-400 text-[9px]">{t.agentCode} • {t.chucVu || 'TVV'}</p>
+                          <div key={t.id} className="flex items-center gap-2 px-2 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm bg-white border border-gray-200">
+                            <span className="text-[10px] text-gray-400 w-5 text-center font-medium">{idx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-gray-800 text-[11px] font-bold truncate block">{t.agentName}</span>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                            <span className="text-[10px] font-mono text-gray-600 w-[90px] truncate">{t.agentCode}</span>
+                            <span className="text-[10px] text-gray-600 w-[80px]">{t.ngayBatDau ? safeFormatDate(t.ngayBatDau) : '—'}</span>
+                            <span className="text-[10px] text-emerald-700 font-semibold w-[100px] truncate">{t.chucVu || '—'}</span>
+                            <div className="flex items-center gap-0.5 w-[40px] justify-end">
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2.5 h-2.5" /></Button>
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2.5 h-2.5" /></Button>
+                            </div>
                           </div>
                         ))}
                       </div>
