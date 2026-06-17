@@ -2305,8 +2305,62 @@ export default function QuanLyPage() {
     return 'Cả năm';
   };
 
+  // ── Overview Background: deep navy + diagonal grid + spotlight ──
+  // Theo mô tả: lưới chéo 45°, gradient navy đen → teal sáng ở bottom-center
+  const renderOverviewBackground = () => (
+    <div className="fixed inset-0 pointer-events-none" aria-hidden style={{ zIndex: 0 }}>
+      <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 900">
+        <defs>
+          {/* Vertical gradient: deep navy top → ultramarine-black → vibrant teal bottom-center */}
+          <linearGradient id="bg-main" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#020617" />
+            <stop offset="35%" stopColor="#0a1838" />
+            <stop offset="65%" stopColor="#0e2a5a" />
+            <stop offset="85%" stopColor="#0d4a7a" />
+            <stop offset="100%" stopColor="#0a6e8c" />
+          </linearGradient>
+          {/* Radial spotlight at bottom-center */}
+          <radialGradient id="bg-spotlight" cx="0.5" cy="1.0" r="0.7">
+            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.45" />
+            <stop offset="30%" stopColor="#0891b2" stopOpacity="0.25" />
+            <stop offset="60%" stopColor="#0e7490" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+          </radialGradient>
+          {/* Grid pattern: diagonal lines 45°, offset brick pattern */}
+          <pattern id="diag-grid" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+            {/* Diagonal lines at 45° forming diamond/brick pattern */}
+            <path d="M0,40 L80,0 M0,0 L80,40" stroke="#0e2a5a" strokeWidth="0.6" fill="none" opacity="0.45" />
+            <path d="M-40,20 L40,-20 M40,60 L120,20 M0,40 L80,0" stroke="#1e3a8a" strokeWidth="0.4" fill="none" opacity="0.35" />
+          </pattern>
+          {/* Soft vignette to fade grid in dark top region */}
+          <linearGradient id="vignette-top" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#020617" stopOpacity="0.85" />
+            <stop offset="40%" stopColor="#020617" stopOpacity="0.4" />
+            <stop offset="70%" stopColor="#020617" stopOpacity="0" />
+          </linearGradient>
+          {/* Subtle noise/texture */}
+          <filter id="noise" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+            <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
+          </filter>
+        </defs>
+        {/* Base gradient */}
+        <rect width="1440" height="900" fill="url(#bg-main)" />
+        {/* Diagonal grid overlay */}
+        <rect width="1440" height="900" fill="url(#diag-grid)" opacity="0.6" />
+        {/* Spotlight at bottom-center */}
+        <rect width="1440" height="900" fill="url(#bg-spotlight)" />
+        {/* Vignette top — fade grid in dark area */}
+        <rect width="1440" height="900" fill="url(#vignette-top)" />
+        {/* Noise texture for subtle micro-texture */}
+        <rect width="1440" height="900" filter="url(#noise)" opacity="0.5" />
+      </svg>
+    </div>
+  );
+
   const renderOverview = () => (
-    <div className="space-y-3">
+    <div className="space-y-3 relative" style={{ zIndex: 1 }}>
+      {renderOverviewBackground()}
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
