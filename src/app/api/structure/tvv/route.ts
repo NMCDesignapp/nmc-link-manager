@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Import in batches of 500 to avoid query size limits
+      const batchSize = 500;
       let totalImported = 0;
       for (let i = 0; i < records.length; i += batchSize) {
         const batch = records.slice(i, i + batchSize);
