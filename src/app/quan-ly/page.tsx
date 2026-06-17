@@ -4711,9 +4711,9 @@ export default function QuanLyPage() {
       });
       const tongFYPNhom = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
 
-      // LƯỢT HĐC (Lượt Hoạt Động Chuẩn) = số contracts có tinhLuot3tr ≥ 3.000.000đ
-      // (lượt HĐ chuẩn = hợp đồng đạt ngưỡng 3tr theo quy định)
-      const luotHDCNhom = monthContracts.filter(c => c.tinhLuot3tr >= 3_000_000).length;
+      // LƯỢT HĐC (Lượt Hoạt Động Chuẩn) = số contracts có tổng IP tháng ≥ 12.000.000đ
+      // (lượt HĐ chuẩn = hợp đồng có IP phát hành trong tháng đạt ngưỡng 12tr)
+      const luotHDCNhom = monthContracts.filter(c => c.pdt10DT >= 12_000_000).length;
 
       // FYC = FYP × 25%
       const fyc = tongFYPNhom * 0.25;
@@ -4764,7 +4764,7 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-3">
-        {/* Summary card */}
+        {/* Summary card — chỉ: Tổng TN đạt thưởng + Tổng tiền thưởng */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4773,16 +4773,8 @@ export default function QuanLyPage() {
             </div>
             <div className="flex items-center gap-5 flex-wrap">
               <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TN</p>
-                <p className="text-sm font-black text-emerald-700">{filteredRows.length}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG FYP NHÓM</p>
-                <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYP)}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG LƯỢT HĐC</p>
-                <p className="text-sm font-black text-emerald-700">{totalLuotHD}</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TN ĐẠT THƯỞNG</p>
+                <p className="text-sm font-black text-emerald-700">{filteredRows.filter(r => r.tienThuong > 0).length}<span className="text-[9px] font-normal text-gray-400"> / {filteredRows.length}</span></p>
               </div>
               <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
                 <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">💰 TỔNG TIỀN THƯỞNG</p>
@@ -5705,7 +5697,18 @@ export default function QuanLyPage() {
               return (
                 <div key={sheet.key}>
                   <button
-                    onClick={() => { setActiveSheet(sheet.key); setSearchTerm(''); setSortField(''); if (sheet.hasSub) handleSubToggle(); setSidebarOpen(false); }}
+                    onClick={() => {
+                      setActiveSheet(sheet.key);
+                      setSearchTerm('');
+                      setSortField('');
+                      if (sheet.hasSub) {
+                        handleSubToggle();
+                        // On mobile: don't close sidebar if expanding sub-items
+                        // Only close sidebar when a sub-item is selected
+                      } else {
+                        setSidebarOpen(false);
+                      }
+                    }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                       isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 neon-glow' : 'text-emerald-300/60 hover:bg-emerald-500/10 hover:text-emerald-300'
                     }`}
