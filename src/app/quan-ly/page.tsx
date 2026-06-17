@@ -4298,11 +4298,17 @@ export default function QuanLyPage() {
       { label: 'FYP ≥ 600tr + TVVm', rate: 22, minFYP: 600_000_000, needsTVVm: true },
     ];
 
-    // Identify TNs — chỉ TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
-    const tnList = tvvStructList.filter(tvv => {
-      const pos = (tvv.chucVu || '').toLowerCase();
-      return pos.includes('trưởng ban') || pos.includes('trưởng nhóm');
-    });
+    // Identify TNs — dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
+    // Vì đây là DS chính thức được user nhập cho Trưởng Ban / Trưởng Nhóm
+    // Tất cả records trong LeaderInfo đều là đối tượng TN (đã được phân loại khi nhập)
+    // LeaderInfo có sẵn field 'nhom' (tên nhóm) và 'maNhom' → dùng luôn, không cần lookup
+    const tnList = leaders.map(l => ({
+      agentCode: l.agentCode,
+      agentName: l.agentName,
+      position: l.position || '',
+      maBanNhom: l.maNhom || '',  // DS TB/TN dùng field maNhom → map sang maBanNhom
+      nhomName: l.nhom || '',      // DS TB/TN đã có sẵn tên nhóm
+    }));
 
     const tnRows = tnList.map((tn) => {
       // Find all TVVs in TN's nhóm (for FYP sum)
@@ -4375,7 +4381,7 @@ export default function QuanLyPage() {
       const tlThuong = achievedTier >= 0 ? TN_TIERS[achievedTier].rate : 0;
       const tienThuong = achievedTier >= 0 ? fyc * (TN_TIERS[achievedTier].rate / 100) : 0;
 
-      const nhomName = resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders);
+      const nhomName = tn.nhomName || resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders);
 
       return {
         stt: 0 as number,
