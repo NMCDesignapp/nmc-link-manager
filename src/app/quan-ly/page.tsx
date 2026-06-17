@@ -5267,17 +5267,9 @@ export default function QuanLyPage() {
               return (a._origIdx ?? 0) - (b._origIdx ?? 0);
             })
             .map(p => {
-            const isSpecial = SPECIAL_PHONG_NO_AD.has(p.maPhong);
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
-            // Với phòng đặc biệt (PA/Banca): không có AD → TVV thuộc phòng trực tiếp
-            // qua TVVStruct.maBanNhom === p.maPhong (không cần qua BanNhom record)
-            // Với phòng thường: TVV thuộc phòng qua AD → BanNhom
-            const pBanNhoms = isSpecial
-              ? []  // không dùng BanNhom record cho phòng đặc biệt
-              : banNhomList.filter(b => pADs.some(a => a.maAD === b.maAD));
-            const pTVVs = isSpecial
-              ? tvvStructList.filter(t => t.maBanNhom === p.maPhong)
-              : tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
+            const pBanNhoms = banNhomList.filter(b => pADs.some(a => a.maAD === b.maAD));
+            const pTVVs = tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
             return (
               <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
                 {/* PHÒNG header — dark strip like Kế hoạch */}
@@ -5285,55 +5277,16 @@ export default function QuanLyPage() {
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
                     <span className="text-xs sm:text-sm font-bold text-emerald-300">{p.tenPhong}</span>
-                    {isSpecial && (
-                      <span className="text-[8px] uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded">No AD</span>
-                    )}
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {isSpecial ? `${pTVVs.length} TVV` : `${pADs.length} AD`}</span>
-                    {!isSpecial && <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>}
-                    {isSpecial && <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: p.maPhong })); setAddBanNhomOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm Nhóm"><Plus className="w-2.5 h-2.5" /></Button>}
+                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {pADs.length} AD</span>
+                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-emerald-400"><Edit2 className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeletePhong(p.id)} className="h-5 w-5 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
                   </div>
                 </div>
 
-                {/* For special phong (PA/Banca): render TVV list directly (no AD layer) */}
-                {isSpecial ? (
-                  <div className="px-3 py-2" style={{ backgroundColor: '#e5e7eb' }}>
-                    {pTVVs.length === 0 ? (
-                      <p className="text-gray-500 text-[9px] italic px-2 py-1.5">Chưa có TVV</p>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {/* Header row — column labels */}
-                        <div className="flex items-center gap-2 px-2 py-1 text-[9px] font-bold uppercase text-gray-500 bg-gray-200 border-b border-gray-300">
-                          <span className="w-5 text-center">#</span>
-                          <span className="flex-1 min-w-0">HỌ TÊN</span>
-                          <span className="w-[90px] text-left">MÃ SỐ</span>
-                          <span className="w-[80px] text-left">NGÀY BĐ LV</span>
-                          <span className="w-[100px] text-left">CHỨC VỤ</span>
-                          <span className="w-[40px]"></span>
-                        </div>
-                        {pTVVs.map((t, idx) => (
-                          <div key={t.id} className="flex items-center gap-2 px-2 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm bg-white border border-gray-200">
-                            <span className="text-[10px] text-gray-400 w-5 text-center font-medium">{idx + 1}</span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-gray-800 text-[11px] font-bold truncate block">{t.agentName}</span>
-                            </div>
-                            <span className="text-[10px] font-mono text-gray-600 w-[90px] truncate">{t.agentCode}</span>
-                            <span className="text-[10px] text-gray-600 w-[80px]">{t.ngayBatDau ? safeFormatDate(t.ngayBatDau) : '—'}</span>
-                            <span className="text-[10px] text-emerald-700 font-semibold w-[100px] truncate">{t.chucVu || '—'}</span>
-                            <div className="flex items-center gap-0.5 w-[40px] justify-end">
-                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2.5 h-2.5" /></Button>
-                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2.5 h-2.5" /></Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                /* AD list — silver/gray background (for normal phong) */
+                {/* AD list — silver/gray background */}
                 <div className="px-3 py-2 space-y-1.5" style={{ backgroundColor: '#e5e7eb' }}>
                   {pADs.length === 0 && (
                     <div className="px-2 py-1.5">
@@ -5445,7 +5398,6 @@ export default function QuanLyPage() {
                     );
                   })}
                 </div>
-                )}
               </div>
             );
           })}
