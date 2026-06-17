@@ -128,6 +128,20 @@ const KPI_COLORS: Record<string, string> = {
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
+// ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
+// Gradient teal background (light → darker) for tier header cells and body cells
+const TIER_GRADIENT_BG = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
+// Strong red for the percentage NUMBER itself — high contrast on teal, draws the eye
+const TIER_RATE_COLOR = '#B91C1C'; // red-700
+// Body tier cell text color (ĐẠT/deficit)
+const TIER_BODY_TEXT_COLOR = '#9F1239'; // rose-800
+// Border color for tier cells
+const TIER_BORDER = '#14B8A6';
+// Header tier label background (the "≥24, ≥60..." row) — solid teal
+const TIER_HEADER_BG = '#14B8A6';
+// Top "TỶ LỆ THƯỞNG" merged header background
+const TIER_GROUP_HEADER_BG = '#0F766E';
+
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
@@ -3484,29 +3498,25 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
-                <th colSpan={6} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
-              {/* Row 2: FYP thresholds — teal, larger font */}
-              <tr style={{ backgroundColor: '#14B8A6' }}>
+              {/* Row 2: FYP thresholds — solid teal header, white text */}
+              <tr style={{ backgroundColor: TIER_HEADER_BG }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[11px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', height: '18px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white font-bold text-[11px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, height: '18px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates — light teal gradient, larger bold font */}
+              {/* Row 3: Percentage rates — teal gradient bg, BOLD RED numbers for emphasis */}
               <tr>
-                {TIERS.map((tier, idx) => {
-                  // Teal gradient — strong contrast, easy to read
-                  const gradientColors = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
-                  return (
-                    <th key={idx} className="font-black text-[12px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#14B8A6', height: '18px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#134E4A' }}>
-                      {tier.rate}%
-                    </th>
-                  );
-                })}
+                {TIERS.map((tier, idx) => (
+                  <th key={idx} className="font-black text-[13px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_BORDER, height: '20px', lineHeight: '1', backgroundColor: TIER_GRADIENT_BG[idx], color: TIER_RATE_COLOR, textShadow: '0 0 1px rgba(255,255,255,0.5)' }}>
+                    {tier.rate}%
+                  </th>
+                ))}
               </tr>
               {/* Row 4: Full-width separator line — runs across all 14 columns */}
               <tr>
@@ -3530,14 +3540,15 @@ export default function QuanLyPage() {
                     {TIERS.map((tier, tIdx) => {
                       const isAchieved = tIdx <= row.achievedTier && row.achievedTier >= 0;
                       const deficit = row.tongFYPQuy < tier.minFYP ? tier.minFYP - row.tongFYPQuy : 0;
-                      // Body gradient — light pastel teal for unachieved, soft green for achieved
-                      const gradientBg = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
+                      // Body gradient — same teal gradient as header (visual consistency)
+                      // Achieved → soft green (signal success), Unachieved → teal gradient (matches header)
                       const achievedGreen = ['#F0FDF4', '#DCFCE7', '#BBF7D0', '#A7F3D0', '#86EFAC', '#6EE7B7'];
                       return (
                         <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
-                          borderColor: isAchieved ? '#A7F3D0' : '#CCFBF1',
-                          backgroundColor: isAchieved ? achievedGreen[tIdx] : gradientBg[tIdx],
-                          color: isAchieved ? '#047857' : '#134E4A',
+                          borderColor: isAchieved ? '#A7F3D0' : TIER_BORDER,
+                          backgroundColor: isAchieved ? achievedGreen[tIdx] : TIER_GRADIENT_BG[tIdx],
+                          color: isAchieved ? '#047857' : TIER_BODY_TEXT_COLOR,
+                          fontWeight: isAchieved ? 800 : 600,
                         }}>
                           {isAchieved ? (
                             <span className="font-bold italic text-[10px]">ĐẠT</span>
