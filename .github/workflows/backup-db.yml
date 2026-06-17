@@ -1,0 +1,115 @@
+name: Daily DB Backup
+
+# Run daily at 02:00 UTC+7 (Bangkok timezone) = 19:00 UTC previous day
+on:
+  schedule:
+    - cron: '0 19 * * *'  # 02:00 Asia/Bangkok
+  workflow_dispatch: {}  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pg client libs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          pip install --user pg8000 --break-system-packages
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date -u +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+
+      - name: Backup all tables to JSON
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, json, urllib.request, re
+          from datetime import datetime
+
+          db_url = os.environ['NEON_DB_URL']
+          m = re.match(r'postgresql://[^:]+:[^@]+@([^:/]+)', db_url)
+          host = m.group(1)
+
+          def run_sql(sql):
+              body = json.dumps({"query": sql}).encode()
+              req = urllib.request.Request(
+                  f"https://{host}/sql", data=body,
+                  headers={'Content-Type': 'application/json', 'Neon-Connection-String': db_url},
+                  method='POST',
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=120) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  return {"error": e.read().decode()[:500]}
+              except Exception as e:
+                  return {"error": str(e)[:500]}
+
+          backup_dir = f"backups/{os.environ['DATE']}"
+          os.makedirs(backup_dir, exist_ok=True)
+
+          # List tables
+          result = run_sql("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")
+          if 'error' in result:
+              print(f"FATAL: Cannot list tables: {result['error']}")
+              exit(1)
+
+          tables = [r['table_name'] for r in result.get('rows', [])]
+          print(f"Found {len(tables)} tables: {tables}")
+
+          total = 0
+          summary = {}
+          for table in tables:
+              row_result = run_sql(f'SELECT * FROM "{table}"')
+              if 'error' in row_result:
+                  print(f"  ✗ {table}: {row_result['error']}")
+                  summary[table] = f"ERROR: {row_result['error']}"
+                  continue
+              rows = row_result.get('rows', [])
+              with open(f"{backup_dir}/{table}.json", 'w', encoding='utf-8') as f:
+                  json.dump({
+                      'table': table,
+                      'count': len(rows),
+                      'exported_at': datetime.now().isoformat(),
+                      'records': rows,
+                  }, f, ensure_ascii=False, indent=2, default=str)
+              print(f"  ✓ {table}: {len(rows)} records")
+              summary[table] = len(rows)
+              total += len(rows)
+
+          with open(f"{backup_dir}/_summary.json", 'w', encoding='utf-8') as f:
+              json.dump({
+                  'exported_at': datetime.now().isoformat(),
+                  'source_host': host,
+                  'total_records': total,
+                  'tables': summary,
+              }, f, ensure_ascii=False, indent=2, default=str)
+
+          print(f"\nTotal: {total} records backed up to {backup_dir}")
+          PYEOF
+
+      - name: Commit backup
+        run: |
+          git config user.name "DB Backup Bot"
+          git config user.email "actions@github.com"
+          git checkout -b db-backups 2>/dev/null || git checkout db-backups
+          git add backups/
+          git commit -m "chore(backup): ${DATE} daily snapshot" || echo "Nothing to commit"
+          git push origin db-backups 2>&1 || git push --force origin db-backups
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
