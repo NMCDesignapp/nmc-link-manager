@@ -2258,7 +2258,7 @@ export default function QuanLyPage() {
     };
 
     return (
-      <div className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2)' }}>
+      <div className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(255,255,255,0.05)' }}>
         {pct !== undefined && (
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
             {pct.toFixed(0)}%
@@ -2305,72 +2305,8 @@ export default function QuanLyPage() {
     return 'Cả năm';
   };
 
-  // ── Overview Background: deep navy + diagonal grid + spotlight ──
-  // Theo mô tả: lưới chéo 45°, gradient navy đen → teal sáng ở bottom-center
-  // Đặt ngoài content flow, absolute fill container cha (main), pointer-events-none
-  const renderOverviewBackground = () => (
-    <div
-      className="absolute inset-0 pointer-events-none overflow-hidden"
-      aria-hidden
-      style={{ zIndex: 0 }}
-    >
-      <svg
-        width="100%"
-        height="100%"
-        preserveAspectRatio="xMidYMid slice"
-        viewBox="0 0 1440 900"
-        style={{ display: 'block' }}
-      >
-        <defs>
-          {/* Vertical gradient: deep navy top → ultramarine-black → vibrant teal bottom-center */}
-          <linearGradient id="bg-main" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#020617" />
-            <stop offset="35%" stopColor="#0a1838" />
-            <stop offset="65%" stopColor="#0e2a5a" />
-            <stop offset="85%" stopColor="#0d4a7a" />
-            <stop offset="100%" stopColor="#0a6e8c" />
-          </linearGradient>
-          {/* Radial spotlight at bottom-center */}
-          <radialGradient id="bg-spotlight" cx="0.5" cy="1.0" r="0.7">
-            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.45" />
-            <stop offset="30%" stopColor="#0891b2" stopOpacity="0.25" />
-            <stop offset="60%" stopColor="#0e7490" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="#020617" stopOpacity="0" />
-          </radialGradient>
-          {/* Grid pattern: diagonal lines 45°, offset brick pattern */}
-          <pattern id="diag-grid" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
-            {/* Diagonal lines at 45° forming diamond/brick pattern */}
-            <path d="M0,40 L80,0 M0,0 L80,40" stroke="#1e3a8a" strokeWidth="0.6" fill="none" opacity="0.55" />
-          </pattern>
-          {/* Soft vignette to fade grid in dark top region */}
-          <linearGradient id="vignette-top" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#020617" stopOpacity="0.85" />
-            <stop offset="40%" stopColor="#020617" stopOpacity="0.4" />
-            <stop offset="70%" stopColor="#020617" stopOpacity="0" />
-          </linearGradient>
-          {/* Subtle noise/texture */}
-          <filter id="ov-noise" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-            <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
-          </filter>
-        </defs>
-        {/* Base gradient */}
-        <rect width="1440" height="900" fill="url(#bg-main)" />
-        {/* Diagonal grid overlay */}
-        <rect width="1440" height="900" fill="url(#diag-grid)" opacity="0.6" />
-        {/* Spotlight at bottom-center */}
-        <rect width="1440" height="900" fill="url(#bg-spotlight)" />
-        {/* Vignette top — fade grid in dark area */}
-        <rect width="1440" height="900" fill="url(#vignette-top)" />
-        {/* Noise texture for subtle micro-texture */}
-        <rect width="1440" height="900" filter="url(#ov-noise)" opacity="0.5" />
-      </svg>
-    </div>
-  );
-
   const renderOverview = () => (
     <div className="space-y-3 relative min-h-full" style={{ zIndex: 1 }}>
-      {renderOverviewBackground()}
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
@@ -2561,7 +2497,7 @@ export default function QuanLyPage() {
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             const isInPeriod = periodMonths.includes(i + 1);
             return (
-              <div key={i} className={`rounded-none p-1.5 sm:p-2 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
+              <div key={i} className={`rounded-none p-1.5 sm:p-2 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4), 0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
                 {monthlyPlan > 0 && (
                   <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
                 )}
