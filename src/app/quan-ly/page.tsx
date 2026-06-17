@@ -129,18 +129,19 @@ type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | '
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
-// Gradient teal background (light → darker) for tier header cells and body cells
-const TIER_GRADIENT_BG = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
-// Strong red for the percentage NUMBER itself — high contrast on teal, draws the eye
+// Gradient yellow/cream background (light → warmer) for tier header cells and body cells
+// Per user spec: lightyellow, lemonchiffon, lightgoldenrodyellow, papayawhip, moccasin, + peachpuff
+const TIER_GRADIENT_BG = ['#FFFFE0', '#FFFACD', '#FAFAD2', '#FFEFD5', '#FFE4B5', '#FFDAB9'];
+// Strong red for the percentage NUMBER itself — high contrast on yellow, draws the eye
 const TIER_RATE_COLOR = '#B91C1C'; // red-700
-// Body tier cell text color (ĐẠT/deficit)
+// Body tier cell text color (ĐẠT/deficit) — dark red for unachieved
 const TIER_BODY_TEXT_COLOR = '#9F1239'; // rose-800
-// Border color for tier cells
-const TIER_BORDER = '#14B8A6';
-// Header tier label background (the "≥24, ≥60..." row) — solid teal
-const TIER_HEADER_BG = '#14B8A6';
-// Top "TỶ LỆ THƯỞNG" merged header background
-const TIER_GROUP_HEADER_BG = '#0F766E';
+// Border color for tier cells — soft warm beige
+const TIER_BORDER = '#FFE4B5'; // moccasin
+// Header tier label background (the "≥24, ≥60..." row) — solid warm brown for contrast
+const TIER_HEADER_BG = '#B45309'; // amber-700
+// Top "TỶ LỆ THƯỞNG" merged header background — darker brown
+const TIER_GROUP_HEADER_BG = '#92400E'; // amber-800
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
@@ -2936,6 +2937,9 @@ export default function QuanLyPage() {
   // Thưởng TVVm filters
   const [tvvmNhomFilter, setTvvmNhomFilter] = useState<string>('');
   const [tvvmNameFilter, setTvvmNameFilter] = useState<string>('');
+  // Thưởng NS tháng TVV filters
+  const [nsTvvNhomFilter, setNsTvvNhomFilter] = useState<string>('');
+  const [nsTvvNameFilter, setNsTvvNameFilter] = useState<string>('');
 
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
@@ -3520,7 +3524,7 @@ export default function QuanLyPage() {
               </tr>
               {/* Row 4: Full-width separator line — runs across all 14 columns */}
               <tr>
-                <th colSpan={14} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: '#0F766E', borderBottom: 'none' }}></th>
+                <th colSpan={14} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: TIER_GROUP_HEADER_BG, borderBottom: 'none' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -3590,9 +3594,254 @@ export default function QuanLyPage() {
     );
   };
 
+  // ========== THƯỞNG NĂNG SUẤT THÁNG TVV ==========
+  const renderThuongNSThangTVV = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+    // NS tier thresholds + rates (monthly, based on IP tháng hiện tại)
+    const NS_TIERS = [
+      { label: 'IP ≥ 12tr', rate: 5, minIP: 12_000_000 },
+      { label: 'IP ≥ 24tr', rate: 8, minIP: 24_000_000 },
+      { label: 'IP ≥ 50tr', rate: 10, minIP: 50_000_000 },
+      { label: 'IP ≥ 90tr', rate: 13, minIP: 90_000_000 },
+      { label: 'IP ≥ 150tr', rate: 15, minIP: 150_000_000 },
+      { label: 'IP ≥ 250tr', rate: 18, minIP: 250_000_000 },
+    ];
+
+    // Build TVV list — chỉ TVV có nhóm
+    const tvvList = tvvStructList.filter(tvv => {
+      if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
+      return true;
+    });
+
+    // Calculate IP per TVV for current month + previous month
+    const tvvRows = tvvList.map((tvv) => {
+      // Tổng IP tháng hiện tại
+      const currentMonthContracts = contracts.filter(c => {
+        if (c.agentCode !== tvv.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      });
+      const tongIPThangHienTai = currentMonthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // Tổng IP tháng liền trước
+      const prevMonthContracts = contracts.filter(c => {
+        if (c.agentCode !== tvv.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === prevMonthYear && (d.getMonth() + 1) === prevMonth;
+      });
+      const tongIPThangTruoc = prevMonthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // FYC = IP tháng hiện tại × 25% (giả định TLHH)
+      const fyc = tongIPThangHienTai * 0.25;
+
+      // Determine tier — find highest tier the TVV qualifies for (based on current month IP)
+      let achievedTier = -1;
+      for (let i = NS_TIERS.length - 1; i >= 0; i--) {
+        if (tongIPThangHienTai >= NS_TIERS[i].minIP) {
+          achievedTier = i;
+          break;
+        }
+      }
+
+      // TL THƯỞNG = rate của tier đạt được (or 0)
+      const tlThuong = achievedTier >= 0 ? NS_TIERS[achievedTier].rate : 0;
+
+      // TIỀN THƯỞNG = FYC × TL%
+      const tienThuong = achievedTier >= 0 ? fyc * (NS_TIERS[achievedTier].rate / 100) : 0;
+
+      const nhomName = banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '';
+
+      return {
+        stt: 0 as number,
+        nhom: nhomName,
+        maTVV: tvv.agentCode,
+        hoTen: tvv.agentName,
+        tongIPThangTruoc,
+        tongIPThangHienTai,
+        fyc,
+        achievedTier,
+        tlThuong,
+        tienThuong,
+      };
+    });
+
+    // Sort: theo TỔNG IP tháng hiện tại giảm dần
+    tvvRows.sort((a, b) => b.tongIPThangHienTai - a.tongIPThangHienTai);
+
+    // Unique NHÓM list for filter
+    const uniqueNhomList = Array.from(new Set(tvvRows.map(r => r.nhom).filter(Boolean))).sort();
+
+    // Apply filters
+    const filteredRows = tvvRows.filter(row => {
+      if (nsTvvNhomFilter && row.nhom !== nsTvvNhomFilter) return false;
+      if (nsTvvNameFilter && !row.hoTen.toLowerCase().includes(nsTvvNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(nsTvvNameFilter.toLowerCase())) return false;
+      return true;
+    });
+
+    // Assign STT after filter
+    filteredRows.forEach((row, idx) => { row.stt = idx + 1; });
+
+    // Totals
+    const totalIPThangTruoc = filteredRows.reduce((s, r) => s + r.tongIPThangTruoc, 0);
+    const totalIPThangHienTai = filteredRows.reduce((s, r) => s + r.tongIPThangHienTai, 0);
+    const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
+    const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
+    const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
+
+    // Style constants for cột TIỀN THƯỞNG (đồng nhất TVVm + Quý TVV)
+    const THUONG_BG = '#FEF3C7';      // amber-100
+    const THUONG_TEXT = '#047857';    // emerald-700
+    const THUONG_FONT = '12px';       // +1 so với body 11px
+    const HEADER_BG = '#065F46';      // emerald-800
+    const TOTAL_BG = '#065F46';       // same emerald-800
+
+    return (
+      <div className="space-y-3">
+        {/* Single summary card — đồng nhất TVVm + Quý TVV */}
+        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng NS Tháng TVV — Tháng {currentMonth}/{currentYear}</p>
+            </div>
+            <div className="flex items-center gap-5 flex-wrap">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TVV ĐẠT</p>
+                <p className="text-sm font-black text-emerald-700">{tvvDatThuong}<span className="text-[9px] font-normal text-gray-400"> / {filteredRows.length}</span></p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG FYC</p>
+                <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYC)}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">💰 TỔNG TIỀN THƯỞNG</p>
+                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTienThuong)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters — top right of table */}
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+            <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm tên / mã TVV..."
+              value={nsTvvNameFilter}
+              onChange={e => setNsTvvNameFilter(e.target.value)}
+              className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400"
+            />
+            {nsTvvNameFilter && (
+              <button onClick={() => setNsTvvNameFilter('')} className="text-gray-400 hover:text-red-500">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setNsTvvNhomFilter('')}
+              className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                !nsTvvNhomFilter
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+              }`}
+              style={{ borderRadius: 0 }}
+            >
+              Tất cả
+            </button>
+            {uniqueNhomList.map(nhom => (
+              <button
+                key={nhom}
+                onClick={() => setNsTvvNhomFilter(nsTvvNhomFilter === nhom ? '' : nhom)}
+                className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                  nsTvvNhomFilter === nhom
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                }`}
+                style={{ borderRadius: 0 }}
+              >
+                {nhom}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Result Table */}
+        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+            <thead className="sticky top-0 z-10">
+              <tr style={{ backgroundColor: HEADER_BG }}>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">Tháng {prevMonth}</span></th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
+                  FYC
+                  <br/>
+                  <span className="text-[9px] italic font-normal normal-case text-amber-200">(Giả định TLHH là 25%)</span>
+                </th>
+                <th className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
+                </tr>
+              ) : filteredRows.map((row) => (
+                <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                  <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                  <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                  <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
+                  <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongIPThangTruoc > 0 ? formatNumber(row.tongIPThangTruoc) : '—'}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongIPThangHienTai > 0 ? formatNumber(row.tongIPThangHienTai) : '—'}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
+                  {/* TL THƯỞNG — yellow gradient bg + bold red % number (đồng nhất Quý TVV tier rate) */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: row.achievedTier >= 0 ? TIER_GRADIENT_BG[row.achievedTier] : '#F9FAFB', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>
+                    {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  </td>
+                  {/* TIỀN THƯỞNG — xanh lá + icon + nền vàng nhạt + font +1 (đồng nhất TVVm + Quý TVV) */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
+                    {row.tienThuong > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  </td>
+                </tr>
+              ))}
+              {/* Total row — sticky bottom, dark green */}
+              {filteredRows.length > 0 && (
+                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangTruoc)}</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangHienTai)}</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
+                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
+                  {/* TIỀN THƯỞNG total — green text on yellow bg + icon, font +1 */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 900 }}>
+                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalTienThuong)}</span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderPolicyContent = (key: string) => {
     switch (key) {
       case 'tvvm': return renderTvvMTable();
+      case 'ns-tvv': return renderThuongNSThangTVV();
       case 'quy-tvv': return renderThuongQuyTVV();
       default: return (
         <div className="text-center py-12 text-gray-300 text-xs italic">
