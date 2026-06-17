@@ -3043,6 +3043,9 @@ export default function QuanLyPage() {
   // Thưởng Quý TN filters
   const [quyTnNhomFilter, setQuyTnNhomFilter] = useState<string>('');
   const [quyTnNameFilter, setQuyTnNameFilter] = useState<string>('');
+  // Thưởng PTKD TN filters
+  const [ptkdNhomFilter, setPtkdNhomFilter] = useState<string>('');
+  const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
 
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
@@ -4632,6 +4635,241 @@ export default function QuanLyPage() {
     );
   };
 
+  // ========== THƯỞNG PTKD (Phát triển kinh doanh) TN ==========
+  // TN (Trưởng Nhóm) được thưởng theo ma trận: Tổng FYP nhóm × Lượt HĐ nhóm tháng hiện tại
+  // Ma trận tỷ lệ:
+  //   FYP \ Lượt HĐ | ≥5    | 3-4   | 2     | <2
+  //   ≥ 400tr        | 30%   | 28%   | 26%   | 10%
+  //   ≥ 200tr        | 26%   | 22%   | 20%   | 10%
+  //   ≥ 100tr        | 22%   | 20%   | 18%   | 10%
+  //   ≥ 50tr         | 20%   | 18%   | 14%   | 10%
+  //   < 50tr         | 16%   | 14%   | 10%   | 10%
+  // FYC = FYP × 25% (giả định TLHH)
+  // TIỀN THƯỞNG = FYC × TL%
+  const renderThuongPTKD = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
+    // Ma trận tỷ lệ: [FYP_threshold_index][LuotHĐ_bucket_index]
+    // Bucket: 0=≥5, 1=3-4, 2=2, 3=<2
+    const PTKD_RATES: Record<string, number[]> = {
+      '400': [30, 28, 26, 10],
+      '200': [26, 22, 20, 10],
+      '100': [22, 20, 18, 10],
+      '50':  [20, 18, 14, 10],
+      '0':   [16, 14, 10, 10],
+    };
+    const FYP_THRESHOLDS = [400_000_000, 200_000_000, 100_000_000, 50_000_000, 0];
+
+    // Tìm tier FYP (chọn threshold đầu tiên mà FYP ≥ threshold, theo thứ tự giảm dần)
+    function getFypTierIndex(fyp: number): number {
+      for (let i = 0; i < FYP_THRESHOLDS.length; i++) {
+        if (fyp >= FYP_THRESHOLDS[i]) return i;
+      }
+      return FYP_THRESHOLDS.length - 1; // fallback < 50tr
+    }
+    // Tìm bucket lượt HĐ
+    function getLuotHDBucket(luotHD: number): number {
+      if (luotHD >= 5) return 0;       // ≥5
+      if (luotHD >= 3) return 1;       // 3-4
+      if (luotHD >= 2) return 2;       // 2
+      return 3;                        // <2
+    }
+    function getRate(fyp: number, luotHD: number): number {
+      const fypIdx = getFypTierIndex(fyp);
+      const bucket = getLuotHDBucket(luotHD);
+      const key = FYP_THRESHOLDS[fypIdx] === 400_000_000 ? '400'
+        : FYP_THRESHOLDS[fypIdx] === 200_000_000 ? '200'
+        : FYP_THRESHOLDS[fypIdx] === 100_000_000 ? '100'
+        : FYP_THRESHOLDS[fypIdx] === 50_000_000 ? '50'
+        : '0';
+      return PTKD_RATES[key][bucket];
+    }
+
+    // Đối tượng TN: dùng DS TB/TN (LeaderInfo)
+    // NGUYÊN TẮC: đối tượng từ DS, không từ file doanh số
+    // Bỏ TN thuộc phòng Banca
+    const tnList = leaders
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
+      .map(l => ({
+        agentCode: l.agentCode,
+        agentName: l.agentName,
+        maBanNhom: l.maNhom || '',
+        nhomName: l.nhom || '',
+      }));
+
+    const tnRows = tnList.map((tn) => {
+      // Tìm tất cả TVV trong cùng nhóm
+      const tvvInNhom = tvvStructList.filter(tvv => tvv.maBanNhom === tn.maBanNhom);
+
+      // Tổng FYP nhóm tháng hiện tại = tổng pdt10DT của contracts trong tháng
+      const monthContracts = contracts.filter(c => {
+        if (!tvvInNhom.some(t => t.agentCode === c.agentCode)) return false;
+        const d = getDoanhSoMonth(c);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      });
+      const tongFYPNhom = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // Lượt HĐ nhóm tháng hiện tại = số contracts (mỗi contract = 1 lượt HĐ)
+      const luotHDNhom = monthContracts.length;
+
+      // FYC = FYP × 25%
+      const fyc = tongFYPNhom * 0.25;
+
+      // TL THƯỞNG = lookup từ ma trận
+      const tlThuong = getRate(tongFYPNhom, luotHDNhom);
+
+      // TIỀN THƯỞNG = FYC × TL%
+      const tienThuong = fyc * (tlThuong / 100);
+
+      return {
+        stt: 0 as number,
+        nhom: tn.nhomName,
+        maTN: tn.agentCode,
+        hoTen: tn.agentName,
+        tongFYPNhom,
+        luotHDNhom,
+        fyc,
+        tlThuong,
+        tienThuong,
+      };
+    });
+
+    // Sort: TỔNG FYP nhóm desc, then LƯỢT HĐ desc
+    tnRows.sort((a, b) => {
+      if (b.tongFYPNhom !== a.tongFYPNhom) return b.tongFYPNhom - a.tongFYPNhom;
+      return b.luotHDNhom - a.luotHDNhom;
+    });
+
+    const filteredRows = tnRows.filter(row => {
+      // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TN từ DS TB/TN
+      if (ptkdNhomFilter && row.nhom !== ptkdNhomFilter) return false;
+      if (ptkdNameFilter && !row.hoTen.toLowerCase().includes(ptkdNameFilter.toLowerCase()) && !row.maTN.toLowerCase().includes(ptkdNameFilter.toLowerCase())) return false;
+      return true;
+    });
+    filteredRows.forEach((row, idx) => { row.stt = idx + 1; });
+
+    const totalFYP = filteredRows.reduce((s, r) => s + r.tongFYPNhom, 0);
+    const totalLuotHD = filteredRows.reduce((s, r) => s + r.luotHDNhom, 0);
+    const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
+    const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
+
+    const THUONG_BG = '#FEF3C7';
+    const THUONG_TEXT = '#047857';
+    const THUONG_FONT = '12px';
+    const HEADER_BG = '#065F46';
+    const TOTAL_BG = '#065F46';
+
+    return (
+      <div className="space-y-3">
+        {/* Summary card */}
+        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng PTKD TN — Tháng {currentMonth}/{currentYear}</p>
+            </div>
+            <div className="flex items-center gap-5 flex-wrap">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TN</p>
+                <p className="text-sm font-black text-emerald-700">{filteredRows.length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG FYP NHÓM</p>
+                <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalFYP)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG LƯỢT HĐ</p>
+                <p className="text-sm font-black text-emerald-700">{totalLuotHD}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">💰 TỔNG TIỀN THƯỞNG</p>
+                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTienThuong)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tier matrix hint */}
+        <div className="text-[10px] text-gray-500 italic">
+          Ma trận TL: FYP ≥ 400tr (30/28/26/10%) • ≥ 200tr (26/22/20/10%) • ≥ 100tr (22/20/18/10%) • ≥ 50tr (20/18/14/10%) • &lt; 50tr (16/14/10/10%) — theo lượt HĐ: ≥5, 3-4, 2, &lt;2
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+            <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <input type="text" placeholder="Tìm tên / mã TN..." value={ptkdNameFilter} onChange={e => setPtkdNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
+            {ptkdNameFilter && <button onClick={() => setPtkdNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <button onClick={() => setPtkdNhomFilter('')} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${!ptkdNhomFilter ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
+            {Array.from(new Set(tnRows.map(r => r.nhom).filter(Boolean))).sort().map(nhom => (
+              <button key={nhom} onClick={() => setPtkdNhomFilter(ptkdNhomFilter === nhom ? '' : nhom)} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${ptkdNhomFilter === nhom ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+            <thead className="sticky top-0 z-10">
+              <tr style={{ backgroundColor: HEADER_BG }}>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
+                <th className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐ<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
+                  FYC
+                  <br/>
+                  <span className="text-[10px] italic font-normal normal-case text-amber-200">(TLHH 25%)</span>
+                </th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length === 0 ? (
+                <tr><td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TN nào.</td></tr>
+              ) : filteredRows.map((row) => (
+                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                  <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                  <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                  <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
+                  <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPNhom > 0 ? formatNumber(row.tongFYPNhom) : '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(Math.floor(row.luotHDNhom / 2), 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.luotHDNhom}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[0], color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>
+                    {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  </td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
+                    {row.tienThuong > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  </td>
+                </tr>
+              ))}
+              {filteredRows.length > 0 && (
+                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYP)}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalLuotHD}</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
+                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
+                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalTienThuong)}</span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderPolicyContent = (key: string) => {
     switch (key) {
       case 'tvvm': return renderTvvMTable();
@@ -4639,6 +4877,7 @@ export default function QuanLyPage() {
       case 'quy-tvv': return renderThuongQuyTVV();
       case 'tuyen-luyen': return renderThuongTuyenLuyen();
       case 'dong-hanh': return renderThuongDongHanh();
+      case 'ptkd-tn': return renderThuongPTKD();
       case 'quy-tn': return renderThuongQuyTN();
       default: return (
         <div className="text-center py-12 text-gray-300 text-xs italic">
