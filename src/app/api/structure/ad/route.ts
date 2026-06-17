@@ -17,21 +17,33 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Helper to extract field from multiple possible column names
+    // (supports both English camelCase and Vietnamese headers from Excel)
+    const getVal = (r: any, ...keys: string[]) => {
+      for (const k of keys) { if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; }
+      return '';
+    };
+
     // Batch mode (array)
     if (Array.isArray(body)) {
-      const records = body.filter((r: any) => r.maAD && r.tenAD).map((r: any) => ({
-        maAD: r.maAD,
-        tenAD: r.tenAD,
-        maPhong: r.maPhong || '',
-        note: r.note || '',
-      }));
+      const records = body
+        .filter((r: any) => getVal(r, 'maAD', 'Mã AD') && getVal(r, 'tenAD', 'Tên AD'))
+        .map((r: any) => ({
+          maAD: getVal(r, 'maAD', 'Mã AD'),
+          tenAD: getVal(r, 'tenAD', 'Tên AD'),
+          maPhong: getVal(r, 'maPhong', 'Mã Phòng') || '',
+          note: getVal(r, 'note', 'Ghi chú') || '',
+        }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       const result = await db.aD.createMany({ data: records });
       return NextResponse.json({ message: `Đã nhập ${result.count} AD`, count: result.count });
     }
 
     // Single create
-    const { maAD, tenAD, maPhong, note } = body;
+    const maAD = getVal(body, 'maAD', 'Mã AD');
+    const tenAD = getVal(body, 'tenAD', 'Tên AD');
+    const maPhong = getVal(body, 'maPhong', 'Mã Phòng');
+    const note = getVal(body, 'note', 'Ghi chú');
     if (!maAD || !tenAD) return NextResponse.json({ error: 'Vui lòng nhập mã AD và tên AD' }, { status: 400 });
 
     const item = await db.aD.upsert({

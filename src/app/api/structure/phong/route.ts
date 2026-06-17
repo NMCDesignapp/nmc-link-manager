@@ -17,20 +17,31 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Helper to extract field from multiple possible column names
+    // (supports both English camelCase and Vietnamese headers from Excel)
+    const getVal = (r: any, ...keys: string[]) => {
+      for (const k of keys) { if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; }
+      return '';
+    };
+
     // Batch mode (array)
     if (Array.isArray(body)) {
-      const records = body.filter((r: any) => r.maPhong && r.tenPhong).map((r: any) => ({
-        maPhong: r.maPhong,
-        tenPhong: r.tenPhong,
-        note: r.note || '',
-      }));
+      const records = body
+        .filter((r: any) => getVal(r, 'maPhong', 'Mã Phòng') && getVal(r, 'tenPhong', 'Tên Phòng'))
+        .map((r: any) => ({
+          maPhong: getVal(r, 'maPhong', 'Mã Phòng'),
+          tenPhong: getVal(r, 'tenPhong', 'Tên Phòng'),
+          note: getVal(r, 'note', 'Ghi chú') || '',
+        }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       const result = await db.phong.createMany({ data: records });
       return NextResponse.json({ message: `Đã nhập ${result.count} phòng`, count: result.count });
     }
 
     // Single create
-    const { maPhong, tenPhong, note } = body;
+    const maPhong = getVal(body, 'maPhong', 'Mã Phòng');
+    const tenPhong = getVal(body, 'tenPhong', 'Tên Phòng');
+    const note = getVal(body, 'note', 'Ghi chú');
     if (!maPhong || !tenPhong) return NextResponse.json({ error: 'Vui lòng nhập mã phòng và tên phòng' }, { status: 400 });
 
     const item = await db.phong.upsert({

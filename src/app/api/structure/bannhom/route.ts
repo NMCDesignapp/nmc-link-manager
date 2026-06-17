@@ -17,21 +17,33 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Helper to extract field from multiple possible column names
+    // (supports both English camelCase and Vietnamese headers from Excel)
+    const getVal = (r: any, ...keys: string[]) => {
+      for (const k of keys) { if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; }
+      return '';
+    };
+
     // Batch mode (array)
     if (Array.isArray(body)) {
-      const records = body.filter((r: any) => r.maBanNhom && r.tenBanNhom).map((r: any) => ({
-        maBanNhom: r.maBanNhom,
-        tenBanNhom: r.tenBanNhom,
-        maAD: r.maAD || '',
-        note: r.note || '',
-      }));
+      const records = body
+        .filter((r: any) => getVal(r, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã Ban Nhóm', 'Mã Ban-Nhóm') && getVal(r, 'tenBanNhom', 'Tên Ban/Nhóm', 'Tên Ban Nhóm', 'Tên Ban-Nhóm'))
+        .map((r: any) => ({
+          maBanNhom: getVal(r, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã Ban Nhóm', 'Mã Ban-Nhóm'),
+          tenBanNhom: getVal(r, 'tenBanNhom', 'Tên Ban/Nhóm', 'Tên Ban Nhóm', 'Tên Ban-Nhóm'),
+          maAD: getVal(r, 'maAD', 'Mã AD') || '',
+          note: getVal(r, 'note', 'Ghi chú') || '',
+        }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
       const result = await db.banNhom.createMany({ data: records });
       return NextResponse.json({ message: `Đã nhập ${result.count} Ban/Nhóm`, count: result.count });
     }
 
     // Single create
-    const { maBanNhom, tenBanNhom, maAD, note } = body;
+    const maBanNhom = getVal(body, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã Ban Nhóm', 'Mã Ban-Nhóm');
+    const tenBanNhom = getVal(body, 'tenBanNhom', 'Tên Ban/Nhóm', 'Tên Ban Nhóm', 'Tên Ban-Nhóm');
+    const maAD = getVal(body, 'maAD', 'Mã AD');
+    const note = getVal(body, 'note', 'Ghi chú');
     if (!maBanNhom || !tenBanNhom) return NextResponse.json({ error: 'Vui lòng nhập mã và tên Ban/Nhóm' }, { status: 400 });
 
     const item = await db.banNhom.upsert({
