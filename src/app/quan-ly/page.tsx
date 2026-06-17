@@ -2919,6 +2919,9 @@ export default function QuanLyPage() {
   // Thưởng Quý TVV filters
   const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string>('');
   const [quyTvvNameFilter, setQuyTvvNameFilter] = useState<string>('');
+  // Thưởng TVVm filters
+  const [tvvmNhomFilter, setTvvmNhomFilter] = useState<string>('');
+  const [tvvmNameFilter, setTvvmNameFilter] = useState<string>('');
 
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
@@ -3085,6 +3088,24 @@ export default function QuanLyPage() {
       ipChang: tvvmRows.filter(r => r.chang === c).reduce((s, r) => s + r.tongIPChang, 0),
     }));
 
+    // Apply filters (TVVm)
+    const filteredTvvmRows = tvvmRows.filter(row => {
+      if (tvvmNhomFilter && row.nhom !== tvvmNhomFilter) return false;
+      if (tvvmNameFilter && !row.hoTen.toLowerCase().includes(tvvmNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(tvvmNameFilter.toLowerCase())) return false;
+      return true;
+    });
+    // Re-assign STT after filter
+    filteredTvvmRows.forEach((row, idx) => { row.stt = idx + 1; });
+
+    // Compute summary stats from filtered rows
+    const tvvmDatThuongCount = filteredTvvmRows.filter(r => r.thuongThang > 0 || r.thuongChang > 0).length;
+    const totalThuongThang = filteredTvvmRows.reduce((s, r) => s + r.thuongThang, 0);
+    const totalThuongChang = filteredTvvmRows.reduce((s, r) => s + r.thuongChang, 0);
+    const totalTienThuongAll = totalThuongThang + totalThuongChang;
+
+    // Unique NHÓM list for filter
+    const uniqueTvvmNhomList = Array.from(new Set(tvvmRows.map(r => r.nhom).filter(Boolean))).sort();
+
     // Chặng color cho separator
     const changBgColors: Record<number, string> = {
       1: '#DBEAFE', 2: '#FEF3C7', 3: '#D1FAE5', 4: '#E0E7FF',
@@ -3096,45 +3117,116 @@ export default function QuanLyPage() {
       1: 'CHẠNG 1 (Tháng 1-3)', 2: 'CHẠNG 2 (Tháng 4-6)', 3: 'CHẠNG 3 (Tháng 7-9)', 4: 'CHẠNG 4 (Tháng 10-12)',
     };
 
+    // Common style constants — reused across all policy tables
+    const HEADER_BG = '#065F46';  // emerald-800 (đậm)
+    const HEADER_TEXT = '#FFFFFF';
+    const TOTAL_BG = '#065F46';   // same emerald-800 for total row
+    const THUONG_BG = '#FEF3C7';  // amber-100 (vàng nhạt)
+    const THUONG_TEXT = '#047857'; // emerald-700 (xanh lá đậm)
+    const THUONG_FONT = '12px';   // +1 so với body font (11px)
+
     return (
       <div className="space-y-3">
-        {/* Summary stats theo chặng — white cards */}
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map(c => (
-            <div key={c} className="bg-white border px-3 py-2 text-center" style={{ borderColor: '#93C5FD', borderRadius: 0 }}>
-              <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: changTextColors[c] }}>Chặng {c}</p>
-              <p className="text-lg font-black" style={{ color: changTextColors[c] }}>{changStats.find(cs => cs.chang === c)?.count || 0}</p>
-              <p className="text-[8px] text-gray-400">IP: {formatSmartCurrency(changStats.find(cs => cs.chang === c)?.ipChang || 0)}</p>
+        {/* Single summary card — gộp 4 ô thành 1 */}
+        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng TVVm — Tháng {currentMonth}/{currentYear}</p>
             </div>
-          ))}
+            <div className="flex items-center gap-5 flex-wrap">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TVV ĐẠT</p>
+                <p className="text-sm font-black text-emerald-700">{tvvmDatThuongCount}<span className="text-[9px] font-normal text-gray-400"> / {filteredTvvmRows.length}</span></p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">THƯỞNG THÁNG</p>
+                <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalThuongThang)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">THƯỞNG CHẶNG</p>
+                <p className="text-sm font-black text-emerald-700">{formatSmartCurrency(totalThuongChang)}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">💰 TỔNG TIỀN THƯỞNG</p>
+                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTienThuongAll)}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Result Table — White bg, dark blue header, thin blue border, square corners, sticky header */}
-        <div className="bg-white border" style={{ borderColor: '#93C5FD', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        {/* Filters — top right of table */}
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+            <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm tên / mã TVV..."
+              value={tvvmNameFilter}
+              onChange={e => setTvvmNameFilter(e.target.value)}
+              className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400"
+            />
+            {tvvmNameFilter && (
+              <button onClick={() => setTvvmNameFilter('')} className="text-gray-400 hover:text-red-500">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setTvvmNhomFilter('')}
+              className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                !tvvmNhomFilter
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+              }`}
+              style={{ borderRadius: 0 }}
+            >
+              Tất cả
+            </button>
+            {uniqueTvvmNhomList.map(nhom => (
+              <button
+                key={nhom}
+                onClick={() => setTvvmNhomFilter(tvvmNhomFilter === nhom ? '' : nhom)}
+                className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
+                  tvvmNhomFilter === nhom
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                }`}
+                style={{ borderRadius: 0 }}
+              >
+                {nhom}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Result Table — green dark header + green dark total (consistent with Quý TVV) */}
+        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
-              <tr className="hover:bg-[#1E3A5F]" style={{ backgroundColor: '#1E3A5F' }}>
-                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap" style={{ borderRadius: 0, borderColor: '#2A5080' }}>STT</th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>NHÓM</th>
-                <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>MÃ TVV</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>HỌ TÊN TVV</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>NGÀY BĐ LV</th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>CHẶNG XÉT THƯỞNG</th>
-                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">(tháng {currentMonth})</span></th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG THÁNG</th>
-                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>TỔNG IP CHẶNG</th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>THƯỞNG CHẶNG</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-left align-middle whitespace-nowrap text-center" style={{ borderColor: '#2A5080' }}>NGƯỜI TUYỂN DỤNG</th>
+              <tr style={{ backgroundColor: HEADER_BG }}>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY BĐ LV</th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHẶNG XÉT THƯỞNG</th>
+                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">(tháng {currentMonth})</span></th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
+                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP CHẶNG</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG CHẶNG</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGƯỜI TUYỂN DỤNG</th>
               </tr>
             </thead>
             <tbody>
-              {tvvmRows.length === 0 ? (
+              {filteredTvvmRows.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle whitespace-nowrap">Chưa có TVVm (TVV mới ≤ 12 tháng). Vui lòng nhập cấu trúc TVV trước.</td>
                 </tr>
-              ) : tvvmRows.map((row, idx) => {
+              ) : filteredTvvmRows.map((row, idx) => {
                 // Chặng separator row
-                const prevRow = idx > 0 ? tvvmRows[idx - 1] : null;
+                const prevRow = idx > 0 ? filteredTvvmRows[idx - 1] : null;
                 const showChangHeader = !prevRow || prevRow.chang !== row.chang;
                 return (
                   <React.Fragment key={row.maTVV}>
@@ -3146,34 +3238,46 @@ export default function QuanLyPage() {
                         </td>
                       </tr>
                     )}
-                    <tr className="bg-white hover:bg-blue-50 transition-colors" style={{ borderRadius: 0 }}>
-                      <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D0E4F5' }}>{row.stt}</td>
-                      <td className="text-[11px] text-gray-600 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.nhom || '—'}</td>
-                      <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.maTVV}</td>
-                      <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.hoTen}</td>
-                      <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</td>
-                      <td className="text-[11px] text-center whitespace-nowrap p-2 align-middle" style={{ backgroundColor: changBgColors[row.chang] + '80', borderColor: '#D0E4F5' }}>
+                    <tr className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                      <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                      <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                      <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
+                      <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                      <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.ngayBatDau ? safeFormatDate(row.ngayBatDau) : '—'}</td>
+                      <td className="text-[11px] text-center whitespace-nowrap p-2 align-middle" style={{ backgroundColor: changBgColors[row.chang] + '80', borderColor: '#D1FAE5' }}>
                         <span className="font-bold" style={{ color: changTextColors[row.chang] }}>{row.changXetThuong}</span>
                         <span className="text-gray-400 ml-1 text-[9px]">T{row.relativeMonth}</span>
                       </td>
-                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</td>
-                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#FFE0B2', color: row.thuongThang > 0 ? '#B45309' : '#9CA3AF' }}>{row.thuongThang > 0 ? <><Gift className="w-3.5 h-3.5 inline-block mr-0.5 -mt-0.5 text-red-500" />{formatCurrency(row.thuongThang)}</> : '—'}</td>
-                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</td>
-                      <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5', backgroundColor: '#C8E6C9', color: row.thuongChang > 0 ? '#2E7D32' : '#9CA3AF' }}>{row.thuongChang > 0 ? <><Gift className="w-3.5 h-3.5 inline-block mr-0.5 -mt-0.5 text-amber-600" />{formatCurrency(row.thuongChang)}</> : '—'}</td>
-                      <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D0E4F5' }}>{row.tenNguoiTD || '—'}</td>
+                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</td>
+                      {/* THƯỜNG THÁNG — xanh lá + icon + nền vàng nhạt + font +1 */}
+                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
+                        {row.thuongThang > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.thuongThang)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                      </td>
+                      <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</td>
+                      {/* THƯỞNG CHẶNG — xanh lá + icon + nền vàng nhạt + font +1 */}
+                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
+                        {row.thuongChang > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.thuongChang)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                      </td>
+                      <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.tenNguoiTD || '—'}</td>
                     </tr>
                   </React.Fragment>
                 );
               })}
-              {/* Total row — sticky bottom so always visible */}
-              {tvvmRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#1E3A5F' }}>
-                  <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#2A5080' }}>TỔNG CỘNG ({tvvmRows.length} TVVm)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
-                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#FBBF24' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongThang, 0))}</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}>{formatNumber(tvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</td>
-                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F', color: '#86EFAC' }}>{formatCurrency(tvvmRows.reduce((s, r) => s + r.thuongChang, 0))}</td>
-                  <td className="p-2 align-middle" style={{ borderColor: '#2A5080', backgroundColor: '#1A4A6F' }}></td>
+              {/* Total row — sticky bottom, dark green */}
+              {filteredTvvmRows.length > 0 && (
+                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                  <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredTvvmRows.length} TVVm)</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
+                  {/* THƯỜNG THÁNG total — green text on yellow bg */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 900 }}>
+                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalThuongThang)}</span>
+                  </td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</td>
+                  {/* THƯỞNG CHẶNG total — green text on yellow bg */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 900 }}>
+                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalThuongChang)}</span>
+                  </td>
+                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
                 </tr>
               )}
             </tbody>
@@ -3302,20 +3406,28 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-3">
-        {/* Quarter summary — compact: chỉ số TVV đạt + tổng tiền thưởng */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="bg-white border px-2.5 py-1.5 text-center" style={{ borderColor: '#059669', borderRadius: 0 }}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-600">{quarterLabel}</p>
-            <p className="text-sm font-black text-emerald-700">{tvvDatThuong} <span className="text-[8px] font-normal text-gray-400">/ {filteredRows.length} TVV đạt</span></p>
-          </div>
-          <div className="bg-amber-600 border px-2.5 py-1.5 text-center" style={{ borderColor: '#B45309', borderRadius: 0 }}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-amber-100">TỔNG TIỀN THƯỞNG</p>
-            <p className="text-sm font-black text-white">{formatSmartCurrency(totalTienThuong)}</p>
+        {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
+        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng Quý TVV — {quarterLabel}</p>
+            </div>
+            <div className="flex items-center gap-5 flex-wrap">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TVV ĐẠT</p>
+                <p className="text-sm font-black text-emerald-700">{tvvDatThuong}<span className="text-[9px] font-normal text-gray-400"> / {filteredRows.length}</span></p>
+              </div>
+              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">💰 TỔNG TIỀN THƯỞNG</p>
+                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTienThuong)}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Filters — top right of table */}
+        <div className="flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
@@ -3435,12 +3547,15 @@ export default function QuanLyPage() {
                         </td>
                       );
                     })}
-                    <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#92400E' }}>{row.tienThuong > 0 ? <span className="flex items-center justify-center gap-1"><span className="text-[10px]">💰</span>{formatCurrency(row.tienThuong)}</span> : '—'}</td>
+                    {/* TIỀN THƯỞNG — xanh lá + icon + nền vàng nhạt + font +1 (đồng nhất TVVm) */}
+                    <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FEF3C7', color: '#047857', fontSize: '12px', fontWeight: 800 }}>
+                      {row.tienThuong > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                    </td>
                     <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
                   </tr>
                 );
               })}
-              {/* Total row — sticky bottom */}
+              {/* Total row — sticky bottom, dark green (đồng nhất TVVm) */}
               {filteredRows.length > 0 && (
                 <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
@@ -3450,7 +3565,10 @@ export default function QuanLyPage() {
                   {[0,1,2,3,4,5].map(i => (
                     <td key={i} className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
                   ))}
-                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A' }}>{totalTienThuong > 0 ? formatCurrency(totalTienThuong) : '—'}</td>
+                  {/* TIỀN THƯỞNG total — green text on yellow bg + icon, font +1 */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#FEF3C7', color: '#047857', fontSize: '12px', fontWeight: 900 }}>
+                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalTienThuong)}</span>
+                  </td>
                   <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#86EFAC' }}>{totalSoLanDatTQ > 0 ? totalSoLanDatTQ : '—'}</td>
                 </tr>
               )}
