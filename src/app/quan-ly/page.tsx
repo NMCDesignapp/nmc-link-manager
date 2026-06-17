@@ -3606,20 +3606,20 @@ export default function QuanLyPage() {
                     {TIERS.map((tier, tIdx) => {
                       const isAchieved = tIdx <= row.achievedTier && row.achievedTier >= 0;
                       const deficit = row.tongFYPQuy < tier.minFYP ? tier.minFYP - row.tongFYPQuy : 0;
-                      // Body gradient — same teal gradient as header (visual consistency)
-                      // Achieved → soft green (signal success), Unachieved → teal gradient (matches header)
+                      // Body gradient — same yellow gradient as header
+                      // Achieved → soft green (signal success)
                       const achievedGreen = ['#F0FDF4', '#DCFCE7', '#BBF7D0', '#A7F3D0', '#86EFAC', '#6EE7B7'];
                       return (
                         <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
                           borderColor: isAchieved ? '#A7F3D0' : TIER_BORDER,
                           backgroundColor: isAchieved ? achievedGreen[tIdx] : TIER_GRADIENT_BG[tIdx],
                           color: isAchieved ? '#047857' : TIER_BODY_TEXT_COLOR,
-                          fontWeight: isAchieved ? 800 : 600,
+                          fontWeight: isAchieved ? 800 : 700,
                         }}>
                           {isAchieved ? (
                             <span className="font-bold italic text-[10px]">ĐẠT</span>
                           ) : (
-                            <span className="text-[10px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}</span>
+                            <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')}` : '—'}</span>
                           )}
                         </td>
                       );
@@ -4481,12 +4481,12 @@ export default function QuanLyPage() {
                         borderColor: isCascadeAchieved ? '#A7F3D0' : TIER_BORDER,
                         backgroundColor: isCascadeAchieved ? achievedGreen[tIdx] : TIER_GRADIENT_BG[tIdx],
                         color: isCascadeAchieved ? '#047857' : TIER_BODY_TEXT_COLOR,
-                        fontWeight: isCascadeAchieved ? 800 : 600,
+                        fontWeight: isCascadeAchieved ? 800 : 700,
                       }}>
                         {isCascadeAchieved ? (
                           <span className="font-bold italic text-[10px]">ĐẠT</span>
                         ) : (
-                          <span className="text-[10px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(0)}tr` : (tier.needsTVVm && row.tvvmHDC < 1 ? 'thiếu TVVm' : '—')}</span>
+                          <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(0)}` : (tier.needsTVVm && row.tvvmHDC < 1 ? 'thiếu TVVm' : '—')}</span>
                         )}
                       </td>
                     );
