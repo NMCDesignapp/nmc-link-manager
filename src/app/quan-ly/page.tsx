@@ -143,6 +143,41 @@ const TIER_HEADER_BG = '#B45309'; // amber-700
 // Top "TỶ LỆ THƯỞNG" merged header background — darker brown
 const TIER_GROUP_HEADER_BG = '#92400E'; // amber-800
 
+// ── Special Phòng config ──
+// PA và Banca là 2 phòng đặc biệt:
+// - Không có AD (phòng xuống trực tiếp TVV)
+// - TVV trong phòng Banca KHÔNG được tính trong các chương trình thi đua / chính sách thưởng
+// - Khi tính doanh số, gom PA + Banca thành 1 mục "Banca - PA" (chỉ hiển thị, không kế hoạch)
+const SPECIAL_PHONG_NO_AD = new Set(['PA', 'Banca']);       // phòng không có AD layer
+const PHONG_EXCLUDED_FROM_REWARDS = new Set(['Banca']);      // TVV trong các phòng này không được tính thưởng
+// Sort order: các phòng đặc biệt luôn xuống cuối
+const PHONG_SORT_PRIORITY = (maPhong: string): number => SPECIAL_PHONG_NO_AD.has(maPhong) ? 1 : 0;
+
+// Helper: kiểm tra TVV có thuộc phòng bị loại trừ khỏi thưởng (Banca) không
+// Cần truyền: agentCode của TVV + toàn bộ danh sách BanNhom, AD, Phong
+// Logic: TVV → maBanNhom → BanNhom.maAD → AD.maPhong → Phong.maPhong
+// Với PA/Banca (không có AD): TVV có thể thuộc BanNhom có maBanNhom hoặc maAD = 'PA'/'Banca'
+function isTVVExcludedFromRewards(
+  agentCode: string,
+  maBanNhom: string,
+  banNhomList: Array<{ maBanNhom: string; maAD: string }>,
+  adList: Array<{ maAD: string; maPhong: string }>,
+): boolean {
+  if (!agentCode && !maBanNhom) return false;
+  // Trường hợp PA/Banca không có AD — TVV thuộc BanNhom có maBanNhom hoặc maAD = 'Banca'/'PA'
+  if (PHONG_EXCLUDED_FROM_REWARDS.has(maBanNhom)) return true;
+  // Tìm BanNhom record
+  const bn = banNhomList.find(b => b.maBanNhom === maBanNhom);
+  if (bn) {
+    // Nếu maAD trực tiếp là mã phòng bị loại (Banca)
+    if (PHONG_EXCLUDED_FROM_REWARDS.has(bn.maAD)) return true;
+    // Nếu có AD thật → tìm AD.maPhong
+    const ad = adList.find(a => a.maAD === bn.maAD);
+    if (ad && PHONG_EXCLUDED_FROM_REWARDS.has(ad.maPhong)) return true;
+  }
+  return false;
+}
+
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
@@ -3089,6 +3124,8 @@ export default function QuanLyPage() {
       if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false; // bỏ nhóm trống
       const nhomName = (banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '').toLowerCase();
       if (nhomName.includes('ban ca') || nhomName.includes('banca')) return false; // bỏ Ban Ca
+      // Bỏ TVV thuộc phòng Banca (không tính thưởng)
+      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
       return true;
     });
 
@@ -3390,9 +3427,10 @@ export default function QuanLyPage() {
       { label: 'FYP ≥ 350tr', rate: 20, minFYP: 350_000_000 },
     ];
 
-    // Build TVV list — chỉ TVV có nhóm
+    // Build TVV list — chỉ TVV có nhóm, bỏ TVV thuộc phòng Banca
     const tvvList = tvvStructList.filter(tvv => {
       if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
+      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
       return true;
     });
 
@@ -3675,9 +3713,10 @@ export default function QuanLyPage() {
     // Điều kiện cần: IP tháng liền trước phải >= 3.000.000đ
     const NS_DIEU_KIEN_THANG_TRUOC = 3_000_000;
 
-    // Build TVV list — chỉ TVV có nhóm
+    // Build TVV list — chỉ TVV có nhóm, bỏ TVV thuộc phòng Banca
     const tvvList = tvvStructList.filter(tvv => {
       if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
+      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
       return true;
     });
 
@@ -3924,9 +3963,12 @@ export default function QuanLyPage() {
 
     // Build NTD rows: chỉ tính TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
     // Lấy từ tvvStructList (có chucVu) thay vì recruiters (không có chucVu đáng tin)
+    // Bỏ TVV thuộc phòng Banca (không tính thưởng)
     const ntdCandidates = tvvStructList.filter(tvv => {
       const pos = (tvv.chucVu || '').toLowerCase();
-      return pos.includes('trưởng ban') || pos.includes('trưởng nhóm');
+      if (!pos.includes('trưởng ban') && !pos.includes('trưởng nhóm')) return false;
+      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
+      return true;
     });
 
     // Build NTD rows: for each candidate, count TVVs they recruited that have HĐC in current month
@@ -4097,10 +4139,12 @@ export default function QuanLyPage() {
     const VT_FYP_THRESHOLD = 100_000_000;
     const VT_BONUS = 2_000_000;
 
-    // Identify TTNs — chỉ TVV có chức vụ chứa "trưởng nhóm"
+    // Identify TTNs — chỉ TVV có chức vụ chứa "trưởng nhóm", bỏ TVV thuộc phòng Banca
     const ttnList = tvvStructList.filter(tvv => {
       const pos = (tvv.chucVu || '').toLowerCase();
-      return pos.includes('trưởng nhóm');
+      if (!pos.includes('trưởng nhóm')) return false;
+      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
+      return true;
     });
 
     const ttnRows = ttnList.map((ttn) => {
@@ -4302,13 +4346,16 @@ export default function QuanLyPage() {
     // Vì đây là DS chính thức được user nhập cho Trưởng Ban / Trưởng Nhóm
     // Tất cả records trong LeaderInfo đều là đối tượng TN (đã được phân loại khi nhập)
     // LeaderInfo có sẵn field 'nhom' (tên nhóm) và 'maNhom' → dùng luôn, không cần lookup
-    const tnList = leaders.map(l => ({
-      agentCode: l.agentCode,
-      agentName: l.agentName,
-      position: l.position || '',
-      maBanNhom: l.maNhom || '',  // DS TB/TN dùng field maNhom → map sang maBanNhom
-      nhomName: l.nhom || '',      // DS TB/TN đã có sẵn tên nhóm
-    }));
+    // Bỏ TN thuộc phòng Banca (không tính thưởng)
+    const tnList = leaders
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
+      .map(l => ({
+        agentCode: l.agentCode,
+        agentName: l.agentName,
+        position: l.position || '',
+        maBanNhom: l.maNhom || '',  // DS TB/TN dùng field maNhom → map sang maBanNhom
+        nhomName: l.nhom || '',      // DS TB/TN đã có sẵn tên nhóm
+      }));
 
     const tnRows = tnList.map((tn) => {
       // Find all TVVs in TN's nhóm (for FYP sum)
@@ -4949,8 +4996,23 @@ export default function QuanLyPage() {
               <p className="text-white/30 text-xs italic">Chưa có cấu trúc. Thêm Phòng hoặc Import để bắt đầu.</p>
               <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="text-emerald-400 hover:text-emerald-300 mt-2 text-[10px] h-6"><Plus className="w-3 h-3 mr-1" /> Thêm Phòng</Button>
             </div>
-          ) : phongList.map(p => {
+          ) : [...phongList].sort((a, b) => {
+              // Special phong (PA, Banca) xuống cuối, các phòng khác theo thứ tự tạo
+              const pa = PHONG_SORT_PRIORITY(a.maPhong);
+              const pb = PHONG_SORT_PRIORITY(b.maPhong);
+              if (pa !== pb) return pa - pb;
+              return 0;
+            }).map(p => {
+            const isSpecial = SPECIAL_PHONG_NO_AD.has(p.maPhong);
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
+            // Đếm TVV trực tiếp thuộc phòng (qua BanNhom có maAD → thuộc phòng)
+            // Với phòng đặc biệt (PA/Banca): TVV thuộc các BanNhom mà maAD thuộc phòng này
+            // Vì PA/Banca không có AD → ta coi cả phòng là 1 "AD ảo", TVV thuộc BanNhom có maPhong = p.maPhong
+            // Cách đơn giản: đếm TVV mà maBanNhom có chứa mã phòng (PA/Banca) trong danh sách BanNhom
+            const pBanNhoms = banNhomList.filter(b => isSpecial
+              ? b.maBanNhom === p.maPhong || b.maAD === p.maPhong
+              : pADs.some(a => a.maAD === b.maAD));
+            const pTVVs = tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
             return (
               <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
                 {/* PHÒNG header — dark strip like Kế hoạch */}
@@ -4958,16 +5020,43 @@ export default function QuanLyPage() {
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
                     <span className="text-xs sm:text-sm font-bold text-emerald-300">{p.tenPhong}</span>
+                    {isSpecial && (
+                      <span className="text-[8px] uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded">No AD</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {pADs.length} AD</span>
-                    <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>
+                    <span className="text-[9px] text-gray-500 mr-2">{p.maPhong} • {isSpecial ? `${pTVVs.length} TVV` : `${pADs.length} AD`}</span>
+                    {!isSpecial && <Button variant="ghost" size="sm" onClick={() => { setNewAD(prev => ({ ...prev, maPhong: p.maPhong })); setAddADOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm AD"><Plus className="w-2.5 h-2.5" /></Button>}
+                    {isSpecial && <Button variant="ghost" size="sm" onClick={() => { setNewBanNhom(prev => ({ ...prev, maAD: p.maPhong })); setAddBanNhomOpen(true); }} className="h-5 w-5 p-0 text-white/70 hover:text-white" title="Thêm Nhóm"><Plus className="w-2.5 h-2.5" /></Button>}
                     <Button variant="ghost" size="sm" onClick={() => setEditingPhong(p)} className="h-5 w-5 p-0 text-white/30 hover:text-emerald-400"><Edit2 className="w-2.5 h-2.5" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeletePhong(p.id)} className="h-5 w-5 p-0 text-white/30 hover:text-red-400"><Trash2 className="w-2.5 h-2.5" /></Button>
                   </div>
                 </div>
 
-                {/* AD list — silver/gray background */}
+                {/* For special phong (PA/Banca): render TVV list directly (no AD layer) */}
+                {isSpecial ? (
+                  <div className="px-3 py-2" style={{ backgroundColor: '#e5e7eb' }}>
+                    {pBanNhoms.length === 0 && pTVVs.length === 0 ? (
+                      <p className="text-gray-500 text-[9px] italic px-2 py-1.5">Chưa có TVV</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {pTVVs.map((t, idx) => (
+                          <div key={t.id} className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm bg-white border border-gray-200">
+                            <span className="text-[9px] text-gray-400 w-4">{idx + 1}</span>
+                            <UserCog className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-gray-800 text-[11px] font-bold truncate">{t.agentName}</p>
+                              <p className="text-gray-400 text-[9px]">{t.agentCode} • {t.chucVu || 'TVV'}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                /* AD list — silver/gray background (for normal phong) */
                 <div className="px-3 py-2 space-y-1.5" style={{ backgroundColor: '#e5e7eb' }}>
                   {pADs.length === 0 && (
                     <div className="px-2 py-1.5">
@@ -5079,6 +5168,7 @@ export default function QuanLyPage() {
                     );
                   })}
                 </div>
+                )}
               </div>
             );
           })}
