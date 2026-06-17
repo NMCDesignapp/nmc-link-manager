@@ -3922,8 +3922,15 @@ export default function QuanLyPage() {
     const currentMonth = new Date().getMonth() + 1;
     const TL_BASE = 3_000_000; // base thưởng TVVm
 
-    // Build NTD rows: for each Recruiter, count TVVs they recruited that have HĐC in current month
-    const ntdRows = recruiters.map((ntd) => {
+    // Build NTD rows: chỉ tính TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
+    // Lấy từ tvvStructList (có chucVu) thay vì recruiters (không có chucVu đáng tin)
+    const ntdCandidates = tvvStructList.filter(tvv => {
+      const pos = (tvv.chucVu || '').toLowerCase();
+      return pos.includes('trưởng ban') || pos.includes('trưởng nhóm');
+    });
+
+    // Build NTD rows: for each candidate, count TVVs they recruited that have HĐC in current month
+    const ntdRows = ntdCandidates.map((ntd) => {
       // Find all TVVStruct records where maTVVTuyendung === ntd.agentCode
       // (or fallback via contracts where maDaiLyTD === ntd.agentCode)
       const recruitedTVVs = tvvStructList.filter(tvv => {
@@ -3950,8 +3957,8 @@ export default function QuanLyPage() {
 
       const tienThuong = tvvHDCCount * TL_BASE * multiplier;
 
-      // Resolve NHÓM from recruiter's nhom field, fallback to contracts
-      const nhomName = ntd.nhom || resolveNhomName(ntd.agentCode, '', banNhomList, contracts, leaders);
+      // Resolve NHÓM từ BanNhom/contracts/leaders (TVVStruct không có nhom field trực tiếp)
+      const nhomName = resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders);
 
       return {
         stt: 0 as number,
@@ -4292,10 +4299,10 @@ export default function QuanLyPage() {
       { label: 'FYP ≥ 600tr + TVVm', rate: 22, minFYP: 600_000_000, needsTVVm: true },
     ];
 
-    // Identify TNs (Trưởng Nhóm — TVVs with "Trưởng" in position)
+    // Identify TNs — chỉ TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
     const tnList = tvvStructList.filter(tvv => {
       const pos = (tvv.chucVu || '').toLowerCase();
-      return pos.includes('trưởng') || pos.includes('tn');
+      return pos.includes('trưởng ban') || pos.includes('trưởng nhóm');
     });
 
     const tnRows = tnList.map((tn) => {
