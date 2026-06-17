@@ -3367,44 +3367,50 @@ export default function QuanLyPage() {
               {/* Row 1: Main headers — PHÂN TẦNG merged label */}
               <tr style={{ backgroundColor: '#065F46' }}>
                 <th rowSpan={3} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th rowSpan={3} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
-                <th colSpan={6} className="text-white font-bold uppercase text-[11px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E', height: '22px', lineHeight: '1', borderBottom: '2px solid #92400E' }}>TỶ LỆ THƯỞNG</th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
-              {/* Row 2: FYP thresholds — compact */}
-              <tr style={{ backgroundColor: '#D97706' }}>
+              {/* Row 2: FYP thresholds — teal, larger font */}
+              <tr style={{ backgroundColor: '#14B8A6' }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[9px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '14px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white font-bold text-[11px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', height: '18px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates — light gradient, larger font */}
+              {/* Row 3: Percentage rates — light teal gradient, larger bold font */}
               <tr>
                 {TIERS.map((tier, idx) => {
-                  // Lighter gradient — easy to read on white table
-                  const gradientColors = ['#FFFBEB', '#FEF9C3', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24'];
+                  // Teal gradient — strong contrast, easy to read
+                  const gradientColors = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
                   return (
-                    <th key={idx} className="font-black text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '14px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F', borderBottom: '2px solid #92400E' }}>
+                    <th key={idx} className="font-black text-[12px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#14B8A6', height: '18px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#134E4A' }}>
                       {tier.rate}%
                     </th>
                   );
                 })}
               </tr>
+              {/* Row 4: Full-width separator line — runs across all 14 columns */}
+              <tr>
+                <th colSpan={14} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: '#0F766E', borderBottom: 'none' }}></th>
+              </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
+                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
               ) : filteredRows.map((row, idx) => {
                 return (
                   <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
                     <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                    <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                     <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
                     <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
                     <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
@@ -3412,20 +3418,19 @@ export default function QuanLyPage() {
                     {TIERS.map((tier, tIdx) => {
                       const isAchieved = tIdx <= row.achievedTier && row.achievedTier >= 0;
                       const deficit = row.tongFYPQuy < tier.minFYP ? tier.minFYP - row.tongFYPQuy : 0;
-                      // Lighter body gradient — soft pastels, not too saturated
-                      const gradientBg = ['#FFFEFB', '#FFFBEB', '#FEF9C3', '#FEF3C7', '#FDE68A', '#FCD34D'];
-                      // Lighter achieved green — soft pastel greens
+                      // Body gradient — light pastel teal for unachieved, soft green for achieved
+                      const gradientBg = ['#F0FDFA', '#CCFBF1', '#99F6E4', '#5EEAD4', '#2DD4BF', '#14B8A6'];
                       const achievedGreen = ['#F0FDF4', '#DCFCE7', '#BBF7D0', '#A7F3D0', '#86EFAC', '#6EE7B7'];
                       return (
                         <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
-                          borderColor: isAchieved ? '#A7F3D0' : '#FEF3C7',
+                          borderColor: isAchieved ? '#A7F3D0' : '#CCFBF1',
                           backgroundColor: isAchieved ? achievedGreen[tIdx] : gradientBg[tIdx],
-                          color: isAchieved ? '#047857' : '#92400E',
+                          color: isAchieved ? '#047857' : '#134E4A',
                         }}>
                           {isAchieved ? (
-                            <span className="font-bold italic text-[9px]">ĐẠT</span>
+                            <span className="font-bold italic text-[10px]">ĐẠT</span>
                           ) : (
-                            <span className="text-[9px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}</span>
+                            <span className="text-[10px] italic">{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} trđ` : '—'}</span>
                           )}
                         </td>
                       );
@@ -3438,7 +3443,7 @@ export default function QuanLyPage() {
               {/* Total row — sticky bottom */}
               {filteredRows.length > 0 && (
                 <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
-                  <td colSpan={3} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
+                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
                   {/* 6 tier columns — empty in total */}
