@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/structure/phong
 export async function GET() {
   try {
-    const list = await db.phong.findMany({ orderBy: { tenPhong: 'asc' } });
+    const list = await db.phong.findMany({ orderBy: { createdAt: 'asc' } });
     return NextResponse.json(list);
   } catch (error) {
     console.error('Error fetching phong:', error);

@@ -4995,13 +4995,16 @@ export default function QuanLyPage() {
               <p className="text-white/30 text-xs italic">Chưa có cấu trúc. Thêm Phòng hoặc Import để bắt đầu.</p>
               <Button variant="ghost" size="sm" onClick={() => setAddPhongOpen(true)} className="text-emerald-400 hover:text-emerald-300 mt-2 text-[10px] h-6"><Plus className="w-3 h-3 mr-1" /> Thêm Phòng</Button>
             </div>
-          ) : [...phongList].sort((a, b) => {
+          ) : [...phongList].map((p, idx) => ({ ...p, _origIdx: idx }))
+            .sort((a, b) => {
               // Special phong (PA, Banca) xuống cuối, các phòng khác theo thứ tự tạo
               const pa = PHONG_SORT_PRIORITY(a.maPhong);
               const pb = PHONG_SORT_PRIORITY(b.maPhong);
               if (pa !== pb) return pa - pb;
-              return 0;
-            }).map(p => {
+              // Cùng priority → giữ thứ tự gốc (stable sort)
+              return (a._origIdx ?? 0) - (b._origIdx ?? 0);
+            })
+            .map(p => {
             const isSpecial = SPECIAL_PHONG_NO_AD.has(p.maPhong);
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
             // Đếm TVV trực tiếp thuộc phòng (qua BanNhom có maAD → thuộc phòng)
