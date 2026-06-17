@@ -3152,10 +3152,12 @@ export default function QuanLyPage() {
       };
     });
 
-    // Sắp xếp: theo TỔNG IP CHẶNG desc, rồi TỔNG IP THÁNG desc (theo yêu cầu sort rule)
+    // Sắp xếp: theo chặng 1→4 asc, rồi theo ngày bắt đầu LV asc (ai làm trước đứng trước)
     tvvmRows.sort((a, b) => {
-      if (b.tongIPChang !== a.tongIPChang) return b.tongIPChang - a.tongIPChang;
-      return b.tongIPThang - a.tongIPThang;
+      if (a.chang !== b.chang) return a.chang - b.chang;
+      const aDate = a.ngayBatDau ? new Date(a.ngayBatDau).getTime() : Number.MAX_SAFE_INTEGER;
+      const bDate = b.ngayBatDau ? new Date(b.ngayBatDau).getTime() : Number.MAX_SAFE_INTEGER;
+      return aDate - bDate;
     });
 
     // Gán STT sau khi sort
