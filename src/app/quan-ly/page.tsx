@@ -4097,11 +4097,10 @@ export default function QuanLyPage() {
     const VT_FYP_THRESHOLD = 100_000_000;
     const VT_BONUS = 2_000_000;
 
-    // Identify TTNs: TVVs with position containing "Trưởng" (Trưởng Nhóm / Trưởng Tổ Nhóm)
-    // Or leaders in LeaderInfo with position "Trưởng nhóm"
+    // Identify TTNs — chỉ TVV có chức vụ chứa "trưởng nhóm"
     const ttnList = tvvStructList.filter(tvv => {
       const pos = (tvv.chucVu || '').toLowerCase();
-      return pos.includes('trưởng') || pos.includes('ttn') || pos.includes('tn');
+      return pos.includes('trưởng nhóm');
     });
 
     const ttnRows = ttnList.map((ttn) => {
