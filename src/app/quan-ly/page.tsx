@@ -489,7 +489,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
           {hasLink && <Link2 className="w-3 h-3 ml-1 text-emerald-400" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-80 p-3" align="end" sideOffset={4}>
+      <PopoverContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 w-80 p-3" align="end" sideOffset={4}>
         <div className="space-y-3">
           <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
             <Settings className="w-3.5 h-3.5" /> Cài đặt: {sectionLabel}
@@ -667,7 +667,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
             <span className="ml-1">KPI</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
+        <PopoverContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5" /> KPI: {sectionLabel}
@@ -1092,7 +1092,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
       )}
 
       {/* Spreadsheet grid */}
-      <div className="flex-1 overflow-auto border border-gray-600 bg-[#0e0e18]/80">
+      <div className="flex-1 overflow-auto border border-gray-600 bg-[#1a2332]/80">
         <table className="border-collapse w-max">
           <thead className="sticky top-0 z-10">
             <tr>
@@ -1126,7 +1126,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
                         key={cellId}
                         rowSpan={span.rowSpan}
                         colSpan={span.colSpan}
-                        className={`border border-gray-600 px-1 py-0 text-[11px] cursor-cell min-w-[80px] bg-[#0e0e18]/40 ${
+                        className={`border border-gray-600 px-1 py-0 text-[11px] cursor-cell min-w-[80px] bg-[#1a2332]/40 ${
                           isActive ? 'outline outline-2 outline-emerald-500 bg-emerald-500/10' : ''
                         } ${isSelected && !isActive ? 'bg-violet-500/10 outline outline-1 outline-violet-400' : ''
                         } ${!isActive && !isSelected ? 'hover:bg-emerald-500/5' : ''
@@ -1151,7 +1151,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
                             onChange={(e) => setEditVal(e.target.value)}
                             onBlur={handleCellSave}
                             onKeyDown={handleKeyDown}
-                            className="w-full h-full px-0 py-0 text-[11px] bg-[#0e0e18] text-white border-none outline-none"
+                            className="w-full h-full px-0 py-0 text-[11px] bg-[#1a2332] text-white border-none outline-none"
                           />
                         ) : (
                           <span className="block truncate">{display}</span>
@@ -2265,7 +2265,7 @@ export default function QuanLyPage() {
           </div>
         )}
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
             <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
           </div>
           <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{label}</p>
@@ -2384,7 +2384,7 @@ export default function QuanLyPage() {
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="bg-[#0e0e18]/98 backdrop-blur-xl border-amber-500/30 w-72 p-3" align="end" sideOffset={4}>
+            <PopoverContent className="bg-[#1a2332]/98 backdrop-blur-xl border-amber-500/30 w-72 p-3" align="end" sideOffset={4}>
               <div className="space-y-3">
                 {/* Tháng group */}
                 <div>
@@ -2515,9 +2515,9 @@ export default function QuanLyPage() {
       </div>
 
       {/* Monthly Plan from KẾ HOẠCH (read-only summary) */}
-      <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+      <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+          <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
             <Calendar className="w-4 h-4 text-emerald-400" />
           </div>
           <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
@@ -2596,10 +2596,10 @@ export default function QuanLyPage() {
         const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
         const currentMonth = new Date().getMonth() + 1;
         return (
-          <div className="rounded-none p-3 sm:p-5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+          <div className="rounded-none p-3 sm:p-5" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
                   <BarChart3 className="w-4 h-4 text-emerald-400" />
                 </div>
                 <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Tiến độ AFYP hàng tháng</h3>
@@ -2726,7 +2726,7 @@ export default function QuanLyPage() {
                 <Settings className="w-3.5 h-3.5 mr-1" /> Cài đặt KH
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="bg-[#0e0e18]/98 backdrop-blur-xl border-amber-500/30 w-[95vw] max-w-[800px] p-4 max-h-[85vh] overflow-y-auto" align="end" sideOffset={4}>
+            <PopoverContent className="bg-[#1a2332]/98 backdrop-blur-xl border-amber-500/30 w-[95vw] max-w-[800px] p-4 max-h-[85vh] overflow-y-auto" align="end" sideOffset={4}>
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
                   <Target className="w-4 h-4" /> Cài đặt Kế hoạch AFYP
@@ -2843,9 +2843,9 @@ export default function QuanLyPage() {
         </div>
 
         {/* Minimap: Công ty — KH năm tổng */}
-        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
               <Building2 className="w-4 h-4 text-amber-400" />
             </div>
             <div className="flex-1">
@@ -2859,9 +2859,9 @@ export default function QuanLyPage() {
         </div>
 
         {/* Minimap: 12 tháng — chỉ KH tháng */}
-        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A' }}>
+            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
               <Calendar className="w-4 h-4 text-amber-400" />
             </div>
             <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">KH AFYP từng tháng</h3>
@@ -2889,9 +2889,9 @@ export default function QuanLyPage() {
           const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
           const phongPlan = phongPlans.get(p.maPhong) || 0;
           return (
-            <div key={p.maPhong} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+            <div key={p.maPhong} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
               {/* Phòng header */}
-              <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
+              <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-amber-400" />
                   <span className="text-xs sm:text-sm font-bold text-amber-300">{p.tenPhong}</span>
@@ -3309,7 +3309,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-3">
         {/* Single summary card — gộp 4 ô thành 1 */}
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3338,7 +3338,7 @@ export default function QuanLyPage() {
 
         {/* Filters — top right of table */}
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
               type="text"
@@ -3383,7 +3383,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Result Table — green dark header + green dark total (consistent with Quý TVV) */}
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -3589,7 +3589,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-3">
         {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3610,7 +3610,7 @@ export default function QuanLyPage() {
 
         {/* Filters — top right of table */}
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
               type="text"
@@ -3655,7 +3655,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers — PHÂN TẦNG merged label */}
@@ -3877,7 +3877,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-3">
         {/* Single summary card — đồng nhất TVVm + Quý TVV */}
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3902,7 +3902,7 @@ export default function QuanLyPage() {
 
         {/* Filters — top right of table */}
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
               type="text"
@@ -3947,7 +3947,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Result Table */}
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -4107,7 +4107,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-3">
         {/* Summary card */}
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4137,7 +4137,7 @@ export default function QuanLyPage() {
 
         {/* Filters */}
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã NTD..." value={tuyenLuyenNameFilter} onChange={e => setTuyenLuyenNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
             {tuyenLuyenNameFilter && <button onClick={() => setTuyenLuyenNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
@@ -4151,7 +4151,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -4304,7 +4304,7 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-3">
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4332,7 +4332,7 @@ export default function QuanLyPage() {
         </div>
 
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TTN..." value={dongHanhNameFilter} onChange={e => setDongHanhNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
             {dongHanhNameFilter && <button onClick={() => setDongHanhNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
@@ -4345,7 +4345,7 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -4561,7 +4561,7 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-3">
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4585,7 +4585,7 @@ export default function QuanLyPage() {
         </div>
 
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TN..." value={quyTnNameFilter} onChange={e => setQuyTnNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
             {quyTnNameFilter && <button onClick={() => setQuyTnNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
@@ -4598,7 +4598,7 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers */}
@@ -4828,7 +4828,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-3">
         {/* Summary card */}
-        <div className="bg-white border px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4862,7 +4862,7 @@ export default function QuanLyPage() {
 
         {/* Filters */}
         <div className="flex items-center justify-end gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white border px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TN..." value={ptkdNameFilter} onChange={e => setPtkdNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
             {ptkdNameFilter && <button onClick={() => setPtkdNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
@@ -4876,7 +4876,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
           <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -5121,7 +5121,7 @@ export default function QuanLyPage() {
             <div className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu hợp đồng tháng này</div>
           )}
           {sortedContracts.slice(0, 200).map((c, idx) => (
-            <div key={c.id} className="bg-[#0e0e18]/80 border border-emerald-500/20 rounded-lg p-2.5 space-y-1.5">
+            <div key={c.id} className="bg-[#1a2332]/80 border border-emerald-500/20 rounded-lg p-2.5 space-y-1.5">
               {/* Header row: name + position */}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -5262,7 +5262,7 @@ export default function QuanLyPage() {
           <div className="flex items-center gap-1">
             <div className="relative group">
               <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300"><Upload className="w-3 h-3 mr-1" /> Import</Button>
-              <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+              <div className="absolute right-0 top-full mt-1 bg-[#1a2332]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                 {[
                   { tier: 'phong', label: 'Import Phòng' },
                   { tier: 'ad', label: 'Import AD' },
@@ -5275,7 +5275,7 @@ export default function QuanLyPage() {
             </div>
             <div className="relative group">
               <Button variant="ghost" size="sm" className="h-7 text-[10px] text-emerald-300 hover:text-emerald-200"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
-              <div className="absolute right-0 top-full mt-1 bg-[#0e0e18]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+              <div className="absolute right-0 top-full mt-1 bg-[#1a2332]/95 border border-emerald-500/30 rounded-md p-1.5 space-y-0.5 min-w-[160px] z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                 {[
                   { key: 'structure-phong', label: 'Mẫu Phòng' },
                   { key: 'structure-ad', label: 'Mẫu AD' },
@@ -5343,9 +5343,9 @@ export default function QuanLyPage() {
               ? tvvStructList.filter(t => t.maBanNhom === p.maPhong)
               : tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
             return (
-              <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+              <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
                 {/* PHÒNG header — dark strip like Kế hoạch */}
-                <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
+                <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
                     <span className="text-xs sm:text-sm font-bold text-emerald-300">{p.tenPhong}</span>
@@ -5518,7 +5518,7 @@ export default function QuanLyPage() {
 
       {/* Add Phong Dialog */}
       <Dialog open={addPhongOpen} onOpenChange={setAddPhongOpen}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Thêm Phòng</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div><Label className="text-xs text-emerald-200/70">Mã Phòng</Label><Input value={newPhong.maPhong} onChange={e => setNewPhong(p => ({ ...p, maPhong: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
@@ -5531,7 +5531,7 @@ export default function QuanLyPage() {
 
       {/* Add AD Dialog */}
       <Dialog open={addADOpen} onOpenChange={setAddADOpen}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Thêm AD</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div><Label className="text-xs text-emerald-200/70">Mã AD</Label><Input value={newAD.maAD} onChange={e => setNewAD(p => ({ ...p, maAD: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
@@ -5545,7 +5545,7 @@ export default function QuanLyPage() {
 
       {/* Add BanNhom Dialog */}
       <Dialog open={addBanNhomOpen} onOpenChange={setAddBanNhomOpen}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-sky-400">Thêm Ban/Nhóm</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div><Label className="text-xs text-emerald-200/70">Mã Ban/Nhóm</Label><Input value={newBanNhom.maBanNhom} onChange={e => setNewBanNhom(p => ({ ...p, maBanNhom: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
@@ -5560,7 +5560,7 @@ export default function QuanLyPage() {
 
       {/* Add TVV Dialog */}
       <Dialog open={addTvvOpen} onOpenChange={setAddTvvOpen}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-violet-400">Thêm TVV</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div><Label className="text-xs text-emerald-200/70">Mã TVV</Label><Input value={newTvv.agentCode} onChange={e => setNewTvv(p => ({ ...p, agentCode: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
@@ -5577,7 +5577,7 @@ export default function QuanLyPage() {
 
       {/* Edit Phong Dialog */}
       <Dialog open={!!editingPhong} onOpenChange={(open) => { if (!open) setEditingPhong(null); }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-emerald-400">Sửa Phòng</DialogTitle></DialogHeader>
           {editingPhong && (
             <div className="space-y-2">
@@ -5592,7 +5592,7 @@ export default function QuanLyPage() {
 
       {/* Edit AD Dialog */}
       <Dialog open={!!editingAD} onOpenChange={(open) => { if (!open) setEditingAD(null); }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-amber-400">Sửa AD</DialogTitle></DialogHeader>
           {editingAD && (
             <div className="space-y-2">
@@ -5608,7 +5608,7 @@ export default function QuanLyPage() {
 
       {/* Edit BanNhom Dialog */}
       <Dialog open={!!editingBanNhom} onOpenChange={(open) => { if (!open) setEditingBanNhom(null); }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-sky-400">Sửa Ban/Nhóm</DialogTitle></DialogHeader>
           {editingBanNhom && (
             <div className="space-y-2">
@@ -5625,7 +5625,7 @@ export default function QuanLyPage() {
 
       {/* Edit TVV Dialog */}
       <Dialog open={!!editingTvv} onOpenChange={(open) => { if (!open) setEditingTvv(null); }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-violet-400">Sửa TVV</DialogTitle></DialogHeader>
           {editingTvv && (
             <div className="space-y-2">
@@ -5644,7 +5644,7 @@ export default function QuanLyPage() {
 
       {/* Import Dialog */}
       <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); } }}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 max-w-lg">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 max-w-lg">
           <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {/* File upload zone */}
@@ -5740,7 +5740,7 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col fixed inset-0 z-50 bg-[#0e0e18]/80">
+    <div className="h-screen flex flex-col fixed inset-0 z-50 bg-[#1a2332]/80">
       {/* Sync success indicator - top right corner */}
       {syncSuccessVisible && (
         <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
@@ -5749,7 +5749,7 @@ export default function QuanLyPage() {
         </div>
       )}
       {/* Header */}
-      <header className="border-b border-emerald-700 bg-[#0e0e18]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
+      <header className="border-b border-emerald-700 bg-[#1a2332]/80 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {/* Mobile hamburger */}
         <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
@@ -5774,7 +5774,7 @@ export default function QuanLyPage() {
         {/* Mobile overlay */}
         {sidebarOpen && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
         {/* Sidebar */}
-        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] bg-[#0e0e18]/95 md:bg-[#0e0e18]/90 backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] bg-[#1a2332]/95 md:bg-[#1a2332]/90 backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
           {/* Mobile close button */}
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20 md:hidden">
             <span className="text-xs font-bold text-emerald-300">Menu</span>
@@ -5862,7 +5862,7 @@ export default function QuanLyPage() {
 
       {/* ========== Settings Dialog ========== */}
       <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-        <DialogContent className="bg-[#0e0e18]/95 backdrop-blur-xl border-emerald-500/30 max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-emerald-400 flex items-center gap-2">
               <Settings className="w-5 h-5" /> Cài đặt hệ thống
@@ -6043,7 +6043,7 @@ export default function QuanLyPage() {
                   const sync = onlineSettings[`nmc-sync-${section.key}`];
                   const syncOn = sync === undefined || sync === '' || sync === 'true';
                   return (
-                    <div key={section.key} className="bg-emerald-800/60 rounded-md p-2.5 border border-emerald-600/50">
+                    <div key={section.key} className="bg-emerald-800/60 rounded-md p-2.5 border border-emerald-600/50 shadow-md">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-white text-xs font-bold">{section.label}</span>
                         <div className="flex items-center gap-2">

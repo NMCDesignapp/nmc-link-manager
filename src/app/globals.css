@@ -32,7 +32,7 @@
 }
 
 .dark {
-  --background: #0e0e18;
+  --background: #1a2332;
   --foreground: #ffffff;
   --card: #141420;
   --card-foreground: #ffffff;
@@ -123,7 +123,7 @@
 
 /* Honeycomb background - subtle space-like effect */
 .honeycomb-bg {
-  background-color: #0e0e18;
+  background-color: #1a2332;
 }
 
 /* Honeycomb flowing line animations */
