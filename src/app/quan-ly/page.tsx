@@ -272,15 +272,15 @@ function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | 
 }
 
 // Helper: resolve NHÓM name for a TVV.
-// Priority 1: banNhomList lookup by maBanNhom (most reliable when present)
-// Priority 2: contracts.nhom field where agentCode matches (fallback when BanNhom missing)
-// Priority 3: leadersInfo.nhom where agentCode matches (TVV is also a leader)
-// Priority 4: empty string
+// NGUYÊN TẮC: thông tin lấy từ Danh sách / Cấu trúc, KHÔNG lấy từ file doanh số.
+// Priority 1: BanNhom lookup by maBanNhom (DS Nhóm — nguồn chính thức)
+// Priority 2: LeaderInfo.nhom where agentCode matches (DS TB/TN — nếu TVV là leader)
+// Priority 3: empty string (không fallback vào contracts.nhom nữa)
 function resolveNhomName(
   agentCode: string,
   maBanNhom: string,
   banNhomList: Array<{ maBanNhom: string; tenBanNhom: string }>,
-  contracts: Array<{ agentCode: string; nhom: string }>,
+  _contracts: Array<{ agentCode: string; nhom: string }>,
   leaders: Array<{ agentCode: string; nhom: string }>,
 ): string {
   // Priority 1: BanNhom lookup
@@ -288,12 +288,7 @@ function resolveNhomName(
     const bn = banNhomList.find(b => b.maBanNhom === maBanNhom);
     if (bn?.tenBanNhom) return bn.tenBanNhom;
   }
-  // Priority 2: contracts.nhom (most recent contract wins)
-  if (agentCode) {
-    const contractWithNhom = contracts.find(c => c.agentCode === agentCode && c.nhom && c.nhom.trim());
-    if (contractWithNhom?.nhom) return contractWithNhom.nhom;
-  }
-  // Priority 3: leaderInfo.nhom (TVV is also a leader)
+  // Priority 2: leaderInfo.nhom (TVV is also a leader)
   if (agentCode) {
     const leader = leaders.find(l => l.agentCode === agentCode && l.nhom && l.nhom.trim());
     if (leader?.nhom) return leader.nhom;
@@ -4019,9 +4014,10 @@ export default function QuanLyPage() {
       return b.tienThuong - a.tienThuong;
     });
 
-    // Filter (skip rows with 0 HĐC to keep table compact)
+    // Filter — chỉ filter theo NHÓM và search, KHÔNG filter theo slTVVHDC
+    // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng NTD từ cấu trúc
+    // File doanh số chỉ để tính toán, không filter đối tượng
     const filteredRows = ntdRows.filter(row => {
-      if (row.slTVVHDC === 0) return false; // chỉ hiển thị NTD có HĐC
       if (tuyenLuyenNhomFilter && row.nhom !== tuyenLuyenNhomFilter) return false;
       if (tuyenLuyenNameFilter && !row.hoTen.toLowerCase().includes(tuyenLuyenNameFilter.toLowerCase()) && !row.maNTD.toLowerCase().includes(tuyenLuyenNameFilter.toLowerCase())) return false;
       return true;
@@ -4195,7 +4191,8 @@ export default function QuanLyPage() {
     });
 
     const filteredRows = ttnRows.filter(row => {
-      if (row.fypTVVm === 0 && row.slTVVmHDC === 0) return false;
+      // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TTN (trưởng nhóm từ cấu trúc)
+      // File doanh số chỉ để tính toán, không filter đối tượng
       if (dongHanhNhomFilter && row.nhom !== dongHanhNhomFilter) return false;
       if (dongHanhNameFilter && !row.hoTen.toLowerCase().includes(dongHanhNameFilter.toLowerCase()) && !row.maTTN.toLowerCase().includes(dongHanhNameFilter.toLowerCase())) return false;
       return true;
@@ -4451,7 +4448,9 @@ export default function QuanLyPage() {
     });
 
     const filteredRows = tnRows.filter(row => {
-      if (row.tongFYPQuy === 0) return false;
+      // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TN từ DS TB/TN
+      // File doanh số chỉ để tính toán (FYP, tiền thưởng), KHÔNG dùng để filter đối tượng
+      // Chỉ filter theo NHÓM và search — không filter theo FYP/IP/SLTVVm
       if (quyTnNhomFilter && row.nhom !== quyTnNhomFilter) return false;
       if (quyTnNameFilter && !row.hoTen.toLowerCase().includes(quyTnNameFilter.toLowerCase()) && !row.maTN.toLowerCase().includes(quyTnNameFilter.toLowerCase())) return false;
       return true;
