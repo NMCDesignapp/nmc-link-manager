@@ -3371,24 +3371,25 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
-                <th colSpan={6} className="text-white font-bold uppercase text-[9px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E', height: '16px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
+                <th colSpan={6} className="text-white font-bold uppercase text-[11px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#B45309', borderColor: '#92400E', height: '22px', lineHeight: '1', borderBottom: '2px solid #92400E' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
               {/* Row 2: FYP thresholds — compact */}
               <tr style={{ backgroundColor: '#D97706' }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[7px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '11px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white font-bold text-[9px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#B45309', height: '14px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates — compact + gradient */}
+              {/* Row 3: Percentage rates — light gradient, larger font */}
               <tr>
                 {TIERS.map((tier, idx) => {
-                  const gradientColors = ['#FEF9C3', '#FEF08A', '#FDE047', '#FACC15', '#EAB308', '#CA8A04'];
+                  // Lighter gradient — easy to read on white table
+                  const gradientColors = ['#FFFBEB', '#FEF9C3', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24'];
                   return (
-                    <th key={idx} className="font-black text-[7px] px-0.5 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '11px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F' }}>
+                    <th key={idx} className="font-black text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: '#D97706', height: '14px', lineHeight: '1', backgroundColor: gradientColors[idx], color: '#78350F', borderBottom: '2px solid #92400E' }}>
                       {tier.rate}%
                     </th>
                   );
@@ -3411,13 +3412,15 @@ export default function QuanLyPage() {
                     {TIERS.map((tier, tIdx) => {
                       const isAchieved = tIdx <= row.achievedTier && row.achievedTier >= 0;
                       const deficit = row.tongFYPQuy < tier.minFYP ? tier.minFYP - row.tongFYPQuy : 0;
-                      const gradientBg = ['#FFFBEB', '#FEF3C7', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'];
-                      const achievedGreen = ['#DCFCE7', '#BBF7D0', '#86EFAC', '#6EE7B7', '#34D399', '#10B981'];
+                      // Lighter body gradient — soft pastels, not too saturated
+                      const gradientBg = ['#FFFEFB', '#FFFBEB', '#FEF9C3', '#FEF3C7', '#FDE68A', '#FCD34D'];
+                      // Lighter achieved green — soft pastel greens
+                      const achievedGreen = ['#F0FDF4', '#DCFCE7', '#BBF7D0', '#A7F3D0', '#86EFAC', '#6EE7B7'];
                       return (
                         <td key={tIdx} className="text-[10px] italic text-center whitespace-nowrap p-1 align-middle" style={{
-                          borderColor: isAchieved ? '#86EFAC' : '#D1FAE5',
+                          borderColor: isAchieved ? '#A7F3D0' : '#FEF3C7',
                           backgroundColor: isAchieved ? achievedGreen[tIdx] : gradientBg[tIdx],
-                          color: isAchieved ? '#065F46' : '#92400E',
+                          color: isAchieved ? '#047857' : '#92400E',
                         }}>
                           {isAchieved ? (
                             <span className="font-bold italic text-[9px]">ĐẠT</span>
