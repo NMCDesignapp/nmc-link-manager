@@ -4299,7 +4299,7 @@ export default function QuanLyPage() {
     });
 
     const tnRows = tnList.map((tn) => {
-      // Find all TVVs in TN's nhóm
+      // Find all TVVs in TN's nhóm (for FYP sum)
       const tvvInNhom = tvvStructList.filter(tvv => tvv.maBanNhom === tn.maBanNhom);
 
       // Sum FYP of all TVVs in nhóm for current quarter
@@ -4313,26 +4313,53 @@ export default function QuanLyPage() {
       });
       const tongFYPQuy = quarterContracts.reduce((s, c) => s + c.pdt10DT, 0);
 
-      // Count TVVm HĐC in quarter (TVVm with at least 1 contract in quarter)
-      const tvvmHDCCount = tvvInNhom.filter(tvv => {
+      // Count TVVm HĐC recruited by THIS TN WITHIN current quarter
+      // Criteria:
+      //   1. TVVm must be recruited by TN (via maTVVTuyendung OR maDaiLyTD in contracts)
+      //   2. TVVm's ngayBatDau must fall within current quarter (Q start month → Q end month)
+      //   3. TVVm must have at least 1 month in quarter with total IP >= 12tr
+      const TVVM_HDC_IP_THRESHOLD = 12_000_000;
+      const qStartDate = new Date(currentYear, quarterStartMonth - 1, 1);
+      const qEndDate = new Date(currentYear, quarterEndMonth, 0, 23, 59, 59); // last day of Q end month
+      const tvvmHDCByTN = tvvStructList.filter(tvv => {
         if (!isTVVm(tvv.ngayBatDau)) return false;
-        return contracts.some(c => {
-          if (c.agentCode !== tvv.agentCode) return false;
-          const d = getDoanhSoMonth(c);
-          if (isNaN(d.getTime())) return false;
-          if (d.getFullYear() !== currentYear) return false;
-          const m = d.getMonth() + 1;
-          return m >= quarterStartMonth && m <= quarterEndMonth;
-        });
-      }).length;
+        // (1) Recruited by this TN
+        const isRecruitedByTN = (tvv.maTVVTuyendung && tvv.maTVVTuyendung.trim() === tn.agentCode)
+          || contracts.some(c => c.agentCode === tvv.agentCode && c.maDaiLyTD === tn.agentCode);
+        if (!isRecruitedByTN) return false;
+        // (2) TVVm started within current quarter
+        if (!tvv.ngayBatDau) return false;
+        const startDate = new Date(tvv.ngayBatDau);
+        if (isNaN(startDate.getTime())) return false;
+        if (startDate < qStartDate || startDate > qEndDate) return false;
+        // (3) At least 1 month in quarter with total IP >= 12tr
+        for (let m = quarterStartMonth; m <= quarterEndMonth; m++) {
+          const monthContracts = contracts.filter(c => {
+            if (c.agentCode !== tvv.agentCode) return false;
+            const d = getDoanhSoMonth(c);
+            if (isNaN(d.getTime())) return false;
+            return d.getFullYear() === currentYear && (d.getMonth() + 1) === m;
+          });
+          const monthIP = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+          if (monthIP >= TVVM_HDC_IP_THRESHOLD) return true;
+        }
+        return false;
+      });
+      const tvvmHDCCount = tvvmHDCByTN.length;
+      const hasTVVmHDC = tvvmHDCCount >= 1;
 
       // Determine tier — find highest qualifying tier (descending order)
-      // Skip tiers that require TVVm if TN has no TVVm HĐC
+      // Logic mới:
+      // - Nếu KHÔNG đủ ĐK TVVm → chỉ được xét tier 'FYP ≥ 150tr' (4%, needsTVVm=false)
+      // - Nếu ĐỦ ĐK TVVm → xét đủ 5 tiers (4/9/14/18/22%)
       let achievedTier = -1;
       for (let i = TN_TIERS.length - 1; i >= 0; i--) {
         const t = TN_TIERS[i];
         if (tongFYPQuy < t.minFYP) continue;
-        if (t.needsTVVm && tvvmHDCCount < 1) continue;
+        // Nếu tier cần TVVm mà TN không có TVVm HĐC → skip
+        if (t.needsTVVm && !hasTVVmHDC) continue;
+        // Nếu TN không đủ ĐK TVVm → chỉ được chọn tier không cần TVVm (4%)
+        if (!hasTVVmHDC && t.needsTVVm) continue;
         achievedTier = i;
         break;
       }
@@ -4351,6 +4378,7 @@ export default function QuanLyPage() {
         hoTen: tn.agentName,
         tongFYPQuy,
         tvvmHDC: tvvmHDCCount,
+        hasTVVmHDC,
         achievedTier,
         tlThuong,
         tienThuong,
@@ -4467,7 +4495,13 @@ export default function QuanLyPage() {
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
                   <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: row.tvvmHDC > 0 ? TIER_GRADIENT_BG[Math.min(row.tvvmHDC, 5)] : '#F9FAFB', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.tvvmHDC}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: row.hasTVVmHDC ? '#DCFCE7' : '#FEF2F2', fontSize: '11px' }}>
+                    {row.hasTVVmHDC ? (
+                      <span className="font-bold italic" style={{ color: '#047857' }}>Đủ ĐK TVVm</span>
+                    ) : (
+                      <span className="italic" style={{ color: '#DC2626' }}>chưa</span>
+                    )}
+                  </td>
                   {/* 5 tier columns — ĐẠT if idx === achievedTier, else show checkmark or deficit */}
                   {TN_TIERS.map((tier, tIdx) => {
                     const isAchieved = tIdx === row.achievedTier;
