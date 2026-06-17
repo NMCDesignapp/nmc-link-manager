@@ -2307,9 +2307,20 @@ export default function QuanLyPage() {
 
   // ── Overview Background: deep navy + diagonal grid + spotlight ──
   // Theo mô tả: lưới chéo 45°, gradient navy đen → teal sáng ở bottom-center
+  // Đặt ngoài content flow, absolute fill container cha (main), pointer-events-none
   const renderOverviewBackground = () => (
-    <div className="fixed inset-0 pointer-events-none" aria-hidden style={{ zIndex: 0 }}>
-      <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 900">
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      aria-hidden
+      style={{ zIndex: 0 }}
+    >
+      <svg
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1440 900"
+        style={{ display: 'block' }}
+      >
         <defs>
           {/* Vertical gradient: deep navy top → ultramarine-black → vibrant teal bottom-center */}
           <linearGradient id="bg-main" x1="0" y1="0" x2="0" y2="1">
@@ -2327,10 +2338,9 @@ export default function QuanLyPage() {
             <stop offset="100%" stopColor="#020617" stopOpacity="0" />
           </radialGradient>
           {/* Grid pattern: diagonal lines 45°, offset brick pattern */}
-          <pattern id="diag-grid" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+          <pattern id="diag-grid" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
             {/* Diagonal lines at 45° forming diamond/brick pattern */}
-            <path d="M0,40 L80,0 M0,0 L80,40" stroke="#0e2a5a" strokeWidth="0.6" fill="none" opacity="0.45" />
-            <path d="M-40,20 L40,-20 M40,60 L120,20 M0,40 L80,0" stroke="#1e3a8a" strokeWidth="0.4" fill="none" opacity="0.35" />
+            <path d="M0,40 L80,0 M0,0 L80,40" stroke="#1e3a8a" strokeWidth="0.6" fill="none" opacity="0.55" />
           </pattern>
           {/* Soft vignette to fade grid in dark top region */}
           <linearGradient id="vignette-top" x1="0" y1="0" x2="0" y2="1">
@@ -2339,7 +2349,7 @@ export default function QuanLyPage() {
             <stop offset="70%" stopColor="#020617" stopOpacity="0" />
           </linearGradient>
           {/* Subtle noise/texture */}
-          <filter id="noise" x="0" y="0" width="100%" height="100%">
+          <filter id="ov-noise" x="0" y="0" width="100%" height="100%">
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
             <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0" />
           </filter>
@@ -2353,13 +2363,13 @@ export default function QuanLyPage() {
         {/* Vignette top — fade grid in dark area */}
         <rect width="1440" height="900" fill="url(#vignette-top)" />
         {/* Noise texture for subtle micro-texture */}
-        <rect width="1440" height="900" filter="url(#noise)" opacity="0.5" />
+        <rect width="1440" height="900" filter="url(#ov-noise)" opacity="0.5" />
       </svg>
     </div>
   );
 
   const renderOverview = () => (
-    <div className="space-y-3 relative" style={{ zIndex: 1 }}>
+    <div className="space-y-3 relative min-h-full" style={{ zIndex: 1 }}>
       {renderOverviewBackground()}
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -5845,7 +5855,7 @@ export default function QuanLyPage() {
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-2 sm:p-4">
+        <main className="flex-1 overflow-y-auto p-2 sm:p-4 relative">
           {renderSheet()}
         </main>
       </div>
