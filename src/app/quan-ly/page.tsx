@@ -3957,14 +3957,17 @@ export default function QuanLyPage() {
     const TL_BASE = 3_000_000; // base thưởng TVVm
 
     // Build NTD rows: chỉ tính TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
-    // Lấy từ tvvStructList (có chucVu) thay vì recruiters (không có chucVu đáng tin)
-    // Bỏ TVV thuộc phòng Banca (không tính thưởng)
-    const ntdCandidates = tvvStructList.filter(tvv => {
-      const pos = (tvv.chucVu || '').toLowerCase();
-      if (!pos.includes('trưởng ban') && !pos.includes('trưởng nhóm')) return false;
-      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
-      return true;
-    });
+    // Build NTD rows: dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
+    // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
+    // Bỏ TN thuộc phòng Banca (không tính thưởng)
+    const ntdCandidates = leaders
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
+      .map(l => ({
+        agentCode: l.agentCode,
+        agentName: l.agentName,
+        maBanNhom: l.maNhom || '',
+        nhomName: l.nhom || '',
+      }));
 
     // Build NTD rows: for each candidate, count TVVs they recruited that have HĐC in current month
     const ntdRows = ntdCandidates.map((ntd) => {
@@ -3994,8 +3997,8 @@ export default function QuanLyPage() {
 
       const tienThuong = tvvHDCCount * TL_BASE * multiplier;
 
-      // Resolve NHÓM từ BanNhom/contracts/leaders (TVVStruct không có nhom field trực tiếp)
-      const nhomName = resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders);
+      // Resolve NHÓM từ DS TB/TN (đã có sẵn field nhom)
+      const nhomName = ntd.nhomName || resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders);
 
       return {
         stt: 0 as number,
@@ -4135,19 +4138,38 @@ export default function QuanLyPage() {
     const VT_FYP_THRESHOLD = 100_000_000;
     const VT_BONUS = 2_000_000;
 
-    // Identify TTNs — chỉ TVV có chức vụ chứa "trưởng nhóm", bỏ TVV thuộc phòng Banca
-    const ttnList = tvvStructList.filter(tvv => {
-      const pos = (tvv.chucVu || '').toLowerCase();
-      if (!pos.includes('trưởng nhóm')) return false;
-      if (isTVVExcludedFromRewards(tvv.agentCode, tvv.maBanNhom, banNhomList, adList)) return false;
-      return true;
-    });
+    // Identify TTNs — dùng DS NTD (Recruiter table), lọc chức vụ "Tiền trưởng nhóm"
+    // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
+    // Bỏ TVV thuộc phòng Banca (không tính thưởng)
+    const ttnList = recruiters
+      .filter(r => {
+        const pos = (r.position || '').toLowerCase();
+        if (!pos.includes('tiền trưởng nhóm')) return false;
+        if (isTVVExcludedFromRewards(r.agentCode, '', banNhomList, adList)) return false;
+        return true;
+      })
+      .map(r => ({
+        agentCode: r.agentCode,
+        agentName: r.agentName,
+        // Recruiter có field 'nhom' (tên nhóm) — dùng luôn
+        maBanNhom: '', // Recruiter không có maNhom, để trống — dùng nhomName
+        nhomName: r.nhom || '',
+        ngayBatDau: r.startDate,
+      }));
 
     const ttnRows = ttnList.map((ttn) => {
+      // Tìm mã BanNhom từ tên nhóm (Recruiter chỉ có nhomName, không có maNhom)
+      // Match BanNhom.tenBanNhom === ttn.nhomName
+      const matchedBanNhom = banNhomList.find(b =>
+        b.tenBanNhom && ttn.nhomName && b.tenBanNhom.toLowerCase() === ttn.nhomName.toLowerCase()
+      );
+      const ttnMaBanNhom = matchedBanNhom?.maBanNhom || '';
+
       // Find TVVm in TTN's nhóm (TVVs in same maBanNhom with ≤12 months tenure)
       const tvvmInNhom = tvvStructList.filter(tvv => {
         if (tvv.agentCode === ttn.agentCode) return false;
-        if (tvv.maBanNhom !== ttn.maBanNhom) return false;
+        if (!ttnMaBanNhom) return false; // không tìm được nhóm → không có TVVm
+        if (tvv.maBanNhom !== ttnMaBanNhom) return false;
         if (!isTVVm(tvv.ngayBatDau)) return false;
         return true;
       });
@@ -4169,7 +4191,8 @@ export default function QuanLyPage() {
       const thuongVuotTroi = fypTVVm >= VT_FYP_THRESHOLD ? VT_BONUS : 0;
       const tongTienThuong = thuongDongHanh + thuongVuotTroi;
 
-      const nhomName = resolveNhomName(ttn.agentCode, ttn.maBanNhom, banNhomList, contracts, leaders);
+      // NHÓM: dùng luôn nhomName từ DS NTD
+      const nhomName = ttn.nhomName;
 
       return {
         stt: 0 as number,
