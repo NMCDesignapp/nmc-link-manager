@@ -1,0 +1,124 @@
+name: Restore DB from Backup
+
+# Manual trigger only - restores DB from a backup snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: 'Backup directory name (e.g. 20260617_022307)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout db-backups branch
+        uses: actions/checkout@v4
+        with:
+          ref: db-backups
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify backup exists
+        run: |
+          if [ ! -d "backups/${{ inputs.backup_date }}" ]; then
+            echo "ERROR: backups/${{ inputs.backup_date }} not found"
+            echo "Available backups:"
+            ls -1 backups/ | grep -v gitkeep
+            exit 1
+          fi
+          echo "Found backup: ${{ inputs.backup_date }}"
+          cat "backups/${{ inputs.backup_date }}/_summary.json"
+
+      - name: Restore all tables
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+          BACKUP_DATE: ${{ inputs.backup_date }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, json, urllib.request, re
+
+          db_url = os.environ['NEON_DB_URL']
+          backup_date = os.environ['BACKUP_DATE']
+          backup_dir = f"backups/{backup_date}"
+
+          m = re.match(r'postgresql://[^:]+:[^@]+@([^:/]+)', db_url)
+          host = m.group(1)
+
+          def run_sql(sql, params=None):
+              payload = {"query": sql}
+              if params: payload["params"] = params
+              body = json.dumps(payload).encode()
+              req = urllib.request.Request(
+                  f"https://{host}/sql", data=body,
+                  headers={'Content-Type': 'application/json', 'Neon-Connection-String': db_url},
+                  method='POST',
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=120) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  return {"error": e.read().decode()[:300]}
+              except Exception as e:
+                  return {"error": str(e)[:300]}
+
+          # Read summary
+          with open(f"{backup_dir}/_summary.json") as f:
+              summary = json.load(f)
+          print(f"Restoring backup from {summary['exported_at']}")
+          print(f"Source host: {summary['source_host']}")
+          print(f"Total records: {summary['total_records']}")
+
+          # Process each table file
+          import glob
+          for table_file in sorted(glob.glob(f"{backup_dir}/*.json")):
+              if '_summary' in table_file: continue
+              table_name = os.path.basename(table_file).replace('.json', '')
+              with open(table_file) as f:
+                  data = json.load(f)
+              records = data.get('records', [])
+              print(f"\n--- Restoring {table_name}: {len(records)} records ---")
+              
+              if not records:
+                  # Just truncate
+                  result = run_sql(f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE')
+                  if 'error' in result:
+                      print(f"  ⚠ truncate: {result['error'][:100]}")
+                  else:
+                      print(f"  ✓ truncated (was empty)")
+                  continue
+              
+              # Truncate first
+              result = run_sql(f'TRUNCATE TABLE "{table_name}" RESTART IDENTITY CASCADE')
+              if 'error' in result:
+                  print(f"  ⚠ truncate: {result['error'][:100]}")
+              
+              # Insert records one by one
+              cols = list(records[0].keys())
+              col_list = ', '.join(f'"{c}"' for c in cols)
+              placeholders = ', '.join(f'${i+1}' for i in range(len(cols)))
+              insert_sql = f'INSERT INTO "{table_name}" ({col_list}) VALUES ({placeholders})'
+              
+              success = 0
+              errors = 0
+              for rec in records:
+                  params = [str(rec[c]) if rec[c] is not None else None for c in cols]
+                  result = run_sql(insert_sql, params)
+                  if 'error' in result:
+                      if errors < 3:
+                          print(f"  ✗ {result['error'][:120]}")
+                      errors += 1
+                  else:
+                      success += 1
+              print(f"  ✓ inserted {success}/{len(records)} (errors: {errors})")
+
+          print("\n=== RESTORE COMPLETE ===")
+          PYEOF
