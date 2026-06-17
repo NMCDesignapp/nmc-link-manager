@@ -5007,14 +5007,15 @@ export default function QuanLyPage() {
             .map(p => {
             const isSpecial = SPECIAL_PHONG_NO_AD.has(p.maPhong);
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
-            // Đếm TVV trực tiếp thuộc phòng (qua BanNhom có maAD → thuộc phòng)
-            // Với phòng đặc biệt (PA/Banca): TVV thuộc các BanNhom mà maAD thuộc phòng này
-            // Vì PA/Banca không có AD → ta coi cả phòng là 1 "AD ảo", TVV thuộc BanNhom có maPhong = p.maPhong
-            // Cách đơn giản: đếm TVV mà maBanNhom có chứa mã phòng (PA/Banca) trong danh sách BanNhom
-            const pBanNhoms = banNhomList.filter(b => isSpecial
-              ? b.maBanNhom === p.maPhong || b.maAD === p.maPhong
-              : pADs.some(a => a.maAD === b.maAD));
-            const pTVVs = tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
+            // Với phòng đặc biệt (PA/Banca): không có AD → TVV thuộc phòng trực tiếp
+            // qua TVVStruct.maBanNhom === p.maPhong (không cần qua BanNhom record)
+            // Với phòng thường: TVV thuộc phòng qua AD → BanNhom
+            const pBanNhoms = isSpecial
+              ? []  // không dùng BanNhom record cho phòng đặc biệt
+              : banNhomList.filter(b => pADs.some(a => a.maAD === b.maAD));
+            const pTVVs = isSpecial
+              ? tvvStructList.filter(t => t.maBanNhom === p.maPhong)
+              : tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
             return (
               <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
                 {/* PHÒNG header — dark strip like Kế hoạch */}
