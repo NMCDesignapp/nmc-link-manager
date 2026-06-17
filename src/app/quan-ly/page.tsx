@@ -3762,8 +3762,13 @@ export default function QuanLyPage() {
   const renderStructure = () => {
     const totalTVV = tvvStructList.length;
     const totalBN = banNhomList.length;
-    const totalADCount = adList.length;
+    // Only count ADs that belong to an existing Phong (avoids counting orphans
+    // from test data or corrupted imports)
+    const phongCodes = new Set(phongList.map(p => p.maPhong));
+    const totalADCount = adList.filter(a => phongCodes.has(a.maPhong)).length;
     const totalPhong = phongList.length;
+    // Detect orphan ADs (for warning display)
+    const orphanADs = adList.filter(a => !phongCodes.has(a.maPhong));
 
     return (
       <>
@@ -3807,6 +3812,11 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalADCount} AD</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalBN} Nhóm</span>
           <span className="text-[10px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">{totalTVV} TVV</span>
+          {orphanADs.length > 0 && (
+            <span className="text-[9px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full" title={`AD không thuộc phòng nào: ${orphanADs.map(a => a.maAD).join(', ')}`}>
+              ⚠ {orphanADs.length} AD không phòng
+            </span>
+          )}
           <div className="ml-auto">
             <input
               type="file"
