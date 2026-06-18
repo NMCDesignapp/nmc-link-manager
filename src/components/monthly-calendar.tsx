@@ -223,7 +223,7 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
   const calendarIconSize = desktopBright ? 'w-4 h-4' : 'w-3.5 h-3.5'
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative h-full flex flex-col">
       {/* === DESKTOP BRIGHT: Top info bar with month stats (clock moved to left panel) === */}
       {desktopBright && (
         <motion.div
@@ -363,18 +363,18 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div className={`grid grid-cols-7 ${gapSize}`}>
+      {/* Calendar Grid — flex-1 để fill chiều cao còn lại trong container */}
+      <div className={`grid grid-cols-7 ${gapSize} flex-1 min-h-0 auto-rows-fr`}>
         {calendarCells.map((day, i) => {
           if (day === null) {
             return (
               <div
                 key={`empty-${i}`}
-                className="rounded-md"
+                className="rounded-md h-full w-full"
                 style={desktopBright ? {
                   background: 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
-                  height: '34px',
+                  minHeight: '34px',
                 } : undefined}
               />
             )
@@ -390,9 +390,9 @@ export function MonthlyCalendar({ neonColor = '#00ff88', compact = false, deskto
               key={dateStr}
               ref={(el) => { dayRefs.current[dateStr] = el }}
               onClick={() => handleDayClick(day)}
-              className="rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden"
+              className="rounded-md flex flex-col items-center justify-center relative smooth-transition cursor-pointer overflow-hidden h-full w-full"
               style={{
-                ...(desktopBright ? { height: '34px' } : {}),
+                ...(desktopBright ? { minHeight: '34px' } : {}),
                 background: isToday
                   ? `${neonColor}40`
                   : desktopBright

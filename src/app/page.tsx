@@ -467,6 +467,7 @@ export default function Home() {
           </motion.button>
         </motion.div>
 
+        {/* Links area — flex-1, scroll independently, chiếm phần còn lại sau khi calendar lấy 50vh */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="max-w-lg mx-auto w-full px-4 pt-2 pb-2">
             {linksLoading && links.length === 0 ? (
@@ -505,10 +506,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex-shrink-0">
-          <div className="max-w-lg mx-auto w-full px-6 pt-1"><NeonDivider color={neonColor} /></div>
-          <motion.div className="max-w-lg mx-auto w-full px-4 pt-2 pb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
-            <div className="rounded-xl p-3" style={{ background: 'rgba(14, 14, 30, 0.85)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
+        {/* Calendar — chiếm 50% chiều cao màn hình mobile */}
+        <div className="flex-shrink-0 h-[50vh] overflow-hidden flex flex-col">
+          <div className="max-w-lg mx-auto w-full px-6 pt-1 flex-shrink-0"><NeonDivider color={neonColor} /></div>
+          <motion.div className="max-w-lg mx-auto w-full px-4 pt-2 pb-4 flex-1 min-h-0 flex flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
+            <div className="rounded-xl p-3 flex-1 min-h-0 flex flex-col" style={{ background: 'rgba(14, 14, 30, 0.85)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
               <MonthlyCalendar neonColor={neonColor} compact />
             </div>
           </motion.div>

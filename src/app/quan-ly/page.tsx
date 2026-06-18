@@ -5170,11 +5170,11 @@ export default function QuanLyPage() {
             <div className="flex gap-1 flex-shrink-0">
               <div className="flex-1 bg-emerald-600 border border-emerald-400 px-1.5 py-1 text-center rounded-sm">
                 <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-100 leading-tight">SL TVV đạt</p>
-                <p className="text-[13px] sm:text-base font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
+                <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
               </div>
               <div className="flex-1 bg-amber-600 border border-amber-400 px-1.5 py-1 text-center rounded-sm">
                 <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-100 leading-tight">Tổng thưởng</p>
-                <p className="text-[13px] sm:text-base font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
+                <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
             {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao để không bị che */}
@@ -5215,8 +5215,8 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        {/* Bottom 3/4: chỉ bảng chi tiết — tách khỏi phần trên */}
-        <div className="flex-1 min-h-0 overflow-y-auto rounded-md" style={{ scrollbarWidth: 'thin', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+        {/* Bottom 3/4: chỉ bảng chi tiết — tách khỏi phần trên — góc vuông, không bo */}
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
           {renderPolicyContent(policyOpen)}
         </div>
       </div>
