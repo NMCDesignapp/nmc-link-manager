@@ -5106,12 +5106,52 @@ export default function QuanLyPage() {
     }
     const item = POLICY_ITEMS.find(i => i.key === policyOpen);
     if (!item) return null;
-    const Icon = item.icon;
     const imageLink = policyImageLinks[policyOpen] || '';
+
+    // Get summary + filter data for this policy
+    // TN policies (tuyen-luyen, dong-hanh, ptkd-tn, quy-tn, tuyen-ngang) — no filter
+    const isTnPolicy = ['tuyen-luyen', 'dong-hanh', 'ptkd-tn', 'quy-tn', 'tuyen-ngang'].includes(policyOpen);
+    // TVV policies (tvvm, ns-tvv, quy-tvv) — have filter
+    const isTvvPolicy = ['tvvm', 'ns-tvv', 'quy-tvv'].includes(policyOpen);
+
+    // Determine filter state + nhom list based on policy
+    const nameFilter = isTvvPolicy ? (
+      policyOpen === 'tvvm' ? tvvmNameFilter :
+      policyOpen === 'ns-tvv' ? nsTvvNameFilter :
+      quyTvvNameFilter
+    ) : '';
+    const setNameFilter = isTvvPolicy ? (
+      policyOpen === 'tvvm' ? setTvvmNameFilter :
+      policyOpen === 'ns-tvv' ? setNsTvvNameFilter :
+      setQuyTvvNameFilter
+    ) : () => {};
+    const nhomFilter = isTvvPolicy ? (
+      policyOpen === 'tvvm' ? tvvmNhomFilter :
+      policyOpen === 'ns-tvv' ? nsTvvNhomFilter :
+      quyTvvNhomFilter
+    ) : '';
+    const setNhomFilter = isTvvPolicy ? (
+      policyOpen === 'tvvm' ? setTvvmNhomFilter :
+      policyOpen === 'ns-tvv' ? setNsTvvNhomFilter :
+      setQuyTvvNhomFilter
+    ) : () => {};
+
+    // Get unique nhom list from tvvStructList (all policies use same source)
+    const uniqueNhomList = Array.from(new Set(
+      tvvStructList
+        .filter(t => t.maBanNhom && !isTVVExcludedFromRewards(t.agentCode, t.maBanNhom, banNhomList, adList))
+        .map(t => resolveNhomName(t.agentCode, t.maBanNhom, banNhomList, [], leaders))
+        .filter(Boolean)
+    )).sort();
+
+    // Summary stats — we need to compute from the policy's data
+    // For simplicity, we'll pass a placeholder that gets filled by policyContent
+    // The actual counts will be computed inside each renderXxx function
+    // Here we just render the container
 
     return (
       <div className="flex flex-col h-full">
-        {/* Top 1/4: liền nhau không gap — ảnh trái + tổng hợp/phải */}
+        {/* Top 1/4: liền nhau — ảnh trái + tổng hợp/filter phải */}
         <div className="flex flex-shrink-0 border-b border-emerald-500/20" style={{ height: '25vh', minHeight: '120px', maxHeight: '180px' }}>
           {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô */}
           <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0">
@@ -5124,17 +5164,63 @@ export default function QuanLyPage() {
               </div>
             )}
           </div>
-          {/* Right: mobile 1/3, desktop 1/2 — summary + filter (thu nhỏ) */}
-          <div className="w-1/3 md:w-1/2 flex flex-col justify-center px-2 gap-1 overflow-hidden">
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Button variant="ghost" size="sm" onClick={() => { setPolicyImageEditingKey(policyOpen); setPolicyImageInput(imageLink); setPolicyImageDialogOpen(true); }} className="h-5 text-[9px] text-amber-300 hover:text-amber-200 border border-amber-500/30 bg-amber-500/10 flex-shrink-0 px-1.5">
+          {/* Right: mobile 1/3, desktop 1/2 — 2 ô tổng hợp + filter nhóm + search + nút ảnh */}
+          <div className="w-1/3 md:w-1/2 flex flex-col justify-center px-1.5 gap-1.5 overflow-hidden">
+            {/* 2 ô tổng hợp — nằm ngang */}
+            <div className="flex gap-1 flex-shrink-0">
+              <div className="flex-1 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-1 text-center">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-400/70 leading-tight">ĐẠT THƯỞNG</p>
+                <p className="text-[11px] sm:text-sm font-black text-emerald-300 leading-tight" id={`policy-count-${policyOpen}`}>—</p>
+              </div>
+              <div className="flex-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-1 text-center">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-400/70 leading-tight">💰 TỔNG</p>
+                <p className="text-[11px] sm:text-sm font-black text-amber-300 leading-tight" id={`policy-total-${policyOpen}`}>—</p>
+              </div>
+            </div>
+            {/* Bộ lọc nhóm — dropdown popup (chỉ cho TVV policies) */}
+            {isTvvPolicy && (
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.currentTarget.nextElementSibling?.classList.toggle('hidden');
+                  }}
+                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] sm:text-[10px] bg-white/5 border border-emerald-500/20 text-emerald-200/70 hover:bg-emerald-500/10"
+                >
+                  <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
+                  <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                </button>
+                <div className="hidden absolute top-full left-0 right-0 z-50 bg-[#1a2332]/95 backdrop-blur-md border border-emerald-500/30 max-h-[150px] overflow-y-auto">
+                  <button onClick={() => { setNhomFilter(''); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>Tất cả nhóm</button>
+                  {uniqueNhomList.map(n => (
+                    <button key={n} onClick={() => { setNhomFilter(n); const dropdown = document.querySelector('.hidden.absolute') as HTMLElement; if (dropdown) dropdown.classList.add('hidden'); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>{n}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Ô tìm kiếm tên (chỉ cho TVV policies) */}
+            {isTvvPolicy && (
+              <div className="flex items-center gap-1 bg-white/5 border border-emerald-500/20 px-1.5 py-1 flex-shrink-0">
+                <Search className="w-2.5 h-2.5 text-emerald-400/50 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Tìm tên..."
+                  value={nameFilter}
+                  onChange={e => setNameFilter(e.target.value)}
+                  className="text-[9px] sm:text-[10px] bg-transparent outline-none flex-1 min-w-0 text-emerald-200 placeholder:text-emerald-400/30"
+                />
+                {nameFilter && <button onClick={() => setNameFilter('')} className="text-emerald-400/40 hover:text-red-400 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+              </div>
+            )}
+            {/* Nút ảnh */}
+            <div className="flex-shrink-0">
+              <Button variant="ghost" size="sm" onClick={() => { setPolicyImageEditingKey(policyOpen); setPolicyImageInput(imageLink); setPolicyImageDialogOpen(true); }} className="h-5 text-[9px] text-amber-300 hover:text-amber-200 border border-amber-500/30 bg-amber-500/10 px-1.5">
                 <Settings className="w-2.5 h-2.5 mr-0.5" />Ảnh
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Bottom 3/4: bảng chi tiết — liền phần trên */}
+        {/* Bottom 3/4: chỉ bảng chi tiết */}
         <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
           {renderPolicyContent(policyOpen)}
         </div>
