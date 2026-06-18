@@ -4974,6 +4974,74 @@ export default function QuanLyPage() {
     );
   };
 
+  // ========== THƯỞNG TTN TUYỂN NGANG ==========
+  // Bảng theo ảnh chính sách — đối tượng để trống, user sẽ hướng dẫn sau
+  const renderThuongTuyenNgang = () => {
+    const HEADER_BG = '#065F46';
+    const SUB_HEADER_BG = '#047857';
+
+    return (
+      <div className="space-y-3">
+        {/* Summary card */}
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center gap-2">
+            <Merge className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng TTN Tuyển Ngang</p>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
+          <table className="w-full text-xs bg-white" style={{ borderRadius: 0, borderCollapse: 'collapse' }}>
+            <thead className="sticky top-0 z-10">
+              {/* Row 1: Main headers */}
+              <tr style={{ backgroundColor: HEADER_BG }}>
+                <th rowSpan={2} className="text-white text-center w-[32px] font-bold uppercase text-[12px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM KD</th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
+                <th rowSpan={2} className="text-white min-w-[120px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHỨC VỤ</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] font-normal normal-case">CHỨC VỤ</span></th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THÁNG LÀM<br/>VIỆC</th>
+                {/* CHỈ TIÊU — 3 sub-columns */}
+                <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '22px' }}>CHỈ TIÊU</th>
+                {/* THỰC HIỆN THÁNG — 3 sub-columns */}
+                <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' }}>THỰC HIỆN THÁNG</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
+                {/* THỰC HIỆN LŨY KẾ — 3 sub-columns */}
+                <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>THỰC HIỆN LŨY KẾ</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG BẮT KỲP</th>
+              </tr>
+              {/* Row 2: Sub-headers */}
+              <tr>
+                {/* CHỈ TIÊU subs */}
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857', height: '18px' }}>Quy mô</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>TVVm HĐC</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>Tổng FYP</th>
+                {/* THỰC HIỆN THÁNG subs */}
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Quy mô</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>TVVm HĐC</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Tổng FYP</th>
+                {/* THỰC HIỆN LŨY KẾ subs */}
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Quy mô</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>TVVm HĐC</th>
+                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>FYP ≥250tr</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Empty data — user will guide logic later */}
+              <tr>
+                <td colSpan={18} className="text-center text-gray-400 py-12 italic text-xs bg-white p-2 align-middle">
+                  Đối tượng và logic tính thưởng sẽ được cấu hình khi có hướng dẫn chi tiết.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderPolicyContent = (key: string) => {
     switch (key) {
       case 'tvvm': return renderTvvMTable();
@@ -4983,6 +5051,7 @@ export default function QuanLyPage() {
       case 'dong-hanh': return renderThuongDongHanh();
       case 'ptkd-tn': return renderThuongPTKD();
       case 'quy-tn': return renderThuongQuyTN();
+      case 'tuyen-ngang': return renderThuongTuyenNgang();
       default: return (
         <div className="text-center py-12 text-gray-300 text-xs italic">
           Nội dung chính sách sẽ được cấu hình tại đây.
