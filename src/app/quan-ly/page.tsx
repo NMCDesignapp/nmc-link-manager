@@ -491,7 +491,7 @@ function SettingsPopover({ sectionKey, sectionLabel, onlineSettings, saveSetting
         </Button>
       </PopoverTrigger>
       <PopoverContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 w-80 p-3" align="end" sideOffset={4}>
-        <div className="space-y-3">
+        <div className="space-y-1">
           <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
             <Settings className="w-3.5 h-3.5" /> Cài đặt: {sectionLabel}
           </h4>
@@ -669,7 +669,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
           </Button>
         </PopoverTrigger>
         <PopoverContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 w-96 p-3 max-h-[500px] overflow-y-auto" align="start" sideOffset={4}>
-          <div className="space-y-3">
+          <div className="space-y-1">
             <h4 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5" /> KPI: {sectionLabel}
             </h4>
@@ -2322,7 +2322,7 @@ export default function QuanLyPage() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="bg-[#1a2332]/98 backdrop-blur-xl border-amber-500/30 w-72 p-3" align="end" sideOffset={4}>
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {/* Tháng group */}
                 <div>
                   <p className="text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-wider">Tháng</p>
@@ -2654,7 +2654,7 @@ export default function QuanLyPage() {
     };
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Kế hoạch AFYP năm {currentYear}</h2>
           <Popover open={khSettingsOpen} onOpenChange={setKhSettingsOpen}>
@@ -3284,7 +3284,7 @@ export default function QuanLyPage() {
     const THUONG_FONT = '12px';   // +1 so với body font (11px)
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Single summary card — gộp 4 ô thành 1 */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3564,7 +3564,7 @@ export default function QuanLyPage() {
     const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3852,7 +3852,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';       // same emerald-800
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Single summary card — đồng nhất TVVm + Quý TVV */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4124,7 +4124,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Summary card */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4383,7 +4383,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4643,7 +4643,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4910,7 +4910,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Summary card — chỉ: Tổng TN đạt thưởng + Tổng tiền thưởng */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -5017,7 +5017,7 @@ export default function QuanLyPage() {
     const SUB_HEADER_BG = '#047857';
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {/* Summary card */}
         <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center gap-2">
@@ -5858,7 +5858,7 @@ export default function QuanLyPage() {
       <Dialog open={!!importTier} onOpenChange={(open) => { if (!open) { setImportTier(''); setImportFile(null); setImportPreview([]); setImportData(''); } }}>
         <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30 max-w-lg">
           <DialogHeader><DialogTitle className="text-emerald-400">Import {importTier === 'phong' ? 'Phòng' : importTier === 'ad' ? 'AD' : importTier === 'bannhom' ? 'Ban/Nhóm' : 'TVV'}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-1">
             {/* File upload zone */}
             <div
               className="border-2 border-dashed border-emerald-500/30 rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400/60 hover:bg-emerald-500/5 transition-all"
@@ -6093,7 +6093,7 @@ export default function QuanLyPage() {
           </DialogHeader>
           <div className="space-y-5 mt-2">
             {/* Section 1: Kế hoạch Năm */}
-            <div className="space-y-3">
+            <div className="space-y-1">
               <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-amber-400" /> Kế hoạch Năm
               </h3>
@@ -6226,7 +6226,7 @@ export default function QuanLyPage() {
             </div>
 
             {/* Section 2: Đồng bộ & Nguồn dữ liệu */}
-            <div className="space-y-3">
+            <div className="space-y-1">
               <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
                 <RefreshCw className="w-4 h-4" /> Đồng bộ & Nguồn dữ liệu
               </h3>
@@ -6315,7 +6315,7 @@ export default function QuanLyPage() {
       <Dialog open={policyImageDialogOpen} onOpenChange={setPolicyImageDialogOpen}>
         <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
           <DialogHeader><DialogTitle className="text-amber-400">Cài đặt ảnh chính sách</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-1">
             <div>
               <Label className="text-xs text-emerald-200/70">Tải ảnh lên trực tiếp</Label>
               <input type="file" accept="image/*" className="hidden" id="policy-image-upload" onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { setPolicyImageInput(ev.target?.result as string); }; reader.readAsDataURL(file); }} />
