@@ -5150,11 +5150,11 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full">
-        {/* Top 1/4: liền nhau — ảnh trái + tổng hợp/filter phải */}
-        <div className="flex flex-shrink-0 border-b border-emerald-500/20" style={{ height: '25vh', minHeight: '120px', maxHeight: '180px' }}>
+      <div className="flex flex-col h-full gap-2 p-2 rounded-lg" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2)', backgroundColor: 'rgba(26,35,50,0.6)' }}>
+        {/* Top 1/4: ảnh trái + tổng hợp/filter phải — 4 cạnh tách viền */}
+        <div className="flex gap-2 flex-shrink-0 p-2 rounded-md" style={{ height: '25vh', minHeight: '120px', maxHeight: '180px', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', backgroundColor: 'rgba(15,23,42,0.7)' }}>
           {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô */}
-          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0">
+          <div className="w-2/3 md:w-1/2 overflow-hidden rounded-md flex-shrink-0">
             {imageLink ? (
               <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
             ) : (
@@ -5164,42 +5164,43 @@ export default function QuanLyPage() {
               </div>
             )}
           </div>
-          {/* Right: mobile 1/3, desktop 1/2 — 2 ô tổng hợp + filter nhóm + search + nút ảnh */}
-          <div className="w-1/3 md:w-1/2 flex flex-col justify-center px-1.5 gap-1.5 overflow-hidden">
-            {/* 2 ô tổng hợp — nằm ngang */}
+          {/* Right: mobile 1/3, desktop 1/2 — 2 ô tổng hợp + filter — căn đối trên dưới phải trái */}
+          <div className="w-1/3 md:w-1/2 flex flex-col justify-center items-stretch px-1 gap-1.5 overflow-visible">
+            {/* 2 ô tổng hợp — màu đậm, số to đậm */}
             <div className="flex gap-1 flex-shrink-0">
-              <div className="flex-1 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-1 text-center">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-400/70 leading-tight">ĐẠT THƯỞNG</p>
-                <p className="text-[11px] sm:text-sm font-black text-emerald-300 leading-tight" id={`policy-count-${policyOpen}`}>—</p>
+              <div className="flex-1 bg-emerald-600 border border-emerald-400 px-1.5 py-1 text-center rounded-sm">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-100 leading-tight">SL TVV đạt</p>
+                <p className="text-[13px] sm:text-base font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
               </div>
-              <div className="flex-1 bg-amber-500/10 border border-amber-500/30 px-1.5 py-1 text-center">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-400/70 leading-tight">💰 TỔNG</p>
-                <p className="text-[11px] sm:text-sm font-black text-amber-300 leading-tight" id={`policy-total-${policyOpen}`}>—</p>
+              <div className="flex-1 bg-amber-600 border border-amber-400 px-1.5 py-1 text-center rounded-sm">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-100 leading-tight">Tổng thưởng</p>
+                <p className="text-[13px] sm:text-base font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
-            {/* Bộ lọc nhóm — dropdown popup (chỉ cho TVV policies) */}
+            {/* Bộ lọc nhóm — dropdown popup xổ lên trên (không bị bảng che) */}
             {isTvvPolicy && (
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 z-50">
                 <button
                   onClick={(e) => {
-                    e.currentTarget.nextElementSibling?.classList.toggle('hidden');
+                    const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (dd) dd.classList.toggle('hidden');
                   }}
-                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] sm:text-[10px] bg-white/5 border border-emerald-500/20 text-emerald-200/70 hover:bg-emerald-500/10"
+                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] sm:text-[10px] bg-white/10 border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 rounded-sm"
                 >
                   <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
                   <ChevronDown className="w-3 h-3 flex-shrink-0" />
                 </button>
-                <div className="hidden absolute top-full left-0 right-0 z-50 bg-[#1a2332]/95 backdrop-blur-md border border-emerald-500/30 max-h-[150px] overflow-y-auto">
-                  <button onClick={() => { setNhomFilter(''); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>Tất cả nhóm</button>
+                <div className="hidden absolute bottom-full left-0 right-0 z-[100] bg-[#1a2332] border border-emerald-500/30 max-h-[150px] overflow-y-auto rounded-sm shadow-xl">
+                  <button onClick={() => { setNhomFilter(''); const dd = document.activeElement?.previousElementSibling as HTMLElement; if (dd) dd.classList.add('hidden'); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>Tất cả nhóm</button>
                   {uniqueNhomList.map(n => (
-                    <button key={n} onClick={() => { setNhomFilter(n); const dropdown = document.querySelector('.hidden.absolute') as HTMLElement; if (dropdown) dropdown.classList.add('hidden'); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>{n}</button>
+                    <button key={n} onClick={() => { setNhomFilter(n); const dd = document.querySelector('.hidden.absolute') as HTMLElement; if (dd) dd.classList.add('hidden'); }} className={`w-full text-left px-2 py-1 text-[9px] hover:bg-emerald-500/10 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/60'}`}>{n}</button>
                   ))}
                 </div>
               </div>
             )}
             {/* Ô tìm kiếm tên (chỉ cho TVV policies) */}
             {isTvvPolicy && (
-              <div className="flex items-center gap-1 bg-white/5 border border-emerald-500/20 px-1.5 py-1 flex-shrink-0">
+              <div className="flex items-center gap-1 bg-white/10 border border-emerald-500/30 px-1.5 py-1 flex-shrink-0 rounded-sm">
                 <Search className="w-2.5 h-2.5 text-emerald-400/50 flex-shrink-0" />
                 <input
                   type="text"
@@ -5211,17 +5212,11 @@ export default function QuanLyPage() {
                 {nameFilter && <button onClick={() => setNameFilter('')} className="text-emerald-400/40 hover:text-red-400 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
               </div>
             )}
-            {/* Nút ảnh */}
-            <div className="flex-shrink-0">
-              <Button variant="ghost" size="sm" onClick={() => { setPolicyImageEditingKey(policyOpen); setPolicyImageInput(imageLink); setPolicyImageDialogOpen(true); }} className="h-5 text-[9px] text-amber-300 hover:text-amber-200 border border-amber-500/30 bg-amber-500/10 px-1.5">
-                <Settings className="w-2.5 h-2.5 mr-0.5" />Ảnh
-              </Button>
-            </div>
           </div>
         </div>
 
-        {/* Bottom 3/4: chỉ bảng chi tiết */}
-        <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+        {/* Bottom 3/4: chỉ bảng chi tiết — tách khỏi phần trên */}
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-md" style={{ scrollbarWidth: 'thin', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
           {renderPolicyContent(policyOpen)}
         </div>
       </div>
@@ -5965,19 +5960,9 @@ export default function QuanLyPage() {
         {/* Mobile hamburger */}
         <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
-          <div className="relative hidden sm:block">
-            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm kiếm..." className="h-7 w-[160px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
-            {searchTerm && <X className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
-          </div>
-          <div className="relative sm:hidden">
-            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-emerald-400" />
-            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm..." className="h-7 w-[80px] pl-7 text-xs bg-white/5 border-emerald-500/30 text-white placeholder-emerald-400/50" />
-            {searchTerm && <X className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 text-emerald-400 cursor-pointer" onClick={() => setSearchTerm('')} />}
-          </div>
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
       </header>
@@ -6078,7 +6063,7 @@ export default function QuanLyPage() {
         </nav>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-2 sm:p-4 relative">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 relative">
           {renderSheet()}
         </main>
       </div>
