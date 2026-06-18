@@ -5633,7 +5633,7 @@ export default function QuanLyPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: '#1a2332' }}>
+    <div className="h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
       {/* Sync success indicator - top right corner */}
       {syncSuccessVisible && (
         <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
@@ -5642,7 +5642,7 @@ export default function QuanLyPage() {
         </div>
       )}
       {/* Header */}
-      <header className="border-b border-emerald-700 px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: '#1a2332' }}>
+      <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Mobile hamburger */}
         <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
@@ -5667,7 +5667,7 @@ export default function QuanLyPage() {
         {/* Mobile overlay */}
         {sidebarOpen && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
         {/* Sidebar */}
-        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: '#1a2332' }}>
+        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: 'rgba(26, 35, 50, 0.9)' }}>
           {/* Mobile close button */}
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20 md:hidden">
             <span className="text-xs font-bold text-emerald-300">Menu</span>

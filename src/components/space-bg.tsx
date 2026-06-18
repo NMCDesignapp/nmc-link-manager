@@ -10,12 +10,9 @@ export function SpaceBackground() {
   const neonColor = settings.neon_color || '#00ff88'
   const pathname = usePathname()
 
-  // Disable space background on quan-ly page (it has its own solid background)
-  const isQuanLy = pathname?.startsWith('/quan-ly')
-
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || isQuanLy) return
+    if (!canvas) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -134,9 +131,7 @@ export function SpaceBackground() {
       cancelAnimationFrame(animationId)
       window.removeEventListener('resize', resize)
     }
-  }, [neonColor, isQuanLy])
-
-  if (isQuanLy) return null
+  }, [neonColor])
 
   return (
     <canvas
