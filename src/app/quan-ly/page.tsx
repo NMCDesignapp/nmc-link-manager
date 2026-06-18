@@ -3286,7 +3286,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Single summary card — gộp 4 ô thành 1 */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3314,7 +3314,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Filters — top right of table */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
@@ -3566,7 +3566,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3586,7 +3586,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Filters — top right of table */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
@@ -3854,7 +3854,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Single summary card — đồng nhất TVVm + Quý TVV */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -3878,7 +3878,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* Filters — top right of table */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input
@@ -4126,7 +4126,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Summary card */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4150,12 +4150,12 @@ export default function QuanLyPage() {
         </div>
 
         {/* Tier hint */}
-        <div className="text-[10px] text-gray-500 italic">
+        <div className="hidden text-[10px] text-gray-500 italic">
           TL: 1 TVVm = 100% • 2 TVVm = 125% • ≥3 TVVm = 150% • TIỀN THƯỞNG = Tỷ lệ × Tổng thưởng TVVm
         </div>
 
         {/* Filters */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã NTD..." value={tuyenLuyenNameFilter} onChange={e => setTuyenLuyenNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
@@ -4384,7 +4384,7 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-1">
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4407,11 +4407,11 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="text-[10px] text-gray-500 italic">
+        <div className="hidden text-[10px] text-gray-500 italic">
           Đồng Hành: ≥3 TVVm HĐC = 200% thưởng TVVm • 2 TVVm = 100% • Vượt Trội: FYP ≥ 45tr → 5tr/3tr • FYP ≥ 35tr → 3tr
         </div>
 
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TTN..." value={dongHanhNameFilter} onChange={e => setDongHanhNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
@@ -4644,7 +4644,7 @@ export default function QuanLyPage() {
 
     return (
       <div className="space-y-1">
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4667,7 +4667,7 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TN..." value={quyTnNameFilter} onChange={e => setQuyTnNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
@@ -4912,7 +4912,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Summary card — chỉ: Tổng TN đạt thưởng + Tổng tiền thưởng */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -4932,12 +4932,12 @@ export default function QuanLyPage() {
         </div>
 
         {/* Tier matrix hint */}
-        <div className="text-[10px] text-gray-500 italic">
+        <div className="hidden text-[10px] text-gray-500 italic">
           Ma trận TL: FYP ≥ 400tr (30/28/26/10%) • ≥ 200tr (26/22/20/10%) • ≥ 100tr (22/20/18/10%) • ≥ 50tr (20/18/14/10%) • &lt; 50tr (16/14/10/10%) — theo lượt HĐ: ≥5, 3-4, 2, &lt;2
         </div>
 
         {/* Filters */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
             <input type="text" placeholder="Tìm tên / mã TN..." value={ptkdNameFilter} onChange={e => setPtkdNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
@@ -5019,7 +5019,7 @@ export default function QuanLyPage() {
     return (
       <div className="space-y-1">
         {/* Summary card */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center gap-2">
             <Merge className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng TTN Tuyển Ngang</p>
