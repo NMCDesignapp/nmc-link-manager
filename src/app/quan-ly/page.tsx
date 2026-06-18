@@ -5111,30 +5111,29 @@ export default function QuanLyPage() {
 
     return (
       <div className="flex flex-col h-full gap-1">
-        {/* Top 1/4: image (left) + header/summary/filters (right) */}
-        <div className="flex gap-2 flex-shrink-0" style={{ height: '25%', minHeight: '120px', maxHeight: '200px' }}>
-          {/* Left: Image box — fit to frame */}
-          <div className="flex-shrink-0 rounded-md overflow-hidden border border-emerald-500/20 shadow-md" style={{ width: '160px' }}>
+        {/* Top 1/4: split 50/50 — image (left) + header+summary+filter (right) */}
+        <div className="flex gap-2 flex-shrink-0" style={{ height: '25%', minHeight: '140px', maxHeight: '220px' }}>
+          {/* Left: Image box — 50% width, full height */}
+          <div className="w-1/2 rounded-md overflow-hidden border border-emerald-500/20 shadow-md flex-shrink-0">
             {imageLink ? (
               <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[9px] text-center p-2 gap-1">
-                <Settings className="w-5 h-5 text-gray-500" />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-2">
+                <Settings className="w-6 h-6 text-gray-500" />
                 <span>Chưa có ảnh</span>
-                <span className="text-gray-500">Bấm nút "Ảnh" để thêm link</span>
+                <span className="text-gray-500">Bấm nút "Ảnh" để thêm link hoặc tải lên</span>
               </div>
             )}
           </div>
-          {/* Right: header + summary + filters */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1 overflow-hidden">
-            {/* Header row with settings button */}
+          {/* Right: 50% width — header + summary + filters */}
+          <div className="w-1/2 flex flex-col gap-1 overflow-hidden">
+            {/* Header row */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="w-7 h-7 flex items-center justify-center text-white rounded-md flex-shrink-0" style={{ backgroundColor: item.color }}>
                 <Icon className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-black uppercase truncate" style={{ color: item.color }}>{item.label}</p>
-                <p className="text-[9px] text-gray-400 truncate">{item.desc}</p>
               </div>
               <Button
                 variant="ghost"
@@ -5149,7 +5148,7 @@ export default function QuanLyPage() {
                 <Settings className="w-3 h-3 mr-1" /> Ảnh
               </Button>
             </div>
-            {/* Summary + filters will be rendered inside policyContent below */}
+            {/* Summary + filters will show in policyContent below */}
           </div>
         </div>
 
