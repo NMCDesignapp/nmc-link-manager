@@ -3949,12 +3949,12 @@ export default function QuanLyPage() {
   };
 
   // ========== THƯỞNG TUYỂN LUYỆN ==========
-  // NTD (Người Tuyển Dụng) được thưởng dựa trên SL TVV HĐC (hợp đồng cấp) trong tháng.
+  // NTD (Người Tuyển Dụng) được thưởng dựa trên SL TVVm HĐC (hợp đồng cấp) trong tháng.
   // HĐC = TVV được tuyển dụng có ít nhất 1 contract trong tháng hiện tại.
   // Tiers:
-  //   1 TVV HĐC  → 100% thưởng TVVm (base 3tr) = 3tr/TVV
-  //   2-3 TVV HĐC → 125% = 3.75tr/TVV
-  //   ≥4 TVV HĐC → 150% = 4.5tr/TVV
+  //   1 TVVm HĐC  → 100% thưởng TVVm (base 3tr) = 3tr/TVV
+  //   2-3 TVVm HĐC → 125% = 3.75tr/TVV
+  //   ≥4 TVVm HĐC → 150% = 4.5tr/TVV
   const renderThuongTuyenLuyen = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -3973,7 +3973,7 @@ export default function QuanLyPage() {
         nhomName: l.nhom || '',
       }));
 
-    // Build NTD rows: for each candidate, count TVVs they recruited that have HĐC in current month
+    // Build NTD rows: for each candidate, count TVVm (≤12 tháng) they recruited that have HĐC in current month
     const ntdRows = ntdCandidates.map((ntd) => {
       // Find all TVVStruct records where maTVVTuyendung === ntd.agentCode
       // (or fallback via contracts where maDaiLyTD === ntd.agentCode)
@@ -3983,8 +3983,11 @@ export default function QuanLyPage() {
         return contracts.some(c => c.agentCode === tvv.agentCode && c.maDaiLyTD === ntd.agentCode);
       });
 
-      // Count TVVs with HĐC (at least 1 contract in current month)
-      const tvvHDCCount = recruitedTVVs.filter(tvv => {
+      // Count TVVm (≤12 tháng, tính tròn tháng) with HĐC (at least 1 contract in current month)
+      const tvvmHDCCount = recruitedTVVs.filter(tvv => {
+        // Phải là TVVm: ngày bắt đầu LV ≤ 12 tháng (tính tròn tháng)
+        if (!isTVVm(tvv.ngayBatDau)) return false;
+        // Phải có HĐC: ít nhất 1 contract trong tháng hiện tại
         return contracts.some(c => {
           if (c.agentCode !== tvv.agentCode) return false;
           const d = getDoanhSoMonth(c);
@@ -3995,11 +3998,11 @@ export default function QuanLyPage() {
 
       // Determine tier multiplier
       let multiplier = 0;
-      if (tvvHDCCount >= 4) multiplier = 1.5;
-      else if (tvvHDCCount >= 2) multiplier = 1.25;
-      else if (tvvHDCCount >= 1) multiplier = 1.0;
+      if (tvvmHDCCount >= 4) multiplier = 1.5;
+      else if (tvvmHDCCount >= 2) multiplier = 1.25;
+      else if (tvvmHDCCount >= 1) multiplier = 1.0;
 
-      const tienThuong = tvvHDCCount * TL_BASE * multiplier;
+      const tienThuong = tvvmHDCCount * TL_BASE * multiplier;
 
       // Resolve NHÓM từ DS TB/TN (đã có sẵn field nhom)
       const nhomName = ntd.nhomName || resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders);
@@ -4009,19 +4012,19 @@ export default function QuanLyPage() {
         nhom: nhomName,
         maNTD: ntd.agentCode,
         hoTen: ntd.agentName,
-        slTVVHDC: tvvHDCCount,
+        slTVVmHDC: tvvmHDCCount,
         multiplier,
         tienThuong,
       };
     });
 
-    // Sort: SL TVV HĐC desc, then TIỀN THƯỞNG desc
+    // Sort: SL TVVm HĐC desc, then TIỀN THƯỞNG desc
     ntdRows.sort((a, b) => {
-      if (b.slTVVHDC !== a.slTVVHDC) return b.slTVVHDC - a.slTVVHDC;
+      if (b.slTVVmHDC !== a.slTVVmHDC) return b.slTVVmHDC - a.slTVVmHDC;
       return b.tienThuong - a.tienThuong;
     });
 
-    // Filter — chỉ filter theo NHÓM và search, KHÔNG filter theo slTVVHDC
+    // Filter — chỉ filter theo NHÓM và search, KHÔNG filter theo slTVVmHDC
     // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng NTD từ cấu trúc
     // File doanh số chỉ để tính toán, không filter đối tượng
     const filteredRows = ntdRows.filter(row => {
@@ -4032,7 +4035,7 @@ export default function QuanLyPage() {
     filteredRows.forEach((row, idx) => { row.stt = idx + 1; });
 
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
-    const totalSLTVVHDC = filteredRows.reduce((s, r) => s + r.slTVVHDC, 0);
+    const totalSLTVVHDC = filteredRows.reduce((s, r) => s + r.slTVVmHDC, 0);
     const uniqueNhomList = Array.from(new Set(ntdRows.map(r => r.nhom).filter(Boolean))).sort();
 
     const THUONG_BG = '#FEF3C7';
@@ -4056,7 +4059,7 @@ export default function QuanLyPage() {
                 <p className="text-sm font-black text-emerald-700">{filteredRows.length}</p>
               </div>
               <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG SL TVV HĐC</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG SL TVVm HĐC</p>
                 <p className="text-sm font-black text-emerald-700">{totalSLTVVHDC}</p>
               </div>
               <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
@@ -4069,7 +4072,7 @@ export default function QuanLyPage() {
 
         {/* Tier hint */}
         <div className="text-[10px] text-gray-500 italic">
-          Base: 3tr/TVV HĐC • 1 TVV = 100% • 2-3 TVV = 125% • ≥4 TVV = 150%
+          Base: 3tr/TVVm HĐC • 1 TVV = 100% • 2-3 TVV = 125% • ≥4 TVV = 150%
         </div>
 
         {/* Filters */}
@@ -4096,7 +4099,7 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN NTD</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVV HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
             </thead>
@@ -4109,7 +4112,7 @@ export default function QuanLyPage() {
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maNTD}</td>
                   <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(row.slTVVHDC - 1, 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.slTVVHDC}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(row.slTVVmHDC - 1, 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.slTVVmHDC}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
                     {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
