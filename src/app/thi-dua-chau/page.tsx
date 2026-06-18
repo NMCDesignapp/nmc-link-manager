@@ -635,18 +635,22 @@ export default function ThiDuaPage() {
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
   const displayContracts = useMemo(() => {
+    // Luôn loại trừ hợp đồng thuộc nhóm DSO (không tham gia thi đua)
+    const contractsNoDSO = filteredContracts.filter(c => !norm(c.nhom || '').toLowerCase().includes('dso') && !norm(c.maNhom || '').toLowerCase().includes('dso'));
     if (targetType === 'tvv') {
-      if (subjectCodes.length === 0) return filteredContracts;
-      return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
+      if (subjectCodes.length === 0) return contractsNoDSO;
+      return contractsNoDSO.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
     }
     if (targetType === 'nhom') {
-      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại PA)
-      // Sau đó lọc HĐ theo mã nhóm
+      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại DSO)
+      // PA vẫn được tính thi đua bình thường
       const allowedMaNhom = new Set<string>();
       if (subjectCodes.length > 0) {
         // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
         for (const code of subjectCodes) {
           const codeLower = norm(code).toLowerCase();
+          // Bỏ nhóm DSO (không tham gia thi đua)
+          if (codeLower.includes('dso')) continue;
           const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
           if (staff?.maNhom) {
             allowedMaNhom.add(staff.maNhom);
@@ -655,26 +659,29 @@ export default function ThiDuaPage() {
           }
         }
       } else {
-        // Không nhập đối tượng → lấy tất cả nhóm từ Staff table (trừ PA)
+        // Không nhập đối tượng → lấy tất cả nhóm từ Staff table (trừ PA và DSO)
         for (const s of staffList) {
-          if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+          const nhomLower = norm(s.nhom || '').toLowerCase();
+          if (s.maNhom && !nhomLower.includes('dso') && !s.maNhom.toLowerCase().includes('dso')) {
             allowedMaNhom.add(s.maNhom);
           }
         }
       }
-      return filteredContracts.filter(c => allowedMaNhom.has(c.maNhom));
+      return contractsNoDSO.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
     }
     if (targetType === 'nyd') {
       // NTD: xác định tập mã NTD từ Recruiter table
+      // Bỏ NTD thuộc nhóm DSO
+      const ntdNoDSO = recruiterList.filter(r => !norm(r.nhom || '').toLowerCase().includes('dso'));
       if (subjectCodes.length > 0) {
-        return filteredContracts.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+        return contractsNoDSO.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
           (c.maDaiLyTD && subjectCodes.includes(c.maDaiLyTD)));
       }
-      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table
-      const ntdCodes = new Set(recruiterList.map(r => r.agentCode));
-      return filteredContracts.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
+      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table (trừ DSO)
+      const ntdCodes = new Set(ntdNoDSO.map(r => r.agentCode));
+      return contractsNoDSO.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
     }
-    return filteredContracts;
+    return contractsNoDSO;
   }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
 
   // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
@@ -935,6 +942,8 @@ export default function ThiDuaPage() {
       // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
+        // Bỏ nhóm DSO (không tham gia thi đua)
+        if (codeLower.includes('dso')) continue;
         const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
         if (staff?.maNhom) {
           allowedMaNhom.add(staff.maNhom);
@@ -944,9 +953,11 @@ export default function ThiDuaPage() {
         }
       }
     } else {
-      // Không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
+      // Không nhập → lấy tất cả nhóm từ Staff table (trừ DSO)
       for (const s of staffList) {
-        if (s.maNhom && !norm(s.nhom || '').toLowerCase().includes('pa')) {
+        const nhomLower = norm(s.nhom || '').toLowerCase();
+        const maNhomLower = (s.maNhom || '').toLowerCase();
+        if (s.maNhom && !nhomLower.includes('dso') && !maNhomLower.includes('dso')) {
           allowedMaNhom.add(s.maNhom);
         }
       }
@@ -956,8 +967,10 @@ export default function ThiDuaPage() {
     for (const s of staffList) {
       if (!s.maNhom) continue;
       if (map.has(s.maNhom)) continue;
-      // Loại bỏ nhóm PA
-      if (norm(s.nhom || '').toLowerCase().includes('pa')) continue;
+      // Loại bỏ nhóm DSO (PA vẫn được tính thi đua)
+      const nhomLower = norm(s.nhom || '').toLowerCase();
+      const maNhomLower = (s.maNhom || '').toLowerCase();
+      if (nhomLower.includes('dso') || maNhomLower.includes('dso')) continue;
       // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
       if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
 
@@ -3536,7 +3549,7 @@ export default function ThiDuaPage() {
                         ? recruiterList.map(r => (
                             <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
                           ))
-                        : [...new Map(staffList.filter(s => s.maNhom).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
+                        : [...new Map(staffList.filter(s => s.maNhom && !norm(s.nhom || '').toLowerCase().includes('dso') && !(s.maNhom || '').toLowerCase().includes('dso')).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
                             <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
                           ))
                     }
