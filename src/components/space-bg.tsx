@@ -378,7 +378,7 @@ export function SpaceBackground() {
     <canvas
       ref={canvasRef}
       className="pointer-events-none fixed inset-0 z-0"
-      style={{ opacity: 0.75 }}
+      style={{ opacity: 1 }}
     />
   )
 }
