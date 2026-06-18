@@ -198,6 +198,17 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
 ];
 
+// Mobile menu button colors (solid)
+const SHEET_MOBILE_COLORS: Record<SheetKey, string> = {
+  overview: '#059669',
+  leaders: '#7C3AED',
+  recruiters: '#CA8A04',
+  revenue: '#0891B2',
+  kehoach: '#DC2626',
+  report: '#2563EB',
+  structure: '#0D9488',
+};
+
 // Templates
 const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, string>[] }> = {
   leaders: {
@@ -1183,6 +1194,9 @@ export default function QuanLyPage() {
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuPopup, setMobileMenuPopup] = useState<SheetKey | null>(null); // mobile: which sheet popup is open
+  const [mobilePolicyPopupOpen, setMobilePolicyPopupOpen] = useState(false); // mobile: policy sub-item popup
+  const [mobileRevenuePopupOpen, setMobileRevenuePopupOpen] = useState(false); // mobile: revenue month popup
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
 
   // Online settings state (fetched from API instead of localStorage)
@@ -2519,8 +2533,80 @@ export default function QuanLyPage() {
         <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
       </div>
 
-      {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện */}
-      {(() => {
+      {/* ===== MOBILE MENU SECTION — dời từ sidebar vào giữa, chỉ hiển thị mobile ===== */}
+      <div className="md:hidden">
+        <div className="rounded-none p-2.5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+          <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-2">Menu</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {SHEETS.map(sheet => {
+              const color = SHEET_MOBILE_COLORS[sheet.key];
+              const isActive = activeSheet === sheet.key;
+              const Icon = sheet.icon;
+              return (
+                <div key={sheet.key} className="relative">
+                  <button
+                    onClick={() => {
+                      if (sheet.hasSub) {
+                        // Toggle popup for sheets with sub-items
+                        setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
+                      } else {
+                        setActiveSheet(sheet.key);
+                        setSearchTerm('');
+                        setSortField('');
+                        setMobileMenuPopup(null);
+                      }
+                    }}
+                    className="w-full flex items-center gap-1.5 px-2 py-2 text-[11px] font-bold text-white rounded-sm transition-all"
+                    style={{
+                      backgroundColor: color,
+                      boxShadow: isActive ? `0 0 0 2px #fff, 0 0 8px ${color}80` : '0 2px 4px rgba(0,0,0,0.3)',
+                      opacity: isActive && !sheet.hasSub ? 1 : 0.95,
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate flex-1 text-left">{sheet.label}</span>
+                    {sheet.hasSub && (
+                      <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  {/* Popup sub-items (for revenue/report) */}
+                  {sheet.hasSub && mobileMenuPopup === sheet.key && (
+                    <div className="absolute top-full left-0 right-0 mt-0.5 z-[200] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
+                      {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
+                        const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
+                        return (
+                          <button
+                            key={s.key}
+                            onClick={() => {
+                              if (sheet.key === 'revenue') {
+                                setActiveSheet('revenue');
+                                setRevenueSub(s.key as RevenueSubKey);
+                              } else {
+                                setActiveSheet('report');
+                                setPolicyOpen(s.key);
+                              }
+                              setMobileMenuPopup(null);
+                            }}
+                            className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                          >
+                            <s.Icon className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate flex-1">{s.label}</span>
+                            {subActive && <span className="text-emerald-400">●</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện (chỉ desktop, ẩn trên mobile) */}
+      <div className="hidden md:block">
+        {(() => {
         const monthlyData = Array.from({ length: 12 }, (_, i) => {
           const m = String(i + 1).padStart(2, '0');
           const mc = yearContracts.filter(c => {
@@ -2593,7 +2679,8 @@ export default function QuanLyPage() {
             </div>
           </div>
         );
-      })()}
+        })()}
+      </div>
     </div>
   );
 
@@ -5177,6 +5264,38 @@ export default function QuanLyPage() {
                 <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
+            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, bấm popup chọn chính sách khác */}
+            <div className="relative flex-shrink-0 z-[200] md:hidden">
+              <button
+                onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
+                className="w-full flex items-center justify-between px-1.5 py-0.5 text-[9px] bg-emerald-600 border border-emerald-300 text-white hover:bg-emerald-500 rounded-sm font-bold"
+              >
+                <span className="truncate flex items-center gap-1">
+                  <BookOpen className="w-3 h-3 flex-shrink-0" />
+                  {item.label}
+                </span>
+                <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobilePolicyPopupOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {mobilePolicyPopupOpen && (
+                <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
+                  {POLICY_ITEMS.map(p => {
+                    const subActive = policyOpen === p.key;
+                    const PIcon = p.icon;
+                    return (
+                      <button
+                        key={p.key}
+                        onClick={() => { setPolicyOpen(p.key); setMobilePolicyPopupOpen(false); }}
+                        className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                      >
+                        <PIcon className="w-3 h-3 flex-shrink-0" style={{ color: p.color }} />
+                        <span className="truncate flex-1">{p.label}</span>
+                        {subActive && <span className="text-emerald-400">●</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao để không bị che */}
             {isTvvPolicy && (
               <div className="relative flex-shrink-0 z-[200]">
@@ -5288,8 +5407,41 @@ export default function QuanLyPage() {
 
     return (
       <div>
-        {/* Month sub-tabs — horizontally scrollable on mobile */}
-        <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 md:flex-wrap" style={{ scrollbarWidth: 'none' }}>
+        {/* Mobile: nút popup chọn tháng — thay thế month sub-tabs */}
+        <div className="relative mb-3 md:hidden">
+          <button
+            onClick={() => setMobileRevenuePopupOpen(!mobileRevenuePopupOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold bg-[#0891B2] border border-cyan-300 text-white hover:bg-cyan-700 rounded-sm"
+          >
+            <span className="truncate flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 flex-shrink-0" />
+              {revenueSub === 'all' ? 'Cả năm' : `Tháng ${revenueSub.replace('0', '')}`}
+            </span>
+            <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${mobileRevenuePopupOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {mobileRevenuePopupOpen && (
+            <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[260px] overflow-y-auto rounded-sm shadow-2xl">
+              {MONTHS.map(m => {
+                const subActive = revenueSub === m.key;
+                const MIcon = m.key === 'all' ? TrendingUp : Calendar;
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); setMobileRevenuePopupOpen(false); }}
+                    className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                  >
+                    <MIcon className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate flex-1">{m.label}</span>
+                    {subActive && <span className="text-emerald-400">●</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Month sub-tabs — desktop only */}
+        <div className="hidden md:flex md:items-center md:gap-1 md:mb-3 md:flex-wrap">
           {MONTHS.map(m => (
             <button
               key={m.key}
@@ -5957,11 +6109,14 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
-        {/* Mobile hamburger */}
-        <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
-        <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {/* Desktop: back to home (left) */}
+        <Button variant="ghost" onClick={() => router.push('/')} className="hidden md:inline-flex text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
+        {/* Mobile: in overview → back to home (left). In sub-pages → no left back, will be on right */}
+        <Button variant="ghost" onClick={() => router.push('/')} className={`md:hidden text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 ${activeSheet !== 'overview' ? 'hidden' : ''}`}><ArrowLeft className="w-4 h-4" /></Button>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* Mobile: in sub-pages → back to overview button (right side) */}
+          <Button variant="ghost" onClick={() => { setActiveSheet('overview'); setMobileMenuPopup(null); }} className={`md:hidden text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 ${activeSheet === 'overview' ? 'hidden' : ''}`} title="Về Tổng quan"><ArrowLeft className="w-4 h-4" /></Button>
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>
@@ -6067,6 +6222,14 @@ export default function QuanLyPage() {
           {renderSheet()}
         </main>
       </div>
+
+      {/* Mobile: backdrop đóng popup khi click ra ngoài */}
+      {(mobileMenuPopup || mobilePolicyPopupOpen || mobileRevenuePopupOpen) && (
+        <div
+          className="fixed inset-0 z-[150] md:hidden"
+          onClick={() => { setMobileMenuPopup(null); setMobilePolicyPopupOpen(false); setMobileRevenuePopupOpen(false); }}
+        />
+      )}
 
       {/* ========== Settings Dialog ========== */}
       <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
