@@ -4891,19 +4891,54 @@ export default function QuanLyPage() {
     const item = POLICY_ITEMS.find(i => i.key === policyOpen);
     if (!item) return null;
     const Icon = item.icon;
+    const imageLink = policyImageLinks[policyOpen] || '';
+
     return (
-      <div className="space-y-3">
-        {/* Section header */}
-        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-          <div className="w-7 h-7 flex items-center justify-center text-white rounded-md" style={{ backgroundColor: item.color }}>
-            <Icon className="w-4 h-4" />
+      <div className="flex flex-col h-full">
+        {/* Top section (1/4): đường kẻ ngang tách — chia 2 phần */}
+        <div className="flex gap-2 flex-shrink-0 pb-2 border-b-2 border-emerald-500/30" style={{ height: '25vh', minHeight: '130px', maxHeight: '200px' }}>
+          {/* Left: Image box — mobile 2/3, desktop 1/2 */}
+          <div className="w-2/3 md:w-1/2 rounded-md overflow-hidden border border-emerald-500/20 shadow-md flex-shrink-0">
+            {imageLink ? (
+              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-2">
+                <Settings className="w-6 h-6 text-gray-500" />
+                <span>Chưa có ảnh</span>
+                <span className="text-gray-500">Bấm nút "Ảnh"</span>
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
-            <p className="text-[9px] text-gray-400">{item.desc}</p>
+          {/* Right: mobile 1/3, desktop 1/2 — header + 2 ô tổng hợp */}
+          <div className="w-1/3 md:w-1/2 flex flex-col gap-1.5 overflow-hidden">
+            {/* Header + nút ảnh */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-6 h-6 flex items-center justify-center text-white rounded-md flex-shrink-0" style={{ backgroundColor: item.color }}>
+                <Icon className="w-3.5 h-3.5" />
+              </div>
+              <p className="text-[11px] font-black uppercase truncate flex-1 min-w-0" style={{ color: item.color }}>{item.label}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPolicyImageEditingKey(policyOpen);
+                  setPolicyImageInput(imageLink);
+                  setPolicyImageDialogOpen(true);
+                }}
+                className="h-5 text-[9px] text-amber-300 hover:text-amber-200 border border-amber-500/30 bg-amber-500/10 flex-shrink-0 px-1.5"
+              >
+                <Settings className="w-2.5 h-2.5 mr-0.5" />Ảnh
+              </Button>
+            </div>
+            {/* 2 ô tổng hợp — sẽ được fill bởi policyContent */}
+            {/* (summary + filter nằm trong renderPolicyContent bên dưới) */}
           </div>
         </div>
-        {renderPolicyContent(policyOpen)}
+
+        {/* Bottom section (3/4): bảng chi tiết + summary + filter */}
+        <div className="flex-1 min-h-0 overflow-y-auto pt-2" style={{ scrollbarWidth: 'thin' }}>
+          {renderPolicyContent(policyOpen)}
+        </div>
       </div>
     );
   };
