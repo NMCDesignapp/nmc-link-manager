@@ -4141,9 +4141,16 @@ export default function QuanLyPage() {
   const renderThuongDongHanh = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
-    const DH_PER_TVVM = 500_000;
-    const VT_FYP_THRESHOLD = 100_000_000;
-    const VT_BONUS = 2_000_000;
+    // Theo ảnh chính sách Thưởng Đồng Hành:
+    // (1) Thưởng ĐỒNG HÀNH = % × Tổng thưởng TVVm tại tháng
+    //     ≥3 TVVm HĐC: 200% | 2 TVVm HĐC: 100% | 1: 0%
+    // (2) Thưởng VƯỢT TRỘI = số tiền cố định theo FYP TVVm + SL TVVm HĐC
+    //     FYP ≥ 45tr + ≥3: 5tr | FYP ≥ 45tr + 2: 3tr
+    //     FYP ≥ 35tr + ≥3: 3tr | FYP ≥ 35tr + 2: 3tr
+    const VT_FYP_45M = 45_000_000;
+    const VT_FYP_35M = 35_000_000;
+    const VT_BONUS_5M = 5_000_000;
+    const VT_BONUS_3M = 3_000_000;
 
     // Identify TTNs — dùng DS NTD (Recruiter table), lọc chức vụ "Tiền trưởng nhóm"
     // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
@@ -4194,8 +4201,57 @@ export default function QuanLyPage() {
         return tvvContracts.length > 0;
       }).length;
 
-      const thuongDongHanh = tvvmHDCCount * DH_PER_TVVM;
-      const thuongVuotTroi = fypTVVm >= VT_FYP_THRESHOLD ? VT_BONUS : 0;
+      // Tính Tổng thưởng TVVm tại tháng (thưởng tháng + thưởng chặng của tất cả TVVm trong nhóm)
+      let tongThuongTVVm = 0;
+      tvvmInNhom.forEach(tvv => {
+        const changInfo = getChangInfo(tvv.ngayBatDau);
+        // IP tháng hiện tại
+        const monthContracts = contracts.filter(c => {
+          if (c.agentCode !== tvv.agentCode) return false;
+          const d = getDoanhSoMonth(c);
+          if (isNaN(d.getTime())) return false;
+          return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+        });
+        const tongIPThang = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+        // Thưởng tháng: IP ≥ 12tr → 1tr
+        const thuongThang = tongIPThang >= 12_000_000 ? 1_000_000 : 0;
+
+        // IP chặng
+        let tongIPChang = 0;
+        if (tvv.ngayBatDau && changInfo.chang > 0) {
+          const rs = changInfo.rangeStart;
+          const re = changInfo.rangeEnd;
+          const reEnd = new Date(re.getFullYear(), re.getMonth(), re.getDate(), 23, 59, 59);
+          const changContracts = contracts.filter(c => {
+            if (c.agentCode !== tvv.agentCode) return false;
+            const d = getDoanhSoMonth(c);
+            return !isNaN(d.getTime()) && d >= rs && d <= reEnd;
+          });
+          tongIPChang = changContracts.reduce((s, c) => s + c.pdt10DT, 0);
+        }
+        // Thưởng chặng
+        let thuongChang = 0;
+        if (changInfo.chang === 1) {
+          if (tongIPChang >= 100_000_000) thuongChang = 6_000_000;
+          else if (tongIPChang >= 50_000_000) thuongChang = 3_000_000;
+        } else if (changInfo.chang >= 2 && changInfo.chang <= 4) {
+          if (tongIPChang >= 100_000_000) thuongChang = 3_000_000;
+        }
+        tongThuongTVVm += thuongThang + thuongChang;
+      });
+
+      // (1) Thưởng ĐỒNG HÀNH = % × Tổng thưởng TVVm
+      let dhMultiplier = 0;
+      if (tvvmHDCCount >= 3) dhMultiplier = 2.0;  // 200%
+      else if (tvvmHDCCount === 2) dhMultiplier = 1.0;  // 100%
+      const thuongDongHanh = Math.round(tongThuongTVVm * dhMultiplier);
+
+      // (2) Thưởng VƯỢT TRỘI = cố định theo FYP TVVm + SL TVVm HĐC
+      let thuongVuotTroi = 0;
+      if (fypTVVm >= VT_FYP_45M && tvvmHDCCount >= 3) thuongVuotTroi = VT_BONUS_5M;
+      else if (fypTVVm >= VT_FYP_45M && tvvmHDCCount === 2) thuongVuotTroi = VT_BONUS_3M;
+      else if (fypTVVm >= VT_FYP_35M && tvvmHDCCount >= 2) thuongVuotTroi = VT_BONUS_3M;
+
       const tongTienThuong = thuongDongHanh + thuongVuotTroi;
 
       // NHÓM: dùng luôn nhomName từ DS NTD
@@ -4207,6 +4263,7 @@ export default function QuanLyPage() {
         maTTN: ttn.agentCode,
         hoTen: ttn.agentName,
         fypTVVm,
+        tongThuongTVVm,
         slTVVmHDC: tvvmHDCCount,
         thuongDongHanh,
         thuongVuotTroi,
@@ -4268,7 +4325,7 @@ export default function QuanLyPage() {
         </div>
 
         <div className="text-[10px] text-gray-500 italic">
-          Đồng Hành: {formatCurrency(DH_PER_TVVM)}/TVVm HĐC • Vượt Trội: FYP ≥ 100tr → +{formatCurrency(VT_BONUS)}
+          Đồng Hành: ≥3 TVVm HĐC = 200% thưởng TVVm • 2 TVVm = 100% • Vượt Trội: FYP ≥ 45tr → 5tr/3tr • FYP ≥ 35tr → 3tr
         </div>
 
         <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -4294,6 +4351,7 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TTN</th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>FYP TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG ĐỒNG HÀNH</th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG VƯỢT TRỘI</th>
@@ -4302,7 +4360,7 @@ export default function QuanLyPage() {
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
-                <tr><td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TTN nào đạt điều kiện trong tháng {currentMonth}.</td></tr>
+                <tr><td colSpan={10} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TTN nào đạt điều kiện trong tháng {currentMonth}.</td></tr>
               ) : filteredRows.map((row) => (
                 <tr key={row.maTTN} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
@@ -4310,6 +4368,7 @@ export default function QuanLyPage() {
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTTN}</td>
                   <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.fypTVVm > 0 ? formatNumber(row.fypTVVm) : '—'}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.tongThuongTVVm > 0 ? formatCurrency(row.tongThuongTVVm) : '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(row.slTVVmHDC, 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.slTVVmHDC}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
                     {row.thuongDongHanh > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.thuongDongHanh)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
@@ -4326,6 +4385,7 @@ export default function QuanLyPage() {
                 <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TTN)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFypTVVm)}</td>
+                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalSLTVVmHDC}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
                     <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalThuongDongHanh)}</span>
