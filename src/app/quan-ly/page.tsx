@@ -308,25 +308,26 @@ function resolveNguoiTD(
   contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
   recruiters: Array<{ agentCode: string; agentName: string }>,
 ): string {
+  // NGUYÊN TẮC: cái nào trống để trống, không tự điền data
   // Priority 1: tvvStructList lookup by maTVVTuyendung
   if (tvvMaTVVTuyendung && tvvMaTVVTuyendung.trim()) {
     const tdTVV = tvvStructList.find(t => t.agentCode === tvvMaTVVTuyendung.trim());
     if (tdTVV?.agentName) return tdTVV.agentName;
+    // Nếu có mã nhưng không tìm thấy tên → trả mã
+    return tvvMaTVVTuyendung.trim();
   }
-  // Priority 2 & 3: find maDaiLyTD from contracts of this TVV
+  // Priority 2: find maDaiLyTD from contracts of this TVV
   if (tvvAgentCode) {
     const contractWithTD = contracts.find(c => c.agentCode === tvvAgentCode && c.maDaiLyTD && c.maDaiLyTD.trim());
     if (contractWithTD?.maDaiLyTD) {
-      // Try recruiter table first
       const recruiter = recruiters.find(r => r.agentCode === contractWithTD.maDaiLyTD);
       if (recruiter?.agentName) return recruiter.agentName;
-      // Fallback: find contract of the recruiter and use their name
       const recruiterContract = contracts.find(rc => rc.agentCode === contractWithTD.maDaiLyTD);
       if (recruiterContract?.agentName) return recruiterContract.agentName;
-      // Last resort: use the code itself
       return contractWithTD.maDaiLyTD;
     }
   }
+  // Trống → để trống, không tự đoán
   return '';
 }
 
@@ -5354,25 +5355,36 @@ export default function QuanLyPage() {
                                 {/* TVV list — animated slide-down */}
                                 <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                   {bnTVVs.length > 0 ? (
-                                    <div className="ml-5 mt-0.5 space-y-0">
+                                    <div className="ml-3 mt-0.5 overflow-x-auto">
+                                      {/* Header row — column labels */}
+                                      <div className="flex items-center gap-2 px-2 py-0.5 text-[8px] font-bold uppercase text-gray-400 bg-gray-100 border-b border-gray-200 sticky top-0">
+                                        <span className="w-4 text-center flex-shrink-0">#</span>
+                                        <span className="min-w-[80px] flex-1">HỌ TÊN</span>
+                                        <span className="w-[70px] flex-shrink-0 hidden sm:inline">MÃ TVV</span>
+                                        <span className="w-[60px] flex-shrink-0 hidden sm:inline">NGÀY BĐ</span>
+                                        <span className="w-[70px] flex-shrink-0 hidden md:inline">CHỨC VỤ</span>
+                                        <span className="w-[70px] flex-shrink-0 hidden lg:inline">MÃ TVV TD</span>
+                                        <span className="w-[28px] flex-shrink-0"></span>
+                                      </div>
                                       {bnTVVs.map((t, idx) => (
                                         <div
                                           key={t.id}
-                                          className="flex items-center gap-2 px-2.5 py-1 hover:bg-emerald-100 transition-all duration-200 rounded-sm group"
+                                          className="flex items-center gap-2 px-2 py-1 hover:bg-emerald-50 transition-colors border-b border-gray-100 group"
                                           style={{
-                                            transitionDelay: isExpanded ? `${idx * 30}ms` : '0ms',
-                                            transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
+                                            transitionDelay: isExpanded ? `${idx * 20}ms` : '0ms',
+                                            transform: isExpanded ? 'translateY(0)' : 'translateY(-2px)',
                                             opacity: isExpanded ? 1 : 0,
                                           }}
                                         >
-                                          <span className="text-gray-400 text-[9px] w-4 text-right flex-shrink-0">{idx + 1}</span>
-                                          <span className="text-gray-700 text-[10px] font-medium truncate flex-1 min-w-0">{t.agentName}</span>
-                                          {t.chucVu && <span className="text-emerald-700 text-[9px] flex-shrink-0 font-semibold">{t.chucVu}</span>}
-                                          {t.maTVVTuyendung && <span className="text-violet-600 text-[9px] flex-shrink-0">TD: {t.maTVVTuyendung}</span>}
-                                          {t.ngayBatDau && <span className="text-gray-400 text-[9px] flex-shrink-0">{safeFormatDate(t.ngayBatDau)}</span>}
-                                          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2 h-2" /></Button>
-                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2 h-2" /></Button>
+                                          <span className="text-gray-400 text-[10px] w-4 text-center flex-shrink-0">{idx + 1}</span>
+                                          <span className="text-gray-800 text-[11px] font-bold truncate min-w-[80px] flex-1">{t.agentName}</span>
+                                          <span className="text-gray-500 text-[10px] font-mono w-[70px] flex-shrink-0 truncate hidden sm:inline">{t.agentCode}</span>
+                                          <span className="text-gray-500 text-[10px] w-[60px] flex-shrink-0 hidden sm:inline">{t.ngayBatDau ? safeFormatDate(t.ngayBatDau) : '—'}</span>
+                                          <span className="text-emerald-700 text-[10px] font-semibold w-[70px] flex-shrink-0 truncate hidden md:inline">{t.chucVu || '—'}</span>
+                                          <span className="text-violet-600 text-[10px] font-mono w-[70px] flex-shrink-0 truncate hidden lg:inline">{t.maTVVTuyendung || '—'}</span>
+                                          <div className="flex items-center gap-0.5 w-[28px] flex-shrink-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2.5 h-2.5" /></Button>
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2.5 h-2.5" /></Button>
                                           </div>
                                         </div>
                                       ))}
