@@ -3047,6 +3047,11 @@ export default function QuanLyPage() {
   // Thưởng PTKD TN filters
   const [ptkdNhomFilter, setPtkdNhomFilter] = useState<string>('');
   const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
+  // Policy image link — per policy item
+  const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
+  const [policyImageDialogOpen, setPolicyImageDialogOpen] = useState(false);
+  const [policyImageEditingKey, setPolicyImageEditingKey] = useState('');
+  const [policyImageInput, setPolicyImageInput] = useState('');
 
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
@@ -5071,19 +5076,53 @@ export default function QuanLyPage() {
     const item = POLICY_ITEMS.find(i => i.key === policyOpen);
     if (!item) return null;
     const Icon = item.icon;
+    const imageLink = policyImageLinks[policyOpen] || '';
+
     return (
-      <div className="space-y-3">
-        {/* Section header */}
-        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-          <div className="w-7 h-7 flex items-center justify-center text-white rounded-md" style={{ backgroundColor: item.color }}>
-            <Icon className="w-4 h-4" />
+      <div className="flex flex-col h-full gap-2">
+        {/* Top section: 1/4 height, split into image (left) + header+summary (right) */}
+        <div className="flex gap-2 flex-shrink-0" style={{ height: '22vh', minHeight: '140px' }}>
+          {/* Left: Image box */}
+          <div className="flex-shrink-0 rounded-md overflow-hidden border border-emerald-500/20 bg-[#1a2332]/80" style={{ width: '180px' }}>
+            {imageLink ? (
+              <img src={imageLink} alt={item.label} className="w-full h-full object-cover" style={{ objectFit: 'cover' }} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400 text-[9px] text-center p-2">
+                Chưa có ảnh.<br/>Bấm nút cài đặt để thêm link.
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
-            <p className="text-[9px] text-gray-400">{item.desc}</p>
+          {/* Right: Section header + cài đặt button */}
+          <div className="flex-1 flex flex-col justify-between">
+            <div className="flex items-start gap-2">
+              <div className="w-7 h-7 flex items-center justify-center text-white rounded-md flex-shrink-0" style={{ backgroundColor: item.color }}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-black uppercase" style={{ color: item.color }}>{item.label}</p>
+                <p className="text-[9px] text-gray-400">{item.desc}</p>
+              </div>
+              {/* Settings button — add image link */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPolicyImageEditingKey(policyOpen);
+                  setPolicyImageInput(imageLink);
+                  setPolicyImageDialogOpen(true);
+                }}
+                className="h-6 text-[10px] text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 bg-amber-500/10 flex-shrink-0"
+              >
+                <Settings className="w-3 h-3 mr-1" /> Ảnh
+              </Button>
+            </div>
           </div>
         </div>
-        {renderPolicyContent(policyOpen)}
+
+        {/* Bottom section: 3/4 height — policy content (table) */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {renderPolicyContent(policyOpen)}
+        </div>
       </div>
     );
   };
@@ -6167,6 +6206,43 @@ export default function QuanLyPage() {
           </div>
           <DialogFooter>
             <Button onClick={() => setSettingsDialogOpen(false)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Policy Image Link Dialog */}
+      <Dialog open={policyImageDialogOpen} onOpenChange={setPolicyImageDialogOpen}>
+        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
+          <DialogHeader><DialogTitle className="text-amber-400">Cài đặt ảnh chính sách</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <div>
+              <Label className="text-xs text-emerald-200/70">Link ảnh (URL)</Label>
+              <Input
+                value={policyImageInput}
+                onChange={e => setPolicyImageInput(e.target.value)}
+                className="bg-white/5 border-emerald-500/20 text-white"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            {policyImageInput && (
+              <div className="rounded-md overflow-hidden border border-emerald-500/20" style={{ height: '120px' }}>
+                <img src={policyImageInput} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => {
+              setPolicyImageLinks(prev => {
+                const next = { ...prev };
+                delete next[policyImageEditingKey];
+                return next;
+              });
+              setPolicyImageDialogOpen(false);
+            }} className="text-red-300 hover:text-red-200 text-xs">Xóa ảnh</Button>
+            <Button onClick={() => {
+              setPolicyImageLinks(prev => ({ ...prev, [policyImageEditingKey]: policyImageInput }));
+              setPolicyImageDialogOpen(false);
+            }} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs">Lưu</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
