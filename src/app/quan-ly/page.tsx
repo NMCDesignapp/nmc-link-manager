@@ -5111,27 +5111,22 @@ export default function QuanLyPage() {
 
     return (
       <div className="flex flex-col h-full">
-        {/* Top 1/4: đường kẻ ngang tách — chia 2 phần */}
-        <div className="flex gap-2 flex-shrink-0 pb-2 border-b-2 border-emerald-500/30" style={{ height: '25vh', minHeight: '130px', maxHeight: '200px' }}>
-          {/* Left: Image — mobile 2/3, desktop 1/2 */}
-          <div className="w-2/3 md:w-1/2 rounded-md overflow-hidden border border-emerald-500/20 shadow-md flex-shrink-0">
+        {/* Top 1/4: liền nhau không gap — ảnh trái + tổng hợp/phải */}
+        <div className="flex flex-shrink-0 border-b border-emerald-500/20" style={{ height: '25vh', minHeight: '120px', maxHeight: '180px' }}>
+          {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô */}
+          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0">
             {imageLink ? (
-              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-2">
-                <Settings className="w-6 h-6 text-gray-500" />
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
+                <Settings className="w-5 h-5 text-gray-500" />
                 <span>Chưa có ảnh</span>
-                <span className="text-gray-500">Bấm nút "Ảnh"</span>
               </div>
             )}
           </div>
-          {/* Right: mobile 1/3, desktop 1/2 — header + nút ảnh */}
-          <div className="w-1/3 md:w-1/2 flex flex-col gap-1.5 overflow-hidden">
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-6 h-6 flex items-center justify-center text-white rounded-md flex-shrink-0" style={{ backgroundColor: item.color }}>
-                <Icon className="w-3.5 h-3.5" />
-              </div>
-              <p className="text-[11px] font-black uppercase truncate flex-1 min-w-0" style={{ color: item.color }}>{item.label}</p>
+          {/* Right: mobile 1/3, desktop 1/2 — summary + filter (thu nhỏ) */}
+          <div className="w-1/3 md:w-1/2 flex flex-col justify-center px-2 gap-1 overflow-hidden">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button variant="ghost" size="sm" onClick={() => { setPolicyImageEditingKey(policyOpen); setPolicyImageInput(imageLink); setPolicyImageDialogOpen(true); }} className="h-5 text-[9px] text-amber-300 hover:text-amber-200 border border-amber-500/30 bg-amber-500/10 flex-shrink-0 px-1.5">
                 <Settings className="w-2.5 h-2.5 mr-0.5" />Ảnh
               </Button>
@@ -5139,8 +5134,8 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        {/* Bottom 3/4: bảng chi tiết + summary + filter */}
-        <div className="flex-1 min-h-0 overflow-y-auto pt-2" style={{ scrollbarWidth: 'thin' }}>
+        {/* Bottom 3/4: bảng chi tiết — liền phần trên */}
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
           {renderPolicyContent(policyOpen)}
         </div>
       </div>
@@ -5884,7 +5879,7 @@ export default function QuanLyPage() {
         {/* Mobile hamburger */}
         <Button variant="ghost" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 md:hidden"><Menu className="w-5 h-5" /></Button>
         <Button variant="ghost" onClick={() => router.push('/')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] truncate">Quản Lý Dữ Liệu</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           <div className="relative hidden sm:block">
