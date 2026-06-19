@@ -372,6 +372,23 @@ function formatKpiCurrency(amount: number): string {
   return `${amount} đ`;
 }
 
+// Format tổng tiền thưởng cho ô tổng hợp trong chính sách đại lý
+// - Mobile: giá trị theo trđ (KHÔNG hiển thị chữ "trđ"), số nhỏ vừa ô, không tràn
+//   Vd: 15.500.000 → "15,5"; 350.000.000 → "350"; 1.500.000.000 → "1.500"
+// - Desktop: full format có dấu chấm hàng nghìn (vd "100.000.000"), không kèm đơn vị
+function formatPolicyAmountForBox(amount: number): string {
+  if (!amount || amount === 0) return '—';
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile) {
+    const trVal = amount / 1_000_000;
+    if (trVal >= 1000) return Math.round(trVal).toLocaleString('vi-VN');
+    if (trVal >= 100) return Math.round(trVal).toString();
+    if (trVal >= 10) return trVal.toFixed(1).replace('.', ',').replace(/,0$/, '');
+    return trVal.toFixed(2).replace('.', ',').replace(/,?0+$/, '');
+  }
+  return Math.round(amount).toLocaleString('vi-VN');
+}
+
 // Helper: convert any date value to yyyy-mm-dd for <input type="date">
 function toInputDate(val: any): string {
   if (!val) return '';
@@ -3155,9 +3172,11 @@ export default function QuanLyPage() {
       const dataEl = tableContainer?.querySelector('[data-policy-count]') as HTMLElement | null;
       const count = dataEl?.getAttribute('data-policy-count') || '0';
       const amount = dataEl?.getAttribute('data-policy-amount') || '0';
-      // Format amount bằng formatSmartCurrency để mobile hiển thị gọn (vd: "15 trđ")
+      // Format amount bằng formatPolicyAmountForBox:
+      // - Mobile: chỉ số trđ (vd "15,5") — KHÔNG hiển thị "trđ" → vừa ô không tràn
+      // - Desktop: full format "100.000.000"
       const amountNum = parseFloat(amount) || 0;
-      const amountFmt = amountNum > 0 ? formatSmartCurrency(amountNum) : '—';
+      const amountFmt = amountNum > 0 ? formatPolicyAmountForBox(amountNum) : '—';
 
       // Update 2 ô tổng hợp ở trên (mobile + desktop)
       const countEl = document.getElementById(`policy-count-${policyOpen}`);
@@ -3410,7 +3429,7 @@ export default function QuanLyPage() {
     const THUONG_FONT = '12px';   // +1 so với body font (11px)
 
     return (
-      <div className="space-y-1" data-policy-count={filteredTvvmRows.length} data-policy-amount={totalTienThuongAll}>
+      <div className="space-y-1" data-policy-count={tvvmDatThuongCount} data-policy-amount={totalTienThuongAll}>
         {/* Single summary card — gộp 4 ô thành 1 */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3674,7 +3693,7 @@ export default function QuanLyPage() {
     const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={tvvDatThuong} data-policy-amount={totalTienThuong}>
         {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3946,7 +3965,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';       // same emerald-800
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={tvvDatThuong} data-policy-amount={totalTienThuong}>
         {/* Single summary card — đồng nhất TVVm + Quý TVV */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4196,6 +4215,7 @@ export default function QuanLyPage() {
 
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
     const totalSLTVVHDC = filteredRows.reduce((s, r) => s + r.slTVVmHDC, 0);
+    const ntdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length;
     const uniqueNhomList = Array.from(new Set(ntdRows.map(r => r.nhom).filter(Boolean))).sort();
 
     const THUONG_BG = '#FEF3C7';
@@ -4205,7 +4225,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={ntdDatThuongCount} data-policy-amount={totalTienThuong}>
         {/* Summary card */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4449,6 +4469,7 @@ export default function QuanLyPage() {
     const totalThuongDongHanh = filteredRows.reduce((s, r) => s + r.thuongDongHanh, 0);
     const totalThuongVuotTroi = filteredRows.reduce((s, r) => s + r.thuongVuotTroi, 0);
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tongTienThuong, 0);
+    const ttnDatThuongCount = filteredRows.filter(r => r.tongTienThuong > 0).length;
     const uniqueNhomList = Array.from(new Set(ttnRows.map(r => r.nhom).filter(Boolean))).sort();
 
     const THUONG_BG = '#FEF3C7';
@@ -4458,7 +4479,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={ttnDatThuongCount} data-policy-amount={totalTienThuong}>
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4702,7 +4723,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={tnDatThuong} data-policy-amount={totalTienThuong}>
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4950,6 +4971,7 @@ export default function QuanLyPage() {
     const totalLuotHD = filteredRows.reduce((s, r) => s + r.luotHDCNhom, 0);
     const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
+    const ptkdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length;
 
     const THUONG_BG = '#FEF3C7';
     const THUONG_TEXT = '#047857';
@@ -4958,7 +4980,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={ptkdDatThuongCount} data-policy-amount={totalTienThuong}>
         {/* Summary card — chỉ: Tổng TN đạt thưởng + Tổng tiền thưởng */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -5054,7 +5076,7 @@ export default function QuanLyPage() {
     const SUB_HEADER_BG = '#047857';
 
     return (
-      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
+      <div className="space-y-1" data-policy-count={0} data-policy-amount={0}>
         {/* Summary card */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center gap-2">
@@ -5213,7 +5235,7 @@ export default function QuanLyPage() {
               </div>
               <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
                 <p className="text-[8px] font-bold uppercase text-white leading-tight">Tổng thưởng</p>
-                <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all" id={`policy-total-${policyOpen}`}>—</p>
+                <p className="text-[12px] sm:text-[16px] font-black text-white leading-tight truncate" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
             {/* Mobile: nút switch chính sách — popup FIXED overlay */}
