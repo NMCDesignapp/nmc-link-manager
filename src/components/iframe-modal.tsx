@@ -1,9 +1,10 @@
 'use client'
 
 import { Link } from '@/lib/types'
-import { ArrowLeft, ExternalLink, Download, FileText, File } from 'lucide-react'
+import { ExternalLink, Download, FileText, File } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { BackButton } from '@/components/back-button'
 import { motion, AnimatePresence } from '@/lib/animations'
 
 interface IframeModalProps {
@@ -92,21 +93,10 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
     >
       {/* Content Area - full screen */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Back button - small round, minimal overlay */}
-        <button
-          onClick={handleClose}
-          className="absolute top-3 left-3 z-[100] w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
-          style={{
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            color: '#00ff88',
-            border: '1px solid rgba(0, 255, 136, 0.3)',
-          }}
-          onTouchEnd={(e) => { e.preventDefault(); handleClose(); }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
+        {/* Back button - neon round */}
+        <div className="absolute top-3 left-3 z-[100]">
+          <BackButton onClick={handleClose} size={36} title="Đóng" />
+        </div>
 
         {/* Open in new tab button - small round, auto-hides after 4s */}
         <AnimatePresence>

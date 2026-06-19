@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/back-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6107,14 +6108,23 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
-        {/* Desktop: back to home (left) */}
-        <Button variant="ghost" onClick={() => router.push('/')} className="hidden md:inline-flex text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0"><ArrowLeft className="w-4 h-4" /></Button>
-        {/* Mobile: in overview → back to home (left). In sub-pages → no left back, will be on right */}
-        <Button variant="ghost" onClick={() => router.push('/')} className={`md:hidden text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 ${activeSheet !== 'overview' ? 'hidden' : ''}`}><ArrowLeft className="w-4 h-4" /></Button>
         <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Mobile: in sub-pages → back to overview button (right side) */}
-          <Button variant="ghost" onClick={() => { setActiveSheet('overview'); setMobileMenuPopup(null); }} className={`md:hidden text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 ${activeSheet === 'overview' ? 'hidden' : ''}`} title="Về Tổng quan"><ArrowLeft className="w-4 h-4" /></Button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Mobile: in sub-pages → back to overview button (right side, neon round) */}
+          {activeSheet !== 'overview' && (
+            <BackButton
+              onClick={() => { setActiveSheet('overview'); setMobileMenuPopup(null); }}
+              size={32}
+              title="Về Tổng quan"
+              className="md:hidden"
+            />
+          )}
+          {/* Back to home — always on right (both desktop + mobile in overview) */}
+          <BackButton
+            href="/"
+            size={32}
+            title="Trở về trang chủ"
+          />
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>

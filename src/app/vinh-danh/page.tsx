@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/back-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
@@ -446,9 +447,7 @@ export default function VinhDanhPage() {
         {/* Header */}
         <div className="sticky top-0 z-50 bg-[#0a0a12]/95 backdrop-blur-md border-b border-cyan-500/10">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/')} className="text-white/50 hover:text-white hover:bg-white/5">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Trang chủ
-            </Button>
+            <BackButton href="/" size={36} title="Trở về trang chủ" />
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
                 <Award className="w-5 h-5 text-white" />

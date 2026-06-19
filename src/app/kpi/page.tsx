@@ -6,6 +6,7 @@ import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
   ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check
 } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 
 /* ================= CSS ================= */
 const CSS = `
@@ -1122,7 +1123,7 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              <button className="btn-back-u" onClick={() => router.push('/')} aria-label="Trở về"><ArrowLeft size={18} /></button>
+              <BackButton href="/" size={36} title="Trở về trang chủ" />
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -1521,7 +1522,7 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'detail' ? 'active' : ''}`} id="view-detail" role="region">
           <div className="detail-shell">
             <div className="detail-topbar">
-              <button className="btn-back-u" onClick={() => setView('main')} aria-label="Quay lại"><ArrowLeft size={18} /></button>
+              <BackButton onClick={() => setView('main')} size={36} title="Quay lại" />
               <div style={{ width: 38, height: 38, flexShrink: 0 }} />
             </div>
             <div className="detail-hero">
@@ -1632,7 +1633,7 @@ export default function KPIDashboard() {
         {/* ===== CALENDAR VIEW ===== */}
         <section className={`view ${view === 'calendar' ? 'active' : ''}`} id="view-calendar" role="region">
           <div className="sub-header">
-            <button className="btn-back-u" onClick={() => setView('main')} aria-label="Quay lại"><ArrowLeft size={18} /></button>
+            <BackButton onClick={() => setView('main')} size={36} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
