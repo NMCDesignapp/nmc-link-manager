@@ -2323,11 +2323,11 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-3 relative min-h-full">
-      {/* ===== MOBILE MENU SECTION — ở đầu overview, chỉ hiển thị mobile ===== */}
+      {/* ===== MOBILE MENU SECTION — 3 nút/hàng, nút thấp, không bo góc, đổ bóng, nền xám tối ===== */}
       <div className="md:hidden">
-        <div className="rounded-none p-2.5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+        <div className="p-2.5 border border-white/10" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
           <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-2">Menu</p>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {SHEETS.map(sheet => {
               const color = SHEET_MOBILE_COLORS[sheet.key];
               const isActive = activeSheet === sheet.key;
@@ -2337,7 +2337,6 @@ export default function QuanLyPage() {
                   <button
                     onClick={() => {
                       if (sheet.hasSub) {
-                        // Toggle popup for sheets with sub-items
                         setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
                       } else {
                         setActiveSheet(sheet.key);
@@ -2346,17 +2345,19 @@ export default function QuanLyPage() {
                         setMobileMenuPopup(null);
                       }
                     }}
-                    className="w-full flex items-center gap-1.5 px-2 py-2 text-[11px] font-bold text-white rounded-sm transition-all"
+                    className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-bold text-white transition-all"
                     style={{
                       backgroundColor: color,
-                      boxShadow: isActive ? `0 0 0 2px #fff, 0 0 8px ${color}80` : '0 2px 4px rgba(0,0,0,0.3)',
+                      borderRadius: 0,
+                      boxShadow: isActive ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
                       opacity: isActive && !sheet.hasSub ? 1 : 0.95,
+                      minHeight: '38px',
                     }}
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate flex-1 text-left">{sheet.label}</span>
+                    <span className="truncate w-full text-center leading-tight">{sheet.label}</span>
                     {sheet.hasSub && (
-                      <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
                   </button>
                   {/* Popup sub-items (for revenue/report) — FIXED overlay centered */}
@@ -2405,6 +2406,8 @@ export default function QuanLyPage() {
         </div>
       </div>
 
+      {/* ===== PHẦN 2: Tổng quan năm — bọc trong div có nền xám tối + viền + đổ bóng (bằng 2 phần trên/dưới) ===== */}
+      <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
@@ -2513,7 +2516,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* Row 2: Secondary KPIs */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-7">
         {[
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: targetTongSLHD, targetFmt: formatNumber(targetTongSLHD), bg: '#D97706', hasKH: true },
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: targetNangSuat, targetFmt: targetNangSuat.toFixed(1), bg: '#0284C7', hasKH: true },
@@ -2521,6 +2524,7 @@ export default function QuanLyPage() {
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: targetSLTBTN, targetFmt: formatNumber(targetSLTBTN), bg: '#7C3AED', hasKH: true },
           { label: 'SL NTD', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: targetSLNTD, targetFmt: formatNumber(targetSLNTD), bg: '#CA8A04', hasKH: true },
           { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: targetSLTuyenDung, targetFmt: formatNumber(targetSLTuyenDung), bg: '#0D9488', hasKH: true },
+          { label: 'TỔNG SỐ TVV', unit: 'người', value: formatNumber(tvvStructList.length), rawVal: tvvStructList.length, target: 0, targetFmt: '', bg: '#475569', hasKH: false },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           return (
@@ -2547,9 +2551,10 @@ export default function QuanLyPage() {
           );
         })}
       </div>
+      </div>{/* end PHẦN 2: Tổng quan năm */}
 
       {/* Monthly Plan from KẾ HOẠCH (read-only summary) */}
-      <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
+      <div className="rounded-none p-3 sm:p-4 border border-white/10" style={{ backgroundColor: '#374151', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
             <Calendar className="w-4 h-4 text-emerald-400" />
