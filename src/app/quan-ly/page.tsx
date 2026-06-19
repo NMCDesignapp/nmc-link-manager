@@ -3446,8 +3446,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Result Table — green dark header + green dark total (consistent with Quý TVV) */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
                 <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
@@ -3509,7 +3509,7 @@ export default function QuanLyPage() {
               })}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredTvvmRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredTvvmRows.length} TVVm)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
                   {/* THƯỜNG THÁNG total — solid green bg, yellow text + icon (no yellow bg leaking) */}
@@ -3718,8 +3718,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers — PHÂN TẦNG merged label */}
               <tr style={{ backgroundColor: '#065F46' }}>
@@ -3799,7 +3799,7 @@ export default function QuanLyPage() {
               })}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: '#065F46' }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: '#065F46' }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
@@ -4010,8 +4010,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Result Table */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
                 <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
@@ -4055,7 +4055,7 @@ export default function QuanLyPage() {
               ))}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangTruoc)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangHienTai)}</td>
@@ -4256,8 +4256,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
                 <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
@@ -4290,7 +4290,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} NTD)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalSLTVVHDC}</td>
@@ -4511,8 +4511,8 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
                 <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
@@ -4551,7 +4551,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TTN)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFypTVVm)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
@@ -4767,8 +4767,8 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers */}
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -4850,7 +4850,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
                   {/* 5 tier columns — empty in total */}
                   {[0,1,2,3,4].map(i => (
@@ -5038,8 +5038,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0 }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
                 <th className="text-white text-center w-[36px] font-bold uppercase text-[14px] h-10 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
@@ -5078,7 +5078,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-10" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[12px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
                   <td className="text-[12px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYP)}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '13px', fontWeight: 900 }}>{totalLuotHD}</td>
@@ -5113,8 +5113,8 @@ export default function QuanLyPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white border shadow-xl" style={{ borderColor: '#A7F3D0', borderRadius: 0, maxHeight: '70vh', overflow: 'auto' }}>
-          <table className="w-full text-xs bg-white" style={{ borderRadius: 0, borderCollapse: 'collapse' }}>
+        <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
+          <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0, borderCollapse: 'collapse' }}>
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers */}
               <tr style={{ backgroundColor: HEADER_BG }}>
@@ -5236,11 +5236,11 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full gap-2 p-2 rounded-lg" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2)', backgroundColor: 'rgba(26,35,50,0.6)' }}>
-        {/* Top 1/4: ảnh trái + tổng hợp/filter phải — 4 cạnh tách viền */}
-        <div className="flex gap-0 flex-shrink-0 p-1.5 rounded-md" style={{ height: '25vh', minHeight: '120px', maxHeight: '180px', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', backgroundColor: 'rgba(15,23,42,0.7)' }}>
-          {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô */}
-          <div className="w-2/3 md:w-1/2 overflow-hidden rounded-l-md flex-shrink-0">
+      <div className="flex flex-col h-full gap-2 p-2" style={{ boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,255,136,0.10)', backgroundColor: 'rgba(15,23,42,0.85)' }}>
+        {/* Top: ảnh trái + tổng hợp/filter phải — VIÊN VUÔNG, thông nhất với bảng dưới */}
+        <div className="flex gap-0 flex-shrink-0 border border-emerald-500/25" style={{ height: '26vh', minHeight: '130px', maxHeight: '190px', boxShadow: '0 4px 14px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)' }}>
+          {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô, góc vuông */}
+          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0 bg-[#0f1729]">
             {imageLink ? (
               <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
             ) : (
@@ -5250,24 +5250,24 @@ export default function QuanLyPage() {
               </div>
             )}
           </div>
-          {/* Right: nền mờ sáng nối liền từ hình — z-[200] để popup (z-[300]) vượt qua backdrop (z-[150]) */}
-          <div className="w-1/3 md:w-1/2 flex flex-col justify-center items-stretch px-2 py-1.5 gap-1.5 overflow-visible rounded-r-md relative z-[200]" style={{ backgroundColor: 'rgba(255,255,255,0.10)', boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.08)' }}>
-            {/* 2 ô tổng hợp — màu đậm, số to đậm */}
+          {/* Right: nền sáng hơn, lấp đầy không gian, bo góc ít lại, z-[200] cho popup */}
+          <div className="w-1/3 md:w-1/2 flex flex-col justify-stretch px-2 py-1.5 gap-1 overflow-visible relative z-[200] border-l border-emerald-500/30" style={{ backgroundColor: 'rgba(255,255,255,0.16)', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18)' }}>
+            {/* 2 ô tổng hợp — màu đậm, số to đậm, BO GÓC ÍT LẠI (rounded-[2px]) */}
             <div className="flex gap-1 flex-shrink-0">
-              <div className="flex-1 bg-emerald-600 border border-emerald-400 px-1.5 py-1 text-center rounded-sm">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-100 leading-tight">SL TVV đạt</p>
+              <div className="flex-1 bg-emerald-600 border border-emerald-300 px-1.5 py-1 text-center rounded-[2px] shadow-md">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-50 leading-tight">SL TVV đạt</p>
                 <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
               </div>
-              <div className="flex-1 bg-amber-600 border border-amber-400 px-1.5 py-1 text-center rounded-sm">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-100 leading-tight">Tổng thưởng</p>
+              <div className="flex-1 bg-amber-600 border border-amber-300 px-1.5 py-1 text-center rounded-[2px] shadow-md">
+                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-50 leading-tight">Tổng thưởng</p>
                 <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
-            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, bấm popup chọn chính sách khác */}
+            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, bấm popup chọn chính sách khác, bo góc ít */}
             <div className="relative flex-shrink-0 z-[200] md:hidden">
               <button
                 onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
-                className="w-full flex items-center justify-between px-1.5 py-0.5 text-[9px] bg-emerald-600 border border-emerald-300 text-white hover:bg-emerald-500 rounded-sm font-bold"
+                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] bg-emerald-700 border border-emerald-300 text-white hover:bg-emerald-600 rounded-[2px] font-bold shadow-md"
               >
                 <span className="truncate flex items-center gap-1">
                   <BookOpen className="w-3 h-3 flex-shrink-0" />
@@ -5276,7 +5276,7 @@ export default function QuanLyPage() {
                 <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobilePolicyPopupOpen ? 'rotate-180' : ''}`} />
               </button>
               {mobilePolicyPopupOpen && (
-                <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
+                <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-[2px] shadow-2xl">
                   {POLICY_ITEMS.map(p => {
                     const subActive = policyOpen === p.key;
                     const PIcon = p.icon;
@@ -5295,7 +5295,7 @@ export default function QuanLyPage() {
                 </div>
               )}
             </div>
-            {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao để không bị che */}
+            {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao, bo góc ít */}
             {isTvvPolicy && (
               <div className="relative flex-shrink-0 z-[200]">
                 <button
@@ -5303,12 +5303,12 @@ export default function QuanLyPage() {
                     const dd = e.currentTarget.nextElementSibling as HTMLElement;
                     if (dd) dd.classList.toggle('hidden');
                   }}
-                  className="w-full flex items-center justify-between px-1.5 py-0.5 text-[9px] sm:text-[10px] bg-white/15 border border-emerald-500/40 text-emerald-100 hover:bg-emerald-500/20 rounded-sm"
+                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] sm:text-[10px] bg-white/25 border border-emerald-500/50 text-emerald-50 hover:bg-white/35 rounded-[2px] shadow-sm font-bold"
                 >
                   <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
                   <ChevronDown className="w-3 h-3 flex-shrink-0" />
                 </button>
-                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332]/98 backdrop-blur-md border border-emerald-500/40 max-h-[90px] overflow-y-auto rounded-sm shadow-2xl">
+                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                   <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
                   {uniqueNhomList.map(n => (
                     <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
@@ -5316,25 +5316,31 @@ export default function QuanLyPage() {
                 </div>
               </div>
             )}
-            {/* Ô tìm kiếm tên (chỉ cho TVV policies) */}
+            {/* Ô tìm kiếm tên (chỉ cho TVV policies) — bo góc ít, fill space */}
             {isTvvPolicy && (
-              <div className="flex items-center gap-1 bg-white/15 border border-emerald-500/40 px-1.5 py-0.5 flex-shrink-0 rounded-sm">
-                <Search className="w-2.5 h-2.5 text-emerald-200/70 flex-shrink-0" />
+              <div className="flex items-center gap-1 bg-white/25 border border-emerald-500/50 px-1.5 py-1 flex-1 min-h-0 rounded-[2px] shadow-sm">
+                <Search className="w-2.5 h-2.5 text-emerald-50 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Tìm tên..."
+                  placeholder="Tìm tên TVV..."
                   value={nameFilter}
                   onChange={e => setNameFilter(e.target.value)}
-                  className="text-[9px] sm:text-[10px] bg-transparent outline-none flex-1 min-w-0 text-emerald-50 placeholder:text-emerald-200/40"
+                  className="text-[9px] sm:text-[10px] bg-transparent outline-none flex-1 min-w-0 text-emerald-50 placeholder:text-emerald-100/50"
                 />
-                {nameFilter && <button onClick={() => setNameFilter('')} className="text-emerald-400/40 hover:text-red-400 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+                {nameFilter && <button onClick={() => setNameFilter('')} className="text-emerald-100/60 hover:text-red-300 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+              </div>
+            )}
+            {/* TN policies (không có filter): thêm 1 thông tin để fill không gian */}
+            {!isTvvPolicy && (
+              <div className="flex-1 min-h-0 flex items-end justify-center text-[9px] text-emerald-100/60 italic px-1">
+                Chỉ sách này áp dụng cho Trưởng nhóm/NTD
               </div>
             )}
           </div>
         </div>
 
-        {/* Bottom 3/4: chỉ bảng chi tiết — tách khỏi phần trên — góc vuông, không bo */}
-        <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+        {/* Bottom 3/4: chỉ bảng chi tiết — VIÊN VUÔNG thông nhất với phần trên, sticky total row */}
+        <div className="flex-1 min-h-0 overflow-y-auto border border-emerald-500/25" style={{ scrollbarWidth: 'thin', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
           {renderPolicyContent(policyOpen)}
         </div>
       </div>
