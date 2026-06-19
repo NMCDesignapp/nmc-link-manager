@@ -3144,28 +3144,29 @@ export default function QuanLyPage() {
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
 
-  // Update fixed bottom bar (TỔNG + Tổng thưởng) khi policy/filter thay đổi
+  // Update summary boxes (top) + footer (bottom) khi policy/filter thay đổi
+  // Mỗi render function thêm data-policy-count + data-policy-amount vào div ngoài cùng của bảng
   useEffect(() => {
     if (activeSheet !== 'report' || !policyOpen) return;
     // Delay để đợi bảng render xong
     const timer = setTimeout(() => {
-      // Đếm số dòng data (trừ total row + empty row)
-      const tbody = document.querySelector(`[data-policy-table="${policyOpen}"] tbody`);
-      let count = 0;
-      if (tbody) {
-        const allRows = tbody.querySelectorAll('tr');
-        allRows.forEach(r => {
-          if (r.classList.contains('policy-total-row')) return;
-          if ((r.textContent || '').includes('Chưa có')) return;
-          count++;
-        });
-      }
-      const countEl = document.getElementById('policy-fixed-count');
-      if (countEl) countEl.textContent = count > 0 ? count + ' dòng' : '—';
-      // Lấy tổng thưởng từ #policy-total-${policyOpen} (2 ô tổng trên)
+      const tableContainer = document.querySelector(`[data-policy-table="${policyOpen}"]`);
+      // Tìm element có data-policy-count (div ngoài cùng của mỗi bảng)
+      const dataEl = tableContainer?.querySelector('[data-policy-count]') as HTMLElement | null;
+      const count = dataEl?.getAttribute('data-policy-count') || '0';
+      const amount = dataEl?.getAttribute('data-policy-amount') || '0';
+
+      // Update 2 ô tổng hợp ở trên
+      const countEl = document.getElementById(`policy-count-${policyOpen}`);
+      if (countEl) countEl.textContent = count === '0' ? '—' : count;
       const totalEl = document.getElementById(`policy-total-${policyOpen}`);
-      const amountEl = document.getElementById('policy-fixed-amount');
-      if (amountEl) amountEl.textContent = totalEl?.textContent || '—';
+      if (totalEl) totalEl.textContent = amount === '0' ? '—' : amount;
+
+      // Update footer
+      const fixedCountEl = document.getElementById('policy-fixed-count');
+      if (fixedCountEl) fixedCountEl.textContent = count === '0' ? '—' : `${count} dòng`;
+      const fixedAmountEl = document.getElementById('policy-fixed-amount');
+      if (fixedAmountEl) fixedAmountEl.textContent = amount === '0' ? '—' : amount;
     }, 100);
     return () => clearTimeout(timer);
   }, [activeSheet, policyOpen, tvvmNhomFilter, tvvmNameFilter, nsTvvNhomFilter, nsTvvNameFilter, quyTvvNhomFilter, quyTvvNameFilter, ptkdNhomFilter, ptkdNameFilter]);
@@ -3406,7 +3407,7 @@ export default function QuanLyPage() {
     const THUONG_FONT = '12px';   // +1 so với body font (11px)
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredTvvmRows.length} data-policy-amount={totalTienThuongAll}>
         {/* Single summary card — gộp 4 ô thành 1 */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3518,7 +3519,7 @@ export default function QuanLyPage() {
                         </td>
                       </tr>
                     )}
-                    <tr className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                    <tr className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                       <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                       <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                       <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
@@ -3543,23 +3544,7 @@ export default function QuanLyPage() {
                   </React.Fragment>
                 );
               })}
-              {/* Total row — sticky bottom, solid dark green (same as header) */}
-              {filteredTvvmRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredTvvmRows.length} TVVm)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
-                  {/* THƯỜNG THÁNG total — solid green bg, yellow text + icon (no yellow bg leaking) */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalThuongThang)}</span>
-                  </td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPChang, 0))}</td>
-                  {/* THƯỞNG CHẶNG total — solid green bg, yellow text + icon */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalThuongChang)}</span>
-                  </td>
-                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -3686,7 +3671,7 @@ export default function QuanLyPage() {
     const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         {/* Single summary card — gộp 2 ô thành 1, đồng nhất TVVm */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3797,7 +3782,7 @@ export default function QuanLyPage() {
                 </tr>
               ) : filteredRows.map((row, idx) => {
                 return (
-                  <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                  <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                     <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                     <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                     <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
@@ -3833,23 +3818,7 @@ export default function QuanLyPage() {
                   </tr>
                 );
               })}
-              {/* Total row — sticky bottom, solid dark green (same as header) */}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: '#065F46' }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYPQuy)}</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
-                  {/* 6 tier columns — empty in total */}
-                  {[0,1,2,3,4,5].map(i => (
-                    <td key={i} className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
-                  ))}
-                  {/* TIỀN THƯỞNG total — solid green bg, yellow text + icon (no yellow bg leaking) */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalTienThuong)}</span>
-                  </td>
-                  <td className="text-[11px] font-black text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#86EFAC' }}>{totalSoLanDatTQ > 0 ? totalSoLanDatTQ : '—'}</td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -3974,7 +3943,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';       // same emerald-800
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         {/* Single summary card — đồng nhất TVVm + Quý TVV */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4050,19 +4019,19 @@ export default function QuanLyPage() {
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th className="text-white min-w-[55px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {prevMonth}</span><br/><span className="text-[9px] italic font-bold text-amber-300 normal-case">(ĐK ≥ 3 trđ)</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {prevMonth}</span><br/><span className="text-[9px] italic font-bold text-amber-300 normal-case">(ĐK ≥ 3 trđ)</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
                   FYC
                   <br/>
                   <span className="text-[10px] italic font-normal normal-case text-amber-200">(Giả định TLHH là 25%)</span>
                 </th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
             </thead>
             <tbody>
@@ -4071,7 +4040,7 @@ export default function QuanLyPage() {
                   <td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
               ) : filteredRows.map((row) => (
-                <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
@@ -4089,20 +4058,7 @@ export default function QuanLyPage() {
                   </td>
                 </tr>
               ))}
-              {/* Total row — sticky bottom, solid dark green (same as header) */}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangTruoc)}</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangHienTai)}</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
-                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
-                  {/* TIỀN THƯỞNG total — solid green bg, yellow text + icon (no yellow bg leaking) */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalTienThuong)}</span>
-                  </td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -4246,7 +4202,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         {/* Summary card */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -4296,21 +4252,21 @@ export default function QuanLyPage() {
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
-                <th className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN NTD</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
+                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN NTD</th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr><td colSpan={8} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có NTD nào đạt HĐC trong tháng {currentMonth}.</td></tr>
               ) : filteredRows.map((row) => (
-                <tr key={row.maNTD} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                <tr key={row.maNTD} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maNTD}</td>
@@ -4325,13 +4281,7 @@ export default function QuanLyPage() {
                   </td>
                 </tr>
               ))}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} NTD)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalSLTVVHDC}</td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -4505,7 +4455,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4551,23 +4501,23 @@ export default function QuanLyPage() {
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
-                <th className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TTN</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>FYP TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG ĐỒNG HÀNH</th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG VƯỢT TRỘI</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG TIỀN THƯỞNG</th>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
+                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TTN</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>FYP TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG ĐỒNG HÀNH</th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG VƯỢT TRỘI</th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG TIỀN THƯỞNG</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr><td colSpan={10} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TTN nào đạt điều kiện trong tháng {currentMonth}.</td></tr>
               ) : filteredRows.map((row) => (
-                <tr key={row.maTTN} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                <tr key={row.maTTN} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTTN}</td>
@@ -4586,23 +4536,7 @@ export default function QuanLyPage() {
                   </td>
                 </tr>
               ))}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TTN)</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFypTVVm)}</td>
-                  <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalSLTVVmHDC}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalThuongDongHanh)}</span>
-                  </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(totalThuongVuotTroi)}</span>
-                  </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalTienThuong)}</span>
-                  </td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -4765,7 +4699,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
@@ -4808,14 +4742,14 @@ export default function QuanLyPage() {
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers */}
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th rowSpan={3} className="text-white text-center w-[32px] font-bold uppercase text-[13px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
-                <th rowSpan={3} className="text-white min-w-[120px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
-                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
-                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
+                <th rowSpan={3} className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
+                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th colSpan={5} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
-                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[13px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
               {/* Row 2: FYP thresholds (compact) */}
               <tr style={{ backgroundColor: TIER_HEADER_BG }}>
@@ -4842,7 +4776,7 @@ export default function QuanLyPage() {
               {filteredRows.length === 0 ? (
                 <tr><td colSpan={12} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TN nào đạt FYP trong quý {currentQuarter}.</td></tr>
               ) : filteredRows.map((row) => (
-                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
+                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
@@ -4885,18 +4819,7 @@ export default function QuanLyPage() {
                   </td>
                 </tr>
               ))}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
-                  {/* 5 tier columns — empty in total */}
-                  {[0,1,2,3,4].map(i => (
-                    <td key={i} className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
-                  ))}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalTienThuong)}</span>
-                  </td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -5032,7 +4955,7 @@ export default function QuanLyPage() {
     const TOTAL_BG = '#065F46';
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         {/* Summary card — chỉ: Tổng TN đạt thưởng + Tổng tiền thưởng */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -5078,53 +5001,42 @@ export default function QuanLyPage() {
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th className="text-white text-center w-[36px] font-bold uppercase text-[14px] h-10 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
-                <th className="text-white min-w-[140px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
-                <th className="text-white min-w-[120px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐC<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
+                <th className="text-white text-center w-[36px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
+                <th className="text-white min-w-[140px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
+                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐC<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
                   FYC
                   <br/>
                   <span className="text-[11px] italic font-normal normal-case text-amber-200">(TLHH 25%)</span>
                 </th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[14px] h-10 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr><td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TN nào.</td></tr>
               ) : filteredRows.map((row) => (
-                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors" style={{ borderRadius: 0 }}>
-                  <td className="text-center text-gray-400 text-[12px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
-                  <td className="text-[12px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
-                  <td className="font-mono text-[12px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
-                  <td className="text-[12px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
-                  <td className="text-[12px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPNhom > 0 ? formatNumber(row.tongFYPNhom) : '—'}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(Math.floor(row.luotHDCNhom / 2), 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '14px', fontWeight: 900 }}>{row.luotHDCNhom}</td>
-                  <td className="text-[12px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[0], color: TIER_RATE_COLOR, fontSize: '14px', fontWeight: 900 }}>
+                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
+                  <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                  <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                  <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
+                  <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPNhom > 0 ? formatNumber(row.tongFYPNhom) : '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(Math.floor(row.luotHDCNhom / 2), 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '12px', fontWeight: 900 }}>{row.luotHDCNhom}</td>
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[0], color: TIER_RATE_COLOR, fontSize: '12px', fontWeight: 900 }}>
                     {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: '13px', fontWeight: 800 }}>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: '12px', fontWeight: 800 }}>
                     {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
                 </tr>
               ))}
-              {filteredRows.length > 0 && (
-                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
-                  <td colSpan={4} className="text-right text-white font-black text-[12px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
-                  <td className="text-[12px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYP)}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '13px', fontWeight: 900 }}>{totalLuotHD}</td>
-                  <td className="text-[12px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
-                  <td className="p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}></td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '13px', fontWeight: 900 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(totalTienThuong)}</span>
-                  </td>
-                </tr>
-              )}
+              {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
             </tbody>
           </table>
         </div>
@@ -5139,7 +5051,7 @@ export default function QuanLyPage() {
     const SUB_HEADER_BG = '#047857';
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-policy-count={filteredRows.length} data-policy-amount={totalTienThuong}>
         {/* Summary card */}
         <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
           <div className="flex items-center gap-2">
@@ -5154,21 +5066,21 @@ export default function QuanLyPage() {
             <thead className="sticky top-0 z-10">
               {/* Row 1: Main headers */}
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th rowSpan={2} className="text-white text-center w-[32px] font-bold uppercase text-[12px] h-9 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM KD</th>
-                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
-                <th rowSpan={2} className="text-white min-w-[120px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHỨC VỤ</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] font-normal normal-case">CHỨC VỤ</span></th>
-                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THÁNG LÀM<br/>VIỆC</th>
+                <th rowSpan={2} className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM KD</th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
+                <th rowSpan={2} className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
+                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHỨC VỤ</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] font-normal normal-case">CHỨC VỤ</span></th>
+                <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THÁNG LÀM<br/>VIỆC</th>
                 {/* CHỈ TIÊU — 3 sub-columns */}
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '22px' }}>CHỈ TIÊU</th>
                 {/* THỰC HIỆN THÁNG — 3 sub-columns */}
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' }}>THỰC HIỆN THÁNG</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
                 {/* THỰC HIỆN LŨY KẾ — 3 sub-columns */}
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>THỰC HIỆN LŨY KẾ</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[12px] h-9 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG BẮT KỲP</th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG BẮT KỲP</th>
               </tr>
               {/* Row 2: Sub-headers */}
               <tr>
@@ -5272,11 +5184,11 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full gap-2 p-2 relative" style={{ boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,255,136,0.10)', backgroundColor: 'rgba(15,23,42,0.85)' }}>
-        {/* Top: ảnh trái + tổng hợp/filter phải — VIÊN VUÔNG, thông nhất với bảng dưới */}
-        <div className="flex gap-0 flex-shrink-0 border border-emerald-500/25" style={{ height: '26vh', minHeight: '130px', maxHeight: '190px', boxShadow: '0 4px 14px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)' }}>
+      <div className="flex flex-col h-full gap-1.5 p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
+        {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
+        <div className="flex flex-shrink-0 border" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
           {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô, góc vuông */}
-          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0 bg-[#0f1729]">
+          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
             {imageLink ? (
               <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
             ) : (
@@ -5286,24 +5198,25 @@ export default function QuanLyPage() {
               </div>
             )}
           </div>
-          {/* Right: nền sáng hơn, lấp đầy không gian, bo góc ít lại, z-[200] cho popup */}
-          <div className="w-1/3 md:w-1/2 flex flex-col justify-stretch px-2 py-1.5 gap-1 overflow-visible relative z-[200] border-l border-emerald-500/30" style={{ backgroundColor: 'rgba(255,255,255,0.16)', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18)' }}>
-            {/* 2 ô tổng hợp — màu đậm, số to đậm, BO GÓC ÍT LẠI (rounded-[2px]) */}
+          {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền — không dùng rgba */}
+          <div className="w-1/3 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+            {/* 2 ô tổng hợp — MÀU ĐẶC, cân đối, đổ bóng */}
             <div className="flex gap-1 flex-shrink-0">
-              <div className="flex-1 bg-emerald-600 border border-emerald-300 px-1.5 py-1 text-center rounded-[2px] shadow-md">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-emerald-50 leading-tight">SL TVV đạt</p>
-                <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
+              <div className="flex-1 px-1 py-1 text-center" style={{ backgroundColor: '#059669', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #047857' }}>
+                <p className="text-[8px] font-bold uppercase text-white leading-tight">SL TVV đạt</p>
+                <p className="text-[16px] font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
               </div>
-              <div className="flex-1 bg-amber-600 border border-amber-300 px-1.5 py-1 text-center rounded-[2px] shadow-md">
-                <p className="text-[7px] sm:text-[8px] font-bold uppercase text-amber-50 leading-tight">Tổng thưởng</p>
-                <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
+              <div className="flex-1 px-1 py-1 text-center" style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
+                <p className="text-[8px] font-bold uppercase text-white leading-tight">Tổng thưởng</p>
+                <p className="text-[16px] font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
-            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, popup FIXED overlay (không đè lên items trong panel) */}
+            {/* Mobile: nút switch chính sách — popup FIXED overlay */}
             <div className="relative flex-shrink-0 z-[200] md:hidden">
               <button
                 onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
-                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] bg-emerald-700 border border-emerald-300 text-white hover:bg-emerald-600 rounded-[2px] font-bold shadow-md"
+                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] text-white font-bold"
+                style={{ backgroundColor: '#047857', border: '1px solid #065F46', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
               >
                 <span className="truncate flex items-center gap-1">
                   <BookOpen className="w-3 h-3 flex-shrink-0" />
@@ -5313,12 +5226,7 @@ export default function QuanLyPage() {
               </button>
               {mobilePolicyPopupOpen && (
                 <>
-                  {/* Backdrop mờ + click để đóng */}
-                  <div
-                    className="fixed inset-0 z-[400] bg-black/40"
-                    onClick={() => setMobilePolicyPopupOpen(false)}
-                  />
-                  {/* Popup FIXED centered — không lệ thuộc flow layout của panel */}
+                  <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobilePolicyPopupOpen(false)} />
                   <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-emerald-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
                     <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-emerald-500/50 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
@@ -5347,64 +5255,69 @@ export default function QuanLyPage() {
                 </>
               )}
             </div>
-            {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao, bo góc ít */}
+            {/* TVV policies: bộ lọc nhóm + tìm tên — 2 ô bằng nhau về chiều cao */}
             {isTvvPolicy && (
-              <div className="relative flex-shrink-0 z-[200]">
-                <button
-                  onClick={(e) => {
-                    const dd = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (dd) dd.classList.toggle('hidden');
-                  }}
-                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] sm:text-[10px] bg-white/25 border border-emerald-500/50 text-emerald-50 hover:bg-white/35 rounded-[2px] shadow-sm font-bold"
-                >
-                  <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
-                  <ChevronDown className="w-3 h-3 flex-shrink-0" />
-                </button>
-                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
-                  <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
-                  {uniqueNhomList.map(n => (
-                    <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
-                  ))}
+              <>
+                <div className="relative flex-1 min-h-0 z-[200]">
+                  <button
+                    onClick={(e) => {
+                      const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (dd) dd.classList.toggle('hidden');
+                    }}
+                    className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
+                    style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  >
+                    <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
+                    <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                  </button>
+                  <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                    <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
+                    {uniqueNhomList.map(n => (
+                      <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                <div className="flex items-center gap-1 px-1.5 py-1 flex-1 min-h-0" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                  <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Tìm tên TVV..."
+                    value={nameFilter}
+                    onChange={e => setNameFilter(e.target.value)}
+                    className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+                  />
+                  {nameFilter && <button onClick={() => setNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+                </div>
+              </>
             )}
-            {/* Ô tìm kiếm tên (chỉ cho TVV policies) — bo góc ít, fill space */}
-            {isTvvPolicy && (
-              <div className="flex items-center gap-1 bg-white/25 border border-emerald-500/50 px-1.5 py-1 flex-1 min-h-0 rounded-[2px] shadow-sm">
-                <Search className="w-2.5 h-2.5 text-emerald-50 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Tìm tên TVV..."
-                  value={nameFilter}
-                  onChange={e => setNameFilter(e.target.value)}
-                  className="text-[9px] sm:text-[10px] bg-transparent outline-none flex-1 min-w-0 text-emerald-50 placeholder:text-emerald-100/50"
-                />
-                {nameFilter && <button onClick={() => setNameFilter('')} className="text-emerald-100/60 hover:text-red-300 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
-              </div>
-            )}
-            {/* TN policies (không có filter): thêm 1 thông tin để fill không gian */}
+            {/* TN policies (không có filter): 2 ô info cân đối với TVV (cùng chiều cao) */}
             {!isTvvPolicy && (
-              <div className="flex-1 min-h-0 flex items-end justify-center text-[9px] text-emerald-100/60 italic px-1">
-                Chỉ sách này áp dụng cho Trưởng nhóm/NTD
-              </div>
+              <>
+                <div className="flex-1 min-h-0 flex items-center justify-center text-[9px] italic px-1 text-center" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                  Áp dụng cho Trưởng nhóm/NTD
+                </div>
+                <div className="flex-1 min-h-0 flex items-center justify-center text-[9px] italic px-1 text-center" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                  {item.desc}
+                </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* Bottom 3/4: chỉ bảng chi tiết — VIÊN VUÔNG thông nhất với phần trên, ẩn scrollbar, có padding-bottom cho fixed bar */}
-        <div className="flex-1 min-h-0 overflow-y-auto border border-emerald-500/25 no-scrollbar" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.4)', paddingBottom: '32px' }} data-policy-table={policyOpen}>
+        {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng */}
+        <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-policy-table={policyOpen}>
           {renderPolicyContent(policyOpen)}
         </div>
 
-        {/* Fixed bottom bar — thanh tổng hợp dính đáy, width = chiều ngang phần bảng (absolute trong outer relative) */}
-        <div className="absolute bottom-2 left-2 right-2 z-[600] bg-emerald-800 border-t-2 border-emerald-400 shadow-[0_-4px_12px_rgba(0,0,0,0.5)] flex items-center justify-between px-3 text-white rounded-[2px]" style={{ height: '28px' }}>
-          <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+        {/* Footer FIXED — màu đặc, không nhúc nhít, dính đáy container */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', boxShadow: '0 -4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)', borderTop: '2px solid #065F46' }}>
+          <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
             <span className="text-emerald-300">TỔNG:</span>
             <span id="policy-fixed-count" className="text-white">—</span>
           </span>
-          <span className="text-[10px] font-bold flex items-center gap-1.5">
+          <span className="text-[11px] font-bold flex items-center gap-1.5">
             <span className="text-amber-300 uppercase">Tổng thưởng:</span>
-            <span id="policy-fixed-amount" className="text-amber-200 font-black text-[11px]">—</span>
+            <span id="policy-fixed-amount" className="text-amber-200 font-black">—</span>
           </span>
         </div>
       </div>
