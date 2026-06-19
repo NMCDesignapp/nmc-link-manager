@@ -3150,6 +3150,32 @@ export default function QuanLyPage() {
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
 
+  // Update fixed bottom bar (TỔNG + Tổng thưởng) khi policy/filter thay đổi
+  useEffect(() => {
+    if (activeSheet !== 'report' || !policyOpen) return;
+    // Delay để đợi bảng render xong
+    const timer = setTimeout(() => {
+      // Đếm số dòng data (trừ total row + empty row)
+      const tbody = document.querySelector(`[data-policy-table="${policyOpen}"] tbody`);
+      let count = 0;
+      if (tbody) {
+        const allRows = tbody.querySelectorAll('tr');
+        allRows.forEach(r => {
+          if (r.classList.contains('policy-total-row')) return;
+          if ((r.textContent || '').includes('Chưa có')) return;
+          count++;
+        });
+      }
+      const countEl = document.getElementById('policy-fixed-count');
+      if (countEl) countEl.textContent = count > 0 ? count + ' dòng' : '—';
+      // Lấy tổng thưởng từ #policy-total-${policyOpen} (2 ô tổng trên)
+      const totalEl = document.getElementById(`policy-total-${policyOpen}`);
+      const amountEl = document.getElementById('policy-fixed-amount');
+      if (amountEl) amountEl.textContent = totalEl?.textContent || '—';
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [activeSheet, policyOpen, tvvmNhomFilter, tvvmNameFilter, nsTvvNhomFilter, nsTvvNameFilter, quyTvvNhomFilter, quyTvvNameFilter, ptkdNhomFilter, ptkdNameFilter]);
+
   // Load policy image links from Settings API on mount
   useEffect(() => {
     fetch('/api/settings')
@@ -3520,7 +3546,7 @@ export default function QuanLyPage() {
               })}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredTvvmRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredTvvmRows.length} TVVm)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857' }}>{formatNumber(filteredTvvmRows.reduce((s, r) => s + r.tongIPThang, 0))}</td>
                   {/* THƯỜNG THÁNG total — solid green bg, yellow text + icon (no yellow bg leaking) */}
@@ -3810,7 +3836,7 @@ export default function QuanLyPage() {
               })}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: '#065F46' }}>
+                <tr className="policy-total-row" style={{ backgroundColor: '#065F46' }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYPQuy)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatNumber(totalFYC)}</td>
@@ -4066,7 +4092,7 @@ export default function QuanLyPage() {
               ))}
               {/* Total row — sticky bottom, solid dark green (same as header) */}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TVV)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangTruoc)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalIPThangHienTai)}</td>
@@ -4301,7 +4327,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} NTD)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '12px', fontWeight: 900 }}>{totalSLTVVHDC}</td>
@@ -4562,7 +4588,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TTN)</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFypTVVm)}</td>
                   <td className="text-[11px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{formatCurrency(filteredRows.reduce((s, r) => s + r.tongThuongTVVm, 0))}</td>
@@ -4861,7 +4887,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={6} className="text-right text-white font-black text-[11px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
                   {/* 5 tier columns — empty in total */}
                   {[0,1,2,3,4].map(i => (
@@ -5089,7 +5115,7 @@ export default function QuanLyPage() {
                 </tr>
               ))}
               {filteredRows.length > 0 && (
-                <tr className="sticky bottom-0 z-20 shadow-[0_-4px_8px_rgba(0,0,0,0.25)]" style={{ backgroundColor: TOTAL_BG }}>
+                <tr className="policy-total-row" style={{ backgroundColor: TOTAL_BG }}>
                   <td colSpan={4} className="text-right text-white font-black text-[12px] uppercase pr-3 p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({filteredRows.length} TN)</td>
                   <td className="text-[12px] text-white font-black text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#1D4ED8', backgroundColor: '#1D4ED8' }}>{formatNumber(totalFYP)}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#047857', color: '#FDE68A', fontSize: '13px', fontWeight: 900 }}>{totalLuotHD}</td>
@@ -5366,9 +5392,21 @@ export default function QuanLyPage() {
           </div>
         </div>
 
-        {/* Bottom 3/4: chỉ bảng chi tiết — VIÊN VUÔNG thông nhất với phần trên, sticky total row */}
-        <div className="flex-1 min-h-0 overflow-y-auto border border-emerald-500/25" style={{ scrollbarWidth: 'thin', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+        {/* Bottom 3/4: chỉ bảng chi tiết — VIÊN VUÔNG thông nhất với phần trên, ẩn scrollbar, có padding-bottom cho fixed bar */}
+        <div className="flex-1 min-h-0 overflow-y-auto border border-emerald-500/25 no-scrollbar" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.4)', paddingBottom: '32px' }} data-policy-table={policyOpen}>
           {renderPolicyContent(policyOpen)}
+        </div>
+
+        {/* Fixed bottom bar — thanh tổng hợp dính đáy màn hình, 1/2 kích thước, là thành phần của trang */}
+        <div className="fixed bottom-0 left-0 right-0 z-[600] bg-emerald-800 border-t-2 border-emerald-400 shadow-[0_-4px_12px_rgba(0,0,0,0.5)] flex items-center justify-between px-3 text-white" style={{ height: '28px' }}>
+          <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-emerald-300">TỔNG:</span>
+            <span id="policy-fixed-count" className="text-white">—</span>
+          </span>
+          <span className="text-[10px] font-bold flex items-center gap-1.5">
+            <span className="text-amber-300 uppercase">Tổng thưởng:</span>
+            <span id="policy-fixed-amount" className="text-amber-200 font-black text-[11px]">—</span>
+          </span>
         </div>
       </div>
     );
