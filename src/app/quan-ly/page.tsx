@@ -2322,6 +2322,77 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-3 relative min-h-full" style={{ zIndex: 1 }}>
+      {/* ===== MOBILE MENU SECTION — ở đầu overview, chỉ hiển thị mobile ===== */}
+      <div className="md:hidden">
+        <div className="rounded-none p-2.5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
+          <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-2">Menu</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {SHEETS.map(sheet => {
+              const color = SHEET_MOBILE_COLORS[sheet.key];
+              const isActive = activeSheet === sheet.key;
+              const Icon = sheet.icon;
+              return (
+                <div key={sheet.key} className="relative">
+                  <button
+                    onClick={() => {
+                      if (sheet.hasSub) {
+                        // Toggle popup for sheets with sub-items
+                        setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
+                      } else {
+                        setActiveSheet(sheet.key);
+                        setSearchTerm('');
+                        setSortField('');
+                        setMobileMenuPopup(null);
+                      }
+                    }}
+                    className="w-full flex items-center gap-1.5 px-2 py-2 text-[11px] font-bold text-white rounded-sm transition-all"
+                    style={{
+                      backgroundColor: color,
+                      boxShadow: isActive ? `0 0 0 2px #fff, 0 0 8px ${color}80` : '0 2px 4px rgba(0,0,0,0.3)',
+                      opacity: isActive && !sheet.hasSub ? 1 : 0.95,
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate flex-1 text-left">{sheet.label}</span>
+                    {sheet.hasSub && (
+                      <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  {/* Popup sub-items (for revenue/report) */}
+                  {sheet.hasSub && mobileMenuPopup === sheet.key && (
+                    <div className="absolute top-full left-0 right-0 mt-0.5 z-[200] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
+                      {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
+                        const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
+                        return (
+                          <button
+                            key={s.key}
+                            onClick={() => {
+                              if (sheet.key === 'revenue') {
+                                setActiveSheet('revenue');
+                                setRevenueSub(s.key as RevenueSubKey);
+                              } else {
+                                setActiveSheet('report');
+                                setPolicyOpen(s.key);
+                              }
+                              setMobileMenuPopup(null);
+                            }}
+                            className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                          >
+                            <s.Icon className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate flex-1">{s.label}</span>
+                            {subActive && <span className="text-emerald-400">●</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
@@ -2531,77 +2602,6 @@ export default function QuanLyPage() {
           })}
         </div>
         <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
-      </div>
-
-      {/* ===== MOBILE MENU SECTION — dời từ sidebar vào giữa, chỉ hiển thị mobile ===== */}
-      <div className="md:hidden">
-        <div className="rounded-none p-2.5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
-          <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-2">Menu</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {SHEETS.map(sheet => {
-              const color = SHEET_MOBILE_COLORS[sheet.key];
-              const isActive = activeSheet === sheet.key;
-              const Icon = sheet.icon;
-              return (
-                <div key={sheet.key} className="relative">
-                  <button
-                    onClick={() => {
-                      if (sheet.hasSub) {
-                        // Toggle popup for sheets with sub-items
-                        setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
-                      } else {
-                        setActiveSheet(sheet.key);
-                        setSearchTerm('');
-                        setSortField('');
-                        setMobileMenuPopup(null);
-                      }
-                    }}
-                    className="w-full flex items-center gap-1.5 px-2 py-2 text-[11px] font-bold text-white rounded-sm transition-all"
-                    style={{
-                      backgroundColor: color,
-                      boxShadow: isActive ? `0 0 0 2px #fff, 0 0 8px ${color}80` : '0 2px 4px rgba(0,0,0,0.3)',
-                      opacity: isActive && !sheet.hasSub ? 1 : 0.95,
-                    }}
-                  >
-                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate flex-1 text-left">{sheet.label}</span>
-                    {sheet.hasSub && (
-                      <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
-                    )}
-                  </button>
-                  {/* Popup sub-items (for revenue/report) */}
-                  {sheet.hasSub && mobileMenuPopup === sheet.key && (
-                    <div className="absolute top-full left-0 right-0 mt-0.5 z-[200] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
-                      {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
-                        const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
-                        return (
-                          <button
-                            key={s.key}
-                            onClick={() => {
-                              if (sheet.key === 'revenue') {
-                                setActiveSheet('revenue');
-                                setRevenueSub(s.key as RevenueSubKey);
-                              } else {
-                                setActiveSheet('report');
-                                setPolicyOpen(s.key);
-                              }
-                              setMobileMenuPopup(null);
-                            }}
-                            className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
-                          >
-                            <s.Icon className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate flex-1">{s.label}</span>
-                            {subActive && <span className="text-emerald-400">●</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện (chỉ desktop, ẩn trên mobile) */}
