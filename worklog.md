@@ -149,3 +149,25 @@ Stage Summary:
 - Footer: flex-shrink-0 fixed at bottom (no overlap)
 - Summary numbers bug FIXED: data-policy-count + data-policy-amount attributes drive both top boxes AND footer
 - Build OK, commit e32f3c8 pushed to main, Vercel auto-deploying
+
+---
+Task ID: tinh-chinh-lan-3-2026-06-19
+Agent: Main (Super Z)
+Task: Fix bug số tổng hợp mobile, bỏ info boxes TN, xóa gap đen table-footer, to chữ menu + KPI
+
+Work Log:
+- BUG FIX: useEffect cập nhật 2 ô tổng hợp — textContent đang set raw number ("15000000") → mobile không hiển thị được do box quá hẹp. Đổi sang formatSmartCurrency(amountNum) → "15 trđ" gọn hiển thị tốt trên mobile
+- Summary boxes: thêm break-all + text-[14px] mobile (sm:text-[16px]) → số hiện rõ trên panel hẹp
+- BỎ 2 info boxes cho TN policy ("Áp dụng cho Trưởng nhóm/NTD" + item.desc) — user không biết là gì. Khi TN policy: 2 ô tổng hợp chuyển sang flex-1 flex-col, stack dọc fill đầy chiều cao panel phải (160px)
+- XÓA GAP ĐEN giữa table và footer: container bỏ gap-1.5, chỉ giữ mb-1.5 giữa top section và table. Footer bỏ boxShadow '0 -4px 12px ...' (shadow này chính là gap đen nhìn thấy). Footer nối liền table qua borderTop 2px solid #065F46
+- Right panel mobile: w-1/3 → w-2/5 (rộng hơn cho 2 ô tổng hợp)
+- PHẦN 1 mobile menu: label text-[9px] → text-[11px], icon w-4 → w-5, gap-0.5 → gap-1, minHeight 44 → 52px (chữ to hơn, dễ đọc)
+- PHẦN 2 KPI: value text-sm sm:text-lg → text-base sm:text-xl (số to hơn). Padding py-2 sm:py-3 → py-1 sm:py-1.5 (giảm padding bù lại → kích thước ô không đổi)
+
+Stage Summary:
+- Số tổng hợp giờ hiển thị đúng trên mobile (formatSmartCurrency "15 trđ" thay vì "15000000")
+- TN policy: gọn hơn, 2 ô tổng hợp to dọc fill panel
+- Bảng - footer: liền mạch không gap đen
+- Menu mobile: chữ to dễ đọc
+- KPI: số to hơn, ô giữ nguyên kích thước
+- Commit c531877 pushed to main, Vercel auto-deploying
