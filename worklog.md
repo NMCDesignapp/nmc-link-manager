@@ -74,3 +74,22 @@
 - Build: ✅ Successful
 - Lint: ✅ No errors
 - Git: ✅ Committed and pushed to main
+
+---
+Task ID: layout-balance-2026-06-19
+Agent: Main (Super Z)
+Task: Cân chỉnh 3 phần giao diện trang /quan-ly trên mobile + fix bug lưu ảnh chính sách
+
+Work Log:
+- PHẦN 1 (Mobile menu): đổi grid-cols-3 → grid-cols-4, thêm nút "Cài đặt" thứ 8 → lưới 4×2 cân đối, tất cả nút cùng kích thước aspect-square minHeight 44px
+- PHẦN 2 (12 KPI cards): gộp 2 lưới (5+7) thành 1 lưới 12 ô, grid-cols-3 (mobile) × 4 hàng, grid-cols-6 (desktop) × 2 hàng, padding/font nhỏ lại
+- PHẦN 3 (12 ô tháng): grid-cols-4 → grid-cols-3 (mobile) × 4 hàng, padding p-1, progress bar h-0.5, font nhỏ lại
+- Đồng nhất style 3 phần: cùng p-3 + space-y-3 + border-white/10 + boxShadow '0 4px 14px rgba(0,0,0,0.4)' + backgroundColor #374151
+- BUG FIX: savePolicyImage dùng method 'POST' nhưng /api/settings chỉ chấp nhận 'PUT' → ảnh chính sách KHÔNG BAO GIỜ được lưu server, mất khi refresh/đổi máy. Đổi sang PUT với body { [`policy-image-${key}`]: link } + check r.ok + toast lỗi
+- Build OK, deploy Vercel qua git push origin main
+
+Stage Summary:
+- 3 phần trên mobile giờ cân đối: menu 8 ô (4×2), KPI 12 ô (3×4), tháng 12 ô (3×4)
+- Ảnh chính sách giờ lưu server qua /api/settings (PUT), load lại từ fetch('/api/settings') khi mount — khi sang máy khác vẫn thấy ảnh
+- File: src/app/quan-ly/page.tsx (53 insertions, 61 deletions)
+- Commit: 0e8a0c2 pushed to main, Vercel auto-deploying
