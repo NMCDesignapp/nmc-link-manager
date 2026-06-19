@@ -1123,7 +1123,7 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              <BackButton href="/" size={36} title="Trở về trang chủ" />
+              <BackButton href="/" size={20} title="Trở về trang chủ" />
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -1522,7 +1522,7 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'detail' ? 'active' : ''}`} id="view-detail" role="region">
           <div className="detail-shell">
             <div className="detail-topbar">
-              <BackButton onClick={() => setView('main')} size={36} title="Quay lại" />
+              <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
               <div style={{ width: 38, height: 38, flexShrink: 0 }} />
             </div>
             <div className="detail-hero">
@@ -1633,7 +1633,7 @@ export default function KPIDashboard() {
         {/* ===== CALENDAR VIEW ===== */}
         <section className={`view ${view === 'calendar' ? 'active' : ''}`} id="view-calendar" role="region">
           <div className="sub-header">
-            <BackButton onClick={() => setView('main')} size={36} title="Quay lại" />
+            <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>

@@ -447,7 +447,7 @@ export default function VinhDanhPage() {
         {/* Header */}
         <div className="sticky top-0 z-50 bg-[#0a0a12]/95 backdrop-blur-md border-b border-cyan-500/10">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <BackButton href="/" size={36} title="Trở về trang chủ" />
+            <BackButton href="/" size={20} title="Trở về trang chủ" />
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
                 <Award className="w-5 h-5 text-white" />

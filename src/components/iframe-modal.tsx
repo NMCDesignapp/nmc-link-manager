@@ -95,7 +95,7 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
       <div className="flex-1 relative overflow-hidden">
         {/* Back button - neon round */}
         <div className="absolute top-3 left-3 z-[100]">
-          <BackButton onClick={handleClose} size={36} title="Đóng" />
+          <BackButton onClick={handleClose} size={24} title="Đóng" />
         </div>
 
         {/* Open in new tab button - small round, auto-hides after 4s */}

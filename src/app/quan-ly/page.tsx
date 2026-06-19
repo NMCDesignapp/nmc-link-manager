@@ -2359,33 +2359,44 @@ export default function QuanLyPage() {
                       <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
                   </button>
-                  {/* Popup sub-items (for revenue/report) */}
+                  {/* Popup sub-items (for revenue/report) — FIXED overlay centered */}
                   {sheet.hasSub && mobileMenuPopup === sheet.key && (
-                    <div className="absolute top-full left-0 right-0 mt-0.5 z-[200] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-sm shadow-2xl">
-                      {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
-                        const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
-                        return (
-                          <button
-                            key={s.key}
-                            onClick={() => {
-                              if (sheet.key === 'revenue') {
-                                setActiveSheet('revenue');
-                                setRevenueSub(s.key as RevenueSubKey);
-                              } else {
-                                setActiveSheet('report');
-                                setPolicyOpen(s.key);
-                              }
-                              setMobileMenuPopup(null);
-                            }}
-                            className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
-                          >
-                            <s.Icon className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate flex-1">{s.label}</span>
-                            {subActive && <span className="text-emerald-400">●</span>}
+                    <>
+                      <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileMenuPopup(null)} />
+                      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-emerald-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
+                        <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-emerald-500/50 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Icon className="w-3 h-3" /> Chọn {sheet.label}
+                          </span>
+                          <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white">
+                            <X className="w-3.5 h-3.5" />
                           </button>
-                        );
-                      })}
-                    </div>
+                        </div>
+                        {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
+                          const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
+                          return (
+                            <button
+                              key={s.key}
+                              onClick={() => {
+                                if (sheet.key === 'revenue') {
+                                  setActiveSheet('revenue');
+                                  setRevenueSub(s.key as RevenueSubKey);
+                                } else {
+                                  setActiveSheet('report');
+                                  setPolicyOpen(s.key);
+                                }
+                                setMobileMenuPopup(null);
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                            >
+                              <s.Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate flex-1">{s.label}</span>
+                              {subActive && <span className="text-emerald-400">●</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               );
@@ -5263,7 +5274,7 @@ export default function QuanLyPage() {
                 <p className="text-[16px] sm:text-xl font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
-            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, bấm popup chọn chính sách khác, bo góc ít */}
+            {/* Mobile: nút switch chính sách — rộng = 2 ô tổng, popup FIXED overlay (không đè lên items trong panel) */}
             <div className="relative flex-shrink-0 z-[200] md:hidden">
               <button
                 onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
@@ -5276,23 +5287,39 @@ export default function QuanLyPage() {
                 <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobilePolicyPopupOpen ? 'rotate-180' : ''}`} />
               </button>
               {mobilePolicyPopupOpen && (
-                <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[200px] overflow-y-auto rounded-[2px] shadow-2xl">
-                  {POLICY_ITEMS.map(p => {
-                    const subActive = policyOpen === p.key;
-                    const PIcon = p.icon;
-                    return (
-                      <button
-                        key={p.key}
-                        onClick={() => { setPolicyOpen(p.key); setMobilePolicyPopupOpen(false); }}
-                        className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
-                      >
-                        <PIcon className="w-3 h-3 flex-shrink-0" style={{ color: p.color }} />
-                        <span className="truncate flex-1">{p.label}</span>
-                        {subActive && <span className="text-emerald-400">●</span>}
+                <>
+                  {/* Backdrop mờ + click để đóng */}
+                  <div
+                    className="fixed inset-0 z-[400] bg-black/40"
+                    onClick={() => setMobilePolicyPopupOpen(false)}
+                  />
+                  {/* Popup FIXED centered — không lệ thuộc flow layout của panel */}
+                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-emerald-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
+                    <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-emerald-500/50 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen className="w-3 h-3" /> Chọn chính sách
+                      </span>
+                      <button onClick={() => setMobilePolicyPopupOpen(false)} className="text-white/70 hover:text-white">
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
+                    {POLICY_ITEMS.map(p => {
+                      const subActive = policyOpen === p.key;
+                      const PIcon = p.icon;
+                      return (
+                        <button
+                          key={p.key}
+                          onClick={() => { setPolicyOpen(p.key); setMobilePolicyPopupOpen(false); }}
+                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                        >
+                          <PIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: p.color }} />
+                          <span className="truncate flex-1">{p.label}</span>
+                          {subActive && <span className="text-emerald-400">●</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
             {/* Bộ lọc nhóm — dropdown xổ XUỐNG, ngắn lại, z-index cao, bo góc ít */}
@@ -5425,23 +5452,34 @@ export default function QuanLyPage() {
             <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${mobileRevenuePopupOpen ? 'rotate-180' : ''}`} />
           </button>
           {mobileRevenuePopupOpen && (
-            <div className="absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[260px] overflow-y-auto rounded-sm shadow-2xl">
-              {MONTHS.map(m => {
-                const subActive = revenueSub === m.key;
-                const MIcon = m.key === 'all' ? TrendingUp : Calendar;
-                return (
-                  <button
-                    key={m.key}
-                    onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); setMobileRevenuePopupOpen(false); }}
-                    className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
-                  >
-                    <MIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate flex-1">{m.label}</span>
-                    {subActive && <span className="text-emerald-400">●</span>}
+            <>
+              <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileRevenuePopupOpen(false)} />
+              <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-cyan-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
+                <div className="sticky top-0 bg-[#0891B2] text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-cyan-500/50 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <DollarSign className="w-3 h-3" /> Chọn tháng
+                  </span>
+                  <button onClick={() => setMobileRevenuePopupOpen(false)} className="text-white/70 hover:text-white">
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                );
-              })}
-            </div>
+                </div>
+                {MONTHS.map(m => {
+                  const subActive = revenueSub === m.key;
+                  const MIcon = m.key === 'all' ? TrendingUp : Calendar;
+                  return (
+                    <button
+                      key={m.key}
+                      onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); setMobileRevenuePopupOpen(false); }}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-cyan-500/20 ${subActive ? 'text-cyan-300 bg-cyan-500/10' : 'text-emerald-100/80'}`}
+                    >
+                      <MIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate flex-1">{m.label}</span>
+                      {subActive && <span className="text-cyan-400">●</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
@@ -6114,23 +6152,10 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
+        {/* Back button — nhỏ (20px), trên trái, duy nhất 1 nút về trang chủ */}
+        <BackButton href="/" size={20} title="Trở về trang chủ" />
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Mobile: in sub-pages → back to overview button (right side, neon round) */}
-          {activeSheet !== 'overview' && (
-            <BackButton
-              onClick={() => { setActiveSheet('overview'); setMobileMenuPopup(null); }}
-              size={32}
-              title="Về Tổng quan"
-              className="md:hidden"
-            />
-          )}
-          {/* Back to home — always on right (both desktop + mobile in overview) */}
-          <BackButton
-            href="/"
-            size={32}
-            title="Trở về trang chủ"
-          />
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
         </div>

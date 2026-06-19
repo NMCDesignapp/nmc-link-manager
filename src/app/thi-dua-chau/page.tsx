@@ -2490,7 +2490,7 @@ export default function ThiDuaPage() {
       {/* Header */}
       <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
-          <BackButton href="/" size={32} title="Trở về trang chủ" />
+          <BackButton href="/" size={20} title="Trở về trang chủ" />
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
           <h1 className="text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)]">Tính Thưởng Thi Đua</h1>
           {/* Data status indicator */}
