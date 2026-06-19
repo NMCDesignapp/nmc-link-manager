@@ -93,3 +93,27 @@ Stage Summary:
 - Ảnh chính sách giờ lưu server qua /api/settings (PUT), load lại từ fetch('/api/settings') khi mount — khi sang máy khác vẫn thấy ảnh
 - File: src/app/quan-ly/page.tsx (53 insertions, 61 deletions)
 - Commit: 0e8a0c2 pushed to main, Vercel auto-deploying
+
+---
+Task ID: tinh-chinh-lan-2-2026-06-19
+Agent: Main (Super Z)
+Task: Tinh chinh lan 2 trang /quan-ly overview
+
+Work Log:
+- PHẦN 2 (12 KPI): gap 1.5→2 (mobile), padding py-1→py-2, font 10px→sm; bo dong "Dong bo luc {time}" (da co o header)
+- PHẦN 3 (12 thang): doi grid 3×4 → LIST view
+  - Moi dong: [T1 28px] [KH amber] [TH sky] [% dat]
+  - KH mau amber #F59E0B nhat quan
+  - TH mau sky #0EA5E9 nhat quan
+  - So to len (11px mobile / sm desktop)
+  - Padding p-2/space-y-2 (nho hon PHẦN 2)
+  - Them legend KH/TH
+  - Bo progress bar, thay bang cot % dat ben phai
+- Header: bo nut Cai dat tren mobile (hidden md:inline-flex) — giu cho desktop vi sidebar desktop khong co nut Cai dat
+- Back button: doi href="/" → onClick history.back() — tro ve thao tac truoc (khong phai ve trang chu). Co fallback window.location.href='/' neu history empty
+
+Stage Summary:
+- PHẦN 2 to ra, PHẦN 3 nho lai → can doi hon
+- 12 thang gio la list view doc, T1-T12 o cot trai, KH/TH 2 mau rieng biet de phan biet
+- Back button hanh dong dung y nguoi dung
+- Commit 81ba986 pushed to main, Vercel auto-deploying
