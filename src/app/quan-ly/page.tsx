@@ -2488,16 +2488,12 @@ export default function QuanLyPage() {
               </div>
             </PopoverContent>
           </Popover>
-          {lastSyncTime && (
-            <span className="text-[10px] text-emerald-400/60 flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" /> Đồng bộ lúc {lastSyncTime}
-            </span>
-          )}
+          {/* Bỏ dòng "Đồng bộ lúc {time}" — đã có ở header trên cùng */}
         </div>
       </div>
 
-      {/* 12 KPI cards — 3 cột/hàng (mobile) × 4 hàng, 6 cột/hàng (desktop) × 2 hàng, cân đối */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-6">
+      {/* 12 KPI cards — 3 cột/hàng (mobile) × 4 hàng, 6 cột/hàng (desktop) × 2 hàng — MỞ RỘNG + CHỮ TO */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-6">
         {[
           { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
           { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
@@ -2515,9 +2511,9 @@ export default function QuanLyPage() {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           return (
             <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
-                <p className="text-white text-[7px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap truncate">
-                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[7px] font-normal italic"> ({kpi.unit})</span>}
+              <div className="px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
+                <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap truncate">
+                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}
                 </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {kpi.hasKH && kpi.target > 0 && (
@@ -2530,8 +2526,8 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-1 py-1 sm:px-2 sm:py-1.5 text-center">
-                <p className="text-[10px] sm:text-sm font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-2 sm:px-3 sm:py-3 text-center">
+                <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2539,11 +2535,11 @@ export default function QuanLyPage() {
       </div>
       </div>{/* end PHẦN 2: Tổng quan năm */}
 
-      {/* PHẦN 3: Kế hoạch AFYP từng tháng — style đồng nhất với PHẦN 2 (cùng nền, viền, đổ bóng, padding) */}
-      <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+      {/* PHẦN 3: Kế hoạch AFYP từng tháng — list view: T1-T12 cột trái, KH (amber) | TH (sky) 2 cột phải, gọn hơn PHẦN 2 */}
+      <div className="p-2 sm:p-3 border border-white/10 space-y-2" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
-            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="w-6 h-6 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
+            <Calendar className="w-3 h-3 text-emerald-400" />
           </div>
           <h3 className="text-[11px] sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
           <span className="text-[9px] text-amber-400/60 ml-auto">Nguồn: KẾ HOẠCH</span>
@@ -2566,14 +2562,20 @@ export default function QuanLyPage() {
               <span className="text-[10px] text-amber-300 font-bold">{getPeriodLabel(overviewPeriod)}:</span>
               <div className="flex items-center gap-3 text-[10px]">
                 <span className="text-white/60">KH: <span className="text-amber-400 font-bold">{formatSmartCurrency(aggPlan)}</span></span>
-                <span className="text-white/60">TH: <span className="text-emerald-400 font-bold">{formatSmartCurrency(aggActual)}</span></span>
+                <span className="text-white/60">TH: <span className="text-sky-400 font-bold">{formatSmartCurrency(aggActual)}</span></span>
                 <span className={`font-black ${aggPct >= 100 ? 'text-emerald-400' : aggPct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{aggPct.toFixed(1)}%</span>
               </div>
             </div>
           );
         })()}
-        {/* 12 ô tháng — 3 cột/hàng (mobile) × 4 hàng, 6 cột (tablet) × 2 hàng, 12 cột (desktop) × 1 hàng */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
+        {/* Legend — KH amber, TH sky */}
+        <div className="flex items-center gap-3 text-[9px] sm:text-[10px] font-bold px-1">
+          <span className="flex items-center gap-1 text-amber-400"><span className="w-2.5 h-2.5 bg-amber-500 inline-block"></span> Kế hoạch</span>
+          <span className="flex items-center gap-1 text-sky-400"><span className="w-2.5 h-2.5 bg-sky-500 inline-block"></span> Thực hiện</span>
+          <span className="text-white/30 ml-auto">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</span>
+        </div>
+        {/* 12 dòng — mỗi dòng: [T1] [KH amber] [TH sky] — gọn, số to */}
+        <div className="space-y-0.5">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
             const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
@@ -2587,25 +2589,25 @@ export default function QuanLyPage() {
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             const isInPeriod = periodMonths.includes(i + 1);
             return (
-              <div key={i} className={`rounded-none p-1 sm:p-1.5 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4), 0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
-                {monthlyPlan > 0 && (
-                  <span className={`absolute top-0.5 right-1 text-[8px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
-                )}
-                <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</p>
-                <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(0)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}</p>
-                <p className={`text-[10px] sm:text-xs font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : actualAFYP > 0 ? 'text-sky-400' : 'text-gray-600'}`}>
+              <div key={i} className={`grid grid-cols-[28px_1fr_1fr_auto] gap-1 items-center px-1 py-0.5 ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 6px rgba(15,118,110,0.4)' : 'inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
+                {/* T1-T12 — cột trái, cố định 28px */}
+                <span className={`text-[11px] sm:text-sm font-black text-center ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</span>
+                {/* Kế hoạch — màu AMBER (#F59E0B) */}
+                <span className="text-[11px] sm:text-sm font-black text-amber-400 text-right pr-1">
+                  {monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}
+                </span>
+                {/* Thực hiện — màu SKY (#0EA5E9) */}
+                <span className={`text-[11px] sm:text-sm font-black text-right pr-1 ${actualAFYP === 0 ? 'text-gray-600' : pct >= 100 ? 'text-sky-300' : 'text-sky-400'}`}>
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
-                </p>
-                {monthlyPlan > 0 && (
-                  <div className="w-full h-0.5 mt-0.5 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
-                  </div>
-                )}
+                </span>
+                {/* % đạt — cột phải */}
+                <span className={`text-[9px] sm:text-[10px] font-black text-right w-9 ${monthlyPlan > 0 ? (pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400') : 'text-gray-600'}`}>
+                  {monthlyPlan > 0 ? `${pct.toFixed(0)}%` : ''}
+                </span>
               </div>
             );
           })}
         </div>
-        <p className="text-[9px] sm:text-[10px] text-white/30">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện (chỉ desktop, ẩn trên mobile) */}
@@ -6187,12 +6189,14 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
-        {/* Back button — nhỏ (20px), trên trái, duy nhất 1 nút về trang chủ */}
-        <BackButton href="/" size={20} title="Trở về trang chủ" />
+        {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
+        <BackButton onClick={() => { if (typeof window !== 'undefined') { if (window.history.length > 1) window.history.back(); else window.location.href = '/'; } }} size={20} title="Trở về trang trước" />
         <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
+          {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          {/* Desktop: vẫn giữ nút Cài đặt vì sidebar không có — chỉ hiện md+ */}
+          <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="hidden md:inline-flex text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
         </div>
       </header>
 
