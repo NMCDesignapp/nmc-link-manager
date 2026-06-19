@@ -350,6 +350,20 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('vi-VN').format(n);
 }
 
+// Render nội dung ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG — đồng nhất tất cả chính sách
+// Thiết kế: nền trắng (cell), chữ XANH LÁ in đậm to hơn 1 chút (13px), icon 💰 trong chip vàng nhạt (chỉ icon có nền vàng, không tô hết ô)
+export function renderThuongCellContent(amount: number, fontSize: string = '13px', fontWeight: number = 800) {
+  if (!amount || amount <= 0) {
+    return <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>;
+  }
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#047857', fontSize, fontWeight, whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', backgroundColor: '#FEF3C7', borderRadius: '3px', fontSize: '10px', lineHeight: 1, flexShrink: 0 }}>💰</span>
+      {formatCurrency(amount)}
+    </span>
+  );
+}
+
 // Smart currency formatting: mobile shows trđ/tỷ, desktop shows full đ
 function formatSmartCurrency(amount: number): string {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -3552,14 +3566,14 @@ export default function QuanLyPage() {
                         <span className="text-gray-400 ml-1 text-[9px]">T{row.relativeMonth}</span>
                       </td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFF3E0', color: '#B45309' }}>{row.tongIPThang > 0 ? formatNumber(row.tongIPThang) : '—'}</td>
-                      {/* THƯỜNG THÁNG — xanh lá + icon + nền vàng nhạt + font +1 */}
-                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                        {row.thuongThang > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.thuongThang)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                      {/* THƯỜNG THÁNG — nền trắng, icon chip vàng, chữ xanh đậm to hơn 1 chút */}
+                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                        {renderThuongCellContent(row.thuongThang)}
                       </td>
                       <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#E8F5E9', color: '#2E7D32' }}>{row.tongIPChang > 0 ? formatNumber(row.tongIPChang) : '—'}</td>
-                      {/* THƯỞNG CHẶNG — xanh lá + icon + nền vàng nhạt + font +1 */}
-                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                        {row.thuongChang > 0 ? <span className="flex items-center justify-center gap-1"><span>💰</span>{formatCurrency(row.thuongChang)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                      {/* THƯỞNG CHẶNG — nền trắng, icon chip vàng, chữ xanh đậm to hơn 1 chút */}
+                      <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                        {renderThuongCellContent(row.thuongChang)}
                       </td>
                       <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.tenNguoiTD || '—'}</td>
                     </tr>
@@ -3832,9 +3846,9 @@ export default function QuanLyPage() {
                         </td>
                       );
                     })}
-                    {/* TIỀN THƯỞNG — xanh lá + icon + nền vàng nhạt + font +1 (đồng nhất TVVm) */}
-                    <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: '#047857', fontSize: '12px', fontWeight: 800 }}>
-                      {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                    {/* TIỀN THƯỞNG — nền trắng, icon chip vàng, chữ xanh đậm to hơn 1 chút */}
+                    <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                      {renderThuongCellContent(row.tienThuong)}
                     </td>
                     <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
                   </tr>
@@ -4045,8 +4059,16 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {prevMonth}</span><br/><span className="text-[9px] italic font-bold text-amber-300 normal-case">(ĐK ≥ 3 trđ)</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG IP<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                {/* TỔNG IP T5 (tháng liền trước) — light blue tint, header bg #DBEAFE, dark blue text */}
+                <th className="min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#93C5FD', backgroundColor: '#DBEAFE', color: '#1E3A8A' }}>
+                  TỔNG IP T{prevMonth}
+                  <br/>
+                  <span className="text-[9px] italic font-bold normal-case" style={{ color: '#B45309' }}>(ĐK ≥ 3 trđ)</span>
+                </th>
+                {/* TỔNG IP T6 (tháng hiện tại) — light violet tint, header bg #E0E7FF, dark violet text */}
+                <th className="min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#C4B5FD', backgroundColor: '#E0E7FF', color: '#4338CA' }}>
+                  TỔNG IP T{currentMonth}
+                </th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
                   FYC
                   <br/>
@@ -4067,16 +4089,18 @@ export default function QuanLyPage() {
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTVV}</td>
                   <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
-                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongIPThangTruoc > 0 ? formatNumber(row.tongIPThangTruoc) : '—'}</td>
-                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongIPThangHienTai > 0 ? formatNumber(row.tongIPThangHienTai) : '—'}</td>
+                  {/* T5 — body bg #F0F7FF (very light blue), text #1E40AF (blue-800) */}
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#F0F7FF', color: '#1E40AF' }}>{row.tongIPThangTruoc > 0 ? formatNumber(row.tongIPThangTruoc) : '—'}</td>
+                  {/* T6 — body bg #F5F3FF (very light violet), text #5B21B6 (violet-800) */}
+                  <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#F5F3FF', color: '#5B21B6' }}>{row.tongIPThangHienTai > 0 ? formatNumber(row.tongIPThangHienTai) : '—'}</td>
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.fyc > 0 ? formatNumber(row.fyc) : '—'}</td>
                   {/* TL THƯỞNG — yellow gradient bg + bold red % number (đồng nhất Quý TVV tier rate) */}
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: row.achievedTier >= 0 ? TIER_GRADIENT_BG[row.achievedTier] : '#F9FAFB', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>
                     {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
-                  {/* TIỀN THƯỞNG — xanh lá + icon + nền vàng nhạt + font +1 (đồng nhất TVVm + Quý TVV) */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                    {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  {/* TIỀN THƯỞNG — nền trắng, icon chip vàng, chữ xanh đậm to hơn 1 chút */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.tienThuong)}
                   </td>
                 </tr>
               ))}
@@ -4299,8 +4323,8 @@ export default function QuanLyPage() {
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[0], color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>
                     {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                    {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.tienThuong)}
                   </td>
                 </tr>
               ))}
@@ -4549,14 +4573,14 @@ export default function QuanLyPage() {
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.fypTVVm > 0 ? formatNumber(row.fypTVVm) : '—'}</td>
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{row.tongThuongTVVm > 0 ? formatCurrency(row.tongThuongTVVm) : '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[Math.min(row.slTVVmHDC, 5)] || '#FFDAB9', color: TIER_RATE_COLOR, fontSize: '13px', fontWeight: 900 }}>{row.slTVVmHDC}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                    {row.thuongDongHanh > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.thuongDongHanh)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.thuongDongHanh)}
                   </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                    {row.thuongVuotTroi > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.thuongVuotTroi)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.thuongVuotTroi)}
                   </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 900 }}>
-                    {row.tongTienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tongTienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '14px', fontWeight: 900 }}>
+                    {renderThuongCellContent(row.tongTienThuong, '14px', 900)}
                   </td>
                 </tr>
               ))}
@@ -4838,8 +4862,8 @@ export default function QuanLyPage() {
                       </td>
                     );
                   })}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: 'transparent', color: THUONG_TEXT, fontSize: THUONG_FONT, fontWeight: 800 }}>
-                    {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.tienThuong)}
                   </td>
                 </tr>
               ))}
@@ -5056,8 +5080,8 @@ export default function QuanLyPage() {
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: TIER_BORDER, backgroundColor: TIER_GRADIENT_BG[0], color: TIER_RATE_COLOR, fontSize: '12px', fontWeight: 900 }}>
                     {row.tlThuong > 0 ? `${row.tlThuong}%` : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
                   </td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: THUONG_BG, color: THUONG_TEXT, fontSize: '12px', fontWeight: 800 }}>
-                    {row.tienThuong > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#FEF3C7' }}><span>💰</span>{formatCurrency(row.tienThuong)}</span> : <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
+                    {renderThuongCellContent(row.tienThuong)}
                   </td>
                 </tr>
               ))}
