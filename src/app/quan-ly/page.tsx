@@ -2323,11 +2323,11 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-3 relative min-h-full">
-      {/* ===== MOBILE MENU SECTION — 3 nút/hàng, nút thấp, không bo góc, đổ bóng, nền xám tối ===== */}
+      {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 ===== */}
       <div className="md:hidden">
-        <div className="p-2.5 border border-white/10" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-          <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider mb-2">Menu</p>
-          <div className="grid grid-cols-3 gap-1.5">
+        <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+          <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider">Menu</p>
+          <div className="grid grid-cols-4 gap-1.5">
             {SHEETS.map(sheet => {
               const color = SHEET_MOBILE_COLORS[sheet.key];
               const isActive = activeSheet === sheet.key;
@@ -2345,17 +2345,17 @@ export default function QuanLyPage() {
                         setMobileMenuPopup(null);
                       }
                     }}
-                    className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-bold text-white transition-all"
+                    className="w-full flex flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-bold text-white transition-all aspect-square"
                     style={{
                       backgroundColor: color,
                       borderRadius: 0,
                       boxShadow: isActive ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
                       opacity: isActive && !sheet.hasSub ? 1 : 0.95,
-                      minHeight: '38px',
+                      minHeight: '44px',
                     }}
                   >
-                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate w-full text-center leading-tight">{sheet.label}</span>
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate w-full text-center leading-tight text-[9px]">{sheet.label}</span>
                     {sheet.hasSub && (
                       <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
@@ -2402,6 +2402,22 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
+            {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
+            <button
+              onClick={() => setSettingsDialogOpen(true)}
+              className="w-full flex flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-bold text-white transition-all aspect-square"
+              style={{
+                backgroundColor: '#475569',
+                borderRadius: 0,
+                boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
+                opacity: 0.95,
+                minHeight: '44px',
+              }}
+              title="Cài đặt hệ thống"
+            >
+              <Settings className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate w-full text-center leading-tight text-[9px]">Cài đặt</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2480,44 +2496,14 @@ export default function QuanLyPage() {
         </div>
       </div>
 
-      {/* Row 1: Core Revenue KPIs — chỉ AFYP có KH, các cái còn lại chỉ hiển thị */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* 12 KPI cards — 3 cột/hàng (mobile) × 4 hàng, 6 cột/hàng (desktop) × 2 hàng, cân đối */}
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-6">
         {[
           { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
           { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
           { label: 'TỶ TRỌNG IP', unit: '%', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
           { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
           { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: 0, targetFmt: '', bg: '#DC2626', hasKH: false },
-        ].map((kpi, i) => {
-          const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
-          return (
-            <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div className="px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
-                <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap">
-                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}
-                </p>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {kpi.hasKH && kpi.target > 0 && (
-                    <span className="text-white/50 text-[6px] sm:text-[7px] font-semibold">{kpi.targetFmt}</span>
-                  )}
-                  {kpi.target > 0 && (
-                    <span className="text-[9px] sm:text-xs font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                      {pct.toFixed(0)}%
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="bg-white px-1.5 py-1.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-xs sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Row 2: Secondary KPIs */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        {[
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: 0, targetFmt: '', bg: '#D97706', hasKH: false },
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
@@ -2529,9 +2515,9 @@ export default function QuanLyPage() {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           return (
             <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div className="px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
-                <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap">
-                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
+                <p className="text-white text-[7px] sm:text-[9px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap truncate">
+                  {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[7px] font-normal italic"> ({kpi.unit})</span>}
                 </p>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {kpi.hasKH && kpi.target > 0 && (
@@ -2544,8 +2530,8 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-1.5 py-1.5 sm:px-3 sm:py-3 text-center">
-                <p className="text-xs sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-1 py-1 sm:px-2 sm:py-1.5 text-center">
+                <p className="text-[10px] sm:text-sm font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -2553,13 +2539,13 @@ export default function QuanLyPage() {
       </div>
       </div>{/* end PHẦN 2: Tổng quan năm */}
 
-      {/* Monthly Plan from KẾ HOẠCH (read-only summary) */}
-      <div className="rounded-none p-3 sm:p-4 border border-white/10" style={{ backgroundColor: '#374151', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
-            <Calendar className="w-4 h-4 text-emerald-400" />
+      {/* PHẦN 3: Kế hoạch AFYP từng tháng — style đồng nhất với PHẦN 2 (cùng nền, viền, đổ bóng, padding) */}
+      <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
+            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
+          <h3 className="text-[11px] sm:text-sm font-bold text-white/80 uppercase tracking-wider">Kế hoạch AFYP từng tháng</h3>
           <span className="text-[9px] text-amber-400/60 ml-auto">Nguồn: KẾ HOẠCH</span>
         </div>
         {/* Aggregated summary for selected period */}
@@ -2576,7 +2562,7 @@ export default function QuanLyPage() {
           });
           const aggPct = aggPlan > 0 ? (aggActual / aggPlan) * 100 : 0;
           return (
-            <div className="mb-3 p-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center justify-between flex-wrap gap-2">
+            <div className="p-2 rounded border border-amber-500/30 bg-amber-500/5 flex items-center justify-between flex-wrap gap-2">
               <span className="text-[10px] text-amber-300 font-bold">{getPeriodLabel(overviewPeriod)}:</span>
               <div className="flex items-center gap-3 text-[10px]">
                 <span className="text-white/60">KH: <span className="text-amber-400 font-bold">{formatSmartCurrency(aggPlan)}</span></span>
@@ -2586,7 +2572,8 @@ export default function QuanLyPage() {
             </div>
           );
         })()}
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
+        {/* 12 ô tháng — 3 cột/hàng (mobile) × 4 hàng, 6 cột (tablet) × 2 hàng, 12 cột (desktop) × 1 hàng */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
             const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
@@ -2600,9 +2587,9 @@ export default function QuanLyPage() {
             const isCurrent = i + 1 === new Date().getMonth() + 1;
             const isInPeriod = periodMonths.includes(i + 1);
             return (
-              <div key={i} className={`rounded-none p-1.5 sm:p-2 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4), 0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
+              <div key={i} className={`rounded-none p-1 sm:p-1.5 text-center relative ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4), 0 2px 6px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
                 {monthlyPlan > 0 && (
-                  <span className={`absolute top-0.5 right-1 text-[9px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
+                  <span className={`absolute top-0.5 right-1 text-[8px] sm:text-[10px] font-black ${pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
                 )}
                 <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</p>
                 <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold">{monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(0)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}</p>
@@ -2610,7 +2597,7 @@ export default function QuanLyPage() {
                   {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </p>
                 {monthlyPlan > 0 && (
-                  <div className="w-full h-1 mt-1 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                  <div className="w-full h-0.5 mt-0.5 rounded-none" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
                     <div className="h-full rounded-none transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }} />
                   </div>
                 )}
@@ -2618,7 +2605,7 @@ export default function QuanLyPage() {
             );
           })}
         </div>
-        <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
+        <p className="text-[9px] sm:text-[10px] text-white/30">Tổng KH năm: {formatSmartCurrency(targetTongAFYP)}</p>
       </div>
 
       {/* Monthly AFYP Progress Chart — 2-column: Kế hoạch vs Thực hiện (chỉ desktop, ẩn trên mobile) */}
@@ -3197,14 +3184,18 @@ export default function QuanLyPage() {
       .catch(() => {});
   }, []);
 
-  // Save policy image link to Settings API
+  // Save policy image link to Settings API (uses PUT method to match /api/settings route)
   const savePolicyImage = useCallback(async (policyKey: string, link: string) => {
     try {
-      await fetch('/api/settings', {
-        method: 'POST',
+      const r = await fetch('/api/settings', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: `policy-image-${policyKey}`, value: link }),
+        body: JSON.stringify({ [`policy-image-${policyKey}`]: link }),
       });
+      if (!r.ok) {
+        toast({ title: 'Lỗi lưu ảnh', description: `Máy chủ trả về lỗi ${r.status}`, variant: 'destructive' });
+        return;
+      }
       setPolicyImageLinks(prev => {
         const next = { ...prev };
         if (link) next[policyKey] = link;
@@ -3213,6 +3204,7 @@ export default function QuanLyPage() {
       });
     } catch (e) {
       console.error('Failed to save policy image:', e);
+      toast({ title: 'Lỗi lưu ảnh', description: 'Không thể kết nối máy chủ', variant: 'destructive' });
     }
   }, []);
 
