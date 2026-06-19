@@ -5273,7 +5273,7 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full gap-2 p-2" style={{ boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,255,136,0.10)', backgroundColor: 'rgba(15,23,42,0.85)' }}>
+      <div className="flex flex-col h-full gap-2 p-2 relative" style={{ boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,255,136,0.10)', backgroundColor: 'rgba(15,23,42,0.85)' }}>
         {/* Top: ảnh trái + tổng hợp/filter phải — VIÊN VUÔNG, thông nhất với bảng dưới */}
         <div className="flex gap-0 flex-shrink-0 border border-emerald-500/25" style={{ height: '26vh', minHeight: '130px', maxHeight: '190px', boxShadow: '0 4px 14px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)' }}>
           {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô, góc vuông */}
@@ -5397,8 +5397,8 @@ export default function QuanLyPage() {
           {renderPolicyContent(policyOpen)}
         </div>
 
-        {/* Fixed bottom bar — thanh tổng hợp dính đáy màn hình, 1/2 kích thước, là thành phần của trang */}
-        <div className="fixed bottom-0 left-0 right-0 z-[600] bg-emerald-800 border-t-2 border-emerald-400 shadow-[0_-4px_12px_rgba(0,0,0,0.5)] flex items-center justify-between px-3 text-white" style={{ height: '28px' }}>
+        {/* Fixed bottom bar — thanh tổng hợp dính đáy, width = chiều ngang phần bảng (absolute trong outer relative) */}
+        <div className="absolute bottom-2 left-2 right-2 z-[600] bg-emerald-800 border-t-2 border-emerald-400 shadow-[0_-4px_12px_rgba(0,0,0,0.5)] flex items-center justify-between px-3 text-white rounded-[2px]" style={{ height: '28px' }}>
           <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
             <span className="text-emerald-300">TỔNG:</span>
             <span id="policy-fixed-count" className="text-white">—</span>
