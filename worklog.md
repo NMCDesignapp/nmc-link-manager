@@ -198,3 +198,34 @@ Stage Summary:
 - Desktop: ô Tổng thưởng hiện full format "100.000.000"
 - SL TVV đạt giờ đếm ĐÚNG: chỉ TVV/NTD có tiền thưởng > 0, không phải tổng số dòng
 - Commit 8e506a9 pushed to main, Vercel auto-deploying
+
+---
+Task ID: tinh-chinh-lan-5-2026-06-19
+Agent: Main (Super Z)
+Task: Ô tiền thưởng thiết kế mới (nền trắng + chip vàng chỉ icon) + NS-TVV T5/T6 khác màu nhẹ
+
+Work Log:
+- THÊM helper renderThuongCellContent(amount, fontSize='13px', fontWeight=800):
+  - Render nội dung ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG đồng nhất
+  - Chip 18×18 bg #FEF3C7 (vàng nhạt) chỉ quanh icon 💰, không quanh số tiền
+  - Số tiền: chữ XANH LÁ #047857 in đậm, to hơn body 1 chút (13px vs 11px)
+  - Trả về '—' xám nếu amount = 0
+- 10 ô tiền thưởng trên 7 bảng cập nhật:
+  - TVVm: THƯỞNG THÁNG + THƯỞNG CHẶNG (td bg white, fontSize 13px)
+  - Quý TVV: TIỀN THƯỞNG
+  - NS-TVV: TIỀN THƯỞNG
+  - Tuyên Luyện: TIỀN THƯỞNG
+  - Đồng Hành: THƯỞNG ĐỒNG HÀNH + THƯỞNG VƯỢT TRỘI + TỔNG TIỀN THƯỞNG (TỔNG dùng fontSize 14px fontWeight 900)
+  - Quý TN: TIỀN THƯỞNG
+  - PTKD: TIỀN THƯỞNG (td bg THUONG_BG vàng → white)
+- NS-TVV header TỔNG IP 2 cột:
+  - Đổi 'TỔNG IP<br/><span>Tháng 5</span>' → 'TỔNG IP T5' (T5 cùng dòng với TỔNG IP, viết tắt)
+  - '(ĐK ≥ 3 trđ)' giữ ở dòng 2 (chỉ cột T5)
+  - 2 cột KHÁC MÀU nhẹ nhất:
+    - T5 (tháng liền trước): header bg #DBEAFE (blue-100) text #1E3A8A, body bg #F0F7FF text #1E40AF
+    - T6 (tháng hiện tại): header bg #E0E7FF (violet-100) text #4338CA, body bg #F5F3FF text #5B21B6
+
+Stage Summary:
+- Tất cả ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG: nền trắng, chữ xanh đậm to hơn 1 chút, icon 💰 trong chip vàng nhỏ (chỉ icon có nền vàng)
+- NS-TVV: 2 cột TỔNG IP khác màu rõ (T5 xanh dương nhạt, T6 tím nhạt) — cùng dòng header "TỔNG IP T5" / "TỔNG IP T6"
+- Commit 7c07226 pushed to main, Vercel auto-deploying
