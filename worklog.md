@@ -171,3 +171,30 @@ Stage Summary:
 - Menu mobile: chữ to dễ đọc
 - KPI: số to hơn, ô giữ nguyên kích thước
 - Commit c531877 pushed to main, Vercel auto-deploying
+
+---
+Task ID: tinh-chinh-lan-4-2026-06-19
+Agent: Main (Super Z)
+Task: Format tổng thưởng mobile theo trđ + SL TVV đạt chỉ đếm TVV có thưởng > 0
+
+Work Log:
+- THÊM helper formatPolicyAmountForBox(amount):
+  - Mobile: trả về số dạng trđ KHÔNG kèm chữ "trđ" — vd 15.500.000 → "15,5"; 350.000.000 → "350"; 1.500.000.000 → "1.500"
+  - Desktop: trả về full format "100.000.000" (vi-VN thousands separator, không kèm đơn vị)
+- useEffect: dùng formatPolicyAmountForBox thay formatSmartCurrency → mobile giờ hiện "15,5" vừa ô, không tràn
+- Ô Tổng thưởng box: text-[14px] → text-[12px] mobile (desktop vẫn 16px), thêm class truncate để chấm nếu dài
+- 8 chính sách — data-policy-count chỉ đếm TVV/NTD có thưởng > 0 (trước đây đếm filteredRows.length = tất cả):
+  - tvvm: tvvmDatThuongCount (thuongThang > 0 OR thuongChang > 0) — đã có sẵn
+  - ns-tvv: tvvDatThuong (achievedTier >= 0) — đã có sẵn
+  - quy-tvv: tvvDatThuong — đã có sẵn
+  - tuyen-luyen: ntdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length — THÊM MỚI
+  - dong-hanh: ttnDatThuongCount = filteredRows.filter(r => r.tongTienThuong > 0).length — THÊM MỚI
+  - quy-tn: tnDatThuong — đã có sẵn
+  - ptkd-tn: ptkdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length — THÊM MỚI
+  - tuyen-ngang: 0 (bảng chưa có data, trước đây reference filteredRows undefined → hardcode 0)
+
+Stage Summary:
+- Mobile: ô Tổng thưởng giờ hiện số trđ ngắn (vd "15,5") → vừa ô, không tràn
+- Desktop: ô Tổng thưởng hiện full format "100.000.000"
+- SL TVV đạt giờ đếm ĐÚNG: chỉ TVV/NTD có tiền thưởng > 0, không phải tổng số dòng
+- Commit 8e506a9 pushed to main, Vercel auto-deploying
