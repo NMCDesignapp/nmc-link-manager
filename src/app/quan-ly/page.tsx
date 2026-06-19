@@ -2376,7 +2376,7 @@ export default function QuanLyPage() {
                         setMobileMenuPopup(null);
                       }
                     }}
-                    className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square"
+                    className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
                     style={{
                       backgroundColor: color,
                       borderRadius: 0,
@@ -2391,16 +2391,16 @@ export default function QuanLyPage() {
                       <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
                   </button>
-                  {/* Popup sub-items (for revenue/report) — FIXED overlay centered */}
+                  {/* Popup sub-items (for revenue/report) — FIXED overlay centered, narrow on mobile, no rounded corners, divider lines between items */}
                   {sheet.hasSub && mobileMenuPopup === sheet.key && (
                     <>
                       <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileMenuPopup(null)} />
-                      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-emerald-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
-                        <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-emerald-500/50 flex items-center justify-between">
+                      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-emerald-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
+                        <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-emerald-500/60 flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
                             <Icon className="w-3 h-3" /> Chọn {sheet.label}
                           </span>
-                          <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white">
+                          <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -2419,7 +2419,7 @@ export default function QuanLyPage() {
                                 }
                                 setMobileMenuPopup(null);
                               }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                              className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
                             >
                               <s.Icon className="w-3.5 h-3.5 flex-shrink-0" />
                               <span className="truncate flex-1">{s.label}</span>
@@ -2436,7 +2436,7 @@ export default function QuanLyPage() {
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
             <button
               onClick={() => setSettingsDialogOpen(true)}
-              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square"
+              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
               style={{
                 backgroundColor: '#475569',
                 borderRadius: 0,
@@ -4059,14 +4059,14 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                {/* TỔNG IP T5 (tháng liền trước) — light blue tint, header bg #DBEAFE, dark blue text */}
-                <th className="min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#93C5FD', backgroundColor: '#DBEAFE', color: '#1E3A8A' }}>
+                {/* TỔNG IP T5 (tháng liền trước) — DARK TEAL header (#0F766E, white text), body lightest blue tint */}
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>
                   TỔNG IP T{prevMonth}
                   <br/>
-                  <span className="text-[9px] italic font-bold normal-case" style={{ color: '#B45309' }}>(ĐK ≥ 3 trđ)</span>
+                  <span className="text-[9px] italic font-bold normal-case" style={{ color: '#A7F3D0' }}>(ĐK ≥ 3 trđ)</span>
                 </th>
-                {/* TỔNG IP T6 (tháng hiện tại) — light violet tint, header bg #E0E7FF, dark violet text */}
-                <th className="min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#C4B5FD', backgroundColor: '#E0E7FF', color: '#4338CA' }}>
+                {/* TỔNG IP T6 (tháng hiện tại) — DARK NAVY header (#1E3A8A, white text), body lightest violet tint */}
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#1E3A8A', backgroundColor: '#1E3A8A' }}>
                   TỔNG IP T{currentMonth}
                 </th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
@@ -4832,9 +4832,9 @@ export default function QuanLyPage() {
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>
                     {row.hasTVVmHDC ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#22C55E', color: '#FFFFFF' }}>✓</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#22C55E', color: '#FFFFFF', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✓</span>
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#EF4444', color: '#FFFFFF' }}>✗</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#EF4444', color: '#FFFFFF', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✗</span>
                     )}
                   </td>
                   {/* 5 tier columns — ĐẠT if idx === achievedTier, else show checkmark or deficit */}
@@ -5050,11 +5050,11 @@ export default function QuanLyPage() {
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0 }}>
             <thead className="sticky top-0 z-10">
               <tr style={{ backgroundColor: HEADER_BG }}>
-                <th className="text-white text-center w-[36px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
-                <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
+                <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
-                <th className="text-white min-w-[140px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
-                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐC<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
                   FYC
@@ -5266,7 +5266,7 @@ export default function QuanLyPage() {
             <div className="relative flex-shrink-0 z-[200] md:hidden">
               <button
                 onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
-                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] text-white font-bold"
+                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] text-white font-bold transition-all active:scale-95 active:brightness-75"
                 style={{ backgroundColor: '#047857', border: '1px solid #065F46', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
               >
                 <span className="truncate flex items-center gap-1">
@@ -5278,12 +5278,12 @@ export default function QuanLyPage() {
               {mobilePolicyPopupOpen && (
                 <>
                   <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobilePolicyPopupOpen(false)} />
-                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border border-emerald-500/50 max-h-[60vh] w-[90vw] max-w-[320px] overflow-y-auto rounded-md shadow-2xl">
-                    <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b border-emerald-500/50 flex items-center justify-between">
+                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-emerald-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
+                    <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-emerald-500/60 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <BookOpen className="w-3 h-3" /> Chọn chính sách
                       </span>
-                      <button onClick={() => setMobilePolicyPopupOpen(false)} className="text-white/70 hover:text-white">
+                      <button onClick={() => setMobilePolicyPopupOpen(false)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -5294,7 +5294,7 @@ export default function QuanLyPage() {
                         <button
                           key={p.key}
                           onClick={() => { setPolicyOpen(p.key); setMobilePolicyPopupOpen(false); }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
                         >
                           <PIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: p.color }} />
                           <span className="truncate flex-1">{p.label}</span>
@@ -5346,7 +5346,34 @@ export default function QuanLyPage() {
         </div>
 
         {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng — nối liền footer (không gap) */}
-        <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-policy-table={policyOpen}>
+        <div className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-policy-table={policyOpen}>
+          {/* Mobile: thu nhỏ font + padding + bỏ min-width để xem được nhiều cột hơn, giữ tỷ lệ giữa cột và chữ
+              Desktop: giữ nguyên font/padding/min-width theo inline style */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media (max-width: 767px) {
+              .policy-detail-table-wrapper table { font-size: 9px !important; }
+              .policy-detail-table-wrapper th,
+              .policy-detail-table-wrapper td {
+                padding: 3px !important;
+                min-width: auto !important;
+                width: auto !important;
+                font-size: 9px !important;
+              }
+              .policy-detail-table-wrapper th span,
+              .policy-detail-table-wrapper td span,
+              .policy-detail-table-wrapper th br + span,
+              .policy-detail-table-wrapper td br + span {
+                font-size: 8px !important;
+              }
+              /* Ô TIỀN THƯỞNG — vẫn to hơn 1 chút để nổi bật trên mobile */
+              .policy-detail-table-wrapper td[style*="13px"],
+              .policy-detail-table-wrapper td[style*="13px"] span {
+                font-size: 10px !important;
+              }
+              /* Header STT nhỏ lại */
+              .policy-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+            }
+          `}} />
           {renderPolicyContent(policyOpen)}
         </div>
 
