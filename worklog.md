@@ -117,3 +117,35 @@ Stage Summary:
 - 12 thang gio la list view doc, T1-T12 o cot trai, KH/TH 2 mau rieng biet de phan biet
 - Back button hanh dong dung y nguoi dung
 - Commit 81ba986 pushed to main, Vercel auto-deploying
+
+---
+Task ID: chinh-sach-redesign-2026-06-19
+Agent: Main (Super Z)
+Task: Redesign chinh sach tables - top section silver bg, remove total rows, fix summary numbers bug
+
+Work Log:
+- renderPolicy container redesign:
+  - Right panel bg: rgba(255,255,255,0.16) → solid silver #D1D5DB
+  - 2 summary boxes: solid colors #059669 + #D97706 with 1px solid border + shadow
+  - Container bg: solid #0F172A (was rgba)
+  - Footer: flex-shrink-0 (was absolute bottom-2) — no overlap, fixed at bottom of flex container
+  - TVV policies: filter + search using flex-1 (equal heights)
+  - TN policies: 2 info boxes balanced (same height as TVV filter+search)
+- useEffect fix:
+  - OLD: copy textContent from #policy-total-${key} (which was NEVER updated by render functions — bug!)
+  - NEW: read data-policy-count + data-policy-amount from each table outer div
+  - Update BOTH #policy-count-${key} + #policy-total-${key} (top boxes) AND #policy-fixed-count + #policy-fixed-amount (footer)
+- 8 policy tables updated:
+  - Added data-policy-count + data-policy-amount to outer div
+  - Removed policy-total-row block (footer handles totals)
+  - Standardized header font: text-[13px] h-9 / text-[14px] h-10 → text-[11px] h-8 (TVVm standard)
+  - Standardized body font: text-[12px] → text-[11px]
+  - Added border-b border-gray-300 to all data rows (solid dividers between rows)
+- Cleaned up 7 broken HTML spots (orphaned </td> <td> </tr> from non-greedy regex match)
+
+Stage Summary:
+- Top section: silver solid bg + balanced layout (TVV: filter+search, TN: 2 info boxes)
+- Tables: all 8 use text-[11px] h-8 header (TVVm standard), border-b solid dividers, NO total row
+- Footer: flex-shrink-0 fixed at bottom (no overlap)
+- Summary numbers bug FIXED: data-policy-count + data-policy-amount attributes drive both top boxes AND footer
+- Build OK, commit e32f3c8 pushed to main, Vercel auto-deploying
