@@ -3136,8 +3136,6 @@ export default function QuanLyPage() {
   const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
   // Policy image link — per policy item, persisted via Settings API
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
-  const [policyImageDialogOpen, setPolicyImageDialogOpen] = useState(false);
-  const [policyImageEditingKey, setPolicyImageEditingKey] = useState('');
   const [policyImageInput, setPolicyImageInput] = useState('');
 
   // Load policy image links from Settings API on mount
@@ -6379,6 +6377,64 @@ export default function QuanLyPage() {
                 })}
               </div>
             </div>
+
+            {/* Section 3: Ảnh chính sách — chỉ hiện khi đang ở trang chính sách */}
+            {activeSheet === 'report' && policyOpen && (() => {
+              const item = POLICY_ITEMS.find(i => i.key === policyOpen);
+              if (!item) return null;
+              const currentImage = policyImageLinks[policyOpen] || '';
+              return (
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+                    <Settings className="w-4 h-4 text-amber-400" /> Ảnh chính sách: {item.label}
+                  </h3>
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 space-y-2">
+                    {/* Preview */}
+                    {currentImage && (
+                      <div className="rounded-md overflow-hidden border border-amber-500/30" style={{ height: '100px' }}>
+                        <img src={currentImage} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    {/* Upload */}
+                    <div>
+                      <Label className="text-xs text-emerald-200/70">Tải ảnh lên trực tiếp</Label>
+                      <input type="file" accept="image/*" className="hidden" id="settings-policy-image-upload" onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const dataUrl = ev.target?.result as string;
+                          setPolicyImageInput(dataUrl);
+                          // Auto-save on upload
+                          savePolicyImage(policyOpen, dataUrl);
+                        };
+                        reader.readAsDataURL(file);
+                      }} />
+                      <Button variant="ghost" onClick={() => document.getElementById('settings-policy-image-upload')?.click()} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs w-full">
+                        <Upload className="w-3 h-3 mr-1" /> Chọn file ảnh
+                      </Button>
+                    </div>
+                    {/* URL paste */}
+                    <div>
+                      <Label className="text-xs text-emerald-200/70">Hoặc dán link ảnh (URL)</Label>
+                      <Input
+                        defaultValue={currentImage}
+                        placeholder="https://example.com/image.jpg"
+                        className="bg-white/5 border-emerald-500/20 text-white h-8 text-xs"
+                        onBlur={(e) => { savePolicyImage(policyOpen, e.target.value); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+                      />
+                    </div>
+                    {/* Delete */}
+                    {currentImage && (
+                      <Button variant="ghost" onClick={() => { savePolicyImage(policyOpen, ''); }} className="text-red-300 hover:text-red-200 text-xs w-full border border-red-500/30">
+                        <Trash2 className="w-3 h-3 mr-1" /> Xóa ảnh hiện tại
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button onClick={() => setSettingsDialogOpen(false)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300">Đóng</Button>
@@ -6386,44 +6442,7 @@ export default function QuanLyPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Policy Image Link Dialog */}
-      <Dialog open={policyImageDialogOpen} onOpenChange={setPolicyImageDialogOpen}>
-        <DialogContent className="bg-[#1a2332]/95 backdrop-blur-xl border-emerald-500/30">
-          <DialogHeader><DialogTitle className="text-amber-400">Cài đặt ảnh chính sách</DialogTitle></DialogHeader>
-          <div className="space-y-1">
-            <div>
-              <Label className="text-xs text-emerald-200/70">Tải ảnh lên trực tiếp</Label>
-              <input type="file" accept="image/*" className="hidden" id="policy-image-upload" onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { setPolicyImageInput(ev.target?.result as string); }; reader.readAsDataURL(file); }} />
-              <Button variant="ghost" onClick={() => document.getElementById('policy-image-upload')?.click()} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs w-full"><Upload className="w-3 h-3 mr-1" /> Chọn file ảnh</Button>
-            </div>
-            <div>
-              <Label className="text-xs text-emerald-200/70">Hoặc dán link ảnh (URL)</Label>
-              <Input
-                value={policyImageInput}
-                onChange={e => setPolicyImageInput(e.target.value)}
-                className="bg-white/5 border-emerald-500/20 text-white"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-            {policyImageInput && (
-              <div className="rounded-md overflow-hidden border border-emerald-500/20" style={{ height: '120px' }}>
-                <img src={policyImageInput} alt="Preview" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={async () => {
-              await savePolicyImage(policyImageEditingKey, '');
-              setPolicyImageInput('');
-              setPolicyImageDialogOpen(false);
-            }} className="text-red-300 hover:text-red-200 text-xs">Xóa ảnh</Button>
-            <Button onClick={async () => {
-              await savePolicyImage(policyImageEditingKey, policyImageInput);
-              setPolicyImageDialogOpen(false);
-            }} className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs">Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Policy Image settings đã được gộp vào dialog Cài đặt hệ thống ở trên */}
 
     </div>
   );
