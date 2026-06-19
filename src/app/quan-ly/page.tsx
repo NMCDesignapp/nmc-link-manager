@@ -2321,7 +2321,7 @@ export default function QuanLyPage() {
   };
 
   const renderOverview = () => (
-    <div className="space-y-3 relative min-h-full" style={{ zIndex: 1 }}>
+    <div className="space-y-3 relative min-h-full">
       {/* ===== MOBILE MENU SECTION — ở đầu overview, chỉ hiển thị mobile ===== */}
       <div className="md:hidden">
         <div className="rounded-none p-2.5" style={{ backgroundColor: '#1E293B', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>
@@ -5249,8 +5249,8 @@ export default function QuanLyPage() {
               </div>
             )}
           </div>
-          {/* Right: nền mờ sáng nối liền từ hình — backdrop-blur tạo hiệu ứng mờ nối tiếp ảnh */}
-          <div className="w-1/3 md:w-1/2 flex flex-col justify-center items-stretch px-2 py-1.5 gap-1.5 overflow-visible rounded-r-md backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.10)', boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.08)' }}>
+          {/* Right: nền mờ sáng nối liền từ hình — z-[200] để popup (z-[300]) vượt qua backdrop (z-[150]) */}
+          <div className="w-1/3 md:w-1/2 flex flex-col justify-center items-stretch px-2 py-1.5 gap-1.5 overflow-visible rounded-r-md relative z-[200]" style={{ backgroundColor: 'rgba(255,255,255,0.10)', boxShadow: 'inset 1px 0 0 rgba(255,255,255,0.08)' }}>
             {/* 2 ô tổng hợp — màu đậm, số to đậm */}
             <div className="flex gap-1 flex-shrink-0">
               <div className="flex-1 bg-emerald-600 border border-emerald-400 px-1.5 py-1 text-center rounded-sm">
