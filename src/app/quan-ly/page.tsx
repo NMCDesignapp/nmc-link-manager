@@ -2345,17 +2345,17 @@ export default function QuanLyPage() {
                         setMobileMenuPopup(null);
                       }
                     }}
-                    className="w-full flex flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-bold text-white transition-all aspect-square"
+                    className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square"
                     style={{
                       backgroundColor: color,
                       borderRadius: 0,
                       boxShadow: isActive ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
                       opacity: isActive && !sheet.hasSub ? 1 : 0.95,
-                      minHeight: '44px',
+                      minHeight: '52px',
                     }}
                   >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate w-full text-center leading-tight text-[9px]">{sheet.label}</span>
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <span className="truncate w-full text-center leading-tight text-[11px]">{sheet.label}</span>
                     {sheet.hasSub && (
                       <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
@@ -2405,18 +2405,18 @@ export default function QuanLyPage() {
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
             <button
               onClick={() => setSettingsDialogOpen(true)}
-              className="w-full flex flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[10px] font-bold text-white transition-all aspect-square"
+              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square"
               style={{
                 backgroundColor: '#475569',
                 borderRadius: 0,
                 boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
                 opacity: 0.95,
-                minHeight: '44px',
+                minHeight: '52px',
               }}
               title="Cài đặt hệ thống"
             >
-              <Settings className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate w-full text-center leading-tight text-[9px]">Cài đặt</span>
+              <Settings className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate w-full text-center leading-tight text-[11px]">Cài đặt</span>
             </button>
           </div>
         </div>
@@ -2526,8 +2526,8 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-2 py-2 sm:px-3 sm:py-3 text-center">
-                <p className="text-sm sm:text-lg font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
+              <div className="bg-white px-2 py-1 sm:px-2.5 sm:py-1.5 text-center">
+                <p className="text-base sm:text-xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
           );
@@ -3155,18 +3155,21 @@ export default function QuanLyPage() {
       const dataEl = tableContainer?.querySelector('[data-policy-count]') as HTMLElement | null;
       const count = dataEl?.getAttribute('data-policy-count') || '0';
       const amount = dataEl?.getAttribute('data-policy-amount') || '0';
+      // Format amount bằng formatSmartCurrency để mobile hiển thị gọn (vd: "15 trđ")
+      const amountNum = parseFloat(amount) || 0;
+      const amountFmt = amountNum > 0 ? formatSmartCurrency(amountNum) : '—';
 
-      // Update 2 ô tổng hợp ở trên
+      // Update 2 ô tổng hợp ở trên (mobile + desktop)
       const countEl = document.getElementById(`policy-count-${policyOpen}`);
       if (countEl) countEl.textContent = count === '0' ? '—' : count;
       const totalEl = document.getElementById(`policy-total-${policyOpen}`);
-      if (totalEl) totalEl.textContent = amount === '0' ? '—' : amount;
+      if (totalEl) totalEl.textContent = amountFmt;
 
       // Update footer
       const fixedCountEl = document.getElementById('policy-fixed-count');
       if (fixedCountEl) fixedCountEl.textContent = count === '0' ? '—' : `${count} dòng`;
       const fixedAmountEl = document.getElementById('policy-fixed-amount');
-      if (fixedAmountEl) fixedAmountEl.textContent = amount === '0' ? '—' : amount;
+      if (fixedAmountEl) fixedAmountEl.textContent = amountFmt;
     }, 100);
     return () => clearTimeout(timer);
   }, [activeSheet, policyOpen, tvvmNhomFilter, tvvmNameFilter, nsTvvNhomFilter, nsTvvNameFilter, quyTvvNhomFilter, quyTvvNameFilter, ptkdNhomFilter, ptkdNameFilter]);
@@ -5184,11 +5187,11 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full gap-1.5 p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
+      <div className="flex flex-col h-full p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
         {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
-        <div className="flex flex-shrink-0 border" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-          {/* Left: Image — mobile 2/3, desktop 1/2 — fill đầy ô, góc vuông */}
-          <div className="w-2/3 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+        <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+          {/* Left: Image — mobile 3/5, desktop 1/2 — fill đầy ô, góc vuông */}
+          <div className="w-3/5 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
             {imageLink ? (
               <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
             ) : (
@@ -5199,16 +5202,18 @@ export default function QuanLyPage() {
             )}
           </div>
           {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền — không dùng rgba */}
-          <div className="w-1/3 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
-            {/* 2 ô tổng hợp — MÀU ĐẶC, cân đối, đổ bóng */}
-            <div className="flex gap-1 flex-shrink-0">
-              <div className="flex-1 px-1 py-1 text-center" style={{ backgroundColor: '#059669', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #047857' }}>
+          <div className="w-2/5 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+            {/* 2 ô tổng hợp — MÀU ĐẶC, cân đối, đổ bóng
+                - TVV policy: flex-shrink-0 (top), filter+search fill phần dưới
+                - TN policy: flex-1 flex-col, 2 ô stack dọc fill đầy chiều cao */}
+            <div className={`gap-1 ${isTvvPolicy ? 'flex flex-shrink-0' : 'flex flex-1 flex-col'}`}>
+              <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#059669', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #047857' }}>
                 <p className="text-[8px] font-bold uppercase text-white leading-tight">SL TVV đạt</p>
-                <p className="text-[16px] font-black text-white leading-tight" id={`policy-count-${policyOpen}`}>—</p>
+                <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all" id={`policy-count-${policyOpen}`}>—</p>
               </div>
-              <div className="flex-1 px-1 py-1 text-center" style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
+              <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
                 <p className="text-[8px] font-bold uppercase text-white leading-tight">Tổng thưởng</p>
-                <p className="text-[16px] font-black text-white leading-tight" id={`policy-total-${policyOpen}`}>—</p>
+                <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all" id={`policy-total-${policyOpen}`}>—</p>
               </div>
             </div>
             {/* Mobile: nút switch chính sách — popup FIXED overlay */}
@@ -5290,27 +5295,17 @@ export default function QuanLyPage() {
                 </div>
               </>
             )}
-            {/* TN policies (không có filter): 2 ô info cân đối với TVV (cùng chiều cao) */}
-            {!isTvvPolicy && (
-              <>
-                <div className="flex-1 min-h-0 flex items-center justify-center text-[9px] italic px-1 text-center" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                  Áp dụng cho Trưởng nhóm/NTD
-                </div>
-                <div className="flex-1 min-h-0 flex items-center justify-center text-[9px] italic px-1 text-center" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                  {item.desc}
-                </div>
-              </>
-            )}
+            {/* TN policies (không có filter): không hiển thị 2 ô info nữa — 2 ô tổng hợp đã fill đầy chiều cao */}
           </div>
         </div>
 
-        {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng */}
+        {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng — nối liền footer (không gap) */}
         <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-policy-table={policyOpen}>
           {renderPolicyContent(policyOpen)}
         </div>
 
-        {/* Footer FIXED — màu đặc, không nhúc nhít, dính đáy container */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', boxShadow: '0 -4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)', borderTop: '2px solid #065F46' }}>
+        {/* Footer FIXED — màu đặc, không nhúc nhít, dính đáy container, nối liền bảng (không gap đen) */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', borderTop: '2px solid #065F46' }}>
           <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
             <span className="text-emerald-300">TỔNG:</span>
             <span id="policy-fixed-count" className="text-white">—</span>
