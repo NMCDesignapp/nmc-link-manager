@@ -232,3 +232,19 @@ model TVVStruct {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// DS TTN Tuyển Ngang — Trưởng Tổ Nhóm tuyển dụng ngang cấp
+// Columns: STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu làm việc, Ngày hiệu lực chức vụ,
+//          MÃ NGƯỜI TUYỂN DỤNG, TÊN NGƯỜI TUYỂN DỤNG
+model TuyenNgang {
+  id                String    @id @default(uuid())
+  nhom              String    @default("")   // NHÓM (tên nhóm)
+  agentCode         String    @unique         // MÃ TVV
+  agentName         String                     // HỌ TÊN
+  ngayBatDau        DateTime?                 // Ngày bắt đầu làm việc
+  ngayHieuLuc       DateTime?                 // Ngày hiệu lực chức vụ
+  maNguoiTuyenDung  String    @default("")   // MÃ NGƯỜI TUYỂN DỤNG
+  tenNguoiTuyenDung String    @default("")   // TÊN NGƯỜI TUYỂN DỤNG
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}

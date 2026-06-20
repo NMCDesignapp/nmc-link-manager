@@ -84,6 +84,13 @@ interface Recruiter {
   position: string; startDate: string | null;
 }
 
+// DS TTN Tuyển Ngang — Trưởng Tổ Nhóm tuyển ngang cấp
+interface TuyenNgangItem {
+  id: string; nhom: string; agentCode: string; agentName: string;
+  ngayBatDau: string | null; ngayHieuLuc: string | null;
+  maNguoiTuyenDung: string; tenNguoiTuyenDung: string;
+}
+
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
@@ -126,8 +133,10 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'revenue' | 'report' | 'structure' | 'kehoach';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
+// Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS NTD), tuyen-ngang (DS TTN Tuyển Ngang)
+type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
 // Gradient yellow/cream background (light → warmer) for tier header cells and body cells
@@ -191,19 +200,22 @@ const MONTHS: { key: RevenueSubKey; label: string }[] = [
 
 const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
-  { key: 'leaders', label: 'DS TB/TN', icon: Users, synced: false },
-  { key: 'recruiters', label: 'DS Người TD', icon: UserCircle, synced: false },
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
   { key: 'report', label: 'Chính sách đại lý', icon: BookOpen, synced: false, hasSub: true },
-  { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false },
+  { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false, hasSub: true },
 ];
 
-// Mobile menu button colors (solid)
-const SHEET_MOBILE_COLORS: Record<SheetKey, string> = {
+// Sub-items for "Cấu trúc" — DS TB/TN, DS NTD, DS TTN Tuyển Ngang
+const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.ElementType }[] = [
+  { key: 'leaders', label: 'DS TB/TN', icon: Users },
+  { key: 'recruiters', label: 'DS NTD', icon: UserCircle },
+  { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
+];
+
+// Mobile menu button colors (solid) — only top-level sheets need a color
+const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   overview: '#059669',
-  leaders: '#7C3AED',
-  recruiters: '#CA8A04',
   revenue: '#0891B2',
   kehoach: '#DC2626',
   report: '#2563EB',
@@ -247,6 +259,10 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   'structure-tvv': {
     headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV Tuyển dụng', 'Ghi chú'],
     sampleData: [{ 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn TVV', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV Tuyển dụng': 'D104102154', 'Ghi chú': '' }],
+  },
+  'tuyen-ngang': {
+    headers: ['STT', 'NHÓM', 'MÃ TVV', 'HỌ TÊN', 'Ngày bắt đầu làm việc', 'Ngày hiệu lực chức vụ', 'MÃ NGƯỜI TUYỂN DỤNG', 'TÊN NGƯỜI TUYỂN DỤNG'],
+    sampleData: [{ 'STT': '1', 'NHÓM': 'Nhóm Hiệp Tiến', 'MÃ TVV': 'D104132784', 'HỌ TÊN': 'Nguyễn Văn A', 'Ngày bắt đầu làm việc': '01/01/2026', 'Ngày hiệu lực chức vụ': '15/01/2026', 'MÃ NGƯỜI TUYỂN DỤNG': 'D104102154', 'TÊN NGƯỜI TUYỂN DỤNG': 'Trần Thị B' }],
   },
 };
 
@@ -1222,6 +1238,8 @@ export default function QuanLyPage() {
   const [revenueNhomFilter, setRevenueNhomFilter] = useState<string>('');
   const [revenueExpanded, setRevenueExpanded] = useState(false);
   const [policyExpanded, setPolicyExpanded] = useState(false);
+  const [structureExpanded, setStructureExpanded] = useState(false);
+  const [structureSub, setStructureSub] = useState<StructureSubKey>('leaders');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -1399,6 +1417,7 @@ export default function QuanLyPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
+  const [tuyenNgangList, setTuyenNgangList] = useState<TuyenNgangItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Structure state
@@ -1503,6 +1522,9 @@ export default function QuanLyPage() {
   const fetchRecruiters = useCallback(async () => {
     try { const r = await fetch('/api/recruiters'); if (r.ok) setRecruiters(await r.json()); } catch {}
   }, []);
+  const fetchTuyenNgang = useCallback(async () => {
+    try { const r = await fetch('/api/tuyen-ngang'); if (r.ok) setTuyenNgangList(await r.json()); } catch {}
+  }, []);
 
   // Fetch structure data
   const fetchPhong = useCallback(async () => {
@@ -1542,14 +1564,15 @@ export default function QuanLyPage() {
     const loaders: Record<SheetKey, () => Promise<void>> = {
       overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); }, // Fetch all data + structure for Kế hoạch targets
       leaders: fetchLeaders,
+      'tuyen-ngang': fetchTuyenNgang,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
       kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
-      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct()]); },
+      structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
-  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
+  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
   useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
 
@@ -1624,6 +1647,17 @@ export default function QuanLyPage() {
   }, []);
   const deleteRecruiter = useCallback(async (id: string) => {
     if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/recruiters/${id}`, { method: 'DELETE' }); if (r.ok) { setRecruiters(p => p.filter(rc => rc.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
+  }, []);
+
+  // ========== CRUD: Tuyen Ngang (DS TTN Tuyển Ngang) ==========
+  const updateTuyenNgang = useCallback(async (id: string, field: string, value: any) => {
+    try { const r = await fetch(`/api/tuyen-ngang/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setTuyenNgangList(p => p.map(tn => tn.id === id ? { ...tn, [field]: value } : tn)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const addTuyenNgang = useCallback(async () => {
+    try { const r = await fetch('/api/tuyen-ngang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: 'TN_' + Date.now(), agentName: 'Chưa nhập' }) }); if (r.ok) { const n = await r.json(); setTuyenNgangList(p => [n, ...p]); toast({ title: 'Đã thêm' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const deleteTuyenNgang = useCallback(async (id: string) => {
+    if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/tuyen-ngang/${id}`, { method: 'DELETE' }); if (r.ok) { setTuyenNgangList(p => p.filter(tn => tn.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
   // ========== CRUD: Structure (4-tier) ==========
@@ -1859,6 +1893,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
+      else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
@@ -2076,6 +2111,25 @@ export default function QuanLyPage() {
             toast({ title: 'Lỗi import người TD', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
+      } else if (sheetName === 'tuyen-ngang') {
+        // Columns: STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD
+        const members = data.map((r: any) => ({
+          nhom: String(r['NHÓM'] || r['nhom'] || ''),
+          agentCode: String(r['MÃ TVV'] || r['agentCode'] || ''),
+          agentName: String(r['HỌ TÊN'] || r['agentName'] || ''),
+          ngayBatDau: parseDateValue(r['Ngày bắt đầu làm việc'] || r['ngayBatDau']),
+          ngayHieuLuc: parseDateValue(r['Ngày hiệu lực chức vụ'] || r['ngayHieuLuc']),
+          maNguoiTuyenDung: String(r['MÃ NGƯỜI TUYỂN DỤNG'] || r['maNguoiTuyenDung'] || ''),
+          tenNguoiTuyenDung: String(r['TÊN NGƯỜI TUYỂN DỤNG'] || r['tenNguoiTuyenDung'] || ''),
+        })).filter(m => m.agentCode || m.agentName);
+        if (members.length) {
+          const r = await fetch('/api/tuyen-ngang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+          if (r.ok) { const result = await r.json(); successCount = result.count || members.length; await fetchTuyenNgang(); } else {
+            failCount = members.length;
+            const errData = await r.json().catch(() => ({}));
+            toast({ title: 'Lỗi import TTN Tuyển Ngang', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+          }
+        }
       }
       if (failCount > 0) {
         toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
@@ -2090,7 +2144,7 @@ export default function QuanLyPage() {
     // Reload all data after import (await to prevent race conditions)
     await fetchAllData();
     e.target.value = '';
-  }, [parseDateValue, fetchAllData]);
+  }, [parseDateValue, fetchAllData, fetchTuyenNgang]);
 
   // Sort & filter
   const sortData = useCallback((field: string) => {
@@ -2404,8 +2458,13 @@ export default function QuanLyPage() {
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        {(sheet.key === 'revenue' ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar })) : POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))).map(s => {
-                          const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key);
+                        {(sheet.key === 'revenue'
+                          ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                          : sheet.key === 'report'
+                          ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
+                          : STRUCTURE_SUBS.map(s => ({ key: s.key, label: s.label, Icon: s.icon }))
+                        ).map(s => {
+                          const subActive = (sheet.key === 'revenue' && revenueSub === s.key) || (sheet.key === 'report' && policyOpen === s.key) || (sheet.key === 'structure' && structureSub === s.key);
                           return (
                             <button
                               key={s.key}
@@ -2413,9 +2472,15 @@ export default function QuanLyPage() {
                                 if (sheet.key === 'revenue') {
                                   setActiveSheet('revenue');
                                   setRevenueSub(s.key as RevenueSubKey);
-                                } else {
+                                } else if (sheet.key === 'report') {
                                   setActiveSheet('report');
                                   setPolicyOpen(s.key);
+                                } else if (sheet.key === 'structure') {
+                                  setActiveSheet('structure');
+                                  setStructureSub(s.key as StructureSubKey);
+                                  if (s.key === 'leaders') fetchLeaders();
+                                  else if (s.key === 'recruiters') fetchRecruiters();
+                                  else if (s.key === 'tuyen-ngang') fetchTuyenNgang();
                                 }
                                 setMobileMenuPopup(null);
                               }}
@@ -3122,6 +3187,76 @@ export default function QuanLyPage() {
           </Table>
         </div>
         <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng</p>
+      </div>
+    );
+  };
+
+  // ========== RENDER: Tuyen Ngang (DS TTN Tuyển Ngang) ==========
+  // Columns: STT - NHÓM - MÃ TVV - HỌ TÊN - Ngày bắt đầu làm việc - Ngày hiệu lực chức vụ - MÃ NGƯỜI TUYỂN DỤNG - TÊN NGƯỜI TUYỂN DỤNG
+  const renderTuyenNgang = () => {
+    const filtered = getFiltered(getSorted(tuyenNgangList), ['agentCode', 'agentName', 'nhom', 'maNguoiTuyenDung', 'tenNguoiTuyenDung']);
+    return (
+      <div>
+        {/* KPI Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng TTN', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: Merge },
+            { label: 'Có người TD', value: formatNumber(filtered.filter(t => t.maNguoiTuyenDung).length), bg: '#059669', badge: '#047857', icon: CheckCircle2 },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+            <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+              </div>
+              <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+            </div>);
+          })
+          }
+        </div>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <Button onClick={addTuyenNgang} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('tuyen-ngang', e)} /></label>
+          <Button onClick={() => handleDownloadTemplate('tuyen-ngang')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('tuyen-ngang')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+        </div>
+        <div className="overflow-x-auto border border-emerald-600">
+          <Table>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
+              {[
+                { f: 'nhom', l: 'Nhóm' },
+                { f: 'agentCode', l: 'Mã TVV' },
+                { f: 'agentName', l: 'Họ tên' },
+                { f: 'ngayBatDau', l: 'Ngày bắt đầu LV' },
+                { f: 'ngayHieuLuc', l: 'Ngày hiệu lực CV' },
+                { f: 'maNguoiTuyenDung', l: 'Mã người TD' },
+                { f: 'tenNguoiTuyenDung', l: 'Tên người TD' },
+              ].map(col => (
+                <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+              ))}
+              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map((t, idx) => (
+                <TableRow key={t.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                  <TableCell className="text-xs text-gray-500 text-center">{idx + 1}</TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.nhom} onSave={(v) => updateTuyenNgang(t.id, 'nhom', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.agentCode} onSave={(v) => updateTuyenNgang(t.id, 'agentCode', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.agentName} onSave={(v) => updateTuyenNgang(t.id, 'agentName', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.ngayBatDau || ''} onSave={(v) => updateTuyenNgang(t.id, 'ngayBatDau', v)} type="date" /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.ngayHieuLuc || ''} onSave={(v) => updateTuyenNgang(t.id, 'ngayHieuLuc', v)} type="date" /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.maNguoiTuyenDung} onSave={(v) => updateTuyenNgang(t.id, 'maNguoiTuyenDung', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.tenNguoiTuyenDung} onSave={(v) => updateTuyenNgang(t.id, 'tenNguoiTuyenDung', v)} /></TableCell>
+                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteTuyenNgang(t.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa</p>
       </div>
     );
   };
@@ -4354,13 +4489,13 @@ export default function QuanLyPage() {
     const VT_BONUS_5M = 5_000_000;
     const VT_BONUS_3M = 3_000_000;
 
-    // Identify TTNs — dùng DS NTD (Recruiter table), lọc chức vụ "Tiền trưởng nhóm"
+    // Identify TTNs — dùng DS NTD (Recruiter table), lọc chức vụ "Tiền trưởng nhóm" hoặc "Trưởng tổ nhóm"
     // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
     // Bỏ TVV thuộc phòng Banca (không tính thưởng)
     const ttnList = recruiters
       .filter(r => {
         const pos = (r.position || '').toLowerCase();
-        if (!pos.includes('tiền trưởng nhóm')) return false;
+        if (!pos.includes('tiền trưởng nhóm') && !pos.includes('trưởng tổ nhóm') && !pos.includes('tttn')) return false;
         if (isTVVExcludedFromRewards(r.agentCode, '', banNhomList, adList)) return false;
         return true;
       })
@@ -4381,13 +4516,18 @@ export default function QuanLyPage() {
       );
       const ttnMaBanNhom = matchedBanNhom?.maBanNhom || '';
 
-      // Find TVVm in TTN's nhóm (TVVs in same maBanNhom with ≤12 months tenure)
+      // Find TVVm in TTN's nhóm (TVVs in same maBanNhom OR same resolved nhom name, with ≤12 months tenure)
+      // FIX: trước đây chỉ match bằng maBanNhom → nếu không match tenBanNhom thì không có TVVm → số liệu sai
+      // Giờ thêm fallback: match bằng resolved nhom name từ tvvStructList
       const tvvmInNhom = tvvStructList.filter(tvv => {
         if (tvv.agentCode === ttn.agentCode) return false;
-        if (!ttnMaBanNhom) return false; // không tìm được nhóm → không có TVVm
-        if (tvv.maBanNhom !== ttnMaBanNhom) return false;
         if (!isTVVm(tvv.ngayBatDau)) return false;
-        return true;
+        // Ưu tiên match bằng maBanNhom (chính xác nhất)
+        if (ttnMaBanNhom && tvv.maBanNhom === ttnMaBanNhom) return true;
+        // Fallback: match bằng tên nhóm (resolve từ BanNhom hoặc leaders)
+        if (!ttn.nhomName) return false;
+        const tvvNhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
+        return tvvNhomName && tvvNhomName.toLowerCase() === ttn.nhomName.toLowerCase();
       });
 
       // Sum FYP of TVVm contracts in current month
@@ -6152,10 +6292,17 @@ export default function QuanLyPage() {
       case 'overview': return renderOverview();
       case 'leaders': return renderLeaders();
       case 'recruiters': return renderRecruiters();
+      case 'tuyen-ngang': return renderTuyenNgang();
       case 'revenue': return renderRevenue();
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
-      case 'structure': return renderStructure();
+      case 'structure': {
+        // Sub-dispatch within "Cấu trúc" section: leaders, recruiters, tuyen-ngang, or default tree view
+        if (structureSub === 'leaders') return renderLeaders();
+        if (structureSub === 'recruiters') return renderRecruiters();
+        if (structureSub === 'tuyen-ngang') return renderTuyenNgang();
+        return renderStructure();
+      }
     }
   };
 
@@ -6172,7 +6319,7 @@ export default function QuanLyPage() {
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
         <BackButton onClick={() => { if (typeof window !== 'undefined') { if (window.history.length > 1) window.history.back(); else window.location.href = '/'; } }} size={20} title="Trở về trang trước" />
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
@@ -6197,11 +6344,13 @@ export default function QuanLyPage() {
               // Each hasSub sheet gets its own expanded flag
               const isExpanded = sheet.hasSub && (
                 (sheet.key === 'revenue' && revenueExpanded) ||
-                (sheet.key === 'report' && policyExpanded)
+                (sheet.key === 'report' && policyExpanded) ||
+                (sheet.key === 'structure' && structureExpanded)
               );
               const handleSubToggle = () => {
                 if (sheet.key === 'revenue') setRevenueExpanded(!revenueExpanded);
                 else if (sheet.key === 'report') setPolicyExpanded(!policyExpanded);
+                else if (sheet.key === 'structure') setStructureExpanded(!structureExpanded);
               };
               // Build sub-items list + click handler based on sheet
               const subItems: { key: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] =
@@ -6209,10 +6358,13 @@ export default function QuanLyPage() {
                   ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                   : sheet.key === 'report'
                   ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
+                  : sheet.key === 'structure'
+                  ? STRUCTURE_SUBS.map(s => ({ key: s.key, label: s.label, Icon: s.icon }))
                   : [];
               const activeSubKey: string | null =
                 sheet.key === 'revenue' ? revenueSub
                 : sheet.key === 'report' ? policyOpen
+                : sheet.key === 'structure' ? structureSub
                 : null;
               const handleSubClick = (subKey: string) => {
                 if (sheet.key === 'revenue') {
@@ -6221,6 +6373,13 @@ export default function QuanLyPage() {
                 } else if (sheet.key === 'report') {
                   setActiveSheet('report');
                   setPolicyOpen(subKey);
+                } else if (sheet.key === 'structure') {
+                  setActiveSheet('structure');
+                  setStructureSub(subKey as StructureSubKey);
+                  // Load sub-data on demand
+                  if (subKey === 'leaders') fetchLeaders();
+                  else if (subKey === 'recruiters') fetchRecruiters();
+                  else if (subKey === 'tuyen-ngang') fetchTuyenNgang();
                 }
                 setSidebarOpen(false);
               };
