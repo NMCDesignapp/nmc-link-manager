@@ -229,3 +229,20 @@ Stage Summary:
 - Tất cả ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG: nền trắng, chữ xanh đậm to hơn 1 chút, icon 💰 trong chip vàng nhỏ (chỉ icon có nền vàng)
 - NS-TVV: 2 cột TỔNG IP khác màu rõ (T5 xanh dương nhạt, T6 tím nhạt) — cùng dòng header "TỔNG IP T5" / "TỔNG IP T6"
 - Commit 7c07226 pushed to main, Vercel auto-deploying
+
+---
+Task ID: fix-ma-tuyen-dung-2026-06-20
+Agent: Main (Super Z)
+Task: Fix logic xac dinh nguoi tuyen DUY NHAT qua maTVVTuyendung (bo fallback)
+
+Work Log:
+- resolveNguoiTD: bo Priority 2/3 (contracts.maDaiLyTD, recruiters lookup) -> chi dung maTVVTuyendung. Neu trong -> tra rong.
+- dong-hanh (renderThuongDongHanh): bo matching theo maBanNhom + nhomName fallback. Chi dung tvv.maTVVTuyendung === ttn.agentCode (trim ca 2 ben). Neu maTVVTuyendung trong -> bo qua TVV do.
+- tuyen-luyen (renderThuongTuyenLuyen): bo fallback contracts.some(c => c.maDaiLyTD === ntd.agentCode). Chi dung tvv.maTVVTuyendung === ntd.agentCode.
+- quy-tn (renderThuongQuyTN): bo fallback contracts.maDaiLyTD trong tvvmHDCByTN. Chi dung tvv.maTVVTuyendung === tn.agentCode. (Phan tong FYP quy van giu matching theo maBanNhom vi do la nhom membership, khong phai recruiter.)
+- ptkd-tn: khong doi (chi dung maBanNhom cho nhom membership, khong tinh recruiter).
+- tuyen-ngang: khong doi (placeholder chua co logic).
+
+Stage Summary:
+- 3 chinh sach recruiter (dong-hanh, tuyen-luyen, quy-tn) + helper resolveNguoiTD deu ap dung nguyen tac: maTVVTuyendung la duy nhat. Trong -> khong co nguoi tuyen.
+- Commit 7e6741e pushed to main, Vercel auto-deploying.
