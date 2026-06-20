@@ -325,37 +325,24 @@ function resolveNhomName(
 }
 
 // Helper: resolve Người Tuyển Dụng name for a TVV.
-// Priority 1: tvvStructList lookup by maTVVTuyendung
-// Priority 2: recruiters.find by agentCode === maDaiLyTD (from contracts)
-// Priority 3: contracts.find by agentCode === maDaiLyTD → use agentName
-// Priority 4: empty string
+// NGUYÊN TẮC: xác định DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
+// Nếu mã trống → trả rỗng. Không fallback qua contracts.maDaiLyTD hay nguồn khác.
 function resolveNguoiTD(
   tvvMaTVVTuyendung: string | null | undefined,
-  tvvAgentCode: string,
+  _tvvAgentCode: string,
   tvvStructList: Array<{ agentCode: string; agentName: string }>,
-  contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
-  recruiters: Array<{ agentCode: string; agentName: string }>,
+  _contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
+  _recruiters: Array<{ agentCode: string; agentName: string }>,
 ): string {
-  // NGUYÊN TẮC: cái nào trống để trống, không tự điền data
-  // Priority 1: tvvStructList lookup by maTVVTuyendung
+  // NGUYÊN TẮC: xác định người tuyển DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
+  // Nếu mã trống → không có người tuyển → trả rỗng.
+  // KHÔNG fallback qua contracts.maDaiLyTD hay nguồn khác.
   if (tvvMaTVVTuyendung && tvvMaTVVTuyendung.trim()) {
     const tdTVV = tvvStructList.find(t => t.agentCode === tvvMaTVVTuyendung.trim());
     if (tdTVV?.agentName) return tdTVV.agentName;
     // Nếu có mã nhưng không tìm thấy tên → trả mã
     return tvvMaTVVTuyendung.trim();
   }
-  // Priority 2: find maDaiLyTD from contracts of this TVV
-  if (tvvAgentCode) {
-    const contractWithTD = contracts.find(c => c.agentCode === tvvAgentCode && c.maDaiLyTD && c.maDaiLyTD.trim());
-    if (contractWithTD?.maDaiLyTD) {
-      const recruiter = recruiters.find(r => r.agentCode === contractWithTD.maDaiLyTD);
-      if (recruiter?.agentName) return recruiter.agentName;
-      const recruiterContract = contracts.find(rc => rc.agentCode === contractWithTD.maDaiLyTD);
-      if (recruiterContract?.agentName) return recruiterContract.agentName;
-      return contractWithTD.maDaiLyTD;
-    }
-  }
-  // Trống → để trống, không tự đoán
   return '';
 }
 
@@ -4275,12 +4262,13 @@ export default function QuanLyPage() {
 
     // Build NTD rows: for each candidate, count TVVm (≤12 tháng) they recruited that have HĐC in current month
     const ntdRows = ntdCandidates.map((ntd) => {
-      // Find all TVVStruct records where maTVVTuyendung === ntd.agentCode
-      // (or fallback via contracts where maDaiLyTD === ntd.agentCode)
+      // NGUYÊN TẮC: xác định TVVm do NTD nào tuyển DUY NHẤT qua mã người tuyển dụng
+      // (tvv.maTVVTuyendung === ntd.agentCode). Nếu maTVVTuyendung trống → không có người tuyển → bỏ qua.
+      // KHÔNG fallback qua contracts.maDaiLyTD.
+      const ntdCode = (ntd.agentCode || '').trim();
       const recruitedTVVs = tvvStructList.filter(tvv => {
-        if (tvv.maTVVTuyendung && tvv.maTVVTuyendung.trim() === ntd.agentCode) return true;
-        // Fallback: any contract of this TVV has maDaiLyTD === ntd.agentCode
-        return contracts.some(c => c.agentCode === tvv.agentCode && c.maDaiLyTD === ntd.agentCode);
+        const recruiter = (tvv.maTVVTuyendung || '').trim();
+        return recruiter && recruiter === ntdCode;
       });
 
       // Count TVVm (≤12 tháng, tính tròn tháng) with HĐC (at least 1 contract in current month)
@@ -4509,25 +4497,16 @@ export default function QuanLyPage() {
       }));
 
     const ttnRows = ttnList.map((ttn) => {
-      // Tìm mã BanNhom từ tên nhóm (Recruiter chỉ có nhomName, không có maNhom)
-      // Match BanNhom.tenBanNhom === ttn.nhomName
-      const matchedBanNhom = banNhomList.find(b =>
-        b.tenBanNhom && ttn.nhomName && b.tenBanNhom.toLowerCase() === ttn.nhomName.toLowerCase()
-      );
-      const ttnMaBanNhom = matchedBanNhom?.maBanNhom || '';
-
-      // Find TVVm in TTN's nhóm (TVVs in same maBanNhom OR same resolved nhom name, with ≤12 months tenure)
-      // FIX: trước đây chỉ match bằng maBanNhom → nếu không match tenBanNhom thì không có TVVm → số liệu sai
-      // Giờ thêm fallback: match bằng resolved nhom name từ tvvStructList
+      // NGUYÊN TẮC: xác định TVVm do TTN nào tuyển DUY NHẤT qua mã người tuyển dụng
+      // (tvv.maTVVTuyendung === ttn.agentCode). Nếu maTVVTuyendung trống → không có người tuyển → bỏ qua.
+      // KHÔNG dùng maBanNhom / nhomName / contracts.maDaiLyTD làm fallback.
+      const ttnCode = (ttn.agentCode || '').trim();
       const tvvmInNhom = tvvStructList.filter(tvv => {
         if (tvv.agentCode === ttn.agentCode) return false;
         if (!isTVVm(tvv.ngayBatDau)) return false;
-        // Ưu tiên match bằng maBanNhom (chính xác nhất)
-        if (ttnMaBanNhom && tvv.maBanNhom === ttnMaBanNhom) return true;
-        // Fallback: match bằng tên nhóm (resolve từ BanNhom hoặc leaders)
-        if (!ttn.nhomName) return false;
-        const tvvNhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
-        return tvvNhomName && tvvNhomName.toLowerCase() === ttn.nhomName.toLowerCase();
+        const recruiter = (tvv.maTVVTuyendung || '').trim();
+        if (!recruiter) return false;            // không có mã người TD → không tính
+        return recruiter === ttnCode;
       });
 
       // Sum FYP of TVVm contracts in current month
@@ -4796,9 +4775,11 @@ export default function QuanLyPage() {
       const qEndDate = new Date(currentYear, quarterEndMonth, 0, 23, 59, 59); // last day of Q end month
       const tvvmHDCByTN = tvvStructList.filter(tvv => {
         if (!isTVVm(tvv.ngayBatDau)) return false;
-        // (1) Recruited by this TN
-        const isRecruitedByTN = (tvv.maTVVTuyendung && tvv.maTVVTuyendung.trim() === tn.agentCode)
-          || contracts.some(c => c.agentCode === tvv.agentCode && c.maDaiLyTD === tn.agentCode);
+        // (1) Recruited by this TN — DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung)
+        // Không fallback qua contracts.maDaiLyTD.
+        const tnCode = (tn.agentCode || '').trim();
+        const recruiter = (tvv.maTVVTuyendung || '').trim();
+        const isRecruitedByTN = recruiter && recruiter === tnCode;
         if (!isRecruitedByTN) return false;
         // (2) TVVm started within current quarter
         if (!tvv.ngayBatDau) return false;
