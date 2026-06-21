@@ -136,7 +136,7 @@ const KPI_COLORS: Record<string, string> = {
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS NTD), tuyen-ngang (DS TTN Tuyển Ngang)
-type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang';
+type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
 // Gradient yellow/cream background (light → warmer) for tier header cells and body cells
@@ -206,8 +206,14 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false, hasSub: true },
 ];
 
-// Sub-items for "Cấu trúc" — DS TB/TN, DS NTD, DS TTN Tuyển Ngang
+// Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS NTD, DS TTN Tuyển Ngang
+// NGUYÊN TẮC: đối tượng tính toán cho chính sách lấy từ đây:
+//   - Chính sách TVV (cá nhân: TVVm, NS-TVV, Quý-TVV) → DS TVV
+//   - Chính sách Nhóm (PTKD-TN, Quý-TN, Đồng Hành) → DS TB/TN
+//   - Chính sách Tuyển dụng (Tuyển Luyện) → DS NTD
+//   - Chính sách TTN Tuyển ngang → DS TTN Tuyển Ngang
 const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.ElementType }[] = [
+  { key: 'tvv', label: 'DS TVV', icon: Users },
   { key: 'leaders', label: 'DS TB/TN', icon: Users },
   { key: 'recruiters', label: 'DS NTD', icon: UserCircle },
   { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
@@ -2465,7 +2471,8 @@ export default function QuanLyPage() {
                                 } else if (sheet.key === 'structure') {
                                   setActiveSheet('structure');
                                   setStructureSub(s.key as StructureSubKey);
-                                  if (s.key === 'leaders') fetchLeaders();
+                                  if (s.key === 'tvv') fetchTvvStruct();
+                                  else if (s.key === 'leaders') fetchLeaders();
                                   else if (s.key === 'recruiters') fetchRecruiters();
                                   else if (s.key === 'tuyen-ngang') fetchTuyenNgang();
                                 }
@@ -3244,6 +3251,124 @@ export default function QuanLyPage() {
           </Table>
         </div>
         <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa</p>
+      </div>
+    );
+  };
+
+  // ========== RENDER: DS TVV (Tổng) ==========
+  // Danh sách TVV tổng của công ty — bao gồm tất cả chức vụ (TVV, TB, TN, TTN)
+  // Đây là nguồn đối tượng CHÍNH cho các chính sách TVV (TVVm, NS-TVV, Quý-TVV)
+  // Columns: Mã TVV - Tên TVV - Mã Ban/Nhóm - Tên Ban/Nhóm - Chức vụ - Ngày bắt đầu LV - Mã TVV Tuyển dụng - Tên TVV Tuyển dụng - Ghi chú
+  const renderTvvList = () => {
+    const filtered = getFiltered(getSorted(tvvStructList), ['agentCode', 'agentName', 'maBanNhom', 'chucVu', 'maTVVTuyendung', 'note']);
+    // Resolve tên Ban/Nhóm + tên TVV Tuyển dụng từ mã
+    const resolveTenBanNhom = (maBanNhom: string) => {
+      if (!maBanNhom) return '';
+      return banNhomList.find(b => b.maBanNhom === maBanNhom)?.tenBanNhom || '';
+    };
+    const resolveTenTVVTuyendung = (maTD: string) => {
+      if (!maTD || !maTD.trim()) return '';
+      const td = tvvStructList.find(t => t.agentCode === maTD.trim());
+      return td?.agentName || maTD.trim();
+    };
+
+    // Update inline cell — gọi PATCH /api/structure/tvv/:id
+    const updateTvvInline = async (id: string, field: keyof TVVStructItem, value: string) => {
+      try {
+        const res = await fetch(`/api/structure/tvv/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value }),
+        });
+        if (res.ok) {
+          setTvvStructList(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+        }
+      } catch { /* silent */ }
+    };
+
+    return (
+      <div>
+        {/* KPI Summary */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng TVV', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: Users },
+            { label: 'TVVm (≤12 tháng)', value: formatNumber(filtered.filter(t => isTVVm(t.ngayBatDau)).length), bg: '#059669', badge: '#047857', icon: TrendingUp },
+            { label: 'Trưởng Ban/Nhóm', value: formatNumber(filtered.filter(t => {
+              const cv = (t.chucVu || '').toLowerCase();
+              return cv.includes('trưởng ban') || cv.includes('trưởng nhóm') || cv.includes('tiền trưởng') || cv.includes('trưởng tổ');
+            }).length), bg: '#7C3AED', badge: '#6D28D9', icon: UserCog },
+            { label: 'Có mã TVV TD', value: formatNumber(filtered.filter(t => t.maTVVTuyendung && t.maTVVTuyendung.trim()).length), bg: '#2563EB', badge: '#1D4ED8', icon: UserCircle },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                  <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+                </div>
+                <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+              </div>
+            );
+          })
+          }
+        </div>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <Button onClick={() => setAddTvvOpen(true)} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          {/* Upsert TVV từ file Excel */}
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            id="tvv-list-upsert-input"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUpsertTvvFile(f); e.target.value = ''; }}
+          />
+          <label htmlFor="tvv-list-upsert-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
+            <Upload className="w-3.5 h-3.5" /> Cập nhật DS TVV
+          </label>
+          <Button onClick={() => handleDownloadTemplate('structure-tvv')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
+          <Button onClick={() => handleExport('structure-tvv')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+        </div>
+        <div className="overflow-x-auto border border-emerald-600">
+          <Table>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+              {[
+                { f: 'agentCode', l: 'Mã TVV' },
+                { f: 'agentName', l: 'Họ tên' },
+                { f: 'maBanNhom', l: 'Mã Ban/Nhóm' },
+                { f: '_tenBanNhom', l: 'Tên Ban/Nhóm' },
+                { f: 'chucVu', l: 'Chức vụ' },
+                { f: 'ngayBatDau', l: 'Ngày bắt đầu LV' },
+                { f: 'maTVVTuyendung', l: 'Mã TVV TD' },
+                { f: '_tenTVVTuyendung', l: 'Tên TVV TD' },
+                { f: 'note', l: 'Ghi chú' },
+              ].map(col => (
+                <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
+              ))}
+              <TableHead className="text-yellow-100 text-xs uppercase w-[80px]"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map(t => (
+                <TableRow key={t.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                  <TableCell className="text-xs p-0"><EditableCell value={t.agentCode} onSave={(v) => updateTvvInline(t.id, 'agentCode', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.agentName} onSave={(v) => updateTvvInline(t.id, 'agentName', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.maBanNhom} onSave={(v) => updateTvvInline(t.id, 'maBanNhom', v)} /></TableCell>
+                  <TableCell className="text-xs text-gray-600 whitespace-nowrap p-2">{resolveTenBanNhom(t.maBanNhom) || '—'}</TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.chucVu} onSave={(v) => updateTvvInline(t.id, 'chucVu', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.ngayBatDau || ''} onSave={(v) => updateTvvInline(t.id, 'ngayBatDau', v)} type="date" /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.maTVVTuyendung || ''} onSave={(v) => updateTvvInline(t.id, 'maTVVTuyendung', v)} /></TableCell>
+                  <TableCell className="text-xs text-violet-700 whitespace-nowrap p-2">{resolveTenTVVTuyendung(t.maTVVTuyendung) || '—'}</TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.note} onSave={(v) => updateTvvInline(t.id, 'note', v)} /></TableCell>
+                  <TableCell className="text-xs p-1 flex items-center gap-0.5">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingTvv(t)} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"><Edit2 className="w-3 h-3" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteTvv(t.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Đây là nguồn đối tượng cho các chính sách TVV</p>
       </div>
     );
   };
@@ -4247,17 +4372,16 @@ export default function QuanLyPage() {
     // Theo ảnh chính sách: Thưởng Tuyển Luyện = Tỷ lệ × Tổng thưởng TVVm tại tháng
     // ≥3 TVVm HĐC: 150% | 2: 125% | 1: 100%
 
-    // Build NTD rows: chỉ tính TVV có chức vụ chứa "trưởng ban" hoặc "trưởng nhóm"
-    // Build NTD rows: dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
-    // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
-    // Bỏ TN thuộc phòng Banca (không tính thưởng)
-    const ntdCandidates = leaders
-      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
-      .map(l => ({
-        agentCode: l.agentCode,
-        agentName: l.agentName,
-        maBanNhom: l.maNhom || '',
-        nhomName: l.nhom || '',
+    // Build NTD rows: dùng DS NTD (Recruiter table) làm nguồn đối tượng
+    // NGUYÊN TẮC: chính sách Tuyển Luyện dành cho Người Tuyển Dụng → đối tượng lấy từ DS NTD
+    // Bỏ TVV thuộc phòng Banca (không tính thưởng)
+    const ntdCandidates = recruiters
+      .filter(r => !isTVVExcludedFromRewards(r.agentCode, '', banNhomList, adList))
+      .map(r => ({
+        agentCode: r.agentCode,
+        agentName: r.agentName,
+        maBanNhom: '',  // DS NTD không có maBanNhom — chỉ có nhom (tên)
+        nhomName: r.nhom || '',
       }));
 
     // Build NTD rows: for each candidate, count TVVm (≤12 tháng) they recruited that have HĐC in current month
@@ -4477,23 +4601,22 @@ export default function QuanLyPage() {
     const VT_BONUS_5M = 5_000_000;
     const VT_BONUS_3M = 3_000_000;
 
-    // Identify TTNs — dùng DS NTD (Recruiter table), lọc chức vụ "Tiền trưởng nhóm" hoặc "Trưởng tổ nhóm"
-    // NGUYÊN TẮC: đối tượng lấy từ DS, không lấy từ file doanh số
+    // Identify TTNs — dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
+    // Lọc chức vụ "Tiền trưởng nhóm" hoặc "Trưởng tổ nhóm" (TTN = Trưởng Tổ Nhóm)
+    // NGUYÊN TẮC: chính sách Đồng Hành dành cho TTN (cấp nhóm) → đối tượng lấy từ DS TB/TN
     // Bỏ TVV thuộc phòng Banca (không tính thưởng)
-    const ttnList = recruiters
-      .filter(r => {
-        const pos = (r.position || '').toLowerCase();
-        if (!pos.includes('tiền trưởng nhóm') && !pos.includes('trưởng tổ nhóm') && !pos.includes('tttn')) return false;
-        if (isTVVExcludedFromRewards(r.agentCode, '', banNhomList, adList)) return false;
+    const ttnList = leaders
+      .filter(l => {
+        const pos = (l.position || '').toLowerCase();
+        if (!pos.includes('tiền trưởng nhóm') && !pos.includes('trưởng tổ nhóm') && !pos.includes('ttn')) return false;
+        if (isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList)) return false;
         return true;
       })
-      .map(r => ({
-        agentCode: r.agentCode,
-        agentName: r.agentName,
-        // Recruiter có field 'nhom' (tên nhóm) — dùng luôn
-        maBanNhom: '', // Recruiter không có maNhom, để trống — dùng nhomName
-        nhomName: r.nhom || '',
-        ngayBatDau: r.startDate,
+      .map(l => ({
+        agentCode: l.agentCode,
+        agentName: l.agentName,
+        nhomName: l.nhom || '',
+        ngayBatDau: l.startDate,
       }));
 
     const ttnRows = ttnList.map((ttn) => {
@@ -6278,7 +6401,8 @@ export default function QuanLyPage() {
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
       case 'structure': {
-        // Sub-dispatch within "Cấu trúc" section: leaders, recruiters, tuyen-ngang, or default tree view
+        // Sub-dispatch within "Cấu trúc" section: tvv, leaders, recruiters, tuyen-ngang, or default tree view
+        if (structureSub === 'tvv') return renderTvvList();
         if (structureSub === 'leaders') return renderLeaders();
         if (structureSub === 'recruiters') return renderRecruiters();
         if (structureSub === 'tuyen-ngang') return renderTuyenNgang();
@@ -6358,7 +6482,8 @@ export default function QuanLyPage() {
                   setActiveSheet('structure');
                   setStructureSub(subKey as StructureSubKey);
                   // Load sub-data on demand
-                  if (subKey === 'leaders') fetchLeaders();
+                  if (subKey === 'tvv') fetchTvvStruct();
+                  else if (subKey === 'leaders') fetchLeaders();
                   else if (subKey === 'recruiters') fetchRecruiters();
                   else if (subKey === 'tuyen-ngang') fetchTuyenNgang();
                 }
