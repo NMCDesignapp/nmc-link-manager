@@ -246,3 +246,32 @@ Work Log:
 Stage Summary:
 - 3 chinh sach recruiter (dong-hanh, tuyen-luyen, quy-tn) + helper resolveNguoiTD deu ap dung nguyen tac: maTVVTuyendung la duy nhat. Trong -> khong co nguoi tuyen.
 - Commit 7e6741e pushed to main, Vercel auto-deploying.
+
+---
+Task ID: khoi-phuc-ds-tvv-map-nguon-doi-tuong-2026-06-21
+Agent: Main (Super Z)
+Task: Khoi phuc DS TVV tong trong Cau truc + map lai nguon doi tuong tinh toan chinh sach
+
+Work Log:
+- Them 'tvv' vao StructureSubKey va STRUCTURE_SUBS (xep dau tien)
+- Tao renderTvvList() (~120 dong): bang DS TVV tong (tvvStructList) voi 9 cot
+  Ma TVV | Ten TVV | Ma Ban/Nhom | Ten Ban/Nhom (resolve tu banNhomList) |
+  Chuc vu | Ngay BD LV | Ma TVV TD | Ten TVV TD (resolve tu tvvStructList) | Ghi chu
+- 4 KPI: Tong TVV, TVVm (<=12 thang), Truong Ban/Nhom, Co ma TVV TD
+- Inline edit (PATCH /api/structure/tvv/:id) cho 7 cot editable
+- Nut: Them (mo dialog co san) | Cap nhat DS TVV (upsert file) | Tai mau | Xuat
+- Update dispatch trong renderSheet + sidebar + mobile menu: khi click 'tvv' -> fetchTvvStruct()
+- Sua renderThuongTuyenLuyen: doi nguon doi tuong tu leaders (DS TB/TN) sang recruiters (DS NTD)
+  vi chinh sach Tuyen Luyen danh cho Nguoi Tuyển Dung -> lay tu DS NTD
+- Sua renderThuongDongHanh: doi nguon doi tuong tu recruiters sang leaders (DS TB/TN) loc TTN
+  vi chinh sach Dong Hanh danh cho TTN cap nhom -> lay tu DS TB/TN
+
+Stage Summary:
+- Cau truc bay gio co 4 sub-item: DS TVV | DS TB/TN | DS NTD | DS TTN Tuyen Ngang
+- Mapping nguon doi tuong tinh toan:
+  * Chinh sach TVV (TVVm, NS-TVV, Quy-TVV) -> DS TVV tong
+  * Chinh sach Nhom (PTKD-TN, Quy-TN, Dong Hanh) -> DS TB/TN
+  * Chinh sach Tuyen dung (Tuyen Luyen) -> DS NTD
+  * Chinh sach TTN Tuyen Ngang -> DS TTN Tuyen Ngang
+- File doanh so chi dung de tinh FYP/IP, KHONG dung lam nguon doi tuong
+- Commit d061b9d pushed to main, Vercel auto-deploying
