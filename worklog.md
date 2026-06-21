@@ -275,3 +275,35 @@ Stage Summary:
   * Chinh sach TTN Tuyen Ngang -> DS TTN Tuyen Ngang
 - File doanh so chi dung de tinh FYP/IP, KHONG dung lam nguon doi tuong
 - Commit d061b9d pushed to main, Vercel auto-deploying
+
+---
+Task ID: phan-bo-doi-tuong-ttn-vs-tbtn-2026-06-21
+Agent: Main (Super Z)
+Task: Phan bo lai doi tuong tinh toan theo nguyen tac moi - moi CS la 1 bo RIENG, KHONG suy luan chéo
+
+Work Log:
+- Them helper isTTNPosition(position) - phat hien TTN (Tien Truong Nhom / Truong To Nhom / TTN)
+- Them helper isTBorTNPosition(position) - phan bu: khong phai TTN thi la TB/TN
+- dong-hanh: refactor dung isTTNPosition (logic cu giu nguyen, chi don code)
+- ptkd-tn: them .filter(isTBorTNPosition) de LOAI TTN (truoc day lay tat ca leaders)
+- quy-tn: them .filter(isTBorTNPosition) de LOAI TTN (truoc day lay tat ca leaders)
+- tuyen-luyen: DOI NGUON tu recruiters (DS NTD) sang leaders (DS TB/TN)
+  + .filter(isTBorTNPosition) de chi lay TB/TN, loai TTN
+  + Cap nhat nhan UI: 'HO TEN NTD' -> 'HO TEN TB/TN'
+  + 'SL NTD DAT' -> 'SL TB/TN DAT'
+  + Placeholder 'Tim ten / ma NTD...' -> 'Tim ten / ma TB/TN...'
+  + Empty state 'Chua co NTD...' -> 'Chua co TB/TN...'
+- Cap nhat comment STRUCTURE_SUBS (line ~229) de phan anh mapping moi:
+  * CS ca nhan TVV (TVVm, NS-TVV, Quy-TVV) -> DS Tong TVV
+  * CS TB/TN (PTKD-TN, Quy-TN, Tuyen Luyen) -> DS TB/TN (leaders, loai TTN)
+  * CS TTN (Dong Hanh) -> DS TB/TN (leaders, filter position TTN)
+  * CS TTN Tuyen Ngang -> DS TTN Tuyen Ngang
+- TypeScript typecheck: khong co loi moi (chi con loi pre-existing)
+
+Stage Summary:
+- 4 chinh saga da duoc phan bo dung doi tuong:
+  * dong-hanh -> TTN (Tien Truong Nhom)
+  * ptkd-tn, quy-tn, tuyen-luyen -> TB/TN (Truong Bo / Truong Nhom)
+- Tuyen Luyen khong con dung DS NTD (vi DS NTD gom TB+TN+TTN, trong khi CS nay chi danh cho TB/TN)
+- Moi CS doc lap, khong suy luan chéo qua CS khac
+- Commit 7b5051f pushed to main, Vercel auto-deploying
