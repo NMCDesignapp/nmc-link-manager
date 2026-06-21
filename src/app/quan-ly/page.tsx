@@ -188,6 +188,26 @@ function isTVVExcludedFromRewards(
   return false;
 }
 
+// Helper: kiểm tra chức vụ TTN (Tiền Trưởng Nhóm)
+// Position có thể là "Tiền trưởng nhóm" / "Trưởng tổ nhóm" / "TTN" (viết tắt)
+// Dùng cho CS Đồng Hành — dành RIÊNG cho TTN
+function isTTNPosition(position: string | null | undefined): boolean {
+  const pos = (position || '').toLowerCase().trim();
+  if (!pos) return false;
+  return pos.includes('tiền trưởng nhóm')
+      || pos.includes('trưởng tổ nhóm')
+      || pos === 'ttn'
+      || pos.includes('ttn ')
+      || pos.includes(' ttn');
+}
+
+// Helper: kiểm tra chức vụ TB/TN (Trưởng Bộ / Trưởng Nhóm)
+// Dùng cho CS PTKD-TN, Quý-TN, Tuyển Luyện — dành cho TB/TN (KHÔNG gồm TTN)
+// Nguyên tắc: leaders là DS TB/TN; nếu position có dấu hiệu TTN → loại ra (để cho CS Đồng Hành)
+function isTBorTNPosition(position: string | null | undefined): boolean {
+  return !isTTNPosition(position);
+}
+
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
@@ -207,11 +227,11 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
 ];
 
 // Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS NTD, DS TTN Tuyển Ngang
-// NGUYÊN TẮC: đối tượng tính toán cho chính sách lấy từ đây:
-//   - Chính sách TVV (cá nhân: TVVm, NS-TVV, Quý-TVV) → DS TVV
-//   - Chính sách Nhóm (PTKD-TN, Quý-TN, Đồng Hành) → DS TB/TN
-//   - Chính sách Tuyển dụng (Tuyển Luyện) → DS NTD
-//   - Chính sách TTN Tuyển ngang → DS TTN Tuyển Ngang
+// NGUYÊN TẮC PHÂN BỔ ĐỐI TƯỢNG (mỗi CS là 1 bộ RIÊNG, cố định — không suy luận chéo):
+//   - CS cá nhân TVV (TVVm, NS-TVV, Quý-TVV)            → DS Tổng TVV (tvvStructList)
+//   - CS TB/TN (PTKD-TN, Quý-TN, Tuyển Luyện)            → DS TB/TN (leaders, loại TTN)
+//   - CS TTN (Đồng Hành)                                  → DS TB/TN (leaders, filter position TTN)
+//   - CS TTN Tuyển ngang                                  → DS TTN Tuyển Ngang
 const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.ElementType }[] = [
   { key: 'tvv', label: 'DS TVV', icon: Users },
   { key: 'leaders', label: 'DS TB/TN', icon: Users },
@@ -4360,33 +4380,35 @@ export default function QuanLyPage() {
   };
 
   // ========== THƯỞNG TUYỂN LUYỆN ==========
-  // NTD (Người Tuyển Dụng) được thưởng dựa trên SL TVVm HĐC (hợp đồng cấp) trong tháng.
+  // CS Tuyển Luyện dành cho TB/TN (Trưởng Bộ / Trưởng Nhóm) — KHÔNG dành cho TTN.
+  // Đối tượng = DS TB/TN (leaders), loại TTN (vì TTN chỉ dành cho CS Đồng Hành).
   // HĐC = TVV được tuyển dụng có ít nhất 1 contract trong tháng hiện tại.
   // Tiers:
-  //   1 TVVm HĐC  → 100% thưởng TVVm (base 3tr) = 3tr/TVV
-  //   2-3 TVVm HĐC → 125% = 3.75tr/TVV
-  //   ≥4 TVVm HĐC → 150% = 4.5tr/TVV
+  //   1 TVVm HĐC  → 100% thưởng TVVm
+  //   2   TVVm HĐC → 125%
+  //   ≥3  TVVm HĐC → 150%
   const renderThuongTuyenLuyen = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     // Theo ảnh chính sách: Thưởng Tuyển Luyện = Tỷ lệ × Tổng thưởng TVVm tại tháng
     // ≥3 TVVm HĐC: 150% | 2: 125% | 1: 100%
 
-    // Build NTD rows: dùng DS NTD (Recruiter table) làm nguồn đối tượng
-    // NGUYÊN TẮC: chính sách Tuyển Luyện dành cho Người Tuyển Dụng → đối tượng lấy từ DS NTD
+    // Build TB/TN rows: dùng DS TB/TN (leaders) làm nguồn đối tượng, LOẠI TTN
+    // NGUYÊN TẮC: CS Tuyển Luyện dành cho TB/TN → đối tượng = leaders có position TB/TN
     // Bỏ TVV thuộc phòng Banca (không tính thưởng)
-    const ntdCandidates = recruiters
-      .filter(r => !isTVVExcludedFromRewards(r.agentCode, '', banNhomList, adList))
-      .map(r => ({
-        agentCode: r.agentCode,
-        agentName: r.agentName,
-        maBanNhom: '',  // DS NTD không có maBanNhom — chỉ có nhom (tên)
-        nhomName: r.nhom || '',
+    const ntdCandidates = leaders
+      .filter(l => isTBorTNPosition(l.position))  // chỉ TB/TN, loại TTN
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
+      .map(l => ({
+        agentCode: l.agentCode,
+        agentName: l.agentName,
+        maBanNhom: l.maNhom || '',
+        nhomName: l.nhom || '',
       }));
 
-    // Build NTD rows: for each candidate, count TVVm (≤12 tháng) they recruited that have HĐC in current month
+    // Build rows: for each TB/TN candidate, count TVVm (≤12 tháng) they recruited that have HĐC in current month
     const ntdRows = ntdCandidates.map((ntd) => {
-      // NGUYÊN TẮC: xác định TVVm do NTD nào tuyển DUY NHẤT qua mã người tuyển dụng
+      // NGUYÊN TẮC: xác định TVVm do TB/TN nào tuyển DUY NHẤT qua mã người tuyển dụng
       // (tvv.maTVVTuyendung === ntd.agentCode). Nếu maTVVTuyendung trống → không có người tuyển → bỏ qua.
       // KHÔNG fallback qua contracts.maDaiLyTD.
       const ntdCode = (ntd.agentCode || '').trim();
@@ -4506,7 +4528,7 @@ export default function QuanLyPage() {
             </div>
             <div className="flex items-center gap-5 flex-wrap">
               <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL NTD ĐẠT</p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">SL TB/TN ĐẠT</p>
                 <p className="text-sm font-black text-emerald-700">{filteredRows.length}</p>
               </div>
               <div className="text-center">
@@ -4530,7 +4552,7 @@ export default function QuanLyPage() {
         <div className="hidden flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border shadow-sm px-2 py-1" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
             <Search className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-            <input type="text" placeholder="Tìm tên / mã NTD..." value={tuyenLuyenNameFilter} onChange={e => setTuyenLuyenNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
+            <input type="text" placeholder="Tìm tên / mã TB/TN..." value={tuyenLuyenNameFilter} onChange={e => setTuyenLuyenNameFilter(e.target.value)} className="text-[11px] bg-transparent outline-none w-[130px] text-gray-700 placeholder:text-gray-400" />
             {tuyenLuyenNameFilter && <button onClick={() => setTuyenLuyenNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
@@ -4549,7 +4571,7 @@ export default function QuanLyPage() {
                 <th className="text-white text-center w-[32px] font-bold uppercase text-[11px] h-8 px-1 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>STT</th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
-                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN NTD</th>
+                <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TB/TN</th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
@@ -4558,7 +4580,7 @@ export default function QuanLyPage() {
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có NTD nào đạt HĐC trong tháng {currentMonth}.</td></tr>
+                <tr><td colSpan={8} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TB/TN nào đạt HĐC trong tháng {currentMonth}.</td></tr>
               ) : filteredRows.map((row) => (
                 <tr key={row.maNTD} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
@@ -4601,17 +4623,12 @@ export default function QuanLyPage() {
     const VT_BONUS_5M = 5_000_000;
     const VT_BONUS_3M = 3_000_000;
 
-    // Identify TTNs — dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
-    // Lọc chức vụ "Tiền trưởng nhóm" hoặc "Trưởng tổ nhóm" (TTN = Trưởng Tổ Nhóm)
-    // NGUYÊN TẮC: chính sách Đồng Hành dành cho TTN (cấp nhóm) → đối tượng lấy từ DS TB/TN
-    // Bỏ TVV thuộc phòng Banca (không tính thưởng)
+    // Identify TTNs — DS TB/TN (leaders) là nguồn đối tượng, filter position TTN
+    // NGUYÊN TẮC: CS Đồng Hành dành RIÊNG cho TTN (Tiền Trưởng Nhóm)
+    // → đối tượng = leaders có position thoả isTTNPosition, loại Banca
     const ttnList = leaders
-      .filter(l => {
-        const pos = (l.position || '').toLowerCase();
-        if (!pos.includes('tiền trưởng nhóm') && !pos.includes('trưởng tổ nhóm') && !pos.includes('ttn')) return false;
-        if (isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList)) return false;
-        return true;
-      })
+      .filter(l => isTTNPosition(l.position))
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
       .map(l => ({
         agentCode: l.agentCode,
         agentName: l.agentName,
@@ -4858,12 +4875,12 @@ export default function QuanLyPage() {
       { label: 'FYP ≥ 600tr + TVVm', rate: 22, minFYP: 600_000_000, needsTVVm: true },
     ];
 
-    // Identify TNs — dùng DS TB/TN (LeaderInfo) làm nguồn đối tượng
-    // Vì đây là DS chính thức được user nhập cho Trưởng Ban / Trưởng Nhóm
-    // Tất cả records trong LeaderInfo đều là đối tượng TN (đã được phân loại khi nhập)
+    // Identify TNs — DS TB/TN (leaders), LOẠI TTN (vì Đồng Hành dành riêng cho TTN)
+    // NGUYÊN TẮC: CS Quý TN dành cho TB/TN → đối tượng = leaders có position TB/TN
     // LeaderInfo có sẵn field 'nhom' (tên nhóm) và 'maNhom' → dùng luôn, không cần lookup
     // Bỏ TN thuộc phòng Banca (không tính thưởng)
     const tnList = leaders
+      .filter(l => isTBorTNPosition(l.position))  // chỉ TB/TN, loại TTN
       .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
       .map(l => ({
         agentCode: l.agentCode,
@@ -5170,10 +5187,11 @@ export default function QuanLyPage() {
       return PTKD_RATES[key][bucket];
     }
 
-    // Đối tượng TN: dùng DS TB/TN (LeaderInfo)
-    // NGUYÊN TẮC: đối tượng từ DS, không từ file doanh số
+    // Đối tượng TN: DS TB/TN (leaders), LOẠI TTN (vì Đồng Hành dành riêng cho TTN)
+    // NGUYÊN TẮC: đối tượng từ DS TB/TN, không từ file doanh số
     // Bỏ TN thuộc phòng Banca
     const tnList = leaders
+      .filter(l => isTBorTNPosition(l.position))  // chỉ TB/TN, loại TTN
       .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
       .map(l => ({
         agentCode: l.agentCode,
