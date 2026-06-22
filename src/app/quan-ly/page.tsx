@@ -2156,15 +2156,41 @@ export default function QuanLyPage() {
           }
         }
       } else if (sheetName === 'tuyen-ngang') {
-        // Columns: STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD
+        // Columns (chuẩn): STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD
+        // CHẤP NHẬN nhiều biến thể header (viết thường/hoa, có/không dấu, alias)
+        // để tránh trường hợp file user upload không khớp header chuẩn → import silently fail
+        const pickField = (r: any, aliases: string[]): string => {
+          for (const k of Object.keys(r)) {
+            const norm = k.trim().toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // bỏ dấu tiếng Việt
+              .replace(/[\s_]+/g, ' ').trim();
+            for (const alias of aliases) {
+              if (norm === alias) return String(r[k] ?? '');
+            }
+          }
+          return '';
+        };
+        const parseDateAny = (r: any, aliases: string[]): string => {
+          for (const k of Object.keys(r)) {
+            const norm = k.trim().toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[\s_]+/g, ' ').trim();
+            for (const alias of aliases) {
+              if (norm === alias && r[k] != null && String(r[k]).trim()) {
+                return parseDateValue(r[k]);
+              }
+            }
+          }
+          return '';
+        };
         const members = data.map((r: any) => ({
-          nhom: String(r['NHÓM'] || r['nhom'] || ''),
-          agentCode: String(r['MÃ TVV'] || r['agentCode'] || ''),
-          agentName: String(r['HỌ TÊN'] || r['agentName'] || ''),
-          ngayBatDau: parseDateValue(r['Ngày bắt đầu làm việc'] || r['ngayBatDau']),
-          ngayHieuLuc: parseDateValue(r['Ngày hiệu lực chức vụ'] || r['ngayHieuLuc']),
-          maNguoiTuyenDung: String(r['MÃ NGƯỜI TUYỂN DỤNG'] || r['maNguoiTuyenDung'] || ''),
-          tenNguoiTuyenDung: String(r['TÊN NGƯỜI TUYỂN DỤNG'] || r['tenNguoiTuyenDung'] || ''),
+          nhom: pickField(r, ['nhom', 'nhom kd', 'nhom kinh doanh']),
+          agentCode: pickField(r, ['ma tvv', 'ma', 'ma dl', 'ma tvv/tn', 'agentcode', 'ma so']),
+          agentName: pickField(r, ['ho ten', 'hoten', 'ten', 'ten tvv', 'agentname', 'ho va ten']),
+          ngayBatDau: parseDateAny(r, ['ngay bat dau lam viec', 'ngay bat dau lv', 'ngay bat dau', 'ngay bd', 'ngaybatdau']),
+          ngayHieuLuc: parseDateAny(r, ['ngay hieu luc chuc vu', 'ngay hieu luc cv', 'ngay hieu luc', 'ngayhl', 'ngayhieuluc']),
+          maNguoiTuyenDung: pickField(r, ['ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma nguoi td', 'manguoituyendung', 'ma dl td', 'ma tvv td']),
+          tenNguoiTuyenDung: pickField(r, ['ten nguoi tuyen dung', 'ten nguoi td', 'ten ntd', 'ten nguoi td', 'tenguoituyendung', 'ten tvv td']),
         })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
           const r = await fetch('/api/tuyen-ngang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
@@ -6494,8 +6520,9 @@ export default function QuanLyPage() {
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
       case 'structure': {
-        // Sub-dispatch within "Cấu trúc" section: tvv, leaders, recruiters, tuyen-ngang, or default tree view
-        if (structureSub === 'tvv') return renderTvvList();
+        // Sub-dispatch within "Cấu trúc" section
+        // NGUYÊN TẮC: DS TVV (sub='tvv') cũng hiển thị dạng cây Phòng → AD → Nhóm → TVV
+        // (đồng nhất với default tree view, KHÔNG còn bảng phẳng)
         if (structureSub === 'leaders') return renderLeaders();
         if (structureSub === 'recruiters') return renderRecruiters();
         if (structureSub === 'tuyen-ngang') return renderTuyenNgang();
