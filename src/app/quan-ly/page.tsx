@@ -135,7 +135,7 @@ const KPI_COLORS: Record<string, string> = {
 // ==================== CONSTANTS ====================
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
-// Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS NTD), tuyen-ngang (DS TTN Tuyển Ngang)
+// Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
@@ -226,16 +226,17 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false, hasSub: true },
 ];
 
-// Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS NTD, DS TTN Tuyển Ngang
+// Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS TTN, DS TTN Tuyển Ngang
 // NGUYÊN TẮC PHÂN BỔ ĐỐI TƯỢNG (mỗi CS là 1 bộ RIÊNG, cố định — không suy luận chéo):
 //   - CS cá nhân TVV (TVVm, NS-TVV, Quý-TVV)            → DS Tổng TVV (tvvStructList)
-//   - CS TB/TN (PTKD-TN, Quý-TN, Tuyển Luyện)            → DS TB/TN (leaders, loại TTN)
-//   - CS TTN (Đồng Hành)                                  → DS TB/TN (leaders, filter position TTN)
+//   - CS TB/TN (PTKD-TN, Quý-TN)                          → DS TB/TN (leaders, loại TTN)
+//   - CS Tuyển Luyện (người tuyển dụng = TB/TN + TTN)    → DS TB/TN + DS TTN (leaders + recruiters, dedupe)
+//   - CS TTN (Đồng Hành)                                  → DS TTN (recruiters)
 //   - CS TTN Tuyển ngang                                  → DS TTN Tuyển Ngang
 const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.ElementType }[] = [
   { key: 'tvv', label: 'DS TVV', icon: Users },
   { key: 'leaders', label: 'DS TB/TN', icon: Users },
-  { key: 'recruiters', label: 'DS NTD', icon: UserCircle },
+  { key: 'recruiters', label: 'DS TTN', icon: UserCircle },
   { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
 ];
 
@@ -2263,7 +2264,7 @@ export default function QuanLyPage() {
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   }).length;
 
-  // NTD hoạt động: count unique maDaiLyTD that exist in recruiters
+  // TTN hoạt động: count unique maDaiLyTD that exist in recruiters (DS TTN)
   const ntdCodes = new Set(recruiters.map(r => r.agentCode));
   const activeNTDCount = new Set<string>();
   for (const c of periodContracts) {
@@ -2342,7 +2343,7 @@ export default function QuanLyPage() {
       ],
     },
     {
-      key: 'recruiters', label: 'NTD', data: recruiters,
+      key: 'recruiters', label: 'TTN', data: recruiters,
       fields: [
         { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
       ],
@@ -2352,7 +2353,7 @@ export default function QuanLyPage() {
   const overviewDefaultKPIs: KPIConfig[] = [
     { id: 'ov-tb-tn', label: 'Trưởng Ban/Nhóm', dataSourceKey: 'leaders', field: 'salary', calculation: 'count', color: 'emerald' },
     { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'tvvStruct', field: 'agentCode', calculation: 'count', color: 'sky' },
-    { id: 'ov-ntd', label: 'Người TD', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
+    { id: 'ov-ntd', label: 'TTN', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
     { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'amber' },
     { id: 'ov-dt', label: 'Tổng DT', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'emerald' },
     { id: 'ov-luong', label: 'Tổng lương TN', dataSourceKey: 'leaders', field: 'salary', calculation: 'sum', color: 'sky' },
@@ -2632,7 +2633,7 @@ export default function QuanLyPage() {
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
-          { label: 'SL NTD', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
+          { label: 'SL TTN', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
           { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: 0, targetFmt: '', bg: '#0D9488', hasKH: false },
           { label: 'TỔNG SỐ TVV', unit: 'người', value: formatNumber(tvvStructList.length), rawVal: tvvStructList.length, target: 0, targetFmt: '', bg: '#475569', hasKH: false },
         ].map((kpi, i) => {
@@ -3174,7 +3175,7 @@ export default function QuanLyPage() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Tổng NTD', value: formatNumber(kpiTotalNTD), bg: '#7C3AED', badge: '#6D28D9', icon: UserCircle },
+            { label: 'Tổng TTN', value: formatNumber(kpiTotalNTD), bg: '#7C3AED', badge: '#6D28D9', icon: UserCircle },
             { label: 'Đang hoạt động', value: formatNumber(kpiActive), bg: '#059669', badge: '#047857', icon: CheckCircle2 },
           ].map((kpi, i) => {
             const Icon = kpi.icon;
@@ -4655,12 +4656,14 @@ export default function QuanLyPage() {
     const VT_BONUS_5M = 5_000_000;
     const VT_BONUS_3M = 3_000_000;
 
-    // Identify TTNs — DS TB/TN (leaders) là nguồn đối tượng, filter position TTN
+    // Identify TTNs — DS TTN (recruiters) là nguồn đối tượng CHÍNH.
     // NGUYÊN TẮC: CS Đồng Hành dành RIÊNG cho TTN (Tiền Trưởng Nhóm)
-    // → đối tượng = leaders có position thoả isTTNPosition, loại Banca
-    const ttnList = leaders
-      .filter(l => isTTNPosition(l.position))
-      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.maNhom || '', banNhomList, adList))
+    // → đối tượng = recruiters (DS TTN đã được user quản lý nội bộ),
+    //   loại TVV thuộc phòng Banca (không tính thưởng)
+    //   (trước đây filter leaders theo position TTN — dễ bị thiếu do DS TB/TN
+    //    không có TTN, hoặc position không khớp keyword. DS TTN là nguồn chân chính.)
+    const ttnList = recruiters
+      .filter(l => !isTVVExcludedFromRewards(l.agentCode, l.nhom || '', banNhomList, adList))
       .map(l => ({
         agentCode: l.agentCode,
         agentName: l.agentName,
@@ -4747,7 +4750,7 @@ export default function QuanLyPage() {
 
       const tongTienThuong = thuongDongHanh + thuongVuotTroi;
 
-      // NHÓM: dùng luôn nhomName từ DS NTD
+      // NHÓM: dùng luôn nhomName từ DS TTN
       const nhomName = ttn.nhomName;
 
       return {
@@ -6706,7 +6709,7 @@ export default function QuanLyPage() {
               <div className="space-y-2 max-h-[300px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#059669 transparent' }}>
                 {[
                   { key: 'leaders', label: 'DS Trưởng Ban/Nhóm' },
-                  { key: 'recruiters', label: 'DS Người TD' },
+                  { key: 'recruiters', label: 'DS TTN' },
                   { key: 'revenue', label: 'Doanh thu' },
                   { key: 'structure', label: 'Cấu trúc' },
                   ...MONTHS.map(m => ({ key: `revenue-${m.key}`, label: `Doanh thu - ${m.label}` })),
