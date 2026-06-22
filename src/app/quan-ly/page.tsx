@@ -3472,7 +3472,21 @@ export default function QuanLyPage() {
       if (fixedAmountEl) fixedAmountEl.textContent = amountFmt;
     }, 100);
     return () => clearTimeout(timer);
-  }, [activeSheet, policyOpen, tvvmNhomFilter, tvvmNameFilter, nsTvvNhomFilter, nsTvvNameFilter, quyTvvNhomFilter, quyTvvNameFilter, ptkdNhomFilter, ptkdNameFilter]);
+  }, [
+    activeSheet,
+    policyOpen,
+    // Filter state của TẤT CẢ policy (TVV + TN) — trước đây thiếu 3 TN policy
+    tvvmNhomFilter, tvvmNameFilter,
+    nsTvvNhomFilter, nsTvvNameFilter,
+    quyTvvNhomFilter, quyTvvNameFilter,
+    ptkdNhomFilter, ptkdNameFilter,
+    tuyenLuyenNhomFilter, tuyenLuyenNameFilter,
+    dongHanhNhomFilter, dongHanhNameFilter,
+    quyTnNhomFilter, quyTnNameFilter,
+    // Data sources — khi fetch xong, bảng re-render với data-policy-count mới,
+    // useEffect phải fire lại để đọc giá trị mới và update ô tổng hợp + footer
+    contracts, tvvStructList, leaders, recruiters, banNhomList, adList,
+  ]);
 
   // Load policy image links from Settings API on mount
   useEffect(() => {
