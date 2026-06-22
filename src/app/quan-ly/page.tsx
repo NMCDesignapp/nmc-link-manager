@@ -3579,7 +3579,7 @@ export default function QuanLyPage() {
 
   const POLICY_ITEMS = [
     { key: 'tvvm', label: 'Thưởng TVVm', desc: 'Thưởng duy trì hoạt động TVV tháng', icon: UserPlus, color: '#7C3AED' },
-    { key: 'ns-tvv', label: 'Thưởng Năng suất tháng TVV', desc: 'Thưởng năng suất AFYP tháng cho TVV', icon: TrendingUp, color: '#2563EB' },
+    { key: 'ns-tvv', label: 'Thưởng Năng suất tháng TVV', desc: 'Thưởng năng suất IP tháng cho TVV', icon: TrendingUp, color: '#2563EB' },
     { key: 'quy-tvv', label: 'Thưởng Quý TVV', desc: 'Thưởng kết quả kinh doanh quý cho TVV', icon: Award, color: '#059669' },
     { key: 'tuyen-luyen', label: 'Thưởng Tuyển luyện', desc: 'Thưởng tuyển dụng và huấn luyện TVV mới', icon: UserCheck, color: '#D97706' },
     { key: 'dong-hanh', label: 'Thưởng Đồng hành', desc: 'Thưởng đồng hành phát triển nhóm', icon: Users, color: '#0891B2' },
@@ -5278,9 +5278,16 @@ export default function QuanLyPage() {
       });
       const tongFYPNhom = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
 
-      // LƯỢT HĐC (Lượt Hoạt Động Chuẩn) = số contracts có tổng IP tháng ≥ 12.000.000đ
-      // (lượt HĐ chuẩn = hợp đồng có IP phát hành trong tháng đạt ngưỡng 12tr)
-      const luotHDCNhom = monthContracts.filter(c => c.pdt10DT >= 12_000_000).length;
+      // LƯỢT HĐC (Lượt Hoạt Động Chuẩn) = số TVV trong nhóm có TỔNG IP THÁNG ≥ 12.000.000đ
+      // (mỗi TVV đạt ngưỡng IP tháng = 1 lượt HĐC — đồng nhất với định nghĩa HĐC của Quý TN)
+      // NGUYÊN TẮC: PTKD dùng MÃ NHÓM để đếm tất cả lượt HĐC của nhóm
+      const HDC_IP_THRESHOLD = 12_000_000;
+      const luotHDCNhom = tvvInNhom.filter(tvv => {
+        const tvvMonthIP = monthContracts
+          .filter(c => c.agentCode === tvv.agentCode)
+          .reduce((s, c) => s + c.pdt10DT, 0);
+        return tvvMonthIP >= HDC_IP_THRESHOLD;
+      }).length;
 
       // FYC = FYP × 25%
       const fyc = tongFYPNhom * 0.25;
