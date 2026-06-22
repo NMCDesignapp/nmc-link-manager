@@ -68,17 +68,39 @@ export async function POST(request: NextRequest) {
       for (const k of keys) { if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; }
       return '';
     };
+    // Helper: normalize header (lowercase, bỏ dấu TV, thay _ thành space) — để match alias mềm dẻo
+    const normalizeKey = (s: string): string =>
+      String(s || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\s_]+/g, ' ').trim();
+    // Helper mở rộng: помимо alias cố định, còn thử match alias qua normalize
+    const getValFlex = (r: any, ...aliases: string[]): string => {
+      // 1) Match chính xác (case-sensitive)
+      for (const k of Object.keys(r)) {
+        if (aliases.includes(k) && r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
+      }
+      // 2) Match chính xác (case-insensitive)
+      for (const k of Object.keys(r)) {
+        if (aliases.some(a => a.toLowerCase() === k.toLowerCase()) && r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
+      }
+      // 3) Match qua normalize
+      const normAliases = aliases.map(normalizeKey);
+      for (const k of Object.keys(r)) {
+        if (normAliases.includes(normalizeKey(k)) && r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
+      }
+      return '';
+    };
 
     // Batch mode (array) — with duplicate agentCode check
     if (Array.isArray(body)) {
-      const records = body.filter((r: any) => getVal(r, 'agentCode', 'Mã TVV') && getVal(r, 'agentName', 'Tên TVV')).map((r: any) => ({
-        agentCode: getVal(r, 'agentCode', 'Mã TVV'),
-        agentName: getVal(r, 'agentName', 'Tên TVV'),
-        maBanNhom: getVal(r, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm') || '',
-        chucVu: getVal(r, 'chucVu', 'Chức vụ', 'Chức vụ TVV') || '',
-        ngayBatDau: safeDate(getVal(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc')),
-        maTVVTuyendung: getVal(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD') || '',
-        note: getVal(r, 'note', 'Ghi chú') || '',
+      const records = body.filter((r: any) => getValFlex(r, 'agentCode', 'Mã TVV', 'ma tvv', 'ma so', 'ma dl') && getValFlex(r, 'agentName', 'Tên TVV', 'ho ten', 'ten', 'ten tvv')).map((r: any) => ({
+        agentCode: getValFlex(r, 'agentCode', 'Mã TVV', 'ma tvv', 'ma so', 'ma dl'),
+        agentName: getValFlex(r, 'agentName', 'Tên TVV', 'ho ten', 'ten', 'ten tvv'),
+        maBanNhom: getValFlex(r, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm', 'ma ban nhom', 'ma nhom', 'ma ban/nhom') || '',
+        chucVu: getValFlex(r, 'chucVu', 'Chức vụ', 'chuc vu') || '',
+        ngayBatDau: safeDate(getValFlex(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lam viec', 'ngay bd', 'ngay bat dau lv')),
+        maTVVTuyendung: getValFlex(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'manguoituyendung', 'ma nguoi td', 'ma dl td', 'nguoi tuyen dung', 'nguoi td') || '',
+        note: getValFlex(r, 'note', 'Ghi chú', 'ghi chu') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
 
@@ -203,13 +225,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Single create - also support Vietnamese field names from CSV import
-    const agentCode = getVal(body, 'agentCode', 'Mã TVV');
-    const agentName = getVal(body, 'agentName', 'Tên TVV');
-    const maBanNhom = getVal(body, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm');
-    const chucVu = getVal(body, 'chucVu', 'Chức vụ', 'Chức vụ TVV');
-    const ngayBatDau = getVal(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc');
-    const maTVVTuyendung = getVal(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD');
-    const note = getVal(body, 'note', 'Ghi chú');
+    const agentCode = getValFlex(body, 'agentCode', 'Mã TVV', 'ma tvv', 'ma so', 'ma dl');
+    const agentName = getValFlex(body, 'agentName', 'Tên TVV', 'ho ten', 'ten', 'ten tvv');
+    const maBanNhom = getValFlex(body, 'maBanNhom', 'Mã Ban/Nhóm', 'Mã nhóm', 'ma ban nhom', 'ma nhom');
+    const chucVu = getValFlex(body, 'chucVu', 'Chức vụ', 'chuc vu');
+    const ngayBatDau = getValFlex(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lv');
+    const maTVVTuyendung = getValFlex(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma dl td');
+    const note = getValFlex(body, 'note', 'Ghi chú', 'ghi chu');
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({

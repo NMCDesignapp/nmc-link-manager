@@ -2018,6 +2018,7 @@ export default function QuanLyPage() {
 
       let successCount = 0;
       let failCount = 0;
+      let suppressGenericToast = false;
 
       if (sheetName === 'leaders') {
         const rows = data.map((r: any) => ({ agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), ban: String(r['Ban'] || r['ban'] || ''), nhom: String(r['Nhóm'] || r['nhom'] || ''), maNhom: String(r['Mã nhóm'] || r['maNhom'] || ''), salary: parseFloat(String(r['Tiền/tháng'] || r['salary'] || '0').replace(/,/g, '')) || 0, phone: String(r['SĐT'] || r['phone'] || ''), email: String(r['Email'] || r['email'] || ''), note: String(r['Ghi chú'] || r['note'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(r => r.agentCode || r.agentName);
@@ -2192,18 +2193,34 @@ export default function QuanLyPage() {
           maNguoiTuyenDung: pickField(r, ['ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma nguoi td', 'manguoituyendung', 'ma dl td', 'ma tvv td']),
           tenNguoiTuyenDung: pickField(r, ['ten nguoi tuyen dung', 'ten nguoi td', 'ten ntd', 'ten nguoi td', 'tenguoituyendung', 'ten tvv td']),
         })).filter(m => m.agentCode || m.agentName);
-        if (members.length) {
+        if (members.length === 0) {
+          failCount = data.length;
+          suppressGenericToast = true;
+          toast({ title: 'Import thất bại', description: `Không tìm thấy cột hợp lệ. Đảm bảo file có các cột: NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD`, variant: 'destructive' });
+        } else {
           const r = await fetch('/api/tuyen-ngang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
-          if (r.ok) { const result = await r.json(); successCount = result.count || members.length; await fetchTuyenNgang(); } else {
+          if (r.ok) {
+            const result = await r.json();
+            const realCount = (result.created || 0) + (result.updated || 0);
+            if (realCount === 0) {
+              failCount = members.length;
+              suppressGenericToast = true;
+              toast({ title: 'Import thất bại', description: `0 dòng được lưu. Có thể mã TVV bị trùng hoặc dữ liệu không hợp lệ.`, variant: 'destructive' });
+            } else {
+              successCount = realCount;
+              await fetchTuyenNgang();
+            }
+          } else {
             failCount = members.length;
+            suppressGenericToast = true;
             const errData = await r.json().catch(() => ({}));
             toast({ title: 'Lỗi import TTN Tuyển Ngang', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
       }
-      if (failCount > 0) {
+      if (failCount > 0 && !suppressGenericToast) {
         toast({ title: 'Import hoàn tất', description: `Thành công: ${successCount} dòng | Lỗi: ${failCount} dòng`, variant: 'destructive' });
-      } else if (sheetName !== 'contracts') {
+      } else if (sheetName !== 'contracts' && !suppressGenericToast) {
         // Contracts already shows its own toast with replace info
         toast({ title: 'Import thành công', description: `${successCount} dòng` });
       }
