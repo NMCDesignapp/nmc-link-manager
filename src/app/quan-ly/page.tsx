@@ -252,7 +252,10 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
 const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, string>[] }> = {
   leaders: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Ban', 'Nhóm', 'Mã nhóm', 'Tiền/tháng', 'SĐT', 'Email', 'Ngày bắt đầu', 'Ghi chú'],
-    sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Ban A', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ngày bắt đầu': '01/01/2026', 'Ghi chú': '' }],
+    sampleData: [
+      { 'Mã số': 'D104132784', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'Trưởng nhóm', 'Ban': 'Hiệp Tiến', 'Nhóm': 'Nhiệt An', 'Mã nhóm': 'U1041A3L6E', 'Tiền/tháng': '5000000', 'SĐT': '0901234567', 'Email': 'a@email.com', 'Ngày bắt đầu': '01/01/2026', 'Ghi chú': '' },
+      { 'Mã số': 'D104132785', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'Trưởng ban', 'Ban': 'Hiệp Tiến', 'Nhóm': 'Hùng Cường', 'Mã nhóm': 'U1041A3L6F', 'Tiền/tháng': '7000000', 'SĐT': '0907654321', 'Email': 'b@email.com', 'Ngày bắt đầu': '15/02/2026', 'Ghi chú': '' },
+    ],
   },
   revenue: {
     headers: ['Tháng', 'Mã nhóm', 'Nhóm', 'Mã TVV', 'Tên TVV', 'Tổng IP', 'Tổng AFYP', 'Số HĐ', 'Lượt HĐ', 'Ghi chú'],
@@ -268,7 +271,10 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   },
   recruiters: {
     headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu'],
-    sampleData: [{ 'Mã số': 'NTD001', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'NTD', 'Nhóm': 'Nhóm 1', 'Ngày bắt đầu': '01/01/2026' }],
+    sampleData: [
+      { 'Mã số': 'D104102154', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'Trưởng nhóm', 'Nhóm': 'Nhiệt An', 'Ngày bắt đầu': '01/01/2026' },
+      { 'Mã số': 'D104102155', 'Họ tên': 'Lê Văn C', 'Chức vụ': 'Trưởng ban', 'Nhóm': 'Hùng Cường', 'Ngày bắt đầu': '15/02/2026' },
+    ],
   },
   'structure-phong': {
     headers: ['Mã Phòng', 'Tên Phòng', 'Ghi chú'],
@@ -282,13 +288,21 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
     headers: ['Mã Ban/Nhóm', 'Tên Ban/Nhóm', 'Mã AD', 'Ghi chú'],
     sampleData: [{ 'Mã Ban/Nhóm': 'BN001', 'Tên Ban/Nhóm': 'Nhóm Hiệp Tiến', 'Mã AD': 'AD001', 'Ghi chú': '' }],
   },
+  // QUAN TRỌNG: cột 'Mã TVV TD' phải khớp CHÍNH XÁC với getVal() trong /api/structure/tvv/route.ts
+  // API chấp nhận: 'maTVVTuyendung' | 'Mã TVV tuyển dụng' | 'Mã TVV TD' (case-sensitive)
   'structure-tvv': {
-    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV Tuyển dụng', 'Ghi chú'],
-    sampleData: [{ 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn TVV', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV Tuyển dụng': 'D104102154', 'Ghi chú': '' }],
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Ghi chú'],
+    sampleData: [
+      { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Ghi chú': '' },
+      { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Ghi chú': '' },
+    ],
   },
   'tuyen-ngang': {
     headers: ['STT', 'NHÓM', 'MÃ TVV', 'HỌ TÊN', 'Ngày bắt đầu làm việc', 'Ngày hiệu lực chức vụ', 'MÃ NGƯỜI TUYỂN DỤNG', 'TÊN NGƯỜI TUYỂN DỤNG'],
-    sampleData: [{ 'STT': '1', 'NHÓM': 'Nhóm Hiệp Tiến', 'MÃ TVV': 'D104132784', 'HỌ TÊN': 'Nguyễn Văn A', 'Ngày bắt đầu làm việc': '01/01/2026', 'Ngày hiệu lực chức vụ': '15/01/2026', 'MÃ NGƯỜI TUYỂN DỤNG': 'D104102154', 'TÊN NGƯỜI TUYỂN DỤNG': 'Trần Thị B' }],
+    sampleData: [
+      { 'STT': '1', 'NHÓM': 'Nhóm Hiệp Tiến', 'MÃ TVV': 'D104132784', 'HỌ TÊN': 'Nguyễn Văn A', 'Ngày bắt đầu làm việc': '01/01/2026', 'Ngày hiệu lực chức vụ': '15/01/2026', 'MÃ NGƯỜI TUYỂN DỤNG': 'D104102154', 'TÊN NGƯỜI TUYỂN DỤNG': 'Trần Thị B' },
+      { 'STT': '2', 'NHÓM': 'Nhóm Nhiệt An', 'MÃ TVV': 'D104132785', 'HỌ TÊN': 'Lê Văn C', 'Ngày bắt đầu làm việc': '15/02/2026', 'Ngày hiệu lực chức vụ': '01/03/2026', 'MÃ NGƯỜI TUYỂN DỤNG': 'D104102154', 'TÊN NGƯỜI TUYỂN DỤNG': 'Trần Thị B' },
+    ],
   },
 };
 
@@ -1883,14 +1897,17 @@ export default function QuanLyPage() {
       const template = TEMPLATES[sheetName];
       if (!template) { toast({ title: 'Lỗi', description: 'Không có mẫu', variant: 'destructive' }); return; }
       // Client-side XLSX generation — avoids server binary response issues
+      // Lấy TẤT CẢ dòng mẫu (nếu có), nếu không có thì tạo 1 dòng rỗng
       const XLSX = await import('xlsx');
-      const data = [template.sampleData.length > 0 ? template.sampleData[0] : Object.fromEntries(template.headers.map(h => [h, '']))];
+      const data = template.sampleData.length > 0
+        ? template.sampleData
+        : [Object.fromEntries(template.headers.map(h => [h, '']))];
       const ws = XLSX.utils.json_to_sheet(data, { header: template.headers });
-      ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 12) }));
+      ws['!cols'] = template.headers.map(h => ({ wch: Math.max(h.length * 2, 14) }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       XLSX.writeFile(wb, `Mau_${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast({ title: 'Đang tải mẫu...', description: `Mẫu ${sheetName}` });
+      toast({ title: 'Đang tải mẫu...', description: `Mẫu ${sheetName} (${data.length} dòng mẫu)` });
     } catch (err) {
       console.error('[handleDownloadTemplate] Error:', err);
       toast({ title: 'Lỗi tải mẫu', description: String(err), variant: 'destructive' });
@@ -1907,6 +1924,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
+      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Ghi chú': t.note }));
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
@@ -1923,7 +1941,7 @@ export default function QuanLyPage() {
       console.error('[handleExport] Error:', err);
       toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
     }
-  }, [leaders, revenue, contracts, staff, recruiters]);
+  }, [leaders, revenue, contracts, staff, recruiters, tuyenNgangList, tvvStructList]);
 
   // ========== Import ==========
   // Helper: convert various date formats to ISO string (yyyy-mm-dd) - timezone safe
