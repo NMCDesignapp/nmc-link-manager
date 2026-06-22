@@ -361,3 +361,31 @@ Stage Summary:
 - PTKD Luot HDC chinh xac: so TVV trong nhom co tong IP thang >= 12tr (truoc day dem so HD don le)
 - Mo ta 8 chinh saga deu KHONG nhac den AFYP (chi dung IP/FYP)
 - AFYP chi xuat hien o phan doanh so/dashboard, KHONG lan vao chinh saga
+
+---
+Task ID: fix-structure-tvv-tree-and-tuyen-ngang-import-2026-06-22
+Agent: Main (Super Z)
+Task: (1) DS TVV trong trang Cau truc hien thi dang cay Phong->AD->Nhom->TVV (bo bang phang). (2) Fix DS TTN Tuyen Ngang da upload nhung khong hien thi
+
+Work Log:
+- Bug 1: structureSub='tvv' goi renderTvvList() (bang phang) thay vi renderStructure() (tree layout)
+  * Fix: doi dispatcher line 6496-6504 — bo if structureSub==='tvv' branch
+  * Luc nao cung return renderStructure() cho default + sub='tvv' (tree layout)
+  * renderTvvList van giu lai (khong xoa) de dung cho muc dich khac
+- Bug 2: Import TTN Tuyen Ngang that bai silently khi header file user upload khong khop exact voi template
+  * CU: chi nhan 'NHÓM', 'MÃ TVV', 'HỌ TÊN', 'Ngày bắt đầu làm việc', 'Ngày hiệu lực chức vụ', 'MÃ NGƯỜI TUYỂN DỤNG', 'TÊN NGƯỜI TUYỂN DỤNG'
+  * MOI: them helper pickField + parseDateAny — normalize header (lowercase, bo dau TV, thay _ bang space) roi match alias
+    - nhom: nhom, nhom kd, nhom kinh doanh
+    - agentCode: ma tvv, ma, ma dl, ma tvv/tn, agentcode, ma so
+    - agentName: ho ten, hoten, ten, ten tvv, agentname, ho va ten
+    - ngayBatDau: ngay bat dau lam viec, ngay bat dau lv, ngay bat dau, ngay bd, ngaybatdau
+    - ngayHieuLuc: ngay hieu luc chuc vu, ngay hieu luc cv, ngay hieu luc, ngayhl, ngayhieuluc
+    - maNguoiTuyenDung: ma nguoi tuyen dung, ma nguoi td, ma ntd, ma nguoi td, manguoituyendung, ma dl td, ma tvv td
+    - tenNguoiTuyenDung: ten nguoi tuyen dung, ten nguoi td, ten ntd, ten nguoi td, tenguoituyendung, ten tvv td
+- Next.js build: pass
+- Commit 5654a91 pushed to main, Vercel auto-deploying
+
+Stage Summary:
+- Tab "DS TVV" trong phan "Cau truc" gio cung hien thi tree layout (Phong -> AD -> Nhom -> TVV) giong default
+- Import TTN Tuyen Ngang gio chap nhan nhieu bien the header (bo dau, viet thuong/hoa, alias) — giam thieu truong hop import silently fail
+- Voi 2 fix nay, user se thay DS TVV dang cay va DS TTN Tuyen Ngang co data sau khi import lai file (neu header da khop)
