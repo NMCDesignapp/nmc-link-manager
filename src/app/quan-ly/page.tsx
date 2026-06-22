@@ -2206,6 +2206,11 @@ export default function QuanLyPage() {
   const totalFYP = contracts.reduce((s, c) => s + c.fyp, 0);
   const totalSalary = leaders.reduce((s, l) => s + l.salary, 0);
   const totalRecruiters = recruiters.length;
+  // NTD (Người Tuyển Dụng) = TB + TN + TTN → gộp DS TB/TN (leaders) + DS TTN (recruiters), dedupe by agentCode
+  const totalNTD = new Set([
+    ...leaders.map(l => l.agentCode),
+    ...recruiters.map(r => r.agentCode),
+  ].filter(Boolean)).size;
 
   // Computed values from Contract data (file doanh thu năm)
   // Use current year contracts for all calculations
@@ -2263,8 +2268,11 @@ export default function QuanLyPage() {
     return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
   }).length;
 
-  // TTN hoạt động: count unique maDaiLyTD that exist in recruiters (DS TTN)
-  const ntdCodes = new Set(recruiters.map(r => r.agentCode));
+  // NTD hoạt động: count unique maDaiLyTD that exist in DS TB/TN + DS TTN (NTD = TB+TN+TTN)
+  const ntdCodes = new Set([
+    ...leaders.map(l => l.agentCode),
+    ...recruiters.map(r => r.agentCode),
+  ].filter(Boolean));
   const activeNTDCount = new Set<string>();
   for (const c of periodContracts) {
     if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTDCount.add(c.maDaiLyTD);
@@ -2342,7 +2350,17 @@ export default function QuanLyPage() {
       ],
     },
     {
-      key: 'recruiters', label: 'TTN', data: recruiters,
+      key: 'recruiters', label: 'NTD', data: recruiters,
+      fields: [
+        { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
+      ],
+    },
+    // NTD tổng = TB + TN + TTN (gộp leaders + recruiters, dedupe by agentCode)
+    {
+      key: 'ntd-all', label: 'NTD (tất cả)', data: Array.from(new Map([
+        ...leaders.map(l => [l.agentCode, l] as const),
+        ...recruiters.map(r => [r.agentCode, r] as const),
+      ].filter(([k]) => k))).map(([, v]) => v),
       fields: [
         { key: 'agentCode', label: 'Mã số (count)', type: 'string' },
       ],
@@ -2352,7 +2370,7 @@ export default function QuanLyPage() {
   const overviewDefaultKPIs: KPIConfig[] = [
     { id: 'ov-tb-tn', label: 'Trưởng Ban/Nhóm', dataSourceKey: 'leaders', field: 'salary', calculation: 'count', color: 'emerald' },
     { id: 'ov-tvv', label: 'Tổng TVV', dataSourceKey: 'tvvStruct', field: 'agentCode', calculation: 'count', color: 'sky' },
-    { id: 'ov-ntd', label: 'TTN', dataSourceKey: 'recruiters', field: 'agentCode', calculation: 'count', color: 'violet' },
+    { id: 'ov-ntd', label: 'NTD', dataSourceKey: 'ntd-all', field: 'agentCode', calculation: 'count', color: 'violet' },
     { id: 'ov-hd', label: 'Tổng HĐ', dataSourceKey: 'revenue', field: 'contractCount', calculation: 'sum', color: 'amber' },
     { id: 'ov-dt', label: 'Tổng DT', dataSourceKey: 'revenue', field: 'totalFYP', calculation: 'sum', color: 'emerald' },
     { id: 'ov-luong', label: 'Tổng lương TN', dataSourceKey: 'leaders', field: 'salary', calculation: 'sum', color: 'sky' },
@@ -2632,7 +2650,7 @@ export default function QuanLyPage() {
           { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
-          { label: 'SL TTN', unit: 'người', value: formatNumber(totalRecruiters), rawVal: totalRecruiters, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
+          { label: 'SL NTD', unit: 'người', value: formatNumber(totalNTD), rawVal: totalNTD, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
           { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: 0, targetFmt: '', bg: '#0D9488', hasKH: false },
           { label: 'TỔNG SỐ TVV', unit: 'người', value: formatNumber(tvvStructList.length), rawVal: tvvStructList.length, target: 0, targetFmt: '', bg: '#475569', hasKH: false },
         ].map((kpi, i) => {
@@ -5744,8 +5762,11 @@ export default function QuanLyPage() {
     // ĐLHĐ = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
     const dlhdMonth = luotHoatDong > 0 ? tongAFYP / luotHoatDong : 0;
 
-    // NTD count: count unique maDaiLyTD that exist in recruiters
-    const ntdCodes = new Set(recruiters.map(r => r.agentCode));
+    // NTD count: count unique maDaiLyTD that exist in DS TB/TN + DS TTN (NTD = TB+TN+TTN)
+    const ntdCodes = new Set([
+      ...leaders.map(l => l.agentCode),
+      ...recruiters.map(r => r.agentCode),
+    ].filter(Boolean));
     const activeNTD = new Set<string>();
     for (const c of sortedContracts) {
       if (c.maDaiLyTD && ntdCodes.has(c.maDaiLyTD)) activeNTD.add(c.maDaiLyTD);
