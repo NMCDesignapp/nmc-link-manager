@@ -330,3 +330,34 @@ Stage Summary:
   * User chinh filter cua bat ky policy nao (8 policy)
 - Bug khong anh huong den cell trong bang (da dung `{x > 0 ? format : '—'}`)
 - Commit 7c6c669 pushed to main, Vercel auto-deploying
+
+---
+Task ID: review-counting-logic-2026-06-22
+Agent: Main (Super Z)
+Task: Ra soat logic dem TVVm HDC / luot HDC trong tung chinh saga theo yeu cau user. FYP = IP. CHINH SACH KHONG DUNG TOI AFYP (AFYP chi dung cho doanh so thuong dung + thuong = ke hoach/thi dua)
+
+Work Log:
+- Verify 4 chinh saga dem TVVm HDC / luot HDC theo dung yeu cau:
+  * Quy TN (line 4981-5006): dung tvv.maTVVTuyendung === tn.agentCode (MA TN), KHONG dung ma nhom. TVVm = TN tuyen dung trong quy + 1 thang co tong IP >= 12tr -> DUNG
+  * Dong Hanh/TTN (line 4709-4715): dung tvv.maTVVTuyendung === ttn.agentCode (MA TTN) -> DUNG
+  * Tuyen Luyen (line 4478-4481): dung tvv.maTVVTuyendung === ntd.agentCode (MA TN, KHONG ma nhom) -> DUNG
+  * PTKD (line 5270): dung tvv.maBanNhom === tn.maBanNhom (MA NHOM) -> DUNG
+- Verify AFYP chi dung trong dashboard/doanh so (lines 2256, 2716, 2746, 2782, 5752, 5929), KHONG lan vao 8 chinh saga
+- Fix PTKD Luot HDC (line 5281-5290):
+  * CU: monthContracts.filter(c => c.pdt10DT >= 12_000_000).length -> dem so HD don le co IP >= 12tr
+  * MOI: tvvInNhom.filter(tvv => tongIP thang cua TVV >= 12tr).length -> dem so TVV dat HDC
+  * Dong nhat voi dinh nghia HDC cua Quy TN (TVVm co 1 thang IP >= 12tr = 1 HDC)
+- Fix mo ta NS-TVV (line 3582): 'Thưởng nang suat AFYP thang cho TVV' -> 'Thưởng nang suat IP thang cho TVV'
+  (nguyen tac: CHINH SACH KHONG DUNG TOI AFYP)
+- TypeScript typecheck: khong co loi moi (chi con loi pre-existing)
+- Next.js build: pass
+- Commit d2dbab7 pushed to main, Vercel auto-deploying
+
+Stage Summary:
+- 4 chinh saga (Quy TN, TTN, Tuyen Luyen, PTKD) deu dem TVVm HDC / luot HDC dung theo yeu cau:
+  * Quy TN / Tuyen Luyen: dung MA TN (KHONG ma nhom)
+  * Dong Hanh: dung MA TTN
+  * PTKD: dung MA NHOM
+- PTKD Luot HDC chinh xac: so TVV trong nhom co tong IP thang >= 12tr (truoc day dem so HD don le)
+- Mo ta 8 chinh saga deu KHONG nhac den AFYP (chi dung IP/FYP)
+- AFYP chi xuat hien o phan doanh so/dashboard, KHONG lan vao chinh saga
