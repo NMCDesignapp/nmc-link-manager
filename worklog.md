@@ -307,3 +307,26 @@ Stage Summary:
 - Tuyen Luyen khong con dung DS NTD (vi DS NTD gom TB+TN+TTN, trong khi CS nay chi danh cho TB/TN)
 - Moi CS doc lap, khong suy luan chéo qua CS khac
 - Commit 7b5051f pushed to main, Vercel auto-deploying
+
+---
+Task ID: fix-policy-summary-deps-2026-06-22
+Agent: Main (Super Z)
+Task: Fix hien thi '—' tren o tong hop (SL TVV dat + Tong thuong) cua tat ca chinh saga
+
+Work Log:
+- Phat hien bug tai useEffect (line ~3447): cap nhat o tong hop top + footer duoi
+  thong qua DOM manipulation (getElementById), nhung dependency array THIEU:
+  * 3 filter cua policy TN: tuyenLuyen, dongHanh, quyTn
+  * 6 data sources: contracts, tvvStructList, leaders, recruiters, banNhomList, adList
+- Ket qua: khi data fetch xong (sau khi page load) hoac khi user filter 3 policy TN,
+  table re-render co data-policy-count/amount moi, nhung useEffect khong fire lai
+  -> o tong hop (top gray panel + bottom green footer) van hien '—'
+- Fix: bo sung 6 filter state + 6 data source vao dependency array
+- TypeScript typecheck: 7 loi pre-existing, khong co loi moi
+
+Stage Summary:
+- Bug da sua: o 'SL TVV dat' va 'Tong thuong' se cap nhat dung khi:
+  * Page load xong (data fetch complete)
+  * User chinh filter cua bat ky policy nao (8 policy)
+- Bug khong anh huong den cell trong bang (da dung `{x > 0 ? format : '—'}`)
+- Commit 7c6c669 pushed to main, Vercel auto-deploying
