@@ -229,8 +229,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
 // Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS TTN, DS TTN Tuyển Ngang
 // NGUYÊN TẮC PHÂN BỔ ĐỐI TƯỢNG (mỗi CS là 1 bộ RIÊNG, cố định — không suy luận chéo):
 //   - CS cá nhân TVV (TVVm, NS-TVV, Quý-TVV)            → DS Tổng TVV (tvvStructList)
-//   - CS TB/TN (PTKD-TN, Quý-TN)                          → DS TB/TN (leaders, loại TTN)
-//   - CS Tuyển Luyện (người tuyển dụng = TB/TN + TTN)    → DS TB/TN + DS TTN (leaders + recruiters, dedupe)
+//   - CS TB/TN (PTKD-TN, Quý-TN, Tuyển Luyện)            → DS TB/TN (leaders, loại TTN)
 //   - CS TTN (Đồng Hành)                                  → DS TTN (recruiters)
 //   - CS TTN Tuyển ngang                                  → DS TTN Tuyển Ngang
 const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.ElementType }[] = [
