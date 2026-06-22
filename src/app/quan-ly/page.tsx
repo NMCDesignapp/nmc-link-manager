@@ -367,21 +367,34 @@ function resolveNhomName(
 // Helper: resolve Người Tuyển Dụng name for a TVV.
 // NGUYÊN TẮC: xác định DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
 // Nếu mã trống → trả rỗng. Không fallback qua contracts.maDaiLyTD hay nguồn khác.
+// ÁNH XẠ TÊN: tìm mã trong nhiều nguồn (DS Tổng TVV → DS TB/TN → DS TTN),
+// vì người tuyển dụng có thể là TVV thường, TB/TN, hoặc TTN.
 function resolveNguoiTD(
   tvvMaTVVTuyendung: string | null | undefined,
   _tvvAgentCode: string,
   tvvStructList: Array<{ agentCode: string; agentName: string }>,
   _contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
-  _recruiters: Array<{ agentCode: string; agentName: string }>,
+  recruiters: Array<{ agentCode: string; agentName: string }>,
+  leaders?: Array<{ agentCode: string; agentName: string }>,
 ): string {
   // NGUYÊN TẮC: xác định người tuyển DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
   // Nếu mã trống → không có người tuyển → trả rỗng.
   // KHÔNG fallback qua contracts.maDaiLyTD hay nguồn khác.
   if (tvvMaTVVTuyendung && tvvMaTVVTuyendung.trim()) {
-    const tdTVV = tvvStructList.find(t => t.agentCode === tvvMaTVVTuyendung.trim());
+    const code = tvvMaTVVTuyendung.trim();
+    // 1. Tìm trong DS Tổng TVV
+    const tdTVV = tvvStructList.find(t => t.agentCode === code);
     if (tdTVV?.agentName) return tdTVV.agentName;
-    // Nếu có mã nhưng không tìm thấy tên → trả mã
-    return tvvMaTVVTuyendung.trim();
+    // 2. Tìm trong DS TB/TN (leaders)
+    if (leaders) {
+      const tdLeader = leaders.find(l => l.agentCode === code);
+      if (tdLeader?.agentName) return tdLeader.agentName;
+    }
+    // 3. Tìm trong DS TTN (recruiters)
+    const tdTTN = recruiters.find(r => r.agentCode === code);
+    if (tdTTN?.agentName) return tdTTN.agentName;
+    // 4. Có mã nhưng không tìm thấy tên → trả mã
+    return code;
   }
   return '';
 }
@@ -3675,7 +3688,7 @@ export default function QuanLyPage() {
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
       // Get recruiter name — fallback chain (uses new helper)
-      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters);
+      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders);
 
       return {
         stt: 0 as number,
@@ -3984,6 +3997,9 @@ export default function QuanLyPage() {
 
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
+      // Người tuyển dụng — ánh xả mã sang tên (DS Tổng TVV → DS TB/TN → DS TTN)
+      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders);
+
       return {
         stt: 0 as number,
         nhom: nhomName,
@@ -3995,6 +4011,7 @@ export default function QuanLyPage() {
         tierBonuses,
         tienThuong,
         soLanDatTQ,
+        nguoiTD,
       };
     });
 
@@ -4106,6 +4123,7 @@ export default function QuanLyPage() {
                 <th colSpan={6} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
+                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGƯỜI<br/>TUYỂN DỤNG</th>
               </tr>
               {/* Row 2: FYP thresholds — solid teal header, white text */}
               <tr style={{ backgroundColor: TIER_HEADER_BG }}>
@@ -4123,15 +4141,15 @@ export default function QuanLyPage() {
                   </th>
                 ))}
               </tr>
-              {/* Row 4: Full-width separator line — runs across all 14 columns */}
+              {/* Row 4: Full-width separator line — runs across all 15 columns */}
               <tr>
-                <th colSpan={14} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: TIER_GROUP_HEADER_BG, borderBottom: 'none' }}></th>
+                <th colSpan={15} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: TIER_GROUP_HEADER_BG, borderBottom: 'none' }}></th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
+                  <td colSpan={15} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
               ) : filteredRows.map((row, idx) => {
                 return (
@@ -4168,6 +4186,7 @@ export default function QuanLyPage() {
                       {renderThuongCellContent(row.tienThuong)}
                     </td>
                     <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
+                    <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nguoiTD || '—'}</td>
                   </tr>
                 );
               })}
@@ -4250,6 +4269,9 @@ export default function QuanLyPage() {
 
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
+      // Người tuyển dụng — ánh xả mã sang tên (DS Tổng TVV → DS TB/TN → DS TTN)
+      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders);
+
       return {
         stt: 0 as number,
         nhom: nhomName,
@@ -4262,6 +4284,7 @@ export default function QuanLyPage() {
         achievedTier,
         tlThuong,
         tienThuong,
+        nguoiTD,
       };
     });
 
@@ -4393,12 +4416,13 @@ export default function QuanLyPage() {
                 </th>
                 <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGƯỜI TUYỂN DỤNG</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
+                  <td colSpan={10} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">{tvvRows.length === 0 ? 'Chưa có TVV. Vui lòng nhập cấu trúc TVV trước.' : 'Không tìm thấy TVV phù hợp bộ lọc.'}</td>
                 </tr>
               ) : filteredRows.map((row) => (
                 <tr key={row.maTVV} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
@@ -4419,6 +4443,7 @@ export default function QuanLyPage() {
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
                     {renderThuongCellContent(row.tienThuong)}
                   </td>
+                  <td className="text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nguoiTD || '—'}</td>
                 </tr>
               ))}
               {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
