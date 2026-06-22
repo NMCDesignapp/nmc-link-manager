@@ -389,3 +389,35 @@ Stage Summary:
 - Tab "DS TVV" trong phan "Cau truc" gio cung hien thi tree layout (Phong -> AD -> Nhom -> TVV) giong default
 - Import TTN Tuyen Ngang gio chap nhan nhieu bien the header (bo dau, viet thuong/hoa, alias) — giam thieu truong hop import silently fail
 - Voi 2 fix nay, user se thay DS TVV dang cay va DS TTN Tuyen Ngang co data sau khi import lai file (neu header da khop)
+
+---
+Task ID: fix-tuyen-ngang-import-and-ntd-empty-2026-06-22
+Agent: Main (Super Z)
+Task: (1) DS TTN Tuyen Ngang da import nhung khong hien thi. (2) Cot NTD trong CS TVVm dang trong
+
+Work Log:
+- Bug 1: Import TTN Tuyen Ngang "thanh cong" nhung DS rong
+  * Nguyen hanh: code cu successCount = result.count || members.length
+    - Neu API tra count=0 (do per-row try/catch swallow loi) -> fallback ve members.length -> toast "Import thanh cong X dong" nhung DB rong
+    - Neu members.length=0 (do header file khong khop alias) -> fall through, khong co toast cu the
+  * Fix:
+    - SuccessCount dung = result.created + result.updated (khong fallback)
+    - Neu members.length=0 -> toast "Import that bai - khong tim thay cot hop le" + danh sach cot can thiet
+    - Neu realCount=0 -> toast "0 dong duoc luu - ma TVV trung hoac du lieu khong hop le"
+    - Them flag suppressGenericToast de tranh double toast
+- Bug 2: Cot NTD trong trong CS TVVm
+  * Nguyen hanh: resolveNguoiTD tra ve '' neu tvv.maTVVTuyendung rong trong DB
+    - API /structure/tvv chi chap nhan alias 'maTVVTuyendung', 'Ma TVV tuyen dung', 'Ma TVV TD'
+    - Neu file user upload co header 'Ma nguoi TD', 'Ma NTD', 'Ma DL TD', 'Nguoi tuyen dung' -> khong match -> truong bi rong
+  * Fix API /structure/tvv:
+    - Them helper getValFlex: match exact -> case-insensitive -> normalize (lowercase + bo dau TV + thay _ bang space)
+    - Mo rong alias cho maTVVTuyendung: 'Ma nguoi tuyen dung', 'Ma nguoi td', 'Ma NTD', 'Ma DL TD'
+    - Ap dung getValFlex cho tat ca field: agentCode, agentName, maBanNhom, chucVu, ngayBatDau, note
+    - Ap dung cho ca batch mode va single create mode
+- Next.js build: pass
+- Commit 68a5399 pushed to main, Vercel auto-deploying
+
+Stage Summary:
+- Import TTN Tuyen Ngang gio bao loi cu the (vi sao 0 dong duoc luu) thay vi bao "thanh cong" mac du DS rong
+- API /structure/tvv gio chap nhan nhieu bien the header cho maTVVTuyendung (bo dau TV, alias)
+- De fix cot NTD trong: USER CAN PHAI RE-IMPORT FILE TVV voi header moi hoac header da khop -> du lieu maTVVTuyendung se duoc luu -> cot NTD trong CS TVVm se co ten
