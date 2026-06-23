@@ -113,6 +113,8 @@ export async function POST(request: NextRequest) {
 
       let created = 0;
       let updated = 0;
+      let errored = 0;
+      const errors: string[] = [];
       for (const r of rows) {
         try {
           const existing = await db.tuyenNgang.findUnique({ where: { agentCode: r.agentCode } });
@@ -123,8 +125,9 @@ export async function POST(request: NextRequest) {
             await db.tuyenNgang.create({ data: r });
             created++;
           }
-        } catch {
-          // Skip errors
+        } catch (e: any) {
+          errored++;
+          if (errors.length < 3) errors.push(`${r.agentCode}: ${e?.message || String(e)}`);
         }
       }
 
@@ -133,30 +136,46 @@ export async function POST(request: NextRequest) {
         count: created + updated,
         created,
         updated,
+        errored,
+        errors,
       });
     }
 
     // Bulk upsert mode (from members array)
     if (members && Array.isArray(members)) {
+      // Loosen filter: chỉ cần agentCode (agentName sẽ được fill mặc định nếu trống)
       const data = members
-        .filter((m) => m.agentCode && m.agentName)
+        .filter((m) => m && m.agentCode && String(m.agentCode).trim())
         .map((m) => ({
           nhom: m.nhom || '',
-          agentCode: m.agentCode,
-          agentName: m.agentName,
+          agentCode: String(m.agentCode).trim(),
+          agentName: (m.agentName && String(m.agentName).trim()) || 'Chưa nhập',
           ngayBatDau: safeDate(m.ngayBatDau),
           ngayHieuLuc: safeDate(m.ngayHieuLuc),
           maNguoiTuyenDung: m.maNguoiTuyenDung || '',
           tenNguoiTuyenDung: m.tenNguoiTuyenDung || '',
         }));
 
-      if (data.length === 0) {
-        return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
+      // Detect duplicate agentCodes within the same upload batch
+      const seenCodes = new Set<string>();
+      const dedupedData = data.filter((d) => {
+        if (seenCodes.has(d.agentCode)) return false;
+        seenCodes.add(d.agentCode);
+        return true;
+      });
+
+      if (dedupedData.length === 0) {
+        return NextResponse.json({
+          error: `Không có dữ liệu hợp lệ (gốc: ${members.length} dòng, sau lọc: 0). Có thể header file không khớp — đảm bảo có cột MÃ TVV / HỌ TÊN.`,
+          received: members.length,
+        }, { status: 400 });
       }
 
       let created = 0;
       let updated = 0;
-      for (const item of data) {
+      let errored = 0;
+      const errors: string[] = [];
+      for (const item of dedupedData) {
         try {
           const existing = await db.tuyenNgang.findUnique({ where: { agentCode: item.agentCode } });
           if (existing) {
@@ -166,9 +185,21 @@ export async function POST(request: NextRequest) {
             await db.tuyenNgang.create({ data: item });
             created++;
           }
-        } catch {
-          // Skip errors
+        } catch (e: any) {
+          errored++;
+          if (errors.length < 3) errors.push(`${item.agentCode}: ${e?.message || String(e)}`);
         }
+      }
+
+      // Nếu mọi dòng đều lỗi → trả 4xx để frontend hiển thị lỗi thực
+      if (created + updated === 0 && errored > 0) {
+        return NextResponse.json({
+          error: `Tất cả ${errored} dòng đều lỗi. Lỗi mẫu: ${errors.join(' | ')}`,
+          created,
+          updated,
+          errored,
+          errors,
+        }, { status: 500 });
       }
 
       return NextResponse.json({
@@ -176,6 +207,9 @@ export async function POST(request: NextRequest) {
         count: created + updated,
         created,
         updated,
+        errored,
+        errors,
+        duplicatesSkipped: data.length - dedupedData.length,
       });
     }
 

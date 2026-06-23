@@ -367,8 +367,8 @@ function resolveNhomName(
 // Helper: resolve Người Tuyển Dụng name for a TVV.
 // NGUYÊN TẮC: xác định DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
 // Nếu mã trống → trả rỗng. Không fallback qua contracts.maDaiLyTD hay nguồn khác.
-// ÁNH XẠ TÊN: tìm mã trong nhiều nguồn (DS Tổng TVV → DS TB/TN → DS TTN),
-// vì người tuyển dụng có thể là TVV thường, TB/TN, hoặc TTN.
+// ÁNH XẠ TÊN: tìm mã trong nhiều nguồn (DS Tổng TVV → DS TB/TN → DS TTN → DS TTN Tuyển Ngang),
+// vì người tuyển dụng có thể là TVV thường, TB/TN, TTN, hoặc TTN Tuyển Ngang.
 function resolveNguoiTD(
   tvvMaTVVTuyendung: string | null | undefined,
   _tvvAgentCode: string,
@@ -376,6 +376,7 @@ function resolveNguoiTD(
   _contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
   recruiters: Array<{ agentCode: string; agentName: string }>,
   leaders?: Array<{ agentCode: string; agentName: string }>,
+  tuyenNgangList?: Array<{ agentCode: string; agentName: string }>,
 ): string {
   // NGUYÊN TẮC: xác định người tuyển DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
   // Nếu mã trống → không có người tuyển → trả rỗng.
@@ -393,7 +394,12 @@ function resolveNguoiTD(
     // 3. Tìm trong DS TTN (recruiters)
     const tdTTN = recruiters.find(r => r.agentCode === code);
     if (tdTTN?.agentName) return tdTTN.agentName;
-    // 4. Có mã nhưng không tìm thấy tên → trả mã
+    // 4. Tìm trong DS TTN Tuyển Ngang (tuyenNgangList)
+    if (tuyenNgangList) {
+      const tdTN = tuyenNgangList.find(tn => tn.agentCode === code);
+      if (tdTN?.agentName) return tdTN.agentName;
+    }
+    // 5. Có mã nhưng không tìm thấy tên → trả mã
     return code;
   }
   return '';
@@ -1607,8 +1613,8 @@ export default function QuanLyPage() {
       'tuyen-ngang': fetchTuyenNgang,
       recruiters: fetchRecruiters,
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
-      kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
-      report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
+      kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang()]); },
+      report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
@@ -2160,61 +2166,89 @@ export default function QuanLyPage() {
         // Columns (chuẩn): STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD
         // CHẤP NHẬN nhiều biến thể header (viết thường/hoa, có/không dấu, alias)
         // để tránh trường hợp file user upload không khớp header chuẩn → import silently fail
+        const normalizeKey = (k: string): string => k.trim().toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // bỏ dấu tiếng Việt
+          .replace(/[\s_]+/g, ' ').trim();
         const pickField = (r: any, aliases: string[]): string => {
+          // Pass 1: exact match
           for (const k of Object.keys(r)) {
-            const norm = k.trim().toLowerCase()
-              .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // bỏ dấu tiếng Việt
-              .replace(/[\s_]+/g, ' ').trim();
+            const norm = normalizeKey(k);
             for (const alias of aliases) {
               if (norm === alias) return String(r[k] ?? '');
+            }
+          }
+          // Pass 2: fuzzy match — alias included in key, or key included in alias (chỉ cho alias dài >=4)
+          for (const k of Object.keys(r)) {
+            const norm = normalizeKey(k);
+            for (const alias of aliases) {
+              if (alias.length >= 4 && (norm.includes(alias) || alias.includes(norm))) {
+                return String(r[k] ?? '');
+              }
             }
           }
           return '';
         };
         const parseDateAny = (r: any, aliases: string[]): string => {
           for (const k of Object.keys(r)) {
-            const norm = k.trim().toLowerCase()
-              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-              .replace(/[\s_]+/g, ' ').trim();
+            const norm = normalizeKey(k);
             for (const alias of aliases) {
               if (norm === alias && r[k] != null && String(r[k]).trim()) {
-                return parseDateValue(r[k]);
+                return parseDateValue(r[k]) || '';
+              }
+            }
+          }
+          // Fallback fuzzy
+          for (const k of Object.keys(r)) {
+            const norm = normalizeKey(k);
+            for (const alias of aliases) {
+              if (alias.length >= 4 && (norm.includes(alias) || alias.includes(norm)) && r[k] != null && String(r[k]).trim()) {
+                return parseDateValue(r[k]) || '';
               }
             }
           }
           return '';
         };
         const members = data.map((r: any) => ({
-          nhom: pickField(r, ['nhom', 'nhom kd', 'nhom kinh doanh']),
-          agentCode: pickField(r, ['ma tvv', 'ma', 'ma dl', 'ma tvv/tn', 'agentcode', 'ma so']),
-          agentName: pickField(r, ['ho ten', 'hoten', 'ten', 'ten tvv', 'agentname', 'ho va ten']),
-          ngayBatDau: parseDateAny(r, ['ngay bat dau lam viec', 'ngay bat dau lv', 'ngay bat dau', 'ngay bd', 'ngaybatdau']),
-          ngayHieuLuc: parseDateAny(r, ['ngay hieu luc chuc vu', 'ngay hieu luc cv', 'ngay hieu luc', 'ngayhl', 'ngayhieuluc']),
-          maNguoiTuyenDung: pickField(r, ['ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma nguoi td', 'manguoituyendung', 'ma dl td', 'ma tvv td']),
-          tenNguoiTuyenDung: pickField(r, ['ten nguoi tuyen dung', 'ten nguoi td', 'ten ntd', 'ten nguoi td', 'tenguoituyendung', 'ten tvv td']),
+          nhom: pickField(r, ['nhom', 'nhom kd', 'nhom kinh doanh', 'nhóm kd']),
+          agentCode: pickField(r, ['ma tvv', 'ma tvv/tn', 'ma tvv ttn', 'ma tvv/ttn', 'ma dl', 'ma dai ly', 'ma so', 'ma', 'agentcode', 'mã tvv', 'mã số']),
+          agentName: pickField(r, ['ho ten', 'hoten', 'ho va ten', 'ten tvv', 'ten ttn', 'ten', 'agentname', 'họ tên', 'tên']),
+          ngayBatDau: parseDateAny(r, ['ngay bat dau lam viec', 'ngay bat dau lv', 'ngay bat dau', 'ngay bd', 'ngaybatdau', 'ngày bắt đầu làm việc', 'ngày bắt đầu lv', 'ngày bắt đầu']),
+          ngayHieuLuc: parseDateAny(r, ['ngay hieu luc chuc vu', 'ngay hieu luc cv', 'ngay hieu luc', 'ngayhl', 'ngayhieuluc', 'ngày hiệu lực chức vụ', 'ngày hiệu lực cv', 'ngày hiệu lực']),
+          maNguoiTuyenDung: pickField(r, ['ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'manguoituyendung', 'ma dl td', 'ma tvv td', 'ma nguoi td', 'mã người tuyển dụng', 'mã người td', 'mã ntd']),
+          tenNguoiTuyenDung: pickField(r, ['ten nguoi tuyen dung', 'ten nguoi td', 'ten ntd', 'tenguoituyendung', 'ten tvv td', 'ten người td', 'tên người tuyển dụng', 'tên người td', 'tên ntd']),
         })).filter(m => m.agentCode || m.agentName);
         if (members.length === 0) {
           failCount = data.length;
           suppressGenericToast = true;
-          toast({ title: 'Import thất bại', description: `Không tìm thấy cột hợp lệ. Đảm bảo file có các cột: NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu LV, Ngày hiệu lực CV, MÃ NGƯỜI TD, TÊN NGƯỜI TD`, variant: 'destructive' });
+          // Log keys để debug
+          const sampleKeys = data[0] ? Object.keys(data[0]).join(', ') : '(empty)';
+          toast({ title: 'Import thất bại', description: `Không tìm thấy cột hợp lệ. Header thực tế: ${sampleKeys}. Đảm bảo file có các cột: MÃ TVV, HỌ TÊN.`, variant: 'destructive' });
         } else {
           const r = await fetch('/api/tuyen-ngang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
+          const result = await r.json().catch(() => ({}));
           if (r.ok) {
-            const result = await r.json();
             const realCount = (result.created || 0) + (result.updated || 0);
-            if (realCount === 0) {
+            const errored = result.errored || 0;
+            const dups = result.duplicatesSkipped || 0;
+            if (realCount === 0 && errored === 0) {
               failCount = members.length;
               suppressGenericToast = true;
-              toast({ title: 'Import thất bại', description: `0 dòng được lưu. Có thể mã TVV bị trùng hoặc dữ liệu không hợp lệ.`, variant: 'destructive' });
+              toast({ title: 'Import thất bại', description: `0 dòng được lưu. Có thể header file không khớp.`, variant: 'destructive' });
+            } else if (realCount === 0 && errored > 0) {
+              failCount = members.length;
+              suppressGenericToast = true;
+              toast({ title: 'Import thất bại', description: `Tất cả ${errored} dòng lỗi. ${(result.errors || []).join(' | ')}`, variant: 'destructive' });
             } else {
               successCount = realCount;
+              const errInfo = errored > 0 ? ` | ${errored} lỗi` : '';
+              const dupInfo = dups > 0 ? ` | ${dups} trùng bị bỏ qua` : '';
+              toast({ title: 'Import thành công', description: `${result.created || 0} mới + ${result.updated || 0} cập nhật${errInfo}${dupInfo}` });
               await fetchTuyenNgang();
             }
           } else {
             failCount = members.length;
             suppressGenericToast = true;
-            const errData = await r.json().catch(() => ({}));
-            toast({ title: 'Lỗi import TTN Tuyển Ngang', description: errData.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
+            toast({ title: 'Lỗi import TTN Tuyển Ngang', description: result.error || 'Kiểm tra lại dữ liệu', variant: 'destructive' });
           }
         }
       }
@@ -3731,7 +3765,7 @@ export default function QuanLyPage() {
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
       // Get recruiter name — fallback chain (uses new helper)
-      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders);
+      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders, tuyenNgangList);
 
       return {
         stt: 0 as number,
