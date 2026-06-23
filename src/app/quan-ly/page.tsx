@@ -187,6 +187,14 @@ const isBancaCode = (code: string): boolean => {
   const lower = c.toLowerCase();
   return lower === 'banca' || lower === 'dso' || c === MA_NHOM_BANCA;
 };
+const isPaCode = (code: string): boolean => {
+  if (!code) return false;
+  const c = String(code).trim();
+  if (!c) return false;
+  if (ALIAS_PA.has(c)) return true;
+  const lower = c.toLowerCase();
+  return lower === 'pa' || c === MA_NHOM_PA;
+};
 
 // Helper: so khớp 2 mã nhóm — chấp nhận alias (PA==U104101014, Banca==A473DSO000)
 // Dùng cho mọi chỗ filter TVV theo maBanNhom (tránh mismatch alias cũ vs mã mới)
@@ -383,26 +391,33 @@ function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | 
   return new Date(NaN);
 }
 
-// Helper: resolve NHÓM name for a TVV.
-// NGUYÊN TẮC: thông tin lấy từ Danh sách / Cấu trúc, KHÔNG lấy từ file doanh số.
-// NGUYÊN TẮC QUAN TRỌNG: MÃ nhóm CHỈ dùng để tính, KHÔNG dùng để hiển thị.
-//   → Bất kỳ giá trị nào trông giống MÃ (có chữ số, hoặc all-UPPER không dấu không space dài)
-//     đều bị loại, kể cả khi nó nằm trong cột tenBanNhom (do nhập nhầm).
-// Priority 1: BanNhom lookup by maBanNhom (DS Nhóm — nguồn chính thức)
-// Priority 2: LeaderInfo.nhom where agentCode matches (DS TB/TN — nếu TVV là leader)
-// Priority 3: empty string (không fallback vào contracts.nhom nữa)
+// Helper: resolve NHÓM name for a TVV/TTN/TB-TN.
+//
+// NGUYÊN TẮC (theo user):
+//   - Nguồn tên nhóm = DS TB/TN (leaders.nhom field), KHÔNG dùng banNhomList
+//     vì DS Nhóm có thể có tenBanNhom chứa mã (data lỗi).
+//   - Chỉ hiển thị nhóm nếu tên đó CÓ trong DS TB/TN, HOẶC là nhóm PA (với điều kiện allowPA).
+//   - Mã nhóm KHÔNG hiển thị, chỉ dùng để tính.
+//   - Trống nếu không resolve được → trả ''.
+//
+// Lookup strategy (theo thứ tự):
+//   1. Nếu agentCode là leader → dùng leader.nhom của chính họ (nếu là tên, không phải mã)
+//   2. Nếu có maBanNhom → tìm leader có maNhom trùng → dùng leader.nhom
+//   3. Nếu có candidateNhomName (vd TTN.nhom) → validate tên đó có trong DS TB/TN không
+//   4. PA special case: nếu mã là PA và options.allowPA=true → trả 'PA'
+//
+// options:
+//   - allowPA: true cho chương trình TVV/TTN, false cho chương trình dành cho nhóm (TB/TN)
+//   - candidateNhomName: tên nhóm ứng viên (vd từ TTN.nhom) — sẽ validate trong DS TB/TN
 function resolveNhomName(
   agentCode: string,
   maBanNhom: string,
-  banNhomList: Array<{ maBanNhom: string; tenBanNhom: string }>,
+  _banNhomList: Array<{ maBanNhom: string; tenBanNhom: string }>,
   _contracts: Array<{ agentCode: string; nhom: string }>,
   leaders: Array<{ agentCode: string; nhom: string; maNhom?: string }>,
+  options: { allowPA?: boolean; candidateNhomName?: string } = {},
 ): string {
   // Heuristic: phân biệt TÊN nhóm vs MÃ nhóm
-  // Trả TRUE nếu s trông giống MÃ nhóm (loại bỏ, không hiển thị):
-  //   - Có chữ số (vd U104101014, A473DSO000)
-  //   - All uppercase, không dấu tiếng Việt, không space, length >= 6 (vd A473DSO, PA0001)
-  // Trả FALSE nếu s là TÊN nhóm hợp lệ (vd PA, Banca, TB1, Kinh Doanh 1)
   const isLikelyNhomCode = (s: string): boolean => {
     const t = (s || '').trim();
     if (!t) return false;
@@ -411,48 +426,46 @@ function resolveNhomName(
     const hasSpace = /\s/.test(t);
     const hasLowercase = /[a-z]/.test(t);
     if (hasVietnamese || hasSpace || hasLowercase) return false;
-    // All uppercase, không dấu, không space → suspect mã nếu dài >= 6
-    return t.length >= 6;
+    return t.length >= 6;                                   // all-UPPER không dấu không space → suspect mã
   };
 
-  // Helper: case-insensitive lookup trong banNhomList — trả tenBanNhom NẾU nó không phải mã
-  const lookupTenByMa = (code: string): string => {
-    const c = code.trim();
-    if (!c) return '';
-    const bn = banNhomList.find(b => b.maBanNhom === c || b.maBanNhom.toLowerCase() === c.toLowerCase());
-    const ten = bn?.tenBanNhom || '';
-    if (!ten) return '';
-    // Heuristic: nếu tenBanNhom trông giống mã → loại (nhập nhầm mã vào cột tên)
-    if (isLikelyNhomCode(ten)) return '';
-    return ten;
-  };
-
-  // Priority 1: BanNhom lookup qua maBanNhom của TVV (chính xác nhất)
-  if (maBanNhom && maBanNhom.trim()) {
-    const ten = lookupTenByMa(maBanNhom);
-    if (ten) return ten;
-  }
-  // Priority 2: Nếu TVV cũng là leader → dùng leader.maNhom để lookup tenBanNhom
+  // 1. Nếu agentCode là leader → dùng leader.nhom của chính họ
   if (agentCode) {
-    const leader = leaders.find(l => l.agentCode === agentCode);
-    if (leader) {
-      const leaderMaNhom = (leader.maNhom || '').trim();
-      if (leaderMaNhom) {
-        const ten = lookupTenByMa(leaderMaNhom);
-        if (ten) return ten;
-      }
-      // Priority 3: leader.nhom — CHỈ dùng nếu nó KHÔNG phải mã nhóm
-      const leaderNhom = (leader.nhom || '').trim();
-      if (leaderNhom && !isLikelyNhomCode(leaderNhom)) {
-        // Nếu leader.nhom khớp với 1 maBanNhom → resolve thành tenBanNhom
-        const tenFromLeaderNhom = lookupTenByMa(leaderNhom);
-        if (tenFromLeaderNhom) return tenFromLeaderNhom;
-        // Ngược lại nó là TÊN nhóm hợp lệ → dùng luôn
-        return leaderNhom;
-      }
-      // Suspect mã nhóm (vd 'PA', 'U104101014', 'A473DSO000') → KHÔNG hiển thị
+    const self = leaders.find(l => l.agentCode === agentCode);
+    if (self?.nhom && !isLikelyNhomCode(self.nhom)) {
+      return self.nhom;
     }
   }
+
+  // 2. Nếu có maBanNhom → tìm leader có maNhom trùng
+  if (maBanNhom && maBanNhom.trim()) {
+    const code = maBanNhom.trim().toLowerCase();
+    const matchedLeader = leaders.find(l =>
+      l.maNhom && l.maNhom.trim().toLowerCase() === code &&
+      l.nhom && !isLikelyNhomCode(l.nhom)
+    );
+    if (matchedLeader) return matchedLeader.nhom;
+  }
+
+  // 3. Nếu có candidateNhomName (vd TTN.nhom) → validate trong DS TB/TN
+  if (options.candidateNhomName && options.candidateNhomName.trim()) {
+    const candidate = options.candidateNhomName.trim();
+    if (!isLikelyNhomCode(candidate)) {
+      // Check if any leader has the same nhom name
+      const leaderWithSameName = leaders.find(l =>
+        (l.nhom || '').trim() === candidate
+      );
+      if (leaderWithSameName) return candidate;
+    }
+  }
+
+  // 4. PA special case (chỉ cho chương trình TVV/TTN — allowPA=true)
+  if (options.allowPA) {
+    if (isPaCode(maBanNhom) || isPaCode(options.candidateNhomName || '')) {
+      return 'PA';
+    }
+  }
+
   return '';
 }
 
@@ -3875,8 +3888,8 @@ export default function QuanLyPage() {
         tongIPChang = changContractsList.reduce((s, c) => s + c.pdt10DT, 0);
       }
 
-      // Get nhóm name — fallback to contracts/leaders if BanNhom missing
-      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
+      // Get nhóm name — TVVm = chương trình TVV → allowPA=true
+      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders, { allowPA: true });
 
       // Get recruiter name — 2-step lookup trong DS Tổng TVV
       // (1) lấy agentCode của TVVm đó → lookup ra maTVVTuyendung (ẩn mã)
@@ -4188,7 +4201,8 @@ export default function QuanLyPage() {
         if (qFYP >= TIERS[0].minFYP) soLanDatTQ++;
       }
 
-      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
+      // Quý TVV = chương trình TVV → allowPA=true
+      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders, { allowPA: true });
 
       return {
         stt: 0 as number,
@@ -4454,7 +4468,8 @@ export default function QuanLyPage() {
       // TIỀN THƯỞNG = FYC × TL%
       const tienThuong = achievedTier >= 0 ? fyc * (NS_TIERS[achievedTier].rate / 100) : 0;
 
-      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
+      // NS Tháng TVV = chương trình TVV → allowPA=true
+      const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders, { allowPA: true });
 
       return {
         stt: 0 as number,
@@ -4731,8 +4746,9 @@ export default function QuanLyPage() {
       // TIỀN THƯỞNG = Tỷ lệ × Tổng thưởng TVVm
       const tienThuong = Math.round(tongThuongTVVm * (tlThuong / 100));
 
-      // Resolve NHÓM từ DS TB/TN (đã có sẵn field nhom)
-      const nhomName = resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders) || ntd.nhomName;
+      // Tuyển Luyện = chương trình dành cho TB/TN → allowPA=false (chỉ DS TB/TN)
+      // Bỏ fallback ntd.nhomName — chỉ hiển thị nhóm có trong DS TB/TN
+      const nhomName = resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders, { allowPA: false });
 
       return {
         stt: 0 as number,
@@ -4973,9 +4989,9 @@ export default function QuanLyPage() {
 
       const tongTienThuong = thuongDongHanh + thuongVuotTroi;
 
-      // NHÓM: resolve qua resolveNhomName để tránh hiển thị mã nhóm
-      // (ttn.nhomName có thể chứa mã nếu user nhập mã vào field tên — resolveNhomName sẽ lọc)
-      const nhomName = resolveNhomName(ttn.agentCode, '', banNhomList, contracts, leaders) || ttn.nhomName;
+      // Đồng Hành = chương trình TTN → allowPA=true
+      // TTN không có maBanNhom → truyền candidateNhomName = ttn.nhomName để validate trong DS TB/TN
+      const nhomName = resolveNhomName(ttn.agentCode, '', banNhomList, contracts, leaders, { allowPA: true, candidateNhomName: ttn.nhomName });
 
       return {
         stt: 0 as number,
@@ -5222,7 +5238,9 @@ export default function QuanLyPage() {
       const tlThuong = achievedTier >= 0 ? TN_TIERS[achievedTier].rate : 0;
       const tienThuong = achievedTier >= 0 ? fyc * (TN_TIERS[achievedTier].rate / 100) : 0;
 
-      const nhomName = resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders) || tn.nhomName;
+      // Quý TN = chương trình dành cho nhóm (TN) → allowPA=false
+      // Truyền candidateNhomName = tn.nhomName để validate trong DS TB/TN
+      const nhomName = resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders, { allowPA: false, candidateNhomName: tn.nhomName });
 
       return {
         stt: 0 as number,
@@ -5494,7 +5512,8 @@ export default function QuanLyPage() {
 
       return {
         stt: 0 as number,
-        nhom: resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders) || tn.nhomName,
+        // PTKD TN = chương trình dành cho nhóm (TN) → allowPA=false
+        nhom: resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders, { allowPA: false, candidateNhomName: tn.nhomName }),
         maTN: tn.agentCode,
         hoTen: tn.agentName,
         tongFYPNhom,
@@ -5751,7 +5770,8 @@ export default function QuanLyPage() {
     const uniqueNhomList = Array.from(new Set(
       tvvStructList
         .filter(t => t.maBanNhom && !isTVVExcludedFromRewards(t.agentCode, t.maBanNhom, banNhomList, adList))
-        .map(t => resolveNhomName(t.agentCode, t.maBanNhom, banNhomList, [], leaders))
+        // TTN Tuyển Ngang = chương trình TTN → allowPA=true
+        .map(t => resolveNhomName(t.agentCode, t.maBanNhom, banNhomList, [], leaders, { allowPA: true }))
         .filter(Boolean)
     )).sort();
 
