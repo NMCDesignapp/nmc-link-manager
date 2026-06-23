@@ -418,15 +418,20 @@ function resolveNhomName(
   options: { allowPA?: boolean; candidateNhomName?: string } = {},
 ): string {
   // Heuristic: phân biệt TÊN nhóm vs MÃ nhóm
+  // Trả TRUE nếu s trông giống MÃ (loại bỏ, không hiển thị):
+  //   - All-UPPERCASE, không dấu tiếng Việt, không space, không chữ thường
+  //     (vd PA, DSO, U104106078, A473DSO000, KD1)
+  // Trả FALSE nếu s là TÊN nhóm hợp lệ:
+  //   - Có dấu tiếng Việt (vd Chợ Mới 1, An Phú 2, São Việt)
+  //   - Có space (vd "KD 1", "Group A")
+  //   - Có chữ thường (vd "kd1", "Group")
   const isLikelyNhomCode = (s: string): boolean => {
     const t = (s || '').trim();
     if (!t) return false;
-    if (/\d/.test(t)) return true;                          // có chữ số → suspect mã
-    const hasVietnamese = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(t);
-    const hasSpace = /\s/.test(t);
-    const hasLowercase = /[a-z]/.test(t);
-    if (hasVietnamese || hasSpace || hasLowercase) return false;
-    return t.length >= 6;                                   // all-UPPER không dấu không space → suspect mã
+    if (/[\u00C0-\u024F\u1E00-\u1EFF]/.test(t)) return false;  // Có dấu TV → TÊN
+    if (/\s/.test(t)) return false;                            // Có space → TÊN
+    if (/[a-z]/.test(t)) return false;                         // Có chữ thường → TÊN
+    return true;                                                // All-UPPER không dấu không space → MÃ
   };
 
   // 1. Nếu agentCode là leader → dùng leader.nhom của chính họ
