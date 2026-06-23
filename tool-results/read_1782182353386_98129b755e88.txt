@@ -1,0 +1,510 @@
+     1→# Work Log: Redesign Quản Lý Page Overview & Monthly Sections
+     2→
+     3→## Date: 2026-03-05
+     4→
+     5→## Changes Made
+     6→
+     7→### 1. Added `formatSmartCurrency` helper function
+     8→- Location: Lines ~227-236 (after `formatNumber`)
+     9→- Mobile (< 768px): Shows currency in trđ/tỷ/ngàn units (e.g., "1.35 trđ")
+    10→- Desktop (>= 768px): Shows full format using `formatCurrency` (e.g., "1.350.000 ₫")
+    11→- Applied to all currency values in overview cards and monthly section
+    12→
+    13→### 2. Fixed SL TB/TN card data source
+    14→- Changed from `totalLeaders` (leaders.length) to `totalStaff` (staff.length)
+    15→- Staff is the DS TB/TN from quản lý, which is the correct source
+    16→
+    17→### 3. Fixed SL Tuyển dụng calculation
+    18→- Changed from counting `tvvStructList` entries with `ngayBatDau` in current year
+    19→- Now counts from `yearContracts` where `ngayBatDauLamViec` is in current year
+    20→- Uses contract data instead of TVV structure data
+    21→
+    22→### 4. Redesigned Overview Cards (Tổng quan)
+    23→- Solid bright/metallic gradient backgrounds instead of semi-transparent:
+    24→  - AFYP: `from-amber-100 to-amber-50`
+    25→  - IP: `from-emerald-100 to-emerald-50`
+    26→  - Tỷ trọng: `from-cyan-100 to-cyan-50`
+    27→  - Lượt HĐ: `from-violet-100 to-violet-50`
+    28→  - Lượt HĐ chuẩn: `from-rose-100 to-rose-50`
+    29→  - SL HĐ: `from-amber-100 to-amber-50`
+    30→  - Năng suất: `from-sky-100 to-sky-50`
+    31→  - ĐLHĐ: `from-emerald-100 to-emerald-50`
+    32→  - SL TB/TN: `from-violet-100 to-violet-50`
+    33→  - SL NTD: `from-orange-100 to-orange-50`
+    34→  - SL Tuyển dụng: `from-teal-100 to-teal-50`
+    35→- Centered content (`text-center`)
+    36→- Removed border-radius (`rounded-[2px]` max)
+    37→- Added shadow (`shadow-md`)
+    38→- Dark text colors for readability (`text-gray-900`, `text-gray-700`)
+    39→- Added % completion in TOP-RIGHT corner of card (large font `text-lg font-bold`)
+    40→- Percentage hidden when no target is set
+    41→- Fixed progress bar styling (bg-gray-200 track, emerald-600 fill)
+    42→
+    43→### 5. Redesigned Monthly Plan Cards (12 ô nhỏ)
+    44→- Same design style as overview: solid bright colors, centered, no rounded corners
+    45→- White background container with `bg-white` and `shadow-md`
+    46→- Amber gradient for month cells: `from-amber-50 to-white`
+    47→- Added % completion prominently in each cell (top-right, `text-xs font-bold`)
+    48→- Made value text larger (`text-sm font-bold`)
+    49→- Current month highlighted with `ring-2 ring-amber-400`
+    50→
+    51→### 6. Redesigned Chart (Biểu đồ)
+    52→- White background (`bg-white`) with `shadow-md` and `border border-gray-200`
+    53→- 2-column approach: Plan (Kế hoạch) as outline bar + Actual (Thực hiện) as filled bar
+    54→- Plan bars: `border-2 border-amber-400` (outline style)
+    55→- Actual bars: `bg-emerald-500` (reached), `bg-sky-500` (not reached)
+    56→- Legend with "Kế hoạch" and "Thực hiện" labels
+    57→- Grid lines with axis labels using `formatSmartCurrency`
+    58→- Professional look with clean axis labels
+    59→
+    60→### 7. Redesigned Monthly File Section (Doanh số)
+    61→- Removed "SL TD" indicator card
+    62→- Removed "NTD HĐ" indicator card
+    63→- Remaining indicators use same style as overview (solid bright gradients, centered, `rounded-[2px]`, `shadow-md`)
+    64→- New layout: Indicators take 1/3 width on desktop (`lg:w-1/3`), table takes 2/3 (`lg:w-2/3`)
+    65→- On mobile: Indicators show as 2-column grid, table below
+    66→- Month sub-tab buttons redesigned to match light theme
+    67→- Select dropdown and buttons updated to light theme styling
+    68→
+    69→### 8. Removed "Tính doanh thu" functionality
+    70→- Removed the "Tính doanh thu" button entirely from the revenue section
+    71→- The button called `/api/revenue/sync-from-contracts` - this API endpoint still exists but is no longer accessible from the UI
+    72→
+    73→## Build Status
+    74→- Build: ✅ Successful
+    75→- Lint: ✅ No errors
+    76→- Git: ✅ Committed and pushed to main
+    77→
+    78→---
+    79→Task ID: layout-balance-2026-06-19
+    80→Agent: Main (Super Z)
+    81→Task: Cân chỉnh 3 phần giao diện trang /quan-ly trên mobile + fix bug lưu ảnh chính sách
+    82→
+    83→Work Log:
+    84→- PHẦN 1 (Mobile menu): đổi grid-cols-3 → grid-cols-4, thêm nút "Cài đặt" thứ 8 → lưới 4×2 cân đối, tất cả nút cùng kích thước aspect-square minHeight 44px
+    85→- PHẦN 2 (12 KPI cards): gộp 2 lưới (5+7) thành 1 lưới 12 ô, grid-cols-3 (mobile) × 4 hàng, grid-cols-6 (desktop) × 2 hàng, padding/font nhỏ lại
+    86→- PHẦN 3 (12 ô tháng): grid-cols-4 → grid-cols-3 (mobile) × 4 hàng, padding p-1, progress bar h-0.5, font nhỏ lại
+    87→- Đồng nhất style 3 phần: cùng p-3 + space-y-3 + border-white/10 + boxShadow '0 4px 14px rgba(0,0,0,0.4)' + backgroundColor #374151
+    88→- BUG FIX: savePolicyImage dùng method 'POST' nhưng /api/settings chỉ chấp nhận 'PUT' → ảnh chính sách KHÔNG BAO GIỜ được lưu server, mất khi refresh/đổi máy. Đổi sang PUT với body { [`policy-image-${key}`]: link } + check r.ok + toast lỗi
+    89→- Build OK, deploy Vercel qua git push origin main
+    90→
+    91→Stage Summary:
+    92→- 3 phần trên mobile giờ cân đối: menu 8 ô (4×2), KPI 12 ô (3×4), tháng 12 ô (3×4)
+    93→- Ảnh chính sách giờ lưu server qua /api/settings (PUT), load lại từ fetch('/api/settings') khi mount — khi sang máy khác vẫn thấy ảnh
+    94→- File: src/app/quan-ly/page.tsx (53 insertions, 61 deletions)
+    95→- Commit: 0e8a0c2 pushed to main, Vercel auto-deploying
+    96→
+    97→---
+    98→Task ID: tinh-chinh-lan-2-2026-06-19
+    99→Agent: Main (Super Z)
+   100→Task: Tinh chinh lan 2 trang /quan-ly overview
+   101→
+   102→Work Log:
+   103→- PHẦN 2 (12 KPI): gap 1.5→2 (mobile), padding py-1→py-2, font 10px→sm; bo dong "Dong bo luc {time}" (da co o header)
+   104→- PHẦN 3 (12 thang): doi grid 3×4 → LIST view
+   105→  - Moi dong: [T1 28px] [KH amber] [TH sky] [% dat]
+   106→  - KH mau amber #F59E0B nhat quan
+   107→  - TH mau sky #0EA5E9 nhat quan
+   108→  - So to len (11px mobile / sm desktop)
+   109→  - Padding p-2/space-y-2 (nho hon PHẦN 2)
+   110→  - Them legend KH/TH
+   111→  - Bo progress bar, thay bang cot % dat ben phai
+   112→- Header: bo nut Cai dat tren mobile (hidden md:inline-flex) — giu cho desktop vi sidebar desktop khong co nut Cai dat
+   113→- Back button: doi href="/" → onClick history.back() — tro ve thao tac truoc (khong phai ve trang chu). Co fallback window.location.href='/' neu history empty
+   114→
+   115→Stage Summary:
+   116→- PHẦN 2 to ra, PHẦN 3 nho lai → can doi hon
+   117→- 12 thang gio la list view doc, T1-T12 o cot trai, KH/TH 2 mau rieng biet de phan biet
+   118→- Back button hanh dong dung y nguoi dung
+   119→- Commit 81ba986 pushed to main, Vercel auto-deploying
+   120→
+   121→---
+   122→Task ID: chinh-sach-redesign-2026-06-19
+   123→Agent: Main (Super Z)
+   124→Task: Redesign chinh sach tables - top section silver bg, remove total rows, fix summary numbers bug
+   125→
+   126→Work Log:
+   127→- renderPolicy container redesign:
+   128→  - Right panel bg: rgba(255,255,255,0.16) → solid silver #D1D5DB
+   129→  - 2 summary boxes: solid colors #059669 + #D97706 with 1px solid border + shadow
+   130→  - Container bg: solid #0F172A (was rgba)
+   131→  - Footer: flex-shrink-0 (was absolute bottom-2) — no overlap, fixed at bottom of flex container
+   132→  - TVV policies: filter + search using flex-1 (equal heights)
+   133→  - TN policies: 2 info boxes balanced (same height as TVV filter+search)
+   134→- useEffect fix:
+   135→  - OLD: copy textContent from #policy-total-${key} (which was NEVER updated by render functions — bug!)
+   136→  - NEW: read data-policy-count + data-policy-amount from each table outer div
+   137→  - Update BOTH #policy-count-${key} + #policy-total-${key} (top boxes) AND #policy-fixed-count + #policy-fixed-amount (footer)
+   138→- 8 policy tables updated:
+   139→  - Added data-policy-count + data-policy-amount to outer div
+   140→  - Removed policy-total-row block (footer handles totals)
+   141→  - Standardized header font: text-[13px] h-9 / text-[14px] h-10 → text-[11px] h-8 (TVVm standard)
+   142→  - Standardized body font: text-[12px] → text-[11px]
+   143→  - Added border-b border-gray-300 to all data rows (solid dividers between rows)
+   144→- Cleaned up 7 broken HTML spots (orphaned </td> <td> </tr> from non-greedy regex match)
+   145→
+   146→Stage Summary:
+   147→- Top section: silver solid bg + balanced layout (TVV: filter+search, TN: 2 info boxes)
+   148→- Tables: all 8 use text-[11px] h-8 header (TVVm standard), border-b solid dividers, NO total row
+   149→- Footer: flex-shrink-0 fixed at bottom (no overlap)
+   150→- Summary numbers bug FIXED: data-policy-count + data-policy-amount attributes drive both top boxes AND footer
+   151→- Build OK, commit e32f3c8 pushed to main, Vercel auto-deploying
+   152→
+   153→---
+   154→Task ID: tinh-chinh-lan-3-2026-06-19
+   155→Agent: Main (Super Z)
+   156→Task: Fix bug số tổng hợp mobile, bỏ info boxes TN, xóa gap đen table-footer, to chữ menu + KPI
+   157→
+   158→Work Log:
+   159→- BUG FIX: useEffect cập nhật 2 ô tổng hợp — textContent đang set raw number ("15000000") → mobile không hiển thị được do box quá hẹp. Đổi sang formatSmartCurrency(amountNum) → "15 trđ" gọn hiển thị tốt trên mobile
+   160→- Summary boxes: thêm break-all + text-[14px] mobile (sm:text-[16px]) → số hiện rõ trên panel hẹp
+   161→- BỎ 2 info boxes cho TN policy ("Áp dụng cho Trưởng nhóm/NTD" + item.desc) — user không biết là gì. Khi TN policy: 2 ô tổng hợp chuyển sang flex-1 flex-col, stack dọc fill đầy chiều cao panel phải (160px)
+   162→- XÓA GAP ĐEN giữa table và footer: container bỏ gap-1.5, chỉ giữ mb-1.5 giữa top section và table. Footer bỏ boxShadow '0 -4px 12px ...' (shadow này chính là gap đen nhìn thấy). Footer nối liền table qua borderTop 2px solid #065F46
+   163→- Right panel mobile: w-1/3 → w-2/5 (rộng hơn cho 2 ô tổng hợp)
+   164→- PHẦN 1 mobile menu: label text-[9px] → text-[11px], icon w-4 → w-5, gap-0.5 → gap-1, minHeight 44 → 52px (chữ to hơn, dễ đọc)
+   165→- PHẦN 2 KPI: value text-sm sm:text-lg → text-base sm:text-xl (số to hơn). Padding py-2 sm:py-3 → py-1 sm:py-1.5 (giảm padding bù lại → kích thước ô không đổi)
+   166→
+   167→Stage Summary:
+   168→- Số tổng hợp giờ hiển thị đúng trên mobile (formatSmartCurrency "15 trđ" thay vì "15000000")
+   169→- TN policy: gọn hơn, 2 ô tổng hợp to dọc fill panel
+   170→- Bảng - footer: liền mạch không gap đen
+   171→- Menu mobile: chữ to dễ đọc
+   172→- KPI: số to hơn, ô giữ nguyên kích thước
+   173→- Commit c531877 pushed to main, Vercel auto-deploying
+   174→
+   175→---
+   176→Task ID: tinh-chinh-lan-4-2026-06-19
+   177→Agent: Main (Super Z)
+   178→Task: Format tổng thưởng mobile theo trđ + SL TVV đạt chỉ đếm TVV có thưởng > 0
+   179→
+   180→Work Log:
+   181→- THÊM helper formatPolicyAmountForBox(amount):
+   182→  - Mobile: trả về số dạng trđ KHÔNG kèm chữ "trđ" — vd 15.500.000 → "15,5"; 350.000.000 → "350"; 1.500.000.000 → "1.500"
+   183→  - Desktop: trả về full format "100.000.000" (vi-VN thousands separator, không kèm đơn vị)
+   184→- useEffect: dùng formatPolicyAmountForBox thay formatSmartCurrency → mobile giờ hiện "15,5" vừa ô, không tràn
+   185→- Ô Tổng thưởng box: text-[14px] → text-[12px] mobile (desktop vẫn 16px), thêm class truncate để chấm nếu dài
+   186→- 8 chính sách — data-policy-count chỉ đếm TVV/NTD có thưởng > 0 (trước đây đếm filteredRows.length = tất cả):
+   187→  - tvvm: tvvmDatThuongCount (thuongThang > 0 OR thuongChang > 0) — đã có sẵn
+   188→  - ns-tvv: tvvDatThuong (achievedTier >= 0) — đã có sẵn
+   189→  - quy-tvv: tvvDatThuong — đã có sẵn
+   190→  - tuyen-luyen: ntdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length — THÊM MỚI
+   191→  - dong-hanh: ttnDatThuongCount = filteredRows.filter(r => r.tongTienThuong > 0).length — THÊM MỚI
+   192→  - quy-tn: tnDatThuong — đã có sẵn
+   193→  - ptkd-tn: ptkdDatThuongCount = filteredRows.filter(r => r.tienThuong > 0).length — THÊM MỚI
+   194→  - tuyen-ngang: 0 (bảng chưa có data, trước đây reference filteredRows undefined → hardcode 0)
+   195→
+   196→Stage Summary:
+   197→- Mobile: ô Tổng thưởng giờ hiện số trđ ngắn (vd "15,5") → vừa ô, không tràn
+   198→- Desktop: ô Tổng thưởng hiện full format "100.000.000"
+   199→- SL TVV đạt giờ đếm ĐÚNG: chỉ TVV/NTD có tiền thưởng > 0, không phải tổng số dòng
+   200→- Commit 8e506a9 pushed to main, Vercel auto-deploying
+   201→
+   202→---
+   203→Task ID: tinh-chinh-lan-5-2026-06-19
+   204→Agent: Main (Super Z)
+   205→Task: Ô tiền thưởng thiết kế mới (nền trắng + chip vàng chỉ icon) + NS-TVV T5/T6 khác màu nhẹ
+   206→
+   207→Work Log:
+   208→- THÊM helper renderThuongCellContent(amount, fontSize='13px', fontWeight=800):
+   209→  - Render nội dung ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG đồng nhất
+   210→  - Chip 18×18 bg #FEF3C7 (vàng nhạt) chỉ quanh icon 💰, không quanh số tiền
+   211→  - Số tiền: chữ XANH LÁ #047857 in đậm, to hơn body 1 chút (13px vs 11px)
+   212→  - Trả về '—' xám nếu amount = 0
+   213→- 10 ô tiền thưởng trên 7 bảng cập nhật:
+   214→  - TVVm: THƯỞNG THÁNG + THƯỞNG CHẶNG (td bg white, fontSize 13px)
+   215→  - Quý TVV: TIỀN THƯỞNG
+   216→  - NS-TVV: TIỀN THƯỞNG
+   217→  - Tuyên Luyện: TIỀN THƯỞNG
+   218→  - Đồng Hành: THƯỞNG ĐỒNG HÀNH + THƯỞNG VƯỢT TRỘI + TỔNG TIỀN THƯỞNG (TỔNG dùng fontSize 14px fontWeight 900)
+   219→  - Quý TN: TIỀN THƯỞNG
+   220→  - PTKD: TIỀN THƯỞNG (td bg THUONG_BG vàng → white)
+   221→- NS-TVV header TỔNG IP 2 cột:
+   222→  - Đổi 'TỔNG IP<br/><span>Tháng 5</span>' → 'TỔNG IP T5' (T5 cùng dòng với TỔNG IP, viết tắt)
+   223→  - '(ĐK ≥ 3 trđ)' giữ ở dòng 2 (chỉ cột T5)
+   224→  - 2 cột KHÁC MÀU nhẹ nhất:
+   225→    - T5 (tháng liền trước): header bg #DBEAFE (blue-100) text #1E3A8A, body bg #F0F7FF text #1E40AF
+   226→    - T6 (tháng hiện tại): header bg #E0E7FF (violet-100) text #4338CA, body bg #F5F3FF text #5B21B6
+   227→
+   228→Stage Summary:
+   229→- Tất cả ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG: nền trắng, chữ xanh đậm to hơn 1 chút, icon 💰 trong chip vàng nhỏ (chỉ icon có nền vàng)
+   230→- NS-TVV: 2 cột TỔNG IP khác màu rõ (T5 xanh dương nhạt, T6 tím nhạt) — cùng dòng header "TỔNG IP T5" / "TỔNG IP T6"
+   231→- Commit 7c07226 pushed to main, Vercel auto-deploying
+   232→
+   233→---
+   234→Task ID: fix-ma-tuyen-dung-2026-06-20
+   235→Agent: Main (Super Z)
+   236→Task: Fix logic xac dinh nguoi tuyen DUY NHAT qua maTVVTuyendung (bo fallback)
+   237→
+   238→Work Log:
+   239→- resolveNguoiTD: bo Priority 2/3 (contracts.maDaiLyTD, recruiters lookup) -> chi dung maTVVTuyendung. Neu trong -> tra rong.
+   240→- dong-hanh (renderThuongDongHanh): bo matching theo maBanNhom + nhomName fallback. Chi dung tvv.maTVVTuyendung === ttn.agentCode (trim ca 2 ben). Neu maTVVTuyendung trong -> bo qua TVV do.
+   241→- tuyen-luyen (renderThuongTuyenLuyen): bo fallback contracts.some(c => c.maDaiLyTD === ntd.agentCode). Chi dung tvv.maTVVTuyendung === ntd.agentCode.
+   242→- quy-tn (renderThuongQuyTN): bo fallback contracts.maDaiLyTD trong tvvmHDCByTN. Chi dung tvv.maTVVTuyendung === tn.agentCode. (Phan tong FYP quy van giu matching theo maBanNhom vi do la nhom membership, khong phai recruiter.)
+   243→- ptkd-tn: khong doi (chi dung maBanNhom cho nhom membership, khong tinh recruiter).
+   244→- tuyen-ngang: khong doi (placeholder chua co logic).
+   245→
+   246→Stage Summary:
+   247→- 3 chinh sach recruiter (dong-hanh, tuyen-luyen, quy-tn) + helper resolveNguoiTD deu ap dung nguyen tac: maTVVTuyendung la duy nhat. Trong -> khong co nguoi tuyen.
+   248→- Commit 7e6741e pushed to main, Vercel auto-deploying.
+   249→
+   250→---
+   251→Task ID: khoi-phuc-ds-tvv-map-nguon-doi-tuong-2026-06-21
+   252→Agent: Main (Super Z)
+   253→Task: Khoi phuc DS TVV tong trong Cau truc + map lai nguon doi tuong tinh toan chinh sach
+   254→
+   255→Work Log:
+   256→- Them 'tvv' vao StructureSubKey va STRUCTURE_SUBS (xep dau tien)
+   257→- Tao renderTvvList() (~120 dong): bang DS TVV tong (tvvStructList) voi 9 cot
+   258→  Ma TVV | Ten TVV | Ma Ban/Nhom | Ten Ban/Nhom (resolve tu banNhomList) |
+   259→  Chuc vu | Ngay BD LV | Ma TVV TD | Ten TVV TD (resolve tu tvvStructList) | Ghi chu
+   260→- 4 KPI: Tong TVV, TVVm (<=12 thang), Truong Ban/Nhom, Co ma TVV TD
+   261→- Inline edit (PATCH /api/structure/tvv/:id) cho 7 cot editable
+   262→- Nut: Them (mo dialog co san) | Cap nhat DS TVV (upsert file) | Tai mau | Xuat
+   263→- Update dispatch trong renderSheet + sidebar + mobile menu: khi click 'tvv' -> fetchTvvStruct()
+   264→- Sua renderThuongTuyenLuyen: doi nguon doi tuong tu leaders (DS TB/TN) sang recruiters (DS NTD)
+   265→  vi chinh sach Tuyen Luyen danh cho Nguoi Tuyển Dung -> lay tu DS NTD
+   266→- Sua renderThuongDongHanh: doi nguon doi tuong tu recruiters sang leaders (DS TB/TN) loc TTN
+   267→  vi chinh sach Dong Hanh danh cho TTN cap nhom -> lay tu DS TB/TN
+   268→
+   269→Stage Summary:
+   270→- Cau truc bay gio co 4 sub-item: DS TVV | DS TB/TN | DS NTD | DS TTN Tuyen Ngang
+   271→- Mapping nguon doi tuong tinh toan:
+   272→  * Chinh sach TVV (TVVm, NS-TVV, Quy-TVV) -> DS TVV tong
+   273→  * Chinh sach Nhom (PTKD-TN, Quy-TN, Dong Hanh) -> DS TB/TN
+   274→  * Chinh sach Tuyen dung (Tuyen Luyen) -> DS NTD
+   275→  * Chinh sach TTN Tuyen Ngang -> DS TTN Tuyen Ngang
+   276→- File doanh so chi dung de tinh FYP/IP, KHONG dung lam nguon doi tuong
+   277→- Commit d061b9d pushed to main, Vercel auto-deploying
+   278→
+   279→---
+   280→Task ID: phan-bo-doi-tuong-ttn-vs-tbtn-2026-06-21
+   281→Agent: Main (Super Z)
+   282→Task: Phan bo lai doi tuong tinh toan theo nguyen tac moi - moi CS la 1 bo RIENG, KHONG suy luan chéo
+   283→
+   284→Work Log:
+   285→- Them helper isTTNPosition(position) - phat hien TTN (Tien Truong Nhom / Truong To Nhom / TTN)
+   286→- Them helper isTBorTNPosition(position) - phan bu: khong phai TTN thi la TB/TN
+   287→- dong-hanh: refactor dung isTTNPosition (logic cu giu nguyen, chi don code)
+   288→- ptkd-tn: them .filter(isTBorTNPosition) de LOAI TTN (truoc day lay tat ca leaders)
+   289→- quy-tn: them .filter(isTBorTNPosition) de LOAI TTN (truoc day lay tat ca leaders)
+   290→- tuyen-luyen: DOI NGUON tu recruiters (DS NTD) sang leaders (DS TB/TN)
+   291→  + .filter(isTBorTNPosition) de chi lay TB/TN, loai TTN
+   292→  + Cap nhat nhan UI: 'HO TEN NTD' -> 'HO TEN TB/TN'
+   293→  + 'SL NTD DAT' -> 'SL TB/TN DAT'
+   294→  + Placeholder 'Tim ten / ma NTD...' -> 'Tim ten / ma TB/TN...'
+   295→  + Empty state 'Chua co NTD...' -> 'Chua co TB/TN...'
+   296→- Cap nhat comment STRUCTURE_SUBS (line ~229) de phan anh mapping moi:
+   297→  * CS ca nhan TVV (TVVm, NS-TVV, Quy-TVV) -> DS Tong TVV
+   298→  * CS TB/TN (PTKD-TN, Quy-TN, Tuyen Luyen) -> DS TB/TN (leaders, loai TTN)
+   299→  * CS TTN (Dong Hanh) -> DS TB/TN (leaders, filter position TTN)
+   300→  * CS TTN Tuyen Ngang -> DS TTN Tuyen Ngang
+   301→- TypeScript typecheck: khong co loi moi (chi con loi pre-existing)
+   302→
+   303→Stage Summary:
+   304→- 4 chinh saga da duoc phan bo dung doi tuong:
+   305→  * dong-hanh -> TTN (Tien Truong Nhom)
+   306→  * ptkd-tn, quy-tn, tuyen-luyen -> TB/TN (Truong Bo / Truong Nhom)
+   307→- Tuyen Luyen khong con dung DS NTD (vi DS NTD gom TB+TN+TTN, trong khi CS nay chi danh cho TB/TN)
+   308→- Moi CS doc lap, khong suy luan chéo qua CS khac
+   309→- Commit 7b5051f pushed to main, Vercel auto-deploying
+   310→
+   311→---
+   312→Task ID: fix-policy-summary-deps-2026-06-22
+   313→Agent: Main (Super Z)
+   314→Task: Fix hien thi '—' tren o tong hop (SL TVV dat + Tong thuong) cua tat ca chinh saga
+   315→
+   316→Work Log:
+   317→- Phat hien bug tai useEffect (line ~3447): cap nhat o tong hop top + footer duoi
+   318→  thong qua DOM manipulation (getElementById), nhung dependency array THIEU:
+   319→  * 3 filter cua policy TN: tuyenLuyen, dongHanh, quyTn
+   320→  * 6 data sources: contracts, tvvStructList, leaders, recruiters, banNhomList, adList
+   321→- Ket qua: khi data fetch xong (sau khi page load) hoac khi user filter 3 policy TN,
+   322→  table re-render co data-policy-count/amount moi, nhung useEffect khong fire lai
+   323→  -> o tong hop (top gray panel + bottom green footer) van hien '—'
+   324→- Fix: bo sung 6 filter state + 6 data source vao dependency array
+   325→- TypeScript typecheck: 7 loi pre-existing, khong co loi moi
+   326→
+   327→Stage Summary:
+   328→- Bug da sua: o 'SL TVV dat' va 'Tong thuong' se cap nhat dung khi:
+   329→  * Page load xong (data fetch complete)
+   330→  * User chinh filter cua bat ky policy nao (8 policy)
+   331→- Bug khong anh huong den cell trong bang (da dung `{x > 0 ? format : '—'}`)
+   332→- Commit 7c6c669 pushed to main, Vercel auto-deploying
+   333→
+   334→---
+   335→Task ID: review-counting-logic-2026-06-22
+   336→Agent: Main (Super Z)
+   337→Task: Ra soat logic dem TVVm HDC / luot HDC trong tung chinh saga theo yeu cau user. FYP = IP. CHINH SACH KHONG DUNG TOI AFYP (AFYP chi dung cho doanh so thuong dung + thuong = ke hoach/thi dua)
+   338→
+   339→Work Log:
+   340→- Verify 4 chinh saga dem TVVm HDC / luot HDC theo dung yeu cau:
+   341→  * Quy TN (line 4981-5006): dung tvv.maTVVTuyendung === tn.agentCode (MA TN), KHONG dung ma nhom. TVVm = TN tuyen dung trong quy + 1 thang co tong IP >= 12tr -> DUNG
+   342→  * Dong Hanh/TTN (line 4709-4715): dung tvv.maTVVTuyendung === ttn.agentCode (MA TTN) -> DUNG
+   343→  * Tuyen Luyen (line 4478-4481): dung tvv.maTVVTuyendung === ntd.agentCode (MA TN, KHONG ma nhom) -> DUNG
+   344→  * PTKD (line 5270): dung tvv.maBanNhom === tn.maBanNhom (MA NHOM) -> DUNG
+   345→- Verify AFYP chi dung trong dashboard/doanh so (lines 2256, 2716, 2746, 2782, 5752, 5929), KHONG lan vao 8 chinh saga
+   346→- Fix PTKD Luot HDC (line 5281-5290):
+   347→  * CU: monthContracts.filter(c => c.pdt10DT >= 12_000_000).length -> dem so HD don le co IP >= 12tr
+   348→  * MOI: tvvInNhom.filter(tvv => tongIP thang cua TVV >= 12tr).length -> dem so TVV dat HDC
+   349→  * Dong nhat voi dinh nghia HDC cua Quy TN (TVVm co 1 thang IP >= 12tr = 1 HDC)
+   350→- Fix mo ta NS-TVV (line 3582): 'Thưởng nang suat AFYP thang cho TVV' -> 'Thưởng nang suat IP thang cho TVV'
+   351→  (nguyen tac: CHINH SACH KHONG DUNG TOI AFYP)
+   352→- TypeScript typecheck: khong co loi moi (chi con loi pre-existing)
+   353→- Next.js build: pass
+   354→- Commit d2dbab7 pushed to main, Vercel auto-deploying
+   355→
+   356→Stage Summary:
+   357→- 4 chinh saga (Quy TN, TTN, Tuyen Luyen, PTKD) deu dem TVVm HDC / luot HDC dung theo yeu cau:
+   358→  * Quy TN / Tuyen Luyen: dung MA TN (KHONG ma nhom)
+   359→  * Dong Hanh: dung MA TTN
+   360→  * PTKD: dung MA NHOM
+   361→- PTKD Luot HDC chinh xac: so TVV trong nhom co tong IP thang >= 12tr (truoc day dem so HD don le)
+   362→- Mo ta 8 chinh saga deu KHONG nhac den AFYP (chi dung IP/FYP)
+   363→- AFYP chi xuat hien o phan doanh so/dashboard, KHONG lan vao chinh saga
+   364→
+   365→---
+   366→Task ID: fix-structure-tvv-tree-and-tuyen-ngang-import-2026-06-22
+   367→Agent: Main (Super Z)
+   368→Task: (1) DS TVV trong trang Cau truc hien thi dang cay Phong->AD->Nhom->TVV (bo bang phang). (2) Fix DS TTN Tuyen Ngang da upload nhung khong hien thi
+   369→
+   370→Work Log:
+   371→- Bug 1: structureSub='tvv' goi renderTvvList() (bang phang) thay vi renderStructure() (tree layout)
+   372→  * Fix: doi dispatcher line 6496-6504 — bo if structureSub==='tvv' branch
+   373→  * Luc nao cung return renderStructure() cho default + sub='tvv' (tree layout)
+   374→  * renderTvvList van giu lai (khong xoa) de dung cho muc dich khac
+   375→- Bug 2: Import TTN Tuyen Ngang that bai silently khi header file user upload khong khop exact voi template
+   376→  * CU: chi nhan 'NHÓM', 'MÃ TVV', 'HỌ TÊN', 'Ngày bắt đầu làm việc', 'Ngày hiệu lực chức vụ', 'MÃ NGƯỜI TUYỂN DỤNG', 'TÊN NGƯỜI TUYỂN DỤNG'
+   377→  * MOI: them helper pickField + parseDateAny — normalize header (lowercase, bo dau TV, thay _ bang space) roi match alias
+   378→    - nhom: nhom, nhom kd, nhom kinh doanh
+   379→    - agentCode: ma tvv, ma, ma dl, ma tvv/tn, agentcode, ma so
+   380→    - agentName: ho ten, hoten, ten, ten tvv, agentname, ho va ten
+   381→    - ngayBatDau: ngay bat dau lam viec, ngay bat dau lv, ngay bat dau, ngay bd, ngaybatdau
+   382→    - ngayHieuLuc: ngay hieu luc chuc vu, ngay hieu luc cv, ngay hieu luc, ngayhl, ngayhieuluc
+   383→    - maNguoiTuyenDung: ma nguoi tuyen dung, ma nguoi td, ma ntd, ma nguoi td, manguoituyendung, ma dl td, ma tvv td
+   384→    - tenNguoiTuyenDung: ten nguoi tuyen dung, ten nguoi td, ten ntd, ten nguoi td, tenguoituyendung, ten tvv td
+   385→- Next.js build: pass
+   386→- Commit 5654a91 pushed to main, Vercel auto-deploying
+   387→
+   388→Stage Summary:
+   389→- Tab "DS TVV" trong phan "Cau truc" gio cung hien thi tree layout (Phong -> AD -> Nhom -> TVV) giong default
+   390→- Import TTN Tuyen Ngang gio chap nhan nhieu bien the header (bo dau, viet thuong/hoa, alias) — giam thieu truong hop import silently fail
+   391→- Voi 2 fix nay, user se thay DS TVV dang cay va DS TTN Tuyen Ngang co data sau khi import lai file (neu header da khop)
+   392→
+   393→---
+   394→Task ID: fix-tuyen-ngang-import-and-ntd-empty-2026-06-22
+   395→Agent: Main (Super Z)
+   396→Task: (1) DS TTN Tuyen Ngang da import nhung khong hien thi. (2) Cot NTD trong CS TVVm dang trong
+   397→
+   398→Work Log:
+   399→- Bug 1: Import TTN Tuyen Ngang "thanh cong" nhung DS rong
+   400→  * Nguyen hanh: code cu successCount = result.count || members.length
+   401→    - Neu API tra count=0 (do per-row try/catch swallow loi) -> fallback ve members.length -> toast "Import thanh cong X dong" nhung DB rong
+   402→    - Neu members.length=0 (do header file khong khop alias) -> fall through, khong co toast cu the
+   403→  * Fix:
+   404→    - SuccessCount dung = result.created + result.updated (khong fallback)
+   405→    - Neu members.length=0 -> toast "Import that bai - khong tim thay cot hop le" + danh sach cot can thiet
+   406→    - Neu realCount=0 -> toast "0 dong duoc luu - ma TVV trung hoac du lieu khong hop le"
+   407→    - Them flag suppressGenericToast de tranh double toast
+   408→- Bug 2: Cot NTD trong trong CS TVVm
+   409→  * Nguyen hanh: resolveNguoiTD tra ve '' neu tvv.maTVVTuyendung rong trong DB
+   410→    - API /structure/tvv chi chap nhan alias 'maTVVTuyendung', 'Ma TVV tuyen dung', 'Ma TVV TD'
+   411→    - Neu file user upload co header 'Ma nguoi TD', 'Ma NTD', 'Ma DL TD', 'Nguoi tuyen dung' -> khong match -> truong bi rong
+   412→  * Fix API /structure/tvv:
+   413→    - Them helper getValFlex: match exact -> case-insensitive -> normalize (lowercase + bo dau TV + thay _ bang space)
+   414→    - Mo rong alias cho maTVVTuyendung: 'Ma nguoi tuyen dung', 'Ma nguoi td', 'Ma NTD', 'Ma DL TD'
+   415→    - Ap dung getValFlex cho tat ca field: agentCode, agentName, maBanNhom, chucVu, ngayBatDau, note
+   416→    - Ap dung cho ca batch mode va single create mode
+   417→- Next.js build: pass
+   418→- Commit 68a5399 pushed to main, Vercel auto-deploying
+   419→
+   420→Stage Summary:
+   421→- Import TTN Tuyen Ngang gio bao loi cu the (vi sao 0 dong duoc luu) thay vi bao "thanh cong" mac du DS rong
+   422→- API /structure/tvv gio chap nhan nhieu bien the header cho maTVVTuyendung (bo dau TV, alias)
+   423→- De fix cot NTD trong: USER CAN PHAI RE-IMPORT FILE TVV voi header moi hoac header da khop -> du lieu maTVVTuyendung se duoc luu -> cot NTD trong CS TVVm se co ten
+   424→
+   425→---
+   426→Task ID: bugfix-tuyen-ngang-import-2026-06-23
+   427→Agent: main
+   428→Task: Fix 2 bugs user báo: (1) DS TTN Tuyển Ngang vẫn lỗi "Dữ liệu bị trùng hoặc không hợp lệ" khi upload; (2) CS TVVm cột NTD trống
+   429→
+   430→Work Log:
+   431→- Tìm root cause bug 1: error message "Dữ liệu bị trùng hoặc không hợp lệ" đến từ commit 68a5399 (đã deploy lên Vercel), trong code:
+   432→  `toast({ title: 'Import thất bại', description: '0 dòng được lưu. Có thể mã TVV bị trùng hoặc dữ liệu không hợp lệ.' })`
+   433→  Nguyên nhân thực: API /api/tuyen-ngang có filter strict `.filter(m => m.agentCode && m.agentName)` → nếu file user upload có dòng thiếu 1 trong 2 → 0 dòng được lưu → hiển thị message sai ý
+   434→- Tìm root cause bug 2: resolveNguoiTD chỉ tìm trong 3 nguồn (tvvStructList/leaders/recruiters), không có tuyenNgangList. renderTvvm cũng không pass tuyenNgangList
+   435→- Fix API /api/tuyen-ngang (POST members mode):
+   436→  + Loosen filter: chỉ cần agentCode (agentName fill 'Chưa nhập' nếu trống)
+   437→  + Trim agentCode, dedupe trong batch
+   438→  + Track errored + errors[], return 4xx nếu tất cả dòng lỗi
+   439→- Fix frontend page.tsx handleImport('tuyen-ngang'):
+   440→  + Replace misleading message với: '0 dòng được lưu. Có thể header file không khớp.' (realCount=0, errored=0) hoặc 'Tất cả X dòng lỗi. <errors>' (realCount=0, errored>0)
+   441→  + Hiển thị sampleKeys (header thực tế) khi members.length=0
+   442→  + Hiển thị created/updated/errored/duplicatesSkipped breakdown
+   443→  + Parse result.json() trước khi check r.ok
+   444→- Fix bug 2 (CS TVVm cột NTD):
+   445→  + resolveNguoiTD: thêm tuyenNgangList làm nguồn thứ 4
+   446→  + renderTvvm (line 3768): pass tuyenNgangList vào resolveNguoiTD
+   447→  + loadSheet: thêm fetchTuyenNgang() vào loaders['kehoach'] và loaders['report']
+   448→- Revert package.json change (build script thêm prisma migrate deploy — risky cho Vercel build)
+   449→- Commit 919d08e + push origin/main để Vercel auto-deploy
+   450→
+   451→Stage Summary:
+   452→- Bug 1 (DS TTN Tuyển Ngang lỗi import): FIXED — looser filter + better error reporting
+   453→- Bug 2 (CS TVVm cột NTD trống): FIXED — resolveNguoiTD giờ lookup thêm tuyenNgangList
+   454→- Đã push commit 919d08e lên origin/main, Vercel sẽ auto-deploy trong 1-2 phút
+   455→- Lưu ý cho user: error message mới sẽ chỉ hiển thị sau khi Vercel deploy xong (check status tại vercel.com dashboard)
+   456→
+   457→---
+   458→Task ID: ma-nhom-pa-banca-2026-06-23
+   459→Agent: main
+   460→Task: Chỉnh lại code nhận diện mã nhóm PA=U104101014 và Banca=A473DSO000 trên app
+   461→
+   462→Work Log:
+   463→- Tìm các nơi hardcode 'PA' và 'Banca' trong code: src/app/quan-ly/page.tsx và src/app/thi-dua-chau/page.tsx
+   464→- Trong quan-ly/page.tsx: SPECIAL_PHONG_NO_AD và PHONG_EXCLUDED_FROM_REWARDS là Set<string> hardcode 'PA'/'Banca'
+   465→- Trong thi-dua-chau/page.tsx: check nhomLower.includes('dso') — ĐÃ match A473DSO000 (vì lowercase 'a473dso000' có 'dso')
+   466→- Thêm constants MA_NHOM_PA = 'U104101014' và MA_NHOM_BANCA = 'A473DSO000' (alias: 'PA', 'Banca', 'DSO')
+   467→- Helper isPaOrBancaCode(code) và isBancaCode(code) nhận diện cả alias cũ VÀ mã nhóm mới
+   468→- Đổi SPECIAL_PHONG_NO_AD và PHONG_EXCLUDED_FROM_REWARDS từ Set thành function dùng helper
+   469→- isTVVExcludedFromRewards giờ gọi isBancaCode(maBanNhom) / isBancaCode(bn.maAD) / isBancaCode(ad.maPhong)
+   470→- TypeScript compile: 24 errors trước và sau khi edit (giống nhau) — không thêm lỗi mới
+   471→- Commit c305826 + push origin/main để Vercel auto-deploy
+   472→
+   473→Stage Summary:
+   474→- App giờ nhận diện được TVV thuộc nhóm PA (U104101014) hoặc Banca (A473DSO000) trong data thực tế
+   475→- Tương thích ngược: dữ liệu cũ dùng alias 'PA'/'Banca'/'DSO' vẫn hoạt động
+   476→- thi-dua-chau không cần đổi (logic includes('dso') đã match A473DSO000)
+   477→
+   478→---
+   479→Task ID: fix-tuyen-ngang-table-missing-2026-06-23
+   480→Agent: main
+   481→Task: Fix 2 bugs user báo (lần 4): DS TTN Tuyển Ngang lỗi "Dữ liệu bị trùng hoặc không hợp lệ" + cột NTD CS TVVm trống
+   482→
+   483→Root cause (TÌM ĐÚNG RỒI):
+   484→- Phân tích screenshot user gửi: lỗi thực sự là "The table 'public.TuyenNgang' does not exist in the current database"
+   485→- Bảng TuyenNgang KHÔNG TỒN TẠI trong DB production Neon
+   486→- Migration 20260620030000_add_tuyen_ngang đã commit vào git nhưng CHƯA được apply lên Neon
+   487→- Migration 20260617040000_add_tvv_maTVVTuyendung cũng có thể chưa apply (column maTVVTuyendung thiếu → tvv.maTVVTuyendung undefined → NTD trống)
+   488→- Lý do chưa apply: postinstall từng có 'prisma migrate deploy' nhưng bị remove (commit 144a213) vì lúc đó env vars empty. Giờ env vars đã set nhưng _prisma_migrations table có thể out of sync → prisma migrate deploy có thể fail
+   489→
+   490→Fix attempt 1 (FAIL): Thêm 'prisma migrate deploy &&' vào build script
+   491→- Vercel deploy failed (commit 98d4c57)
+   492→- Có thể vì _prisma_migrations table out of sync, migrate deploy thử apply tất cả migrations từ đầu → fail "table already exists"
+   493→
+   494→Fix attempt 2 (CURRENT): Revert build script + thêm admin endpoint /api/admin/fix-schema
+   495→- Revert package.json về 'next build' (commit 4333ba3) → Vercel deploy SUCCESS
+   496→- Tạo endpoint /api/admin/fix-schema (POST/GET) chạy raw SQL idempotent:
+   497→  1. CREATE TABLE IF NOT EXISTS "TuyenNgang" (...)
+   498→  2. CREATE UNIQUE INDEX IF NOT EXISTS "TuyenNgang_agentCode_key"
+   499→  3. ALTER TABLE "TVVStruct" ADD COLUMN "maTVVTuyendung" (qua DO block check existence)
+   500→  4. INSERT INTO "_prisma_migrations" mark 2 migrations as applied (best-effort)
+   501→  5. Verify table + column exists
+   502→- Endpoint bị Vercel Authentication protection → user phải tự mở URL trong browser
+   503→
+   504→Stage Summary:
+   505→- Vercel deploy commit 4333ba3 SUCCESS (state=success, deployment completed)
+   506→- Admin endpoint URL: https://my-project-nmchau022023-4326s-projects.vercel.app/api/admin/fix-schema
+   507→- User cần: mở URL trên trong browser → endpoint sẽ fix DB → sau đó upload DS TTN Tuyển Ngang sẽ work + NTD CS TVVm sẽ populate
+   508→- TypeScript check: 0 errors trong file mới
+   509→- Local next build: SUCCESS (endpoint /api/admin/fix-schema đã compile)
+   510→

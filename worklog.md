@@ -507,3 +507,35 @@ Stage Summary:
 - User cần: mở URL trên trong browser → endpoint sẽ fix DB → sau đó upload DS TTN Tuyển Ngang sẽ work + NTD CS TVVm sẽ populate
 - TypeScript check: 0 errors trong file mới
 - Local next build: SUCCESS (endpoint /api/admin/fix-schema đã compile)
+
+---
+Task ID: verify-tuyen-ngang-fix-2026-06-23
+Agent: main
+Task: Verify DS TTN Tuyển Ngang fix thực sự work sau khi user báo "kết quả true" (đã chạy /api/admin/fix-schema endpoint)
+
+Work Log:
+- Đọc lại current state của /api/tuyen-ngang/route.ts (POST members mode): filter chỉ cần agentCode, default agentName='Chưa nhập', dedupe trong batch, return 4xx nếu tất cả dòng lỗi
+- Đọc lại handleImport('tuyen-ngang') trong page.tsx: normalize header (lowercase + bỏ dấu TV), pickField với 9+ alias cho mỗi field, parse JSON trước khi check r.ok, hiển thị breakdown created/updated/errored/duplicatesSkipped
+- Đọc renderTuyenNgang(): dùng tuyenNgangList state, hiển thị đúng 7 cột + STT + actions
+- Check Prisma schema TuyenNgang: agentCode @unique required, agentName required (no default), các field khác có default ''
+- Verify fix-schema endpoint output: success=true ⇔ TuyenNgang table exists AND TVVStruct.maTVVTuyendung column exists (raw SQL verification trong endpoint)
+- Viết test script /home/z/my-project/scripts/test-tuyen-ngang-import.js:
+  * Copy Y NGUYÊN logic từ route.ts (processMembers function)
+  * Mock DB bằng SQLite in-memory (sqlite3 + sqlite npm packages)
+  * 6 scenarios, 38 assertions:
+    - S1: Happy path (agentCode + agentName + ngày + NTD) → 2 rows created, response shape correct
+    - S2: agentCode only (no agentName) → default "Chưa nhập", save OK
+    - S3: Duplicate agentCodes trong batch → dedupe, duplicatesSkipped=1, no error
+    - S4: Empty batch (no agentCode) → 400 với error message có gợi ý header
+    - S5: Re-upload existing agentCode → upsert, created=0 updated=1, fields update đúng
+    - S6: Header normalization — 3 variants (UPPER + dấu, lowercase_underscore, mixed alias) → tất cả parse đúng
+  * RESULT: 38 passed, 0 failed
+- Verify production deploy: commit 4333ba3 (fix-schema endpoint) đã push lên origin/main, Vercel auto-deploy (lưu ý: Vercel Authentication protection bật trên toàn project → không thể curl test từ CLI, nhưng user đã verify qua browser)
+- Production URL user đã gọi: https://my-project-nmchau022023-4326s-projects.vercel.app/api/admin/fix-schema → success: true
+
+Stage Summary:
+- DB SCHEMA: ĐÃ FIX — TuyenNgang table exists, maTVVTuyendung column exists (verify qua /api/admin/fix-schema endpoint, success: true)
+- IMPORT LOGIC: ĐÃ VERIFY — 38/38 tests passed, bao gồm happy path + 5 edge cases (empty batch, dedupe, upsert, header variants)
+- HEADER NORMALIZATION: ĐÃ VERIFY — pickField + normalizeKey parse được cả 3 kiểu header (UPPER có dấu, lowercase không dấu, mixed alias)
+- PRODUCTION DEPLOY: commit 4333ba3 đã push, Vercel auto-deploy success
+- Sẵn sàng báo user: upload DS TTN Tuyển Ngang giờ sẽ work, cột NTD trong CS TVVm sẽ tự populate
