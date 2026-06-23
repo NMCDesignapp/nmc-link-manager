@@ -158,15 +158,44 @@ const TIER_GROUP_HEADER_BG = '#92400E'; // amber-800
 // - Không có AD (phòng xuống trực tiếp TVV)
 // - TVV trong phòng Banca KHÔNG được tính trong các chương trình thi đua / chính sách thưởng
 // - Khi tính doanh số, gom PA + Banca thành 1 mục "Banca - PA" (chỉ hiển thị, không kế hoạch)
-const SPECIAL_PHONG_NO_AD = new Set(['PA', 'Banca']);       // phòng không có AD layer
-const PHONG_EXCLUDED_FROM_REWARDS = new Set(['Banca']);      // TVV trong các phòng này không được tính thưởng
+//
+// MÃ NHÓM THỰC TẾ trên app:
+//   - Nhóm PA    = 'U104101014'
+//   - Nhóm Banca = 'A473DSO000' (DSO = Digital Sales Office / Banca)
+// Code phải nhận diện cả 2 dạng: mã nhóm thực tế (U104101014 / A473DSO000) VÀ alias cũ ('PA' / 'Banca')
+// để tương thích với dữ liệu cũ còn dùng alias.
+const MA_NHOM_PA = 'U104101014';
+const MA_NHOM_BANCA = 'A473DSO000';
+const ALIAS_PA = new Set(['PA', MA_NHOM_PA]);
+const ALIAS_BANCA = new Set(['Banca', MA_NHOM_BANCA, 'DSO']); // DSO thường là alias của Banca
+
+// Phòng không có AD layer: PA + Banca (nhận diện qua mã phòng hoặc mã nhóm)
+const isPaOrBancaCode = (code: string): boolean => {
+  if (!code) return false;
+  const c = String(code).trim();
+  if (!c) return false;
+  if (ALIAS_PA.has(c) || ALIAS_BANCA.has(c)) return true;
+  const lower = c.toLowerCase();
+  return lower === 'pa' || lower === 'banca' || lower === 'dso'
+    || c === MA_NHOM_PA || c === MA_NHOM_BANCA;
+};
+const isBancaCode = (code: string): boolean => {
+  if (!code) return false;
+  const c = String(code).trim();
+  if (!c) return false;
+  if (ALIAS_BANCA.has(c)) return true;
+  const lower = c.toLowerCase();
+  return lower === 'banca' || lower === 'dso' || c === MA_NHOM_BANCA;
+};
+const SPECIAL_PHONG_NO_AD = (maPhong: string): boolean => isPaOrBancaCode(maPhong);
+const PHONG_EXCLUDED_FROM_REWARDS = (maPhong: string): boolean => isBancaCode(maPhong);
 // Sort order: các phòng đặc biệt luôn xuống cuối
-const PHONG_SORT_PRIORITY = (maPhong: string): number => SPECIAL_PHONG_NO_AD.has(maPhong) ? 1 : 0;
+const PHONG_SORT_PRIORITY = (maPhong: string): number => SPECIAL_PHONG_NO_AD(maPhong) ? 1 : 0;
 
 // Helper: kiểm tra TVV có thuộc phòng bị loại trừ khỏi thưởng (Banca) không
 // Cần truyền: agentCode của TVV + toàn bộ danh sách BanNhom, AD, Phong
 // Logic: TVV → maBanNhom → BanNhom.maAD → AD.maPhong → Phong.maPhong
-// Với PA/Banca (không có AD): TVV có thể thuộc BanNhom có maBanNhom hoặc maAD = 'PA'/'Banca'
+// Với PA/Banca (không có AD): TVV có thể thuộc BanNhom có maBanNhom hoặc maAD = 'PA'/'Banca'/'U104101014'/'A473DSO000'
 function isTVVExcludedFromRewards(
   agentCode: string,
   maBanNhom: string,
@@ -174,16 +203,16 @@ function isTVVExcludedFromRewards(
   adList: Array<{ maAD: string; maPhong: string }>,
 ): boolean {
   if (!agentCode && !maBanNhom) return false;
-  // Trường hợp PA/Banca không có AD — TVV thuộc BanNhom có maBanNhom hoặc maAD = 'Banca'/'PA'
-  if (PHONG_EXCLUDED_FROM_REWARDS.has(maBanNhom)) return true;
+  // Trường hợp PA/Banca không có AD — TVV thuộc BanNhom có maBanNhom hoặc maAD = 'Banca'/'PA'/'A473DSO000'/'U104101014'
+  if (isBancaCode(maBanNhom)) return true;
   // Tìm BanNhom record
   const bn = banNhomList.find(b => b.maBanNhom === maBanNhom);
   if (bn) {
     // Nếu maAD trực tiếp là mã phòng bị loại (Banca)
-    if (PHONG_EXCLUDED_FROM_REWARDS.has(bn.maAD)) return true;
+    if (isBancaCode(bn.maAD)) return true;
     // Nếu có AD thật → tìm AD.maPhong
     const ad = adList.find(a => a.maAD === bn.maAD);
-    if (ad && PHONG_EXCLUDED_FROM_REWARDS.has(ad.maPhong)) return true;
+    if (ad && isBancaCode(ad.maPhong)) return true;
   }
   return false;
 }
