@@ -539,3 +539,41 @@ Stage Summary:
 - HEADER NORMALIZATION: ĐÃ VERIFY — pickField + normalizeKey parse được cả 3 kiểu header (UPPER có dấu, lowercase không dấu, mixed alias)
 - PRODUCTION DEPLOY: commit 4333ba3 đã push, Vercel auto-deploy success
 - Sẵn sàng báo user: upload DS TTN Tuyển Ngang giờ sẽ work, cột NTD trong CS TVVm sẽ tự populate
+
+---
+Task ID: fix-back-button-nav-2026-06-23
+Agent: main
+Task: Fix nút "Quay lại" — đang luôn bay về trang chủ thay vì trở về thao tác trước
+
+Root cause:
+- BackButton onClick trước đây gọi window.history.back()
+- Đây là browser history, KHÔNG liên quan app state (activeSheet/policyOpen/structureSub/revenueSub)
+- User click tab con trong app không đổi URL → browser history rỗng → back() fallback về '/' = trang chủ
+
+Fix:
+- Thêm navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]) lưu internal history stack
+- navigateTo(next: NavState) wrapper: push state hiện tại vào stack TRƯỚC khi đổi state
+- handleAppBack(): pop 1 entry từ stack → restore state cũ (không gọi window.history.back)
+- Hook navigateTo() vào 6 chỗ user điều hướng:
+  1. Mobile menu popup (sheet không có sub)
+  2. Mobile menu popup (sheet có sub: revenue/report/structure)
+  3. Sidebar sheet button (desktop)
+  4. Sidebar sub-item click (handleSubClick)
+  5. Mobile policy popup
+  6. Mobile revenue month popup + desktop revenue month tabs
+- BackButton giờ gọi handleAppBack thay vì window.history.back
+
+Fix kèm (DS đối tượng cột nhóm lộn xộn):
+- resolveNhomName giờ luôn trả TÊN nhóm, không bao giờ trả MÃ nhóm
+- Case-insensitive lookup qua banNhomList
+- Nếu leader.nhom trông giống mã (all UPPER, không space, không dấu) → KHÔNG hiển thị
+- Đảo priority: resolveNhomName trước, fallback nhomName sau
+- Áp dụng cho 4 policy renders: TuyenLuyen, DongHanh, QuyTN, PTKDTN
+
+TypeScript: 24 errors (cùng baseline)
+Next.js build: SUCCESS
+Commit 1c3b6ee pushed to main, Vercel auto-deploying
+
+Stage Summary:
+- Nút Quay lại giờ hoạt động đúng: VD đang xem "TVVm" → bấm "Quy TVV" → bấm back → về "TVVm" (không bay về overview)
+- Cột Nhóm trong các DS đối tượng (NS tháng, Quý TVV, Tuyen Luyện, Đồng Hành, Quý TN, PTKD TN) giờ chỉ hiển thị TÊN, không lộn xộn mã
