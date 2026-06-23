@@ -4073,7 +4073,7 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">(tháng {currentMonth})</span></th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
                 <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP CHẶNG</th>
-                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG CHẶNG</th>
+                <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG CHẶNG<br/><span className="text-[9px] italic font-normal normal-case" style={{ color: '#FCA5A5' }}>(TVV nhận 1 lần/chặng)</span></th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGƯỜI TUYỂN DỤNG</th>
               </tr>
             </thead>
