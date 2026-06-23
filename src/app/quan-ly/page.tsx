@@ -5646,18 +5646,145 @@ export default function QuanLyPage() {
   };
 
   // ========== THƯỞNG TTN TUYỂN NGANG ==========
-  // Bảng theo ảnh chính sách — đối tượng để trống, user sẽ hướng dẫn sau
+  // Đối tượng: TẤT CẢ TTN Tuyển Ngang từ DS TTN Tuyển Ngang (state tuyenNgangList)
+  // NGUYÊN TẮC AUTO-UPDATE: bảng tự cập nhật khi DS thêm/xóa/sửa — qua state tuyenNgangList
+  //   - User thêm TTN ở Cấu trúc → DS TTN Tuyển Ngang → state update → bảng này tự render thêm dòng
+  //   - User xóa TTN → state update → bảng tự bỏ dòng
+  //   - User sửa TTN (mã/tên/nhóm/ngày) → state update → bảng tự cập nhật
+  // Chương trình TTN → resolveNhomName với allowPA=true (hiển thị nhóm PA + nhóm có trong DS TB/TN)
+  // Thông tin người (tên/mã/nhóm/ngày) → lấy từ cấu trúc (DS TTN Tuyển Ngang)
+  // Doanh số (FYP/IP) → lấy từ contracts để tính THỰC HIỆN THÁNG / LŨY KẾ
+  // CHỈ TIÊU + THƯỞNG THÁNG + THƯỞNG BẮT KỲP — để trống (—), chờ user cấu hình công thức
   const renderThuongTuyenNgang = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const HEADER_BG = '#065F46';
     const SUB_HEADER_BG = '#047857';
+    const HDC_IP_THRESHOLD = 12_000_000;
+    const FYP_250M = 250_000_000;
+
+    // Build rows từ tuyenNgangList — tự động theo DS
+    const tnRows = tuyenNgangList.map((tn, idx) => {
+      // NHÓM — validate qua resolveNhomName (chỉ hiển thị nhóm có trong DS TB/TN hoặc là PA)
+      const nhomName = resolveNhomName(
+        tn.agentCode, '', banNhomList, contracts, leaders,
+        { allowPA: true, candidateNhomName: tn.nhom }
+      );
+
+      // NGÀY HIỆU LỰC CHỨC VỤ — từ ngayHieuLuc của TTN
+      const hieuLucDate = tn.ngayHieuLuc ? new Date(tn.ngayHieuLuc) : null;
+      const ngayHieuLucStr = hieuLucDate && !isNaN(hieuLucDate.getTime())
+        ? hieuLucDate.toLocaleDateString('vi-VN')
+        : '';
+
+      // THÁNG LÀM VIỆC — tháng/năm bắt đầu làm việc
+      const start = tn.ngayBatDau ? new Date(tn.ngayBatDau) : null;
+      const thangLamViec = start && !isNaN(start.getTime())
+        ? `T${String(start.getMonth() + 1).padStart(2, '0')}/${start.getFullYear()}`
+        : '';
+
+      // Team TVV: TVV trong DS Tổng TVV có maTVVTuyendung trùng agentCode của TTN này
+      // (TTN Tuyển Ngang = người tuyển dụng các TVV này)
+      const tnCodeLower = (tn.agentCode || '').trim().toLowerCase();
+      const teamTVVs = tvvStructList.filter(tvv =>
+        (tvv.maTVVTuyendung || '').trim().toLowerCase() === tnCodeLower
+      );
+      const quymo = teamTVVs.length;
+
+      // THỰC HIỆN THÁNG — contracts trong tháng hiện tại của team TVV
+      const monthContracts = contracts.filter(c => {
+        if (!teamTVVs.some(t => t.agentCode === c.agentCode)) return false;
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      });
+      // TVVm HĐC tháng: TVV mới (≤12 tháng) có IP tháng ≥ 12tr
+      const tvvmHDC = teamTVVs.filter(tvv => {
+        if (!isTVVm(tvv.ngayBatDau)) return false;
+        const tvvIP = monthContracts
+          .filter(c => c.agentCode === tvv.agentCode)
+          .reduce((s, c) => s + c.pdt10DT, 0);
+        return tvvIP >= HDC_IP_THRESHOLD;
+      }).length;
+      const tongFYP = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+
+      // THỰC HIỆN LŨY KẾ — contracts YTD (từ đầu năm đến tháng hiện tại)
+      const ytdContracts = contracts.filter(c => {
+        if (!teamTVVs.some(t => t.agentCode === c.agentCode)) return false;
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) <= currentMonth;
+      });
+      // TVVm HĐC lũy kế: TVVm có tổng IP YTD ≥ 12tr × số tháng đã làm (tạm dùng ngưỡng 12tr × 1)
+      // Đơn giản hóa: TVVm có tổng IP YTD ≥ 12tr
+      const tvvmHDCLuyKe = teamTVVs.filter(tvv => {
+        if (!isTVVm(tvv.ngayBatDau)) return false;
+        const tvvYtdIP = ytdContracts
+          .filter(c => c.agentCode === tvv.agentCode)
+          .reduce((s, c) => s + c.pdt10DT, 0);
+        return tvvYtdIP >= HDC_IP_THRESHOLD;
+      }).length;
+      // FYP ≥250tr lũy kế: TVV có FYP YTD ≥ 250tr
+      const fypGe250 = teamTVVs.filter(tvv => {
+        const tvvYtdFYP = ytdContracts
+          .filter(c => c.agentCode === tvv.agentCode)
+          .reduce((s, c) => s + c.pdt10DT, 0);
+        return tvvYtdFYP >= FYP_250M;
+      }).length;
+
+      return {
+        stt: idx + 1,
+        nhom: nhomName,
+        maTN: tn.agentCode,
+        hoTen: tn.agentName,
+        ngayHieuLuc: ngayHieuLucStr,
+        thangLamViec,
+        // THỰC HIỆN THÁNG
+        thQuymo: quymo,
+        thTvvmHDC: tvvmHDC,
+        thTongFYP: tongFYP,
+        // THỰC HIỆN LŨY KẾ
+        lkQuymo: quymo,
+        lkTvvmHDC: tvvmHDCLuyKe,
+        lkFYPGe250: fypGe250,
+      };
+    });
+
+    // Tổng cộng các cột số (thuộc về THỰC HIỆN THÁNG)
+    const totalQuymo = tnRows.reduce((s, r) => s + r.thQuymo, 0);
+    const totalTvvmHDC = tnRows.reduce((s, r) => s + r.thTvvmHDC, 0);
+    const totalTongFYP = tnRows.reduce((s, r) => s + r.thTongFYP, 0);
+    const totalLkQuymo = tnRows.reduce((s, r) => s + r.lkQuymo, 0);
+    const totalLkTvvmHDC = tnRows.reduce((s, r) => s + r.lkTvvmHDC, 0);
+    const totalLkFYPGe250 = tnRows.reduce((s, r) => s + r.lkFYPGe250, 0);
 
     return (
-      <div className="space-y-1" data-policy-count={0} data-policy-amount={0}>
+      <div className="space-y-1" data-policy-count={tnRows.length} data-policy-amount={0}>
         {/* Summary card */}
-        <div className="hidden bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
-          <div className="flex items-center gap-2">
-            <Merge className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Thưởng TTN Tuyển Ngang</p>
+        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <Merge className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                Thưởng TTN Tuyển Ngang — Tháng {currentMonth}/{currentYear}
+              </p>
+            </div>
+            <div className="flex items-center gap-5 flex-wrap">
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">ĐỐI TƯỢNG</p>
+                <p className="text-sm font-black text-emerald-700">{tnRows.length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG QUY MÔ</p>
+                <p className="text-sm font-black text-emerald-700">{totalQuymo}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TVVm HĐC</p>
+                <p className="text-sm font-black text-emerald-700">{totalTvvmHDC}</p>
+              </div>
+              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">TỔNG FYP THÁNG</p>
+                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTongFYP)}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -5700,15 +5827,68 @@ export default function QuanLyPage() {
               </tr>
             </thead>
             <tbody>
-              {/* Empty data — user will guide logic later */}
-              <tr>
-                <td colSpan={18} className="text-center text-gray-400 py-12 italic text-xs bg-white p-2 align-middle">
-                  Đối tượng và logic tính thưởng sẽ được cấu hình khi có hướng dẫn chi tiết.
-                </td>
-              </tr>
+              {tnRows.length === 0 ? (
+                <tr>
+                  <td colSpan={18} className="text-center text-gray-400 py-12 italic text-xs bg-white p-2 align-middle">
+                    Chưa có TTN Tuyển Ngang nào trong DS. Vào <b>Cấu trúc → DS TTN Tuyển Ngang</b> để thêm đối tượng — bảng này sẽ tự cập nhật.
+                  </td>
+                </tr>
+              ) : tnRows.map((row) => (
+                <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
+                  <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
+                  <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
+                  <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
+                  <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
+                  <td className="text-[11px] text-gray-600 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>TTN Tuyển ngang</td>
+                  <td className="text-[11px] text-gray-600 text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.ngayHieuLuc || '—'}</td>
+                  <td className="text-[11px] text-gray-600 text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.thangLamViec || '—'}</td>
+                  {/* CHỈ TIÊU — để trống, chờ user cấu hình */}
+                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                  {/* THỰC HIỆN THÁNG — computed from contracts */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '12px', fontWeight: 800 }}>{row.thQuymo || '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '12px', fontWeight: 800 }}>{row.thTvvmHDC || '—'}</td>
+                  <td className="text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '11px', fontWeight: 800 }}>{row.thTongFYP > 0 ? formatNumber(row.thTongFYP) : '—'}</td>
+                  {/* THƯỞNG THÁNG — để trống, chờ user cấu hình */}
+                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                  {/* THỰC HIỆN LŨY KẾ — computed YTD */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkQuymo || '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkTvvmHDC || '—'}</td>
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkFYPGe250 || '—'}</td>
+                  {/* THƯỞNG BẮT KỲP — để trống, chờ user cấu hình */}
+                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                </tr>
+              ))}
+              {/* Total row */}
+              {tnRows.length > 0 && (
+                <tr style={{ backgroundColor: '#065F46' }}>
+                  <td colSpan={7} className="text-white text-[11px] font-bold uppercase text-right p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({tnRows.length} TTN)</td>
+                  {/* CHỈ TIÊU */}
+                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
+                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
+                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
+                  {/* THỰC HIỆN THÁNG */}
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalQuymo}</td>
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalTvvmHDC}</td>
+                  <td className="text-white text-right text-[11px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalTongFYP > 0 ? formatNumber(totalTongFYP) : '—'}</td>
+                  {/* THƯỞNG THÁNG */}
+                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#047857' }}>—</td>
+                  {/* THỰC HIỆN LŨY KẾ */}
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkQuymo}</td>
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkTvvmHDC}</td>
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkFYPGe250}</td>
+                  {/* THƯỞNG BẮT KỲP */}
+                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#047857' }}>—</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <p className="text-[10px] text-gray-500 italic">
+          Đối tượng tự động lấy từ <b>DS TTN Tuyển Ngang</b> (Cấu trúc) — khi DS thêm/xóa/sửa, bảng này tự cập nhật.
+          {' '}THỰC HIỆN THÁNG/LŨY KẾ tính từ contracts (FYP = PĐT + 10% ĐT). CHỈ TIÊU & THƯỞNG sẽ cấu hình khi có công thức chi tiết.
+        </p>
       </div>
     );
   };
