@@ -443,44 +443,19 @@ function resolveNhomName(
 }
 
 // Helper: resolve Người Tuyển Dụng name for a TVV.
-// NGUYÊN TẮC: xác định DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
-// Nếu mã trống → trả rỗng. Không fallback qua contracts.maDaiLyTD hay nguồn khác.
-// ÁNH XẠ TÊN: tìm mã trong nhiều nguồn (DS Tổng TVV → DS TB/TN → DS TTN → DS TTN Tuyển Ngang),
-// vì người tuyển dụng có thể là TVV thường, TB/TN, TTN, hoặc TTN Tuyển Ngang.
+// NGUYÊN TẮC:
+//   - Lấy mã NTD (maTVVTuyendung) của TVV đó
+//   - Quay lại DS Tổng TVV (tvvStructList), tìm dòng có agentCode == mã NTD
+//   - Tìm thấy → lấy agentName. Không tìm → TRỐNG (không fallback, không trả mã)
+//   - KHÔNG fallback qua contracts.maDaiLyTD hay bất kỳ DS nào khác
 function resolveNguoiTD(
   tvvMaTVVTuyendung: string | null | undefined,
-  _tvvAgentCode: string,
   tvvStructList: Array<{ agentCode: string; agentName: string }>,
-  _contracts: Array<{ agentCode: string; maDaiLyTD: string; agentName: string }>,
-  recruiters: Array<{ agentCode: string; agentName: string }>,
-  leaders?: Array<{ agentCode: string; agentName: string }>,
-  tuyenNgangList?: Array<{ agentCode: string; agentName: string }>,
 ): string {
-  // NGUYÊN TẮC: xác định người tuyển DUY NHẤT qua mã người tuyển dụng (maTVVTuyendung).
-  // Nếu mã trống → không có người tuyển → trả rỗng.
-  // KHÔNG fallback qua contracts.maDaiLyTD hay nguồn khác.
-  if (tvvMaTVVTuyendung && tvvMaTVVTuyendung.trim()) {
-    const code = tvvMaTVVTuyendung.trim();
-    // 1. Tìm trong DS Tổng TVV
-    const tdTVV = tvvStructList.find(t => t.agentCode === code);
-    if (tdTVV?.agentName) return tdTVV.agentName;
-    // 2. Tìm trong DS TB/TN (leaders)
-    if (leaders) {
-      const tdLeader = leaders.find(l => l.agentCode === code);
-      if (tdLeader?.agentName) return tdLeader.agentName;
-    }
-    // 3. Tìm trong DS TTN (recruiters)
-    const tdTTN = recruiters.find(r => r.agentCode === code);
-    if (tdTTN?.agentName) return tdTTN.agentName;
-    // 4. Tìm trong DS TTN Tuyển Ngang (tuyenNgangList)
-    if (tuyenNgangList) {
-      const tdTN = tuyenNgangList.find(tn => tn.agentCode === code);
-      if (tdTN?.agentName) return tdTN.agentName;
-    }
-    // 5. Có mã nhưng không tìm thấy tên → trả mã
-    return code;
-  }
-  return '';
+  if (!tvvMaTVVTuyendung || !tvvMaTVVTuyendung.trim()) return '';
+  const code = tvvMaTVVTuyendung.trim();
+  const tdTVV = tvvStructList.find(t => t.agentCode === code);
+  return tdTVV?.agentName || '';
 }
 
 function formatCurrency(n: number): string {
