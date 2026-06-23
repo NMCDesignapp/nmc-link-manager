@@ -508,3 +508,105 @@
    508→- TypeScript check: 0 errors trong file mới
    509→- Local next build: SUCCESS (endpoint /api/admin/fix-schema đã compile)
    510→
+   511→---
+   512→Task ID: verify-tuyen-ngang-fix-2026-06-23
+   513→Agent: main
+   514→Task: Verify DS TTN Tuyển Ngang fix thực sự work sau khi user báo "kết quả true" (đã chạy /api/admin/fix-schema endpoint)
+   515→
+   516→Work Log:
+   517→- Đọc lại current state của /api/tuyen-ngang/route.ts (POST members mode): filter chỉ cần agentCode, default agentName='Chưa nhập', dedupe trong batch, return 4xx nếu tất cả dòng lỗi
+   518→- Đọc lại handleImport('tuyen-ngang') trong page.tsx: normalize header (lowercase + bỏ dấu TV), pickField với 9+ alias cho mỗi field, parse JSON trước khi check r.ok, hiển thị breakdown created/updated/errored/duplicatesSkipped
+   519→- Đọc renderTuyenNgang(): dùng tuyenNgangList state, hiển thị đúng 7 cột + STT + actions
+   520→- Check Prisma schema TuyenNgang: agentCode @unique required, agentName required (no default), các field khác có default ''
+   521→- Verify fix-schema endpoint output: success=true ⇔ TuyenNgang table exists AND TVVStruct.maTVVTuyendung column exists (raw SQL verification trong endpoint)
+   522→- Viết test script /home/z/my-project/scripts/test-tuyen-ngang-import.js:
+   523→  * Copy Y NGUYÊN logic từ route.ts (processMembers function)
+   524→  * Mock DB bằng SQLite in-memory (sqlite3 + sqlite npm packages)
+   525→  * 6 scenarios, 38 assertions:
+   526→    - S1: Happy path (agentCode + agentName + ngày + NTD) → 2 rows created, response shape correct
+   527→    - S2: agentCode only (no agentName) → default "Chưa nhập", save OK
+   528→    - S3: Duplicate agentCodes trong batch → dedupe, duplicatesSkipped=1, no error
+   529→    - S4: Empty batch (no agentCode) → 400 với error message có gợi ý header
+   530→    - S5: Re-upload existing agentCode → upsert, created=0 updated=1, fields update đúng
+   531→    - S6: Header normalization — 3 variants (UPPER + dấu, lowercase_underscore, mixed alias) → tất cả parse đúng
+   532→  * RESULT: 38 passed, 0 failed
+   533→- Verify production deploy: commit 4333ba3 (fix-schema endpoint) đã push lên origin/main, Vercel auto-deploy (lưu ý: Vercel Authentication protection bật trên toàn project → không thể curl test từ CLI, nhưng user đã verify qua browser)
+   534→- Production URL user đã gọi: https://my-project-nmchau022023-4326s-projects.vercel.app/api/admin/fix-schema → success: true
+   535→
+   536→Stage Summary:
+   537→- DB SCHEMA: ĐÃ FIX — TuyenNgang table exists, maTVVTuyendung column exists (verify qua /api/admin/fix-schema endpoint, success: true)
+   538→- IMPORT LOGIC: ĐÃ VERIFY — 38/38 tests passed, bao gồm happy path + 5 edge cases (empty batch, dedupe, upsert, header variants)
+   539→- HEADER NORMALIZATION: ĐÃ VERIFY — pickField + normalizeKey parse được cả 3 kiểu header (UPPER có dấu, lowercase không dấu, mixed alias)
+   540→- PRODUCTION DEPLOY: commit 4333ba3 đã push, Vercel auto-deploy success
+   541→- Sẵn sàng báo user: upload DS TTN Tuyển Ngang giờ sẽ work, cột NTD trong CS TVVm sẽ tự populate
+   542→
+   543→---
+   544→Task ID: fix-back-button-nav-2026-06-23
+   545→Agent: main
+   546→Task: Fix nút "Quay lại" — đang luôn bay về trang chủ thay vì trở về thao tác trước
+   547→
+   548→Root cause:
+   549→- BackButton onClick trước đây gọi window.history.back()
+   550→- Đây là browser history, KHÔNG liên quan app state (activeSheet/policyOpen/structureSub/revenueSub)
+   551→- User click tab con trong app không đổi URL → browser history rỗng → back() fallback về '/' = trang chủ
+   552→
+   553→Fix:
+   554→- Thêm navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]) lưu internal history stack
+   555→- navigateTo(next: NavState) wrapper: push state hiện tại vào stack TRƯỚC khi đổi state
+   556→- handleAppBack(): pop 1 entry từ stack → restore state cũ (không gọi window.history.back)
+   557→- Hook navigateTo() vào 6 chỗ user điều hướng:
+   558→  1. Mobile menu popup (sheet không có sub)
+   559→  2. Mobile menu popup (sheet có sub: revenue/report/structure)
+   560→  3. Sidebar sheet button (desktop)
+   561→  4. Sidebar sub-item click (handleSubClick)
+   562→  5. Mobile policy popup
+   563→  6. Mobile revenue month popup + desktop revenue month tabs
+   564→- BackButton giờ gọi handleAppBack thay vì window.history.back
+   565→
+   566→Fix kèm (DS đối tượng cột nhóm lộn xộn):
+   567→- resolveNhomName giờ luôn trả TÊN nhóm, không bao giờ trả MÃ nhóm
+   568→- Case-insensitive lookup qua banNhomList
+   569→- Nếu leader.nhom trông giống mã (all UPPER, không space, không dấu) → KHÔNG hiển thị
+   570→- Đảo priority: resolveNhomName trước, fallback nhomName sau
+   571→- Áp dụng cho 4 policy renders: TuyenLuyen, DongHanh, QuyTN, PTKDTN
+   572→
+   573→TypeScript: 24 errors (cùng baseline)
+   574→Next.js build: SUCCESS
+   575→Commit 1c3b6ee pushed to main, Vercel auto-deploying
+   576→
+   577→Stage Summary:
+   578→- Nút Quay lại giờ hoạt động đúng: VD đang xem "TVVm" → bấm "Quy TVV" → bấm back → về "TVVm" (không bay về overview)
+   579→- Cột Nhóm trong các DS đối tượng (NS tháng, Quý TVV, Tuyen Luyện, Đồng Hành, Quý TN, PTKD TN) giờ chỉ hiển thị TÊN, không lộn xộn mã
+   580→
+   581→---
+   582→Task ID: fix-structure-tvv-count-pa-banca-2026-06-23
+   583→Agent: main
+   584→Task: Nhóm PA và Banca trong Cấu trúc hiển thị "1 AD" nhưng 0 TVV — mặc dù đã đổi mã nhóm sang U104101014/A473DSO000
+   585→
+   586→Root cause:
+   587→- BanNhom record trong DB có thể dùng alias cũ: maBanNhom='PA'/'Banca'
+   588→- TVV record trong DB có thể dùng mã mới: maBanNhom='U104101014'/'A473DSO000'
+   589→- Filter exact `t.maBanNhom === b.maBanNhom` KHÔNG match → 0 TVV hiển thị trong tree
+   590→- Commit c305826 (trước đây) đã thêm isPaOrBancaCode/isBancaCode nhận diện mã mới, nhưng chỉ apply cho logic exclude rewards, không apply cho tree render
+   591→
+   592→Fix:
+   593→- Thêm helper matchMaBanNhom(a, b): so khớp 2 mã nhóm, chấp nhận alias
+   594→  + Exact match: a === b
+   595→  + Cùng là alias PA (PA == U104101014)
+   596→  + Cùng là alias Banca (Banca == A473DSO000 == DSO)
+   597→  + Case-insensitive fallback
+   598→- Apply matchMaBanNhom vào 4 chỗ filter TVV theo maBanNhom:
+   599→  1. renderStructure line 6328: pTVVs (đếm TVV theo phòng)
+   600→  2. renderStructure line 6380: bnTVVs (đếm TVV trong nhóm + sort theo chức vụ)
+   601→  3. renderThuongQuyTN line 5158: tvvInNhom (sum FYP nhóm theo quý)
+   602→  4. renderThuongPTKDTN line 5468: tvvInNhom (sum FYP nhóm theo tháng)
+   603→
+   604→TypeScript: 24 errors (cùng baseline)
+   605→Next.js build: SUCCESS
+   606→Commit bc2da1b pushed to main, Vercel auto-deploying
+   607→
+   608→Stage Summary:
+   609→- Tree Cấu trúc giờ sẽ hiển thị đầy đủ TVV trong nhóm PA/Banca (dù TVV dùng mã mới U104101014/A473DSO000, BanNhom dùng alias 'PA'/'Banca')
+   610→- Tổng TVV trong summary strip (trên cùng) cũng sẽ đếm đúng
+   611→- 2 chính sách Quý TN + PTKD TN cũng sẽ sum FYP đúng cho nhóm PA/Banca
+   612→

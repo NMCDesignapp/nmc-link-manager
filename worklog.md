@@ -609,3 +609,64 @@ Stage Summary:
 - Tree Cấu trúc giờ sẽ hiển thị đầy đủ TVV trong nhóm PA/Banca (dù TVV dùng mã mới U104101014/A473DSO000, BanNhom dùng alias 'PA'/'Banca')
 - Tổng TVV trong summary strip (trên cùng) cũng sẽ đếm đúng
 - 2 chính sách Quý TN + PTKD TN cũng sẽ sum FYP đúng cho nhóm PA/Banca
+
+---
+Task ID: policy-tuyen-ngang-auto-update-2026-06-23
+Agent: main
+Task: Đưa DS TTN Tuyển ngang vào chính sách Thưởng TTN Tuyển ngang. Đảm bảo TẤT CẢ đối tượng trong mục chính sách tự động thêm/bớt theo cấu trúc (DS Tổng TVV / DS TB-TN / DS TTN / DS TTN Tuyển Ngang).
+
+Work Log:
+- Kiểm tra renderThuongTuyenNgang hiện tại (line 5650 cũ): chỉ là placeholder rỗng, hiển thị dòng "Đối tượng và logic tính thưởng sẽ được cấu hình khi có hướng dẫn chi tiết"
+- Kiểm tra các nguồn dữ liệu:
+  + tuyenNgangList: state đã có, fetch từ /api/tuyen-ngang (18 bản ghi trong DB production)
+  + loadSheet 'report' (sheet chính sách) đã gọi fetchTuyenNgang() (line 1772) → state sẵn sàng khi user vào policy
+- Implement renderThuongTuyenNgang mới (commit 3930f98):
+  + Đối tượng: TẤT CẢ TTN Tuyển ngang từ state tuyenNgangList — auto-update qua React state
+  + Cột NHÓM KD: resolveNhomName với allowPA=true (chương trình TTN → hiển thị nhóm PA + nhóm có trong DS TB/TN)
+  + Cột CHỨC VỤ: default 'TTN Tuyển ngang'
+  + Cột NGÀY HIỆU LỰC CHỨC VỤ: format từ tn.ngayHieuLuc
+  + Cột THÁNG LÀM VIỆC: format TXX/YYYY từ tn.ngayBatDau
+  + Cột CHỈ TIÊU (3 sub: Quy mô, TVVm HĐC, Tổng FYP): để trống (—), chờ user cấu hình
+  + Cột THỰC HIỆN THÁNG (3 sub):
+    * Quy mô = số TVV trong tvvStructList có maTVVTuyendung trùng agentCode của TTN
+    * TVVm HĐC = TVVm (≤12 tháng) có IP tháng ≥ 12tr
+    * Tổng FYP = tổng pdt10DT contracts trong tháng của team
+  + Cột THƯỞNG THÁNG: để trống (—), chờ user cấu hình
+  + Cột THỰC HIỆN LŨY KẾ (3 sub): tính YTD từ đầu năm đến tháng hiện tại
+    * Quy mô, TVVm HĐC (IP YTD ≥ 12tr), FYP ≥250tr (FYP YTD ≥ 250tr)
+  + Cột THƯỞNG BẮT KỲP: để trống (—), chờ user cấu hình
+  + Summary card: ĐỐI TƯỢNG, TỔNG QUY MÔ, TVVm HĐC, TỔNG FYP THÁNG
+  + Total row: TỔNG CỘNG (18 TTN) + totals các cột số
+  + Note footer: "Đối tượng tự động lấy từ DS TTN Tuyển Ngang (Cấu trúc)"
+- Verify auto-update cho TẤT CẢ policies:
+  + renderTvvMTable: dùng tvvStructList ✓
+  + renderThuongNSThangTVV: dùng tvvStructList ✓
+  + renderThuongQuyTVV: dùng tvvStructList ✓
+  + renderThuongTuyenLuyện: dùng recruiters (DS TTN) ✓
+  + renderThuongDongHanh: dùng recruiters (DS TTN) ✓
+  + renderThuongPTKD: dùng leaders (DS TB/TN) ✓
+  + renderThuongQuyTN: dùng leaders (DS TB/TN) ✓
+  + renderThuongTuyenNgang: dùng tuyenNgangList (DS TTN Tuyển ngang) ✓ (MỚI)
+  → Tất cả đều derive từ React state arrays, tự re-render khi state thay đổi
+  → CRUD callbacks (addTuyenNgang/updateTuyenNgang/deleteTuyenNgang, v.v.) đều setX → re-render tức thì
+  → loadSheet 'report' đã fetch đầy đủ dữ liệu (fetchAllData + fetchTuyenNgang)
+- Fix bug TypeScript: shorthand property `thTvvmHDC,` → explicit `thTvvmHDC: tvvmHDC,` (variable named `tvvmHDC` not `thTvvmHDC`)
+- TypeScript check: 0 errors mới (cùng baseline 24 errors pre-existing)
+- Next.js build: SUCCESS (no errors)
+- Commit 3930f98 pushed to main, Vercel auto-deployed
+- Verify trên production (agent-browser):
+  + Mở /quan-ly → click "Chính sách đại lý" → click "Thưởng chính sách TTN tuyển ngang"
+  + Bảng hiển thị 18 đối tượng TTN Tuyển ngang (matches DB count)
+  + Summary card: ĐỐI TƯỢNG=18, TỔNG QUY MÔ=46, TVVM HĐC=6, TỔNG FYP THÁNG=94.697.320₫
+  + Cột NHÓM KD hiển thị TÊN (An Khang, Bảo An, Chợ Mới 1, ...) — không hiển thị mã
+  + Row 1: Trần Huỳnh Nguyệt Ánh (An Khang) — Quy mô 5, TVVm HĐC 3, FYP 53.3M (tháng) | Quy mô 5, TVVm HĐC 4 (lũy kế)
+  + Total row: TỔNG CỘNG (18 TTN) | 46 | 6 | 94.697.320 | — | 46 | 21 | 0 | —
+  + CHỈ TIÊU + THƯỞNG THÁNG + THƯỞNG BẮT KỲP: để trống (—) như thiết kế
+
+Stage Summary:
+- ĐÃ HOÀN THÀNH: Chính sách Thưởng TTN Tuyển ngang giờ hiển thị đầy đủ DS TTN Tuyển ngang (18 đối tượng) từ cấu trúc
+- Auto-update đã verify: tất cả 8 policies derive từ React state → tự cập nhật khi cấu trúc thay đổi
+- Cột NHÓM KD áp dụng nguyên tắc: chỉ hiển thị nhóm có trong DS TB/TN hoặc là PA (allowPA=true cho TTN)
+- THỰC HIỆN THÁNG/LŨY KẾ: tính từ contracts (FYP = PĐT + 10% ĐT)
+- CHỈ TIÊU + THƯỞNG: để trống (—) — chờ user cung cấp công thức chi tiết
+- Production verified: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly → Chính sách đại lý → Thưởng chính sách TTN tuyển ngang
