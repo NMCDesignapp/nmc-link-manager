@@ -577,3 +577,35 @@ Commit 1c3b6ee pushed to main, Vercel auto-deploying
 Stage Summary:
 - Nút Quay lại giờ hoạt động đúng: VD đang xem "TVVm" → bấm "Quy TVV" → bấm back → về "TVVm" (không bay về overview)
 - Cột Nhóm trong các DS đối tượng (NS tháng, Quý TVV, Tuyen Luyện, Đồng Hành, Quý TN, PTKD TN) giờ chỉ hiển thị TÊN, không lộn xộn mã
+
+---
+Task ID: fix-structure-tvv-count-pa-banca-2026-06-23
+Agent: main
+Task: Nhóm PA và Banca trong Cấu trúc hiển thị "1 AD" nhưng 0 TVV — mặc dù đã đổi mã nhóm sang U104101014/A473DSO000
+
+Root cause:
+- BanNhom record trong DB có thể dùng alias cũ: maBanNhom='PA'/'Banca'
+- TVV record trong DB có thể dùng mã mới: maBanNhom='U104101014'/'A473DSO000'
+- Filter exact `t.maBanNhom === b.maBanNhom` KHÔNG match → 0 TVV hiển thị trong tree
+- Commit c305826 (trước đây) đã thêm isPaOrBancaCode/isBancaCode nhận diện mã mới, nhưng chỉ apply cho logic exclude rewards, không apply cho tree render
+
+Fix:
+- Thêm helper matchMaBanNhom(a, b): so khớp 2 mã nhóm, chấp nhận alias
+  + Exact match: a === b
+  + Cùng là alias PA (PA == U104101014)
+  + Cùng là alias Banca (Banca == A473DSO000 == DSO)
+  + Case-insensitive fallback
+- Apply matchMaBanNhom vào 4 chỗ filter TVV theo maBanNhom:
+  1. renderStructure line 6328: pTVVs (đếm TVV theo phòng)
+  2. renderStructure line 6380: bnTVVs (đếm TVV trong nhóm + sort theo chức vụ)
+  3. renderThuongQuyTN line 5158: tvvInNhom (sum FYP nhóm theo quý)
+  4. renderThuongPTKDTN line 5468: tvvInNhom (sum FYP nhóm theo tháng)
+
+TypeScript: 24 errors (cùng baseline)
+Next.js build: SUCCESS
+Commit bc2da1b pushed to main, Vercel auto-deploying
+
+Stage Summary:
+- Tree Cấu trúc giờ sẽ hiển thị đầy đủ TVV trong nhóm PA/Banca (dù TVV dùng mã mới U104101014/A473DSO000, BanNhom dùng alias 'PA'/'Banca')
+- Tổng TVV trong summary strip (trên cùng) cũng sẽ đếm đúng
+- 2 chính sách Quý TN + PTKD TN cũng sẽ sum FYP đúng cho nhóm PA/Banca
