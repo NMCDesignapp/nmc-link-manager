@@ -453,3 +453,24 @@ Stage Summary:
 - Bug 2 (CS TVVm cột NTD trống): FIXED — resolveNguoiTD giờ lookup thêm tuyenNgangList
 - Đã push commit 919d08e lên origin/main, Vercel sẽ auto-deploy trong 1-2 phút
 - Lưu ý cho user: error message mới sẽ chỉ hiển thị sau khi Vercel deploy xong (check status tại vercel.com dashboard)
+
+---
+Task ID: ma-nhom-pa-banca-2026-06-23
+Agent: main
+Task: Chỉnh lại code nhận diện mã nhóm PA=U104101014 và Banca=A473DSO000 trên app
+
+Work Log:
+- Tìm các nơi hardcode 'PA' và 'Banca' trong code: src/app/quan-ly/page.tsx và src/app/thi-dua-chau/page.tsx
+- Trong quan-ly/page.tsx: SPECIAL_PHONG_NO_AD và PHONG_EXCLUDED_FROM_REWARDS là Set<string> hardcode 'PA'/'Banca'
+- Trong thi-dua-chau/page.tsx: check nhomLower.includes('dso') — ĐÃ match A473DSO000 (vì lowercase 'a473dso000' có 'dso')
+- Thêm constants MA_NHOM_PA = 'U104101014' và MA_NHOM_BANCA = 'A473DSO000' (alias: 'PA', 'Banca', 'DSO')
+- Helper isPaOrBancaCode(code) và isBancaCode(code) nhận diện cả alias cũ VÀ mã nhóm mới
+- Đổi SPECIAL_PHONG_NO_AD và PHONG_EXCLUDED_FROM_REWARDS từ Set thành function dùng helper
+- isTVVExcludedFromRewards giờ gọi isBancaCode(maBanNhom) / isBancaCode(bn.maAD) / isBancaCode(ad.maPhong)
+- TypeScript compile: 24 errors trước và sau khi edit (giống nhau) — không thêm lỗi mới
+- Commit c305826 + push origin/main để Vercel auto-deploy
+
+Stage Summary:
+- App giờ nhận diện được TVV thuộc nhóm PA (U104101014) hoặc Banca (A473DSO000) trong data thực tế
+- Tương thích ngược: dữ liệu cũ dùng alias 'PA'/'Banca'/'DSO' vẫn hoạt động
+- thi-dua-chau không cần đổi (logic includes('dso') đã match A473DSO000)
