@@ -378,17 +378,51 @@ function resolveNhomName(
   maBanNhom: string,
   banNhomList: Array<{ maBanNhom: string; tenBanNhom: string }>,
   _contracts: Array<{ agentCode: string; nhom: string }>,
-  leaders: Array<{ agentCode: string; nhom: string }>,
+  leaders: Array<{ agentCode: string; nhom: string; maNhom?: string }>,
 ): string {
-  // Priority 1: BanNhom lookup
+  // NGUYÊN TẮC: MÃ nhóm CHỈ dùng để tính, KHÔNG dùng để hiển thị.
+  // Luôn resolve ra TÊN nhóm. Nếu chỉ có mã mà không tìm được tên → trả ''.
+
+  // Helper: case-insensitive lookup trong banNhomList
+  const lookupTenByMa = (code: string): string => {
+    const c = code.trim();
+    if (!c) return '';
+    const bn = banNhomList.find(b => b.maBanNhom === c || b.maBanNhom.toLowerCase() === c.toLowerCase());
+    return bn?.tenBanNhom || '';
+  };
+
+  // Priority 1: BanNhom lookup qua maBanNhom của TVV (chính xác nhất)
   if (maBanNhom && maBanNhom.trim()) {
-    const bn = banNhomList.find(b => b.maBanNhom === maBanNhom);
-    if (bn?.tenBanNhom) return bn.tenBanNhom;
+    const ten = lookupTenByMa(maBanNhom);
+    if (ten) return ten;
   }
-  // Priority 2: leaderInfo.nhom (TVV is also a leader)
+  // Priority 2: Nếu TVV cũng là leader → dùng leader.maNhom để lookup tenBanNhom
   if (agentCode) {
-    const leader = leaders.find(l => l.agentCode === agentCode && l.nhom && l.nhom.trim());
-    if (leader?.nhom) return leader.nhom;
+    const leader = leaders.find(l => l.agentCode === agentCode);
+    if (leader) {
+      const leaderMaNhom = (leader.maNhom || '').trim();
+      if (leaderMaNhom) {
+        const ten = lookupTenByMa(leaderMaNhom);
+        if (ten) return ten;
+      }
+      // Priority 3: leader.nhom — CHỈ dùng nếu nó KHÔNG phải mã nhóm
+      // (nếu leader.nhom khớp với 1 maBanNhom → đó là mã, không phải tên → resolve thành tên)
+      const leaderNhom = (leader.nhom || '').trim();
+      if (leaderNhom) {
+        const tenFromLeaderNhom = lookupTenByMa(leaderNhom);
+        if (tenFromLeaderNhom) return tenFromLeaderNhom;
+        // Heuristic: phân biệt TÊN nhóm vs MÃ nhóm
+        // - Có dấu tiếng Việt, có space, hoặc có chữ thường → TÊN nhóm → dùng
+        // - All uppercase, không space, không dấu, không chữ thường → suspect MÃ → không hiển thị
+        const hasVietnamese = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(leaderNhom);
+        const hasSpace = /\s/.test(leaderNhom);
+        const hasLowercase = /[a-z]/.test(leaderNhom);
+        if (hasVietnamese || hasSpace || hasLowercase) {
+          return leaderNhom;
+        }
+        // Suspect mã nhóm (vd 'PA', 'U104101014', 'A473DSO000') → KHÔNG hiển thị
+      }
+    }
   }
   return '';
 }
@@ -1323,6 +1357,51 @@ export default function QuanLyPage() {
   const [mobilePolicyPopupOpen, setMobilePolicyPopupOpen] = useState(false); // mobile: policy sub-item popup
   const [mobileRevenuePopupOpen, setMobileRevenuePopupOpen] = useState(false); // mobile: revenue month popup
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  // policyOpen declared here (used by navigateTo/handleAppBack below)
+  const [policyOpen, setPolicyOpen] = useState<string | null>('tvvm');
+
+  // ========== INTERNAL NAV HISTORY (Back button support) ==========
+  // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
+  // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
+  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey };
+  const navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]);
+  const isNavigatingBackRef = useRef(false); // flag: đang pop stack → không push lại
+
+  // Wrapper: navigate tới state mới → push state cũ vào history
+  const navigateTo = useCallback((next: NavState) => {
+    if (isNavigatingBackRef.current) {
+      isNavigatingBackRef.current = false;
+      return;
+    }
+    const current: NavState = {
+      sheet: activeSheet,
+      revenueSub,
+      policyOpen,
+      structureSub,
+    };
+    navHistoryRef.current.push(current);
+    if (next.sheet !== activeSheet) setActiveSheet(next.sheet);
+    if (next.revenueSub !== undefined && next.revenueSub !== revenueSub) setRevenueSub(next.revenueSub);
+    if (next.policyOpen !== undefined && next.policyOpen !== policyOpen) setPolicyOpen(next.policyOpen);
+    if (next.structureSub !== undefined && next.structureSub !== structureSub) setStructureSub(next.structureSub);
+  }, [activeSheet, revenueSub, policyOpen, structureSub]);
+
+  // Back button handler: pop 1 state từ history
+  const handleAppBack = useCallback(() => {
+    if (navHistoryRef.current.length <= 1) {
+      // History rỗng → fallback: về overview
+      setActiveSheet('overview');
+      return;
+    }
+    navHistoryRef.current.pop();
+    const prev = navHistoryRef.current[navHistoryRef.current.length - 1];
+    isNavigatingBackRef.current = true;
+    if (prev.sheet !== activeSheet) setActiveSheet(prev.sheet);
+    if (prev.revenueSub !== undefined && prev.revenueSub !== revenueSub) setRevenueSub(prev.revenueSub);
+    if (prev.policyOpen !== undefined && prev.policyOpen !== policyOpen) setPolicyOpen(prev.policyOpen);
+    if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
+  }, [activeSheet, revenueSub, policyOpen, structureSub]);
+
 
   // Online settings state (fetched from API instead of localStorage)
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -2592,7 +2671,7 @@ export default function QuanLyPage() {
                       if (sheet.hasSub) {
                         setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
                       } else {
-                        setActiveSheet(sheet.key);
+                        navigateTo({ sheet: sheet.key });
                         setSearchTerm('');
                         setSortField('');
                         setMobileMenuPopup(null);
@@ -2638,14 +2717,11 @@ export default function QuanLyPage() {
                               key={s.key}
                               onClick={() => {
                                 if (sheet.key === 'revenue') {
-                                  setActiveSheet('revenue');
-                                  setRevenueSub(s.key as RevenueSubKey);
+                                  navigateTo({ sheet: 'revenue', revenueSub: s.key as RevenueSubKey });
                                 } else if (sheet.key === 'report') {
-                                  setActiveSheet('report');
-                                  setPolicyOpen(s.key);
+                                  navigateTo({ sheet: 'report', policyOpen: s.key });
                                 } else if (sheet.key === 'structure') {
-                                  setActiveSheet('structure');
-                                  setStructureSub(s.key as StructureSubKey);
+                                  navigateTo({ sheet: 'structure', structureSub: s.key as StructureSubKey });
                                   if (s.key === 'tvv') fetchTvvStruct();
                                   else if (s.key === 'leaders') fetchLeaders();
                                   else if (s.key === 'recruiters') fetchRecruiters();
@@ -3570,7 +3646,7 @@ export default function QuanLyPage() {
   ];
 
   // ========== RENDER: Chính sách đại lý ==========
-  const [policyOpen, setPolicyOpen] = useState<string | null>('tvvm');
+  // (policyOpen state đã khai báo ở trên cùng — dùng chung cho navigateTo/back button)
 
   // Thưởng Quý TVV filters
   const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string>('');
@@ -4645,7 +4721,7 @@ export default function QuanLyPage() {
       const tienThuong = Math.round(tongThuongTVVm * (tlThuong / 100));
 
       // Resolve NHÓM từ DS TB/TN (đã có sẵn field nhom)
-      const nhomName = ntd.nhomName || resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders);
+      const nhomName = resolveNhomName(ntd.agentCode, ntd.maBanNhom, banNhomList, contracts, leaders) || ntd.nhomName;
 
       return {
         stt: 0 as number,
@@ -4886,8 +4962,9 @@ export default function QuanLyPage() {
 
       const tongTienThuong = thuongDongHanh + thuongVuotTroi;
 
-      // NHÓM: dùng luôn nhomName từ DS TTN
-      const nhomName = ttn.nhomName;
+      // NHÓM: resolve qua resolveNhomName để tránh hiển thị mã nhóm
+      // (ttn.nhomName có thể chứa mã nếu user nhập mã vào field tên — resolveNhomName sẽ lọc)
+      const nhomName = resolveNhomName(ttn.agentCode, '', banNhomList, contracts, leaders) || ttn.nhomName;
 
       return {
         stt: 0 as number,
@@ -5134,7 +5211,7 @@ export default function QuanLyPage() {
       const tlThuong = achievedTier >= 0 ? TN_TIERS[achievedTier].rate : 0;
       const tienThuong = achievedTier >= 0 ? fyc * (TN_TIERS[achievedTier].rate / 100) : 0;
 
-      const nhomName = tn.nhomName || resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders);
+      const nhomName = resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders) || tn.nhomName;
 
       return {
         stt: 0 as number,
@@ -5406,7 +5483,7 @@ export default function QuanLyPage() {
 
       return {
         stt: 0 as number,
-        nhom: tn.nhomName,
+        nhom: resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders) || tn.nhomName,
         maTN: tn.agentCode,
         hoTen: tn.agentName,
         tongFYPNhom,
@@ -5733,7 +5810,7 @@ export default function QuanLyPage() {
                       return (
                         <button
                           key={p.key}
-                          onClick={() => { setPolicyOpen(p.key); setMobilePolicyPopupOpen(false); }}
+                          onClick={() => { navigateTo({ sheet: 'report', policyOpen: p.key }); setMobilePolicyPopupOpen(false); }}
                           className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
                         >
                           <PIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: p.color }} />
@@ -5930,7 +6007,7 @@ export default function QuanLyPage() {
                   return (
                     <button
                       key={m.key}
-                      onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); setMobileRevenuePopupOpen(false); }}
+                      onClick={() => { navigateTo({ sheet: 'revenue', revenueSub: m.key }); setSettingsNhomFilter(''); setMobileRevenuePopupOpen(false); }}
                       className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-cyan-500/20 ${subActive ? 'text-cyan-300 bg-cyan-500/10' : 'text-emerald-100/80'}`}
                     >
                       <MIcon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -5949,7 +6026,7 @@ export default function QuanLyPage() {
           {MONTHS.map(m => (
             <button
               key={m.key}
-              onClick={() => { setRevenueSub(m.key); setSettingsNhomFilter(''); }}
+              onClick={() => { navigateTo({ sheet: 'revenue', revenueSub: m.key }); setSettingsNhomFilter(''); }}
               className={`px-2.5 py-1 rounded-[2px] text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${
                 revenueSub === m.key
                   ? 'bg-amber-100 border border-amber-300 text-amber-800 shadow-sm'
@@ -6623,7 +6700,7 @@ export default function QuanLyPage() {
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
-        <BackButton onClick={() => { if (typeof window !== 'undefined') { if (window.history.length > 1) window.history.back(); else window.location.href = '/'; } }} size={20} title="Trở về trang trước" />
+        <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
@@ -6673,14 +6750,11 @@ export default function QuanLyPage() {
                 : null;
               const handleSubClick = (subKey: string) => {
                 if (sheet.key === 'revenue') {
-                  setActiveSheet('revenue');
-                  setRevenueSub(subKey as RevenueSubKey);
+                  navigateTo({ sheet: 'revenue', revenueSub: subKey as RevenueSubKey });
                 } else if (sheet.key === 'report') {
-                  setActiveSheet('report');
-                  setPolicyOpen(subKey);
+                  navigateTo({ sheet: 'report', policyOpen: subKey });
                 } else if (sheet.key === 'structure') {
-                  setActiveSheet('structure');
-                  setStructureSub(subKey as StructureSubKey);
+                  navigateTo({ sheet: 'structure', structureSub: subKey as StructureSubKey });
                   // Load sub-data on demand
                   if (subKey === 'tvv') fetchTvvStruct();
                   else if (subKey === 'leaders') fetchLeaders();
@@ -6693,7 +6767,7 @@ export default function QuanLyPage() {
                 <div key={sheet.key}>
                   <button
                     onClick={() => {
-                      setActiveSheet(sheet.key);
+                      navigateTo({ sheet: sheet.key });
                       setSearchTerm('');
                       setSortField('');
                       if (sheet.hasSub) {
