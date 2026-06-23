@@ -187,6 +187,21 @@ const isBancaCode = (code: string): boolean => {
   const lower = c.toLowerCase();
   return lower === 'banca' || lower === 'dso' || c === MA_NHOM_BANCA;
 };
+
+// Helper: so khớp 2 mã nhóm — chấp nhận alias (PA==U104101014, Banca==A473DSO000)
+// Dùng cho mọi chỗ filter TVV theo maBanNhom (tránh mismatch alias cũ vs mã mới)
+const matchMaBanNhom = (codeA: string, codeB: string): boolean => {
+  const a = String(codeA || '').trim();
+  const b = String(codeB || '').trim();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Cả 2 là alias của PA?
+  if (ALIAS_PA.has(a) && ALIAS_PA.has(b)) return true;
+  // Cả 2 là alias của Banca?
+  if (ALIAS_BANCA.has(a) && ALIAS_BANCA.has(b)) return true;
+  // Case-insensitive fallback
+  return a.toLowerCase() === b.toLowerCase();
+};
 const SPECIAL_PHONG_NO_AD = (maPhong: string): boolean => isPaOrBancaCode(maPhong);
 const PHONG_EXCLUDED_FROM_REWARDS = (maPhong: string): boolean => isBancaCode(maPhong);
 // Sort order: các phòng đặc biệt luôn xuống cuối
@@ -5139,8 +5154,8 @@ export default function QuanLyPage() {
       }));
 
     const tnRows = tnList.map((tn) => {
-      // Find all TVVs in TN's nhóm (for FYP sum)
-      const tvvInNhom = tvvStructList.filter(tvv => tvv.maBanNhom === tn.maBanNhom);
+      // Find all TVVs in TN's nhóm (for FYP sum) — match alias để tránh mismatch PA/U104101014
+      const tvvInNhom = tvvStructList.filter(tvv => matchMaBanNhom(tvv.maBanNhom, tn.maBanNhom));
 
       // Sum FYP of all TVVs in nhóm for current quarter
       const quarterContracts = contracts.filter(c => {
@@ -5449,8 +5464,8 @@ export default function QuanLyPage() {
       }));
 
     const tnRows = tnList.map((tn) => {
-      // Tìm tất cả TVV trong cùng nhóm
-      const tvvInNhom = tvvStructList.filter(tvv => tvv.maBanNhom === tn.maBanNhom);
+      // Tìm tất cả TVV trong cùng nhóm — match alias để tránh mismatch PA/U104101014
+      const tvvInNhom = tvvStructList.filter(tvv => matchMaBanNhom(tvv.maBanNhom, tn.maBanNhom));
 
       // Tổng FYP nhóm tháng hiện tại = tổng pdt10DT của contracts trong tháng
       const monthContracts = contracts.filter(c => {
@@ -6310,7 +6325,7 @@ export default function QuanLyPage() {
             .map(p => {
             const pADs = adList.filter(a => a.maPhong === p.maPhong);
             const pBanNhoms = banNhomList.filter(b => pADs.some(a => a.maAD === b.maAD));
-            const pTVVs = tvvStructList.filter(t => pBanNhoms.some(b => b.maBanNhom === t.maBanNhom));
+            const pTVVs = tvvStructList.filter(t => pBanNhoms.some(b => matchMaBanNhom(b.maBanNhom, t.maBanNhom)));
             return (
               <div key={p.id} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
                 {/* PHÒNG header — dark strip like Kế hoạch */}
@@ -6362,7 +6377,7 @@ export default function QuanLyPage() {
                           {aBNs.map(b => {
                             const isExpanded = expandedBanNhoms.has(b.id);
                             const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3, 'TVV': 4 };
-                            const bnTVVs = tvvStructList.filter(t => t.maBanNhom === b.maBanNhom)
+                            const bnTVVs = tvvStructList.filter(t => matchMaBanNhom(b.maBanNhom, t.maBanNhom))
                               .sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
                             const tdCount = bnTVVs.filter(t => {
                               if (!t.ngayBatDau) return false;
