@@ -3797,26 +3797,6 @@ export default function QuanLyPage() {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
-    // Build a map of agentCode → recruiter name from contracts
-    const recruiterMap = new Map<string, string>();
-    for (const c of contracts) {
-      if (c.maDaiLyTD && c.agentCode) {
-        if (!recruiterMap.has(c.agentCode)) {
-          const recruiter = recruiters.find(r => r.agentCode === c.maDaiLyTD);
-          if (recruiter) {
-            recruiterMap.set(c.agentCode, recruiter.agentName);
-          } else {
-            const recruiterContract = contracts.find(rc => rc.agentCode === c.maDaiLyTD);
-            if (recruiterContract) {
-              recruiterMap.set(c.agentCode, recruiterContract.agentName);
-            } else {
-              recruiterMap.set(c.agentCode, c.maDaiLyTD);
-            }
-          }
-        }
-      }
-    }
-
     // Filter chỉ TVVm (≤ 12 tháng theo định nghĩa trang thi đua)
     // Bỏ Ban Ca và TVV không có nhóm
     const tvvmList = tvvStructList.filter(tvv => {
@@ -3859,8 +3839,8 @@ export default function QuanLyPage() {
       // Get nhóm name — fallback to contracts/leaders if BanNhom missing
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
-      // Get recruiter name — fallback chain (uses new helper)
-      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvv.agentCode, tvvStructList, contracts, recruiters, leaders, tuyenNgangList);
+      // Get recruiter name — lookup trong DS Tổng TVV theo mã NTD
+      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvvStructList);
 
       return {
         stt: 0 as number,
