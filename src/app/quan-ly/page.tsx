@@ -457,27 +457,44 @@ function resolveNhomName(
 }
 
 // Helper: resolve Người Tuyển Dụng name for a TVV.
-// NGUYÊN TẮC:
-//   - Lấy mã NTD (maTVVTuyendung) của TVV đó
-//   - Quay lại DS Tổng TVV (tvvStructList), tìm dòng có agentCode == mã NTD
-//   - Tìm thấy → lấy agentName. Không tìm → TRỐNG (không fallback, không trả mã)
-//   - KHÔNG fallback qua contracts.maDaiLyTD hay bất kỳ DS nào khác
-//   - Lookup ROBUST: trim + case-insensitive để tránh miss do whitespace/hoa-thường
+// NGUYÊN TẮC (theo user):
+//   Bước 1+2: Lấy mã số TVV (tvvAgentCode) → lookup trong DS Tổng TVV
+//            → ra mã đại lý tuyển dụng (maTVVTuyendung) — ẩn mã, KHÔNG hiển thị
+//   Bước 3:   Dùng mã NTD vừa tìm được → lookup lại trong DS Tổng TVV
+//            → ra agentName (tên người TD) — hiển thị
+//   Không tìm thấy ở bước nào → TRỐNG (không fallback, không trả mã)
+//   Lookup ROBUST: trim + case-insensitive
 function resolveNguoiTD(
-  tvvMaTVVTuyendung: string | null | undefined,
-  tvvStructList: Array<{ agentCode: string; agentName: string }>,
+  tvvAgentCode: string | null | undefined,
+  tvvStructList: Array<{ agentCode: string; agentName: string; maTVVTuyendung?: string | null }>,
 ): string {
-  if (!tvvMaTVVTuyendung || !tvvMaTVVTuyendung.trim()) return '';
-  const code = tvvMaTVVTuyendung.trim().toLowerCase();
-  const tdTVV = tvvStructList.find(t => (t.agentCode || '').trim().toLowerCase() === code);
-  if (!tdTVV) {
-    // DEBUG: log để user mở DevTools (F12 → Console) xem mã NTD thực tế
+  if (!tvvAgentCode || !tvvAgentCode.trim()) return '';
+  const tvvCode = tvvAgentCode.trim().toLowerCase();
+  // Bước 1+2: tìm dòng TVV trong DS TVV → lấy mã NTD
+  const tvvRow = tvvStructList.find(t => (t.agentCode || '').trim().toLowerCase() === tvvCode);
+  if (!tvvRow) {
     if (typeof window !== 'undefined' && (window as any).__debugNTD) {
-      console.warn('[resolveNguoiTD] Mã NTD không tìm thấy trong DS Tổng TVV:', code);
+      console.warn('[resolveNguoiTD] Bước 1: Không tìm thấy TVV trong DS TVV:', tvvAgentCode);
     }
     return '';
   }
-  return tdTVV.agentName || '';
+  const maNTD = (tvvRow.maTVVTuyendung || '').trim();
+  if (!maNTD) {
+    if (typeof window !== 'undefined' && (window as any).__debugNTD) {
+      console.warn('[resolveNguoiTD] Bước 2: TVV có mặt trong DS nhưng maTVVTuyendung trống:', tvvAgentCode);
+    }
+    return '';
+  }
+  // Bước 3: tìm dòng NTD trong DS TVV → lấy tên
+  const ntdCode = maNTD.toLowerCase();
+  const ntdRow = tvvStructList.find(t => (t.agentCode || '').trim().toLowerCase() === ntdCode);
+  if (!ntdRow) {
+    if (typeof window !== 'undefined' && (window as any).__debugNTD) {
+      console.warn('[resolveNguoiTD] Bước 3: Có mã NTD nhưng không tìm trong DS TVV:', maNTD, '(của TVV:', tvvAgentCode, ')');
+    }
+    return '';
+  }
+  return ntdRow.agentName || '';
 }
 
 function formatCurrency(n: number): string {
@@ -3861,8 +3878,10 @@ export default function QuanLyPage() {
       // Get nhóm name — fallback to contracts/leaders if BanNhom missing
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders);
 
-      // Get recruiter name — lookup trong DS Tổng TVV theo mã NTD
-      const nguoiTD = resolveNguoiTD(tvv.maTVVTuyendung, tvvStructList);
+      // Get recruiter name — 2-step lookup trong DS Tổng TVV
+      // (1) lấy agentCode của TVVm đó → lookup ra maTVVTuyendung (ẩn mã)
+      // (2) dùng mã NTD đó → lookup lại ra agentName (hiển thị)
+      const nguoiTD = resolveNguoiTD(tvv.agentCode, tvvStructList);
 
       return {
         stt: 0 as number,
