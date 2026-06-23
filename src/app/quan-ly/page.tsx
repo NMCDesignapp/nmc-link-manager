@@ -385,6 +385,9 @@ function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | 
 
 // Helper: resolve NHÓM name for a TVV.
 // NGUYÊN TẮC: thông tin lấy từ Danh sách / Cấu trúc, KHÔNG lấy từ file doanh số.
+// NGUYÊN TẮC QUAN TRỌNG: MÃ nhóm CHỈ dùng để tính, KHÔNG dùng để hiển thị.
+//   → Bất kỳ giá trị nào trông giống MÃ (có chữ số, hoặc all-UPPER không dấu không space dài)
+//     đều bị loại, kể cả khi nó nằm trong cột tenBanNhom (do nhập nhầm).
 // Priority 1: BanNhom lookup by maBanNhom (DS Nhóm — nguồn chính thức)
 // Priority 2: LeaderInfo.nhom where agentCode matches (DS TB/TN — nếu TVV là leader)
 // Priority 3: empty string (không fallback vào contracts.nhom nữa)
@@ -395,15 +398,33 @@ function resolveNhomName(
   _contracts: Array<{ agentCode: string; nhom: string }>,
   leaders: Array<{ agentCode: string; nhom: string; maNhom?: string }>,
 ): string {
-  // NGUYÊN TẮC: MÃ nhóm CHỈ dùng để tính, KHÔNG dùng để hiển thị.
-  // Luôn resolve ra TÊN nhóm. Nếu chỉ có mã mà không tìm được tên → trả ''.
+  // Heuristic: phân biệt TÊN nhóm vs MÃ nhóm
+  // Trả TRUE nếu s trông giống MÃ nhóm (loại bỏ, không hiển thị):
+  //   - Có chữ số (vd U104101014, A473DSO000)
+  //   - All uppercase, không dấu tiếng Việt, không space, length >= 6 (vd A473DSO, PA0001)
+  // Trả FALSE nếu s là TÊN nhóm hợp lệ (vd PA, Banca, TB1, Kinh Doanh 1)
+  const isLikelyNhomCode = (s: string): boolean => {
+    const t = (s || '').trim();
+    if (!t) return false;
+    if (/\d/.test(t)) return true;                          // có chữ số → suspect mã
+    const hasVietnamese = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(t);
+    const hasSpace = /\s/.test(t);
+    const hasLowercase = /[a-z]/.test(t);
+    if (hasVietnamese || hasSpace || hasLowercase) return false;
+    // All uppercase, không dấu, không space → suspect mã nếu dài >= 6
+    return t.length >= 6;
+  };
 
-  // Helper: case-insensitive lookup trong banNhomList
+  // Helper: case-insensitive lookup trong banNhomList — trả tenBanNhom NẾU nó không phải mã
   const lookupTenByMa = (code: string): string => {
     const c = code.trim();
     if (!c) return '';
     const bn = banNhomList.find(b => b.maBanNhom === c || b.maBanNhom.toLowerCase() === c.toLowerCase());
-    return bn?.tenBanNhom || '';
+    const ten = bn?.tenBanNhom || '';
+    if (!ten) return '';
+    // Heuristic: nếu tenBanNhom trông giống mã → loại (nhập nhầm mã vào cột tên)
+    if (isLikelyNhomCode(ten)) return '';
+    return ten;
   };
 
   // Priority 1: BanNhom lookup qua maBanNhom của TVV (chính xác nhất)
@@ -421,22 +442,15 @@ function resolveNhomName(
         if (ten) return ten;
       }
       // Priority 3: leader.nhom — CHỈ dùng nếu nó KHÔNG phải mã nhóm
-      // (nếu leader.nhom khớp với 1 maBanNhom → đó là mã, không phải tên → resolve thành tên)
       const leaderNhom = (leader.nhom || '').trim();
-      if (leaderNhom) {
+      if (leaderNhom && !isLikelyNhomCode(leaderNhom)) {
+        // Nếu leader.nhom khớp với 1 maBanNhom → resolve thành tenBanNhom
         const tenFromLeaderNhom = lookupTenByMa(leaderNhom);
         if (tenFromLeaderNhom) return tenFromLeaderNhom;
-        // Heuristic: phân biệt TÊN nhóm vs MÃ nhóm
-        // - Có dấu tiếng Việt, có space, hoặc có chữ thường → TÊN nhóm → dùng
-        // - All uppercase, không space, không dấu, không chữ thường → suspect MÃ → không hiển thị
-        const hasVietnamese = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(leaderNhom);
-        const hasSpace = /\s/.test(leaderNhom);
-        const hasLowercase = /[a-z]/.test(leaderNhom);
-        if (hasVietnamese || hasSpace || hasLowercase) {
-          return leaderNhom;
-        }
-        // Suspect mã nhóm (vd 'PA', 'U104101014', 'A473DSO000') → KHÔNG hiển thị
+        // Ngược lại nó là TÊN nhóm hợp lệ → dùng luôn
+        return leaderNhom;
       }
+      // Suspect mã nhóm (vd 'PA', 'U104101014', 'A473DSO000') → KHÔNG hiển thị
     }
   }
   return '';
