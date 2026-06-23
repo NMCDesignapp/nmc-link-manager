@@ -40,7 +40,7 @@ export async function GET() {
         db.tVVStruct.findMany({
           select: {
             id: true, agentCode: true, agentName: true, maBanNhom: true,
-            chucVu: true, ngayBatDau: true, note: true,
+            chucVu: true, ngayBatDau: true, maTVVTuyendung: true, note: true,
           },
           orderBy: { agentName: 'asc' },
         }),
