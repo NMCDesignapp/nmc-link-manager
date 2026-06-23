@@ -670,3 +670,40 @@ Stage Summary:
 - THỰC HIỆN THÁNG/LŨY KẾ: tính từ contracts (FYP = PĐT + 10% ĐT)
 - CHỈ TIÊU + THƯỞNG: để trống (—) — chờ user cung cấp công thức chi tiết
 - Production verified: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly → Chính sách đại lý → Thưởng chính sách TTN tuyển ngang
+
+---
+Task ID: policy-tl-dh-qt-verify-2026-06-24
+Agent: main
+Task: Kiểm tra 2 chỗ: (1) Tuyển Luyện + Đồng Hành: TVVm phải theo mã Người tuyển dụng + IP theo ngày phát hành; (2) Quý TN TVVm HĐC: TVVm do TN tuyển trong Quý + 1 tháng IP≥12tr → ✓/✗; (3) TVVm table header THƯỞNG CHẶNG thêm "(TVV nhận 1 lần/chặng)" in nghiêng đỏ nhỏ
+
+Work Log:
+- VERIFY #1 (Tuyển Luyện + Đồng Hành):
+  + renderThuongTuyenLuyện line 4690-4694: tvvStructList.filter(tvv => tvv.maTVVTuyendung === ntdCode) ✓
+  + renderThuongDongHanh line 4922-4929: tvvStructList.filter(tvv => tvv.maTVVTuyendung === ttnCode) ✓
+  + isTVVm line 3822: diffMonths = (now.y - start.y)*12 + (now.m - start.m); return diffMonths < 12 ✓ (tròn tháng, không tính ngày)
+  + getDoanhSoMonth line 384: dùng issueDate (Ngày PH) trước, fallback effectiveDate ✓
+  → ĐÃ ĐÚNG, không cần sửa
+- VERIFY #2 (Quý TN TVVm HĐC):
+  + Logic line 5196-5222: TVVm phải là (1) isTVVm true, (2) maTVVTuyendung === tnCode, (3) ngayBatDau trong quý hiện tại, (4) có ít nhất 1 tháng trong quý có tổng IP (theo issueDate) ≥ 12tr
+  + Render line 5376-5382: ✓ (bg #22C55E) nếu hasTVVmHDC, ✗ (bg #EF4444) nếu không
+  + Production verify: 27 TN rows, 16 ✓ + 11 ✗ — đúng logic
+  → ĐÃ ĐÚNG, không cần sửa
+- IMPLEMENT #3 (TVVm table header):
+  + Line 4076: thêm <br/><span style="color:#FCA5A5;font-style:italic;font-size:9px">(TVV nhận 1 lần/chặng)</span> dưới chữ "THƯỞNG CHẶNG"
+  + #FCA5A5 = light red, italic, 9px (smaller than main 11px)
+  + Production verify: computed style color=rgb(252,165,165), fontStyle=italic, fontSize=9px, text="(TVV nhận 1 lần/chặng)" ✓
+- Build: SUCCESS (no errors)
+- Commit 6e8cf60 pushed to main, Vercel auto-deployed
+- Verify production (agent-browser):
+  + Tuyển Luyện row 1: Niềm Tin, Lê Hồng Yến Nhi (D251605032), TỔNG THƯỞNG TVVm 2tr, SL TVVm HĐC 2, TL 125%, TIỀN THƯỞNG 2.5tr ✓
+  + Đồng Hành row 1: An Phú 2, Nguyễn Thị Khi (D104103649), FYP TVVm 60.2tr, TỔNG THƯỞNG TVVm 9tr, SL TVVm HĐC 3, THƯỞNG ĐỒNG HÀNH 18tr, THƯỞNG VƯỢT TRỘI 5tr, TỔNG 23tr ✓
+  + Quý TN row 1: Chợ Mới 1, Nguyễn Thị Lê Giào (D104142435), TỔNG FYP QUÝ 738.6tr, TVVm HĐC ✓ (green), 5 tiers ĐẠT, TIỀN THƯỞNG 40.6tr ✓
+  + TVVm table header THƯỞNG CHẶNG: có subscript "(TVV nhận 1 lần/chặng)" in nghiêng đỏ 9px ✓
+
+Stage Summary:
+- 3 yêu cầu của user ĐÃ HOÀN THÀNH:
+  1. Tuyển Luyện + Đồng Hành: đã đúng từ trước (TVVm theo maTVVTuyendung, IP theo issueDate, TVVm tròn tháng ≤ 12)
+  2. Quý TN TVVm HĐC: đã đúng từ trước (TVVm do TN tuyển trong Quý + 1 tháng IP≥12tr → ✓/✗)
+  3. TVVm table header THƯỞNG CHẶNG: đã thêm subscript "(TVV nhận 1 lần/chặng)" in nghiêng đỏ nhỏ
+- Production đã deploy commit 6e8cf60, verify thực tế OK
+- Giải thích cho user: TVVm table là chương trình thưởng RIÊNG cho TVVm (1tr/tháng × 3 + 3tr chặng = max 6tr nếu không có xuất phát sớm), thuongChang logic: chặng 1 FYP≥100tr → 6tr (3tr chặng + 3tr xuất phát sớm), chặng 1 FYP≥50tr → 3tr, chặng 2-4 FYP≥100tr → 3tr
