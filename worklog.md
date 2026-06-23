@@ -421,3 +421,35 @@ Stage Summary:
 - Import TTN Tuyen Ngang gio bao loi cu the (vi sao 0 dong duoc luu) thay vi bao "thanh cong" mac du DS rong
 - API /structure/tvv gio chap nhan nhieu bien the header cho maTVVTuyendung (bo dau TV, alias)
 - De fix cot NTD trong: USER CAN PHAI RE-IMPORT FILE TVV voi header moi hoac header da khop -> du lieu maTVVTuyendung se duoc luu -> cot NTD trong CS TVVm se co ten
+
+---
+Task ID: bugfix-tuyen-ngang-import-2026-06-23
+Agent: main
+Task: Fix 2 bugs user báo: (1) DS TTN Tuyển Ngang vẫn lỗi "Dữ liệu bị trùng hoặc không hợp lệ" khi upload; (2) CS TVVm cột NTD trống
+
+Work Log:
+- Tìm root cause bug 1: error message "Dữ liệu bị trùng hoặc không hợp lệ" đến từ commit 68a5399 (đã deploy lên Vercel), trong code:
+  `toast({ title: 'Import thất bại', description: '0 dòng được lưu. Có thể mã TVV bị trùng hoặc dữ liệu không hợp lệ.' })`
+  Nguyên nhân thực: API /api/tuyen-ngang có filter strict `.filter(m => m.agentCode && m.agentName)` → nếu file user upload có dòng thiếu 1 trong 2 → 0 dòng được lưu → hiển thị message sai ý
+- Tìm root cause bug 2: resolveNguoiTD chỉ tìm trong 3 nguồn (tvvStructList/leaders/recruiters), không có tuyenNgangList. renderTvvm cũng không pass tuyenNgangList
+- Fix API /api/tuyen-ngang (POST members mode):
+  + Loosen filter: chỉ cần agentCode (agentName fill 'Chưa nhập' nếu trống)
+  + Trim agentCode, dedupe trong batch
+  + Track errored + errors[], return 4xx nếu tất cả dòng lỗi
+- Fix frontend page.tsx handleImport('tuyen-ngang'):
+  + Replace misleading message với: '0 dòng được lưu. Có thể header file không khớp.' (realCount=0, errored=0) hoặc 'Tất cả X dòng lỗi. <errors>' (realCount=0, errored>0)
+  + Hiển thị sampleKeys (header thực tế) khi members.length=0
+  + Hiển thị created/updated/errored/duplicatesSkipped breakdown
+  + Parse result.json() trước khi check r.ok
+- Fix bug 2 (CS TVVm cột NTD):
+  + resolveNguoiTD: thêm tuyenNgangList làm nguồn thứ 4
+  + renderTvvm (line 3768): pass tuyenNgangList vào resolveNguoiTD
+  + loadSheet: thêm fetchTuyenNgang() vào loaders['kehoach'] và loaders['report']
+- Revert package.json change (build script thêm prisma migrate deploy — risky cho Vercel build)
+- Commit 919d08e + push origin/main để Vercel auto-deploy
+
+Stage Summary:
+- Bug 1 (DS TTN Tuyển Ngang lỗi import): FIXED — looser filter + better error reporting
+- Bug 2 (CS TVVm cột NTD trống): FIXED — resolveNguoiTD giờ lookup thêm tuyenNgangList
+- Đã push commit 919d08e lên origin/main, Vercel sẽ auto-deploy trong 1-2 phút
+- Lưu ý cho user: error message mới sẽ chỉ hiển thị sau khi Vercel deploy xong (check status tại vercel.com dashboard)
