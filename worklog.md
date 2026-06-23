@@ -474,3 +474,36 @@ Stage Summary:
 - App giờ nhận diện được TVV thuộc nhóm PA (U104101014) hoặc Banca (A473DSO000) trong data thực tế
 - Tương thích ngược: dữ liệu cũ dùng alias 'PA'/'Banca'/'DSO' vẫn hoạt động
 - thi-dua-chau không cần đổi (logic includes('dso') đã match A473DSO000)
+
+---
+Task ID: fix-tuyen-ngang-table-missing-2026-06-23
+Agent: main
+Task: Fix 2 bugs user báo (lần 4): DS TTN Tuyển Ngang lỗi "Dữ liệu bị trùng hoặc không hợp lệ" + cột NTD CS TVVm trống
+
+Root cause (TÌM ĐÚNG RỒI):
+- Phân tích screenshot user gửi: lỗi thực sự là "The table 'public.TuyenNgang' does not exist in the current database"
+- Bảng TuyenNgang KHÔNG TỒN TẠI trong DB production Neon
+- Migration 20260620030000_add_tuyen_ngang đã commit vào git nhưng CHƯA được apply lên Neon
+- Migration 20260617040000_add_tvv_maTVVTuyendung cũng có thể chưa apply (column maTVVTuyendung thiếu → tvv.maTVVTuyendung undefined → NTD trống)
+- Lý do chưa apply: postinstall từng có 'prisma migrate deploy' nhưng bị remove (commit 144a213) vì lúc đó env vars empty. Giờ env vars đã set nhưng _prisma_migrations table có thể out of sync → prisma migrate deploy có thể fail
+
+Fix attempt 1 (FAIL): Thêm 'prisma migrate deploy &&' vào build script
+- Vercel deploy failed (commit 98d4c57)
+- Có thể vì _prisma_migrations table out of sync, migrate deploy thử apply tất cả migrations từ đầu → fail "table already exists"
+
+Fix attempt 2 (CURRENT): Revert build script + thêm admin endpoint /api/admin/fix-schema
+- Revert package.json về 'next build' (commit 4333ba3) → Vercel deploy SUCCESS
+- Tạo endpoint /api/admin/fix-schema (POST/GET) chạy raw SQL idempotent:
+  1. CREATE TABLE IF NOT EXISTS "TuyenNgang" (...)
+  2. CREATE UNIQUE INDEX IF NOT EXISTS "TuyenNgang_agentCode_key"
+  3. ALTER TABLE "TVVStruct" ADD COLUMN "maTVVTuyendung" (qua DO block check existence)
+  4. INSERT INTO "_prisma_migrations" mark 2 migrations as applied (best-effort)
+  5. Verify table + column exists
+- Endpoint bị Vercel Authentication protection → user phải tự mở URL trong browser
+
+Stage Summary:
+- Vercel deploy commit 4333ba3 SUCCESS (state=success, deployment completed)
+- Admin endpoint URL: https://my-project-nmchau022023-4326s-projects.vercel.app/api/admin/fix-schema
+- User cần: mở URL trên trong browser → endpoint sẽ fix DB → sau đó upload DS TTN Tuyển Ngang sẽ work + NTD CS TVVm sẽ populate
+- TypeScript check: 0 errors trong file mới
+- Local next build: SUCCESS (endpoint /api/admin/fix-schema đã compile)
