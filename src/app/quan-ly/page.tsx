@@ -462,14 +462,22 @@ function resolveNhomName(
 //   - Quay lại DS Tổng TVV (tvvStructList), tìm dòng có agentCode == mã NTD
 //   - Tìm thấy → lấy agentName. Không tìm → TRỐNG (không fallback, không trả mã)
 //   - KHÔNG fallback qua contracts.maDaiLyTD hay bất kỳ DS nào khác
+//   - Lookup ROBUST: trim + case-insensitive để tránh miss do whitespace/hoa-thường
 function resolveNguoiTD(
   tvvMaTVVTuyendung: string | null | undefined,
   tvvStructList: Array<{ agentCode: string; agentName: string }>,
 ): string {
   if (!tvvMaTVVTuyendung || !tvvMaTVVTuyendung.trim()) return '';
-  const code = tvvMaTVVTuyendung.trim();
-  const tdTVV = tvvStructList.find(t => t.agentCode === code);
-  return tdTVV?.agentName || '';
+  const code = tvvMaTVVTuyendung.trim().toLowerCase();
+  const tdTVV = tvvStructList.find(t => (t.agentCode || '').trim().toLowerCase() === code);
+  if (!tdTVV) {
+    // DEBUG: log để user mở DevTools (F12 → Console) xem mã NTD thực tế
+    if (typeof window !== 'undefined' && (window as any).__debugNTD) {
+      console.warn('[resolveNguoiTD] Mã NTD không tìm thấy trong DS Tổng TVV:', code);
+    }
+    return '';
+  }
+  return tdTVV.agentName || '';
 }
 
 function formatCurrency(n: number): string {
