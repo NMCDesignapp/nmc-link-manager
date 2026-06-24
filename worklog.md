@@ -707,3 +707,53 @@ Stage Summary:
   3. TVVm table header THƯỞNG CHẶNG: đã thêm subscript "(TVV nhận 1 lần/chặng)" in nghiêng đỏ nhỏ
 - Production đã deploy commit 6e8cf60, verify thực tế OK
 - Giải thích cho user: TVVm table là chương trình thưởng RIÊNG cho TVVm (1tr/tháng × 3 + 3tr chặng = max 6tr nếu không có xuất phát sớm), thuongChang logic: chặng 1 FYP≥100tr → 6tr (3tr chặng + 3tr xuất phát sớm), chặng 1 FYP≥50tr → 3tr, chặng 2-4 FYP≥100tr → 3tr
+
+---
+Task ID: excel-download-policy-2026-06-24
+Agent: main
+Task: Thêm chức năng tải file Excel cho các mục chính sách. Nút đặt cạnh nút "đồng bộ" (Tải lại) và "cài đặt" trên góc phải header. File tải về có 2 sheets: Sheet 1 "Chính sách" giống UI hiển thị, Sheet 2 "Hợp đồng chi tiết" — các HĐ được tính toán.
+
+Work Log:
+- Install xlsx-js-style 1.2.0 (drop-in replacement for SheetJS community, with full styling support — fonts, fills, borders, alignment, merges)
+- Create new utility file src/app/quan-ly/policy-excel-export.ts:
+  + scrapePolicyTable(tableEl): walk through <thead> + <tbody> rows, extract cell text (handle <br> as \n, skip hidden), build 2D cell array with xlsx-js-style style objects (font name/sz/bold/italic/color, fill bg, alignment h+v+wrap, border thin gray), track colSpan/rowSpan → merges, estimate col widths from text length (CJK = 2x)
+  + buildContractSheet(rows): styled contract detail sheet (header green emerald-800, body cells with right-align for numbers, numFmt '#,##0' for PĐT+10%ĐT and AFYP)
+  + downloadPolicyExcel(): build workbook with 2 sheets, generate file via XLSX.write(wb, { bookType: 'xlsx', type: 'array' }), trigger Blob download
+  + File name format: `${policyLabel}_T${M}-${YYYY}${yyyymmdd}.xlsx`
+- Add handleDownloadPolicyExcel() in page.tsx:
+  + Find DOM table via [data-policy-table="${policyOpen}"] > table
+  + Scrape table → Sheet 1 (preserves colors, fonts, borders, merges from rendered UI)
+  + Compute contract detail rows via buildContractDetailRows(policyKey) → Sheet 2
+  + Switch logic per policy:
+    * tvvm: TVVm (≤12 tháng, có nhóm, không Ban Ca) — IP tháng + IP chặng
+    * ns-tvv: TVV (tvvStructList) — IP tháng
+    * quy-tvv: TVV — IP quý
+    * tuyen-luyen: TVVm do TB/TN tuyển (maTVVTuyendung === agentCode) — IP tháng + IP chặng
+    * dong-hanh: TVVm do TTN tuyển — IP tháng + IP chặng
+    * ptkd-tn: TVV trong nhóm của TN (matchMaBanNhom) — IP tháng
+    * quy-tn: TVV trong nhóm của TN — IP quý
+    * tuyen-ngang: TVV do TTN Tuyển Ngang tuyển — IP tháng + lũy kế YTD
+  + Contract detail columns: STT, NHÓM, MÃ TVV, HỌ TÊN TVV, SỐ HĐ, NGÀY PH, THÁNG DS, PĐT+10%ĐT, AFYP, NGƯỜI TD, GHI CHÚ
+  + GHI CHÚ describes context (vd "TL Tháng 6/2026 • NTD: Lê Hồng Yến Nhi", "Chặng 1 (T5/26 - T7/26)", "Quý 2 (2026) • Nhóm: An Khang")
+  + Dedupe by `${contractId}__${ghiChu}` — same contract in different contexts (month + chặng) appears twice with different notes
+- Add FileDown icon button in header (between RefreshCw "Tải lại dữ liệu" and Settings "Cài đặt")
+- Button only visible when activeSheet === 'report' && policyOpen
+- toast() notification on success: "Đã tải file Excel • {policyLabel} • {N} hợp đồng chi tiết"
+- TypeScript check: 0 new errors (cùng baseline 24 pre-existing errors)
+- Next.js build: SUCCESS (no errors, no warnings)
+- Commit d1c48ed pushed to main, Vercel auto-deployed
+- Verify trên production (agent-browser):
+  + Mở /quan-ly → click "Chính sách đại lý" → button "Tải file Excel chính sách" xuất hiện giữa "Tải lại dữ liệu" và "Cài đặt" ✓
+  + Click button trên Thưởng TVVm → no errors, no console errors ✓
+  + Switch to Thưởng Quý TVV → click button → no errors ✓
+  + Switch to Thưởng Tuyển Luyện → click button → no errors ✓
+  + Switch to Thưởng TTN Tuyển Ngang (table phức tạp với 2 hàng header + colSpan 3) → click button → no errors ✓
+  + Verify DOM: table[data-policy-table="tuyen-ngang"] có 19 rows + 2 header rows + 12 cols với colSpans [1,1,1,1,1,1,1,3,3,1,3,1] — scraper xử lý merges đúng
+
+Stage Summary:
+- ĐÃ HOÀN THÀNH: Nút "Tải file Excel chính sách" trên góc phải header (giữa Tải lại + Cài đặt), chỉ hiện khi đang xem chính sách
+- File Excel có 2 sheets:
+  1. "Chính sách" — scrape từ DOM table, giữ nguyên màu sắc, font, border, colSpan/rowSpan (merges) như hiển thị trên app
+  2. "Hợp đồng chi tiết" — danh sách HĐ được dùng để tính toán, với cột GHI CHÚ mô tả context (tháng IP, chặng, NTD, nhóm, v.v.)
+- Logic tính contracts detail mirror đúng logic render của từng policy (TVVm theo maTVVTuyendung, IP theo issueDate, IP tháng + IP chặng cho TVVm/TL/ĐH, IP quý cho Quý TVV/Quý TN, v.v.)
+- Production verified: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly → Chính sách đại lý → bất kỳ chính sách nào → click nút Tải Excel (icon FileDown) trên header
