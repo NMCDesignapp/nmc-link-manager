@@ -28,3 +28,41 @@ Stage Summary:
 - Logic TVVm HĐC và FYP đã bao gồm cá nhân TTN (nếu TTN là TVVm)
 - Quy mô KHÔNG tính TTN, chỉ tính TVV do TTN tuyển (maTVVTuyendung)
 - Sẵn sàng verify trên production: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly
+
+---
+Task ID: tuyen-ngang-v2-catchup
+Agent: main
+Task: Refactor Thưởng TTN Tuyển Ngang — sort by relMonth, filter >6, add LŨY KẾ + THƯỜNG BẮT KỲP
+
+Work Log:
+- OCR ảnh spec THƯỜNG BẮT KỲP (3 lần để verify): 
+  - BẮT KỲP 3 THÁNG: Quy mô 4, TVVm HĐC 2, FYP 100tr, Thưởng 24tr
+  - BẮT KỊP 6 THÁNG: Quy mô 6, TVVm HĐC 3, FYP 250tr, Thưởng 39tr
+- Viết script /home/z/my-project/scripts/refactor_tuyen_ngang_v2.py
+- Sắp xếp DS theo THÁNG LÀM VIỆC asc
+- Auto-exclude TTN có relMonth > 6 (hiển thị "loại N TTN >T6" trong tổng cộng)
+- Đổi tên cột THƯỞNG → THƯỞNG THÁNG
+- Thêm 3 cột THỰC HIỆN LŨY KẾ (Quy mô/TVVm HĐC/FYP) với màu tím
+  - Quy mô: teamTVVs.length (cumulative)
+  - TVVm HĐC: unique count of TVVm với ≥1 tháng HĐC trong 6 tháng đầu
+  - FYP: tổng IP 6 tháng của TVVm team + TTN (nếu là TVVm)
+- Thêm cột THƯỜNG BẮT KỲP với logic:
+  - relMonth >= 6: nếu cum6 đạt → 39tr - tổng thưởng tháng 1-6 - BK3 (nếu đạt)
+  - relMonth 3-5: nếu cum3 đạt → 24tr - tổng thưởng tháng 1-3
+  - relMonth < 3: —
+  - Label BK3/BK6 hiển thị dưới giá trị tiền
+- Build + commit fb8601c + push
+- Verify trên production: cấu trúc bảng 17 cột đúng, sort theo relMonth asc, TTN >T6 bị loại
+
+Stage Summary:
+- Bảng Thưởng TTN Tuyển ngang giờ có 17 cột:
+  STT | NHÓM KD | MÃ SỐ | HỌ TÊN TVV | NGÀY HL | THÁNG LV |
+  CHỈ TIÊU (3) | THỰC HIỆN THÁNG (3) | THƯỞNG THÁNG |
+  THỰC HIỆN LŨY KẾ (3) | THƯỜNG BẮT KỲP
+- DS sắp xếp theo THÁNG LÀM VIỆC từ nhỏ đến lớn
+- TTN có relMonth > 6 tự động bị loại khỏi DS
+- Logic THƯỜNG BẮT KỲP đầy đủ: BK3 (xét khi relMonth >= 3) + BK6 (xét khi relMonth >= 6)
+- Spec catchup đã OCR chính xác từ ảnh:
+  - BK3: Q4/TVVm2/FYP100tr/Thưởng24tr
+  - BK6: Q6/TVVm3/FYP250tr/Thưởng39tr
+- Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly
