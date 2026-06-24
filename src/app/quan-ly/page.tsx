@@ -6016,22 +6016,61 @@ export default function QuanLyPage() {
   // ========== THƯỞNG TTN TUYỂN NGANG ==========
   // Đối tượng: TẤT CẢ TTN Tuyển Ngang từ DS TTN Tuyển Ngang (state tuyenNgangList)
   // NGUYÊN TẮC AUTO-UPDATE: bảng tự cập nhật khi DS thêm/xóa/sửa — qua state tuyenNgangList
-  //   - User thêm TTN ở Cấu trúc → DS TTN Tuyển Ngang → state update → bảng này tự render thêm dòng
-  //   - User xóa TTN → state update → bảng tự bỏ dòng
-  //   - User sửa TTN (mã/tên/nhóm/ngày) → state update → bảng tự cập nhật
-  // Chương trình TTN → resolveNhomName với allowPA=true (hiển thị nhóm PA + nhóm có trong DS TB/TN)
-  // Thông tin người (tên/mã/nhóm/ngày) → lấy từ cấu trúc (DS TTN Tuyển Ngang)
-  // Doanh số (FYP/IP) → lấy từ contracts để tính THỰC HIỆN THÁNG / LŨY KẾ
-  // CHỈ TIÊU + THƯỞNG THÁNG + THƯỞNG BẮT KỲP — để trống (—), chờ user cấu hình công thức
+  //
+  // Bảng chỉ tiêu (theo tháng làm việc 1-6, tính tròn tháng từ ngayHieuLuc):
+  //   Tháng 1: Quy mô 2, TVVm HĐC 1, FYP 25tr, Thưởng 8tr
+  //   Tháng 2: Quy mô 3, TVVm HĐC 2, FYP 35tr, Thưởng 8tr
+  //   Tháng 3: Quy mô 4, TVVm HĐC 2, FYP 45tr, Thưởng 8tr
+  //   Tháng 4: Quy mô 5, TVVm HĐC 2, FYP 45tr, Thưởng 5tr
+  //   Tháng 5: Quy mô 6, TVVm HĐC 3, FYP 50tr, Thưởng 5tr
+  //   Tháng 6: Quy mô 6, TVVm HĐC 3, FYP 50tr, Thưởng 5tr
+  //   Từ tháng 7 trở đi: dùng giá trị tháng 6
+  //
+  // THỰC HIỆN THÁNG:
+  //   - Quy mô: số TVV do TTN tuyển (maTVVTuyendung = agentCode TTN), cộng dồn lũy kế.
+  //             KHÔNG tính cá nhân TTN.
+  //   - TVVm HĐC: TVVm (≤12 tháng) do TTN tuyển có tổng IP tháng ≥ 12tr → 1 lượt.
+  //               TVV được tuyển những tháng trước vẫn được tính nếu còn là TVVm.
+  //               Tính luôn cá nhân TTN nếu TTN là TVVm và có IP tháng ≥ 12tr.
+  //   - FYP: tổng IP trong tháng của tất cả TVVm do TTN tuyển.
+  //          Tính luôn IP của cá nhân TTN nếu TTN là TVVm.
+  //   - IP tính theo NGÀY PHÁT HÀNH (getDoanhSoMonth).
+  //
+  // THƯỞNG: nếu đạt cả 3 chỉ tiêu (Quy mô, TVVm HĐC, FYP) → thưởng theo spec table.
   const renderThuongTuyenNgang = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     const HEADER_BG = '#065F46';
     const SUB_HEADER_BG = '#047857';
     const HDC_IP_THRESHOLD = 12_000_000;
-    const FYP_250M = 250_000_000;
 
-    // Build rows từ tuyenNgangList — tự động theo DS
+    // Spec table theo tháng làm việc (1-6). Từ tháng 7 trở đi dùng giá trị tháng 6.
+    const SPEC_TABLE = [
+      { quymo: 2, tvvmHdc: 1, fyp: 25_000_000, thuong: 8_000_000 }, // tháng 1
+      { quymo: 3, tvvmHdc: 2, fyp: 35_000_000, thuong: 8_000_000 }, // tháng 2
+      { quymo: 4, tvvmHdc: 2, fyp: 45_000_000, thuong: 8_000_000 }, // tháng 3
+      { quymo: 5, tvvmHdc: 2, fyp: 45_000_000, thuong: 5_000_000 }, // tháng 4
+      { quymo: 6, tvvmHdc: 3, fyp: 50_000_000, thuong: 5_000_000 }, // tháng 5
+      { quymo: 6, tvvmHdc: 3, fyp: 50_000_000, thuong: 5_000_000 }, // tháng 6
+    ];
+    const getSpec = (relMonth: number) => {
+      if (relMonth < 1) return null;
+      if (relMonth > SPEC_TABLE.length) return SPEC_TABLE[SPEC_TABLE.length - 1];
+      return SPEC_TABLE[relMonth - 1];
+    };
+
+    // Tính tháng làm việc (relativeMonth) từ ngayHieuLuc — tròn tháng
+    // Ví dụ: ngayHieuLuc 6/6/2026, now 6/2026 → relMonth = 1
+    //        ngayHieuLuc 1/3/2026, now 6/2026 → relMonth = 4
+    const calcRelMonth = (ngayHieuLuc: string | null): number => {
+      if (!ngayHieuLuc) return 0;
+      const start = new Date(ngayHieuLuc);
+      if (isNaN(start.getTime())) return 0;
+      const now = new Date();
+      return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+    };
+
+    // Build rows từ tuyenNgangList
     const tnRows = tuyenNgangList.map((tn, idx) => {
       // NHÓM — validate qua resolveNhomName (chỉ hiển thị nhóm có trong DS TB/TN hoặc là PA)
       const nhomName = resolveNhomName(
@@ -6039,64 +6078,74 @@ export default function QuanLyPage() {
         { allowPA: true, candidateNhomName: tn.nhom }
       );
 
-      // NGÀY HIỆU LỰC CHỨC VỤ — từ ngayHieuLuc của TTN
+      // NGÀY HIỆU LỰC CHỨC VỤ
       const hieuLucDate = tn.ngayHieuLuc ? new Date(tn.ngayHieuLuc) : null;
       const ngayHieuLucStr = hieuLucDate && !isNaN(hieuLucDate.getTime())
         ? hieuLucDate.toLocaleDateString('vi-VN')
         : '';
 
-      // THÁNG LÀM VIỆC — tháng/năm bắt đầu làm việc
-      const start = tn.ngayBatDau ? new Date(tn.ngayBatDau) : null;
-      const thangLamViec = start && !isNaN(start.getTime())
-        ? `T${String(start.getMonth() + 1).padStart(2, '0')}/${start.getFullYear()}`
-        : '';
+      // THÁNG LÀM VIỆC — relativeMonth (tròn tháng) từ ngayHieuLuc
+      const relMonth = calcRelMonth(tn.ngayHieuLuc);
+      const thangLamViec = relMonth > 0 ? relMonth : '';
 
-      // Team TVV: TVV trong DS Tổng TVV có maTVVTuyendung trùng agentCode của TTN này
-      // (TTN Tuyển Ngang = người tuyển dụng các TVV này)
+      // CHỈ TIÊU — lookup từ spec table
+      const spec = getSpec(relMonth);
+      const ctQuymo = spec?.quymo ?? 0;
+      const ctTvvmHdc = spec?.tvvmHdc ?? 0;
+      const ctFyp = spec?.fyp ?? 0;
+      const thuongIfDat = spec?.thuong ?? 0;
+
+      // Team TVV: TVV trong DS Tổng TVV có maTVVTuyendung trùng agentCode của TTN
       const tnCodeLower = (tn.agentCode || '').trim().toLowerCase();
       const teamTVVs = tvvStructList.filter(tvv =>
         (tvv.maTVVTuyendung || '').trim().toLowerCase() === tnCodeLower
       );
-      const quymo = teamTVVs.length;
 
-      // THỰC HIỆN THÁNG — contracts trong tháng hiện tại của team TVV
+      // QUY MÔ THỰC HIỆN — cumulative (lũy kế) số TVV do TTN tuyển, KHÔNG tính TTN
+      const thQuymo = teamTVVs.length;
+
+      // Hợp đồng tháng hiện tại của team TVV (theo ngày phát hành)
+      const teamCodes = new Set(teamTVVs.map(t => t.agentCode));
       const monthContracts = contracts.filter(c => {
-        if (!teamTVVs.some(t => t.agentCode === c.agentCode)) return false;
+        if (!teamCodes.has(c.agentCode)) return false;
         const d = getDoanhSoMonth(c);
         return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
       });
-      // TVVm HĐC tháng: TVV mới (≤12 tháng) có IP tháng ≥ 12tr
-      const tvvmHDC = teamTVVs.filter(tvv => {
+
+      // Hợp đồng tháng hiện tại của chính TTN (để tính TVVm HĐC + FYP cho cá nhân TTN)
+      const tnMonthContracts = contracts.filter(c => {
+        if (c.agentCode !== tn.agentCode) return false;
+        const d = getDoanhSoMonth(c);
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
+      });
+      const tnMonthIP = tnMonthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      const tnIsTVVm = isTVVm(tn.ngayBatDau);
+
+      // TVVm HĐC — TVVm trong team có IP tháng ≥ 12tr, +1 cho TTN nếu TTN là TVVm + IP ≥ 12tr
+      let thTvvmHDC = teamTVVs.filter(tvv => {
         if (!isTVVm(tvv.ngayBatDau)) return false;
         const tvvIP = monthContracts
           .filter(c => c.agentCode === tvv.agentCode)
           .reduce((s, c) => s + c.pdt10DT, 0);
         return tvvIP >= HDC_IP_THRESHOLD;
       }).length;
-      const tongFYP = monthContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      if (tnIsTVVm && tnMonthIP >= HDC_IP_THRESHOLD) thTvvmHDC += 1;
 
-      // THỰC HIỆN LŨY KẾ — contracts YTD (từ đầu năm đến tháng hiện tại)
-      const ytdContracts = contracts.filter(c => {
-        if (!teamTVVs.some(t => t.agentCode === c.agentCode)) return false;
-        const d = getDoanhSoMonth(c);
-        return !isNaN(d.getTime()) && d.getFullYear() === currentYear && (d.getMonth() + 1) <= currentMonth;
-      });
-      // TVVm HĐC lũy kế: TVVm có tổng IP YTD ≥ 12tr × số tháng đã làm (tạm dùng ngưỡng 12tr × 1)
-      // Đơn giản hóa: TVVm có tổng IP YTD ≥ 12tr
-      const tvvmHDCLuyKe = teamTVVs.filter(tvv => {
-        if (!isTVVm(tvv.ngayBatDau)) return false;
-        const tvvYtdIP = ytdContracts
-          .filter(c => c.agentCode === tvv.agentCode)
-          .reduce((s, c) => s + c.pdt10DT, 0);
-        return tvvYtdIP >= HDC_IP_THRESHOLD;
-      }).length;
-      // FYP ≥250tr lũy kế: TVV có FYP YTD ≥ 250tr
-      const fypGe250 = teamTVVs.filter(tvv => {
-        const tvvYtdFYP = ytdContracts
-          .filter(c => c.agentCode === tvv.agentCode)
-          .reduce((s, c) => s + c.pdt10DT, 0);
-        return tvvYtdFYP >= FYP_250M;
-      }).length;
+      // FYP — tổng IP tháng của TVVm do TTN tuyển, + IP của TTN nếu TTN là TVVm
+      const tvvmTeamCodes = new Set(
+        teamTVVs.filter(tvv => isTVVm(tvv.ngayBatDau)).map(tvv => tvv.agentCode)
+      );
+      let thTongFYP = monthContracts
+        .filter(c => tvvmTeamCodes.has(c.agentCode))
+        .reduce((s, c) => s + c.pdt10DT, 0);
+      if (tnIsTVVm) thTongFYP += tnMonthIP;
+
+      // THƯỞNG — đạt nếu cả 3 chỉ tiêu đều thoả
+      const datQuymo = thQuymo >= ctQuymo;
+      const datTvvmHdc = thTvvmHDC >= ctTvvmHdc;
+      const datFyp = thTongFYP >= ctFyp;
+      const dat = spec != null && datQuymo && datTvvmHdc && datFyp;
+      const tienThuong = dat ? thuongIfDat : 0;
 
       return {
         stt: idx + 1,
@@ -6105,57 +6154,30 @@ export default function QuanLyPage() {
         hoTen: tn.agentName,
         ngayHieuLuc: ngayHieuLucStr,
         thangLamViec,
+        // CHỈ TIÊU
+        ctQuymo,
+        ctTvvmHdc,
+        ctFyp,
         // THỰC HIỆN THÁNG
-        thQuymo: quymo,
-        thTvvmHDC: tvvmHDC,
-        thTongFYP: tongFYP,
-        // THỰC HIỆN LŨY KẾ
-        lkQuymo: quymo,
-        lkTvvmHDC: tvvmHDCLuyKe,
-        lkFYPGe250: fypGe250,
+        thQuymo,
+        thTvvmHDC,
+        thTongFYP,
+        // THƯỞNG
+        dat,
+        tienThuong,
+        thuongIfDat,
       };
     });
 
-    // Tổng cộng các cột số (thuộc về THỰC HIỆN THÁNG)
+    // Tổng cộng các cột số (THỰC HIỆN THÁNG + THƯỞNG)
     const totalQuymo = tnRows.reduce((s, r) => s + r.thQuymo, 0);
     const totalTvvmHDC = tnRows.reduce((s, r) => s + r.thTvvmHDC, 0);
     const totalTongFYP = tnRows.reduce((s, r) => s + r.thTongFYP, 0);
-    const totalLkQuymo = tnRows.reduce((s, r) => s + r.lkQuymo, 0);
-    const totalLkTvvmHDC = tnRows.reduce((s, r) => s + r.lkTvvmHDC, 0);
-    const totalLkFYPGe250 = tnRows.reduce((s, r) => s + r.lkFYPGe250, 0);
+    const totalTienThuong = tnRows.reduce((s, r) => s + r.tienThuong, 0);
+    const datThuongCount = tnRows.filter(r => r.dat).length;
 
     return (
-      <div className="space-y-1" data-policy-count={tnRows.length} data-policy-amount={0}>
-        {/* Summary card */}
-        <div className="bg-white border shadow-lg px-4 py-2.5" style={{ borderColor: '#059669', borderRadius: 0 }}>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <Merge className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                Thưởng TTN Tuyển Ngang — Tháng {currentMonth}/{currentYear}
-              </p>
-            </div>
-            <div className="flex items-center gap-5 flex-wrap">
-              <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">ĐỐI TƯỢNG</p>
-                <p className="text-sm font-black text-emerald-700">{tnRows.length}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TỔNG QUY MÔ</p>
-                <p className="text-sm font-black text-emerald-700">{totalQuymo}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">TVVm HĐC</p>
-                <p className="text-sm font-black text-emerald-700">{totalTvvmHDC}</p>
-              </div>
-              <div className="text-center px-3 py-1 bg-amber-100 border border-amber-300">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">TỔNG FYP THÁNG</p>
-                <p className="text-base font-black text-emerald-700">{formatSmartCurrency(totalTongFYP)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div className="space-y-1" data-policy-count={datThuongCount} data-policy-amount={totalTienThuong}>
         {/* Table */}
         <div className="bg-white border shadow-xl h-full" style={{ borderColor: '#A7F3D0', borderRadius: 0 }}>
           <table className="w-full text-xs bg-white h-full" style={{ borderRadius: 0, borderCollapse: 'collapse' }}>
@@ -6166,17 +6188,13 @@ export default function QuanLyPage() {
                 <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM KD</th>
                 <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
                 <th rowSpan={2} className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHỨC VỤ</th>
                 <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] font-normal normal-case">CHỨC VỤ</span></th>
                 <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THÁNG LÀM<br/>VIỆC</th>
                 {/* CHỈ TIÊU — 3 sub-columns */}
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '22px' }}>CHỈ TIÊU</th>
                 {/* THỰC HIỆN THÁNG — 3 sub-columns */}
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' }}>THỰC HIỆN THÁNG</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
-                {/* THỰC HIỆN LŨY KẾ — 3 sub-columns */}
-                <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>THỰC HIỆN LŨY KẾ</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG BẮT KỲP</th>
+                <th rowSpan={2} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG</th>
               </tr>
               {/* Row 2: Sub-headers */}
               <tr>
@@ -6188,16 +6206,12 @@ export default function QuanLyPage() {
                 <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Quy mô</th>
                 <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>TVVm HĐC</th>
                 <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Tổng FYP</th>
-                {/* THỰC HIỆN LŨY KẾ subs */}
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Quy mô</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>TVVm HĐC</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>FYP ≥250tr</th>
               </tr>
             </thead>
             <tbody>
               {tnRows.length === 0 ? (
                 <tr>
-                  <td colSpan={18} className="text-center text-gray-400 py-12 italic text-xs bg-white p-2 align-middle">
+                  <td colSpan={13} className="text-center text-gray-400 py-12 italic text-xs bg-white p-2 align-middle">
                     Chưa có TTN Tuyển Ngang nào trong DS. Vào <b>Cấu trúc → DS TTN Tuyển Ngang</b> để thêm đối tượng — bảng này sẽ tự cập nhật.
                   </td>
                 </tr>
@@ -6207,59 +6221,45 @@ export default function QuanLyPage() {
                   <td className="text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.nhom || '—'}</td>
                   <td className="font-mono text-[11px] text-gray-500 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.maTN}</td>
                   <td className="text-[11px] text-gray-800 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.hoTen}</td>
-                  <td className="text-[11px] text-gray-600 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>TTN Tuyển ngang</td>
                   <td className="text-[11px] text-gray-600 text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.ngayHieuLuc || '—'}</td>
-                  <td className="text-[11px] text-gray-600 text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>{row.thangLamViec || '—'}</td>
-                  {/* CHỈ TIÊU — để trống, chờ user cấu hình */}
-                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
-                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
-                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
-                  {/* THỰC HIỆN THÁNG — computed from contracts */}
+                  <td className="text-[11px] text-gray-800 text-center font-bold whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#F0FDFA' }}>{row.thangLamViec || '—'}</td>
+                  {/* CHỈ TIÊU — from spec table */}
+                  <td className="text-center text-[11px] text-gray-700 p-2 align-middle" style={{ borderColor: '#99F6E4', backgroundColor: '#F0FDFA' }}>{row.ctQuymo || '—'}</td>
+                  <td className="text-center text-[11px] text-gray-700 p-2 align-middle" style={{ borderColor: '#99F6E4', backgroundColor: '#F0FDFA' }}>{row.ctTvvmHdc || '—'}</td>
+                  <td className="text-right text-[11px] text-gray-700 whitespace-nowrap p-2 align-middle" style={{ borderColor: '#99F6E4', backgroundColor: '#F0FDFA' }}>{row.ctFyp > 0 ? formatNumber(row.ctFyp) : '—'}</td>
+                  {/* THỰC HIỆN THÁNG — computed */}
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '12px', fontWeight: 800 }}>{row.thQuymo || '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '12px', fontWeight: 800 }}>{row.thTvvmHDC || '—'}</td>
                   <td className="text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF', fontSize: '11px', fontWeight: 800 }}>{row.thTongFYP > 0 ? formatNumber(row.thTongFYP) : '—'}</td>
-                  {/* THƯỞNG THÁNG — để trống, chờ user cấu hình */}
-                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
-                  {/* THỰC HIỆN LŨY KẾ — computed YTD */}
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkQuymo || '—'}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkTvvmHDC || '—'}</td>
-                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkFYPGe250 || '—'}</td>
-                  {/* THƯỞNG BẮT KỲP — để trống, chờ user cấu hình */}
-                  <td className="text-center text-[11px] text-gray-400 p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>—</td>
+                  {/* THƯỞNG */}
+                  <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: row.dat ? '#FEF3C7' : '#FFFFFF', color: row.dat ? '#047857' : '#9CA3AF', fontSize: '13px', fontWeight: 800 }}>
+                    {row.dat ? formatNumber(row.tienThuong) : '—'}
+                  </td>
                 </tr>
               ))}
               {/* Total row */}
               {tnRows.length > 0 && (
                 <tr style={{ backgroundColor: '#065F46' }}>
-                  <td colSpan={7} className="text-white text-[11px] font-bold uppercase text-right p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({tnRows.length} TTN)</td>
-                  {/* CHỈ TIÊU */}
+                  <td colSpan={6} className="text-white text-[11px] font-bold uppercase text-right p-2 align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG CỘNG ({tnRows.length} TTN)</td>
+                  {/* CHỈ TIÊU tổng — để trống (mỗi TTN có spec khác nhau) */}
                   <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
                   <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
                   <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>—</td>
-                  {/* THỰC HIỆN THÁNG */}
+                  {/* THỰC HIỆN THÁNG tổng */}
                   <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalQuymo}</td>
                   <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalTvvmHDC}</td>
                   <td className="text-white text-right text-[11px] font-black p-2 align-middle" style={{ borderColor: '#1E40AF', backgroundColor: '#1E40AF' }}>{totalTongFYP > 0 ? formatNumber(totalTongFYP) : '—'}</td>
-                  {/* THƯỞNG THÁNG */}
-                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#047857' }}>—</td>
-                  {/* THỰC HIỆN LŨY KẾ */}
-                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkQuymo}</td>
-                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkTvvmHDC}</td>
-                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkFYPGe250}</td>
-                  {/* THƯỞNG BẮT KỲP */}
-                  <td className="text-white text-center text-[11px] p-2 align-middle" style={{ borderColor: '#047857' }}>—</td>
+                  {/* THƯỞNG tổng */}
+                  <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#FEF3C7', color: '#047857' }}>{totalTienThuong > 0 ? formatNumber(totalTienThuong) : '—'}</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-gray-500 italic">
-          Đối tượng tự động lấy từ <b>DS TTN Tuyển Ngang</b> (Cấu trúc) — khi DS thêm/xóa/sửa, bảng này tự cập nhật.
-          {' '}THỰC HIỆN THÁNG/LŨY KẾ tính từ contracts (FYP = PĐT + 10% ĐT). CHỈ TIÊU & THƯỞNG sẽ cấu hình khi có công thức chi tiết.
-        </p>
       </div>
     );
   };
+
 
   const renderPolicyContent = (key: string) => {
     switch (key) {
