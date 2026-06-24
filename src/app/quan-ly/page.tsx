@@ -19,7 +19,9 @@ import {
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
+  FileDown,
 } from 'lucide-react';
+import { scrapePolicyTable, downloadPolicyExcel, type ContractDetailRow } from './policy-excel-export';
 
 // ==================== TYPES ====================
 interface LeaderInfo {
@@ -3782,6 +3784,372 @@ export default function QuanLyPage() {
       .catch(() => {});
   }, []);
 
+  // ========================================================================
+  // EXCEL EXPORT — Tải file Excel cho chính sách đang mở
+  // Sheet 1 "Chính sách": scrape DOM table, giữ nguyên styles (màu, font, border)
+  // Sheet 2 "Hợp đồng chi tiết": danh sách HĐ được dùng để tính toán
+  // ========================================================================
+  const buildContractDetailRows = useCallback((policyKey: string): ContractDetailRow[] => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentQuarter = Math.ceil(currentMonth / 3);
+    const quarterStartMonth = (currentQuarter - 1) * 3 + 1;
+    const quarterEndMonth = currentQuarter * 3;
+
+    // Helper: format date dd/MM/yyyy
+    const fmtDate = (d: string | null): string => {
+      if (!d) return '';
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) return '';
+      return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+    };
+
+    // Helper: format TXX/YYYY from a date
+    const fmtThangDS = (d: Date): string => `T${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+    // Helper: resolve người TD name from agentCode via 2-step lookup
+    const resolveNguoiTDName = (agentCode: string): string => {
+      return resolveNguoiTD(agentCode, tvvStructList);
+    };
+
+    // Helper: resolve nhóm name (use existing helper, allowPA=true default)
+    const resolveNhomForRow = (agentCode: string, maBanNhom: string, candidateNhomName?: string, allowPA: boolean = true): string => {
+      return resolveNhomName(agentCode, maBanNhom, banNhomList, contracts, leaders, { allowPA, candidateNhomName });
+    };
+
+    // Helper: check if a TVV is excluded from rewards (Banca)
+    const isExcluded = (agentCode: string, maBanNhom: string): boolean => {
+      return isTVVExcludedFromRewards(agentCode, maBanNhom, banNhomList, adList);
+    };
+
+    // Helper: build row from contract
+    const makeRow = (
+      c: Contract,
+      stt: number,
+      tvvInfo: { agentCode: string; agentName: string; maBanNhom: string },
+      nguoiTDName: string,
+      ghiChu: string,
+    ): ContractDetailRow => {
+      const d = getDoanhSoMonth(c);
+      const nhomName = resolveNhomForRow(tvvInfo.agentCode, tvvInfo.maBanNhom, undefined, true);
+      return {
+        stt,
+        nhom: nhomName,
+        maTVV: tvvInfo.agentCode,
+        hoTenTVV: tvvInfo.agentName,
+        soHD: c.contractNumber || '',
+        ngayPH: fmtDate(c.issueDate),
+        thangDS: isNaN(d.getTime()) ? '' : fmtThangDS(d),
+        pdt10DT: c.pdt10DT,
+        afyp: c.afyp,
+        nguoiTD: nguoiTDName,
+        ghiChu,
+      };
+    };
+
+    // Deduplicate contracts by ID (a contract can appear in both month + chang — keep both notes)
+    const seen = new Map<string, ContractDetailRow>();
+
+    const addRow = (c: Contract, tvvInfo: { agentCode: string; agentName: string; maBanNhom: string }, nguoiTDName: string, ghiChu: string) => {
+      const key = `${c.id}__${ghiChu}`;
+      if (!seen.has(key)) {
+        seen.set(key, makeRow(c, seen.size + 1, tvvInfo, nguoiTDName, ghiChu));
+      }
+    };
+
+    switch (policyKey) {
+      // ─── TVVm: TVV ≤12 tháng, có nhóm, không Ban Ca ───
+      // Tính IP tháng + IP chặng
+      case 'tvvm': {
+        const tvvmList = tvvStructList.filter(tvv => {
+          if (!isTVVm(tvv.ngayBatDau)) return false;
+          if (!tvv.maBanNhom || tvv.maBanNhom.trim() === '') return false;
+          const nhomName = (banNhomList.find(bn => bn.maBanNhom === tvv.maBanNhom)?.tenBanNhom || '').toLowerCase();
+          if (nhomName.includes('ban ca') || nhomName.includes('banca')) return false;
+          if (isExcluded(tvv.agentCode, tvv.maBanNhom)) return false;
+          return true;
+        });
+        tvvmList.forEach(tvv => {
+          const changInfo = getChangInfo(tvv.ngayBatDau);
+          const nguoiTD = resolveNguoiTDName(tvv.agentCode);
+          const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+          // IP tháng
+          contracts.forEach(c => {
+            if (c.agentCode !== tvv.agentCode) return;
+            const d = getDoanhSoMonth(c);
+            if (isNaN(d.getTime())) return;
+            if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+              addRow(c, tvvInfo, nguoiTD, `Tháng IP ${currentMonth}/${currentYear}`);
+            }
+          });
+          // IP chặng
+          if (tvv.ngayBatDau && changInfo.chang > 0) {
+            const rs = changInfo.rangeStart;
+            const re = changInfo.rangeEnd;
+            const reEnd = new Date(re.getFullYear(), re.getMonth(), re.getDate(), 23, 59, 59);
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d >= rs && d <= reEnd) {
+                addRow(c, tvvInfo, nguoiTD, `${changInfo.label} (${changInfo.monthRange})`);
+              }
+            });
+          }
+        });
+        break;
+      }
+
+      // ─── NS TVV: TVV trong tvvStructList, IP tháng ───
+      case 'ns-tvv': {
+        tvvStructList.forEach(tvv => {
+          if (isExcluded(tvv.agentCode, tvv.maBanNhom)) return;
+          const nguoiTD = resolveNguoiTDName(tvv.agentCode);
+          const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+          contracts.forEach(c => {
+            if (c.agentCode !== tvv.agentCode) return;
+            const d = getDoanhSoMonth(c);
+            if (isNaN(d.getTime())) return;
+            if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+              addRow(c, tvvInfo, nguoiTD, `NS Tháng ${currentMonth}/${currentYear}`);
+            }
+          });
+        });
+        break;
+      }
+
+      // ─── Quý TVV: TVV trong tvvStructList, IP quý ───
+      case 'quy-tvv': {
+        tvvStructList.forEach(tvv => {
+          if (isExcluded(tvv.agentCode, tvv.maBanNhom)) return;
+          const nguoiTD = resolveNguoiTDName(tvv.agentCode);
+          const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+          contracts.forEach(c => {
+            if (c.agentCode !== tvv.agentCode) return;
+            const d = getDoanhSoMonth(c);
+            if (isNaN(d.getTime())) return;
+            if (d.getFullYear() !== currentYear) return;
+            const m = d.getMonth() + 1;
+            if (m >= quarterStartMonth && m <= quarterEndMonth) {
+              addRow(c, tvvInfo, nguoiTD, `Quý ${currentQuarter} (${currentYear})`);
+            }
+          });
+        });
+        break;
+      }
+
+      // ─── Tuyển Luyện: TVVm do TB/TN tuyển (maTVVTuyendung), IP tháng + IP chặng ───
+      case 'tuyen-luyen': {
+        const ntdCandidates = leaders
+          .filter(l => isTBorTNPosition(l.position))
+          .filter(l => !isExcluded(l.agentCode, l.maNhom || ''));
+        ntdCandidates.forEach(ntd => {
+          const ntdCode = (ntd.agentCode || '').trim();
+          const recruitedTVVs = tvvStructList.filter(tvv => {
+            const r = (tvv.maTVVTuyendung || '').trim();
+            return r && r === ntdCode && isTVVm(tvv.ngayBatDau);
+          });
+          recruitedTVVs.forEach(tvv => {
+            const changInfo = getChangInfo(tvv.ngayBatDau);
+            const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+            // IP tháng
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+                addRow(c, tvvInfo, ntd.agentName, `TL Tháng ${currentMonth}/${currentYear} • NTD: ${ntd.agentName}`);
+              }
+            });
+            // IP chặng
+            if (tvv.ngayBatDau && changInfo.chang > 0) {
+              const rs = changInfo.rangeStart;
+              const re = changInfo.rangeEnd;
+              const reEnd = new Date(re.getFullYear(), re.getMonth(), re.getDate(), 23, 59, 59);
+              contracts.forEach(c => {
+                if (c.agentCode !== tvv.agentCode) return;
+                const d = getDoanhSoMonth(c);
+                if (isNaN(d.getTime())) return;
+                if (d >= rs && d <= reEnd) {
+                  addRow(c, tvvInfo, ntd.agentName, `${changInfo.label} • NTD: ${ntd.agentName}`);
+                }
+              });
+            }
+          });
+        });
+        break;
+      }
+
+      // ─── Đồng Hành: TVVm do TTN tuyển (maTVVTuyendung), IP tháng + IP chặng ───
+      case 'dong-hanh': {
+        const ttnList = recruiters.filter(l => !isExcluded(l.agentCode, l.nhom || ''));
+        ttnList.forEach(ttn => {
+          const ttnCode = (ttn.agentCode || '').trim();
+          const tvvmInNhom = tvvStructList.filter(tvv => {
+            if (tvv.agentCode === ttn.agentCode) return false;
+            if (!isTVVm(tvv.ngayBatDau)) return false;
+            const r = (tvv.maTVVTuyendung || '').trim();
+            return r && r === ttnCode;
+          });
+          tvvmInNhom.forEach(tvv => {
+            const changInfo = getChangInfo(tvv.ngayBatDau);
+            const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+            // IP tháng
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+                addRow(c, tvvInfo, ttn.agentName, `ĐH Tháng ${currentMonth}/${currentYear} • TTN: ${ttn.agentName}`);
+              }
+            });
+            // IP chặng
+            if (tvv.ngayBatDau && changInfo.chang > 0) {
+              const rs = changInfo.rangeStart;
+              const re = changInfo.rangeEnd;
+              const reEnd = new Date(re.getFullYear(), re.getMonth(), re.getDate(), 23, 59, 59);
+              contracts.forEach(c => {
+                if (c.agentCode !== tvv.agentCode) return;
+                const d = getDoanhSoMonth(c);
+                if (isNaN(d.getTime())) return;
+                if (d >= rs && d <= reEnd) {
+                  addRow(c, tvvInfo, ttn.agentName, `${changInfo.label} • TTN: ${ttn.agentName}`);
+                }
+              });
+            }
+          });
+        });
+        break;
+      }
+
+      // ─── PTKD TN: TVV trong nhóm của TN, IP tháng ───
+      case 'ptkd-tn': {
+        const tnList = leaders
+          .filter(l => isTBorTNPosition(l.position))
+          .filter(l => !isExcluded(l.agentCode, l.maNhom || ''));
+        tnList.forEach(tn => {
+          const tvvInNhom = tvvStructList.filter(tvv => matchMaBanNhom(tvv.maBanNhom, tn.maNhom || ''));
+          tvvInNhom.forEach(tvv => {
+            const nguoiTD = resolveNguoiTDName(tvv.agentCode);
+            const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+                addRow(c, tvvInfo, nguoiTD, `PTKD Tháng ${currentMonth}/${currentYear} • Nhóm: ${tn.nhom || tn.agentName}`);
+              }
+            });
+          });
+        });
+        break;
+      }
+
+      // ─── Quý TN: TVV trong nhóm của TN, IP quý ───
+      case 'quy-tn': {
+        const tnList = leaders
+          .filter(l => isTBorTNPosition(l.position))
+          .filter(l => !isExcluded(l.agentCode, l.maNhom || ''));
+        tnList.forEach(tn => {
+          const tvvInNhom = tvvStructList.filter(tvv => matchMaBanNhom(tvv.maBanNhom, tn.maNhom || ''));
+          tvvInNhom.forEach(tvv => {
+            const nguoiTD = resolveNguoiTDName(tvv.agentCode);
+            const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() !== currentYear) return;
+              const m = d.getMonth() + 1;
+              if (m >= quarterStartMonth && m <= quarterEndMonth) {
+                addRow(c, tvvInfo, nguoiTD, `Quý ${currentQuarter} (${currentYear}) • Nhóm: ${tn.nhom || tn.agentName}`);
+              }
+            });
+          });
+        });
+        break;
+      }
+
+      // ─── TTN Tuyển Ngang: TVV do TTN tuyển (maTVVTuyendung), IP tháng ───
+      case 'tuyen-ngang': {
+        tuyenNgangList.forEach(tn => {
+          const tnCode = (tn.agentCode || '').trim();
+          const recruitedTVVs = tvvStructList.filter(tvv => {
+            const r = (tvv.maTVVTuyendung || '').trim();
+            return r && r === tnCode;
+          });
+          recruitedTVVs.forEach(tvv => {
+            const tvvInfo = { agentCode: tvv.agentCode, agentName: tvv.agentName, maBanNhom: tvv.maBanNhom };
+            // IP tháng
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+                addRow(c, tvvInfo, tn.agentName, `TTN Tuyển ngang Tháng ${currentMonth}/${currentYear} • TTN: ${tn.agentName}`);
+              }
+            });
+            // Lũy kế YTD (các tháng từ đầu năm đến hiện tại)
+            contracts.forEach(c => {
+              if (c.agentCode !== tvv.agentCode) return;
+              const d = getDoanhSoMonth(c);
+              if (isNaN(d.getTime())) return;
+              if (d.getFullYear() !== currentYear) return;
+              const m = d.getMonth() + 1;
+              if (m < currentMonth) {
+                addRow(c, tvvInfo, tn.agentName, `Lũy kế YTD T${m}/${currentYear} • TTN: ${tn.agentName}`);
+              }
+            });
+          });
+        });
+        break;
+      }
+
+      default:
+        return [];
+    }
+
+    return Array.from(seen.values());
+  }, [contracts, tvvStructList, leaders, recruiters, tuyenNgangList, banNhomList, adList]);
+
+  const handleDownloadPolicyExcel = useCallback(() => {
+    if (!policyOpen) {
+      toast({ title: 'Chưa chọn chính sách', description: 'Vui lòng chọn một chính sách để tải Excel', variant: 'destructive' });
+      return;
+    }
+    const item = POLICY_ITEMS.find(i => i.key === policyOpen);
+    if (!item) return;
+
+    // Find table element via data-policy-table attribute
+    const container = document.querySelector(`[data-policy-table="${policyOpen}"]`);
+    const tableEl = container?.querySelector('table') as HTMLTableElement | null;
+    if (!tableEl) {
+      toast({ title: 'Không tìm thấy bảng', description: 'Bảng chính sách chưa được render', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      // Sheet 1: scrape DOM table
+      const scrape = scrapePolicyTable(tableEl);
+
+      // Sheet 2: build contract detail rows
+      const contractRows = buildContractDetailRows(policyOpen);
+
+      // Trigger download
+      const now = new Date();
+      const monthLabel = `T${now.getMonth() + 1}-${now.getFullYear()}`;
+      downloadPolicyExcel(item.label, scrape, contractRows, { monthLabel, policyKey: policyOpen });
+
+      toast({
+        title: 'Đã tải file Excel',
+        description: `${item.label} • ${contractRows.length} hợp đồng chi tiết`,
+      });
+    } catch (err) {
+      console.error('[Excel Export] Error:', err);
+      toast({ title: 'Lỗi tạo file Excel', description: String(err), variant: 'destructive' });
+    }
+  }, [policyOpen, buildContractDetailRows]);
+
   // Save policy image link to Settings API (uses PUT method to match /api/settings route)
   const savePolicyImage = useCallback(async (policyKey: string, link: string) => {
     try {
@@ -6921,6 +7289,10 @@ export default function QuanLyPage() {
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          {/* Tải Excel — chỉ hiện khi đang xem chính sách (activeSheet='report' && policyOpen) */}
+          {activeSheet === 'report' && policyOpen && (
+            <Button variant="ghost" onClick={handleDownloadPolicyExcel} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải file Excel chính sách"><FileDown className="w-4 h-4" /></Button>
+          )}
           {/* Desktop: vẫn giữ nút Cài đặt vì sidebar không có — chỉ hiện md+ */}
           <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="hidden md:inline-flex text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
         </div>
