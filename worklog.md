@@ -160,3 +160,51 @@ Stage Summary:
 - Toàn bộ số trong bảng chi tiết trang chính sách giờ là SỐ NGUYÊN
 - formatNumber và fmt dùng maximumFractionDigits:0 + Math.round → không bao giờ hiển thị thập phân
 - Áp dụng đồng nhất cho cả 2 trang /quan-ly và /kpi
+
+---
+Task ID: kpi-redesign-v2
+Agent: main
+Task: Redesign KPI Tiến Độ Khu Vực v2 — merge PA+Banca, fix td logic, ensure totals consistency, redesign card layout
+
+Work Log:
+A. Layout card (rg-card):
+- Bo góc tối tiểu: 4px (was 14px), AD table 3px (was 8px)
+- 4 stats mới: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên)
+- Bỏ dòng Tỷ trọng IP riêng (separate row) → thay bằng thin separator (.rg-divider)
+- .rg-divider: 1px gradient mỏng giữa summary và AD table
+- Apply đồng nhất mobile + desktop
+
+B. Data consistency (Tổng AD = Phòng, Tổng Phòng = Công ty):
+- Company total = SUM of all phongs (trước đây tính độc lập từ periodContracts)
+- TD (Tuyển dụng) tính theo tvvStructList có ngayBatDau trong period
+- TVV → maBanNhom → AD → Phong (hierarchical lookup)
+- Trước đây td đếm ALL staff với nhom match → sai định nghĩa (phải là TVV mới tuyển trong period)
+- Build 4 lookups: phongNameMap, adToPhongMap, bnToAdMap, tvvInPeriodByAD/Phong
+
+C. Merge Banca + PA:
+- 2 phòng riêng 'PA' và 'Banca' (từ phongStructList) gộp thành 1 phòng 'Banca - PA'
+- Contracts match by nhom/ban/maNhom contains PA/Banca/DSO
+- Dedupe contracts by id khi merge (tránh double-count khi cả PA và Banca cùng match 1 contract)
+- Banca - PA có noAds=true (không có AD layer, không có KH)
+
+D. Build + commit fc095d2 + push
+E. Verify production:
+- 4 thẻ: Phòng PTKD 1, Phòng PTKD 2, Phòng PTKD 3, Banca - PA (was 5 thẻ)
+- Card radius: 4px (verified)
+- 4 stats labels: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (verified)
+- .rg-divider: 1px gradient (verified)
+- Bo góc AD table: 3px (verified)
+- Data consistency tests PASSED:
+  - "Cả năm" filter: company Lhd=2=sum(phong), Td=146=sum(phong), HdChuan=2=sum(phong) ✓
+  - Default month filter: company Lhd=1=sum(phong), Td=36=sum(phong), HdChuan=1=sum(phong) ✓
+  - AD sum = phong: PTKD 1 (2 ADs, td 10=10), PTKD 2 (2 ADs, td 16=16), PTKD 3 (2 ADs, td 10=10) ✓
+  - Period filter works: switch T6→Cả năm → company Td 36→146 ✓
+- Mobile + desktop đều áp dụng đồng nhất
+
+Stage Summary:
+- KPI Tiến Độ Khu Vực v2 đã live trên production
+- Layout: 4px bo góc tối tiểu, 4 stats (Lượt HĐ/TD/HĐC/Tỷ trọng IP), thin separator, bỏ AFYP khỏi stats (vì có ở dòng trên)
+- Data: Tổng AD = Phòng, Tổng Phòng = Công ty (verified multiple filter combinations)
+- Banca + PA gộp thành 1 phòng "Banca - PA" (noAds=true, không KH)
+- TD calculation fixed: đếm TVV có ngayBatDau trong period (theo định nghĩa quan-ly)
+- Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/kpi
