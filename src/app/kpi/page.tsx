@@ -220,7 +220,22 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-card:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(10,30,60,.28), 0 4px 8px rgba(10,30,60,.14); }
 .kpi-app .rg-card.is-banca { border-top-color: #b89838; }
 .kpi-app .rg-card.is-pa { border-top-color: #6a88a8; }
-.kpi-app .rg-card.glow-full { box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28); }
+.kpi-app .rg-card.glow-full {
+  box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28), 0 0 28px #f2d38d99, 0 0 60px #f2d38d44;
+  border-color: #f2d38d;
+  animation: rgGlowPulse 2.4s ease-in-out infinite;
+}
+@keyframes rgGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28), 0 0 24px #f2d38d99, 0 0 50px #f2d38d33; }
+  50% { box-shadow: 0 0 0 3px #f2d38da8, 0 16px 36px rgba(10,30,60,.28), 0 0 36px #f2d38dcc, 0 0 72px #f2d38d55; }
+}
+.kpi-app .rg-card.glow-full .rg-head {
+  background: linear-gradient(135deg, #d4a020 0%, #b08018 100%) !important;
+  text-shadow: 0 0 12px #ffe07066;
+}
+.kpi-app .rg-card.is-banca.glow-full .rg-head {
+  background: linear-gradient(135deg, #d4a020 0%, #b08018 100%) !important;
+}
 
 /* Phong header (inside rg-card) */
 .kpi-app .rg-head {
@@ -310,6 +325,63 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-mini-prog { width: 44px; height: 5px; border-radius: 99px; background: #e0e8f0; display: inline-block; vertical-align: middle; overflow: hidden; }
 .kpi-app .rg-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
 .kpi-app .rg-ad-empty { padding: 14px 10px; text-align: center; font-size: 10px; color: #8aa0b8; font-style: italic; }
+
+/* AD row glow when 100% KH */
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow {
+  background: linear-gradient(90deg, #fef9e7 0%, #fff5d6 50%, #fef9e7 100%) !important;
+  box-shadow: inset 0 0 0 1px #f2d38d99, inset 0 0 12px #f2d38d33;
+  animation: rgAdGlowPulse 2.4s ease-in-out infinite;
+}
+@keyframes rgAdGlowPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px #f2d38d99, inset 0 0 10px #f2d38d22; }
+  50% { box-shadow: inset 0 0 0 2px #f2d38dcc, inset 0 0 16px #f2d38d44; }
+}
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow td { color: #8a5a10 !important; font-weight: 900; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-name { color: #6a4010 !important; text-shadow: 0 0 8px #f2d38d44; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-sub { color: #a08040 !important; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-afyp { color: #8a5a10 !important; }
+
+/* AD name cell: name + small KH under */
+.kpi-app .rg-ad-name-cell { display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
+.kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
+.kpi-app .rg-ad-sub { font-size: 8px; color: #9aa8be; font-weight: 600; white-space: nowrap; }
+.kpi-app .rg-ad-afyp { color: #1a4a7a; font-weight: 900; white-space: nowrap; }
+.kpi-app .rg-ad-afyp-unit { font-size: 0.7em; color: #6a8aaa; font-weight: 700; margin-left: 2px; }
+
+/* %KH on progress bar (overlay) */
+.kpi-app .rg-ad-prog-cell { position: relative; min-width: 60px; }
+.kpi-app .rg-ad-prog-wrap { position: relative; width: 100%; min-width: 50px; }
+.kpi-app .rg-ad-pct-on-prog {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 9px; font-weight: 900; color: #1a4a7a;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+  white-space: nowrap; z-index: 2; pointer-events: none;
+}
+.kpi-app .rg-ad-pct-on-prog.green { color: #0f5132; }
+.kpi-app .rg-ad-pct-on-prog.gold { color: #6a4010; }
+.kpi-app .rg-ad-pct-on-prog.red { color: #6a1010; }
+
+/* %KH on phong progress bar */
+.kpi-app .rg-prog-wrap { position: relative; width: 100%; margin: 0 16px 10px; width: calc(100% - 32px); }
+.kpi-app .rg-prog-pct-on-bar {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 9px; font-weight: 900; color: #1a4a7a;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+  white-space: nowrap; z-index: 2;
+}
+
+/* Region divider: TIẾN ĐỘ KHU VỰC to + rõ hơn */
+.kpi-app .region-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px !important; padding: 0 4px; }
+.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #3a7cc8, transparent); }
+.kpi-app .region-divider-title {
+  font-size: 16px !important; font-weight: 900; text-transform: uppercase; letter-spacing: .15em;
+  color: #1a4a7a; white-space: nowrap;
+  text-shadow: 0 1px 0 #ffffff, 0 2px 8px #3a7cc833;
+  padding: 4px 14px; border-radius: 4px;
+  background: linear-gradient(135deg, #e8f0fa 0%, #d4e2f4 100%);
+  border: 1px solid #b8cae0;
+  box-shadow: 0 2px 8px rgba(10,30,60,.1);
+}
 
 /* Mobile compact: smaller fonts/padding */
 @media (max-width: 640px) {
@@ -464,7 +536,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 @media (min-width: 900px) {
   .kpi-app .mob-region-wrap { display: none; }
-  .kpi-app .region-divider { display: none; }
+  .kpi-app .region-divider { display: flex !important; margin: 24px 0 14px; }
   .kpi-app .afyp-chart-wrap { display: block; }
   .kpi-app .app-wrap { max-width: none; }
   .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
@@ -513,7 +585,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: sticky; top: 16px; align-self: start; }
   .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; }
   .kpi-app .afyp-chart { min-height: 320px; }
-  .kpi-app .region-divider { display: none !important; }
+  .kpi-app .region-divider { display: flex !important; margin: 24px 0 14px; }
   .kpi-app .kpi-phong { display: none !important; }
   .kpi-app .kpi-ad.is-phong { display: block; background: linear-gradient(180deg, #e8f0fa, #d4e2f4); border: 1px solid #7aacdc88; border-top: 3px solid #3a8ad4; border-radius: 14px; padding: 16px 18px 18px; }
   .kpi-app .kpi-ad.is-phong .ad-name { color: #1a4a7a; }
@@ -600,6 +672,17 @@ interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: st
 /* ================= CONSTANTS ================= */
 const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const WEEKDAY_NAMES = ['CN','T2','T3','T4','T5','T6','T7'];
+
+// AD short-name → full name mapping (DB stores short names, display full names)
+const AD_FULL_NAME_MAP: Record<string, string> = {
+  'AD Uy': 'Trương Quốc Uy',
+  'AD Trí': 'Lê Quang Trọng Trí',
+  'AD Có': 'Nguyễn Văn Có',
+  'AD Long': 'Nguyễn Thanh Long',
+  'AD Trang': 'Đàm Thị Hương Trang',
+  'AD Danh': 'Đặng Công Danh',
+};
+const resolveAdName = (adKey: string): string => AD_FULL_NAME_MAP[adKey] || adKey;
 
 /* ================= UTILITIES ================= */
 function num(v: unknown): number {
@@ -989,7 +1072,7 @@ export default function KPIDashboard() {
 
         // Find AD manager name from leaders
         const leader = rawData.leaders.find(l => normKey(l.agentName).includes(adNormKey) || adNormKey.includes(normKey(l.agentName)));
-        const managerName = leader?.agentName || adKey;
+        const managerName = leader?.agentName || resolveAdName(adKey);
 
         // Find contracts for this AD — match by normalized ad name
         const adContracts = periodContracts.filter(c => {
@@ -1484,24 +1567,26 @@ export default function KPIDashboard() {
                   const glowClsStr = glowCls(pPct);
                   return (
                     <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
-                      {/* Header: tên phòng + % */}
+                      {/* Header: tên phòng (bỏ %KH — sẽ hiện trên progress bar) */}
                       <div className="rg-head">
                         <div className="rg-head-left">
                           <Clipboard size={14} style={{ color: '#fff', flexShrink: 0 }} />
                           <span className="rg-head-name">{phong.ten}</span>
                         </div>
-                        {!phong.noAds && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                       </div>
-                      {/* AFYP + KH row (only for phong with KH) */}
+                      {/* AFYP (đầy đủ đ) + KH mờ dưới + progress bar có % nhỏ */}
                       {!phong.noAds && (
                         <>
                           <div className="rg-afyp-row">
                             <div>
                               <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
+                              <div style={{ fontSize: 9, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>
                             </div>
-                            <span className="rg-kh">KH: {fmt(pKhTrd)} trđ</span>
                           </div>
-                          <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
+                          <div className="rg-prog-wrap">
+                            <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
+                            <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
+                          </div>
                         </>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
@@ -1532,7 +1617,6 @@ export default function KPIDashboard() {
                             <thead>
                               <tr>
                                 <th>AD</th>
-                                <th>% KH</th>
                                 <th>AFYP</th>
                                 <th>LƯỢT HĐ</th>
                                 <th>TD</th>
@@ -1548,17 +1632,26 @@ export default function KPIDashboard() {
                                 const aPctCls = pctClass(aPct);
                                 const aProgStart = progressColor(Math.max(aPct - 24, 0));
                                 const aProgEnd = progressColor(aPct);
-                                const aAfypTrd = Math.round(ad.afyp / 1000000);
+                                const aGlow = aPct >= 100 ? 'rg-ad-glow' : '';
                                 return (
-                                  <tr key={ai}>
-                                    <td><span className="rg-ad-name">{ad.ten}</span></td>
-                                    <td><span className={`rg-ad-pct ${aPctCls}`}>{Math.round(aPct)}%</span></td>
-                                    <td style={{ color: '#1a4a7a', fontWeight: 900 }}>{aAfypTrd}tr</td>
+                                  <tr key={ai} className={aGlow}>
+                                    <td>
+                                      <div className="rg-ad-name-cell">
+                                        <span className="rg-ad-name">{ad.ten}</span>
+                                        {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
+                                      </div>
+                                    </td>
+                                    <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
                                     <td>{ad.lhd}</td>
                                     <td>{ad.td}</td>
                                     <td>{ad.hdChuan}</td>
                                     <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
-                                    <td><span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span></td>
+                                    <td className="rg-ad-prog-cell">
+                                      <div className="rg-ad-prog-wrap">
+                                        <span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span>
+                                        <span className={`rg-ad-pct-on-prog ${aPctCls}`}>{Math.round(aPct)}%</span>
+                                      </div>
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -1592,7 +1685,7 @@ export default function KPIDashboard() {
                   </div>
                 </div>
                 <div className="split-right" id="split-depts">
-                  <div className="section-divider">Chi tiết các phòng</div>
+                  <div className="region-divider" style={{ display: "flex" }}><span className="region-divider-title">Tiến Độ Khu Vực</span></div>
                   <div className="kpi-stack">
                     {dashboard.phongs.map((phong, pi) => {
                       const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
@@ -1635,24 +1728,26 @@ export default function KPIDashboard() {
 
                           {/* Desktop Phong Card - Redesign as lighter floating card */}
                           <div className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
-                            {/* Header */}
+                            {/* Header (bỏ %KH) */}
                             <div className="rg-head">
                               <div className="rg-head-left">
                                 <Clipboard size={15} style={{ color: '#fff', flexShrink: 0 }} />
                                 <span className="rg-head-name">{phong.ten}</span>
                               </div>
-                              {!phong.noAds && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                             </div>
-                            {/* AFYP + KH row */}
+                            {/* AFYP (đầy đủ đ) + KH mờ dưới + progress có % nhỏ */}
                             {!phong.noAds && (
                               <>
                                 <div className="rg-afyp-row">
                                   <div>
-                                    <span className="rg-afyp"><AnimNum value={afypTrd} /><span className="rg-afyp-unit">trđ</span></span>
+                                    <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
+                                    <div style={{ fontSize: 10, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>
                                   </div>
-                                  <span className="rg-kh">KH: {fmt(khTrd)} trđ</span>
                                 </div>
-                                <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
+                                <div className="rg-prog-wrap">
+                                  <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
+                                  <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
+                                </div>
                               </>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
@@ -1683,9 +1778,7 @@ export default function KPIDashboard() {
                                   <thead>
                                     <tr>
                                       <th>AD</th>
-                                      <th>% KH</th>
                                       <th>AFYP</th>
-                                      <th>KH</th>
                                       <th>LƯỢT HĐ</th>
                                       <th>TD</th>
                                       <th>HĐC</th>
@@ -1700,19 +1793,26 @@ export default function KPIDashboard() {
                                       const aPctCls = pctClass(aPct);
                                       const aProgStart = progressColor(Math.max(aPct - 24, 0));
                                       const aProgEnd = progressColor(aPct);
-                                      const aAfypTrd = Math.round(ad.afyp / 1000000);
-                                      const aKhTrd = Math.round(ad.kh / 1000000);
+                                      const aGlow = aPct >= 100 ? 'rg-ad-glow anim-in' : 'anim-in';
                                       return (
-                                        <tr key={ai} className="anim-in" style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
-                                          <td><span className="rg-ad-name">{ad.ten}</span></td>
-                                          <td><span className={`rg-ad-pct ${aPctCls}`}>{Math.round(aPct)}%</span></td>
-                                          <td style={{ color: '#1a4a7a', fontWeight: 900 }}>{aAfypTrd}tr</td>
-                                          <td style={{ color: '#6a8aaa' }}>{aKhTrd ? `${aKhTrd}tr` : '--'}</td>
+                                        <tr key={ai} className={aGlow} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
+                                          <td>
+                                            <div className="rg-ad-name-cell">
+                                              <span className="rg-ad-name">{ad.ten}</span>
+                                              {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
+                                            </div>
+                                          </td>
+                                          <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
                                           <td>{ad.lhd}</td>
                                           <td>{ad.td}</td>
                                           <td>{ad.hdChuan}</td>
                                           <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
-                                          <td><span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span></td>
+                                          <td className="rg-ad-prog-cell">
+                                            <div className="rg-ad-prog-wrap">
+                                              <span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span>
+                                              <span className={`rg-ad-pct-on-prog ${aPctCls}`}>{Math.round(aPct)}%</span>
+                                            </div>
+                                          </td>
                                         </tr>
                                       );
                                     })}
