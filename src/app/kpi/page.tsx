@@ -503,19 +503,88 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .error-state p { color: #fca5a5; font-size: 13px; margin-bottom: 16px; }
 
 /* Detail View */
-.kpi-app .detail-shell { margin-top: 10px; margin-left: auto; margin-right: auto; max-width: 100%; }
-.kpi-app .detail-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; position: sticky; top: 0; z-index: 50; padding: 4px 0; }
+.kpi-app .detail-shell { margin-top: 0; margin-left: auto; margin-right: auto; max-width: 100%; }
+.kpi-app .detail-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; position: sticky; top: 0; z-index: 50; padding: 4px 0; }
 .kpi-app .btn-back-u { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; border: none; background: rgba(255,255,255,.05); color: var(--muted); cursor: pointer; transition: all .2s; flex-shrink: 0; }
 .kpi-app .btn-back-u:hover { color: var(--accent); background: rgba(108,199,138,.1); }
-.kpi-app .detail-hero { text-align: center; padding: 4px 0 2px; }
+.kpi-app .detail-hero { text-align: center; padding: 0; }
 .kpi-app .detail-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; text-transform: uppercase; color: #ffb12b; letter-spacing: -.03em; line-height: 1.05; }
-.kpi-app .detail-meta { margin-top: 6px; font-size: 12px; color: #7da0cb; font-weight: 500; }
-.kpi-app .month-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 14px; }
+.kpi-app .detail-meta { margin-top: 4px; font-size: 12px; color: #7da0cb; font-weight: 500; }
+.kpi-app .month-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 10px; }
 .kpi-app .month-cell { padding: 6px 2px 5px; border-radius: 8px; border: 1px solid #008080; background: #0a3434; color: #b9ffff; cursor: pointer; font-family: inherit; text-align: center; transition: all .2s; display: flex; align-items: center; justify-content: center; }
 .kpi-app .month-cell:hover { background: #0d4b4b; color: #f3ffff; }
 .kpi-app .month-cell.on { background: #008080; color: #003b3b; box-shadow: 0 6px 16px #00808033; }
 .kpi-app .month-cell .mc-label { font-size: 9px; font-weight: 800; }
-.kpi-app .detail-list-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 5px; }
+.kpi-app .detail-list-wrap { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+
+/* Detail divider — thin line between top3 and group list */
+.kpi-app .detail-divider {
+  height: 1px; margin: 14px 8px 10px;
+  background: linear-gradient(90deg, transparent 0%, #2a5a8a 20%, #3a7cc8 50%, #2a5a8a 80%, transparent 100%);
+  opacity: .6;
+}
+
+/* AD Filter — slim dropdown (between top3 and group list) */
+.kpi-app .detail-ad-filter-wrap { position: relative; margin: 0 8px 10px; display: flex; justify-content: center; }
+.kpi-app .detail-ad-filter-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.05); border: 1px solid #2a4a70;
+  color: #c0d8f0; font-family: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.kpi-app .detail-ad-filter-btn:hover { background: rgba(255,255,255,.1); border-color: #3a7cc8; color: #c8e0ff; }
+.kpi-app .detail-ad-filter-label { white-space: nowrap; }
+.kpi-app .detail-ad-filter-caret { font-size: 9px; color: #6ab0e8; transition: transform .2s; }
+.kpi-app .detail-ad-filter-wrap.open .detail-ad-filter-caret { transform: rotate(180deg); }
+.kpi-app .detail-ad-filter-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.35); }
+.kpi-app .detail-ad-filter-popup {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  min-width: 200px; max-width: calc(100vw - 32px); max-height: 280px; overflow-y: auto;
+  background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 10px;
+  box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px);
+  padding: 6px; z-index: 70;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.kpi-app .detail-ad-filter-opt {
+  min-height: 32px; padding: 0 12px;
+  border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: #c0d8f0;
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all .15s; text-align: left;
+}
+.kpi-app .detail-ad-filter-opt:hover { background: #1a3a5e; color: #fff; }
+.kpi-app .detail-ad-filter-opt.on { background: linear-gradient(135deg, #3a7cc8, #2a6ab8); color: #fff; border-color: #5090d8; }
+
+/* Flat detail list — no Phong/AD headers */
+.kpi-app .detail-list-flat { gap: 6px; }
+.kpi-app .dt-bn-flat { margin: 0; }
+
+/* Flat group item — minimal rounding, compact */
+.kpi-app .grp-item-flat {
+  border-radius: 3px !important;
+  padding: 5px 10px 5px !important;
+  gap: 2px !important;
+}
+.kpi-app .grp-head-line {
+  display: flex; align-items: center; gap: 4px;
+  flex-wrap: nowrap; overflow: hidden;
+  position: relative; z-index: 1;
+}
+.kpi-app .grp-head-line .grp-name {
+  font-size: 11px; flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kpi-app .grp-tn-inline {
+  font-size: 9px; font-weight: 600; color: #8ab8e0;
+  font-style: italic; flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kpi-app .grp-head-line .grp-pct {
+  font-size: 11px; font-weight: 900; flex-shrink: 0; margin-left: auto;
+}
+.kpi-app .grp-item-flat .grp-bot-row { margin-top: 1px; }
 .kpi-app .grp-item { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px 5px; border-radius: 10px; background: #1e2f46; border: 1px solid #008080; overflow: hidden; animation: cardSlideIn .4s ease-out both; transition: transform .2s, border-color .2s; }
 .kpi-app .grp-item:hover { border-color: #008080; transform: translateY(-1px); }
 .kpi-app .grp-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2b4a6a, #365d84); opacity: .55; transition: width .9s cubic-bezier(.22,1,.36,1); }
@@ -936,6 +1005,8 @@ export default function KPIDashboard() {
   const [selectedKy, setSelectedKy] = useState('');
   const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [detailAdFilter, setDetailAdFilter] = useState<string>('all'); // AD filter for detail view
+  const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -1496,6 +1567,21 @@ export default function KPIDashboard() {
   const crowns = [<Award key="a" size={14} />, <Crown key="c" size={14} />, <Medal key="m" size={14} />];
   const cls3 = ['t3-silver', 't3-gold', 't3-bronze'];
 
+  /* AD list for detail filter — derived from detailData */
+  const detailAdList = useMemo(() => {
+    const map = new Map<string, { maAD: string; tenAD: string }>();
+    detailData.forEach(item => {
+      if (!map.has(item.maAD)) map.set(item.maAD, { maAD: item.maAD, tenAD: item.tenAD });
+    });
+    return Array.from(map.values());
+  }, [detailData]);
+
+  /* Filtered detail data (by selected AD) */
+  const filteredDetailData = useMemo(() => {
+    if (detailAdFilter === 'all') return detailData;
+    return detailData.filter(item => item.maAD === detailAdFilter);
+  }, [detailData, detailAdFilter]);
+
   return (
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -1640,7 +1726,7 @@ export default function KPIDashboard() {
 
               {/* Navigation Grid */}
               <nav className="nav-grid" aria-label="Điều hướng">
-                <button className="nav-btn nav-detail" onClick={() => setView('detail')}>
+                <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); }}>
                   <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
                 </button>
                 <button className="nav-btn nav-plan" onClick={() => setView('calendar')}>
@@ -2082,67 +2168,62 @@ export default function KPIDashboard() {
               </div>
             )}
 
-            {/* Group List - Hierarchical by Phong > AD > BanNhom */}
-            <div className="detail-list-wrap">
-              {detailData.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chưa có dữ liệu nhóm</div>}
-              {(() => {
-                // Group detailData by Phong, then by AD
-                const byPhong = new Map<string, GroupDetail[]>();
-                detailData.forEach(item => {
-                  const key = item.maPhong;
-                  if (!byPhong.has(key)) byPhong.set(key, []);
-                  byPhong.get(key)!.push(item);
-                });
-                let idx = 0;
-                return Array.from(byPhong.entries()).map(([maPhong, items]) => {
-                  const phongName = items[0]?.tenPhong || maPhong;
-                  const byAD = new Map<string, GroupDetail[]>();
-                  items.forEach(item => {
-                    const key = item.maAD;
-                    if (!byAD.has(key)) byAD.set(key, []);
-                    byAD.get(key)!.push(item);
-                  });
-                  return (
-                    <div className="dt-phong" key={maPhong}>
-                      <div className="dt-phong-head">{phongName}</div>
-                      {Array.from(byAD.entries()).map(([maAD, adItems]) => {
-                        const adName = adItems[0]?.tenAD || maAD;
-                        return (
-                          <div className="dt-ad" key={maAD}>
-                            <div className="dt-ad-head">{adName}</div>
-                            {adItems.map(item => {
-                              const fill = Math.min(item.pct, 100);
-                              const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
-                              idx++;
-                              return (
-                                <div className="dt-bn" key={item.maBanNhom}>
-                                  <div className={`grp-item ${idx <= 3 ? 'is-top' : ''}`} style={{ animationDelay: `${idx * 30}ms` }}>
-                                    <div className="grp-fill" style={{ width: `${fill}%` }} />
-                                    <div className="grp-top-row">
-                                      <span className="grp-name">{item.name}</span>
-                                      <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
-                                    </div>
-                                    {item.tnName && (
-                                      <div className="grp-tn-name">TN: {item.tnName}</div>
-                                    )}
-                                    <div className="grp-bot-row">
-                                      <span className="grp-stats-inline">
-                                        <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
-                                        <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
-                                      </span>
-                                    </div>
-                                    <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
+            {/* Thin separator between top3 and group list */}
+            <div className="detail-divider" />
+
+            {/* AD Filter — slim dropdown */}
+            {detailAdList.length > 0 && (
+              <div className={`detail-ad-filter-wrap ${detailAdDropdownOpen ? 'open' : ''}`}>
+                <button type="button" className="detail-ad-filter-btn" onClick={() => setDetailAdDropdownOpen(!detailAdDropdownOpen)}>
+                  <span className="detail-ad-filter-label">
+                    {detailAdFilter === 'all' ? 'Tất cả AD' : (detailAdList.find(a => a.maAD === detailAdFilter)?.tenAD || 'AD')}
+                  </span>
+                  <span className="detail-ad-filter-caret">▾</span>
+                </button>
+                {detailAdDropdownOpen && (
+                  <>
+                    <div className="detail-ad-filter-overlay" onClick={() => setDetailAdDropdownOpen(false)} />
+                    <div className="detail-ad-filter-popup" role="listbox">
+                      <button className={`detail-ad-filter-opt ${detailAdFilter === 'all' ? 'on' : ''}`} onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); }}>Tất cả AD</button>
+                      {detailAdList.map(ad => (
+                        <button key={ad.maAD} className={`detail-ad-filter-opt ${detailAdFilter === ad.maAD ? 'on' : ''}`} onClick={() => { setDetailAdFilter(ad.maAD); setDetailAdDropdownOpen(false); }}>
+                          {ad.tenAD}
+                        </button>
+                      ))}
                     </div>
-                  );
-                });
-              })()}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Group List — flat (no Phong/AD hierarchy), filtered by AD */}
+            <div className="detail-list-wrap detail-list-flat">
+              {filteredDetailData.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontStyle: 'italic', fontSize: 13 }}>Chưa có dữ liệu nhóm</div>}
+              {filteredDetailData.map((item, idx) => {
+                const fill = Math.min(item.pct, 100);
+                const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
+                return (
+                  <div className="dt-bn-flat" key={item.maBanNhom}>
+                    <div className="grp-item grp-item-flat" style={{ animationDelay: `${idx * 30}ms` }}>
+                      <div className="grp-fill" style={{ width: `${fill}%` }} />
+                      {/* Single-line header: Nhóm ... - TN ... - TLHT ... */}
+                      <div className="grp-head-line">
+                        <span className="grp-name">Nhóm {item.name}</span>
+                        {item.tnName && <span className="grp-tn-inline"> - TN: {item.tnName}</span>}
+                        <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
+                      </div>
+                      {/* Body: TH/KH + progress bar (unchanged) */}
+                      <div className="grp-bot-row">
+                        <span className="grp-stats-inline">
+                          <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
+                          <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
+                        </span>
+                      </div>
+                      <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
