@@ -1582,19 +1582,21 @@ export default function KPIDashboard() {
                           <span className="rg-head-name">{phong.ten}</span>
                         </div>
                       </div>
-                      {/* AFYP (đầy đủ đ) + KH mờ dưới + progress bar có % nhỏ */}
-                      {!phong.noAds && (
+                      {/* AFYP (đầy đủ đ) + KH mờ dưới (if has KH) + progress có % nhỏ (if has KH) */}
+                      {phong.afyp > 0 && (
                         <>
                           <div className="rg-afyp-row">
                             <div>
                               <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                              <div style={{ fontSize: 9, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>
+                              {phong.kh > 0 && <div style={{ fontSize: 9, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>}
                             </div>
                           </div>
-                          <div className="rg-prog-wrap">
-                            <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
-                            <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
-                          </div>
+                          {phong.kh > 0 && (
+                            <div className="rg-prog-wrap">
+                              <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
+                              <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
+                            </div>
+                          )}
                         </>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
@@ -1743,19 +1745,21 @@ export default function KPIDashboard() {
                                 <span className="rg-head-name">{phong.ten}</span>
                               </div>
                             </div>
-                            {/* AFYP (đầy đủ đ) + KH mờ dưới + progress có % nhỏ */}
-                            {!phong.noAds && (
+                            {/* AFYP (đầy đủ đ) + KH mờ dưới (if has KH) + progress có % nhỏ (if has KH) */}
+                            {phong.afyp > 0 && (
                               <>
                                 <div className="rg-afyp-row">
                                   <div>
                                     <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                                    <div style={{ fontSize: 10, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>
+                                    {phong.kh > 0 && <div style={{ fontSize: 10, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>}
                                   </div>
                                 </div>
-                                <div className="rg-prog-wrap">
-                                  <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
-                                  <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
-                                </div>
+                                {phong.kh > 0 && (
+                                  <div className="rg-prog-wrap">
+                                    <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
+                                    <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
+                                  </div>
+                                )}
                               </>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
