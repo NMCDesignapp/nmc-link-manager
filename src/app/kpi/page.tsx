@@ -1034,15 +1034,20 @@ export default function KPIDashboard() {
         if (!bancaPaPhong) {
           bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true };
         }
-        // Match contracts by nhom / ban / maNhom containing PA / Banca / DSO
+        // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         const paContracts = periodContracts.filter(c => {
           if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
-          const nhomNorm = normKey(c.nhom || '');
+          // Match contracts with ad = 'Banca - PA' or contains 'Banca'
+          const adNorm = normKey(c.ad || '');
+          if (adNorm.includes('BANCAPA') || adNorm.includes('BANCA')) return true;
+          // Match contracts with ban field containing PGB (PGB = Phát hành Banca)
           const banNorm = normKey(c.ban || '');
+          if (banNorm.includes('PGB')) return true;
+          const nhomNorm = normKey(c.nhom || '');
+          if (nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')) return true;
           const maNhomNorm = normKey(c.maNhom || '');
-          return nhomNorm.includes('PA') || nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')
-            || banNorm.includes('PA') || banNorm.includes('BANCA') || banNorm.includes('DSO')
-            || maNhomNorm.includes('PA') || maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO');
+          if (maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO')) return true;
+          return false;
         });
 
         // Add only contracts not already counted
