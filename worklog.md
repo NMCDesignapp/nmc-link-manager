@@ -208,3 +208,89 @@ Stage Summary:
 - Banca + PA gộp thành 1 phòng "Banca - PA" (noAds=true, không KH)
 - TD calculation fixed: đếm TVV có ngayBatDau trong period (theo định nghĩa quan-ly)
 - Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/kpi
+
+---
+Task ID: kpi-redesign-v3
+Agent: main
+Task: Redesign KPI v3 — AD full names, %KH on progress bar, glow at 100% KH, larger divider
+
+Work Log:
+A. AD name mapping:
+- DB stores short names ('AD Uy', 'AD Trí', etc.)
+- User provided full names mapping:
+  AD Uy → Trương Quốc Uy
+  AD Trí → Lê Quang Trọng Trí
+  AD Có → Nguyễn Văn Có
+  AD Long → Nguyễn Thanh Long
+  AD Trang → Đàm Thị Hương Trang
+  AD Danh → Đặng Công Danh
+- Added AD_FULL_NAME_MAP + resolveAdName() helper
+- managerName now uses resolveAdName when no leader match
+
+B. Layout AD row changes:
+- BỎ cột %KH (was standalone column with rg-ad-pct class)
+- %KH làm số nhỏ nằm trên progress bar (.rg-ad-pct-on-prog) với text-shadow trắng
+- AFYP hiển thị đầy đủ đơn vị đ (was 'tr' short)
+- KH AFYP nhỏ + mờ dưới tên AD (.rg-ad-sub, font-size 8px desktop / 10px mobile, color #9aa8be)
+- BỎ cột KH riêng (was 'KhTr' value column)
+
+C. Layout Phòng card changes:
+- BỎ %KH khỏi header (.rg-head-pct removed)
+- %KH phòng làm số nhỏ trên progress bar (.rg-prog-pct-on-bar)
+- AFYP hiển thị đầy đủ đ (was 'trđ' short)
+- KH AFYP nhỏ mờ dưới AFYP value
+- AFYP row render khi afyp > 0 (cho cả Banca-PA, không chỉ non-noAds)
+- KH sub-line + progress chỉ render khi kh > 0
+
+D. Glow effect at 100% KH:
+- Phong card: .rg-card.glow-full với rgGlowPulse 2.4s animation
+  - border-color: #f2d38d
+  - 4-layer gold box-shadow
+  - Header background đổi sang gold gradient
+  - Text-shadow trên header
+- AD row: tr.rg-ad-glow với rgAdGlowPulse 2.4s animation
+  - background: linear-gradient gold (90deg)
+  - inset box-shadow với gold border
+  - Text-shadow trên AD name
+  - AD name color đổi sang dark gold
+
+E. TIẾN ĐỘ KHU VỰC divider:
+- font-size: 16px (was 10px)
+- letter-spacing: 0.15em
+- Background: light blue gradient với border
+- Box-shadow for depth
+- Visible on BOTH mobile + desktop (was display:none on desktop)
+- Replace 'Chi tiết các phòng' section-divider on desktop split-right
+
+F. Critical fix - contract matching by FULL AD name:
+- Bug: contracts.ad stores full names ('Trương Quốc Uy'), but adStruct.tenAD
+  stores short names ('AD Uy'). normKey('Trương Quốc Uy') !== normKey('AD Uy')
+  → no contracts matched → all phong AFYP showed 0đ
+- Fix: After resolving managerName via resolveAdName, also match contracts
+  against the resolved full name (managerNormKey)
+
+G. Critical fix - Banca-PA contracts matching:
+- 15 contracts with ad='Banca - PA' and ban='PGB An Giang - Phòng KHCN/KHDN'
+  or ban='DSO team - An Giang' were not counted in Banca-PA phong
+- Fix: paContracts filter also matches ad field containing 'BANCAPA'/'BANCA'
+  and ban field containing 'PGB'
+
+H. Critical fix - render AFYP row for Banca-PA:
+- Banca-PA had noAds=true → AFYP row was skipped
+- But this caused sum(visible phong AFYP) < company AFYP
+- Fix: render AFYP row when phong.afyp > 0 (regardless of noAds)
+- KH sub-line + progress only render when phong.kh > 0
+
+I. Commits: 6ae1d0a, 7c22a6c, 38a2700, 80b9d7a — all pushed
+
+Stage Summary (verified on production):
+- AD names: full names (Lê Quang Trọng Trí, Trương Quốc Uy, Nguyễn Văn Có, Nguyễn Thanh Long, Đặng Công Danh, Đàm Thị Hương Trang)
+- %KH column removed from AD table; %KH shows as small overlay on progress bar
+- AFYP shows full đ (e.g. '56.028.408đ')
+- KH AFYP small + dim below AD name (e.g. 'KH: 144.000.000đ')
+- %KH removed from phong header; shows as small overlay on phong progress bar
+- Glow effect for AD row at >=100% KH (Nguyễn Thanh Long 102% — verified glowing)
+- Glow effect for phong card at >=100% KH (gold gradient header + pulse)
+- 'TIẾN ĐỘ KHU VỰC' divider: 16px font, gradient bg, visible on both mobile + desktop
+- Data consistency: sum(phong AFYP) = company AFYP = 1,958,966,329đ ✓
+- Banca-PA now shows 31,723,000đ AFYP (no KH, no progress bar)
