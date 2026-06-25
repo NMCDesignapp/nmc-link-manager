@@ -52,6 +52,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .ctrl-select { height: 36px; padding: 0 12px; border-radius: 99px; background: rgba(255,255,255,.06); border: 1.5px solid #2a4a70; color: #90b0d0; font-weight: 600; font-size: 11px; outline: none; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
 .kpi-app .ctrl-select:hover { background: rgba(255,255,255,.1); border-color: #3a7cc8; color: #c8e0ff; }
 .kpi-app .ctrl-select .ctrl-icon { display: inline-flex; color: #60b0f0; }
+.kpi-app .ctrl-select-period { padding: 0 14px; min-width: 44px; }
+.kpi-app .ctrl-select-period .ctrl-period-label {
+  font-size: 13px; font-weight: 900; letter-spacing: .02em;
+  background: linear-gradient(135deg, #60b0f0 0%, #a0d8ff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 12px #60b0f044;
+}
+.kpi-app .ctrl-select-period:hover .ctrl-period-label {
+  background: linear-gradient(135deg, #80c8ff 0%, #c8e8ff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 .kpi-app .ctrl-hint { font-style: italic; font-size: 10px; color: #5a7a9a; font-weight: 400; white-space: nowrap; }
 .kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 280px; max-width: calc(100vw - 32px); background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
 .kpi-app .ctrl-select-wrap.open .ctrl-select-popup { display: grid; }
@@ -298,37 +309,51 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-prog { width: 100%; height: 8px; border-radius: 0; overflow: hidden; background: #4a6080; margin: 0 0 10px; }
 .kpi-app .rg-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); }
 
-/* AD Table (compact, ngay hàng) */
+/* AD Table (compact, ngay hàng) — 3D raised block */
 .kpi-app .rg-ad-wrap {
   background: #fff;
   padding: 0 0 8px;
 }
 .kpi-app .rg-ad-table {
-  width: 100%; border-collapse: collapse; font-size: 11px;
-  background: #f4f8fc;
-  border-radius: 3px; overflow: hidden;
-  border: 1px solid #d0dcee;
+  width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid #c8d8ea;
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 -2px 4px #d0deec inset,
+    0 4px 10px rgba(20, 50, 90, .12),
+    0 1px 3px rgba(20, 50, 90, .10);
 }
 .kpi-app .rg-ad-table thead th {
-  background: #1a3a5e;
-  color: #c0d8ee;
+  background: linear-gradient(180deg, #2a5278 0%, #163252 100%);
+  color: #e8f2ff;
   font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
-  padding: 7px 4px; text-align: center; white-space: nowrap;
+  padding: 8px 4px; text-align: center; white-space: nowrap;
+  border-bottom: 2px solid #0d2238;
+  box-shadow: 0 1px 0 #4a78a0 inset, 0 -1px 0 #0a1a2e inset;
+  text-shadow: 0 1px 0 #0a1a2e;
 }
 .kpi-app .rg-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
-.kpi-app .rg-ad-table tbody tr { transition: background .15s; }
-.kpi-app .rg-ad-table tbody tr:hover { background: #e8f0fa; }
+.kpi-app .rg-ad-table tbody tr { transition: background .15s, box-shadow .15s; }
+.kpi-app .rg-ad-table tbody tr:hover {
+  background: linear-gradient(180deg, #f0f8ff 0%, #e0ecfa 100%);
+  box-shadow: 0 1px 0 #ffffff inset;
+}
+.kpi-app .rg-ad-table tbody tr:first-child td { border-top: none; }
 .kpi-app .rg-ad-table tbody td {
-  padding: 8px 4px; text-align: center; border-top: 2px solid #b8c8dc;
+  padding: 9px 4px; text-align: center;
+  border-top: 1px solid #c8d8ea;
   font-weight: 700; color: #2a4a6a; white-space: nowrap;
+  background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 100%);
 }
 .kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
-.kpi-app .rg-ad-val { font-weight: 900; }
-.kpi-app .rg-ad-val.lhd { color: #2563eb; }
-.kpi-app .rg-ad-val.td { color: #9333ea; }
-.kpi-app .rg-ad-val.hdc { color: #0891b2; }
-.kpi-app .rg-ad-val.ip { color: #ea580c; }
+.kpi-app .rg-ad-val { font-weight: 900; text-shadow: 0 1px 0 #ffffff; }
+.kpi-app .rg-ad-val.lhd { color: #DC2626; }     /* red - Lượt */
+.kpi-app .rg-ad-val.td { color: #DB2777; }      /* pink - TD */
+.kpi-app .rg-ad-val.hdc { color: #65A30D; }     /* lime - HĐC */
+.kpi-app .rg-ad-val.ip { color: #B45309; }      /* dark amber - IP% */
 .kpi-app .rg-ad-pct { font-weight: 900; }
 .kpi-app .rg-ad-pct.green { color: #16a34a; }
 .kpi-app .rg-ad-pct.gold { color: #d97706; }
@@ -1478,8 +1503,8 @@ export default function KPIDashboard() {
             <div className="ctrl-bar">
               <span className="ctrl-hint">chọn thời gian xem</span>
               <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
-                <button type="button" className="ctrl-select" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
-                  <span className="ctrl-icon"><CalendarDays size={15} /></span>
+                <button type="button" className="ctrl-select ctrl-select-period" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
+                  <span className="ctrl-period-label">{overviewPeriod.startsWith('month-') ? `T${overviewPeriod.split('-')[1]}` : overviewPeriod.startsWith('q') ? overviewPeriod.replace('q', 'Q').toUpperCase() : overviewPeriod === 'h1' ? 'H1' : overviewPeriod === 'h2' ? 'H2' : overviewPeriod === 'year' ? 'Năm' : 'T?'}</span>
                 </button>
                 <div className="ctrl-select-popup" role="listbox">
                   {/* Months */}
