@@ -361,3 +361,64 @@ Stage Summary (verified on production):
 - Glow effect works: AD rows + phong cards glow at >=100% KH
 - Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/kpi
 - Screenshots saved: /home/z/my-project/download/kpi-v4-desktop.png, kpi-v4-mobile.png
+
+---
+Task ID: kpi-redesign-v5
+Agent: main
+Task: v5 redesign — circular AD progress, green glow, full đ, Banca-PA simplify
+
+Work Log:
+A. CSS changes:
+- .rg-prog: full width card (margin: 0 0 10px), height 8px, radius 0, darker bg #4a6080 (was #d8e2ee)
+- .rg-card.glow-full: gold → light green (#f2d38d → #86efac / #4ade80), smoother 3s anim
+- .rg-card.glow-full .rg-head: gradient #16a34a → #15803d (was gold)
+- rg-ad-glow row: gold → light green gradient
+- .rg-ad-sub: 8px → 7px, opacity 0.85 (smaller KH sub for AD)
+- summary val colors more saturated:
+  - hd: #1e6cb8 → #2563eb (blue-600)
+  - td: #6a4ab8 → #9333ea (purple-600)
+  - chuan: #1a8a9a → #0891b2 (cyan-600)
+  - ip: #b87818 → #ea580c (orange-600)
+- New .rg-ad-circle CSS for circular SVG (32px mobile, 34px desktop)
+- New .rg-summary.rg-summary-2col: grid-template-columns repeat(2,1fr) for Banca-PA
+
+B. JSX changes (both mobile + desktop):
+- Label "Lượt HĐ" → "Lượt" in summary stats (4 places)
+- AD progress: mini horizontal bar → circular SVG
+  - 32px circle (mobile) / 34px (desktop)
+  - r=13, stroke-width 3, hue gradient via progressColor()
+  - % text centered, color by pct class (green/gold/red)
+- Phong AFYP/KH: changed from trđ (millions) to đ (full)
+  - Mobile: pAfypTrd → phong.afyp, pKhTrd → phong.kh
+  - Desktop: afypTrd → phong.afyp, khTrd → phong.kh
+- Banca-PA summary: only Lượt + HĐC (drop Tuyển dụng, Tỷ trọng IP)
+  - Conditional {!phong.noAds && (...)} for 2 middle cells
+  - 2-col grid via .rg-summary-2col class
+
+C. Commit d6bf792 + push to main + verify production
+
+D. Verified on production (T6 default):
+- Label: "LƯỢT" (was "LƯỢT HĐ") ✓
+- Phong AFYP: "453.551.593đ" (full đ, was "454trđ") ✓
+- Phong KH: "KH: 1.251.000.000 đ" (full đ, was "KH: 1.251 trđ") ✓
+- Phong progress bar: full card width (380px ≈ 382px card), darker bg #4a6080, height 8px, radius 0 ✓
+- AD progress: circular SVG rendered (12 circles in DOM, 6 ADs × 2 mobile+desktop) ✓
+- Banca-PA: 2 cells (Lượt + HĐ chuẩn), no prog, no %, no KH, AFYP "31.723.000đ" ✓
+- All data values match previous T6 baseline (no data regression)
+
+E. Verified Q1 filter (high completion):
+- Glow cards: 6 (3 phong mobile + 3 phong desktop all glow at ≥100%) ✓
+- Glow AD rows: 10 (5 ADs × 2 mobile+desktop, all green gradient) ✓
+- Glow color: rgb(22, 163, 74) green-600 header, rgba(133, 239, 171) green-300 shadow ✓
+- Smooth 3s pulse animation verified via CSS keyframes
+
+Stage Summary (production live at https://my-project-nmchau022023-4326s-projects.vercel.app/kpi):
+- AD progress: circular SVG with % in center (no card size change)
+- Phong progress: full width, darker unfilled portion, no border-radius
+- Glow 100%: light green (was gold), 3s smooth pulse
+- KH AD sub: smaller (7px) for better balance
+- Phong AFYP/KH: full đ (was trđ)
+- Banca-PA: only AFYP + Lượt + HĐC (no KH, no prog, no %, no TD/IP)
+- Label "Lượt HĐ" → "Lượt" in summary stats
+- Summary colors more distinct: blue/purple/cyan/orange-600
+- Screenshots: kpi-v5-desktop.png, kpi-v5-mobile.png, kpi-v5-desktop-q1.png (green glow)
