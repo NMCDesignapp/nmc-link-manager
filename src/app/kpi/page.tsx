@@ -217,19 +217,32 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
 .kpi-app .dept-section { display: flex; flex-direction: column; gap: 0; }
 
-/* === REDESIGN: Region card (sáng hơn, nổi khối) === */
-.kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+/* === REDESIGN: Region card (sáng hơn, nổi khối 3D) === */
+.kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 22px; margin-top: 8px; }
 .kpi-app .rg-card {
   background: linear-gradient(180deg, #f4f8fc 0%, #e2ecf6 100%);
-  border: 1px solid #b8cae0;
+  border: 1.5px solid #6a8aaa;
   border-top: 4px solid #3a7cc8;
-  border-radius: 4px;
-  box-shadow: 0 10px 28px rgba(10,30,60,.22), 0 2px 6px rgba(10,30,60,.12);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 -2px 4px rgba(180,200,220,.4) inset,
+    0 8px 18px rgba(10,30,60,.18),
+    0 2px 5px rgba(10,30,60,.14),
+    0 12px 28px rgba(20,50,90,.16);
   overflow: hidden;
   animation: cardSlideIn .4s ease-out both;
   transition: transform .2s, box-shadow .2s;
 }
-.kpi-app .rg-card:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(10,30,60,.28), 0 4px 8px rgba(10,30,60,.14); }
+.kpi-app .rg-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 -2px 4px rgba(180,200,220,.4) inset,
+    0 14px 26px rgba(10,30,60,.24),
+    0 4px 8px rgba(10,30,60,.16),
+    0 18px 36px rgba(20,50,90,.20);
+}
 .kpi-app .rg-card.is-banca { border-top-color: #b89838; }
 .kpi-app .rg-card.is-pa { border-top-color: #6a88a8; }
 .kpi-app .rg-card.glow-full {
@@ -309,30 +322,30 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-prog { width: 100%; height: 8px; border-radius: 0; overflow: hidden; background: #4a6080; margin: 0 0 10px; }
 .kpi-app .rg-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); }
 
-/* AD Table (compact, ngay hàng) — 3D raised block */
+/* AD Table (compact, ngay hàng) — 3D raised block, hẹp hơn, viền nhẹ 2 bên */
 .kpi-app .rg-ad-wrap {
-  background: #fff;
-  padding: 0 0 8px;
+  background: transparent;
+  padding: 8px 14px 10px;
+  /* chừa 2 viền nhẹ 2 bên bảng phòng */
 }
 .kpi-app .rg-ad-table {
-  width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; font-size: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
-  border-radius: 10px; overflow: hidden;
+  border-radius: 3px; overflow: hidden;
   border: 1px solid #c8d8ea;
   box-shadow:
     0 1px 0 #ffffff inset,
     0 -2px 4px #d0deec inset,
-    0 4px 10px rgba(20, 50, 90, .12),
-    0 1px 3px rgba(20, 50, 90, .10);
+    0 3px 7px rgba(20, 50, 90, .10),
+    0 1px 2px rgba(20, 50, 90, .08);
 }
 .kpi-app .rg-ad-table thead th {
-  background: linear-gradient(180deg, #2a5278 0%, #163252 100%);
-  color: #e8f2ff;
+  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
+  color: #ffffff;
   font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
-  padding: 8px 4px; text-align: center; white-space: nowrap;
-  border-bottom: 2px solid #0d2238;
-  box-shadow: 0 1px 0 #4a78a0 inset, 0 -1px 0 #0a1a2e inset;
-  text-shadow: 0 1px 0 #0a1a2e;
+  padding: 7px 4px; text-align: center; white-space: nowrap;
+  border-bottom: 1.5px solid #1a4a7a;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 .kpi-app .rg-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
 .kpi-app .rg-ad-table tbody tr { transition: background .15s, box-shadow .15s; }
@@ -342,8 +355,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .rg-ad-table tbody tr:first-child td { border-top: none; }
 .kpi-app .rg-ad-table tbody td {
-  padding: 9px 4px; text-align: center;
-  border-top: 1px solid #c8d8ea;
+  padding: 8px 4px; text-align: center;
+  border-top: 1px solid #d0deec;
   font-weight: 700; color: #2a4a6a; white-space: nowrap;
   background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 100%);
 }
@@ -472,7 +485,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 900px) {
   .kpi-app .mob-region-wrap { display: none !important; }
   .kpi-app .mobile-only { display: none !important; }
-  .kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 22px; }
   .kpi-app .rg-card { max-width: 900px; margin: 0 auto; }
 }
 
@@ -1711,7 +1724,7 @@ export default function KPIDashboard() {
                       <div className="rg-divider" />
                       {/* AD Table */}
                       {!phong.noAds && phong.ads.length > 0 && (
-                        <div className="rg-ad-wrap" style={{ paddingTop: 8 }}>
+                        <div className="rg-ad-wrap">
                           <table className="rg-ad-table">
                             <thead>
                               <tr>
@@ -1886,7 +1899,7 @@ export default function KPIDashboard() {
                             <div className="rg-divider" />
                             {/* AD Table */}
                             {!phong.noAds && phong.ads.length > 0 && (
-                              <div className="rg-ad-wrap" style={{ padding: '10px 12px 12px' }}>
+                              <div className="rg-ad-wrap">
                                 <table className="rg-ad-table">
                                   <thead>
                                     <tr>
