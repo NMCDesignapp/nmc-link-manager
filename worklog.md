@@ -66,3 +66,29 @@ Stage Summary:
   - BK3: Q4/TVVm2/FYP100tr/Thưởng24tr
   - BK6: Q6/TVVm3/FYP250tr/Thưởng39tr
 - Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly
+
+---
+Task ID: fix-back-button
+Agent: main
+Task: Fix nút "Trở về" từ trang quản lý không về được màn hình chính ứng dụng
+
+Work Log:
+- Đọc code: handleAppBack dùng navHistoryRef, fallback khi length <= 1 chỉ setActiveSheet('overview') (vẫn ở trang quản lý)
+- Vấn đề: khi user vào /quan-ly trực tiếp (không qua trang chủ), history chỉ có [overview] → bấm back vẫn ở overview
+- Fix: 
+  - Nếu history rỗng + activeSheet='overview' → router.push('/') về trang chủ
+  - Nếu history rỗng + activeSheet != overview → về overview trước (2 bước)
+- Thêm router vào dependency của useCallback
+- Build + commit 6cd09ce + push
+- Verify trên production:
+  - Mở /quan-ly → bấm "Trở về thao tác trước"
+  - URL chuyển: /quan-ly → /
+  - Page title vẫn "N.M.C - Trung tam quan ly lien ket"
+  - Snapshot: thấy 4 nút Thi Đua / Vinh Danh / Quản Lý / KPI → đã về trang chủ OK
+
+Stage Summary:
+- Đã fix nút Back: từ /quan-ly bấm "Trở về thao tác trước" → / (trang chủ)
+- Logic:
+  - History còn > 1 → pop về state nội bộ trước đó
+  - History rỗng + ở overview → router.push('/')
+  - History rỗng + ở sheet con (revenue/policy/structure) → về overview, bấm lại mới về trang chủ
