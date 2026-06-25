@@ -205,6 +205,126 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
 .kpi-app .dept-section { display: flex; flex-direction: column; gap: 0; }
 
+/* === REDESIGN: Region card (sáng hơn, nổi khối) === */
+.kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.kpi-app .rg-card {
+  background: linear-gradient(180deg, #f4f8fc 0%, #e2ecf6 100%);
+  border: 1px solid #b8cae0;
+  border-top: 4px solid #3a7cc8;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(10,30,60,.22), 0 2px 6px rgba(10,30,60,.12);
+  overflow: hidden;
+  animation: cardSlideIn .4s ease-out both;
+  transition: transform .2s, box-shadow .2s;
+}
+.kpi-app .rg-card:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(10,30,60,.28), 0 4px 8px rgba(10,30,60,.14); }
+.kpi-app .rg-card.is-banca { border-top-color: #b89838; }
+.kpi-app .rg-card.is-pa { border-top-color: #6a88a8; }
+.kpi-app .rg-card.glow-full { box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28); }
+
+/* Phong header (inside rg-card) */
+.kpi-app .rg-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
+  color: #fff;
+}
+.kpi-app .rg-card.is-banca .rg-head { background: linear-gradient(135deg, #c89828 0%, #a87818 100%); }
+.kpi-app .rg-card.is-pa .rg-head { background: linear-gradient(135deg, #6a88a8 0%, #4a6890 100%); }
+.kpi-app .rg-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.kpi-app .rg-head-name { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; line-height: 1.2; }
+.kpi-app .rg-head-pct { font-size: 18px; font-weight: 900; line-height: 1; white-space: nowrap; }
+
+/* Phong summary row (4 stats) */
+.kpi-app .rg-summary {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: #c0d4e8;
+  border-bottom: 1px solid #c0d4e8;
+}
+.kpi-app .rg-sum-cell {
+  background: #e8f0fa;
+  padding: 10px 4px 8px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 56px;
+}
+.kpi-app .rg-sum-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #5a78a0; line-height: 1.2; margin-bottom: 4px; white-space: nowrap; }
+.kpi-app .rg-sum-val { font-size: 17px; font-weight: 900; line-height: 1.1; white-space: nowrap; }
+.kpi-app .rg-sum-val.hd { color: #1e6cb8; }
+.kpi-app .rg-sum-val.td { color: #6a4ab8; }
+.kpi-app .rg-sum-val.chuan { color: #1a8a9a; }
+.kpi-app .rg-sum-val.ip { color: #b87818; }
+.kpi-app .rg-sum-val.afyp { color: #1a4a7a; }
+.kpi-app .rg-sum-val.kh { color: #6a8aaa; }
+
+/* AFYP + KH row */
+.kpi-app .rg-afyp-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e0e8f0;
+}
+.kpi-app .rg-afyp { font-size: 1.45rem; font-weight: 900; color: #1a4a7a; line-height: 1.1; }
+.kpi-app .rg-afyp-unit { font-size: .55em; font-weight: 700; color: #5a78a0; margin-left: 3px; }
+.kpi-app .rg-kh { font-size: 11px; color: #6a8aaa; font-weight: 700; }
+.kpi-app .rg-prog { width: 100%; height: 7px; border-radius: 99px; overflow: hidden; background: #d8e2ee; margin: 0 16px 10px; width: calc(100% - 32px); }
+.kpi-app .rg-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); }
+
+/* AD Table (compact, ngay hàng) */
+.kpi-app .rg-ad-wrap {
+  background: #fff;
+  padding: 0 6px 8px;
+}
+.kpi-app .rg-ad-table {
+  width: 100%; border-collapse: collapse; font-size: 11px;
+  background: #f4f8fc;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid #d0dcee;
+}
+.kpi-app .rg-ad-table thead th {
+  background: #1a3a5e;
+  color: #c0d8ee;
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+  padding: 7px 4px; text-align: center; white-space: nowrap;
+}
+.kpi-app .rg-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .rg-ad-table tbody tr { transition: background .15s; }
+.kpi-app .rg-ad-table tbody tr:hover { background: #e8f0fa; }
+.kpi-app .rg-ad-table tbody td {
+  padding: 8px 4px; text-align: center; border-top: 1px solid #e0e8f0;
+  font-weight: 700; color: #2a4a6a; white-space: nowrap;
+}
+.kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
+.kpi-app .rg-ad-pct { font-weight: 900; }
+.kpi-app .rg-ad-pct.green { color: #16a34a; }
+.kpi-app .rg-ad-pct.gold { color: #d97706; }
+.kpi-app .rg-ad-pct.red { color: #dc2626; }
+.kpi-app .rg-ad-mini-prog { width: 44px; height: 5px; border-radius: 99px; background: #e0e8f0; display: inline-block; vertical-align: middle; overflow: hidden; }
+.kpi-app .rg-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
+.kpi-app .rg-ad-empty { padding: 14px 10px; text-align: center; font-size: 10px; color: #8aa0b8; font-style: italic; }
+
+/* Mobile compact: smaller fonts/padding */
+@media (max-width: 640px) {
+  .kpi-app .rg-head { padding: 10px 12px; }
+  .kpi-app .rg-head-name { font-size: 11px; }
+  .kpi-app .rg-head-pct { font-size: 15px; }
+  .kpi-app .rg-afyp { font-size: 1.2rem; }
+  .kpi-app .rg-sum-val { font-size: 14px; }
+  .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 5px 2px; }
+  .kpi-app .rg-ad-table tbody td { font-size: 10px; padding: 6px 2px; }
+  .kpi-app .rg-ad-mini-prog { width: 36px; }
+}
+
+/* Desktop: hide mobile-only region, use rg-wrap */
+@media (min-width: 900px) {
+  .kpi-app .mob-region-wrap { display: none !important; }
+  .kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .kpi-app .rg-card { max-width: none; }
+}
+
+
 /* Skeleton */
 .kpi-app .skel { border-radius: 12px; background: linear-gradient(90deg, #ffffff08 25%, #ffffff0f 50%, #ffffff08 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -485,7 +605,7 @@ function num(v: unknown): number {
 }
 function fmt(n: number): string { return new Intl.NumberFormat('vi-VN').format(n); }
 function fmtBig(v: number): string {
-  if (v >= 1e9) return (v/1e9).toFixed(2) + ' tỷ';
+  if (v >= 1e9) return Math.round(v/1e9) + ' tỷ';
   if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
   if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
   return v.toFixed(0);
@@ -496,7 +616,7 @@ function fmtTyTrong(v: number): string {
   return v.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '%';
 }
 function fmtShort(v: number): string {
-  if (v >= 1e9) return (v/1e9).toFixed(1) + ' tỷ';
+  if (v >= 1e9) return Math.round(v/1e9) + ' tỷ';
   if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
   if (v >= 1e3) return (v/1e3).toFixed(0) + 'k';
   return v.toFixed(0);
@@ -549,9 +669,9 @@ function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string })
 }
 // Format currency in compact form (trđ, tỷ)
 function formatKpiCurrency(amount: number): string {
-  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(3).replace('.', ',')} tỷ`;
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(3).replace('.', ',')} trđ`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(3).replace('.', ',')} ngàn`;
+  if (amount >= 1_000_000_000) return `${Math.round(amount / 1_000_000_000)} tỷ`;
+  if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)} trđ`;
+  if (amount >= 1_000) return `${Math.round(amount / 1_000)} ngàn`;
   return amount.toFixed(0);
 }
 // Period-to-months mapping — same as quan-ly page
@@ -1210,9 +1330,9 @@ export default function KPIDashboard() {
                       <div className="cty-stat hd"><div className="cty-stat-label">LƯỢT HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
                       <div className="cty-stat td"><div className="cty-stat-label">TUYỂN DỤNG</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
                       <div className="cty-stat chuan"><div className="cty-stat-label">LƯỢT HĐ CHUẨN</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                      <div className="cty-stat ip"><div className="cty-stat-label">TỶ TRỌNG IP</div><div className="cty-stat-val">{dashboard.total.tyTrong.toFixed(1)}</div></div>
-                      <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toFixed(2)}</div></div>
-                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ (TRĐ)</div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toFixed(1)}</div></div>
+                      <div className="cty-stat ip"><div className="cty-stat-label">TỶ TRỌNG IP</div><div className="cty-stat-val">{Math.round(dashboard.total.tyTrong)}</div></div>
+                      <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{Math.round(dashboard.total.nangSuat)}</div></div>
+                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ (TRĐ)</div><div className="cty-stat-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                     </div>
 
@@ -1236,11 +1356,11 @@ export default function KPIDashboard() {
                         <div className="dsk-cty-kpi hd"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.lhd} /></div></div></div>
                         <div className="dsk-cty-kpi td"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TUYỂN DỤNG</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.td} /></div></div></div>
                         <div className="dsk-cty-kpi chuan"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ CHUẨN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.hdChuan} /></div></div></div>
-                        <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.tyTrong.toFixed(1)}</div></div></div>
+                        <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.tyTrong)}</div></div></div>
                       </div>
                       <div className="dsk-cty-tier">
-                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toFixed(2)}</div></div></div>
-                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ (TRĐ)</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toFixed(1)}</div></div></div>
+                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.nangSuat)}</div></div></div>
+                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ (TRĐ)</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div></div>
                         <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
                         <div></div>
                       </div>
@@ -1276,83 +1396,102 @@ export default function KPIDashboard() {
                 <span className="region-divider-title">Tiến Độ Khu Vực</span>
               </div>
 
-              {/* Mobile Region - Circular Progress */}
-              <div className="mob-region-wrap">
+              {/* Mobile Region - Redesign as table-style cards */}
+              <div className="rg-wrap">
                 {dashboard.phongs.map((phong, pi) => {
                   const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
-                  const pPctCls = pctClass(pPct);
-                  const pColor = circleColor(pPct);
-                  const pStroke = circleStroke(29, pPct);
+                  const pCp = Math.min(pPct, 100);
+                  const pProgStart = progressColor(Math.max(pPct - 24, 0));
+                  const pProgEnd = progressColor(pPct);
                   const pAfypTrd = Math.round(phong.afyp / 1000000);
                   const pKhTrd = Math.round(phong.kh / 1000000);
+                  const pCls = phong.noAds ? 'is-banca' : (phong.ten && phong.ten.toUpperCase().includes('PA') ? 'is-pa' : '');
+                  const glowClsStr = glowCls(pPct);
                   return (
-                    <div className="mob-phong-block" key={pi}>
-                      {/* Header: Circle + Tên/AFYP/KH */}
-                      <div className="mob-phong-header">
-                        {!phong.noAds && (
-                          <div className="mob-phong-circle-wrap">
-                            <svg viewBox="0 0 68 68">
-                              <circle className="mob-phong-circle-track" cx="34" cy="34" r="29" />
-                              <circle className="mob-phong-circle-fill" cx="34" cy="34" r="29"
-                                stroke={pColor}
-                                strokeDasharray={pStroke.dasharray}
-                                strokeDashoffset={pStroke.dashoffset}
-                                style={{ filter: `drop-shadow(0 0 6px ${pColor}66)` }}
-                              />
-                            </svg>
-                            <span className={`mob-phong-circle-pct ${pPctCls}`}>{pPct.toFixed(0)}%</span>
-                          </div>
-                        )}
-                        <div className="mob-phong-header-info">
-                          <span className="mob-phong-title"><Clipboard size={13} style={{ color: '#60b0f0' }} />{phong.ten}</span>
-                          {!phong.noAds && (
-                            <div className="mob-phong-afyp-kh">
-                              <span className="mob-phong-afyp"><AnimNum value={phong.afyp} /><span style={{ fontSize: '0.4em', fontWeight: 600, color: '#8ab8e0', marginLeft: 2 }}>đ</span></span>
-                              <span className="mob-phong-kh">/ KH: {fmt(pKhTrd)} trđ</span>
+                    <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
+                      {/* Header: tên phòng + % */}
+                      <div className="rg-head">
+                        <div className="rg-head-left">
+                          <Clipboard size={14} style={{ color: '#fff', flexShrink: 0 }} />
+                          <span className="rg-head-name">{phong.ten}</span>
+                        </div>
+                        {!phong.noAds && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                      </div>
+                      {/* AFYP + KH row */}
+                      {!phong.noAds && (
+                        <>
+                          <div className="rg-afyp-row">
+                            <div>
+                              <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
                             </div>
-                          )}
+                            <span className="rg-kh">KH: {fmt(pKhTrd)} trđ</span>
+                          </div>
+                          <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
+                        </>
+                      )}
+                      {/* Summary 4 stats: AFYP / Lượt HĐ / Tuyển dụng / HĐ chuẩn (or Tỷ trọng IP for noAds) */}
+                      <div className="rg-summary">
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">AFYP (trđ)</div>
+                          <div className="rg-sum-val afyp">{fmt(pAfypTrd)}</div>
+                        </div>
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">Lượt HĐ</div>
+                          <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
+                        </div>
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">Tuyển dụng</div>
+                          <div className="rg-sum-val td"><AnimNum value={phong.td} /></div>
+                        </div>
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">HĐ chuẩn</div>
+                          <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                         </div>
                       </div>
-                      {/* Metrics bar: Lượt HĐ - TD - HĐ Chuẩn - Tỷ Trọng */}
-                      <div className="mob-phong-metrics">
-                        <div className="mob-metric"><div className="mob-metric-label">Lượt HĐ</div><div className="mob-metric-val hd"><AnimNum value={phong.lhd} /></div></div>
-                        <div className="mob-metric"><div className="mob-metric-label">Tuyển Dụng</div><div className="mob-metric-val td"><AnimNum value={phong.td} /></div></div>
-                        <div className="mob-metric"><div className="mob-metric-label">HĐ Chuẩn</div><div className="mob-metric-val chuan"><AnimNum value={phong.hdChuan} /></div></div>
-                        <div className="mob-metric"><div className="mob-metric-label">Tỷ Trọng IP</div><div className="mob-metric-val ip">{fmtTyTrong(phong.tyTrong)}</div></div>
+                      {/* Tỷ trọng IP row (small) */}
+                      <div style={{ background: '#fff', padding: '6px 16px 8px', borderBottom: '1px solid #e0e8f0', fontSize: 10, display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6a8aaa', fontWeight: 700 }}>TỶ TRỌNG IP</span>
+                        <span style={{ color: '#b87818', fontWeight: 900 }}>{fmtTyTrong(phong.tyTrong)}</span>
                       </div>
-                      {/* AD Rows with mini circles */}
+                      {/* AD Table */}
                       {!phong.noAds && phong.ads.length > 0 && (
-                        <div className="mob-ad-rows">
-                          {phong.ads.map((ad, ai) => {
-                            const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
-                            const aPctCls = pctClass(aPct);
-                            const aColor = circleColor(aPct);
-                            const aStroke = circleStroke(15, aPct);
-                            const aAfypTrd = Math.round(ad.afyp / 1000000);
-                            const aKhTrd = Math.round(ad.kh / 1000000);
-                            return (
-                              <div className="mob-ad-row" key={ai}>
-                                <div className="mob-ad-circle-wrap">
-                                  <svg viewBox="0 0 38 38">
-                                    <circle className="mob-ad-circle-track" cx="19" cy="19" r="15" />
-                                    <circle className="mob-ad-circle-fill" cx="19" cy="19" r="15"
-                                      stroke={aColor}
-                                      strokeDasharray={aStroke.dasharray}
-                                      strokeDashoffset={aStroke.dashoffset}
-                                      style={{ filter: `drop-shadow(0 0 4px ${aColor}66)` }}
-                                    />
-                                  </svg>
-                                  <span className={`mob-ad-circle-pct ${aPctCls}`}>{aPct.toFixed(0)}%</span>
-                                </div>
-                                <div className="mob-ad-row-afyp">{aAfypTrd > 0 ? fmt(aAfypTrd) : '0'}</div>
-                                <div className="mob-ad-row-name">{ad.ten}</div>
-                                <div className="mob-ad-row-val">{ad.lhd}</div>
-                                <div className="mob-ad-row-val">{ad.td}</div>
-                                <div className="mob-ad-row-val">{ad.hdChuan}</div>
-                                <div className="mob-ad-row-val ip">{fmtTyTrong(ad.tyTrong)}</div>
-                              </div>
-                            );
-                          })}
+                        <div className="rg-ad-wrap" style={{ paddingTop: 8 }}>
+                          <table className="rg-ad-table">
+                            <thead>
+                              <tr>
+                                <th>AD</th>
+                                <th>% KH</th>
+                                <th>AFYP</th>
+                                <th>LƯỢT HĐ</th>
+                                <th>TD</th>
+                                <th>HĐC</th>
+                                <th>IP%</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {phong.ads.map((ad, ai) => {
+                                const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+                                const aCp = Math.min(aPct, 100);
+                                const aPctCls = pctClass(aPct);
+                                const aProgStart = progressColor(Math.max(aPct - 24, 0));
+                                const aProgEnd = progressColor(aPct);
+                                const aAfypTrd = Math.round(ad.afyp / 1000000);
+                                return (
+                                  <tr key={ai}>
+                                    <td><span className="rg-ad-name">{ad.ten}</span></td>
+                                    <td><span className={`rg-ad-pct ${aPctCls}`}>{Math.round(aPct)}%</span></td>
+                                    <td style={{ color: '#1a4a7a', fontWeight: 900 }}>{aAfypTrd}tr</td>
+                                    <td>{ad.lhd}</td>
+                                    <td>{ad.td}</td>
+                                    <td>{ad.hdChuan}</td>
+                                    <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
+                                    <td><span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span></td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
@@ -1393,7 +1532,8 @@ export default function KPIDashboard() {
 
                       return (
                         <div className="dept-section" key={pi}>
-                          {/* Mobile Phong Card */}
+                          {/* Mobile Phong Card - HIDDEN, replaced by rg-card */}
+                          {false && (
                           <div className={`kpi-card kpi-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
                             <div className="phong-inner">
                               {/* Main Indicator Card */}
@@ -1415,36 +1555,106 @@ export default function KPIDashboard() {
                                 <div className="phong-sub hd"><div className="phong-sub-head"><div className="phong-sub-label">LƯỢT HĐ</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.lhd} /></div></div></div>
                                 <div className="phong-sub td"><div className="phong-sub-head"><div className="phong-sub-label">TUYỂN DỤNG</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.td} /></div></div></div>
                                 <div className="phong-sub chuan"><div className="phong-sub-head"><div className="phong-sub-label">LƯỢT HĐ CHUẨN</div></div><div className="phong-sub-body"><div className="phong-sub-val"><AnimNum value={phong.hdChuan} /></div></div></div>
-                                {!phong.noAds && <div className="phong-sub ip"><div className="phong-sub-head"><div className="phong-sub-label">TỶ TRỌNG IP</div></div><div className="phong-sub-body"><div className="phong-sub-val">{phong.tyTrong.toFixed(1)}</div></div></div>}
+                                {!phong.noAds && <div className="phong-sub ip"><div className="phong-sub-head"><div className="phong-sub-label">TỶ TRỌNG IP</div></div><div className="phong-sub-body"><div className="phong-sub-val">{Math.round(phong.tyTrong)}</div></div></div>}
                               </div>
                             </div>
                           </div>
+                          )}
 
-                          {/* Desktop Phong Card */}
-                          <div className={`kpi-ad is-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
-                            <div className="ad-inner">
-                              <div className="ad-top">
-                                <div className="ad-left">
-                                  <div className="ad-name-row"><span className="ad-name"><Clipboard size={14} style={{ color: '#3a8ad4', marginRight: 4 }} />{phong.ten}</span><span className="ad-pct">{!phong.noAds ? `${pPct.toFixed(0)}%` : ''}</span></div>
-                                  {!phong.noAds && <span className="ad-kh">KH: {fmt(phong.kh)}trđ</span>}
-                                </div>
-                                <div className="ad-right">
-                                  <div className="ad-stats">
-                                    <div className="ad-stat afyp"><span className="ad-stat-label">AFYP</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={afypTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>
-                                    {!phong.noAds && <div className="ad-stat kh"><span className="ad-stat-label">KH</span><span className="ad-stat-val"><span className="ad-stat-val-main"><AnimNum value={khTrd} /></span><span className="ad-stat-unit">trđ</span></span></div>}
-                                    <div className="ad-stat lhd"><span className="ad-stat-label">LƯỢT HĐ</span><span className="ad-stat-val"><AnimNum value={phong.lhd} /></span></div>
-                                    {!phong.noAds && <div className="ad-stat td"><span className="ad-stat-label">TUYỂN DỤNG</span><span className="ad-stat-val"><AnimNum value={phong.td} /></span></div>}
-                                    <div className="ad-stat chuan"><span className="ad-stat-label">LƯỢT HĐ CHUẨN</span><span className="ad-stat-val"><AnimNum value={phong.hdChuan} /></span></div>
-                                    {!phong.noAds && <div className="ad-stat ip"><span className="ad-stat-label">TỶ TRỌNG IP</span><span className="ad-stat-val">{fmtTyTrong(phong.tyTrong)}</span></div>}
+                          {/* Desktop Phong Card - Redesign as lighter floating card */}
+                          <div className={`rg-card ${phong.noAds ? 'is-banca ' : (phong.ten && phong.ten.toUpperCase().includes('PA') ? 'is-pa ' : '')}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+                            {/* Header */}
+                            <div className="rg-head">
+                              <div className="rg-head-left">
+                                <Clipboard size={15} style={{ color: '#fff', flexShrink: 0 }} />
+                                <span className="rg-head-name">{phong.ten}</span>
+                              </div>
+                              {!phong.noAds && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                            </div>
+                            {/* AFYP + KH row */}
+                            {!phong.noAds && (
+                              <>
+                                <div className="rg-afyp-row">
+                                  <div>
+                                    <span className="rg-afyp"><AnimNum value={afypTrd} /><span className="rg-afyp-unit">trđ</span></span>
                                   </div>
-                                  {!phong.noAds && <div className="ad-progress"><div className="ad-progress-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>}
+                                  <span className="rg-kh">KH: {fmt(khTrd)} trđ</span>
                                 </div>
+                                <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
+                              </>
+                            )}
+                            {/* Summary 4 stats */}
+                            <div className="rg-summary">
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">AFYP (trđ)</div>
+                                <div className="rg-sum-val afyp"><AnimNum value={afypTrd} /></div>
+                              </div>
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">Lượt HĐ</div>
+                                <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
+                              </div>
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">Tuyển dụng</div>
+                                <div className="rg-sum-val td"><AnimNum value={phong.td} /></div>
+                              </div>
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">HĐ chuẩn</div>
+                                <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                               </div>
                             </div>
+                            {/* Tỷ trọng IP row */}
+                            <div style={{ background: '#fff', padding: '8px 16px 10px', borderBottom: '1px solid #e0e8f0', fontSize: 11, display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#6a8aaa', fontWeight: 700 }}>TỶ TRỌNG IP</span>
+                              <span style={{ color: '#b87818', fontWeight: 900 }}>{fmtTyTrong(phong.tyTrong)}</span>
+                            </div>
+                            {/* AD Table - moved inside rg-card */}
+                            {!phong.noAds && phong.ads.length > 0 && (
+                              <div className="rg-ad-wrap" style={{ padding: '10px 12px 12px' }}>
+                                <table className="rg-ad-table">
+                                  <thead>
+                                    <tr>
+                                      <th>AD</th>
+                                      <th>% KH</th>
+                                      <th>AFYP</th>
+                                      <th>KH</th>
+                                      <th>LƯỢT HĐ</th>
+                                      <th>TD</th>
+                                      <th>HĐC</th>
+                                      <th>IP%</th>
+                                      <th></th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {phong.ads.map((ad, ai) => {
+                                      const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
+                                      const aCp = Math.min(aPct, 100);
+                                      const aPctCls = pctClass(aPct);
+                                      const aProgStart = progressColor(Math.max(aPct - 24, 0));
+                                      const aProgEnd = progressColor(aPct);
+                                      const aAfypTrd = Math.round(ad.afyp / 1000000);
+                                      const aKhTrd = Math.round(ad.kh / 1000000);
+                                      return (
+                                        <tr key={ai} className="anim-in" style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
+                                          <td><span className="rg-ad-name">{ad.ten}</span></td>
+                                          <td><span className={`rg-ad-pct ${aPctCls}`}>{Math.round(aPct)}%</span></td>
+                                          <td style={{ color: '#1a4a7a', fontWeight: 900 }}>{aAfypTrd}tr</td>
+                                          <td style={{ color: '#6a8aaa' }}>{aKhTrd ? `${aKhTrd}tr` : '--'}</td>
+                                          <td>{ad.lhd}</td>
+                                          <td>{ad.td}</td>
+                                          <td>{ad.hdChuan}</td>
+                                          <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
+                                          <td><span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span></td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
 
-                          {/* AD Cards (Mobile) */}
-                          {!phong.noAds && (
+                        {/* AD Cards (Mobile) - HIDDEN, replaced by rg-ad-table inside rg-card */}
+                          {!phong.noAds && false && (
                             <div className="ad-grid">
                               {phong.ads.map((ad, ai) => {
                                 const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
@@ -1456,7 +1666,7 @@ export default function KPIDashboard() {
                                     <div className="ad-inner">
                                       <div className="ad-top">
                                         <div className="ad-left">
-                                          <div className="ad-name-row"><span className="ad-name">{ad.ten}</span><span className="ad-pct">{aPct.toFixed(0)}%</span></div>
+                                          <div className="ad-name-row"><span className="ad-name">{ad.ten}</span><span className="ad-pct">{Math.round(aPct)}%</span></div>
                                           <span className="ad-kh">KH: {fmt(ad.kh)}trđ</span>
                                         </div>
                                         <div className="ad-right">
@@ -1477,8 +1687,8 @@ export default function KPIDashboard() {
                             </div>
                           )}
 
-                          {/* AD Table (Desktop) */}
-                          {!phong.noAds && (
+                          {/* AD Table (Desktop) - HIDDEN, replaced by rg-ad-table inside rg-card */}
+                          {!phong.noAds && false && (
                             <div className="dsk-ad-wrap">
                               <table className="dsk-ad-table">
                                 <thead><tr><th>AD</th><th>% KH</th><th>AFYP</th><th>KH</th><th>LƯỢT HĐ</th><th>TUYỂN DỤNG</th><th>LƯỢT HĐ CHUẨN</th><th>TỶ TRỌNG IP</th><th></th></tr></thead>
@@ -1493,7 +1703,7 @@ export default function KPIDashboard() {
                                     return (
                                       <tr key={ai} className="anim-in" style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }}>
                                         <td><span className="dsk-ad-name">{ad.ten}</span></td>
-                                        <td><span className={`dsk-ad-pct ${aPctCls}`}>{aPct.toFixed(0)}%</span></td>
+                                        <td><span className={`dsk-ad-pct ${aPctCls}`}>{Math.round(aPct)}%</span></td>
                                         <td>{fmt(ad.afyp)}</td>
                                         <td className="dsk-ad-kh-cell">{khTrd ? `${khTrd}trđ` : '--'}</td>
                                         <td>{ad.lhd}</td>

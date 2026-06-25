@@ -542,9 +542,9 @@ export function renderThuongCellContent(amount: number, fontSize: string = '13px
 function formatSmartCurrency(amount: number): string {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   if (isMobile) {
-    if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
-    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
-    if (amount >= 1_000) return `${(amount / 1_000).toFixed(1).replace(/\.?0+$/, '')} ngàn`;
+    if (amount >= 1_000_000_000) return `${Math.round(amount / 1_000_000_000)} tỷ`;
+    if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)} trđ`;
+    if (amount >= 1_000) return `${Math.round(amount / 1_000)} ngàn`;
     return `${amount} đ`;
   }
   return formatCurrency(amount);
@@ -553,10 +553,10 @@ function formatSmartCurrency(amount: number): string {
 // Compact currency for KPI cards - always shows trđ/tỷ/ngàn on ALL screen sizes
 // trđ always shows 3 decimal places with Vietnamese comma separator (e.g. 1,350 trđ)
 function formatKpiCurrency(amount: number): string {
-  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(3).replace('.', ',')} tỷ`;
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(3).replace('.', ',')} trđ`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(3).replace('.', ',')} ngàn`;
-  if (amount === 0) return '0,000 trđ';
+  if (amount >= 1_000_000_000) return `${Math.round(amount / 1_000_000_000)} tỷ`;
+  if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)} trđ`;
+  if (amount >= 1_000) return `${Math.round(amount / 1_000)} ngàn`;
+  if (amount === 0) return '0 trđ';
   return `${amount} đ`;
 }
 
@@ -571,8 +571,8 @@ function formatPolicyAmountForBox(amount: number): string {
     const trVal = amount / 1_000_000;
     if (trVal >= 1000) return Math.round(trVal).toLocaleString('vi-VN');
     if (trVal >= 100) return Math.round(trVal).toString();
-    if (trVal >= 10) return trVal.toFixed(1).replace('.', ',').replace(/,0$/, '');
-    return trVal.toFixed(2).replace('.', ',').replace(/,?0+$/, '');
+    if (trVal >= 10) return Math.round(trVal).toString();
+    return Math.round(trVal).toString();
   }
   return Math.round(amount).toLocaleString('vi-VN');
 }
@@ -825,10 +825,10 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
   }, [dataSources]);
 
   const formatKPIValue = (val: number): string => {
-    if (Math.abs(val) >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)} tỷ`;
-    if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)} triệu`;
+    if (Math.abs(val) >= 1_000_000_000) return `${Math.round(val / 1_000_000_000)} tỷ`;
+    if (Math.abs(val) >= 1_000_000) return `${Math.round(val / 1_000_000)} triệu`;
     if (Math.abs(val) >= 1_000) return formatNumber(Math.round(val));
-    return val.toFixed(val % 1 === 0 ? 0 : 1);
+    return Math.round(val).toString();
   };
 
   // Get fields for a specific data source (include string fields for 'count' calculation)
@@ -862,7 +862,7 @@ function KPISettingsPopover({ sectionKey, sectionLabel, dataSources, defaultConf
                   <div className="mt-1">
                     <div className="flex items-center justify-between text-[9px]">
                       <span className="text-gray-300">Mục tiêu: {formatKPIValue(effectiveTarget)}{(annualTarget && annualTarget > 0) ? ' (năm)' : ''}</span>
-                      <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{pct?.toFixed(0)}%</span>
+                      <span className={`font-bold ${pct && pct >= 100 ? 'text-emerald-300' : pct && pct >= 70 ? 'text-amber-300' : 'text-rose-300'}`}>{Math.round(pct ?? 0)}%</span>
                     </div>
                     <Progress value={pct || 0} className="h-1.5 mt-0.5 bg-emerald-800 [&>div]:bg-emerald-400" />
                   </div>
@@ -2653,12 +2653,12 @@ export default function QuanLyPage() {
     const pct = target > 0 ? (value / target) * 100 : undefined;
     const formatVal = () => {
       if (formatType === 'currency') return formatCurrency(value);
-      if (formatType === 'decimal') return value.toFixed(1);
+      if (formatType === 'decimal') return String(Math.round(value));
       return formatNumber(value);
     };
     const formatTarget = () => {
       if (formatType === 'currency') return formatCurrency(target);
-      if (formatType === 'decimal') return target.toFixed(1);
+      if (formatType === 'decimal') return String(Math.round(target));
       return formatNumber(target);
     };
 
@@ -2666,7 +2666,7 @@ export default function QuanLyPage() {
       <div className="rounded-none p-3 sm:p-4 relative overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(255,255,255,0.05)' }}>
         {pct !== undefined && (
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3 text-sm sm:text-lg font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-            {pct.toFixed(0)}%
+            {Math.round(pct)}%
           </div>
         )}
         <div className="flex items-center gap-2 mb-2">
@@ -2895,11 +2895,11 @@ export default function QuanLyPage() {
         {[
           { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
           { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
-          { label: 'TỶ TRỌNG IP', unit: '%', value: ipAfypRatio.toFixed(1) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
+          { label: 'TỶ TRỌNG IP', unit: '%', value: Math.round(ipAfypRatio) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
           { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
           { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: 0, targetFmt: '', bg: '#DC2626', hasKH: false },
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: 0, targetFmt: '', bg: '#D97706', hasKH: false },
-          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toFixed(2), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
+          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: String(Math.round(nangSuat)), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
           { label: 'SL NTD', unit: 'người', value: formatNumber(totalNTD), rawVal: totalNTD, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
@@ -2919,7 +2919,7 @@ export default function QuanLyPage() {
                   )}
                   {kpi.target > 0 && (
                     <span className="text-[9px] sm:text-xs font-black" style={{ color: pct >= 100 ? '#86EFAC' : pct >= 70 ? '#FDE68A' : '#FCA5A5' }}>
-                      {pct.toFixed(0)}%
+                      {Math.round(pct)}%
                     </span>
                   )}
                 </div>
@@ -2961,7 +2961,7 @@ export default function QuanLyPage() {
               <div className="flex items-center gap-3 text-[10px]">
                 <span className="text-white/60">KH: <span className="text-amber-400 font-bold">{formatSmartCurrency(aggPlan)}</span></span>
                 <span className="text-white/60">TH: <span className="text-sky-400 font-bold">{formatSmartCurrency(aggActual)}</span></span>
-                <span className={`font-black ${aggPct >= 100 ? 'text-emerald-400' : aggPct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{aggPct.toFixed(1)}%</span>
+                <span className={`font-black ${aggPct >= 100 ? 'text-emerald-400' : aggPct >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{Math.round(aggPct)}%</span>
               </div>
             </div>
           );
@@ -2992,15 +2992,15 @@ export default function QuanLyPage() {
                 <span className={`text-[11px] sm:text-sm font-black text-center ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</span>
                 {/* Kế hoạch — màu AMBER (#F59E0B) */}
                 <span className="text-[11px] sm:text-sm font-black text-amber-400 text-right pr-1">
-                  {monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${(monthlyPlan / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}
+                  {monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${Math.round(monthlyPlan / 1_000_000)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}
                 </span>
                 {/* Thực hiện — màu SKY (#0EA5E9) */}
                 <span className={`text-[11px] sm:text-sm font-black text-right pr-1 ${actualAFYP === 0 ? 'text-gray-600' : pct >= 100 ? 'text-sky-300' : 'text-sky-400'}`}>
-                  {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${(actualAFYP / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
+                  {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${Math.round(actualAFYP / 1_000_000)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
                 </span>
                 {/* % đạt — cột phải */}
                 <span className={`text-[9px] sm:text-[10px] font-black text-right w-9 ${monthlyPlan > 0 ? (pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400') : 'text-gray-600'}`}>
-                  {monthlyPlan > 0 ? `${pct.toFixed(0)}%` : ''}
+                  {monthlyPlan > 0 ? `${Math.round(pct)}%` : ''}
                 </span>
               </div>
             );
@@ -3067,13 +3067,13 @@ export default function QuanLyPage() {
                         <div
                           className={`w-2/5 transition-all ${reached ? 'bg-emerald-500' : d.afyp > 0 ? 'bg-sky-500' : 'bg-white/10'} ${isCurrent ? 'ring-1 ring-emerald-400/50' : ''}`}
                           style={{ height: `${Math.max(actualHeight, 1)}%` }}
-                          title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${pct.toFixed(0)}%` : ''}`}
+                          title={`T${d.index + 1} TH: ${formatCurrency(d.afyp)} | ${d.count} HĐ${d.target > 0 ? ` | ${Math.round(pct)}%` : ''}`}
                         ></div>
                       </div>
                       <p className={`text-[10px] mt-1 font-black ${isCurrent ? 'text-emerald-400' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-white/40'}`}>T{d.index + 1}</p>
                       {d.afyp > 0 && (
                         <p className={`text-[9px] font-black ${reached ? 'text-emerald-400' : 'text-sky-400'}`}>
-                          {d.afyp >= 1_000_000 ? `${(d.afyp / 1_000_000).toFixed(1)}tr` : formatNumber(Math.round(d.afyp))}
+                          {d.afyp >= 1_000_000 ? `${Math.round(d.afyp / 1_000_000)}tr` : formatNumber(Math.round(d.afyp))}
                         </p>
                       )}
                     </div>
@@ -3139,8 +3139,8 @@ export default function QuanLyPage() {
     // Helper: format plan value for minimap display
     const fmtPlan = (val: number) => {
       if (val <= 0) return '—';
-      if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
-      if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(2).replace(/\.?0+$/, '')} trđ`;
+      if (val >= 1_000_000_000) return `${Math.round(val / 1_000_000_000)} tỷ`;
+      if (val >= 1_000_000) return `${Math.round(val / 1_000_000)} trđ`;
       return formatNumber(Math.round(val));
     };
 
@@ -3193,7 +3193,7 @@ export default function QuanLyPage() {
                     })}
                   </div>
                   <p className={`text-[9px] mt-1 font-bold ${Math.abs(totalRatio - 100) < 0.1 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    Tổng tỷ lệ: {totalRatio.toFixed(1)}% {Math.abs(totalRatio - 100) < 0.1 ? '✓' : '(nên = 100%)'}
+                    Tổng tỷ lệ: {Math.round(totalRatio)}% {Math.abs(totalRatio - 100) < 0.1 ? '✓' : '(nên = 100%)'}
                   </p>
                 </div>
 
@@ -4759,7 +4759,7 @@ export default function QuanLyPage() {
                           {isAchieved ? (
                             <span className="font-bold italic text-[10px]">ĐẠT</span>
                           ) : (
-                            <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(deficit % 1_000_000 === 0 ? 0 : 1).replace('.', ',')}` : '—'}</span>
+                            <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${Math.round(deficit / 1_000_000)}` : '—'}</span>
                           )}
                         </td>
                       );
@@ -5776,7 +5776,7 @@ export default function QuanLyPage() {
                         {isCascadeAchieved ? (
                           <span className="font-bold italic text-[10px]">ĐẠT</span>
                         ) : (
-                          <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${(deficit / 1_000_000).toFixed(0)}` : (tier.needsTVVm && row.tvvmHDC < 1 ? 'thiếu TVVm' : '—')}</span>
+                          <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${Math.round(deficit / 1_000_000)}` : (tier.needsTVVm && row.tvvmHDC < 1 ? 'thiếu TVVm' : '—')}</span>
                         )}
                       </td>
                     );
@@ -6808,8 +6808,8 @@ export default function QuanLyPage() {
               { label: 'AFYP', value: formatKpiCurrency(tongAFYP), bg: '#2563EB' },
               { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
               { label: 'Lượt chuẩn', value: formatNumber(luotChuan), bg: '#DC2626' },
-              { label: 'IP/AFYP', value: ipAfypMonth.toFixed(1) + '%', bg: '#0891B2' },
-              { label: 'Năng suất', value: nangSuatMonth.toFixed(2), bg: '#0284C7' },
+              { label: 'IP/AFYP', value: String(Math.round(ipAfypMonth)) + '%', bg: '#0891B2' },
+              { label: 'Năng suất', value: String(Math.round(nangSuatMonth)), bg: '#0284C7' },
               { label: 'ĐLHĐ', value: formatKpiCurrency(dlhdMonth), bg: '#059669' },
             ].map((kpi, i) => (
               <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
@@ -6969,7 +6969,7 @@ export default function QuanLyPage() {
 
         {/* Footer summary */}
         <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
-          IP + 10% PĐT: {formatKpiCurrency(tongIP)} • AFYP: {formatKpiCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {ipAfypMonth.toFixed(1)}% • Năng suất: {nangSuatMonth.toFixed(2)} • ĐLHĐ: {formatKpiCurrency(dlhdMonth)}
+          IP + 10% PĐT: {formatKpiCurrency(tongIP)} • AFYP: {formatKpiCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {String(Math.round(ipAfypMonth))}% • Năng suất: {String(Math.round(nangSuatMonth))} • ĐLHĐ: {formatKpiCurrency(dlhdMonth)}
         </p>
       </div>
           </div>
@@ -7362,7 +7362,7 @@ export default function QuanLyPage() {
                 <div className="space-y-1">
                   <FileSpreadsheet className="w-8 h-8 text-emerald-400 mx-auto" />
                   <p className="text-emerald-300 text-xs font-bold">{importFile.name}</p>
-                  <p className="text-emerald-200/50 text-[10px]">{(importFile.size / 1024).toFixed(1)} KB — Nhấn để đổi file</p>
+                  <p className="text-emerald-200/50 text-[10px]">{Math.round(importFile.size / 1024)} KB — Nhấn để đổi file</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -7633,7 +7633,7 @@ export default function QuanLyPage() {
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-bold text-white">{item.label}</Label>
                         {item.val > 0 && (
-                          <span className={`text-[10px] font-bold ${pctColorMap[item.color]}`}>{pct.toFixed(1)}%</span>
+                          <span className={`text-[10px] font-bold ${pctColorMap[item.color]}`}>{Math.round(pct)}%</span>
                         )}
                       </div>
                       <Input
