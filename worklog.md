@@ -141,3 +141,22 @@ Stage Summary:
   - Bố cục ngay hàng: header → AFYP+KH → progress → 4 summary stats → Tỷ trọng IP → AD table
   - Bảng AD compact ngay hàng với 8 cột (AD/% KH/AFYP/Lượt HĐ/TD/HĐC/IP%/prog)
   - Áp dụng đồng nhất cho cả mobile và desktop
+
+---
+Task ID: format-number-integer-fix
+Agent: main
+Task: Fix formatNumber/fmt mặc định Intl.NumberFormat('vi-VN') giữ 3 chữ số thập phân — làm tròn thành số nguyên
+
+Work Log:
+- Phát hiện trên production: Bảng Thưởng Năng suất tháng TVV vẫn còn 23 cell có thập phân (vd: 41.886.587,5 | 15.245.535,75)
+- Nguyên nhân: Intl.NumberFormat('vi-VN') mặc định maximumFractionDigits=3, không tự làm tròn
+- Fix formatNumber (quan-ly/page.tsx line 523):
+    new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0, roundingMode: 'halfEven' }).format(Math.round(n))
+- Fix fmt (kpi/page.tsx line 606): cùng pattern
+- Build + commit ea6ad1a + push
+- Verify production: kiểm tra tất cả 7 trang chính sách (TVVm, NS TVV, Quý TVV, TL, Đồng hành, PTKD TN, Quý TN, TTN Tuyển ngang) → 0 cell có thập phân
+
+Stage Summary:
+- Toàn bộ số trong bảng chi tiết trang chính sách giờ là SỐ NGUYÊN
+- formatNumber và fmt dùng maximumFractionDigits:0 + Math.round → không bao giờ hiển thị thập phân
+- Áp dụng đồng nhất cho cả 2 trang /quan-ly và /kpi
