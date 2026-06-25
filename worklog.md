@@ -92,3 +92,52 @@ Stage Summary:
   - History còn > 1 → pop về state nội bộ trước đó
   - History rỗng + ở overview → router.push('/')
   - History rỗng + ở sheet con (revenue/policy/structure) → về overview, bấm lại mới về trang chủ
+
+---
+Task ID: round-decimals-and-kpi-redesign
+Agent: main
+Task: Rà soát bỏ số thập phân trong trang chính sách + redesign bảng Tiến độ Khung Vựa (KPI page)
+
+Work Log:
+A. Round decimals trong trang chính sách (quan-ly/page.tsx):
+- Viết script /home/z/my-project/scripts/round_decimals_policy.py
+- Thay toàn bộ .toFixed(N) bằng Math.round()
+- Năng suất, Tỷ trọng IP, % KH, % progress, aggPct, monthlyPlan, actualAFYP, deficit, totalRatio, file size → integer
+- formatKpiCurrency: bỏ 3 decimal places → integer
+- formatSmartCurrency (mobile): bỏ thập phân
+- formatPolicyAmountForBox: round integer
+- fmtBig helper: round integer
+- Còn 5 chỗ toFixed(0) cho % trong JSX title attributes - đã replace hết
+
+B. Redesign KPI Tiến độ Khu Vực (kpi/page.tsx):
+- Viết script /home/z/my-project/scripts/redesign_kpi_region.py
+- Thêm CSS mới .rg-card: 
+  - Background: linear-gradient(180deg, #f4f8fc 0%, #e2ecf6 100%) - SÁNG HƠN
+  - Border-top: 4px solid màu phòng (xanh dương/banca-vàng/pa-xám)
+  - Box-shadow: 0 10px 28px - hiệu ứng NỔI KHỐI
+  - Hover: translateY(-2px) + shadow sâu hơn
+- Cấu trúc card mới:
+  - rg-head: header gradient xanh + tên phòng + % KH
+  - rg-afyp-row: AFYP big number + KH
+  - rg-prog: progress bar
+  - rg-summary: grid 4 cột (AFYP/Lượt HĐ/Tuyển dụng/HĐ chuẩn)
+  - Tỷ trọng IP row
+  - rg-ad-table: bảng AD compact ngay hàng (8 cột)
+- Áp dụng cho cả mobile và desktop (cùng component)
+- Hide Mobile Phong Card cũ (kpi-card kpi-phong) bằng {false && (...)}
+- Hide AD Cards (Mobile) ad-grid bằng {false && (...)}
+- Hide AD Table (Desktop) dsk-ad-wrap bằng {false && (...)}
+- Round decimals trong KPI: tyTrong, nangSuat, doLonHD, AFYP, KH
+
+C. Build + commit 613eda2 + push + verify production:
+- Desktop: thẻ phòng sáng hơn (gradient white-blue), shadow nổi khối, bảng AD ngay hàng trong card
+- Mobile: bảng AD gọn trong card, header xanh, summary 4 stats, tỷ trọng IP row riêng
+
+Stage Summary:
+- Trang chính sách: toàn bộ số thập phân đã làm tròn thành số nguyên
+- Trang KPI Tiến Độ Khu Vực:
+  - Thẻ phòng sáng (gradient white-blue) thay vì nền tối
+  - Hiệu ứng nổi khối (box-shadow 0 10px 28px) + hover translateY(-2px)
+  - Bố cục ngay hàng: header → AFYP+KH → progress → 4 summary stats → Tỷ trọng IP → AD table
+  - Bảng AD compact ngay hàng với 8 cột (AD/% KH/AFYP/Lượt HĐ/TD/HĐC/IP%/prog)
+  - Áp dụng đồng nhất cho cả mobile và desktop
