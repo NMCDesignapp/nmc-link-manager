@@ -1075,18 +1075,19 @@ export default function KPIDashboard() {
         const adKey = adStruct.tenAD;
         const adNormKey = normKey(adKey);
 
-        // Find AD manager name from leaders — fallback to AD_FULL_NAME_MAP
+        // Display short name ("AD Uy"); resolve full name ONLY for contract matching
+        const displayName = adKey;
         const leader = rawData.leaders.find(l => normKey(l.agentName).includes(adNormKey) || adNormKey.includes(normKey(l.agentName)));
-        const managerName = leader?.agentName || resolveAdName(adKey);
-        const managerNormKey = normKey(managerName);
+        const matchName = leader?.agentName || resolveAdName(adKey);
+        const matchNormKey = normKey(matchName);
 
-        // Find contracts for this AD — match by normalized name (both adKey and resolved managerName)
+        // Find contracts for this AD — match by normalized name (both adKey and resolved full name)
         // Contracts' ad field stores FULL name (e.g. "Trương Quốc Uy"), adKey may be short ("AD Uy")
         const adContracts = periodContracts.filter(c => {
           const cAdNorm = normKey(c.ad || '');
           if (!cAdNorm) return false;
           return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm)
-            || cAdNorm === managerNormKey || cAdNorm.includes(managerNormKey) || managerNormKey.includes(cAdNorm);
+            || cAdNorm === matchNormKey || cAdNorm.includes(matchNormKey) || matchNormKey.includes(cAdNorm);
         });
 
         const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
@@ -1099,7 +1100,7 @@ export default function KPIDashboard() {
         const adKh = adPlans.get(adStruct.maAD) || 0;
         const adPeriodKh = calcPeriodKh(adKh);
 
-        const d: ADData = { ten: managerName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
+        const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
         p.ads.push(d);
         p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
         pIpSum += ip;
@@ -1575,29 +1576,24 @@ export default function KPIDashboard() {
                   const glowClsStr = glowCls(pPct);
                   return (
                     <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
-                      {/* Header: tên phòng (bỏ %KH — sẽ hiện trên progress bar) */}
+                      {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                       <div className="rg-head">
                         <div className="rg-head-left">
                           <Clipboard size={14} style={{ color: '#fff', flexShrink: 0 }} />
                           <span className="rg-head-name">{phong.ten}</span>
                         </div>
+                        {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                       </div>
-                      {/* AFYP (đầy đủ đ) + KH mờ dưới (if has KH) + progress có % nhỏ (if has KH) */}
+                      {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
                       {phong.afyp > 0 && (
-                        <>
-                          <div className="rg-afyp-row">
-                            <div>
-                              <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                              {phong.kh > 0 && <div style={{ fontSize: 9, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>}
-                            </div>
-                          </div>
-                          {phong.kh > 0 && (
-                            <div className="rg-prog-wrap">
-                              <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
-                              <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
-                            </div>
-                          )}
-                        </>
+                        <div className="rg-afyp-row">
+                          <span className="rg-afyp"><AnimNum value={pAfypTrd} /><span className="rg-afyp-unit">trđ</span></span>
+                          {!phong.noAds && pKhTrd > 0 && <span className="rg-kh">KH: {fmt(pKhTrd)} trđ</span>}
+                        </div>
+                      )}
+                      {/* Progress bar (no % overlay — như cũ) */}
+                      {!phong.noAds && phong.kh > 0 && (
+                        <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
                       <div className="rg-summary">
@@ -1738,29 +1734,24 @@ export default function KPIDashboard() {
 
                           {/* Desktop Phong Card - Redesign as lighter floating card */}
                           <div className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
-                            {/* Header (bỏ %KH) */}
+                            {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                             <div className="rg-head">
                               <div className="rg-head-left">
                                 <Clipboard size={15} style={{ color: '#fff', flexShrink: 0 }} />
                                 <span className="rg-head-name">{phong.ten}</span>
                               </div>
+                              {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                             </div>
-                            {/* AFYP (đầy đủ đ) + KH mờ dưới (if has KH) + progress có % nhỏ (if has KH) */}
+                            {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
                             {phong.afyp > 0 && (
-                              <>
-                                <div className="rg-afyp-row">
-                                  <div>
-                                    <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                                    {phong.kh > 0 && <div style={{ fontSize: 10, color: '#9aa8be', fontWeight: 600, marginTop: 2 }}>KH: {fmt(phong.kh)}đ</div>}
-                                  </div>
-                                </div>
-                                {phong.kh > 0 && (
-                                  <div className="rg-prog-wrap">
-                                    <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
-                                    <span className={`rg-prog-pct-on-bar ${pctClass(pPct)}`}>{Math.round(pPct)}%</span>
-                                  </div>
-                                )}
-                              </>
+                              <div className="rg-afyp-row">
+                                <span className="rg-afyp"><AnimNum value={afypTrd} /><span className="rg-afyp-unit">trđ</span></span>
+                                {!phong.noAds && khTrd > 0 && <span className="rg-kh">KH: {fmt(khTrd)} trđ</span>}
+                              </div>
+                            )}
+                            {/* Progress bar (no % overlay — như cũ) */}
+                            {!phong.noAds && phong.kh > 0 && (
+                              <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
                             <div className="rg-summary">
