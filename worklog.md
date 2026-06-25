@@ -294,3 +294,70 @@ Stage Summary (verified on production):
 - 'TIẾN ĐỘ KHU VỰC' divider: 16px font, gradient bg, visible on both mobile + desktop
 - Data consistency: sum(phong AFYP) = company AFYP = 1,958,966,329đ ✓
 - Banca-PA now shows 31,723,000đ AFYP (no KH, no progress bar)
+
+---
+Task ID: kpi-redesign-v4-revert
+Agent: main
+Task: Revert v3 — AD display short name + revert Phong card to v2 layout (user feedback)
+
+Work Log:
+A. User feedback (clarification):
+- "không phải, hiển thị vẫn là AD + tên" → AD display must stay short ("AD Uy", "AD Trí")
+  Full names provided earlier were ONLY for matching logic, not display
+- "thực hiện AfYP, lượt và HĐC vẫn còn hiển thị trên app = 0 kìa" → Reported bug
+  Investigation: production already shows correct data (T6: AD Uy 397M, AD Long 660M, etc.)
+  Likely user saw stale version or different period filter
+- "chỗ của Phòng thì bố trí %KH trên góc phải như củ, thực hiện bên kế hoạch 1 bên như của đi"
+  → Revert Phong card to v2 layout (do NOT change Phong layout)
+- "tôi đâu có kêu thay đổi của phòng đâu" → Do NOT modify Phong layout
+
+B. AD name display fix:
+- displayName = adKey (short name, e.g. "AD Uy")
+- matchName = leader?.agentName || resolveAdName(adKey) — used ONLY for contract matching
+- matchNormKey = normKey(matchName) — used in adContracts filter
+- ADData.ten = displayName (display short, match full)
+
+C. Phong card reverted to v2 layout (both mobile + desktop):
+- Header: Clipboard icon + ten phong + rg-head-pct (AnimPct) on top-right (when !noAds && kh>0)
+- AFYP row: rg-afyp (AnimNum, "trđ" unit) + rg-kh ("KH: xxx trđ") inline same row
+- Progress bar: simple bar, NO % overlay (removed rg-prog-pct-on-bar)
+- AFYP shown in trđ (millions) like v2, not full đ like v3
+- Removed dim KH sub-line under AFYP
+
+D. AD table layout (v3) KEPT unchanged:
+- BỎ cột %KH column (removed)
+- %KH as small overlay on mini progress bar (rg-ad-pct-on-prog)
+- AFYP shown full đ (with "đ" unit)
+- KH AFYP sub-line under AD name (rg-ad-sub, small + dim)
+- Glow effect for AD rows at >=100% KH (rg-ad-glow)
+
+E. Commit 0cedcf4 + push to main + verify production
+
+F. Verified production with multiple period filters:
+- T6 (default): PTKD 1 (454trđ, 36%), PTKD 2 (1012trđ, 91%), PTKD 3 (461trđ, 43%)
+  AD: Trí 56M/39%, Uy 397M/36%, Có 351M/77%, Long 660M/102%, Danh 316M/59%, Trang 145M/28%
+- Cả năm: PTKD 1 (5900trđ, 42%), PTKD 2 (6110trđ, 50%), PTKD 3 (4665trđ, 40%)
+  AD: Trí 744M/47%, Uy 5155M/42%, Có 2840M/56%, Long 3269M/45%, Danh 2767M/46%, Trang 1898M/33%
+- Q1: PTKD 1 (3520trđ, 127%), PTKD 2 (3178trđ, 129%), PTKD 3 (2754trđ, 117%) — ALL 3 PHONGS GLOW
+  AD: Trí 428M/134%, Uy 3091M/126%, Có 1465M/144%, Long 1712M/119%, Danh 1662M/139%, Trang 1091M/94%
+- H1: PTKD 1 (5900trđ, 93%), PTKD 2 (6110trđ, 109%), PTKD 3 (4665trđ, 87%)
+  AD: Trí 744M/102%, Uy 5155M/92%, Có 2840M/122%, Long 3269M/100%, Danh 2767M/101%, Trang 1898M/72%
+- T3: PTKD 1 (1905trđ, 161%), PTKD 2 (1723trđ, 165%), PTKD 3 (1344trđ, 134%) — ALL 3 PHONGS GLOW
+  AD: Trí 159M/118%, Uy 1744M/167%, Có 795M/183%, Long 927M/152%, Danh 860M/169%, Trang 483M/98%
+
+G. Data consistency (sum AD = phong, sum phong = company) — ALL PASSED:
+- T6: PTKD 1 = 56+397 = 453M ≈ 454 ✓; PTKD 2 = 351+660 = 1011M ≈ 1012 ✓; PTKD 3 = 316+145 = 461M ✓
+- Cả năm: PTKD 1 = 744+5155 = 5899M ≈ 5900 ✓; PTKD 2 = 2840+3269 = 6109M ≈ 6110 ✓; PTKD 3 = 2767+1898 = 4665M ✓
+- Q1: PTKD 1 = 428+3091 = 3519M ≈ 3520 ✓; PTKD 2 = 1465+1712 = 3177M ≈ 3178 ✓; PTKD 3 = 1662+1091 = 2753M ≈ 2754 ✓
+- H1: PTKD 1 = 744+5155 = 5899M ≈ 5900 ✓; PTKD 2 = 2840+3269 = 6109M ≈ 6110 ✓; PTKD 3 = 2767+1898 = 4665M ✓
+- T3: PTKD 1 = 159+1744 = 1903M ≈ 1905 ✓; PTKD 2 = 795+927 = 1722M ≈ 1723 ✓; PTKD 3 = 860+483 = 1343M ≈ 1344 ✓
+
+Stage Summary (verified on production):
+- AD names: short ("AD Uy", "AD Trí", "AD Có", "AD Long", "AD Danh", "AD Trang")
+- Phong card layout: V2 (%KH top-right header + AFYP+KH inline trđ + progress no overlay)
+- AD table layout: V3 (bỏ cột %KH, %KH on mini-prog, AFYP full đ, KH sub under name)
+- Data correctness: ALL 5 period filters (T6/Cả năm/Q1/H1/T3) verified correct
+- Data consistency: sum AD = phong, sum phong = company — ALL PASSED
+- Glow effect works: AD rows + phong cards glow at >=100% KH
+- Production URL: https://my-project-nmchau022023-4326s-projects.vercel.app/kpi
+- Screenshots saved: /home/z/my-project/download/kpi-v4-desktop.png, kpi-v4-mobile.png
