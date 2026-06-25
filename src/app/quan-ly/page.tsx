@@ -1436,10 +1436,18 @@ export default function QuanLyPage() {
   }, [activeSheet, revenueSub, policyOpen, structureSub]);
 
   // Back button handler: pop 1 state từ history
+  // - Nếu history còn > 1: pop về state trước đó
+  // - Nếu history rỗng (length <= 1) VÀ sheet hiện tại là overview: về trang chủ /
+  // - Nếu history rỗng nhưng sheet hiện tại KHÔNG phải overview: về overview
   const handleAppBack = useCallback(() => {
     if (navHistoryRef.current.length <= 1) {
-      // History rỗng → fallback: về overview
-      setActiveSheet('overview');
+      if (activeSheet === 'overview') {
+        // Đang ở overview + history rỗng → về trang chủ ứng dụng
+        router.push('/');
+      } else {
+        // Đang ở sheet con (revenue/policy/structure) → về overview trước
+        setActiveSheet('overview');
+      }
       return;
     }
     navHistoryRef.current.pop();
@@ -1449,7 +1457,7 @@ export default function QuanLyPage() {
     if (prev.revenueSub !== undefined && prev.revenueSub !== revenueSub) setRevenueSub(prev.revenueSub);
     if (prev.policyOpen !== undefined && prev.policyOpen !== policyOpen) setPolicyOpen(prev.policyOpen);
     if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
-  }, [activeSheet, revenueSub, policyOpen, structureSub]);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, router]);
 
 
   // Online settings state (fetched from API instead of localStorage)
