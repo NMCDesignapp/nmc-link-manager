@@ -221,20 +221,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-card.is-banca { border-top-color: #b89838; }
 .kpi-app .rg-card.is-pa { border-top-color: #6a88a8; }
 .kpi-app .rg-card.glow-full {
-  box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28), 0 0 28px #f2d38d99, 0 0 60px #f2d38d44;
-  border-color: #f2d38d;
-  animation: rgGlowPulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #86efacaa, 0 16px 36px rgba(10,30,60,.28), 0 0 28px #86efac99, 0 0 60px #86efac44;
+  border-color: #86efac;
+  animation: rgGlowPulse 3s ease-in-out infinite;
 }
 @keyframes rgGlowPulse {
-  0%, 100% { box-shadow: 0 0 0 2px #f2d38d6b, 0 16px 36px rgba(10,30,60,.28), 0 0 24px #f2d38d99, 0 0 50px #f2d38d33; }
-  50% { box-shadow: 0 0 0 3px #f2d38da8, 0 16px 36px rgba(10,30,60,.28), 0 0 36px #f2d38dcc, 0 0 72px #f2d38d55; }
+  0%, 100% { box-shadow: 0 0 0 2px #86efacaa, 0 16px 36px rgba(10,30,60,.28), 0 0 22px #86efac88, 0 0 48px #86efac33; }
+  50% { box-shadow: 0 0 0 3px #4ade80cc, 0 16px 36px rgba(10,30,60,.28), 0 0 36px #4ade80aa, 0 0 72px #4ade8055; }
 }
 .kpi-app .rg-card.glow-full .rg-head {
-  background: linear-gradient(135deg, #d4a020 0%, #b08018 100%) !important;
-  text-shadow: 0 0 12px #ffe07066;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+  text-shadow: 0 0 12px #86efac66;
 }
 .kpi-app .rg-card.is-banca.glow-full .rg-head {
-  background: linear-gradient(135deg, #d4a020 0%, #b08018 100%) !important;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
 }
 
 /* Phong header (inside rg-card) */
@@ -265,10 +265,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .rg-sum-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #5a78a0; line-height: 1.2; margin-bottom: 4px; white-space: nowrap; }
 .kpi-app .rg-sum-val { font-size: 17px; font-weight: 900; line-height: 1.1; white-space: nowrap; }
-.kpi-app .rg-sum-val.hd { color: #1e6cb8; }
-.kpi-app .rg-sum-val.td { color: #6a4ab8; }
-.kpi-app .rg-sum-val.chuan { color: #1a8a9a; }
-.kpi-app .rg-sum-val.ip { color: #b87818; }
+.kpi-app .rg-sum-val.hd { color: #2563eb; }
+.kpi-app .rg-sum-val.td { color: #9333ea; }
+.kpi-app .rg-sum-val.chuan { color: #0891b2; }
+.kpi-app .rg-sum-val.ip { color: #ea580c; }
 .kpi-app .rg-sum-val.afyp { color: #1a4a7a; }
 .kpi-app .rg-sum-val.kh { color: #6a8aaa; }
 
@@ -277,6 +277,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   height: 1px;
   background: linear-gradient(90deg, transparent 0%, #b8cae0 20%, #b8cae0 80%, transparent 100%);
   margin: 0 12px;
+}
+
+/* Banca-PA summary: only 2 columns (Lượt + HĐC) */
+.kpi-app .rg-summary.rg-summary-2col {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 /* AFYP + KH row */
@@ -289,7 +294,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-afyp { font-size: 1.45rem; font-weight: 900; color: #1a4a7a; line-height: 1.1; }
 .kpi-app .rg-afyp-unit { font-size: .55em; font-weight: 700; color: #5a78a0; margin-left: 3px; }
 .kpi-app .rg-kh { font-size: 11px; color: #6a8aaa; font-weight: 700; }
-.kpi-app .rg-prog { width: 100%; height: 7px; border-radius: 99px; overflow: hidden; background: #d8e2ee; margin: 0 16px 10px; width: calc(100% - 32px); }
+.kpi-app .rg-prog { width: 100%; height: 8px; border-radius: 0; overflow: hidden; background: #4a6080; margin: 0 0 10px; }
 .kpi-app .rg-prog-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); }
 
 /* AD Table (compact, ngay hàng) */
@@ -326,25 +331,34 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
 .kpi-app .rg-ad-empty { padding: 14px 10px; text-align: center; font-size: 10px; color: #8aa0b8; font-style: italic; }
 
+/* Circular progress for AD row */
+.kpi-app .rg-ad-circle { display: inline-block; vertical-align: middle; }
+.kpi-app .rg-ad-circle-bg { fill: none; stroke: #e0e8f0; stroke-width: 3; }
+.kpi-app .rg-ad-circle-fg { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.22,1,.36,1), stroke 0.4s ease; }
+.kpi-app .rg-ad-circle-text { font-size: 9px; font-weight: 900; fill: #1a4a7a; text-anchor: middle; dominant-baseline: central; }
+.kpi-app .rg-ad-circle-text.green { fill: #166534; }
+.kpi-app .rg-ad-circle-text.gold { fill: #b45309; }
+.kpi-app .rg-ad-circle-text.red { fill: #b91c1c; }
+
 /* AD row glow when 100% KH */
 .kpi-app .rg-ad-table tbody tr.rg-ad-glow {
-  background: linear-gradient(90deg, #fef9e7 0%, #fff5d6 50%, #fef9e7 100%) !important;
-  box-shadow: inset 0 0 0 1px #f2d38d99, inset 0 0 12px #f2d38d33;
-  animation: rgAdGlowPulse 2.4s ease-in-out infinite;
+  background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 50%, #ecfdf5 100%) !important;
+  box-shadow: inset 0 0 0 1px #4ade80aa, inset 0 0 12px #4ade8033;
+  animation: rgAdGlowPulse 3s ease-in-out infinite;
 }
 @keyframes rgAdGlowPulse {
-  0%, 100% { box-shadow: inset 0 0 0 1px #f2d38d99, inset 0 0 10px #f2d38d22; }
-  50% { box-shadow: inset 0 0 0 2px #f2d38dcc, inset 0 0 16px #f2d38d44; }
+  0%, 100% { box-shadow: inset 0 0 0 1px #4ade80aa, inset 0 0 10px #4ade8022; }
+  50% { box-shadow: inset 0 0 0 2px #16a34acc, inset 0 0 18px #4ade8055; }
 }
-.kpi-app .rg-ad-table tbody tr.rg-ad-glow td { color: #8a5a10 !important; font-weight: 900; }
-.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-name { color: #6a4010 !important; text-shadow: 0 0 8px #f2d38d44; }
-.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-sub { color: #a08040 !important; }
-.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-afyp { color: #8a5a10 !important; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow td { color: #166534 !important; font-weight: 900; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-name { color: #14532d !important; text-shadow: 0 0 8px #4ade8044; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-sub { color: #4a7c5a !important; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-glow .rg-ad-afyp { color: #166534 !important; }
 
 /* AD name cell: name + small KH under */
 .kpi-app .rg-ad-name-cell { display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
-.kpi-app .rg-ad-sub { font-size: 8px; color: #9aa8be; font-weight: 600; white-space: nowrap; }
+.kpi-app .rg-ad-sub { font-size: 7px; color: #9aa8be; font-weight: 600; white-space: nowrap; opacity: 0.85; }
 .kpi-app .rg-ad-afyp { color: #1a4a7a; font-weight: 900; white-space: nowrap; }
 .kpi-app .rg-ad-afyp-unit { font-size: 0.7em; color: #6a8aaa; font-weight: 700; margin-left: 2px; }
 
@@ -1587,8 +1601,8 @@ export default function KPIDashboard() {
                       {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
                       {phong.afyp > 0 && (
                         <div className="rg-afyp-row">
-                          <span className="rg-afyp"><AnimNum value={pAfypTrd} /><span className="rg-afyp-unit">trđ</span></span>
-                          {!phong.noAds && pKhTrd > 0 && <span className="rg-kh">KH: {fmt(pKhTrd)} trđ</span>}
+                          <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
+                          {!phong.noAds && pKhTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>}
                         </div>
                       )}
                       {/* Progress bar (no % overlay — như cũ) */}
@@ -1596,23 +1610,27 @@ export default function KPIDashboard() {
                         <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
-                      <div className="rg-summary">
+                      <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
                         <div className="rg-sum-cell">
-                          <div className="rg-sum-label">Lượt HĐ</div>
+                          <div className="rg-sum-label">Lượt</div>
                           <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
                         </div>
+                        {!phong.noAds && (
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">Tuyển dụng</div>
                           <div className="rg-sum-val td"><AnimNum value={phong.td} /></div>
                         </div>
+                        )}
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">HĐ chuẩn</div>
                           <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                         </div>
+                        {!phong.noAds && (
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">Tỷ trọng IP</div>
                           <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                         </div>
+                        )}
                       </div>
                       {/* Thin separator (thay cho dòng Tỷ trọng IP riêng) */}
                       <div className="rg-divider" />
@@ -1653,10 +1671,15 @@ export default function KPIDashboard() {
                                     <td>{ad.hdChuan}</td>
                                     <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
                                     <td className="rg-ad-prog-cell">
-                                      <div className="rg-ad-prog-wrap">
-                                        <span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span>
-                                        <span className={`rg-ad-pct-on-prog ${aPctCls}`}>{Math.round(aPct)}%</span>
-                                      </div>
+                                      <svg width="32" height="32" viewBox="0 0 32 32" className="rg-ad-circle">
+                                        <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
+                                        <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
+                                          stroke={progressColor(aPct)}
+                                          strokeDasharray={2 * Math.PI * 13}
+                                          strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
+                                          transform="rotate(-90 16 16)" />
+                                        <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
+                                      </svg>
                                     </td>
                                   </tr>
                                 );
@@ -1745,8 +1768,8 @@ export default function KPIDashboard() {
                             {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
                             {phong.afyp > 0 && (
                               <div className="rg-afyp-row">
-                                <span className="rg-afyp"><AnimNum value={afypTrd} /><span className="rg-afyp-unit">trđ</span></span>
-                                {!phong.noAds && khTrd > 0 && <span className="rg-kh">KH: {fmt(khTrd)} trđ</span>}
+                                <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
+                                {!phong.noAds && khTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>}
                               </div>
                             )}
                             {/* Progress bar (no % overlay — như cũ) */}
@@ -1754,23 +1777,27 @@ export default function KPIDashboard() {
                               <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
-                            <div className="rg-summary">
+                            <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
                               <div className="rg-sum-cell">
-                                <div className="rg-sum-label">Lượt HĐ</div>
+                                <div className="rg-sum-label">Lượt</div>
                                 <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
                               </div>
+                              {!phong.noAds && (
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">Tuyển dụng</div>
                                 <div className="rg-sum-val td"><AnimNum value={phong.td} /></div>
                               </div>
+                              )}
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">HĐ chuẩn</div>
                                 <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                               </div>
+                              {!phong.noAds && (
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">Tỷ trọng IP</div>
                                 <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                               </div>
+                              )}
                             </div>
                             {/* Thin separator */}
                             <div className="rg-divider" />
@@ -1811,10 +1838,15 @@ export default function KPIDashboard() {
                                           <td>{ad.hdChuan}</td>
                                           <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
                                           <td className="rg-ad-prog-cell">
-                                            <div className="rg-ad-prog-wrap">
-                                              <span className="rg-ad-mini-prog"><span className="rg-ad-mini-prog-fill" style={{ width: `${aCp}%`, background: `linear-gradient(90deg,${aProgStart},${aProgEnd})` }} /></span>
-                                              <span className={`rg-ad-pct-on-prog ${aPctCls}`}>{Math.round(aPct)}%</span>
-                                            </div>
+                                            <svg width="34" height="34" viewBox="0 0 32 32" className="rg-ad-circle">
+                                              <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
+                                              <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
+                                                stroke={progressColor(aPct)}
+                                                strokeDasharray={2 * Math.PI * 13}
+                                                strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
+                                                transform="rotate(-90 16 16)" />
+                                              <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
+                                            </svg>
                                           </td>
                                         </tr>
                                       );
