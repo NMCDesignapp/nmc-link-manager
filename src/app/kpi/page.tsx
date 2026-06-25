@@ -1070,15 +1070,18 @@ export default function KPIDashboard() {
         const adKey = adStruct.tenAD;
         const adNormKey = normKey(adKey);
 
-        // Find AD manager name from leaders
+        // Find AD manager name from leaders — fallback to AD_FULL_NAME_MAP
         const leader = rawData.leaders.find(l => normKey(l.agentName).includes(adNormKey) || adNormKey.includes(normKey(l.agentName)));
         const managerName = leader?.agentName || resolveAdName(adKey);
+        const managerNormKey = normKey(managerName);
 
-        // Find contracts for this AD — match by normalized ad name
+        // Find contracts for this AD — match by normalized name (both adKey and resolved managerName)
+        // Contracts' ad field stores FULL name (e.g. "Trương Quốc Uy"), adKey may be short ("AD Uy")
         const adContracts = periodContracts.filter(c => {
           const cAdNorm = normKey(c.ad || '');
           if (!cAdNorm) return false;
-          return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm);
+          return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm)
+            || cAdNorm === managerNormKey || cAdNorm.includes(managerNormKey) || managerNormKey.includes(cAdNorm);
         });
 
         const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
