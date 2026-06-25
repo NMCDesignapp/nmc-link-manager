@@ -521,7 +521,8 @@ function formatCurrency(n: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
 }
 function formatNumber(n: number): string {
-  return new Intl.NumberFormat('vi-VN').format(n);
+  // Luôn làm tròn thành số nguyên (theo yêu cầu: bảng chính sách không hiển thị thập phân)
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0, roundingMode: 'halfEven' }).format(Math.round(n));
 }
 
 // Render nội dung ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG — đồng nhất tất cả chính sách

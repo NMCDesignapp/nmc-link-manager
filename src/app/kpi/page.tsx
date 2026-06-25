@@ -603,7 +603,7 @@ function num(v: unknown): number {
   const n = Number(s.replace(/[^0-9.\-]/g, ''));
   return isFinite(n) ? n : 0;
 }
-function fmt(n: number): string { return new Intl.NumberFormat('vi-VN').format(n); }
+function fmt(n: number): string { return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0, roundingMode: 'halfEven' }).format(Math.round(n)); }
 function fmtBig(v: number): string {
   if (v >= 1e9) return Math.round(v/1e9) + ' tỷ';
   if (v >= 1e6) return (v/1e6).toFixed(0) + ' tr';
