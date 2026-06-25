@@ -30,7 +30,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes orbFloat { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.08); } 100% { transform: translate(-15px,15px) scale(.95); } }
 
 .kpi-app .app-wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 24px; }
-@media (min-width: 900px) { .kpi-app .app-wrap { max-width: none; padding: 24px 0; } }
+@media (min-width: 900px) { .kpi-app .app-wrap { max-width: 1100px; padding: 24px 32px; margin: 0 auto; } }
 
 .kpi-app .view { display: none; animation: viewIn .4s ease-out; }
 .kpi-app .view.active { display: block; }
@@ -99,6 +99,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty-stat { border-radius: 6px; padding: 8px 4px 7px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
 .kpi-app .cty-stat-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
 .kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
+.kpi-app .cty-stat-sub { font-size: 0.5em; font-weight: 700; opacity: .75; margin-left: 1px; }
 .kpi-app .cty-stat.hd { background: #3a7cc8; } .kpi-app .cty-stat.hd .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.td { background: #8a7ab8; } .kpi-app .cty-stat.td .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.chuan { background: #2a9aaa; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #ffffff; }
@@ -283,13 +284,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .rg-sum-cell {
   background: #e8f0fa;
-  padding: 10px 4px 8px;
+  padding: 6px 4px 5px;
   text-align: center;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 56px;
+  min-height: 44px;
 }
-.kpi-app .rg-sum-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #5a78a0; line-height: 1.2; margin-bottom: 4px; white-space: nowrap; }
-.kpi-app .rg-sum-val { font-size: 17px; font-weight: 900; line-height: 1.1; white-space: nowrap; }
+.kpi-app .rg-sum-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #5a78a0; line-height: 1.15; margin-bottom: 2px; white-space: nowrap; }
+.kpi-app .rg-sum-val { font-size: 16px; font-weight: 900; line-height: 1.1; white-space: nowrap; }
 .kpi-app .rg-sum-val.hd { color: #2563eb; }
 .kpi-app .rg-sum-val.td { color: #9333ea; }
 .kpi-app .rg-sum-val.chuan { color: #0891b2; }
@@ -325,11 +326,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* AD Table (compact, ngay hàng) — 3D raised block, hẹp hơn, viền nhẹ 2 bên */
 .kpi-app .rg-ad-wrap {
   background: transparent;
-  padding: 8px 14px 10px;
+  padding: 8px 7px 10px;
   /* chừa 2 viền nhẹ 2 bên bảng phòng */
 }
 .kpi-app .rg-ad-table {
-  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  width: calc(100% - 12px); margin: 0 6px; border-collapse: separate; border-spacing: 0; font-size: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
   border-radius: 3px; overflow: hidden;
   border: 1px solid #c8d8ea;
@@ -655,6 +656,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 8px; display: flex; flex-direction: column; }
   .kpi-app .dsk-cty-kpi-head { padding: 7px 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .kpi-app .dsk-cty-kpi-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+  .kpi-app .dsk-cty-kpi-sub { font-size: 0.55em; font-weight: 700; opacity: .75; margin-left: 1px; }
   .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 8px; text-align: center; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.3rem; font-weight: 900; line-height: 1; text-shadow: 0 0 10px currentColor; }
   .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
@@ -1107,13 +1109,14 @@ export default function KPIDashboard() {
     };
     const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
 
-    // ========== Count TVV in PA-Banca (for Banca-PA card display) ==========
-    let bancaPaTvvCount = 0;
+    // ========== Count TVV in PA only (for Banca-PA card display) ==========
+    // User requirement: count TVV whose AD belongs to PHÒNG PA (not Banca)
+    let paTvvCount = 0;
     tvvStructList.forEach(t => {
       const adInfo = bnToAdMap.get(t.maBanNhom);
       if (!adInfo) return;
-      if (isPaOrBanca(adInfo.maPhong) || isPaOrBanca(adInfo.tenPhong)) {
-        bancaPaTvvCount++;
+      if (isPaCode(adInfo.maPhong) || isPaCode(adInfo.tenPhong)) {
+        paTvvCount++;
       }
     });
 
@@ -1129,7 +1132,7 @@ export default function KPIDashboard() {
       // PA or Banca → merge into Banca - PA
       if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
         if (!bancaPaPhong) {
-          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvCount };
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: paTvvCount };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         const paContracts = periodContracts.filter(c => {
@@ -1595,8 +1598,8 @@ export default function KPIDashboard() {
                       <div className="cty-stat td"><div className="cty-stat-label">TUYỂN DỤNG</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
                       <div className="cty-stat chuan"><div className="cty-stat-label">LƯỢT HĐ CHUẨN</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
                       <div className="cty-stat ip"><div className="cty-stat-label">TỶ TRỌNG IP</div><div className="cty-stat-val">{Math.round(dashboard.total.tyTrong)}</div></div>
-                      <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{Math.round(dashboard.total.nangSuat)}</div></div>
-                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ (TRĐ)</div><div className="cty-stat-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div>
+                      <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
+                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ <span className="cty-stat-sub">(TRĐ)</span></div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                       <div className="cty-stat tbtn"><div className="cty-stat-label">SL TB/TN</div><div className="cty-stat-val">{rawData?.leaders?.length ?? 0}</div></div>
                     </div>
@@ -1624,8 +1627,8 @@ export default function KPIDashboard() {
                         <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.tyTrong)}</div></div></div>
                       </div>
                       <div className="dsk-cty-tier">
-                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.nangSuat)}</div></div></div>
-                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ (TRĐ)</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div></div>
+                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></div>
+                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ <span className="dsk-cty-kpi-sub">(TRĐ)</span></span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div></div>
                         <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
                         <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
                       </div>
@@ -1687,7 +1690,7 @@ export default function KPIDashboard() {
                         <div className="rg-afyp-row">
                           <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
                           {phong.noAds ? (
-                            <span className="rg-banca-tvv-count">SL TVV PA - Banca: {phong.tvvCount ?? 0}</span>
+                            <span className="rg-banca-tvv-count">SL TVV PA: {phong.tvvCount ?? 0}</span>
                           ) : (
                             pKhTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
                           )}
@@ -1862,7 +1865,7 @@ export default function KPIDashboard() {
                               <div className="rg-afyp-row">
                                 <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
                                 {phong.noAds ? (
-                                  <span className="rg-banca-tvv-count">SL TVV PA - Banca: {phong.tvvCount ?? 0}</span>
+                                  <span className="rg-banca-tvv-count">SL TVV PA: {phong.tvvCount ?? 0}</span>
                                 ) : (
                                   khTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
                                 )}

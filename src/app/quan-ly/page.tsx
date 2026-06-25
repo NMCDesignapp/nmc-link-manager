@@ -554,11 +554,11 @@ function formatSmartCurrency(amount: number): string {
 // Compact currency for KPI cards - always shows trđ/tỷ/ngàn on ALL screen sizes
 // trđ always shows 3 decimal places with Vietnamese comma separator (e.g. 1,350 trđ)
 function formatKpiCurrency(amount: number): string {
-  if (amount >= 1_000_000_000) return `${Math.round(amount / 1_000_000_000)} tỷ`;
-  if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)} trđ`;
-  if (amount >= 1_000) return `${Math.round(amount / 1_000)} ngàn`;
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} tỷ`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} trđ`;
+  if (amount >= 1_000) return `${(amount / 1_000).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ngàn`;
   if (amount === 0) return '0 trđ';
-  return `${amount} đ`;
+  return `${amount.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} đ`;
 }
 
 // Format tổng tiền thưởng cho ô tổng hợp trong chính sách đại lý
@@ -2900,7 +2900,7 @@ export default function QuanLyPage() {
           { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
           { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: 0, targetFmt: '', bg: '#DC2626', hasKH: false },
           { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: 0, targetFmt: '', bg: '#D97706', hasKH: false },
-          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: String(Math.round(nangSuat)), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
+          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
           { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
           { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
           { label: 'SL NTD', unit: 'người', value: formatNumber(totalNTD), rawVal: totalNTD, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
