@@ -211,7 +211,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: linear-gradient(180deg, #f4f8fc 0%, #e2ecf6 100%);
   border: 1px solid #b8cae0;
   border-top: 4px solid #3a7cc8;
-  border-radius: 14px;
+  border-radius: 4px;
   box-shadow: 0 10px 28px rgba(10,30,60,.22), 0 2px 6px rgba(10,30,60,.12);
   overflow: hidden;
   animation: cardSlideIn .4s ease-out both;
@@ -257,6 +257,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-sum-val.afyp { color: #1a4a7a; }
 .kpi-app .rg-sum-val.kh { color: #6a8aaa; }
 
+/* Thin separator between summary and AD table */
+.kpi-app .rg-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #b8cae0 20%, #b8cae0 80%, transparent 100%);
+  margin: 0 12px;
+}
+
 /* AFYP + KH row */
 .kpi-app .rg-afyp-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
@@ -278,7 +285,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-table {
   width: 100%; border-collapse: collapse; font-size: 11px;
   background: #f4f8fc;
-  border-radius: 8px; overflow: hidden;
+  border-radius: 3px; overflow: hidden;
   border: 1px solid #d0dcee;
 }
 .kpi-app .rg-ad-table thead th {
@@ -859,120 +866,188 @@ export default function KPIDashboard() {
       return periodMonths.includes(d.getMonth() + 1);
     });
 
-    // ========== Company-level KPIs ==========
-    const totalAFYP = periodContracts.reduce((s, c) => s + num(c.afyp), 0);
-    const totalIP = periodContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
-    const slHD = periodContracts.length;
-    const luotHoatDong = periodContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
-    const luotHDChuan = periodContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
-    const ipAfypRatio = totalAFYP > 0 ? (totalIP / totalAFYP) * 100 : 0;
-
-    // SL Tuyển dụng: count staff with startDate in selected period months
-    const slTuyenDung = staff.filter(s => {
-      if (!s.startDate) return false;
-      const d = new Date(s.startDate);
-      if (isNaN(d.getTime())) return false;
-      return d.getFullYear() === currentYear && periodMonths.includes(d.getMonth() + 1);
-    }).length;
-
     // ========== KH (Kế hoạch) AFYP — from online settings, same keys as quan-ly ==========
-    // Read AD annual plans using maAD from structure (same as quan-ly page)
     const adPlans = new Map<string, number>();
     adStructList.forEach(ad => {
       const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
       adPlans.set(ad.maAD, val);
     });
-
-    // Company total = sum of all AD plans (same as quan-ly)
     const targetTongAFYP = adStructList.reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
 
-    // Monthly KH ratio — sum for selected period (same formula as quan-ly)
-    let khAFYP = 0;
-    if (targetTongAFYP > 0) {
+    // Helper: tính period KH cho 1 annual KH (dùng monthly ratios)
+    const calcPeriodKh = (annualKh: number): number => {
+      if (annualKh <= 0) return 0;
+      let k = 0;
       periodMonths.forEach(m => {
         const mm = String(m).padStart(2, '0');
         const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-        if (ratio > 0) khAFYP += targetTongAFYP * ratio / 100;
+        if (ratio > 0) k += annualKh * ratio / 100;
       });
-    }
-
-    const total: TotalData = {
-      afyp: totalAFYP,
-      kh: khAFYP,
-      lhd: luotHoatDong,
-      td: slTuyenDung,
-      hdChuan: luotHDChuan,
-      tyTrong: ipAfypRatio,
-      totalIP,
-      slHD,
-      nangSuat: luotHoatDong > 0 ? slHD / luotHoatDong : 0,
-      doLonHD: luotHoatDong > 0 ? totalAFYP / luotHoatDong : 0,
+      return k;
     };
+
+    // ========== Build lookups: BanNhom → AD, AD → Phong ==========
+    const phongNameMap = new Map<string, string>();
+    phongStructList.forEach(p => phongNameMap.set(p.maPhong, p.tenPhong));
+
+    const adToPhongMap = new Map<string, { maPhong: string; tenPhong: string; tenAD: string }>();
+    adStructList.forEach(ad => {
+      const pName = phongNameMap.get(ad.maPhong) || '';
+      adToPhongMap.set(ad.maAD, { maPhong: ad.maPhong, tenPhong: pName, tenAD: ad.tenAD });
+    });
+
+    const bnToAdMap = new Map<string, { maAD: string; tenAD: string; maPhong: string; tenPhong: string }>();
+    banNhomStructList.forEach(bn => {
+      const adInfo = adToPhongMap.get(bn.maAD);
+      if (adInfo) {
+        bnToAdMap.set(bn.maBanNhom, { maAD: bn.maAD, tenAD: adInfo.tenAD, maPhong: adInfo.maPhong, tenPhong: adInfo.tenPhong });
+      }
+    });
+
+    // ========== TVV tuyển dụng trong period — theo AD/Phong ==========
+    const tvvInPeriodByAD = new Map<string, number>();
+    const tvvInPeriodByPhong = new Map<string, number>();
+    let tvvInPeriodTotal = 0;
+
+    tvvStructList.forEach(t => {
+      if (!t.ngayBatDau) return;
+      const d = new Date(t.ngayBatDau);
+      if (isNaN(d.getTime())) return;
+      if (d.getFullYear() !== currentYear) return;
+      if (!periodMonths.includes(d.getMonth() + 1)) return;
+
+      const adInfo = bnToAdMap.get(t.maBanNhom);
+      if (!adInfo) return;
+
+      tvvInPeriodTotal++;
+      tvvInPeriodByAD.set(adInfo.maAD, (tvvInPeriodByAD.get(adInfo.maAD) || 0) + 1);
+      tvvInPeriodByPhong.set(adInfo.maPhong, (tvvInPeriodByPhong.get(adInfo.maPhong) || 0) + 1);
+    });
+
+    // ========== PA / Banca detection helpers ==========
+    const isPaCode = (code: string): boolean => {
+      if (!code) return false;
+      const c = String(code).trim();
+      return c === 'PA' || c === 'U104101014' || c.toLowerCase() === 'pa';
+    };
+    const isBancaCode = (code: string): boolean => {
+      if (!code) return false;
+      const c = String(code).trim();
+      return c === 'Banca' || c === 'A473DSO000' || c === 'DSO' || c.toLowerCase() === 'banca' || c.toLowerCase() === 'dso';
+    };
+    const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
 
     // ========== Per-Phong and per-AD data ==========
     const phongs: PhongData[] = [];
-    let tyTrongWeighted = 0, tyTrongCount = 0;
+    let bancaPaPhong: PhongData | null = null;
+    let bancaPaIpSum = 0;
+    const bancaPaContractIds = new Set<string>();
 
-    // Use DB structure (same as quan-ly) instead of hardcoded CO_CAU
-    const structurePhongs = phongStructList.length > 0 ? phongStructList : [];
-    
-    for (const phongStruct of structurePhongs) {
+    for (const phongStruct of phongStructList) {
       const pName = phongStruct.tenPhong;
-      const isBanca = normKey(pName).includes('BANCA');
-      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: isBanca };
 
-      // Find all ADs belonging to this phong via maPhong
+      // PA or Banca → merge into Banca - PA
+      if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
+        if (!bancaPaPhong) {
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true };
+        }
+        // Match contracts by nhom / ban / maNhom containing PA / Banca / DSO
+        const paContracts = periodContracts.filter(c => {
+          if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
+          const nhomNorm = normKey(c.nhom || '');
+          const banNorm = normKey(c.ban || '');
+          const maNhomNorm = normKey(c.maNhom || '');
+          return nhomNorm.includes('PA') || nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')
+            || banNorm.includes('PA') || banNorm.includes('BANCA') || banNorm.includes('DSO')
+            || maNhomNorm.includes('PA') || maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO');
+        });
+
+        // Add only contracts not already counted
+        const newContracts = paContracts.filter(c => !bancaPaContractIds.has(c.id));
+        newContracts.forEach(c => bancaPaContractIds.add(c.id));
+
+        if (bancaPaPhong) {
+          bancaPaPhong.afyp += newContracts.reduce((s, c) => s + num(c.afyp), 0);
+          bancaPaIpSum += newContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+          bancaPaPhong.lhd += newContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
+          bancaPaPhong.hdChuan += newContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
+          bancaPaPhong.td += tvvInPeriodByPhong.get(phongStruct.maPhong) || 0;
+          bancaPaPhong.tyTrong = bancaPaPhong.afyp > 0 ? (bancaPaIpSum / bancaPaPhong.afyp * 100) : 0;
+        }
+        continue;
+      }
+
+      // Regular phong with ADs
+      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: false };
+      let pIpSum = 0;
+
       const phongADs = adStructList.filter(a => a.maPhong === phongStruct.maPhong);
-      
+
       phongADs.forEach(adStruct => {
-        const adKey = adStruct.tenAD; // Use AD name as matching key
-        
+        const adKey = adStruct.tenAD;
+        const adNormKey = normKey(adKey);
+
         // Find AD manager name from leaders
-        const leader = rawData.leaders.find(l => normKey(l.agentName).includes(normKey(adKey)) || normKey(adKey).includes(normKey(l.agentName)));
+        const leader = rawData.leaders.find(l => normKey(l.agentName).includes(adNormKey) || adNormKey.includes(normKey(l.agentName)));
         const managerName = leader?.agentName || adKey;
 
-        // Find contracts for this AD using name matching
+        // Find contracts for this AD — match by normalized ad name
         const adContracts = periodContracts.filter(c => {
-          const adNorm = normKey(c.ad || '');
-          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
+          const cAdNorm = normKey(c.ad || '');
+          if (!cAdNorm) return false;
+          return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm);
         });
 
         const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
         const ip = adContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
         const lhd = adContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
-        const td = staff.filter(s => {
-          const adNorm = normKey(s.nhom || '');
-          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)));
-        }).length;
+        const td = tvvInPeriodByAD.get(adStruct.maAD) || 0;
         const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
-        // KH for this AD from settings — directly use maAD from structure
-        const maADKey = adStruct.maAD;
-        const adKh = adPlans.get(maADKey) || 0;
-        // Calculate AD KH for selected period using monthly ratios
-        let adPeriodKh = 0;
-        if (adKh > 0) {
-          periodMonths.forEach(m => {
-            const mm = String(m).padStart(2, '0');
-            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-            if (ratio > 0) adPeriodKh += adKh * ratio / 100;
-          });
-        }
+        const adKh = adPlans.get(adStruct.maAD) || 0;
+        const adPeriodKh = calcPeriodKh(adKh);
 
         const d: ADData = { ten: managerName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
         p.ads.push(d);
         p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
-        if (!isBanca) { tyTrongWeighted += (afyp > 0 ? afyp : 1) * tyTrong; tyTrongCount += (afyp > 0 ? afyp : 1); }
+        pIpSum += ip;
       });
 
-      p.tyTrong = tyTrongCount ? (tyTrongWeighted / tyTrongCount) : 0;
+      p.tyTrong = p.afyp > 0 ? (pIpSum / p.afyp * 100) : 0;
       phongs.push(p);
     }
 
-    total.tyTrong = totalAFYP > 0 ? (totalIP / totalAFYP * 100) : 0;
+    if (bancaPaPhong) {
+      phongs.push(bancaPaPhong);
+    }
+
+    // ========== Company total = SUM OF ALL PHONGS (ensure consistency) ==========
+    const totalAFYP = phongs.reduce((s, p) => s + p.afyp, 0);
+    const totalKH = phongs.reduce((s, p) => s + p.kh, 0);
+    const totalLhd = phongs.reduce((s, p) => s + p.lhd, 0);
+    const totalTd = phongs.reduce((s, p) => s + p.td, 0);
+    const totalHdChuan = phongs.reduce((s, p) => s + p.hdChuan, 0);
+
+    const totalIP = periodContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
+    const slHD = periodContracts.length;
+    const ipAfypRatio = totalAFYP > 0 ? (totalIP / totalAFYP) * 100 : 0;
+
+    const total: TotalData = {
+      afyp: totalAFYP,
+      kh: totalKH,
+      lhd: totalLhd,
+      td: totalTd,
+      hdChuan: totalHdChuan,
+      tyTrong: ipAfypRatio,
+      totalIP,
+      slHD,
+      nangSuat: totalLhd > 0 ? slHD / totalLhd : 0,
+      doLonHD: totalLhd > 0 ? totalAFYP / totalLhd : 0,
+    };
+
     return { total, phongs, periodContracts };
-  }, [rawData, overviewPeriod, onlineSettings, adStructList, phongStructList]);
+  }, [rawData, overviewPeriod, onlineSettings, adStructList, phongStructList, banNhomStructList, tvvStructList]);
 
   /* Compute detail data */
   const detailData = useMemo(() => {
@@ -1405,7 +1480,7 @@ export default function KPIDashboard() {
                   const pProgEnd = progressColor(pPct);
                   const pAfypTrd = Math.round(phong.afyp / 1000000);
                   const pKhTrd = Math.round(phong.kh / 1000000);
-                  const pCls = phong.noAds ? 'is-banca' : (phong.ten && phong.ten.toUpperCase().includes('PA') ? 'is-pa' : '');
+                  const pCls = phong.noAds ? 'is-banca' : '';
                   const glowClsStr = glowCls(pPct);
                   return (
                     <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
@@ -1417,7 +1492,7 @@ export default function KPIDashboard() {
                         </div>
                         {!phong.noAds && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                       </div>
-                      {/* AFYP + KH row */}
+                      {/* AFYP + KH row (only for phong with KH) */}
                       {!phong.noAds && (
                         <>
                           <div className="rg-afyp-row">
@@ -1429,12 +1504,8 @@ export default function KPIDashboard() {
                           <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
                         </>
                       )}
-                      {/* Summary 4 stats: AFYP / Lượt HĐ / Tuyển dụng / HĐ chuẩn (or Tỷ trọng IP for noAds) */}
+                      {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
                       <div className="rg-summary">
-                        <div className="rg-sum-cell">
-                          <div className="rg-sum-label">AFYP (trđ)</div>
-                          <div className="rg-sum-val afyp">{fmt(pAfypTrd)}</div>
-                        </div>
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">Lượt HĐ</div>
                           <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -1447,12 +1518,13 @@ export default function KPIDashboard() {
                           <div className="rg-sum-label">HĐ chuẩn</div>
                           <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                         </div>
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">Tỷ trọng IP</div>
+                          <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
+                        </div>
                       </div>
-                      {/* Tỷ trọng IP row (small) */}
-                      <div style={{ background: '#fff', padding: '6px 16px 8px', borderBottom: '1px solid #e0e8f0', fontSize: 10, display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#6a8aaa', fontWeight: 700 }}>TỶ TRỌNG IP</span>
-                        <span style={{ color: '#b87818', fontWeight: 900 }}>{fmtTyTrong(phong.tyTrong)}</span>
-                      </div>
+                      {/* Thin separator (thay cho dòng Tỷ trọng IP riêng) */}
+                      <div className="rg-divider" />
                       {/* AD Table */}
                       {!phong.noAds && phong.ads.length > 0 && (
                         <div className="rg-ad-wrap" style={{ paddingTop: 8 }}>
@@ -1562,7 +1634,7 @@ export default function KPIDashboard() {
                           )}
 
                           {/* Desktop Phong Card - Redesign as lighter floating card */}
-                          <div className={`rg-card ${phong.noAds ? 'is-banca ' : (phong.ten && phong.ten.toUpperCase().includes('PA') ? 'is-pa ' : '')}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+                          <div className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
                             {/* Header */}
                             <div className="rg-head">
                               <div className="rg-head-left">
@@ -1583,12 +1655,8 @@ export default function KPIDashboard() {
                                 <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
                               </>
                             )}
-                            {/* Summary 4 stats */}
+                            {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
                             <div className="rg-summary">
-                              <div className="rg-sum-cell">
-                                <div className="rg-sum-label">AFYP (trđ)</div>
-                                <div className="rg-sum-val afyp"><AnimNum value={afypTrd} /></div>
-                              </div>
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">Lượt HĐ</div>
                                 <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -1601,13 +1669,14 @@ export default function KPIDashboard() {
                                 <div className="rg-sum-label">HĐ chuẩn</div>
                                 <div className="rg-sum-val chuan"><AnimNum value={phong.hdChuan} /></div>
                               </div>
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">Tỷ trọng IP</div>
+                                <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
+                              </div>
                             </div>
-                            {/* Tỷ trọng IP row */}
-                            <div style={{ background: '#fff', padding: '8px 16px 10px', borderBottom: '1px solid #e0e8f0', fontSize: 11, display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: '#6a8aaa', fontWeight: 700 }}>TỶ TRỌNG IP</span>
-                              <span style={{ color: '#b87818', fontWeight: 900 }}>{fmtTyTrong(phong.tyTrong)}</span>
-                            </div>
-                            {/* AD Table - moved inside rg-card */}
+                            {/* Thin separator */}
+                            <div className="rg-divider" />
+                            {/* AD Table */}
                             {!phong.noAds && phong.ads.length > 0 && (
                               <div className="rg-ad-wrap" style={{ padding: '10px 12px 12px' }}>
                                 <table className="rg-ad-table">
