@@ -95,6 +95,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty-stat.ns { background: #5a9a68; } .kpi-app .cty-stat.ns .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.dl { background: #a08050; } .kpi-app .cty-stat.dl .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.sl { background: #6a88a8; } .kpi-app .cty-stat.sl .cty-stat-val { color: #ffffff; }
+.kpi-app .cty-stat.tbtn { background: #7C3AED; } .kpi-app .cty-stat.tbtn .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-progress-bar { margin-top: 10px; width: 100%; height: 5px; border-radius: 99px; background: #1a2a44; overflow: hidden; }
 .kpi-app .cty-progress-bar-fill { height: 100%; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #11b76f, #16cb74); }
 
@@ -300,7 +301,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* AD Table (compact, ngay hàng) */
 .kpi-app .rg-ad-wrap {
   background: #fff;
-  padding: 0 6px 8px;
+  padding: 0 0 8px;
 }
 .kpi-app .rg-ad-table {
   width: 100%; border-collapse: collapse; font-size: 11px;
@@ -318,11 +319,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-table tbody tr { transition: background .15s; }
 .kpi-app .rg-ad-table tbody tr:hover { background: #e8f0fa; }
 .kpi-app .rg-ad-table tbody td {
-  padding: 8px 4px; text-align: center; border-top: 1px solid #e0e8f0;
+  padding: 8px 4px; text-align: center; border-top: 2px solid #b8c8dc;
   font-weight: 700; color: #2a4a6a; white-space: nowrap;
 }
 .kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
+.kpi-app .rg-ad-val { font-weight: 900; }
+.kpi-app .rg-ad-val.lhd { color: #2563eb; }
+.kpi-app .rg-ad-val.td { color: #9333ea; }
+.kpi-app .rg-ad-val.hdc { color: #0891b2; }
+.kpi-app .rg-ad-val.ip { color: #ea580c; }
 .kpi-app .rg-ad-pct { font-weight: 900; }
 .kpi-app .rg-ad-pct.green { color: #16a34a; }
 .kpi-app .rg-ad-pct.gold { color: #d97706; }
@@ -339,6 +345,33 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-circle-text.green { fill: #166534; }
 .kpi-app .rg-ad-circle-text.gold { fill: #b45309; }
 .kpi-app .rg-ad-circle-text.red { fill: #b91c1c; }
+
+/* Green checkmark when AD %KH >= 100% */
+.kpi-app .rg-ad-checkmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+  box-shadow: 0 0 0 2px #4ade8044, 0 0 14px #4ade8088, inset 0 1px 2px #ffffff44;
+  animation: rgCheckPulse 2s ease-in-out infinite;
+  vertical-align: middle;
+}
+.kpi-app .rg-ad-checkmark svg { color: #fff; filter: drop-shadow(0 1px 2px #16653444); }
+@keyframes rgCheckPulse {
+  0%, 100% { box-shadow: 0 0 0 2px #4ade8044, 0 0 12px #4ade8066, inset 0 1px 2px #ffffff44; }
+  50% { box-shadow: 0 0 0 4px #4ade8066, 0 0 22px #4ade80aa, inset 0 1px 2px #ffffff66; }
+}
+
+/* Banca TVV count (right side of AFYP row) */
+.kpi-app .rg-banca-tvv-count {
+  font-size: 11px; color: #8a6818; font-weight: 800;
+  background: #fff8e0; padding: 4px 10px; border-radius: 99px;
+  border: 1px solid #d4b428; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.kpi-app .rg-banca-tvv-count::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #c89828; box-shadow: 0 0 6px #c8982888;
+}
 
 /* AD row glow when 100% KH */
 .kpi-app .rg-ad-table tbody tr.rg-ad-glow {
@@ -413,8 +446,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Desktop: hide mobile-only region, use rg-wrap */
 @media (min-width: 900px) {
   .kpi-app .mob-region-wrap { display: none !important; }
+  .kpi-app .mobile-only { display: none !important; }
   .kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 12px; }
-  .kpi-app .rg-card { max-width: none; }
+  .kpi-app .rg-card { max-width: 900px; margin: 0 auto; }
 }
 
 
@@ -592,6 +626,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-head { background: #5a9a68; } .kpi-app .dsk-cty-kpi.ns .dsk-cty-kpi-val { color: #80d890; }
   .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-head { background: #a08050; } .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-val { color: #e0b870; }
   .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-head { background: #6a88a8; } .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-val { color: #a0c0e0; }
+  .kpi-app .dsk-cty-kpi.tbtn .dsk-cty-kpi-head { background: #7C3AED; } .kpi-app .dsk-cty-kpi.tbtn .dsk-cty-kpi-val { color: #c4b5fd; }
   .kpi-app .dsk-cty-progress { width: 100%; height: 4px; background: #0d1e36; }
   .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px #40d89033; }
   .kpi-app .desktop-split { display: grid; grid-template-columns: 38% 62%; gap: 20px; width: 100%; max-width: 1800px; align-self: center; align-items: start; margin-top: 20px; }
@@ -679,7 +714,7 @@ interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; 
 interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
 
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
-interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; }
+interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
 interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
 
@@ -1034,6 +1069,16 @@ export default function KPIDashboard() {
     };
     const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
 
+    // ========== Count TVV in PA-Banca (for Banca-PA card display) ==========
+    let bancaPaTvvCount = 0;
+    tvvStructList.forEach(t => {
+      const adInfo = bnToAdMap.get(t.maBanNhom);
+      if (!adInfo) return;
+      if (isPaOrBanca(adInfo.maPhong) || isPaOrBanca(adInfo.tenPhong)) {
+        bancaPaTvvCount++;
+      }
+    });
+
     // ========== Per-Phong and per-AD data ==========
     const phongs: PhongData[] = [];
     let bancaPaPhong: PhongData | null = null;
@@ -1046,7 +1091,7 @@ export default function KPIDashboard() {
       // PA or Banca → merge into Banca - PA
       if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
         if (!bancaPaPhong) {
-          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true };
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvCount };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         const paContracts = periodContracts.filter(c => {
@@ -1515,6 +1560,7 @@ export default function KPIDashboard() {
                       <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{Math.round(dashboard.total.nangSuat)}</div></div>
                       <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ (TRĐ)</div><div className="cty-stat-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
+                      <div className="cty-stat tbtn"><div className="cty-stat-label">SL TB/TN</div><div className="cty-stat-val">{rawData?.leaders?.length ?? 0}</div></div>
                     </div>
 
                   </div>
@@ -1543,7 +1589,7 @@ export default function KPIDashboard() {
                         <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.nangSuat)}</div></div></div>
                         <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ (TRĐ)</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.doLonHD / 1000000)}</div></div></div>
                         <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
-                        <div></div>
+                        <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
                       </div>
                     </div>
                   </div>
@@ -1573,12 +1619,12 @@ export default function KPIDashboard() {
               </nav>
 
               {/* Region Divider - Mobile */}
-              <div className="region-divider">
+              <div className="region-divider mobile-only">
                 <span className="region-divider-title">Tiến Độ Khu Vực</span>
               </div>
 
               {/* Mobile Region - Redesign as table-style cards */}
-              <div className="rg-wrap">
+              <div className="rg-wrap mobile-only">
                 {dashboard.phongs.map((phong, pi) => {
                   const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
                   const pCp = Math.min(pPct, 100);
@@ -1598,11 +1644,15 @@ export default function KPIDashboard() {
                         </div>
                         {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                       </div>
-                      {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
-                      {phong.afyp > 0 && (
+                      {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
+                      {(phong.afyp > 0 || phong.noAds) && (
                         <div className="rg-afyp-row">
                           <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                          {!phong.noAds && pKhTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>}
+                          {phong.noAds ? (
+                            <span className="rg-banca-tvv-count">SL TVV PA - Banca: {phong.tvvCount ?? 0}</span>
+                          ) : (
+                            pKhTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
+                          )}
                         </div>
                       )}
                       {/* Progress bar (no % overlay — như cũ) */}
@@ -1642,7 +1692,7 @@ export default function KPIDashboard() {
                               <tr>
                                 <th>AD</th>
                                 <th>AFYP</th>
-                                <th>LƯỢT HĐ</th>
+                                <th>LƯỢT</th>
                                 <th>TD</th>
                                 <th>HĐC</th>
                                 <th>IP%</th>
@@ -1666,20 +1716,24 @@ export default function KPIDashboard() {
                                       </div>
                                     </td>
                                     <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
-                                    <td>{ad.lhd}</td>
-                                    <td>{ad.td}</td>
-                                    <td>{ad.hdChuan}</td>
-                                    <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
+                                    <td className="rg-ad-val lhd">{ad.lhd}</td>
+                                    <td className="rg-ad-val td">{ad.td}</td>
+                                    <td className="rg-ad-val hdc">{ad.hdChuan}</td>
+                                    <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
                                     <td className="rg-ad-prog-cell">
-                                      <svg width="32" height="32" viewBox="0 0 32 32" className="rg-ad-circle">
-                                        <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                        <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                          stroke={progressColor(aPct)}
-                                          strokeDasharray={2 * Math.PI * 13}
-                                          strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                          transform="rotate(-90 16 16)" />
-                                        <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                      </svg>
+                                      {aPct >= 100 ? (
+                                        <div className="rg-ad-checkmark"><Check size={18} strokeWidth={3.5} /></div>
+                                      ) : (
+                                        <svg width="32" height="32" viewBox="0 0 32 32" className="rg-ad-circle">
+                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
+                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
+                                            stroke={progressColor(aPct)}
+                                            strokeDasharray={2 * Math.PI * 13}
+                                            strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
+                                            transform="rotate(-90 16 16)" />
+                                          <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
+                                        </svg>
+                                      )}
                                     </td>
                                   </tr>
                                 );
@@ -1765,11 +1819,15 @@ export default function KPIDashboard() {
                               </div>
                               {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
                             </div>
-                            {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị trđ */}
-                            {phong.afyp > 0 && (
+                            {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
+                            {(phong.afyp > 0 || phong.noAds) && (
                               <div className="rg-afyp-row">
                                 <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
-                                {!phong.noAds && khTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>}
+                                {phong.noAds ? (
+                                  <span className="rg-banca-tvv-count">SL TVV PA - Banca: {phong.tvvCount ?? 0}</span>
+                                ) : (
+                                  khTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
+                                )}
                               </div>
                             )}
                             {/* Progress bar (no % overlay — như cũ) */}
@@ -1809,7 +1867,7 @@ export default function KPIDashboard() {
                                     <tr>
                                       <th>AD</th>
                                       <th>AFYP</th>
-                                      <th>LƯỢT HĐ</th>
+                                      <th>LƯỢT</th>
                                       <th>TD</th>
                                       <th>HĐC</th>
                                       <th>IP%</th>
@@ -1833,20 +1891,24 @@ export default function KPIDashboard() {
                                             </div>
                                           </td>
                                           <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
-                                          <td>{ad.lhd}</td>
-                                          <td>{ad.td}</td>
-                                          <td>{ad.hdChuan}</td>
-                                          <td style={{ color: '#b87818', fontWeight: 900 }}>{Math.round(ad.tyTrong)}%</td>
+                                          <td className="rg-ad-val lhd">{ad.lhd}</td>
+                                          <td className="rg-ad-val td">{ad.td}</td>
+                                          <td className="rg-ad-val hdc">{ad.hdChuan}</td>
+                                          <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
                                           <td className="rg-ad-prog-cell">
-                                            <svg width="34" height="34" viewBox="0 0 32 32" className="rg-ad-circle">
-                                              <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                              <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                                stroke={progressColor(aPct)}
-                                                strokeDasharray={2 * Math.PI * 13}
-                                                strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                                transform="rotate(-90 16 16)" />
-                                              <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                            </svg>
+                                            {aPct >= 100 ? (
+                                              <div className="rg-ad-checkmark"><Check size={20} strokeWidth={3.5} /></div>
+                                            ) : (
+                                              <svg width="34" height="34" viewBox="0 0 32 32" className="rg-ad-circle">
+                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
+                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
+                                                  stroke={progressColor(aPct)}
+                                                  strokeDasharray={2 * Math.PI * 13}
+                                                  strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
+                                                  transform="rotate(-90 16 16)" />
+                                                <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
+                                              </svg>
+                                            )}
                                           </td>
                                         </tr>
                                       );
