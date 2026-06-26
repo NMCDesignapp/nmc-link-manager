@@ -1686,9 +1686,17 @@ export default function KPIDashboard() {
       : adBannhoms[0].maBanNhom;
     const selectedBN = adBannhoms.find(bn => bn.maBanNhom === selectedMaBN) || adBannhoms[0];
 
-    // Contracts of selected nhóm (from dashboard.periodContracts)
-    const bnContracts = dashboard.periodContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
-    const finalContracts = bnContracts.length > 0 ? bnContracts : dashboard.periodContracts.filter(c => {
+    // IMPORTANT: Use ALL year contracts (NOT dashboard.periodContracts which is
+    // filtered by the user's selected overviewPeriod on the dashboard). The popup
+    // must show IP for all months 3-9 regardless of what period is selected.
+    const popupYearContracts = rawData.contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+    });
+
+    // Contracts of selected nhóm
+    const bnContracts = popupYearContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
+    const finalContracts = bnContracts.length > 0 ? bnContracts : popupYearContracts.filter(c => {
       const cNhom = normKey(c.nhom || '');
       const bnName = normKey(selectedBN.tenBanNhom);
       return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
