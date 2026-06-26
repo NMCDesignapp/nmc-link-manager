@@ -48,6 +48,7 @@ model CalendarEvent {
   title       String
   date        String   // format: YYYY-MM-DD
   color       String   @default("#00ff88")
+  owner       String   @default("") // Phụ trách: Công ty / HTKD / PTKD / DVKH / Other text
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }

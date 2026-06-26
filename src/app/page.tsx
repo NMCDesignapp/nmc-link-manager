@@ -11,6 +11,7 @@ import { MonthlyCalendar } from '@/components/monthly-calendar'
 import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3 } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
+import { AppLoader } from '@/components/app-loader'
 import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
 import useSWR, { mutate } from 'swr'
@@ -346,6 +347,8 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
+      {/* Branded loading screen — shows on initial app load until first data arrives */}
+      <AppLoader show={linksLoading && links.length === 0} />
       {/* Save Status Toast */}
       <AnimatePresence>
         {saveStatus !== 'idle' && (

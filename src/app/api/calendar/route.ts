@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json()
-    const { title, date, color } = data
+    const { title, date, color, owner } = data
 
     if (!title || !date) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         title,
         date,
         color: color || '#00ff88',
+        owner: owner || '',
       },
     })
 
@@ -47,6 +48,32 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating calendar event:', error)
     return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json()
+    const { id, title, date, color, owner } = data
+
+    if (!id || !title || !date) {
+      return NextResponse.json({ error: 'ID, title and date are required' }, { status: 400 })
+    }
+
+    const event = await db.calendarEvent.update({
+      where: { id: parseInt(id) },
+      data: {
+        title,
+        date,
+        color: color || '#00ff88',
+        owner: owner || '',
+      },
+    })
+
+    return NextResponse.json(event)
+  } catch (error) {
+    console.error('Error updating calendar event:', error)
+    return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })
   }
 }
 

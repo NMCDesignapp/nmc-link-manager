@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 
@@ -922,10 +922,136 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
 .kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
-.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; align-items: center; background: #f7ffff; }
-.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; align-items: center; justify-content: center; text-align: center; background: #f7ffff; word-break: break-word; }
+.kpi-app .cal-row.is-sunday .cal-day { color: #dc2626; background: #fde8e8; }
+.kpi-app .cal-row.is-sunday .cal-day-week { color: #dc2626; }
+.kpi-app .cal-row.is-weekend .cal-day { color: #ea580c; background: #fff0e0; }
+.kpi-app .cal-row.is-weekend .cal-day-week { color: #ea580c; }
+.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
+.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
 .kpi-app .cal-line { display: block; }
+.kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s; }
+.kpi-app .cal-line.editable:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
+.kpi-app .cal-owner-tag {
+  display: inline-block; padding: 2px 5px; border-radius: 3px;
+  font-size: 9px; font-weight: 800; line-height: 1.2;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Settings button (gear, top-right of calendar header) */
+.kpi-app .cal-settings-btn {
+  margin-left: auto; width: 30px; height: 30px; border-radius: 7px;
+  background: #083636; border: 1.5px solid #008080; color: #b9ffff;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s;
+}
+.kpi-app .cal-settings-btn:hover { background: #0d4d4d; color: #f3ffff; }
+.kpi-app .cal-settings-btn.authed {
+  background: #008080; color: #003b3b; border-color: #008080;
+  box-shadow: 0 0 12px #00808066;
+}
+
+/* Calendar modals */
+.kpi-app .cal-modal-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(4, 24, 40, 0.72); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: calFadeIn .14s ease-out;
+}
+@keyframes calFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.kpi-app .cal-modal {
+  width: 100%; max-width: 440px;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 20px 50px #00000066, 0 0 0 1px #c8d8ea;
+  animation: calIn .18s cubic-bezier(.22,1,.36,1);
+  display: flex; flex-direction: column;
+}
+@keyframes calIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+.kpi-app .cal-modal-pwd { max-width: 360px; }
+.kpi-app .cal-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #008080 0%, #006666 100%);
+  color: #f7fffe; font-size: 13px; font-weight: 900;
+  letter-spacing: .02em;
+  border-bottom: 2px solid #004d4d;
+}
+.kpi-app .cal-modal-x {
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+  color: #fff; cursor: pointer; width: 24px; height: 24px; border-radius: 5px;
+  font-size: 16px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.kpi-app .cal-modal-x:hover { background: rgba(255,255,255,.32); }
+.kpi-app .cal-modal-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.kpi-app .cal-modal-hint { font-size: 11px; color: #475569; margin: 0 0 4px; font-weight: 600; }
+.kpi-app .cal-pwd-input {
+  width: 100%; padding: 9px 12px; border-radius: 6px;
+  border: 1.5px solid #c8d8ea; background: #fff;
+  font-size: 14px; font-family: monospace; letter-spacing: .2em;
+  text-align: center; color: #1a2e1a;
+  transition: border-color .12s;
+}
+.kpi-app .cal-pwd-input:focus { outline: none; border-color: #008080; box-shadow: 0 0 0 3px #00808022; }
+.kpi-app .cal-pwd-input.err { border-color: #dc2626; box-shadow: 0 0 0 3px #dc262622; }
+.kpi-app .cal-pwd-err { color: #dc2626; font-size: 10.5px; font-weight: 700; text-align: center; }
+.kpi-app .cal-field { display: flex; flex-direction: column; gap: 5px; }
+.kpi-app .cal-field-label {
+  font-size: 10px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.kpi-app .cal-field-input {
+  width: 100%; padding: 8px 10px; border-radius: 6px;
+  border: 1.5px solid #c8d8ea; background: #fff;
+  font-size: 12px; color: #1a2e1a; font-family: inherit;
+  transition: border-color .12s;
+}
+.kpi-app .cal-field-input:focus { outline: none; border-color: #008080; box-shadow: 0 0 0 3px #00808022; }
+.kpi-app .cal-field-textarea {
+  width: 100%; min-height: 80px; padding: 8px 10px; border-radius: 6px;
+  border: 1.5px solid #c8d8ea; background: #fff;
+  font-size: 12px; color: #1a2e1a; font-family: inherit; line-height: 1.4;
+  resize: vertical; transition: border-color .12s;
+}
+.kpi-app .cal-field-textarea:focus { outline: none; border-color: #008080; box-shadow: 0 0 0 3px #00808022; }
+.kpi-app .cal-owner-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+}
+.kpi-app .cal-owner-opt {
+  padding: 6px 4px; border-radius: 5px;
+  background: #fff; border: 1.5px solid #c8d8ea;
+  color: #1a3a5e; font-family: inherit; font-size: 10px; font-weight: 800;
+  cursor: pointer; transition: all .12s;
+  white-space: nowrap;
+}
+.kpi-app .cal-owner-opt:hover { background: #f0f7ff; border-color: #5090d8; }
+.kpi-app .cal-owner-opt.on { color: #fff; }
+.kpi-app .cal-owner-custom { margin-top: 6px; }
+.kpi-app .cal-edit-err { color: #dc2626; font-size: 10.5px; font-weight: 700; }
+.kpi-app .cal-modal-actions {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;
+}
+.kpi-app .cal-modal-save {
+  padding: 8px 18px; border-radius: 6px;
+  background: linear-gradient(135deg, #008080 0%, #006666 100%);
+  color: #f7fffe; border: none; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 900;
+  transition: all .12s;
+}
+.kpi-app .cal-modal-save:hover { box-shadow: 0 3px 10px #00808055; }
+.kpi-app .cal-modal-save:disabled { opacity: 0.6; cursor: wait; }
+.kpi-app .cal-modal-del {
+  padding: 8px 14px; border-radius: 6px;
+  background: #fff; border: 1.5px solid #dc2626;
+  color: #dc2626; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 800;
+  transition: all .12s;
+}
+.kpi-app .cal-modal-del:hover { background: #dc2626; color: #fff; }
+.kpi-app .cal-modal-del:disabled { opacity: 0.6; cursor: wait; }
 
 /* Desktop */
 .kpi-app .desktop-split { display: none; }
@@ -1071,7 +1197,7 @@ interface Contract {
 interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
 interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
 interface LeaderInfo { id: string; agentCode: string; agentName: string; position: string; ban: string; nhom: string; maNhom: string; }
-interface CalendarEvent { id: number; title: string; date: string; color: string; }
+interface CalendarEvent { id: number; title: string; date: string; color: string; owner?: string; }
 interface ADStructure { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: string; }
 interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string; note: string; }
@@ -1264,6 +1390,15 @@ export default function KPIDashboard() {
   const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  // Calendar edit popup state (settings button locked with password)
+  const [calAuthed, setCalAuthed] = useState(false);
+  const [calPwdOpen, setCalPwdOpen] = useState(false);
+  const [calPwdInput, setCalPwdInput] = useState('');
+  const [calPwdError, setCalPwdError] = useState(false);
+  const [calEditOpen, setCalEditOpen] = useState(false);
+  const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
+  const [calEditSaving, setCalEditSaving] = useState(false);
+  const [calEditError, setCalEditError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [overviewPeriod, setOverviewPeriod] = useState<string>(`month-${new Date().getMonth() + 1}`);
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -1324,12 +1459,102 @@ export default function KPIDashboard() {
   }, []);
 
   /* Fetch calendar events */
-  useEffect(() => {
-    if (view !== 'calendar') return;
+  const refreshCalendarEvents = useCallback(() => {
     const year = CUR_YEAR;
     const month = `${year}-${calMonth}`;
     fetch(`/api/calendar?month=${month}`).then(r => r.ok ? r.json() : []).then(setCalendarEvents).catch(() => setCalendarEvents([]));
-  }, [view, calMonth, CUR_YEAR]);
+  }, [calMonth, CUR_YEAR]);
+
+  useEffect(() => {
+    if (view !== 'calendar') return;
+    refreshCalendarEvents();
+  }, [view, calMonth, CUR_YEAR, refreshCalendarEvents]);
+
+  /* Calendar edit handlers */
+  const CAL_OWNERS = ['Công ty', 'HTKD', 'PTKD', 'DVKH'];
+  const CAL_OWNER_COLORS: Record<string, string> = {
+    'Công ty': '#7c3aed', // purple
+    'HTKD':    '#0ea5e9', // sky blue
+    'PTKD':    '#16a34a', // green
+    'DVKH':    '#ea580c', // orange
+  };
+  const getOwnerColor = (owner: string) => CAL_OWNER_COLORS[owner] || '#475569'; // slate for custom/other
+
+  const openCalPwd = () => {
+    if (calAuthed) { setCalEditOpen(true); return; }
+    setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
+  };
+
+  const submitCalPwd = () => {
+    if (calPwdInput === '123456') {
+      setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
+      // Open edit popup for new entry by default
+      setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+      setCalEditOpen(true);
+    } else {
+      setCalPwdError(true);
+    }
+  };
+
+  const openCalEditFor = (ev: CalendarEvent) => {
+    const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+    setCalEditForm({
+      id: ev.id,
+      date: ev.date,
+      title: ev.title,
+      owner: isCustom ? '__other' : (ev.owner || ''),
+      ownerCustom: isCustom ? (ev.owner || '') : '',
+    });
+    setCalEditError(null);
+    setCalEditOpen(true);
+  };
+
+  const openCalEditForNew = () => {
+    setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+    setCalEditError(null);
+    setCalEditOpen(true);
+  };
+
+  const saveCalEdit = async () => {
+    if (!calEditForm.date || !calEditForm.title.trim()) {
+      setCalEditError('Vui lòng nhập ngày và nội dung.');
+      return;
+    }
+    const owner = calEditForm.owner === '__other' ? calEditForm.ownerCustom.trim() : calEditForm.owner;
+    setCalEditSaving(true);
+    setCalEditError(null);
+    try {
+      const method = calEditForm.id ? 'PUT' : 'POST';
+      const body: any = { title: calEditForm.title.trim(), date: calEditForm.date, color: '#00ff88', owner };
+      if (calEditForm.id) body.id = calEditForm.id;
+      const res = await fetch('/api/calendar', {
+        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await refreshCalendarEvents();
+      setCalEditOpen(false);
+    } catch (e) {
+      setCalEditError('Lỗi khi lưu. Vui lòng thử lại.');
+    } finally {
+      setCalEditSaving(false);
+    }
+  };
+
+  const deleteCalEdit = async () => {
+    if (!calEditForm.id) return;
+    if (!confirm('Xóa kế hoạch này?')) return;
+    setCalEditSaving(true);
+    try {
+      const res = await fetch(`/api/calendar?id=${calEditForm.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed');
+      await refreshCalendarEvents();
+      setCalEditOpen(false);
+    } catch (e) {
+      setCalEditError('Lỗi khi xóa. Vui lòng thử lại.');
+    } finally {
+      setCalEditSaving(false);
+    }
+  };
 
   /* Period list */
   const kyList = useMemo(() => {
@@ -2633,6 +2858,14 @@ export default function KPIDashboard() {
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
+            <button
+              className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
+              onClick={calAuthed ? openCalEditForNew : openCalPwd}
+              title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
+              aria-label="Cài đặt lịch"
+            >
+              <Settings size={16} />
+            </button>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="cal-filter">
@@ -2644,7 +2877,7 @@ export default function KPIDashboard() {
             <div className="cal-head">
               <span>Ngày</span>
               <span>Nội dung kế hoạch</span>
-              <span>Loại</span>
+              <span>Phụ trách</span>
             </div>
             <div>
               {calendarRows.map(row => {
@@ -2660,11 +2893,28 @@ export default function KPIDashboard() {
                     </div>
                     <div className="cal-text">
                       {row.events.length > 0
-                        ? row.events.map((e, ei) => <span className="cal-line" key={ei}>{e.title}</span>)
+                        ? row.events.map((e, ei) => (
+                          <span
+                            className={`cal-line${calAuthed ? ' editable' : ''}`}
+                            key={ei}
+                            onClick={calAuthed ? () => openCalEditFor(e) : undefined}
+                          >
+                            {e.title}
+                          </span>
+                        ))
                         : <span className="cal-empty" />}
                     </div>
                     <div className="cal-owner">
-                      {row.events.map((e, ei) => <span className="cal-line" key={ei} style={{ color: e.color }}>{e.color}</span>)}
+                      {row.events.map((e, ei) => (
+                        <span
+                          className="cal-owner-tag"
+                          key={ei}
+                          style={{ color: '#fff', background: getOwnerColor(e.owner || '') }}
+                          title={e.owner || ''}
+                        >
+                          {e.owner || '—'}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 );
@@ -2672,6 +2922,108 @@ export default function KPIDashboard() {
             </div>
           </div>
         </section>
+
+        {/* ===== CALENDAR PASSWORD POPUP ===== */}
+        {calPwdOpen && (
+          <div className="cal-modal-overlay" onClick={() => setCalPwdOpen(false)}>
+            <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
+              <div className="cal-modal-head">
+                <span>Xác thực quản trị</span>
+                <button className="cal-modal-x" onClick={() => setCalPwdOpen(false)}>×</button>
+              </div>
+              <div className="cal-modal-body">
+                <p className="cal-modal-hint">Nhập mật khẩu để mở khóa cài đặt lịch:</p>
+                <input
+                  type="password"
+                  className={`cal-pwd-input${calPwdError ? ' err' : ''}`}
+                  value={calPwdInput}
+                  autoFocus
+                  onChange={e => { setCalPwdInput(e.target.value); setCalPwdError(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') submitCalPwd(); }}
+                  placeholder="••••••"
+                />
+                {calPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
+                <button className="cal-modal-save" onClick={submitCalPwd}>Xác nhận</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== CALENDAR EDIT POPUP ===== */}
+        {calEditOpen && (
+          <div className="cal-modal-overlay" onClick={() => !calEditSaving && setCalEditOpen(false)}>
+            <div className="cal-modal cal-modal-edit" onClick={e => e.stopPropagation()}>
+              <div className="cal-modal-head">
+                <span>{calEditForm.id ? 'Sửa kế hoạch' : 'Thêm kế hoạch mới'}</span>
+                <button className="cal-modal-x" onClick={() => !calEditSaving && setCalEditOpen(false)}>×</button>
+              </div>
+              <div className="cal-modal-body">
+                <label className="cal-field">
+                  <span className="cal-field-label">Ngày tháng năm</span>
+                  <input
+                    type="date"
+                    className="cal-field-input"
+                    value={calEditForm.date}
+                    onChange={e => setCalEditForm(s => ({ ...s, date: e.target.value }))}
+                  />
+                </label>
+                <label className="cal-field">
+                  <span className="cal-field-label">Nội dung công việc</span>
+                  <textarea
+                    className="cal-field-textarea"
+                    rows={4}
+                    value={calEditForm.title}
+                    autoFocus
+                    placeholder="Nhập nội dung kế hoạch..."
+                    onChange={e => setCalEditForm(s => ({ ...s, title: e.target.value }))}
+                  />
+                </label>
+                <div className="cal-field">
+                  <span className="cal-field-label">Phụ trách</span>
+                  <div className="cal-owner-grid">
+                    {CAL_OWNERS.map(o => (
+                      <button
+                        key={o}
+                        type="button"
+                        className={`cal-owner-opt${calEditForm.owner === o ? ' on' : ''}`}
+                        style={calEditForm.owner === o ? { background: getOwnerColor(o), borderColor: getOwnerColor(o) } : {}}
+                        onClick={() => setCalEditForm(s => ({ ...s, owner: o, ownerCustom: '' }))}
+                      >
+                        {o}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`cal-owner-opt${calEditForm.owner === '__other' ? ' on' : ''}`}
+                      style={calEditForm.owner === '__other' ? { background: '#475569', borderColor: '#475569' } : {}}
+                      onClick={() => setCalEditForm(s => ({ ...s, owner: '__other' }))}
+                    >
+                      Khác
+                    </button>
+                  </div>
+                  {calEditForm.owner === '__other' && (
+                    <input
+                      type="text"
+                      className="cal-field-input cal-owner-custom"
+                      placeholder="Nhập đối tượng phụ trách..."
+                      value={calEditForm.ownerCustom}
+                      onChange={e => setCalEditForm(s => ({ ...s, ownerCustom: e.target.value }))}
+                    />
+                  )}
+                </div>
+                {calEditError && <div className="cal-edit-err">{calEditError}</div>}
+                <div className="cal-modal-actions">
+                  {calEditForm.id && (
+                    <button className="cal-modal-del" disabled={calEditSaving} onClick={deleteCalEdit}>Xóa</button>
+                  )}
+                  <button className="cal-modal-save" disabled={calEditSaving} onClick={saveCalEdit}>
+                    {calEditSaving ? 'Đang lưu...' : 'Lưu'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== AD DETAIL POPUP ===== */}
