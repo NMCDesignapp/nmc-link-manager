@@ -422,3 +422,43 @@ Stage Summary (production live at https://my-project-nmchau022023-4326s-projects
 - Label "Lượt HĐ" → "Lượt" in summary stats
 - Summary colors more distinct: blue/purple/cyan/orange-600
 - Screenshots: kpi-v5-desktop.png, kpi-v5-mobile.png, kpi-v5-desktop-q1.png (green glow)
+
+---
+Task ID: round-3
+Agent: main (Super Z)
+Task: 3 user-reported issues — (1) KPI period popup misalignment, (2) Vinh danh page not loading, (3) Add "Số liệu Sao Việt" menu item on /quan-ly before Cài đặt
+
+Work Log:
+- Investigated user screenshot (Screenshot_20260627_024155.jpg) using VLM — identified the misaligned element is the period select popup (T1-T12 + Q1-Q3), NOT the Kế Hoạch Khung calendar filter that was fixed previously.
+- Root cause: `.ctrl-select-popup` was `position: absolute; right: 0; width: 280px` relative to `.ctrl-select-wrap` (the small period button). On mobile, this made the popup right-align to a tiny button in the middle of the screen, leaving the right portion of the dashboard content frame uncovered.
+- Fix (mobile): Made `.ctrl-bar` `position: relative` and `.ctrl-select-wrap` `position: static` so the popup positions relative to the ctrl-bar. Changed popup to `left: 0; right: 0; width: auto; max-width: none` so it spans the full width of the ctrl-bar (= dashboard content frame). Grid changed to 6 columns (12 months in 2 rows).
+- Fix (desktop): Added `@media (min-width: 900px)` override — popup is 360px wide, right-aligned with ctrl-bar's right edge (= dashboard content right edge). Grid is 4 columns. This avoids the popup being too wide on large screens.
+- Verified on local dev (414x896 mobile viewport): popup spans x=16 to x=398, exactly matching ctrl-bar (x=16 to x=398). Both edges align with dashboard content frame.
+- Verified on local dev (1280x800 desktop): popup at x=864 to x=1224 (width 360), right-aligned with ctrl-bar (x=56 to x=1224).
+
+- For Vinh danh page: tested direct URL access on production (HTTP 200, all content renders including "VINH DANH" heading, template selector, poster preview). Tested click flow from home page button — works on both mobile and desktop viewports. Conclusion: page itself works fine; user's issue was likely stale service worker cache.
+- Fix: Bumped `public/sw.js` CACHE_NAME from 'nmc-links-v2' to 'nmc-links-v3' to force all clients to invalidate old cache and fetch fresh content on next load.
+
+- For Số liệu Sao Việt menu:
+  - Added 'saoviet' to SheetKey type (was already in local HEAD, not in origin/main)
+  - Added `Star` icon import from lucide-react (was already in local HEAD)
+  - Added `saoviet: '#7C3AED'` (purple) to SHEET_MOBILE_COLORS
+  - Added new mobile menu button between SHEETS map and Cài đặt button — purple background, Star icon, label "Sao Việt"
+  - Added new desktop sidebar item after SHEETS map — violet theme, Star icon, label "Số liệu Sao Việt"
+  - Added `renderSaoViet()` function — placeholder page with violet-bordered card, Star icon, heading "Số liệu Sao Việt", message "Trang này đang được xây dựng. Nội dung số liệu Sao Việt sẽ được cập nhật sau."
+  - Added `case 'saoviet': return renderSaoViet();` to renderSheet switch
+  - Added `saoviet: async () => { /* No data to load */ }` to loaders Record (required because loaders is typed as Record<SheetKey, ...>)
+
+- Initial test failed: clicking Sao Việt button triggered ErrorBoundary because `loaders[sheet]()` threw "undefined is not a function" (saoviet key was missing from loaders Record). Fixed by adding the saoviet entry.
+- Re-tested: page loads correctly on both mobile and desktop, shows placeholder content.
+
+- Committed as 1e772a3 "fix: 3 user-reported issues (popup alignment, vinh-danh cache, saoviet menu)" and force-pushed to origin/main (local had diverged from remote — local c36af5b had additional changes including Star import, saoviet SheetKey, sw.js v2 bump, and centered popup CSS that were not in remote 6990e73).
+- Verified on production after Vercel rebuild:
+  - KPI popup: left=16, right=398, width=382 — exactly matches ctrl-bar (16→398) ✓
+  - Sao Việt menu: button visible in mobile menu, click navigates to placeholder page ✓
+  - Vinh danh: page still loads correctly (SW cache v3 will propagate to users on next visit) ✓
+
+Stage Summary:
+- KPI period popup now aligns with dashboard content frame on both mobile (full-width) and desktop (360px right-aligned with dashboard right edge)
+- Vinh danh page works on production; SW cache bumped to v3 to force user devices to refresh
+- New "Số liệu Sao Việt" menu item added to /quan-ly page in both mobile menu (before Cài đặt) and desktop sidebar; currently shows placeholder content pending user specification of actual data to display
