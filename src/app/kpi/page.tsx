@@ -1682,10 +1682,10 @@ export default function KPIDashboard() {
                     <div className="cty-stats">
                       <div className="cty-stat hd"><div className="cty-stat-label">LƯỢT HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.lhd} /></div></div>
                       <div className="cty-stat td"><div className="cty-stat-label">TUYỂN DỤNG</div><div className="cty-stat-val"><AnimNum value={dashboard.total.td} /></div></div>
-                      <div className="cty-stat chuan"><div className="cty-stat-label">LƯỢT HĐ CHUẨN</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
-                      <div className="cty-stat ip"><div className="cty-stat-label">TỶ TRỌNG IP</div><div className="cty-stat-val">{Math.round(dashboard.total.tyTrong)}</div></div>
+                      <div className="cty-stat chuan"><div className="cty-stat-label">Lượt HĐC</div><div className="cty-stat-val"><AnimNum value={dashboard.total.hdChuan} /></div></div>
+                      <div className="cty-stat ip"><div className="cty-stat-label">%IP</div><div className="cty-stat-val">{Math.round(dashboard.total.tyTrong)}</div></div>
                       <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
-                      <div className="cty-stat dl"><div className="cty-stat-label">ĐỘ LỚN HĐ <span className="cty-stat-sub">(TRĐ)</span></div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div>
+                      <div className="cty-stat dl"><div className="cty-stat-label">ĐLHĐ <span className="cty-stat-sub">(TRĐ)</span></div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
                       <div className="cty-stat tbtn"><div className="cty-stat-label">SL TB/TN</div><div className="cty-stat-val">{rawData?.leaders?.length ?? 0}</div></div>
                     </div>
