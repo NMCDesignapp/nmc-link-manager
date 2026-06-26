@@ -589,10 +589,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 2px 0 #ffffff22 inset, 0 2px 6px #00000022;
   flex-shrink: 0;
 }
-.kpi-app .adp-header-title {
-  color: #fff; font-size: 12px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .08em;
+.kpi-app .adp-header-name {
+  color: #fff; font-size: 13px; font-weight: 900;
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: .02em;
 }
 .kpi-app .adp-close {
   flex-shrink: 0; width: 26px; height: 26px; border-radius: 5px;
@@ -605,36 +606,31 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 .kpi-app .adp-body {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 1fr 2fr; gap: 10px;
-  padding: 10px;
+  display: grid; grid-template-rows: 1fr 2fr; gap: 8px;
+  padding: 8px;
   overflow: hidden;
 }
 
-.kpi-app .adp-left {
-  display: flex; flex-direction: column; gap: 8px;
-  min-height: 0; overflow-y: auto;
-  padding-right: 2px;
-}
-.kpi-app .adp-right {
-  display: flex; flex-direction: column; gap: 6px;
+.kpi-app .adp-top {
+  display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
 }
-.kpi-app .adp-block { display: flex; flex-direction: column; gap: 5px; }
-
-.kpi-app .adp-ad-name {
-  font-size: 15px; font-weight: 900; color: #fff;
-  padding: 8px 10px; border-radius: 4px;
-  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
-  border: 1px solid #1a4a7a;
-  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 1px 0 rgba(0,0,0,.25);
-  box-shadow: 0 2px 4px #3a7cc844, inset 0 1px 0 #ffffff33;
+.kpi-app .adp-top-grid {
+  display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
+  flex: 1; min-height: 0;
+  overflow-y: auto;
 }
+.kpi-app .adp-bottom {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 0; overflow: hidden;
+}
+.kpi-app .adp-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
 .kpi-app .adp-section-label {
   font-size: 10px; font-weight: 800; color: #1a3a5e;
   text-transform: uppercase; letter-spacing: .04em;
   border-left: 3px solid #3a7cc8; padding-left: 6px;
+  flex-shrink: 0;
 }
 .kpi-app .adp-section-name {
   text-transform: none; color: #2a6ab8; font-weight: 900; letter-spacing: 0;
@@ -659,12 +655,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 .kpi-app .adp-info-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
 }
 .kpi-app .adp-info-row {
   background: linear-gradient(180deg, #ffffff 0%, #f4f8fc 100%);
   border: 1px solid #d0deec; border-radius: 3px;
-  padding: 5px 7px;
+  padding: 4px 6px;
   display: flex; flex-direction: column; gap: 1px;
   box-shadow: 0 1px 2px #00000008;
   min-width: 0;
@@ -675,42 +671,55 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-app .adp-info-val {
-  font-size: 12px; font-weight: 900; color: #1a3a5e;
+  font-size: 11px; font-weight: 900; color: #1a3a5e;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.kpi-app .adp-info-row-tvv { grid-column: 1 / -1; }
-.kpi-app .adp-info-sub { font-size: 10px; font-weight: 700; color: #5a7088; }
+.kpi-app .adp-info-row-tvv { grid-column: span 2; }
+.kpi-app .adp-info-sub { font-size: 9.5px; font-weight: 700; color: #5a7088; }
 
 .kpi-app .adp-table-wrap {
   flex: 1; min-height: 0;
   border: 1px solid #c8d8ea; border-radius: 4px; overflow: auto;
   box-shadow: 0 2px 6px rgba(20, 50, 90, .12);
-  background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
+  background: #ffffff;
+  scrollbar-width: thin;
+  scrollbar-color: #b8c8d8 transparent;
 }
+.kpi-app .adp-table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+.kpi-app .adp-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.kpi-app .adp-table-wrap::-webkit-scrollbar-thumb {
+  background: #b8c8d8; border-radius: 3px;
+}
+.kpi-app .adp-table-wrap::-webkit-scrollbar-thumb:hover { background: #8aa0b8; }
 .kpi-app .adp-table {
   width: 100%; border-collapse: separate; border-spacing: 0;
-  font-size: 11px;
+  font-size: 10px;
   background: transparent;
 }
 .kpi-app .adp-table thead th {
-  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
+  background: #3a7cc8;
   color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
-  padding: 6px 4px; text-align: center; white-space: nowrap;
+  padding: 5px 4px; text-align: center; white-space: nowrap;
   border-bottom: 1.5px solid #1a4a7a;
-  text-shadow: 0 1px 0 rgba(0,0,0,.25);
-  font-size: 9.5px;
+  font-size: 9px;
   position: sticky; top: 0; z-index: 2;
 }
 .kpi-app .adp-table thead tr:nth-child(2) th {
-  position: sticky; top: 26px; z-index: 1;
+  position: sticky; top: 24px; z-index: 1;
   border-top: 1px solid #2a5a8a;
 }
-.kpi-app .adp-th-stt { width: 28px; }
-.kpi-app .adp-th-code { width: 78px; }
-.kpi-app .adp-th-name { min-width: 110px; text-align: left !important; }
-.kpi-app .adp-th-pos { width: 36px; }
-.kpi-app .adp-th-ip { border-left: 1px solid #1a4a7a; }
-.kpi-app .adp-th-month { width: 42px; font-size: 9.5px; padding: 4px 2px; }
+.kpi-app .adp-th-stt { width: 26px; }
+.kpi-app .adp-th-code { width: 60px; }
+.kpi-app .adp-th-name { min-width: 90px; max-width: 130px; text-align: left !important; }
+.kpi-app .adp-th-pos { width: 30px; }
+.kpi-app .adp-th-ip { border-left: 1px solid #1a4a7a; padding: 0 !important; position: relative; }
+.kpi-app .adp-th-ip-label { display: inline-block; }
+.kpi-app .adp-th-ip-unit {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  font-style: italic; font-weight: 600;
+  font-size: 8px; opacity: 0.85;
+}
+.kpi-app .adp-th-month { width: 32px; font-size: 9px; padding: 4px 1px; }
 
 .kpi-app .adp-table tbody tr { transition: background .12s; }
 .kpi-app .adp-table tbody tr:hover {
@@ -718,13 +727,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .adp-table tbody tr:first-child td { border-top: none; }
 .kpi-app .adp-table tbody td {
-  padding: 5px 4px; text-align: center;
+  padding: 4px 3px; text-align: center;
   border-top: 1px solid #d0deec;
   font-weight: 700; color: #2a4a6a; white-space: nowrap;
+  font-size: 9.5px;
 }
 .kpi-app .adp-td-stt { color: #8aa0b8; font-weight: 800; }
-.kpi-app .adp-td-code { font-family: monospace; font-size: 9.5px; color: #5a7088; }
-.kpi-app .adp-td-name { text-align: left !important; color: #1a3a5e; font-weight: 800; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.kpi-app .adp-td-code { font-family: monospace; font-size: 8.5px; color: #5a7088; }
+.kpi-app .adp-td-name {
+  text-align: left !important; color: #1a3a5e; font-weight: 800;
+  max-width: 130px; overflow: hidden; text-overflow: ellipsis;
+}
 .kpi-app .adp-td-pos {
   font-weight: 900; color: #2a6ab8;
   background: #eaf2fb;
@@ -745,38 +758,39 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Mobile: shrink everything, fit one viewport, table scrolls internally */
 @media (max-width: 720px) {
-  .kpi-app .adp-overlay { padding: 6px; }
+  .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
-    max-width: 100%; height: calc(100vh - 12px); max-height: none;
-    border-radius: 6px;
+    max-width: 100%; height: calc(100vh - 8px); max-height: none;
+    border-radius: 5px;
   }
   .kpi-app .adp-header { padding: 5px 9px; }
-  .kpi-app .adp-header-title { font-size: 10px; letter-spacing: .05em; }
+  .kpi-app .adp-header-name { font-size: 11px; }
   .kpi-app .adp-close { width: 22px; height: 22px; }
   .kpi-app .adp-body {
-    grid-template-columns: 1fr 1.5fr; gap: 6px; padding: 6px;
+    grid-template-rows: 1fr 2fr; gap: 5px; padding: 5px;
   }
-  .kpi-app .adp-left { gap: 5px; }
-  .kpi-app .adp-ad-name { font-size: 11px; padding: 5px 6px; }
-  .kpi-app .adp-section-label { font-size: 8.5px; padding-left: 5px; }
-  .kpi-app .adp-nhom-btn { padding: 3px 7px; font-size: 8.5px; }
+  .kpi-app .adp-top-grid { gap: 5px; }
+  .kpi-app .adp-section-label { font-size: 8px; padding-left: 5px; }
+  .kpi-app .adp-nhom-btn { padding: 3px 7px; font-size: 8px; }
   .kpi-app .adp-info-grid { gap: 3px; }
-  .kpi-app .adp-info-row { padding: 3px 5px; }
-  .kpi-app .adp-info-key { font-size: 7.5px; }
-  .kpi-app .adp-info-val { font-size: 10px; }
-  .kpi-app .adp-info-sub { font-size: 8.5px; }
-  .kpi-app .adp-table { font-size: 9px; }
-  .kpi-app .adp-table thead th { padding: 4px 2px; font-size: 8px; }
-  .kpi-app .adp-table thead tr:nth-child(2) th { top: 22px; }
-  .kpi-app .adp-th-stt { width: 20px; }
-  .kpi-app .adp-th-code { width: 56px; }
-  .kpi-app .adp-th-name { min-width: 70px; max-width: 90px; }
-  .kpi-app .adp-th-pos { width: 24px; }
-  .kpi-app .adp-th-month { width: 26px; padding: 3px 1px; }
-  .kpi-app .adp-table tbody td { padding: 3px 2px; }
-  .kpi-app .adp-td-code { font-size: 8px; }
-  .kpi-app .adp-td-name { max-width: 90px; }
+  .kpi-app .adp-info-row { padding: 3px 4px; }
+  .kpi-app .adp-info-key { font-size: 7px; }
+  .kpi-app .adp-info-val { font-size: 9px; }
+  .kpi-app .adp-info-sub { font-size: 7.5px; }
+  .kpi-app .adp-table { font-size: 8px; }
+  .kpi-app .adp-table thead th { padding: 3px 2px; font-size: 7.5px; }
+  .kpi-app .adp-table thead tr:nth-child(2) th { top: 20px; }
+  .kpi-app .adp-th-stt { width: 18px; }
+  .kpi-app .adp-th-code { width: 42px; }
+  .kpi-app .adp-th-name { min-width: 60px; max-width: 80px; }
+  .kpi-app .adp-th-pos { width: 20px; }
+  .kpi-app .adp-th-month { width: 22px; padding: 2px 1px; }
+  .kpi-app .adp-th-ip-unit { font-size: 6.5px; }
+  .kpi-app .adp-table tbody td { padding: 2.5px 2px; font-size: 7.5px; }
+  .kpi-app .adp-td-code { font-size: 7px; }
+  .kpi-app .adp-td-name { max-width: 80px; }
 }
+
 
 /* Flat detail list — no Phong/AD headers */
 .kpi-app .detail-list-flat { gap: 6px; }
@@ -2631,85 +2645,85 @@ export default function KPIDashboard() {
       {adPopupData && (
         <div className="adp-overlay" onClick={() => setAdPopup(null)}>
           <div className="adp-modal" onClick={e => e.stopPropagation()}>
-            {/* Slim header: title + close */}
+            {/* Slim header: AD name + close */}
             <div className="adp-header">
-              <span className="adp-header-title">Chi tiết AD</span>
+              <span className="adp-header-name">{adPopupData.ad.tenAD}</span>
               <button className="adp-close" onClick={() => setAdPopup(null)} aria-label="Đóng">
                 <X size={16} />
               </button>
             </div>
 
             <div className="adp-body">
-              {/* LEFT 1/3: Tên AD + DS nhóm + Thông tin nhóm */}
-              <div className="adp-left">
-                <div className="adp-ad-name">{adPopupData.ad.tenAD}</div>
-
-                <div className="adp-block">
-                  <div className="adp-section-label">Danh sách nhóm</div>
-                  <div className="adp-nhom-buttons">
-                    {adPopupData.bannhoms.map(bn => {
-                      const isOn = bn.maBanNhom === adPopupData.selectedBN.maBanNhom;
-                      return (
-                        <button
-                          key={bn.maBanNhom}
-                          className={`adp-nhom-btn${isOn ? ' on' : ''}`}
-                          onClick={() => setAdPopupNhom(bn.maBanNhom)}
-                        >
-                          {bn.tenBanNhom}
-                        </button>
-                      );
-                    })}
+              {/* TOP 1/3: DS nhóm + Thông tin nhóm */}
+              <div className="adp-top">
+                <div className="adp-top-grid">
+                  <div className="adp-block">
+                    <div className="adp-section-label">Danh sách nhóm</div>
+                    <div className="adp-nhom-buttons">
+                      {adPopupData.bannhoms.map(bn => {
+                        const isOn = bn.maBanNhom === adPopupData.selectedBN.maBanNhom;
+                        return (
+                          <button
+                            key={bn.maBanNhom}
+                            className={`adp-nhom-btn${isOn ? ' on' : ''}`}
+                            onClick={() => setAdPopupNhom(bn.maBanNhom)}
+                          >
+                            {bn.tenBanNhom}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                <div className="adp-block">
-                  <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span></div>
-                  <div className="adp-info-grid">
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">KH năm {CUR_YEAR}</span>
-                      <span className="adp-info-val">{fmt(adPopupData.groupInfo.annualKh)} đ</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Thực hiện</span>
-                      <span className="adp-info-val">{fmt(adPopupData.groupInfo.afyp)} đ</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Tỷ lệ HTKD (%IP)</span>
-                      <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Lượt HĐ</span>
-                      <span className="adp-info-val">{adPopupData.groupInfo.lhd}</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Lượt HĐC</span>
-                      <span className="adp-info-val">{adPopupData.groupInfo.hdChuan}</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Tuyển dụng</span>
-                      <span className="adp-info-val">{adPopupData.groupInfo.td}</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Năng suất</span>
-                      <span className="adp-info-val">{adPopupData.groupInfo.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="adp-info-row">
-                      <span className="adp-info-key">Độ lớn HĐ</span>
-                      <span className="adp-info-val">{(adPopupData.groupInfo.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} trđ</span>
-                    </div>
-                    <div className="adp-info-row adp-info-row-tvv">
-                      <span className="adp-info-key">Tổng số TVV</span>
-                      <span className="adp-info-val">
-                        {adPopupData.groupInfo.totalTvv}
-                        <span className="adp-info-sub"> (TVVm: {adPopupData.groupInfo.tvvMoi} · còn lại: {adPopupData.groupInfo.tvvConLai})</span>
-                      </span>
+                  <div className="adp-block">
+                    <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span></div>
+                    <div className="adp-info-grid">
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">KH năm {CUR_YEAR}</span>
+                        <span className="adp-info-val">{fmt(adPopupData.groupInfo.annualKh)} đ</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Thực hiện</span>
+                        <span className="adp-info-val">{fmt(adPopupData.groupInfo.afyp)} đ</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Tỷ lệ HTKD (%IP)</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Lượt HĐ</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.lhd}</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Lượt HĐC</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.hdChuan}</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Tuyển dụng</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.td}</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Năng suất</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="adp-info-row">
+                        <span className="adp-info-key">Độ lớn HĐ</span>
+                        <span className="adp-info-val">{(adPopupData.groupInfo.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} trđ</span>
+                      </div>
+                      <div className="adp-info-row adp-info-row-tvv">
+                        <span className="adp-info-key">Tổng số TVV</span>
+                        <span className="adp-info-val">
+                          {adPopupData.groupInfo.totalTvv}
+                          <span className="adp-info-sub"> (TVVm: {adPopupData.groupInfo.tvvMoi} · còn lại: {adPopupData.groupInfo.tvvConLai})</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* RIGHT 2/3: Thông tin chi tiết */}
-              <div className="adp-right">
+              {/* BOTTOM 2/3: Bảng chi tiết TVV */}
+              <div className="adp-bottom">
                 <div className="adp-section-label">Thông tin chi tiết</div>
                 <div className="adp-table-wrap">
                   <table className="adp-table">
@@ -2719,7 +2733,10 @@ export default function KPIDashboard() {
                         <th rowSpan={2} className="adp-th-code">Mã số</th>
                         <th rowSpan={2} className="adp-th-name">Họ tên TVV</th>
                         <th rowSpan={2} className="adp-th-pos">CV</th>
-                        <th colSpan={adPopupData.months37.length} className="adp-th-ip">IP</th>
+                        <th colSpan={adPopupData.months37.length} className="adp-th-ip">
+                          <span className="adp-th-ip-label">IP</span>
+                          <span className="adp-th-ip-unit">trđ</span>
+                        </th>
                       </tr>
                       <tr>
                         {adPopupData.months37.map(m => (
@@ -2737,11 +2754,15 @@ export default function KPIDashboard() {
                           <td className="adp-td-code">{row.agentCode}</td>
                           <td className="adp-td-name">{row.agentName}</td>
                           <td className="adp-td-pos">{row.chucVu}</td>
-                          {adPopupData.months37.map(m => (
-                            <td key={m} className={`adp-td-ip${row.ipByMonth[m] > 0 ? ' has' : ''}`}>
-                              {row.ipByMonth[m] > 0 ? Math.round(row.ipByMonth[m]).toLocaleString('vi-VN') : '–'}
-                            </td>
-                          ))}
+                          {adPopupData.months37.map(m => {
+                            const v = row.ipByMonth[m];
+                            const vM = Math.round(v / 1000000);
+                            return (
+                              <td key={m} className={`adp-td-ip${v > 0 ? ' has' : ''}`}>
+                                {v > 0 ? vM.toLocaleString('vi-VN') : '–'}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
