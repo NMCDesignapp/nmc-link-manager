@@ -300,6 +300,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   kehoach: '#DC2626',
   report: '#2563EB',
   structure: '#0D9488',
+  saoviet: '#7C3AED',
 };
 
 // Templates
@@ -1782,6 +1783,7 @@ export default function QuanLyPage() {
       kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
+      saoviet: async () => { /* No data to load — placeholder page */ },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
@@ -2801,6 +2803,27 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
+            {/* Số liệu Sao Việt button — placed before Cài đặt */}
+            <button
+              onClick={() => {
+                navigateTo({ sheet: 'saoviet' });
+                setSearchTerm('');
+                setSortField('');
+                setMobileMenuPopup(null);
+              }}
+              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
+              style={{
+                backgroundColor: SHEET_MOBILE_COLORS.saoviet,
+                borderRadius: 0,
+                boxShadow: activeSheet === 'saoviet' ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
+                opacity: activeSheet === 'saoviet' ? 1 : 0.95,
+                minHeight: '52px',
+              }}
+              title="Số liệu Sao Việt"
+            >
+              <Star className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate w-full text-center leading-tight text-[11px]">Sao Việt</span>
+            </button>
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
             <button
               onClick={() => setSettingsDialogOpen(true)}
@@ -7426,6 +7449,20 @@ export default function QuanLyPage() {
   };
 
   // ========== RENDER SHEET DISPATCHER ==========
+  const renderSaoViet = () => (
+    <div className="space-y-3">
+      <div className="p-4 border border-violet-500/30 rounded-lg" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Star className="w-5 h-5 text-violet-400" />
+          <h2 className="text-lg font-extrabold text-violet-300">Số liệu Sao Việt</h2>
+        </div>
+        <p className="text-sm text-violet-200/70">
+          Trang này đang được xây dựng. Nội dung số liệu Sao Việt sẽ được cập nhật sau.
+        </p>
+      </div>
+    </div>
+  );
+
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
@@ -7436,6 +7473,7 @@ export default function QuanLyPage() {
       case 'revenue': return renderRevenue();
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
+      case 'saoviet': return renderSaoViet();
       case 'structure': {
         // Sub-dispatch within "Cấu trúc" section
         // NGUYÊN TẮC: DS TVV (sub='tvv') cũng hiển thị dạng cây Phòng → AD → Nhóm → TVV
@@ -7575,6 +7613,22 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
+            {/* Số liệu Sao Việt — sidebar item, placed before Cài đặt area */}
+            <button
+              onClick={() => {
+                navigateTo({ sheet: 'saoviet' });
+                setSearchTerm('');
+                setSortField('');
+                setSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
+              }`}
+              title="Số liệu Sao Việt"
+            >
+              <Star className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate flex-1 text-left">Số liệu Sao Việt</span>
+            </button>
           </div>
 
         </nav>

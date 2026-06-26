@@ -47,8 +47,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
 
 /* Controls */
-.kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; }
-.kpi-app .ctrl-select-wrap { position: relative; }
+.kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; position: relative; }
+.kpi-app .ctrl-select-wrap { position: static; }
 .kpi-app .ctrl-select { height: 36px; padding: 0 12px; border-radius: 99px; background: rgba(255,255,255,.06); border: 1.5px solid #2a4a70; color: #90b0d0; font-weight: 600; font-size: 11px; outline: none; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
 .kpi-app .ctrl-select:hover { background: rgba(255,255,255,.1); border-color: #3a7cc8; color: #c8e0ff; }
 .kpi-app .ctrl-select .ctrl-icon { display: inline-flex; color: #60b0f0; }
@@ -64,7 +64,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .kpi-app .ctrl-hint { font-style: italic; font-size: 10px; color: #5a7a9a; font-weight: 400; white-space: nowrap; }
-.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; max-width: calc(100vw - 24px); background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
+.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 0; right: 0; width: auto; max-width: none; background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
 .kpi-app .ctrl-select-wrap.open .ctrl-select-popup { display: grid; }
 .kpi-app .ctrl-select-opt { min-height: 34px; border-radius: 8px; border: 1px solid #2a4a70; background: #132a4a; color: #c0d8f0; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
 .kpi-app .ctrl-select-opt:hover { background: #1a3a5e; color: #fff; border-color: #3a7cc8; }
@@ -1089,6 +1089,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .app-wrap { max-width: none; }
   .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
   .kpi-app #view-main header { max-width: 1800px; width: 100%; margin-bottom: 0; }
+  /* Desktop: constrain popup width, right-align with ctrl-bar (dashboard content right edge) */
+  .kpi-app .ctrl-select-wrap { position: static; }
+  .kpi-app .ctrl-select-popup { left: auto; right: 0; width: 360px; max-width: calc(100vw - 48px); grid-template-columns: repeat(4, minmax(0,1fr)); }
   .kpi-app .main-header { display: flex; align-items: center; gap: 10px; }
   .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
   .kpi-app .main-header .btn-back-u { width: 32px; height: 32px; border-radius: 8px; }
@@ -1160,6 +1163,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app #view-detail .dt-phong { max-width: 800px; width: 100%; margin-left: auto; margin-right: auto; }
   /* Desktop calendar */
   .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin-left: auto; margin-right: auto; }
+  .kpi-app #view-calendar .cal-filter { max-width: 920px; margin-left: auto; margin-right: auto; }
 }
 /* Responsive mobile */
 @media (max-width: 640px) {
