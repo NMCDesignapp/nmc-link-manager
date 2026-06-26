@@ -2713,11 +2713,11 @@ export default function KPIDashboard() {
                     <div className="adp-info-grid">
                       <div className="adp-info-row">
                         <span className="adp-info-key">KH AFYP</span>
-                        <span className="adp-info-val">{(adPopupData.groupInfo.annualKh / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</span>
+                        <span className="adp-info-val">{(adPopupData.groupInfo.annualKh / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key">Thực hiện</span>
-                        <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</span>
+                        <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key">%HT</span>
@@ -2741,7 +2741,7 @@ export default function KPIDashboard() {
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key">Độ lớn HĐ</span>
-                        <span className="adp-info-val">{(adPopupData.groupInfo.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</span>
+                        <span className="adp-info-val">{(adPopupData.groupInfo.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row adp-info-row-tvv">
                         <span className="adp-info-key">Tổng số TVV</span>
