@@ -606,14 +606,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 .kpi-app .adp-body {
   flex: 1; min-height: 0;
-  display: grid; grid-template-rows: 1fr 2fr; gap: 8px;
-  padding: 8px;
+  display: grid; grid-template-rows: auto 1fr; gap: 4px;
+  padding: 6px 8px 8px;
   overflow: hidden;
 }
 
 .kpi-app .adp-top {
   display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
+  border-bottom: 1px solid #c8d8ea;
+  padding-bottom: 4px;
 }
 .kpi-app .adp-top-grid {
   display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
@@ -696,6 +698,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   font-size: 10px;
   background: transparent;
 }
+.kpi-app .adp-table thead { background: #3a7cc8; }
+.kpi-app .adp-table thead tr { background: #3a7cc8; }
 .kpi-app .adp-table thead th {
   background: #3a7cc8;
   color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
@@ -708,11 +712,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   position: sticky; top: 24px; z-index: 1;
   border-top: 1px solid #2a5a8a;
 }
-.kpi-app .adp-th-stt { width: 26px; }
-.kpi-app .adp-th-code { width: 60px; }
-.kpi-app .adp-th-name { min-width: 90px; max-width: 130px; text-align: left !important; }
+.kpi-app .adp-th-stt { width: 28px; }
+.kpi-app .adp-th-code { width: 84px; }
+.kpi-app .adp-th-name { min-width: 130px; max-width: 190px; text-align: left !important; }
 .kpi-app .adp-th-pos { width: 30px; }
-.kpi-app .adp-th-ip { border-left: 1px solid #1a4a7a; padding: 0 !important; position: relative; }
+.kpi-app .adp-th-ip { border-left: 1px solid #1a4a7a; padding: 5px 4px !important; position: relative; }
 .kpi-app .adp-th-ip-label { display: inline-block; }
 .kpi-app .adp-th-ip-unit {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
@@ -736,7 +740,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-td-code { font-family: monospace; font-size: 8.5px; color: #5a7088; }
 .kpi-app .adp-td-name {
   text-align: left !important; color: #1a3a5e; font-weight: 800;
-  max-width: 130px; overflow: hidden; text-overflow: ellipsis;
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-app .adp-td-pos {
   font-weight: 900; color: #2a6ab8;
@@ -767,8 +771,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .adp-header-name { font-size: 11px; }
   .kpi-app .adp-close { width: 22px; height: 22px; }
   .kpi-app .adp-body {
-    grid-template-rows: 1fr 2fr; gap: 5px; padding: 5px;
+    grid-template-rows: auto 1fr; gap: 3px; padding: 4px 5px 5px;
   }
+  .kpi-app .adp-top { padding-bottom: 3px; }
   .kpi-app .adp-top-grid { gap: 5px; }
   .kpi-app .adp-section-label { font-size: 8px; padding-left: 5px; }
   .kpi-app .adp-nhom-btn { padding: 3px 7px; font-size: 8px; }
@@ -780,15 +785,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .adp-table { font-size: 8px; }
   .kpi-app .adp-table thead th { padding: 3px 2px; font-size: 7.5px; }
   .kpi-app .adp-table thead tr:nth-child(2) th { top: 20px; }
-  .kpi-app .adp-th-stt { width: 18px; }
-  .kpi-app .adp-th-code { width: 42px; }
-  .kpi-app .adp-th-name { min-width: 60px; max-width: 80px; }
-  .kpi-app .adp-th-pos { width: 20px; }
+  .kpi-app .adp-th-stt { width: 22px; }
+  .kpi-app .adp-th-code { width: 62px; }
+  .kpi-app .adp-th-name { min-width: 95px; max-width: 130px; }
+  .kpi-app .adp-th-pos { width: 22px; }
   .kpi-app .adp-th-month { width: 22px; padding: 2px 1px; }
   .kpi-app .adp-th-ip-unit { font-size: 6.5px; }
   .kpi-app .adp-table tbody td { padding: 2.5px 2px; font-size: 7.5px; }
   .kpi-app .adp-td-code { font-size: 7px; }
-  .kpi-app .adp-td-name { max-width: 80px; }
+  .kpi-app .adp-td-name { max-width: 130px; }
 }
 
 
