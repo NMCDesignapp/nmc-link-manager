@@ -64,7 +64,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .kpi-app .ctrl-hint { font-style: italic; font-size: 10px; color: #5a7a9a; font-weight: 400; white-space: nowrap; }
-.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 280px; max-width: calc(100vw - 32px); background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
+.kpi-app .ctrl-select-popup { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; max-width: calc(100vw - 24px); background: #0f2040ee; border: 1px solid #2a5a8a; border-radius: 14px; box-shadow: 0 18px 36px #00000066; backdrop-filter: blur(14px); padding: 10px; display: none; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; z-index: 30; max-height: 260px; overflow-y: auto; }
 .kpi-app .ctrl-select-wrap.open .ctrl-select-popup { display: grid; }
 .kpi-app .ctrl-select-opt { min-height: 34px; border-radius: 8px; border: 1px solid #2a4a70; background: #132a4a; color: #c0d8f0; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
 .kpi-app .ctrl-select-opt:hover { background: #1a3a5e; color: #fff; border-color: #3a7cc8; }
@@ -931,8 +931,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
 .kpi-app .cal-line { display: block; }
-.kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s; }
-.kpi-app .cal-line.editable:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
+.kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s, box-shadow .12s; }
+.kpi-app .cal-line.editable.authed:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
+.kpi-app .cal-line.editable.locked { cursor: pointer; }
+.kpi-app .cal-line.editable.locked::before {
+  content: '🔒';
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 9px;
+  vertical-align: middle;
+  opacity: 0.55;
+}
+.kpi-app .cal-line.editable.locked:hover { background: #f1f5f9; box-shadow: 0 0 0 1px #94a3b8; }
 .kpi-app .cal-owner-tag {
   display: inline-block; padding: 2px 5px; border-radius: 3px;
   font-size: 9px; font-weight: 800; line-height: 1.2;
@@ -1400,6 +1410,9 @@ export default function KPIDashboard() {
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
   const [calEditSaving, setCalEditSaving] = useState(false);
   const [calEditError, setCalEditError] = useState<string | null>(null);
+  // Remember which existing event the user wanted to edit, so after password
+  // auth we can open the edit form for THAT event (not a blank new-entry form).
+  const [calPendingEdit, setCalPendingEdit] = useState<CalendarEvent | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [overviewPeriod, setOverviewPeriod] = useState<string>(`month-${new Date().getMonth() + 1}`);
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -1483,14 +1496,30 @@ export default function KPIDashboard() {
 
   const openCalPwd = () => {
     if (calAuthed) { setCalEditOpen(true); return; }
+    setCalPendingEdit(null);
     setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
   };
 
   const submitCalPwd = () => {
     if (calPwdInput === '123456') {
       setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
-      // Open edit popup for new entry by default
-      setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+      // If user clicked an existing entry to edit, open edit form for THAT event.
+      // Otherwise, open blank new-entry form.
+      if (calPendingEdit) {
+        const ev = calPendingEdit;
+        const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+        setCalEditForm({
+          id: ev.id,
+          date: ev.date,
+          title: ev.title,
+          owner: isCustom ? '__other' : (ev.owner || ''),
+          ownerCustom: isCustom ? (ev.owner || '') : '',
+        });
+        setCalPendingEdit(null);
+      } else {
+        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+      }
+      setCalEditError(null);
       setCalEditOpen(true);
     } else {
       setCalPwdError(true);
@@ -1498,16 +1527,25 @@ export default function KPIDashboard() {
   };
 
   const openCalEditFor = (ev: CalendarEvent) => {
-    const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
-    setCalEditForm({
-      id: ev.id,
-      date: ev.date,
-      title: ev.title,
-      owner: isCustom ? '__other' : (ev.owner || ''),
-      ownerCustom: isCustom ? (ev.owner || '') : '',
-    });
-    setCalEditError(null);
-    setCalEditOpen(true);
+    if (calAuthed) {
+      const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+      setCalEditForm({
+        id: ev.id,
+        date: ev.date,
+        title: ev.title,
+        owner: isCustom ? '__other' : (ev.owner || ''),
+        ownerCustom: isCustom ? (ev.owner || '') : '',
+      });
+      setCalEditError(null);
+      setCalEditOpen(true);
+    } else {
+      // Not authed yet — remember this event and prompt for password.
+      // After successful auth, submitCalPwd will open the edit form for it.
+      setCalPendingEdit(ev);
+      setCalPwdOpen(true);
+      setCalPwdInput('');
+      setCalPwdError(false);
+    }
   };
 
   const openCalEditForNew = () => {
@@ -2910,9 +2948,10 @@ export default function KPIDashboard() {
                       {row.events.length > 0
                         ? row.events.map((e, ei) => (
                           <span
-                            className={`cal-line${calAuthed ? ' editable' : ''}`}
+                            className={`cal-line editable${calAuthed ? ' authed' : ' locked'}`}
                             key={ei}
-                            onClick={calAuthed ? () => openCalEditFor(e) : undefined}
+                            onClick={() => openCalEditFor(e)}
+                            title={calAuthed ? 'Bấm để sửa' : 'Bấm để mở khóa (cần mật khẩu)'}
                           >
                             {e.title}
                           </span>

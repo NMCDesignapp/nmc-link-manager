@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmc-links-v1';
+const CACHE_NAME = 'nmc-links-v2';
 const urlsToCache = [
   '/',
 ];
