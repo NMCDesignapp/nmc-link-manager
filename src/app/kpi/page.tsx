@@ -686,7 +686,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   width: 100%;
 }
-.kpi-app .adp-info-row-tvv { grid-column: span 2; }
+.kpi-app .adp-info-row-tvv { grid-column: span 4; }
 .kpi-app .adp-info-sub { font-size: 9.5px; font-weight: 700; color: #5a7088; }
 
 .kpi-app .adp-table-wrap {
@@ -727,14 +727,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .adp-th-stt { width: 28px; }
 .kpi-app .adp-th-code { width: 84px; }
-.kpi-app .adp-th-name { min-width: 130px; max-width: 190px; text-align: left !important; }
+.kpi-app .adp-th-name { min-width: 130px; max-width: 190px; }
 .kpi-app .adp-th-pos { width: 30px; }
-.kpi-app .adp-th-ip { border-left: 1px solid #2a5a8a; padding: 5px 4px !important; }
+.kpi-app .adp-th-ip { border-left: 1px solid #2a5a8a; padding: 5px 4px !important; position: relative; }
 .kpi-app .adp-th-ip-label { display: inline-block; }
 .kpi-app .adp-th-ip-unit {
-  display: inline-block; margin-left: 3px;
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
   font-style: italic; font-weight: 500;
-  font-size: 7.5px; opacity: 0.85;
+  font-size: 6.5px; opacity: 0.85;
+  pointer-events: none;
 }
 .kpi-app .adp-th-month { width: 32px; font-size: 9px; padding: 4px 1px; }
 
@@ -804,7 +805,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .adp-th-name { min-width: 95px; max-width: 130px; }
   .kpi-app .adp-th-pos { width: 22px; }
   .kpi-app .adp-th-month { width: 22px; padding: 2px 1px; }
-  .kpi-app .adp-th-ip-unit { font-size: 6.5px; }
+  .kpi-app .adp-th-ip-unit { font-size: 5.5px; }
   .kpi-app .adp-table tbody td { padding: 2.5px 2px; font-size: 7.5px; }
   .kpi-app .adp-td-code { font-size: 7px; }
   .kpi-app .adp-td-name { max-width: 130px; }
@@ -1714,6 +1715,10 @@ export default function KPIDashboard() {
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     }).length;
     const tvvConLai = allTvv.length - tvvMoi;
+    const tvvTtn = allTvv.filter(t => {
+      const n = normKey(t.chucVu);
+      return n.includes('TIEN') || n.includes('TIENTRUONGNHOM');
+    }).length;
 
     // Sort TVV by chucVu: TB → TN → TTN → TVV
     const getOrder = (cv: string): number => {
@@ -1777,6 +1782,7 @@ export default function KPIDashboard() {
         slHD,
         totalTvv: allTvv.length,
         tvvMoi,
+        tvvTtn,
         tvvConLai,
       },
       tvvTable,
@@ -2733,7 +2739,7 @@ export default function KPIDashboard() {
                         <span className="adp-info-key">Tổng số TVV</span>
                         <span className="adp-info-val">
                           {adPopupData.groupInfo.totalTvv}
-                          <span className="adp-info-sub"> (TVVm: {adPopupData.groupInfo.tvvMoi} · còn lại: {adPopupData.groupInfo.tvvConLai})</span>
+                          <span className="adp-info-sub"> (TVVm: {adPopupData.groupInfo.tvvMoi} · TTN: {adPopupData.groupInfo.tvvTtn} · còn lại: {adPopupData.groupInfo.tvvConLai})</span>
                         </span>
                       </div>
                     </div>
@@ -2754,7 +2760,7 @@ export default function KPIDashboard() {
                         <th rowSpan={2} className="adp-th-pos">CV</th>
                         <th colSpan={adPopupData.months37.length} className="adp-th-ip">
                           <span className="adp-th-ip-label">IP</span>
-                          <span className="adp-th-ip-unit">(trđ)</span>
+                          <span className="adp-th-ip-unit">(Triệu đồng)</span>
                         </th>
                       </tr>
                       <tr>
