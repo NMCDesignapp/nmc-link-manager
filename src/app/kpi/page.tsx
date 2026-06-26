@@ -564,7 +564,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center;
   padding: 12px;
-  animation: adpFadeIn .1s ease-out;
+  animation: adpFadeIn .2s ease-out;
 }
 @keyframes adpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -574,11 +574,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-radius: 8px; overflow: hidden;
   box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
   display: flex; flex-direction: column;
-  animation: adpIn .14s cubic-bezier(.22,1,.36,1);
+  animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
+  will-change: transform, opacity;
 }
 @keyframes adpIn {
-  from { opacity: 0; transform: translateY(10px) scale(.985); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: scale(.18); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .kpi-app .adp-header {
@@ -1409,7 +1410,7 @@ export default function KPIDashboard() {
   const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
 
   /* AD detail popup state */
-  const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string } | null>(null);
+  const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
   const [adPopupNhom, setAdPopupNhom] = useState<string | null>(null);
 
   const NOW = useMemo(() => new Date(), []);
@@ -2447,10 +2448,17 @@ export default function KPIDashboard() {
                                 const aGlow = aPct >= 100 ? 'rg-ad-glow' : '';
                                 const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                 const canOpenPopup = !!adStructForPopup;
-                                const openAdPopup = () => {
+                                const openAdPopup = (e: React.MouseEvent) => {
                                   if (!adStructForPopup) return;
+                                  const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+                                  const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
                                   setAdPopupNhom(null);
-                                  setAdPopup({ maAD: adStructForPopup.maAD, tenAD: ad.ten });
+                                  setAdPopup({
+                                    maAD: adStructForPopup.maAD,
+                                    tenAD: ad.ten,
+                                    originX: e.clientX - vw / 2,
+                                    originY: e.clientY - vh / 2,
+                                  });
                                 };
                                 return (
                                   <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} onClick={openAdPopup}>
@@ -2629,10 +2637,17 @@ export default function KPIDashboard() {
                                       const aGlow = aPct >= 100 ? 'rg-ad-glow anim-in' : 'anim-in';
                                       const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                       const canOpenPopup = !!adStructForPopup;
-                                      const openAdPopup = () => {
+                                      const openAdPopup = (e: React.MouseEvent) => {
                                         if (!adStructForPopup) return;
+                                        const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+                                        const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
                                         setAdPopupNhom(null);
-                                        setAdPopup({ maAD: adStructForPopup.maAD, tenAD: ad.ten });
+                                        setAdPopup({
+                                          maAD: adStructForPopup.maAD,
+                                          tenAD: ad.ten,
+                                          originX: e.clientX - vw / 2,
+                                          originY: e.clientY - vh / 2,
+                                        });
                                       };
                                       return (
                                         <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }} onClick={openAdPopup}>
@@ -3029,7 +3044,13 @@ export default function KPIDashboard() {
       {/* ===== AD DETAIL POPUP ===== */}
       {adPopupData && (
         <div className="adp-overlay" onClick={() => setAdPopup(null)}>
-          <div className="adp-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="adp-modal"
+            onClick={e => e.stopPropagation()}
+            style={adPopup ? {
+              transformOrigin: `calc(50% + ${adPopup.originX}px) calc(50% + ${adPopup.originY}px)`,
+            } : undefined}
+          >
             {/* Slim header: AD name + close */}
             <div className="adp-header">
               <span className="adp-header-name">{adPopupData.ad.tenAD}</span>

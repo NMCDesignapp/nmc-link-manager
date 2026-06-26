@@ -35,16 +35,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
     }
 
-    const event = await db.calendarEvent.create({
-      data: {
-        title,
-        date,
-        color: color || '#00ff88',
-        owner: owner || '',
-      },
-    })
-
-    return NextResponse.json(event, { status: 201 })
+    // Try with owner field (requires migration 20260626030000).
+    // If DB schema is missing the column (migration not yet applied),
+    // gracefully retry without owner so save doesn't fail.
+    try {
+      const event = await db.calendarEvent.create({
+        data: {
+          title,
+          date,
+          color: color || '#00ff88',
+          owner: owner || '',
+        },
+      })
+      return NextResponse.json(event, { status: 201 })
+    } catch (innerErr: any) {
+      const msg = String(innerErr?.message || '')
+      const isMissingColumn = msg.includes('owner') || msg.includes('column') || msg.includes('Unknown')
+      if (!isMissingColumn) throw innerErr
+      console.warn('[calendar] owner column missing, retrying without owner field')
+      const event = await db.calendarEvent.create({
+        data: { title, date, color: color || '#00ff88' },
+      })
+      return NextResponse.json(event, { status: 201 })
+    }
   } catch (error) {
     console.error('Error creating calendar event:', error)
     return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
@@ -60,17 +73,28 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID, title and date are required' }, { status: 400 })
     }
 
-    const event = await db.calendarEvent.update({
-      where: { id: parseInt(id) },
-      data: {
-        title,
-        date,
-        color: color || '#00ff88',
-        owner: owner || '',
-      },
-    })
-
-    return NextResponse.json(event)
+    try {
+      const event = await db.calendarEvent.update({
+        where: { id: parseInt(id) },
+        data: {
+          title,
+          date,
+          color: color || '#00ff88',
+          owner: owner || '',
+        },
+      })
+      return NextResponse.json(event)
+    } catch (innerErr: any) {
+      const msg = String(innerErr?.message || '')
+      const isMissingColumn = msg.includes('owner') || msg.includes('column') || msg.includes('Unknown')
+      if (!isMissingColumn) throw innerErr
+      console.warn('[calendar] owner column missing, retrying without owner field')
+      const event = await db.calendarEvent.update({
+        where: { id: parseInt(id) },
+        data: { title, date, color: color || '#00ff88' },
+      })
+      return NextResponse.json(event)
+    }
   } catch (error) {
     console.error('Error updating calendar event:', error)
     return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })

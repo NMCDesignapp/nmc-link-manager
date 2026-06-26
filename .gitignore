@@ -66,3 +66,6 @@ server.log
 /Caddyfile
 # Bun lock (use package-lock for Vercel)
 /bun.lock
+# Tool outputs and work logs (should not be tracked)
+tool-results/
+worklog.md
