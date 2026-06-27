@@ -1410,11 +1410,13 @@ export default function QuanLyPage() {
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
   // policyOpen declared here (used by navigateTo/handleAppBack below)
   const [policyOpen, setPolicyOpen] = useState<string | null>('tvvm');
+  const [saovietOpen, setSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
+  const [saovietExpanded, setSaovietExpanded] = useState(false); // desktop sidebar expand/collapse
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
   // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
-  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey };
+  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null };
   const navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]);
   const isNavigatingBackRef = useRef(false); // flag: đang pop stack → không push lại
 
@@ -1429,13 +1431,15 @@ export default function QuanLyPage() {
       revenueSub,
       policyOpen,
       structureSub,
+      saovietOpen,
     };
     navHistoryRef.current.push(current);
     if (next.sheet !== activeSheet) setActiveSheet(next.sheet);
     if (next.revenueSub !== undefined && next.revenueSub !== revenueSub) setRevenueSub(next.revenueSub);
     if (next.policyOpen !== undefined && next.policyOpen !== policyOpen) setPolicyOpen(next.policyOpen);
     if (next.structureSub !== undefined && next.structureSub !== structureSub) setStructureSub(next.structureSub);
-  }, [activeSheet, revenueSub, policyOpen, structureSub]);
+    if (next.saovietOpen !== undefined && next.saovietOpen !== saovietOpen) setSaovietOpen(next.saovietOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen]);
 
   // Back button handler: pop 1 state từ history
   // - Nếu history còn > 1: pop về state trước đó
@@ -1459,7 +1463,8 @@ export default function QuanLyPage() {
     if (prev.revenueSub !== undefined && prev.revenueSub !== revenueSub) setRevenueSub(prev.revenueSub);
     if (prev.policyOpen !== undefined && prev.policyOpen !== policyOpen) setPolicyOpen(prev.policyOpen);
     if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, router]);
+    if (prev.saovietOpen !== undefined && prev.saovietOpen !== saovietOpen) setSaovietOpen(prev.saovietOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, router]);
 
 
   // Online settings state (fetched from API instead of localStorage)
@@ -2803,27 +2808,77 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt button — placed before Cài đặt */}
-            <button
-              onClick={() => {
-                navigateTo({ sheet: 'saoviet' });
-                setSearchTerm('');
-                setSortField('');
-                setMobileMenuPopup(null);
-              }}
-              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
-              style={{
-                backgroundColor: SHEET_MOBILE_COLORS.saoviet,
-                borderRadius: 0,
-                boxShadow: activeSheet === 'saoviet' ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
-                opacity: activeSheet === 'saoviet' ? 1 : 0.95,
-                minHeight: '52px',
-              }}
-              title="Số liệu Sao Việt"
-            >
-              <Star className="w-5 h-5 flex-shrink-0" />
-              <span className="truncate w-full text-center leading-tight text-[11px]">Sao Việt</span>
-            </button>
+            {/* Số liệu Sao Việt button — placed before Cài đặt. Has sub-popup like other sheets */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  if (!activeSheet || activeSheet !== 'saoviet') {
+                    navigateTo({ sheet: 'saoviet', saovietOpen: null });
+                  }
+                  setMobileMenuPopup(mobileMenuPopup === ('saoviet' as SheetKey) ? null : ('saoviet' as SheetKey));
+                  setSearchTerm('');
+                  setSortField('');
+                }}
+                className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
+                style={{
+                  backgroundColor: SHEET_MOBILE_COLORS.saoviet,
+                  borderRadius: 0,
+                  boxShadow: activeSheet === 'saoviet' ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
+                  opacity: activeSheet === 'saoviet' ? 1 : 0.95,
+                  minHeight: '52px',
+                }}
+                title="Số liệu Sao Việt"
+              >
+                <Star className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate w-full text-center leading-tight text-[11px]">Sao Việt</span>
+                <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === ('saoviet' as SheetKey) ? 'rotate-180' : ''}`} />
+              </button>
+              {/* Popup sub-items — FIXED overlay centered, narrow on mobile, mirrors POLICY popup styling */}
+              {mobileMenuPopup === ('saoviet' as SheetKey) && (
+                <>
+                  <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileMenuPopup(null)} />
+                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-violet-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
+                    <div className="sticky top-0 bg-violet-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-violet-500/60 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Star className="w-3 h-3" /> Chọn chương trình
+                      </span>
+                      <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {/* "Tất cả" / List view option */}
+                    <button
+                      onClick={() => {
+                        navigateTo({ sheet: 'saoviet', saovietOpen: null });
+                        setMobileMenuPopup(null);
+                      }}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-violet-500/20 active:scale-95 active:bg-violet-500/30 transition-all border-b border-violet-900/40 ${!saovietOpen && activeSheet === 'saoviet' ? 'text-violet-300 bg-violet-500/10' : 'text-violet-100/80'}`}
+                    >
+                      <Star className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate flex-1">Tổng quan Sao Việt</span>
+                      {!saovietOpen && activeSheet === 'saoviet' && <span className="text-violet-400">●</span>}
+                    </button>
+                    {SAOVIET_ITEMS.map(s => {
+                      const subActive = activeSheet === 'saoviet' && saovietOpen === s.key;
+                      return (
+                        <button
+                          key={s.key}
+                          onClick={() => {
+                            navigateTo({ sheet: 'saoviet', saovietOpen: s.key });
+                            setMobileMenuPopup(null);
+                          }}
+                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-violet-500/20 active:scale-95 active:bg-violet-500/30 transition-all border-b border-violet-900/40 last:border-b-0 ${subActive ? 'text-violet-300 bg-violet-500/10' : 'text-violet-100/80'}`}
+                        >
+                          <s.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate flex-1">{s.label}</span>
+                          {subActive && <span className="text-violet-400">●</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
             <button
               onClick={() => setSettingsDialogOpen(true)}
@@ -7450,6 +7505,15 @@ export default function QuanLyPage() {
 
   // ========== RENDER SHEET DISPATCHER ==========
   // ========== RENDER: Sao Việt (3 sub-sections) ==========
+  // Sao Việt menu expands to show 3 sub-programs (similar to Chính sách đại lý)
+  // Click a sub-item → opens dedicated page for that single program
+  // Click "Số liệu Sao Việt" itself → expands the sub-list (desktop) / opens popup (mobile)
+  const SAOVIET_ITEMS = [
+    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (5 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
+    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (5 hạng: Vàng/BạchKim/KimCương/Đặc biệt/Tối cao)', icon: Users, color: '#2563EB' },
+    { key: 'tn-td',   label: 'Sao Việt TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
+  ];
+
   // Period: 01/12/2025 - 30/11/2026 (Sao Việt year — fixed)
   // Section 1: SAO VIỆT CÁ NHÂN — TVV-based, 5 rank tiers (Vàng, BạchKim, BạchKim, KimCương, KimCương)
   // Section 2: SAO VIỆT TN KTM — TN-based (individual FYP), 5 rank tiers
@@ -7601,8 +7665,8 @@ export default function QuanLyPage() {
     </TableCell>
   );
 
-  const renderSaoViet = () => (
-    <div className="space-y-4">
+  const renderSaoVietList = () => (
+    <div className="space-y-3">
       {/* Header card — Sao Việt period info */}
       <div className="p-4 border border-violet-500/30 rounded-lg" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <div className="flex items-center gap-2 mb-2">
@@ -7612,218 +7676,270 @@ export default function QuanLyPage() {
         <p className="text-sm text-violet-200/70">
           Kỳ tính thưởng: <span className="font-bold text-violet-200">01/12/2025 - 30/11/2026</span>
           <br />
-          Bao gồm 3 mục: <span className="font-semibold">Sao Việt Cá Nhân</span> (TVV),
-          <span className="font-semibold"> Sao Việt TN KTM</span> (TN — FYP cá nhân),
-          <span className="font-semibold"> Sao Việt TN TD</span> (TN — FYP &amp; HĐC của TVVm do TN tuyển).
+          Bao gồm 3 chương trình thưởng. Chọn 1 chương trình bên dưới (hoặc từ menu bên trái) để xem chi tiết.
         </p>
       </div>
-
-      {/* ============ SECTION 1: SAO VIỆT CÁ NHÂN ============ */}
-      <div className="border border-violet-500/20 rounded-lg overflow-hidden">
-        <div className="px-3 py-2 bg-violet-800 text-white flex items-center gap-2">
-          <UserCircle className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-wider">Mục 1 · Sao Việt Cá Nhân (TVV)</h3>
-          <span className="ml-auto text-[11px] bg-violet-600/60 px-2 py-0.5 rounded">{saoVietCaNhanRows.length} TVV</span>
-        </div>
-        <div className="overflow-x-auto bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MÃ SỐ ĐẠI LÝ</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
-                {SV1_THRESHOLDS.map(t => (
-                  <TableHead
-                    key={t.key}
-                    className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
-                    style={{ backgroundColor: t.bg, color: t.fg }}
-                  >
-                    <div className="leading-tight">
-                      <div>{t.label}</div>
-                      <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                      <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {saoVietCaNhanRows.map((r, i) => (
-                <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
-                  <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                  <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
-                  {SV1_THRESHOLDS.map(t => (
-                    <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
-                      {renderSaoVietRankCell(r.fyp, t)}
-                    </React.Fragment>
-                  ))}
-                </TableRow>
-              ))}
-              {saoVietCaNhanRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                    Chưa có dữ liệu TVV đạt FYP &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+      {/* 3 program cards — click to open detail page */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {SAOVIET_ITEMS.map(item => {
+          const Icon = item.icon;
+          const count = item.key === 'ca-nhan' ? saoVietCaNhanRows.length
+                     : item.key === 'tn-ktm'  ? saoVietTNKTMRows.length
+                     :                          saoVietTNTDRows.length;
+          return (
+            <button
+              key={item.key}
+              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
+              className="text-left p-4 border-2 rounded-lg transition-all hover:scale-[1.02] active:scale-100"
+              style={{
+                borderColor: `${item.color}66`,
+                backgroundColor: `${item.color}11`,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-10 h-10 flex items-center justify-center rounded-md flex-shrink-0"
+                  style={{ backgroundColor: item.color }}
+                >
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold truncate" style={{ color: item.color }}>{item.label}</h3>
+                  <p className="text-[10px] text-gray-400 truncate">{item.desc}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: `${item.color}33` }}>
+                <span className="text-[10px] uppercase tracking-wider text-gray-500">Số lượng</span>
+                <span className="text-lg font-black" style={{ color: item.color }}>{count}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
-
-      {/* ============ SECTION 2: SAO VIỆT TN KTM ============ */}
-      <div className="border border-violet-500/20 rounded-lg overflow-hidden">
-        <div className="px-3 py-2 bg-violet-800 text-white flex items-center gap-2">
-          <Users className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-wider">Mục 2 · Sao Việt TN KTM (TN — FYP cá nhân)</h3>
-          <span className="ml-auto text-[11px] bg-violet-600/60 px-2 py-0.5 rounded">{saoVietTNKTMRows.length} TN</span>
-        </div>
-        <div className="overflow-x-auto bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MS ĐẠI LÝ</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TN</TableHead>
-                <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
-                {SV2_THRESHOLDS.map(t => (
-                  <TableHead
-                    key={t.key}
-                    className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
-                    style={{ backgroundColor: t.bg, color: t.fg }}
-                  >
-                    <div className="leading-tight">
-                      <div>{t.label}</div>
-                      <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                      <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {saoVietTNKTMRows.map((r, i) => (
-                <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
-                  <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                  <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
-                  {SV2_THRESHOLDS.map(t => (
-                    <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
-                      {renderSaoVietRankCell(r.fyp, t)}
-                    </React.Fragment>
-                  ))}
-                </TableRow>
-              ))}
-              {saoVietTNKTMRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                    Chưa có dữ liệu TN đạt FYP cá nhân &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* ============ SECTION 3: SAO VIỆT TN TD ============ */}
-      <div className="border border-violet-500/20 rounded-lg overflow-hidden">
-        <div className="px-3 py-2 bg-violet-800 text-white flex items-center gap-2">
-          <UserPlus className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-wider">Mục 3 · Sao Việt TN TD (TN — FYP &amp; HĐC của TVVm do TN tuyển)</h3>
-          <span className="ml-auto text-[11px] bg-violet-600/60 px-2 py-0.5 rounded">{saoVietTNTDRows.length} TN</span>
-        </div>
-        <div className="overflow-x-auto bg-white">
-          <Table>
-            <TableHeader>
-              {/* Row 1: main headers — Hạng vàng and Hạng bạch kim span 2 cols each */}
-              <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase text-center align-middle w-[40px]">STT</TableHead>
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">NHÓM KD</TableHead>
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">MS ĐẠI LÝ</TableHead>
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">HỌ TÊN TN</TableHead>
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right align-middle">
-                  TỔNG FYP TVVm<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
-                </TableHead>
-                <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle">
-                  SL TVVm HĐC<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
-                </TableHead>
-                {SV3_RANKS.map(rk => (
-                  <TableHead
-                    key={rk.key}
-                    colSpan={2}
-                    className="text-[10px] font-bold uppercase text-center align-middle p-1"
-                    style={{ backgroundColor: rk.bg, color: rk.fg }}
-                  >
-                    {rk.label}
-                  </TableHead>
-                ))}
-              </TableRow>
-              {/* Row 2: sub-headers for rank columns */}
-              <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-                {SV3_RANKS.flatMap(rk => [
-                  <TableHead
-                    key={`${rk.key}-fyp`}
-                    className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
-                    style={{ backgroundColor: rk.bg, color: rk.fg }}
-                  >
-                    {rk.subFypLabel}
-                  </TableHead>,
-                  <TableHead
-                    key={`${rk.key}-hdc`}
-                    className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
-                    style={{ backgroundColor: rk.bg, color: rk.fg }}
-                  >
-                    {rk.subHdcLabel}
-                  </TableHead>,
-                ])}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {saoVietTNTDRows.map((r, i) => (
-                <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
-                  <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                  <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                  <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
-                  <TableCell className="text-xs p-1 text-center font-bold text-violet-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
-                  {SV3_RANKS.flatMap(rk => [
-                    renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
-                    renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
-                  ])}
-                </TableRow>
-              ))}
-              {saoVietTNTDRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                    Chưa có dữ liệu TN có TVVm hoạt động trong kỳ 01/12/2025 - 30/11/2026
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* Footer note — rank legend */}
+      {/* Footer note */}
       <div className="p-3 border border-violet-500/20 rounded-lg bg-violet-500/5">
         <p className="text-[11px] text-violet-200/80 leading-relaxed">
           <strong className="text-violet-300">Ghi chú:</strong> FYP được tính theo tháng hiệu lực hợp đồng (effectiveDate) trong kỳ 01/12/2025 - 30/11/2026.
-          Mỗi ô hạng hiển thị số vé đạt được nếu FYP (hoặc FYP TVVm + SL TVVm HĐC) đủ điều kiện.
-          Mục 1 dùng cho TVV; Mục 2 dùng cho TN (FYP cá nhân); Mục 3 dùng cho TN (FYP và HĐC của TVVm do TN tuyển dụng).
+          Nhấn vào 1 chương trình để xem chi tiết bảng xếp hạng và điều kiện đạt hạng.
         </p>
       </div>
     </div>
   );
+
+  // ---------- Sub-page: SAO VIỆT CÁ NHÂN (Section 1) ----------
+  const renderSaoVietCaNhan = () => (
+    <div className="space-y-3">
+      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
+        <UserCircle className="w-4 h-4 text-violet-400" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt Cá Nhân (TVV)</h3>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietCaNhanRows.length} TVV</span>
+      </div>
+      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MÃ SỐ ĐẠI LÝ</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+              {SV1_THRESHOLDS.map(t => (
+                <TableHead
+                  key={t.key}
+                  className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                  style={{ backgroundColor: t.bg, color: t.fg }}
+                >
+                  <div className="leading-tight">
+                    <div>{t.label}</div>
+                    <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                    <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                  </div>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {saoVietCaNhanRows.map((r, i) => (
+              <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
+                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+                {SV1_THRESHOLDS.map(t => (
+                  <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
+                    {renderSaoVietRankCell(r.fyp, t)}
+                  </React.Fragment>
+                ))}
+              </TableRow>
+            ))}
+            {saoVietCaNhanRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
+                  Chưa có dữ liệu TVV đạt FYP &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  // ---------- Sub-page: SAO VIỆT TN KTM (Section 2) ----------
+  const renderSaoVietTNKTM = () => (
+    <div className="space-y-3">
+      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
+        <Users className="w-4 h-4 text-violet-400" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN KTM (TN — FYP cá nhân)</h3>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietTNKTMRows.length} TN</span>
+      </div>
+      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MS ĐẠI LÝ</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TN</TableHead>
+              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+              {SV2_THRESHOLDS.map(t => (
+                <TableHead
+                  key={t.key}
+                  className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                  style={{ backgroundColor: t.bg, color: t.fg }}
+                >
+                  <div className="leading-tight">
+                    <div>{t.label}</div>
+                    <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                    <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                  </div>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {saoVietTNKTMRows.map((r, i) => (
+              <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
+                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+                {SV2_THRESHOLDS.map(t => (
+                  <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
+                    {renderSaoVietRankCell(r.fyp, t)}
+                  </React.Fragment>
+                ))}
+              </TableRow>
+            ))}
+            {saoVietTNKTMRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
+                  Chưa có dữ liệu TN đạt FYP cá nhân &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  // ---------- Sub-page: SAO VIỆT TN TD (Section 3) ----------
+  const renderSaoVietTNTD = () => (
+    <div className="space-y-3">
+      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
+        <UserPlus className="w-4 h-4 text-violet-400" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN TD (TN — FYP &amp; HĐC của TVVm do TN tuyển)</h3>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietTNTDRows.length} TN</span>
+      </div>
+      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase text-center align-middle w-[40px]">STT</TableHead>
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">NHÓM KD</TableHead>
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">MS ĐẠI LÝ</TableHead>
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">HỌ TÊN TN</TableHead>
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right align-middle">
+                TỔNG FYP TVVm<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+              </TableHead>
+              <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle">
+                SL TVVm HĐC<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+              </TableHead>
+              {SV3_RANKS.map(rk => (
+                <TableHead
+                  key={rk.key}
+                  colSpan={2}
+                  className="text-[10px] font-bold uppercase text-center align-middle p-1"
+                  style={{ backgroundColor: rk.bg, color: rk.fg }}
+                >
+                  {rk.label}
+                </TableHead>
+              ))}
+            </TableRow>
+            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+              {SV3_RANKS.flatMap(rk => [
+                <TableHead
+                  key={`${rk.key}-fyp`}
+                  className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
+                  style={{ backgroundColor: rk.bg, color: rk.fg }}
+                >
+                  {rk.subFypLabel}
+                </TableHead>,
+                <TableHead
+                  key={`${rk.key}-hdc`}
+                  className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
+                  style={{ backgroundColor: rk.bg, color: rk.fg }}
+                >
+                  {rk.subHdcLabel}
+                </TableHead>,
+              ])}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {saoVietTNTDRows.map((r, i) => (
+              <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
+                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+                <TableCell className="text-xs p-1 text-center font-bold text-violet-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
+                {SV3_RANKS.flatMap(rk => [
+                  renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
+                  renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
+                ])}
+              </TableRow>
+            ))}
+            {saoVietTNTDRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
+                  Chưa có dữ liệu TN có TVVm hoạt động trong kỳ 01/12/2025 - 30/11/2026
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {/* Footer legend */}
+      <div className="p-3 border border-violet-500/20 rounded-lg bg-violet-500/5">
+        <p className="text-[11px] text-violet-200/80 leading-relaxed">
+          <strong className="text-violet-300">Điều kiện đạt hạng:</strong> Mỗi hạng yêu cầu ĐỒNG THỜI cả 2 điều kiện (FYP TVVm ≥ mốc AND SL TVVm HĐC ≥ mốc).
+          Ô ✓ = đạt điều kiện đó. Ô — = chưa đạt.
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderSaoViet = () => {
+    if (saovietOpen === 'ca-nhan') return renderSaoVietCaNhan();
+    if (saovietOpen === 'tn-ktm')  return renderSaoVietTNKTM();
+    if (saovietOpen === 'tn-td')   return renderSaoVietTNTD();
+    return renderSaoVietList();
+  };
 
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
@@ -7861,7 +7977,7 @@ export default function QuanLyPage() {
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
         <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Số liệu Sao Việt') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
@@ -7975,22 +8091,53 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt — sidebar item, placed before Cài đặt area */}
-            <button
-              onClick={() => {
-                navigateTo({ sheet: 'saoviet' });
-                setSearchTerm('');
-                setSortField('');
-                setSidebarOpen(false);
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
-                activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
-              }`}
-              title="Số liệu Sao Việt"
-            >
-              <Star className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate flex-1 text-left">Số liệu Sao Việt</span>
-            </button>
+            {/* Số liệu Sao Việt — sidebar item with expandable sub-items, placed before Cài đặt area */}
+            <div>
+              <button
+                onClick={() => {
+                  if (saovietOpen) {
+                    // Already on a sub-page — toggle expand
+                    setSaovietExpanded(!saovietExpanded);
+                  } else {
+                    // Not on sub-page — go to list view + expand
+                    navigateTo({ sheet: 'saoviet', saovietOpen: null });
+                    setSaovietExpanded(true);
+                  }
+                  setSearchTerm('');
+                  setSortField('');
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                  activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
+                }`}
+                title="Số liệu Sao Việt"
+              >
+                <Star className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate flex-1 text-left">Số liệu Sao Việt</span>
+                {saovietExpanded ? <ChevronDown className="w-3.5 h-3.5 text-violet-300" /> : <ChevronRight className="w-3.5 h-3.5 text-violet-300" />}
+              </button>
+              {saovietExpanded && (
+                <div className="ml-6 mt-0.5 space-y-0.5">
+                  {SAOVIET_ITEMS.map(s => {
+                    const subActive = saovietOpen === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={() => {
+                          navigateTo({ sheet: 'saoviet', saovietOpen: s.key });
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
+                          subActive ? 'bg-violet-500/20 text-violet-300' : 'text-violet-300/60 hover:bg-violet-500/10 hover:text-violet-300'
+                        }`}
+                      >
+                        <s.icon className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate flex-1 text-left">{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
         </nav>
