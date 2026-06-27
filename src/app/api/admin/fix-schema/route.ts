@@ -113,10 +113,66 @@ export async function POST() {
     const colExists = verifyCol[0]?.exists === true;
     results.push(colExists ? 'VERIFY: maTVVTuyendung column exists' : 'VERIFY FAILED: maTVVTuyendung column still missing');
 
+    // 7. Create SaoVietData table if not exists (for per-program sync/upload)
+    await db.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "SaoVietData" (
+        "id" TEXT NOT NULL,
+        "program" TEXT NOT NULL,
+        "agentCode" TEXT NOT NULL DEFAULT '',
+        "agentName" TEXT NOT NULL DEFAULT '',
+        "nhomKD" TEXT NOT NULL DEFAULT '',
+        "fyp" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "fypTVVm" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "slTvvmHDC" INTEGER NOT NULL DEFAULT 0,
+        "tvvmCount" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "SaoVietData_pkey" PRIMARY KEY ("id")
+      )
+    `;
+    results.push('OK: SaoVietData table ensured');
+
+    // 8. Create index on program
+    await db.$executeRaw`
+      CREATE INDEX IF NOT EXISTS "SaoVietData_program_idx" ON "SaoVietData"("program")
+    `;
+    results.push('OK: SaoVietData_program_idx index ensured');
+
+    // 9. Mark migration 20260628030000 as applied
+    try {
+      await db.$executeRaw`
+        INSERT INTO "_prisma_migrations" (id, checksum, migration_name, logs, started_at, finished_at, applied_steps_count)
+        SELECT
+          gen_random_uuid()::text,
+          'manual-fix-' || extract(epoch from now())::text,
+          '20260628030000_add_saoviet_data',
+          NULL,
+          NOW(),
+          NOW(),
+          1
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20260628030000_add_saoviet_data'
+        )
+      `;
+      results.push('OK: migration 20260628030000 marked applied');
+    } catch (e: any) {
+      results.push(`SKIP: mark migration 20260628030000 failed (${e?.message?.substring(0, 80) || 'unknown'}) — not critical`);
+    }
+
+    // 10. Verify SaoVietData table exists
+    const verifySV = await db.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'SaoVietData'
+      ) as exists
+    `;
+    const svExists = verifySV[0]?.exists === true;
+    results.push(svExists ? 'VERIFY: SaoVietData table exists' : 'VERIFY FAILED: SaoVietData table still missing');
+
     return NextResponse.json({
-      success: tableExists && colExists,
-      message: tableExists && colExists
-        ? 'Schema fixed. You can now upload DS TTN Tuyển Ngang. NTD column in CS TVVm will populate.'
+      success: tableExists && colExists && svExists,
+      message: tableExists && colExists && svExists
+        ? 'Schema fixed. You can now upload DS TTN Tuyển Ngang, sync Sao Việt data per program. NTD column in CS TVVm will populate.'
         : 'Schema fix completed but verification failed. Check server logs.',
       steps: results,
     });
