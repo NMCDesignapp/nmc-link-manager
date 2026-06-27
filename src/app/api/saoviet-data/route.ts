@@ -24,8 +24,10 @@ function normalizeRow(program: Program, r: any) {
   const pickStr = (v: any): string => v == null ? '' : String(v).trim();
 
   // Try many header variants for resilience
+  // Note: Đ/đ (U+0110/U+0111) là codepoint đơn — NFD không tách được, phải replace thủ công
   const pickField = (obj: any, aliases: string[]): string => {
     const norm = (k: string): string => k.trim().toLowerCase()
+      .replace(/đ/g, 'd')
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[\s_]+/g, ' ').trim();
     const keys = Object.keys(obj);

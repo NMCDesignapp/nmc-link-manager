@@ -53,6 +53,7 @@ function normalizeRow(program: Program, r: any) {
   const pickStr = (v: any): string => v == null ? '' : String(v).trim();
 
   const norm = (k: string): string => k.trim().toLowerCase()
+    .replace(/đ/g, 'd')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[\s_]+/g, ' ').trim();
 
