@@ -552,3 +552,38 @@ Stage Summary:
 - Mobile menu opens popup with 4 options (Tổng quan + 3 programs) — same UX as Chính sách
 - Desktop sidebar: 'Số liệu Sao Việt' is now expandable with 3 sub-items
 - Screenshot: /home/z/my-project/download/saoviet-subpage-canhan.png
+
+---
+Task ID: saoviet-sync-upload
+Agent: main
+Task: Thêm chức năng đồng bộ link + upload file (xóa hết & up lại) vào 3 mục con của Sao Việt
+
+Work Log:
+- Điều tra pattern "chính sách" (policyImageLinks) và pattern "đồng bộ NMC" (nmc-link-* + autoSyncFromLinks + handleImport)
+- Thêm Prisma model SaoVietData (program, agentCode, agentName, nhomKD, fyp, fypTVVm, slTvvmHDC, tvvmCount) + index trên program
+- Tạo migration 20260628030000_add_saoviet_data/migration.sql
+- Tạo API: GET/POST/DELETE /api/saoviet-data (POST làm delete-then-insert trong transaction)
+- Tạo API: POST /api/saoviet-data/sync — fetch CSV từ Google Sheets, parse, delete-then-insert
+- Thêm state saovietLinks, saovietManualData, saovietSyncing, saovietUploading vào page.tsx
+- Thêm useEffect load links từ Settings + load rows từ DB khi mount
+- Implement saveSaovietLink, handleSaovietSync, handleSaovietUpload, handleSaovietClear
+- Tạo helper renderSaovietPanel(program) — UI panel dùng chung cho 3 sub-page
+- Refactor 3 sub-page (renderSaoVietCaNhan/TNKTM/TNTD) để:
+  * Tính mergedRows = manual data nếu có, ngược lại dùng computed data
+  * Chèn renderSaovietPanel ở đầu
+  * Render mergedRows thay vì computed rows
+- Update /api/admin/fix-schema để tạo SaoVietData table + index + mark migration (production không chạy được prisma migrate)
+- Fix bug normalize Đ/đ: NFD không tách được Đ (U+0110) → phải replace đ→d trước khi NFD
+- Test API: GET/POST/DELETE đều work, delete-then-insert confirmed
+- Test UI: upload CSV thành công, hiển thị đúng data, nút Xóa data thủ công works
+- Build success, commit fe54be8, push main
+
+Stage Summary:
+- Mỗi mục con của Sao Việt (ca-nhan/tn-ktm/tn-td) đã có panel "ĐỒNG BỘ & UPLOAD SỐ LIỆU" riêng
+- Panel gồm: input link Google Sheets + nút "Đồng bộ từ link" + nút "Chọn file upload" + nút "Xóa dữ liệu thủ công"
+- Nguyên tắc upload/sync: xóa toàn bộ rows của program đó trong DB, rồi insert rows mới (transaction)
+- Khi có data manual: bảng hiển thị data manual, hiển thị badge "N dòng (từ upload/sync)"
+- Khi không có data manual: fallback về tính từ Hợp đồng/Nhân sự (như cũ)
+- Files mới: src/app/api/saoviet-data/route.ts, src/app/api/saoviet-data/sync/route.ts, prisma/migrations/20260628030000_add_saoviet_data/migration.sql
+- Files sửa: prisma/schema.prisma, src/app/quan-ly/page.tsx (state + 4 handlers + renderSaovietPanel + 3 sub-page), src/app/api/admin/fix-schema/route.ts
+- Production verified: API endpoints hoạt động, upload CSV hiển thị đúng data, clear data works
