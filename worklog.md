@@ -503,3 +503,52 @@ Stage Summary:
 - Color coding matches rank tiers (amber/slate/cyan/red)
 - Production verified via agent-browser — all 3 tables render with correct columns, data, and rank logic
 - Screenshot saved: /home/z/my-project/download/saoviet-3-sections.png
+
+---
+Task ID: saoviet-restructure-subpages
+Agent: main
+Task: Restructure Sao Việt page into 3 separate sub-programs (similar to Chính sách đại lý)
+
+Work Log:
+- Analyzed existing pattern: POLICY_ITEMS + policyOpen state + renderPolicy dispatches on policyOpen
+- Designed sub-page architecture for Sao Việt:
+  - saovietOpen state (null = list view, key = sub-page: 'ca-nhan' | 'tn-ktm' | 'tn-td')
+  - saovietExpanded state (desktop sidebar expand/collapse)
+  - Extended NavState with saovietOpen field (back button supports sub-navigation)
+  - SAOVIET_ITEMS list: 3 programs with icons/colors
+- Wrote /home/z/my-project/scripts/restructure_saoviet.py with 8 sequential edit steps:
+  1. Added saovietOpen + saovietExpanded state declarations
+  2. Extended NavState type with saovietOpen
+  3. Updated navigateTo() to push/pop saovietOpen
+  4. Updated handleAppBack() to restore saovietOpen
+  5. Added SAOVIET_ITEMS definition
+  6. Refactored renderSaoViet() from single block-body return to dispatcher:
+     - renderSaoVietList() — 3 program cards with counts (grid 1col/3col)
+     - renderSaoVietCaNhan() — single Section 1 table (TVV)
+     - renderSaoVietTNKTM() — single Section 2 table (TN FYP cá nhân)
+     - renderSaoVietTNTD() — single Section 3 table (TN team TVVm)
+     - renderSaoViet() dispatches based on saovietOpen
+  7. Updated header h1 to show Sao Việt sub-item label when applicable
+  8a. Desktop sidebar: 'Số liệu Sao Việt' is now expandable with 3 sub-items (violet theme)
+  8b. Mobile menu: 'Sao Việt' button now opens sub-popup with 4 options (Tổng quan + 3 programs)
+- TypeScript check: no new errors (all pre-existing errors unchanged, none in lines 7450-7950)
+- Build: success
+- Commit: 8ceb7fb
+- Push: success (main → 8ceb7fb)
+- Verified on production (https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly):
+  - Click 'Số liệu Sao Việt' (mobile menu) → popup opens with 4 options (Tổng quan + 3 programs)
+  - Below popup, list view renders with 3 program cards showing live counts (236 TVV / 21 TN / 27 TN)
+  - Click 'Sao Việt Cá Nhân' → header h1 shows 'Sao Việt Cá Nhân', dedicated TVV table renders with all 10 columns ✓
+  - Click 'Sao Việt TN KTM' → header h1 shows 'Sao Việt TN KTM', dedicated TN KTM table renders with all 10 columns ✓
+  - Click 'Sao Việt TN TD' → header h1 shows 'Sao Việt TN TD', dedicated TN TD table renders with all 10 columns (incl. 4 sub-cols) ✓
+  - Back button: TN TD → TN KTM (pop stack) → Cá Nhân (pop) ✓
+  - Popup close: clicking 'Số liệu Sao Việt' again closes popup, stays on current sub-page ✓
+
+Stage Summary:
+- Sao Việt menu now mirrors the Chính sách đại lý pattern: list view + 3 dedicated sub-pages
+- Each sub-page shows ONLY its own table (no scrolling through 3 long tables anymore)
+- Sub-navigation supports back button (each sub-page visit pushes history)
+- Header h1 reflects current sub-page label (e.g. 'Sao Việt Cá Nhân' instead of generic 'Quản Lý Dữ Liệu')
+- Mobile menu opens popup with 4 options (Tổng quan + 3 programs) — same UX as Chính sách
+- Desktop sidebar: 'Số liệu Sao Việt' is now expandable with 3 sub-items
+- Screenshot: /home/z/my-project/download/saoviet-subpage-canhan.png
