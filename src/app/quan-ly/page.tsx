@@ -7859,9 +7859,12 @@ export default function QuanLyPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {SAOVIET_ITEMS.map(item => {
           const Icon = item.icon;
-          const count = item.key === 'ca-nhan' ? saoVietCaNhanRows.length
+          const manualRows = saovietManualData[item.key] || [];
+          const hasManual = manualRows.length > 0;
+          const autoCount = item.key === 'ca-nhan' ? saoVietCaNhanRows.length
                      : item.key === 'tn-ktm'  ? saoVietTNKTMRows.length
                      :                          saoVietTNTDRows.length;
+          const count = hasManual ? manualRows.length : autoCount;
           return (
             <button
               key={item.key}
@@ -7887,7 +7890,9 @@ export default function QuanLyPage() {
               </div>
               <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: `${item.color}33` }}>
                 <span className="text-[10px] uppercase tracking-wider text-gray-500">Số lượng</span>
-                <span className="text-lg font-black" style={{ color: item.color }}>{count}</span>
+                {count > 0
+                  ? <span className="text-lg font-black" style={{ color: item.color }}>{count}</span>
+                  : <span className="text-[10px] text-gray-500 italic">— chưa có dữ liệu —</span>}
               </div>
             </button>
           );
@@ -8011,7 +8016,9 @@ export default function QuanLyPage() {
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <UserCircle className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt Cá Nhân (TVV)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TVV</span>
+        {mergedRows.length > 0 && (
+          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TVV</span>
+        )}
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -8052,13 +8059,6 @@ export default function QuanLyPage() {
                 ))}
               </TableRow>
             ))}
-            {mergedRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                  Chưa có dữ liệu TVV đạt FYP &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
@@ -8082,7 +8082,9 @@ export default function QuanLyPage() {
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <Users className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN KTM (TN — FYP cá nhân)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
+        {mergedRows.length > 0 && (
+          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
+        )}
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -8123,13 +8125,6 @@ export default function QuanLyPage() {
                 ))}
               </TableRow>
             ))}
-            {mergedRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                  Chưa có dữ liệu TN đạt FYP cá nhân &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
@@ -8160,7 +8155,9 @@ export default function QuanLyPage() {
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <UserPlus className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN TD (TN — FYP &amp; HĐC của TVVm do TN tuyển)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
+        {mergedRows.length > 0 && (
+          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
+        )}
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -8221,13 +8218,6 @@ export default function QuanLyPage() {
                 ])}
               </TableRow>
             ))}
-            {mergedRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
-                  Chưa có dữ liệu TN có TVVm hoạt động trong kỳ 01/12/2025 - 30/11/2026
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
