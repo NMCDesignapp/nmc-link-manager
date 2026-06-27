@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "### Mô tả chi tiết bảng \"Sao Việt\" (Bảng tham khảo)  \n\n#### **1. Tổng quan cấu trúc**  \nBảng có **5 cột chính** và **1 hàng mẫu** (dữ liệu thực tế), được thiết kế để theo dõi hiệu suất kinh doanh của đại lý (MS Đại lý) theo các hạng mục (Hạng Vàng, Hạng Bạch Kim, Hạng Kim Cương) dựa trên chỉ số **Tổng FYP** (Tổng doanh số bảo hiểm phí) trong kỳ từ **01/12/2025 đến 30/11/2026**.  \n\n#### **2. Chi tiết từng thành phần**  \n\n##### **a. Tiêu đề và tiêu đề cột**  \n- **Tiêu đề chính**: *“BẢNG SAO VIỆT NĂM 2026 - DỰ LƯỢNG BẢO HIỂM PHẨM HƯỚNG THẾ GIỚI, HIỆU THỨC THIÊN HIỆN”* (ghi ở góc trên cùng, màu đỏ).  \n- **Tiêu đề cột**:  \n  - Cột 1: *“NHÓM KD”* (Nhóm kinh doanh)  \n  - Cột 2: *“MS ĐẠI LÝ”* (Mã số đại lý)  \n  - Cột 3: *“HỌ TÊN TN”* (Họ tên đại lý)  \n  - Cột 4: *“TỔNG FYP”* (Tổng doanh số bảo hiểm phí)  \n  - Cột 5–7: *“HẠNG VÀNG”*, *“HẠNG BẠCH KIM”*, *“HẠNG KIM CƯƠNG”* (Tên hạng mục thưởng)  \n\n##### **b. Nội dung từng cột**  \n| Cột | Màu sắc ô | Nội dung | Số liệu (hàng mẫu) |  \n|-----|-----------|---------|-------------------|  \n| **NHÓM KD** | Xanh đậm | Nhóm kinh doanh (ví dụ: “Hiệp Tiến” như hàng mẫu) | Hiệp Tiến |  \n| **MS ĐẠI LÝ** | Xanh đậm | Mã số đại lý (dạng số) | D104132535 |  \n| **HỌ TÊN TN** | Xanh đậm | Họ tên đại lý | Nguyen Thi Thon |  \n| **TỔNG FYP** | Xanh đậm | Tổng doanh số bảo hiểm phí (từ 01/12/2025–30/11/2026) | 2.490.104.746 |  \n| **HẠNG VÀNG** | Vàng | - Yêu cầu: *“FYP ≥ 1,6 tỷ”* <br> - Số vé: *“01 vé”* | 11.111 |  \n| **HẠNG BẠCH KIM** | Xám | - Yêu cầu: *“FYP ≥ 3,5 tỷ”* <br> - Số vé: *“02 vé”* | 1.010 |  \n| **HẠNG KIM CƯƠNG** | Xanh dương | - Yêu cầu: *“FYP ≥ 7,0 tỷ”* <br> - Số vé: *“02 vé”* | 4.510 |  \n\n##### **c. Màu sắc và bố cục**  \n- **Ô tiêu đề cột**: Màu nền **xanh đậm** (trừ cột 4–7), chữ trắng.  \n- **Ô dữ liệu**: Màu nền **trắng** (hàng mẫu), chữ đen.  \n- **Ô hạng mục**: Màu nền tương ứng với tên hạng (Vàng, Xám, Xanh dương), chữ trắng.  \n- **Ghi chú**: *“Đơn vị tính: đồng”* (ghi ở góc trên cùng, màu đỏ).  \n\n##### **d. Hàng mẫu (dữ liệu thực tế)**  \n- **Nhóm KD**: Hiệp Tiến  \n- **MS Đại lý**: D104132535  \n- **Họ tên TN**: Nguyen Thi Thon  \n- **Tổng FYP**: 2.490.104.746 (đồng)  \n- **Hạng Vàng**: 11.111 (số vé đạt)  \n- **Hạng Bạch Kim**: 1.010 (số vé đạt)  \n- **Hạng Kim Cương**: 4.510 (số vé đạt)  \n\n#### **3. Mốc thưởng (yêu cầu FYP và số vé)**  \n| Hạng | Yêu cầu FYP | Số vé thưởng |  \n|------|-------------|-------------|  \n| Vàng | ≥ 1,6 tỷ | 01 vé |  \n| Bạch Kim | ≥ 3,5 tỷ | 02 vé |  \n| Kim Cương | ≥ 7,0 tỷ | 02 vé |  \n\n#### **4. Lưu ý**  \n- Bảng được thiết kế để theo dõi hiệu suất **theo kỳ 12 tháng** (01/12/2025–30/11/2026).  \n- Số liệu “số vé” ở cột hạng mục cho biết số lượng đại lý đạt được mốc thưởng tương ứng (ví dụ: 11.111 đại lý đạt Hạng Vàng).  \n\nBảng này giúp doanh nghiệp đánh giá hiệu suất và trao thưởng cho đại lý dựa trên doanh số FYP, với các mốc thưởng rõ ràng và dễ theo dõi.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1782521343,
+  "id": "202606270848285f5ae163dc274458",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202606270848285f5ae163dc274458",
+  "usage": {
+    "completion_tokens": 1256,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 264,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1520
+  }
+}

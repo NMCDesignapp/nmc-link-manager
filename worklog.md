@@ -462,3 +462,44 @@ Stage Summary:
 - KPI period popup now aligns with dashboard content frame on both mobile (full-width) and desktop (360px right-aligned with dashboard right edge)
 - Vinh danh page works on production; SW cache bumped to v3 to force user devices to refresh
 - New "Số liệu Sao Việt" menu item added to /quan-ly page in both mobile menu (before Cài đặt) and desktop sidebar; currently shows placeholder content pending user specification of actual data to display
+
+---
+Task ID: saoviet-3-sections
+Agent: main
+Task: Implement 3 sub-sections in Sao Việt page on /quan-ly — Cá Nhân (TVV), TN KTM (TN individual FYP), TN TD (TN team TVVm FYP+HĐC)
+
+Work Log:
+- Read 3 reference screenshots via VLM (Screenshot_20260627_074710/4736/4749.jpg)
+- Verified existing Sao Việt menu item is already wired (placeholder renderSaoViet from previous round-3 task)
+- Designed 3-section layout:
+  - Section 1 (CÁ NHÂN): tvvStructList data source, 5 rank tiers (Vàng 550tr→1 vé, BạchKim 900tr→1 vé, BạchKim 1400tr→2 vé, KimCương 1600tr→1 vé, KimCương 3000tr→2 vé)
+  - Section 2 (TN KTM): leaders filtered isTBorTNPosition, 5 rank tiers (Vàng 1.6tỷ→1 vé, BạchKim 3.5tỷ→1 vé, KimCương 5.5tỷ→2 vé, Tier4 7tỷ→1 vé, Tier5 13tỷ→2 vé)
+  - Section 3 (TN TD): leaders filtered isTBorTNPosition, team TVVm lookup (maTVVTuyendung == TN.agentCode), 2 ranks with sub-cols (Vàng: FYP≥500tr AND HĐC≥8; BạchKim: FYP≥1200tr AND HĐC≥12)
+- Period filter: 01/12/2025 - 30/11/2026 (Sao Việt year, fixed via SAO_VIET_START/END)
+- HĐC definition: TVVm with at least 1 contract having tinhLuot3tr ≥ 12,000,000 in period
+- Rank columns color-coded: Vàng amber, BạchKim slate, KimCương cyan, Tier4/5 red
+- Empty rows filtered out (only show TVV/TN with FYP > 0 or team activity > 0)
+- Sort: descending by FYP (or FYP TVVm for section 3)
+- Wrote Python script /home/z/my-project/scripts/implement_saoviet.py — replaces renderSaoViet placeholder (630 chars) with full implementation (21281 chars)
+- TypeScript check: no new errors in the new code range (lines 7450-7827)
+- Build: success
+- Commit: 5bbbeef
+- Push: success (main → 5bbbeef)
+- Verified on production (https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly):
+  - Section 1 (MỤC 1): 10 columns render correctly, sample row 1 Nguyễn Thị Thảo (Hiệp Tiến, D104132535) FYP 759.758.369₫ → "1 vé" (Vàng ≥550tr achieved), 4 cells "—" (other ranks not achieved) ✓
+  - Section 2 (MỤC 2): 10 columns render correctly, all 5 rank tier headers shown (Vàng/BạchKim/KimCương/Đặc biệt/Tối cao) ✓
+  - Section 3 (MỤC 3): 10 columns with grouped headers (Hạng vàng colspan=2, Hạng bạch kim colspan=2) + sub-headers (FYP TVVm ≥ 500 Trđ | TVVm HĐC ≥ 08 TVV | FYP TVVm ≥ 1200 Trđ | TVVm HĐC ≥ 12 TVV) ✓
+  - Section 3 row 1 Phạm Thị Kim Chung: FYP TVVm 1,495,889,899₫, SL HĐC 14/55 → ALL 4 sub-cells show ✓ (achieves both Vàng AND Bạch Kim) ✓
+  - Section 3 row 2 Nguyễn Thị Thảo: FYP TVVm 665,890,007₫, SL HĐC 6/50 → ✓ | — | — | — (only FYP≥500tr achieved) ✓
+  - Section 3 row 3 Nguyễn Thị Thùy Linh: FYP TVVm 648,390,829₫, SL HĐC 8/87 → ✓ | ✓ | — | — (Vàng achieved, BạchKim not) ✓
+
+Stage Summary:
+- Sao Việt page now has 3 fully functional sub-sections replacing previous placeholder
+- Period is hardcoded to 01/12/2025 - 30/11/2026 (Sao Việt year)
+- Section 1 ranks TVV by personal FYP with 5 voucher tiers
+- Section 2 ranks TN by personal FYP with 5 higher-value voucher tiers
+- Section 3 ranks TN by team TVVm FYP + HĐC count with 2 dual-condition ranks
+- All rank cells show achievement status (✓ or "1 vé"/"2 vé" if achieved, "—" if not)
+- Color coding matches rank tiers (amber/slate/cyan/red)
+- Production verified via agent-browser — all 3 tables render with correct columns, data, and rank logic
+- Screenshot saved: /home/z/my-project/download/saoviet-3-sections.png

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Để mô tả chi tiết bảng \"Sao Việt\" (tham khảo), chúng ta phân tích từng thành phần cấu trúc, màu sắc, nội dung và số liệu như sau:\n\n\n### **1. Cấu trúc tổng thể**\n- **Bảng có 8 cột** (STT, NHÓM KD, MS ĐẠI LÝ, HỌ TÊN TN, TỔNG FYP TVVm, SL TVVm HDC, HẠNG VÀNG, HẠNG BẠCH KIM) và **1 hàng dữ liệu mẫu** (hàng 7).  \n- **Màu sắc nền**:  \n  - Các cột thông tin (STT, NHÓM KD, MS ĐẠI LÝ, HỌ TÊN TN, TỔNG FYP TVVm, SL TVVm HDC): Nền xanh đậm (teal) với chữ trắng.  \n  - Cột \"HẠNG VÀNG\": Nền xanh nhạt (light blue) với chữ vàng.  \n  - Cột \"HẠNG BẠCH KIM\": Nền xanh nhạt (light blue) với chữ xám.  \n- **Phông chữ**: Chữ trắng (các cột thông tin) và chữ vàng/xám (các cột hạng).  \n\n\n### **2. Chi tiết từng cột**\n#### **Cột 1: STT (Số thứ tự)**\n- **Nội dung**: Số thứ tự của đại lý.  \n- **Hàng mẫu**: \"1\" (dữ liệu cho đại lý đầu tiên).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 2: NHÓM KD (Nhóm kinh doanh)**\n- **Nội dung**: Nhóm kinh doanh mà đại lý thuộc về.  \n- **Hàng mẫu**: \"Sao Chổi Mới\" (tên nhóm).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 3: MS ĐẠI LÝ (Mã đại lý)**\n- **Nội dung**: Mã định danh duy nhất của đại lý.  \n- **Hàng mẫu**: \"D1041A318E\" (mã đại lý).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 4: HỌ TÊN TN (Họ tên thành viên)**\n- **Nội dung**: Tên đầy đủ của đại lý.  \n- **Hàng mẫu**: \"Nguyễn Thị Kim Ngân\" (tên thành viên).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 5: TỔNG FYP TVVm (Tổng FYP TVVm)**\n- **Nội dung**: Tổng doanh số FYP (First Year Premium) của TVVm (Tài chính Viễn thông) trong khoảng thời gian **01/12/25 - 30/11/26**.  \n- **Hàng mẫu**: \"612.312.917\" (số liệu FYP).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 6: SL TVVm HDC (Số lượng TVVm HDC)**\n- **Nội dung**: Số lượng hợp đồng TVVm (Tài chính Viễn thông) có hiệu lực (HDC: Hợp đồng có hiệu lực) trong khoảng thời gian **01/12/25 - 30/11/26**.  \n- **Hàng mẫu**: \"14\" (số lượng hợp đồng).  \n- **Màu sắc**: Nền xanh đậm, chữ trắng.  \n\n\n#### **Cột 7: HẠNG VÀNG (Golden Rank)**\n- **Nội dung**: Tiêu chí để đạt hạng Vàng (màu vàng) và mốc thưởng:  \n  - **FYP TVVm ≥ 500 Trđ**: Doanh số FYP TVVm phải đạt từ 500 tỷ đồng trở lên.  \n  - **TVMm HDC ≥ 08 TVV**: Số lượng hợp đồng TVVm HDC phải đạt từ 8 hợp đồng trở lên.  \n- **Hàng mẫu**: \"11.111\" (số liệu FYP) và \"11.111\" (số liệu SL).  \n- **Màu sắc**: Nền xanh nhạt, chữ vàng.  \n\n\n#### **Cột 8: HẠNG BẠCH KIM (Platinum Rank)**\n- **Nội dung**: Tiêu chí để đạt hạng Bạch Kim (màu xám) và mốc thưởng:  \n  - **FYP TVVm ≥ 1200 Trđ**: Doanh số FYP TVVm phải đạt từ 1200 tỷ đồng trở lên.  \n  - **TVMm HDC ≥ TVV**: Số lượng hợp đồng TVVm HDC phải đạt từ 1 hợp đồng trở lên (ghi chú: có thể là \"≥ 1\" nhưng bị cắt).  \n- **Hàng mẫu**: \"-588\" (số liệu FYP) và \"11.111\" (số liệu SL).  \n- **Màu sắc**: Nền xanh nhạt, chữ xám.  \n\n\n### **3. Ghi chú bổ sung**\n- **Thời gian**: Khoảng thời gian áp dụng cho các chỉ số (FYP, SL) là **01/12/25 - 30/11/26** (ghi chú trong cột 5 và 6).  \n- **Đơn vị**:  \n  - FYP: Đơn vị \"Trđ\" (Tỷ đồng).  \n  - SL: Đơn vị \"TVV\" (Tài chính Viễn thông) hoặc \"hợp đồng\".  \n- **Hàng mẫu**: Dữ liệu cho đại lý \"Nguyễn Thị Kim Ngân\" (STT 1) cho thấy:  \n  - Tổng FYP TVVm: 612.312.917 (tương đương ~612 tỷ đồng).  \n  - SL TVVm HDC: 14 hợp đồng.  \n  - Hạng Vàng: Đạt (FYP 11.111 > 500, SL 11.111 > 8).  \n  - Hạng Bạch Kim: Không đạt (FYP -588 < 1200, dù SL 11.111 ≥ 1).  \n\n\n### **Tóm tắt cấu trúc**\n| Cột | Tên cột | Nội dung | Hàng mẫu | Màu sắc nền | Màu sắc chữ |\n|-----|---------|----------|----------|-------------|-------------|\n| 1 | STT | Số thứ tự | 1 | Xanh đậm | Trắng |\n| 2 | NHÓM KD | Nhóm kinh doanh | Sao Chổi Mới | Xanh đậm | Trắng |\n| 3 | MS ĐẠI LÝ | Mã đại lý | D1041A318E | Xanh đậm | Trắng |\n| 4 | HỌ TÊN TN | Họ tên thành viên | Nguyễn Thị Kim Ngân | Xanh đậm | Trắng |\n| 5 | TỔNG FYP TVVm | Tổng FYP TVVm (01/12/25 - 30/11/26) | 612.312.917 | Xanh đậm | Trắng |\n| 6 | SL TVVm HDC | Số lượng TVVm HDC (01/12/25 - 30/11/26) | 14 | Xanh đậm | Trắng |\n| 7 | HẠNG VÀNG | Tiêu chí: FYP ≥ 500 Trđ, SL ≥ 08 TVV | 11.111 / 11.111 | Xanh nhạt | Vàng |\n| 8 | HẠNG BẠCH KIM | Tiêu chí: FYP ≥ 1200 Trđ, SL ≥ TVV | -588 / 11.111 | Xanh nhạt | Xám |\n\n\nBảng này được thiết kế để theo dõi hiệu suất kinh doanh của đại lý, phân loại hạng dựa trên doanh số và số lượng hợp đồng, với màu sắc phân biệt rõ ràng để dễ nhận diện.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1782521404,
+  "id": "202606270849410ed8b93077ef4544",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202606270849410ed8b93077ef4544",
+  "usage": {
+    "completion_tokens": 1795,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 260,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 2055
+  }
+}

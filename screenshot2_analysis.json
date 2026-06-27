@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Để mô tả chi tiết bảng \"Sao Việt\" (tham khảo), chúng ta phân tích cấu trúc, nội dung và các yếu tố trực quan như sau:\n\n\n### **1. Tổng quan cấu trúc bảng**\nBảng được chia thành **2 phần chính**:\n- **Phần thông tin cơ bản (cột 1–5)**: Dành cho thông tin nhận diện và tổng hợp dữ liệu.\n- **Phần phân loại hạng (cột 6–9)**: Dành cho phân loại thành tích theo các mốc thưởng.\n\n\n### **2. Chi tiết từng phần**\n\n#### **A. Phần thông tin cơ bản (cột 1–5)**\n- **Tiêu đề cột**: \n  - Cột 1: `STT` (Số thứ tự)  \n  - Cột 2: `NHÓM KD` (Nhóm kinh doanh)  \n  - Cột 3: `MÃ SỐ ĐẠI LÝ` (Mã định danh đại lý)  \n  - Cột 4: `HỌ TÊN TVV` (Họ và tên người tham gia)  \n  - Cột 5: `TỔNG FYP` (Tổng doanh số FYP)  \n- **Nội dung cột**:  \n  - `STT`: Số thứ tự của hàng (ví dụ: hàng 1 có `STT = 1`).  \n  - `NHÓM KD`: Nhóm kinh doanh mà đại lý thuộc về (ví dụ: `Hiệp Tiến`).  \n  - `MÃ SỐ ĐẠI LÝ`: Mã định danh duy nhất của đại lý (ví dụ: `D104132535`).  \n  - `HỌ TÊN TVV`: Tên đầy đủ của người tham gia (ví dụ: `Nguyễn Thị Thảo`).  \n  - `TỔNG FYP`: Tổng doanh số FYP trong khoảng thời gian `01/12/25 - 30/11/26` (ví dụ: `890.074.735`).  \n- **Màu sắc ô**: Cột 1–5 có màu nền **xanh đậm** (màu xanh rêu) với chữ **trắng**.  \n- **Hàng mẫu**: Hàng 1 (hiển thị dữ liệu ví dụ: `1`, `Hiệp Tiến`, `D104132535`, `Nguyễn Thị Thảo`, `890.074.735`).\n\n\n#### **B. Phần phân loại hạng (cột 6–9)**\n- **Tiêu đề cột**:  \n  - Cột 6: `HẠNG VÀNG` (FYP ≥ 550tr)  \n  - Cột 7: `HẠNG BẠCH KIM` (FYP ≥ 900tr)  \n  - Cột 8: `HẠNG KIM CƯƠNG` (FYP ≥ 1600tr)  \n- **Nội dung cột**:  \n  - Mỗi cột hiển thị **2 thông tin**:  \n    1. **Mốc thưởng**: Doanh số FYP tối thiểu để đạt hạng (ví dụ: `FYP ≥ 550tr` cho `HẠNG VÀNG`).  \n    2. **Số lượng vé**: Số vé tương ứng với hạng đó (ví dụ: `01 vé` cho `HẠNG VÀNG`).  \n- **Màu sắc ô**:  \n  - Cột 6: Màu nền **vàng** (màu vàng cam) với chữ **đen**.  \n  - Cột 7: Màu nền **xám bạc** (màu xám nhạt) với chữ **đen**.  \n  - Cột 8: Màu nền **xám kim cương** (màu xám đậm) với chữ **đen**.  \n- **Hàng mẫu**: Hàng 1 hiển thị:  \n  - `HẠNG VÀNG`: `FYP ≥ 550tr` + `01 vé`  \n  - `HẠNG BẠCH KIM`: `FYP ≥ 900tr` + `01 vé`  \n  - `HẠNG KIM CƯƠNG`: `FYP ≥ 1600tr` + `01 vé`\n\n\n### **3. Các mốc thưởng và số liệu**\n| Hạng          | Mốc FYP (tối thiểu) | Số vé |  \n|---------------|--------------------|-------|  \n| Hạng Vàng     | 550tr              | 01    |  \n| Hạng Bạch Kim | 900tr              | 01    |  \n| Hạng Kim Cương| 1600tr             | 01    |  \n\n\n### **4. Ghi chú bổ sung**\n- **Khoảng thời gian**: Dữ liệu áp dụng cho kỳ `01/12/25 - 30/11/26` (ghi ở cột 5).  \n- **Định dạng số**: Doanh số FYP được định dạng với dấu chấm phân cách hàng nghìn (ví dụ: `890.074.735`).  \n- **Màu sắc**: Sử dụng màu sắc tương phản (xanh đậm, vàng, xám) để phân biệt các phần và nhấn mạnh thông tin quan trọng.\n\n\n### **Tóm tắt cấu trúc**\n| Cột | Tiêu đề       | Nội dung chính                          | Màu nền   | Màu chữ |  \n|-----|---------------|----------------------------------------|-----------|---------|  \n| 1   | STT           | Số thứ tự                              | Xanh đậm  | Trắng   |  \n| 2   | NHÓM KD       | Nhóm kinh doanh                         | Xanh đậm  | Trắng   |  \n| 3   | MÃ SỐ ĐẠI LÝ  | Mã định danh đại lý                     | Xanh đậm  | Trắng   |  \n| 4   | HỌ TÊN TVV    | Họ và tên người tham gia                | Xanh đậm  | Trắng   |  \n| 5   | TỔNG FYP      | Tổng doanh số FYP (01/12/25 - 30/11/26)   | Xanh đậm  | Trắng   |  \n| 6   | HẠNG VÀNG     | FYP ≥ 550tr + 01 vé                     | Vàng      | Đen     |  \n| 7   | HẠNG BẠCH KIM | FYP ≥ 900tr + 01 vé                     | Xám bạc   | Đen     |  \n| 8   | HẠNG KIM CƯƠNG| FYP ≥ 1600tr + 01 vé                    | Xám kim cương | Đen   |  \n\n\nBảng này được thiết kế để dễ dàng theo dõi thành tích của đại lý và phân loại họ vào các hạng thưởng dựa trên doanh số FYP.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1782521380,
+  "id": "202606270849039dbefd69103c4bf5",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202606270849039dbefd69103c4bf5",
+  "usage": {
+    "completion_tokens": 1552,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 264,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1816
+  }
+}
