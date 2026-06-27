@@ -249,3 +249,24 @@ model TuyenNgang {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
+
+// Số liệu Sao Việt — upload/sync thủ công per chương trình
+// program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
+// Nguyên tắc upfile: xóa toàn bộ rows của program, rồi insert rows mới
+// ca-nhan & tn-ktm: dùng fyp
+// tn-td: dùng fypTVVm + slTvvmHDC + tvvmCount
+model SaoVietData {
+  id          String   @id @default(uuid())
+  program     String                                  // 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  agentCode   String   @default("")
+  agentName   String   @default("")
+  nhomKD      String   @default("")
+  fyp         Float    @default(0)                    // For ca-nhan & tn-ktm
+  fypTVVm     Float    @default(0)                    // For tn-td
+  slTvvmHDC   Int      @default(0)                    // For tn-td
+  tvvmCount   Int      @default(0)                    // For tn-td
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([program])
+}

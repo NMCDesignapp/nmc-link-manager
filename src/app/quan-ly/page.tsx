@@ -3809,6 +3809,19 @@ export default function QuanLyPage() {
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
 
+  // ---------- SAO VIỆT — manual data + sync link per program ----------
+  // program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  // saovietLinks: Google Sheets URL per program (persisted via Settings API key `saoviet-link-${program}`)
+  // saovietManualData: rows uploaded/synced from DB — when present, overrides computed data from contracts
+  const SAOVIET_PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
+  type SaoVietProgram = typeof SAOVIET_PROGRAMS[number];
+  const [saovietLinks, setSaovietLinks] = useState<Record<string, string>>({});
+  const [saovietManualData, setSaovietManualData] = useState<Record<string, any[]>>({
+    'ca-nhan': [], 'tn-ktm': [], 'tn-td': [],
+  });
+  const [saovietSyncing, setSaovietSyncing] = useState<Record<string, boolean>>({});
+  const [saovietUploading, setSaovietUploading] = useState<Record<string, boolean>>({});
+
   // Update summary boxes (top) + footer (bottom) khi policy/filter thay đổi
   // Mỗi render function thêm data-policy-count + data-policy-amount vào div ngoài cùng của bảng
   useEffect(() => {
@@ -3869,6 +3882,169 @@ export default function QuanLyPage() {
         setPolicyImageLinks(links);
       })
       .catch(() => {});
+  }, []);
+
+  // ---------- SAO VIỆT: load links + manual data on mount ----------
+  useEffect(() => {
+    // 1) Load sync links from Settings API
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : {})
+      .then(data => {
+        const links: Record<string, string> = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (key.startsWith('saoviet-link-') && value) {
+            links[key.replace('saoviet-link-', '')] = String(value);
+          }
+        }
+        setSaovietLinks(links);
+      })
+      .catch(() => {});
+    // 2) Load manual data per program
+    Promise.all(SAOVIET_PROGRAMS.map(p =>
+      fetch(`/api/saoviet-data?program=${p}`).then(r => r.ok ? r.json() : []).then(rows => [p, rows] as const)
+    ))
+      .then(entries => {
+        const next: Record<string, any[]> = { 'ca-nhan': [], 'tn-ktm': [], 'tn-td': [] };
+        for (const [p, rows] of entries) next[p] = Array.isArray(rows) ? rows : [];
+        setSaovietManualData(next);
+      })
+      .catch(() => {});
+  }, []);
+
+  // ---------- SAO VIỆT: save link via Settings API ----------
+  const saveSaovietLink = useCallback(async (program: string, link: string) => {
+    setSaovietLinks(prev => {
+      const next = { ...prev };
+      if (link) next[program] = link; else delete next[program];
+      return next;
+    });
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`saoviet-link-${program}`]: link }),
+      });
+    } catch {
+      toast({ title: 'Lỗi lưu link', variant: 'destructive' });
+    }
+  }, []);
+
+  // ---------- SAO VIỆT: sync from Google Sheets link ----------
+  const handleSaovietSync = useCallback(async (program: string) => {
+    const link = saovietLinks[program] || '';
+    if (!link) { toast({ title: 'Chưa có link', description: 'Vui lòng nhập link Google Sheets trước', variant: 'destructive' }); return; }
+    setSaovietSyncing(prev => ({ ...prev, [program]: true }));
+    try {
+      const r = await fetch('/api/saoviet-data/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ program, link }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast({ title: 'Đồng bộ thành công', description: `${data.count || 0} dòng mới (đã xóa ${data.deleted || 0} dòng cũ)` });
+        // Reload rows for this program
+        const fresh = await fetch(`/api/saoviet-data?program=${program}`).then(r => r.ok ? r.json() : []);
+        setSaovietManualData(prev => ({ ...prev, [program]: Array.isArray(fresh) ? fresh : [] }));
+      } else {
+        toast({ title: 'Lỗi đồng bộ', description: data.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi đồng bộ', description: String(e), variant: 'destructive' });
+    } finally {
+      setSaovietSyncing(prev => ({ ...prev, [program]: false }));
+    }
+  }, [saovietLinks]);
+
+  // ---------- SAO VIỆT: upload file (xlsx/csv) — nguyên tắc: xóa hết, insert mới ----------
+  const handleSaovietUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSaovietUploading(prev => ({ ...prev, [program]: true }));
+    try {
+      let rowsIn: any[] = [];
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        const text = await file.text();
+        // Simple CSV parse
+        const lines = text.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '');
+        if (lines.length < 2) { toast({ title: 'File CSV trống', variant: 'destructive' }); e.target.value = ''; return; }
+        const parseLine = (line: string) => {
+          const out: string[] = []; let cur = ''; let inQ = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (inQ) {
+              if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+              else if (ch === '"') inQ = false;
+              else cur += ch;
+            } else {
+              if (ch === '"') inQ = true;
+              else if (ch === ',') { out.push(cur); cur = ''; }
+              else cur += ch;
+            }
+          }
+          out.push(cur); return out;
+        };
+        const header = parseLine(lines[0]).map(h => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseLine(lines[i]);
+          const obj: any = {};
+          header.forEach((h, idx) => { obj[h] = cells[idx] ?? ''; });
+          rowsIn.push(obj);
+        }
+      } else {
+        const XLSX = await import('xlsx');
+        const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+        rowsIn = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
+      }
+      if (rowsIn.length === 0) {
+        // Empty file → still clear existing data
+        const r = await fetch('/api/saoviet-data', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ program, rows: [] }),
+        });
+        if (r.ok) {
+          toast({ title: 'Đã xóa dữ liệu', description: 'File rỗng — toàn bộ dữ liệu cũ đã được xóa' });
+          setSaovietManualData(prev => ({ ...prev, [program]: [] }));
+        }
+        e.target.value = '';
+        return;
+      }
+      const r = await fetch('/api/saoviet-data', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ program, rows: rowsIn }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast({ title: 'Upload thành công', description: `${data.count || 0} dòng mới (đã xóa ${data.deleted || 0} dòng cũ)` });
+        // Reload rows for this program
+        const fresh = await fetch(`/api/saoviet-data?program=${program}`).then(r => r.ok ? r.json() : []);
+        setSaovietManualData(prev => ({ ...prev, [program]: Array.isArray(fresh) ? fresh : [] }));
+      } else {
+        toast({ title: 'Lỗi upload', description: data.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Lỗi upload', description: String(err), variant: 'destructive' });
+    } finally {
+      setSaovietUploading(prev => ({ ...prev, [program]: false }));
+      e.target.value = '';
+    }
+  }, []);
+
+  // ---------- SAO VIỆT: clear manual data ----------
+  const handleSaovietClear = useCallback(async (program: string) => {
+    if (!confirm(`Xóa toàn bộ dữ liệu đã upload/sync của mục này?\nSau khi xóa, trang sẽ tự động tính lại từ Hợp đồng/Nhân sự.`)) return;
+    try {
+      const r = await fetch(`/api/saoviet-data?program=${program}`, { method: 'DELETE' });
+      if (r.ok) {
+        toast({ title: 'Đã xóa', description: 'Dữ liệu thủ công đã được xóa' });
+        setSaovietManualData(prev => ({ ...prev, [program]: [] }));
+      } else {
+        const d = await r.json().catch(() => ({}));
+        toast({ title: 'Lỗi xóa', description: d.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi xóa', description: String(e), variant: 'destructive' });
+    }
   }, []);
 
   // ========================================================================
@@ -7727,13 +7903,115 @@ export default function QuanLyPage() {
     </div>
   );
 
+  // ---------- Helper: panel đồng bộ + upload (dùng chung cho 3 sub-page) ----------
+  // program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  // UI: input link + nút đồng bộ + nút upload + nút xóa (nếu có data manual)
+  const renderSaovietPanel = (program: string) => {
+    const link = saovietLinks[program] || '';
+    const isSyncing = !!saovietSyncing[program];
+    const isUploading = !!saovietUploading[program];
+    const manualCount = (saovietManualData[program] || []).length;
+    return (
+      <div className="p-3 border border-violet-500/30 rounded-lg" style={{ backgroundColor: 'rgba(124, 58, 237, 0.05)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-violet-300">Đồng bộ & Upload số liệu</h4>
+          {manualCount > 0 && (
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+              <CheckCircle2 className="w-3 h-3" /> {manualCount} dòng (từ upload/sync)
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {/* Left col: link input + sync button */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-violet-200/70">Link Google Sheets (CSV)</Label>
+            <div className="flex items-center gap-1">
+              <Input
+                defaultValue={link}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="h-7 text-[11px] bg-white border-violet-500/30 text-gray-800 placeholder-gray-400 flex-1"
+                onBlur={(e) => saveSaovietLink(program, e.target.value.trim())}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              />
+              {link && (
+                <a href={link} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-700 flex-shrink-0" title="Mở link">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isSyncing || !link}
+              onClick={() => handleSaovietSync(program)}
+              className="h-7 text-[11px] w-full bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-700 disabled:opacity-50"
+            >
+              {isSyncing
+                ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang đồng bộ...</>
+                : <><RefreshCw className="w-3 h-3 mr-1" /> Đồng bộ từ link</>}
+            </Button>
+          </div>
+          {/* Right col: upload + clear */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-violet-200/70">Upload file Excel/CSV (xóa hết &amp; up lại)</Label>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              id={`saoviet-upload-${program}`}
+              onChange={(e) => handleSaovietUpload(program, e)}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isUploading}
+              onClick={() => document.getElementById(`saoviet-upload-${program}`)?.click()}
+              className="h-7 text-[11px] w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-700 disabled:opacity-50"
+            >
+              {isUploading
+                ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang upload...</>
+                : <><Upload className="w-3 h-3 mr-1" /> Chọn file upload</>}
+            </Button>
+            {manualCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSaovietClear(program)}
+                className="h-7 text-[11px] w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600"
+              >
+                <Trash2 className="w-3 h-3 mr-1" /> Xóa dữ liệu thủ công
+              </Button>
+            )}
+          </div>
+        </div>
+        {manualCount > 0 && (
+          <p className="text-[10px] text-violet-600/80 mt-2 leading-relaxed">
+            <strong>Lưu ý:</strong> Đang hiển thị <strong>{manualCount} dòng</strong> từ dữ liệu upload/sync.
+            Toàn bộ dữ liệu cũ của mục này đã bị xóa khi upload. Nhấn "Xóa dữ liệu thủ công" để trở về chế độ tự tính từ Hợp đồng.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   // ---------- Sub-page: SAO VIỆT CÁ NHÂN (Section 1) ----------
-  const renderSaoVietCaNhan = () => (
-    <div className="space-y-3">
+  const renderSaoVietCaNhan = () => {
+    // Ưu tiên data manual (upload/sync) nếu có, ngược lại dùng data tính từ Hợp đồng
+    const mergedRows = (saovietManualData['ca-nhan'] || []).length > 0
+      ? (saovietManualData['ca-nhan'] || [])
+          .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
+          .filter(r => r.fyp > 0)
+          .sort((a, b) => b.fyp - a.fyp)
+      : saoVietCaNhanRows;
+    return (
+    <>
+      {renderSaovietPanel('ca-nhan')}
+      <div className="space-y-3">
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <UserCircle className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt Cá Nhân (TVV)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietCaNhanRows.length} TVV</span>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TVV</span>
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -7760,7 +8038,7 @@ export default function QuanLyPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {saoVietCaNhanRows.map((r, i) => (
+            {mergedRows.map((r, i) => (
               <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
                 <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
@@ -7774,7 +8052,7 @@ export default function QuanLyPage() {
                 ))}
               </TableRow>
             ))}
-            {saoVietCaNhanRows.length === 0 && (
+            {mergedRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
                   Chưa có dữ liệu TVV đạt FYP &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
@@ -7785,15 +8063,26 @@ export default function QuanLyPage() {
         </Table>
       </div>
     </div>
+    </>
   );
+  };
 
   // ---------- Sub-page: SAO VIỆT TN KTM (Section 2) ----------
-  const renderSaoVietTNKTM = () => (
-    <div className="space-y-3">
+  const renderSaoVietTNKTM = () => {
+    const mergedRows = (saovietManualData['tn-ktm'] || []).length > 0
+      ? (saovietManualData['tn-ktm'] || [])
+          .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
+          .filter(r => r.fyp > 0)
+          .sort((a, b) => b.fyp - a.fyp)
+      : saoVietTNKTMRows;
+    return (
+    <>
+      {renderSaovietPanel('tn-ktm')}
+      <div className="space-y-3">
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <Users className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN KTM (TN — FYP cá nhân)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietTNKTMRows.length} TN</span>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -7820,7 +8109,7 @@ export default function QuanLyPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {saoVietTNKTMRows.map((r, i) => (
+            {mergedRows.map((r, i) => (
               <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
                 <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
@@ -7834,7 +8123,7 @@ export default function QuanLyPage() {
                 ))}
               </TableRow>
             ))}
-            {saoVietTNKTMRows.length === 0 && (
+            {mergedRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
                   Chưa có dữ liệu TN đạt FYP cá nhân &gt; 0 trong kỳ 01/12/2025 - 30/11/2026
@@ -7845,15 +8134,33 @@ export default function QuanLyPage() {
         </Table>
       </div>
     </div>
+    </>
   );
+  };
 
   // ---------- Sub-page: SAO VIỆT TN TD (Section 3) ----------
-  const renderSaoVietTNTD = () => (
-    <div className="space-y-3">
+  const renderSaoVietTNTD = () => {
+    const mergedRows = (saovietManualData['tn-td'] || []).length > 0
+      ? (saovietManualData['tn-td'] || [])
+          .map(r => ({
+            agentCode: r.agentCode || '',
+            agentName: r.agentName || '',
+            nhomKD: r.nhomKD || '',
+            fypTVVm: Number(r.fypTVVm) || 0,
+            slTvvmHDC: Number(r.slTvvmHDC) || 0,
+            tvvmCount: Number(r.tvvmCount) || 0,
+          }))
+          .filter(r => r.fypTVVm > 0 || r.slTvvmHDC > 0)
+          .sort((a, b) => b.fypTVVm - a.fypTVVm)
+      : saoVietTNTDRows;
+    return (
+    <>
+      {renderSaovietPanel('tn-td')}
+      <div className="space-y-3">
       <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
         <UserPlus className="w-4 h-4 text-violet-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN TD (TN — FYP &amp; HĐC của TVVm do TN tuyển)</h3>
-        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{saoVietTNTDRows.length} TN</span>
+        <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
       </div>
       <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
         <Table>
@@ -7900,7 +8207,7 @@ export default function QuanLyPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {saoVietTNTDRows.map((r, i) => (
+            {mergedRows.map((r, i) => (
               <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
                 <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
@@ -7914,7 +8221,7 @@ export default function QuanLyPage() {
                 ])}
               </TableRow>
             ))}
-            {saoVietTNTDRows.length === 0 && (
+            {mergedRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-gray-500 text-sm py-8">
                   Chưa có dữ liệu TN có TVVm hoạt động trong kỳ 01/12/2025 - 30/11/2026
@@ -7932,7 +8239,9 @@ export default function QuanLyPage() {
         </p>
       </div>
     </div>
+    </>
   );
+  };
 
   const renderSaoViet = () => {
     if (saovietOpen === 'ca-nhan') return renderSaoVietCaNhan();
