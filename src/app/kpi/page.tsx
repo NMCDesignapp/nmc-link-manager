@@ -572,35 +572,38 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes adpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .kpi-app .adp-modal {
-  width: 100%; max-width: 972px; height: calc(100vh - 24px); max-height: 684px;
+  width: 100%; max-width: 1080px; height: calc(100vh - 24px); max-height: 760px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
-  border-radius: 7px; overflow: hidden;
-  box-shadow: 0 14px 36px #00000066, 0 0 0 1px #c8d8ea;
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
   display: flex; flex-direction: column;
+  /* Scale down entire popup ~10% like shrinking an image */
+  transform: scale(.9);
+  transform-origin: center center;
   animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
   will-change: transform, opacity;
 }
 @keyframes adpIn {
   from { opacity: 0; transform: scale(.18); }
-  to   { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(.9); }
 }
 
 .kpi-app .adp-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 11px;
+  padding: 7px 12px;
   background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
   border-bottom: 2px solid #1a4a7a;
   box-shadow: 0 2px 0 #ffffff22 inset, 0 2px 6px #00000022;
   flex-shrink: 0;
 }
 .kpi-app .adp-header-name {
-  color: #fff; font-size: 12px; font-weight: 900;
+  color: #fff; font-size: 13px; font-weight: 900;
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   letter-spacing: .02em;
 }
 .kpi-app .adp-close {
-  flex-shrink: 0; width: 23px; height: 23px; border-radius: 5px;
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 5px;
   background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
   color: #fff; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
@@ -611,7 +614,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-body {
   flex: 1; min-height: 0;
   display: grid; grid-template-rows: auto 1fr; gap: 4px;
-  padding: 5px 7px 7px;
+  padding: 6px 8px 8px;
   overflow: hidden;
 }
 
@@ -622,7 +625,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   padding-bottom: 4px;
 }
 .kpi-app .adp-top-grid {
-  display: grid; grid-template-columns: 1fr 2fr; gap: 7px;
+  display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
   flex: 1; min-height: 0;
   overflow-y: auto;
 }
@@ -633,9 +636,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 
 .kpi-app .adp-section-label {
-  font-size: 9px; font-weight: 800; color: #1a3a5e;
+  font-size: 10px; font-weight: 800; color: #1a3a5e;
   text-transform: uppercase; letter-spacing: .04em;
-  border-left: 3px solid #3a7cc8; padding-left: 5px;
+  border-left: 3px solid #3a7cc8; padding-left: 6px;
   flex-shrink: 0;
 }
 .kpi-app .adp-section-name {
@@ -643,13 +646,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 .kpi-app .adp-nhom-buttons {
-  display: flex; flex-wrap: wrap; gap: 4px;
+  display: flex; flex-wrap: wrap; gap: 5px;
 }
 .kpi-app .adp-nhom-btn {
-  padding: 4px 11px; border-radius: 5px;
+  padding: 5px 12px; border-radius: 6px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
   border: 1.5px solid #3a7cc8;
-  color: #1a3a5e; font-family: inherit; font-size: 9px; font-weight: 800;
+  color: #1a3a5e; font-family: inherit; font-size: 10px; font-weight: 800;
   cursor: pointer; transition: all .12s;
   box-shadow: 0 2px 4px rgba(58, 124, 200, 0.18), inset 0 1px 0 #ffffff;
   white-space: nowrap;
@@ -670,7 +673,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-info-row {
   background: linear-gradient(180deg, #ffffff 0%, #f4f8fc 100%);
   border: 1.5px solid #3a7cc8; border-radius: 4px;
-  padding: 4px 4px;
+  padding: 5px 4px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 2px;
@@ -678,7 +681,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   min-width: 0;
 }
 .kpi-app .adp-info-key {
-  font-size: 8px; font-weight: 800; color: #5a7088;
+  font-size: 9px; font-weight: 800; color: #5a7088;
   text-transform: uppercase; letter-spacing: .03em;
   text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -686,13 +689,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   line-height: 1.15;
 }
 .kpi-app .adp-info-val {
-  font-size: 10px; font-weight: 900; color: #1a3a5e;
+  font-size: 11px; font-weight: 900; color: #1a3a5e;
   text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   width: 100%;
 }
 .kpi-app .adp-info-row-tvv { grid-column: span 4; }
-.kpi-app .adp-info-sub { font-size: 8.5px; font-weight: 700; color: #5a7088; }
+.kpi-app .adp-info-sub { font-size: 9.5px; font-weight: 700; color: #5a7088; }
 
 .kpi-app .adp-table-wrap {
   flex: 1; min-height: 0;
@@ -710,7 +713,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-table-wrap::-webkit-scrollbar-thumb:hover { background: #8aa0b8; }
 .kpi-app .adp-table {
   width: 100%; border-collapse: separate; border-spacing: 0;
-  font-size: 9px;
+  font-size: 10px;
   background: transparent;
 }
 .kpi-app .adp-table thead {
@@ -721,28 +724,28 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-table thead th {
   background: #3a7cc8;
   color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
-  padding: 4px 4px; text-align: center; white-space: nowrap;
+  padding: 5px 4px; text-align: center; white-space: nowrap;
   border-right: 1px solid #2a5a8a;
   border-bottom: 1px solid #2a5a8a;
-  font-size: 8px;
+  font-size: 9px;
 }
 .kpi-app .adp-table thead th:last-child { border-right: none; }
 .kpi-app .adp-table thead tr:nth-child(2) th {
   border-top: 1px solid #2a5a8a;
 }
-.kpi-app .adp-th-stt { width: 25px; }
-.kpi-app .adp-th-code { width: 76px; }
-.kpi-app .adp-th-name { min-width: 117px; max-width: 171px; }
-.kpi-app .adp-th-pos { width: 27px; }
-.kpi-app .adp-th-ip { border-left: 1px solid #2a5a8a; padding: 4px 4px !important; position: relative; }
+.kpi-app .adp-th-stt { width: 28px; }
+.kpi-app .adp-th-code { width: 84px; }
+.kpi-app .adp-th-name { min-width: 130px; max-width: 190px; }
+.kpi-app .adp-th-pos { width: 30px; }
+.kpi-app .adp-th-ip { border-left: 1px solid #2a5a8a; padding: 5px 4px !important; position: relative; }
 .kpi-app .adp-th-ip-label { display: inline-block; }
 .kpi-app .adp-th-ip-unit {
   position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
   font-style: italic; font-weight: 500;
-  font-size: 6px; opacity: 0.85;
+  font-size: 6.5px; opacity: 0.85;
   pointer-events: none;
 }
-.kpi-app .adp-th-month { width: 29px; font-size: 8px; padding: 3px 1px; }
+.kpi-app .adp-th-month { width: 32px; font-size: 9px; padding: 4px 1px; }
 
 .kpi-app .adp-table tbody tr { transition: background .12s; }
 .kpi-app .adp-table tbody tr:hover {
@@ -750,18 +753,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .adp-table tbody tr:first-child td { border-top: none; }
 .kpi-app .adp-table tbody td {
-  padding: 3.5px 3px; text-align: center;
+  padding: 4px 3px; text-align: center;
   border-top: 1px dashed #c8d4e0;
   border-right: 1px solid #d8e2ec;
   font-weight: 700; color: #2a4a6a; white-space: nowrap;
-  font-size: 8.5px;
+  font-size: 9.5px;
 }
 .kpi-app .adp-table tbody td:last-child { border-right: none; }
 .kpi-app .adp-td-stt { color: #8aa0b8; font-weight: 800; }
-.kpi-app .adp-td-code { font-family: monospace; font-size: 7.5px; color: #5a7088; }
+.kpi-app .adp-td-code { font-family: monospace; font-size: 8.5px; color: #5a7088; }
 .kpi-app .adp-td-name {
   text-align: left !important; color: #1a3a5e; font-weight: 800;
-  max-width: 171px; overflow: hidden; text-overflow: ellipsis;
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-app .adp-td-pos {
   font-weight: 900; color: #2a6ab8;
@@ -771,8 +774,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-td-ip { color: #8aa0b8; font-weight: 700; }
 .kpi-app .adp-td-ip.has { color: #B45309; font-weight: 900; background: #fff8e8; }
 .kpi-app .adp-empty {
-  padding: 18px 9px; text-align: center;
-  color: #8aa0b8; font-style: italic; font-size: 10px;
+  padding: 20px 10px; text-align: center;
+  color: #8aa0b8; font-style: italic; font-size: 11px;
 }
 
 .kpi-app .rg-ad-row-clickable { cursor: pointer; }
@@ -788,32 +791,32 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     max-width: 100%; height: calc(100vh - 8px); max-height: none;
     border-radius: 5px;
   }
-  .kpi-app .adp-header { padding: 4px 8px; }
-  .kpi-app .adp-header-name { font-size: 10px; }
-  .kpi-app .adp-close { width: 20px; height: 20px; }
+  .kpi-app .adp-header { padding: 5px 9px; }
+  .kpi-app .adp-header-name { font-size: 11px; }
+  .kpi-app .adp-close { width: 22px; height: 22px; }
   .kpi-app .adp-body {
     grid-template-rows: auto 1fr; gap: 3px; padding: 4px 5px 5px;
   }
   .kpi-app .adp-top { padding-bottom: 3px; }
   .kpi-app .adp-top-grid { gap: 5px; }
-  .kpi-app .adp-section-label { font-size: 7px; padding-left: 4px; }
-  .kpi-app .adp-nhom-btn { padding: 3px 7px; font-size: 7px; }
+  .kpi-app .adp-section-label { font-size: 8px; padding-left: 5px; }
+  .kpi-app .adp-nhom-btn { padding: 3px 8px; font-size: 8px; }
   .kpi-app .adp-info-grid { gap: 3px; }
-  .kpi-app .adp-info-row { padding: 3px 3px; }
-  .kpi-app .adp-info-key { font-size: 6.5px; }
-  .kpi-app .adp-info-val { font-size: 8px; }
-  .kpi-app .adp-info-sub { font-size: 7px; }
-  .kpi-app .adp-table { font-size: 7px; }
-  .kpi-app .adp-table thead th { padding: 3px 2px; font-size: 7px; }
-  .kpi-app .adp-th-stt { width: 20px; }
-  .kpi-app .adp-th-code { width: 56px; }
-  .kpi-app .adp-th-name { min-width: 85px; max-width: 117px; }
-  .kpi-app .adp-th-pos { width: 20px; }
-  .kpi-app .adp-th-month { width: 20px; padding: 2px 1px; }
-  .kpi-app .adp-th-ip-unit { font-size: 5px; }
-  .kpi-app .adp-table tbody td { padding: 2px 2px; font-size: 7px; }
-  .kpi-app .adp-td-code { font-size: 6.5px; }
-  .kpi-app .adp-td-name { max-width: 117px; }
+  .kpi-app .adp-info-row { padding: 4px 3px; }
+  .kpi-app .adp-info-key { font-size: 7px; }
+  .kpi-app .adp-info-val { font-size: 9px; }
+  .kpi-app .adp-info-sub { font-size: 7.5px; }
+  .kpi-app .adp-table { font-size: 8px; }
+  .kpi-app .adp-table thead th { padding: 3px 2px; font-size: 7.5px; }
+  .kpi-app .adp-th-stt { width: 22px; }
+  .kpi-app .adp-th-code { width: 62px; }
+  .kpi-app .adp-th-name { min-width: 95px; max-width: 130px; }
+  .kpi-app .adp-th-pos { width: 22px; }
+  .kpi-app .adp-th-month { width: 22px; padding: 2px 1px; }
+  .kpi-app .adp-th-ip-unit { font-size: 5.5px; }
+  .kpi-app .adp-table tbody td { padding: 2.5px 2px; font-size: 7.5px; }
+  .kpi-app .adp-td-code { font-size: 7px; }
+  .kpi-app .adp-td-name { max-width: 130px; }
 }
 
 
@@ -3094,9 +3097,6 @@ export default function KPIDashboard() {
           <div
             className="adp-modal"
             onClick={e => e.stopPropagation()}
-            style={adPopup ? {
-              transformOrigin: `calc(50% + ${adPopup.originX}px) calc(50% + ${adPopup.originY}px)`,
-            } : undefined}
           >
             {/* Slim header: AD name + close */}
             <div className="adp-header">
