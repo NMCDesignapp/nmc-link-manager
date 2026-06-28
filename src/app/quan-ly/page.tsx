@@ -1409,7 +1409,7 @@ export default function QuanLyPage() {
   const [mobileRevenuePopupOpen, setMobileRevenuePopupOpen] = useState(false); // mobile: revenue month popup
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
   // policyOpen declared here (used by navigateTo/handleAppBack below)
-  const [policyOpen, setPolicyOpen] = useState<string | null>('tvvm');
+  const [policyOpen, setPolicyOpen] = useState<string | null>(null);
   const [saovietOpen, setSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
   const [saovietExpanded, setSaovietExpanded] = useState(false); // desktop sidebar expand/collapse
 
@@ -2733,7 +2733,13 @@ export default function QuanLyPage() {
                 <div key={sheet.key} className="relative">
                   <button
                     onClick={() => {
-                      if (sheet.hasSub) {
+                      if (sheet.key === 'report') {
+                        // Chính sách — navigate directly to overview (no popup)
+                        navigateTo({ sheet: 'report', policyOpen: null });
+                        setSearchTerm('');
+                        setSortField('');
+                        setMobileMenuPopup(null);
+                      } else if (sheet.hasSub) {
                         setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
                       } else {
                         navigateTo({ sheet: sheet.key });
@@ -2747,13 +2753,13 @@ export default function QuanLyPage() {
                       backgroundColor: color,
                       borderRadius: 0,
                       boxShadow: isActive ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
-                      opacity: isActive && !sheet.hasSub ? 1 : 0.95,
+                      opacity: isActive && (sheet.key === 'report' || !sheet.hasSub) ? 1 : 0.95,
                       minHeight: '52px',
                     }}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate w-full text-center leading-tight text-[11px]">{sheet.label}</span>
-                    {sheet.hasSub && (
+                    {sheet.hasSub && sheet.key !== 'report' && (
                       <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     )}
                   </button>
@@ -2808,14 +2814,11 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt button — placed before Cài đặt. Has sub-popup like other sheets */}
+            {/* Số liệu Sao Việt button — placed before Cài đặt. Direct navigation to overview (no popup) */}
             <div className="relative">
               <button
                 onClick={() => {
-                  if (!activeSheet || activeSheet !== 'saoviet') {
-                    navigateTo({ sheet: 'saoviet', saovietOpen: null });
-                  }
-                  setMobileMenuPopup(mobileMenuPopup === ('saoviet' as SheetKey) ? null : ('saoviet' as SheetKey));
+                  navigateTo({ sheet: 'saoviet', saovietOpen: null });
                   setSearchTerm('');
                   setSortField('');
                 }}
@@ -2831,53 +2834,7 @@ export default function QuanLyPage() {
               >
                 <Star className="w-5 h-5 flex-shrink-0" />
                 <span className="truncate w-full text-center leading-tight text-[11px]">Sao Việt</span>
-                <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === ('saoviet' as SheetKey) ? 'rotate-180' : ''}`} />
               </button>
-              {/* Popup sub-items — FIXED overlay centered, narrow on mobile, mirrors POLICY popup styling */}
-              {mobileMenuPopup === ('saoviet' as SheetKey) && (
-                <>
-                  <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileMenuPopup(null)} />
-                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-violet-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
-                    <div className="sticky top-0 bg-violet-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-violet-500/60 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Star className="w-3 h-3" /> Chọn chương trình
-                      </span>
-                      <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    {/* "Tất cả" / List view option */}
-                    <button
-                      onClick={() => {
-                        navigateTo({ sheet: 'saoviet', saovietOpen: null });
-                        setMobileMenuPopup(null);
-                      }}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-violet-500/20 active:scale-95 active:bg-violet-500/30 transition-all border-b border-violet-900/40 ${!saovietOpen && activeSheet === 'saoviet' ? 'text-violet-300 bg-violet-500/10' : 'text-violet-100/80'}`}
-                    >
-                      <Star className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate flex-1">Tổng quan Sao Việt</span>
-                      {!saovietOpen && activeSheet === 'saoviet' && <span className="text-violet-400">●</span>}
-                    </button>
-                    {SAOVIET_ITEMS.map(s => {
-                      const subActive = activeSheet === 'saoviet' && saovietOpen === s.key;
-                      return (
-                        <button
-                          key={s.key}
-                          onClick={() => {
-                            navigateTo({ sheet: 'saoviet', saovietOpen: s.key });
-                            setMobileMenuPopup(null);
-                          }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-violet-500/20 active:scale-95 active:bg-violet-500/30 transition-all border-b border-violet-900/40 last:border-b-0 ${subActive ? 'text-violet-300 bg-violet-500/10' : 'text-violet-100/80'}`}
-                        >
-                          <s.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="truncate flex-1">{s.label}</span>
-                          {subActive && <span className="text-violet-400">●</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
             </div>
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
             <button
@@ -6765,9 +6722,123 @@ export default function QuanLyPage() {
 
   const renderPolicy = () => {
     if (!policyOpen) {
+      // Tổng hợp chính sách — grid 2 cột, mỗi ô 1 chương trình (ảnh 16:9 + tên)
       return (
-        <div className="flex items-center justify-center h-40 text-gray-300 text-xs italic">
-          Chọn khoản thưởng bên trái để xem chi tiết
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {POLICY_ITEMS.map(item => {
+              const currentImage = policyImageLinks[item.key] || '';
+              return (
+                <div
+                  key={item.key}
+                  className="rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.01] flex flex-col"
+                  style={{
+                    borderColor: `${item.color}66`,
+                    backgroundColor: '#0e1424',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  {/* Top: 16:9 image */}
+                  <div
+                    className="relative w-full bg-black/40 flex items-center justify-center group"
+                    style={{ aspectRatio: '16 / 9' }}
+                  >
+                    {currentImage ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentImage}
+                          alt={item.label}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Hover overlay with replace/delete buttons */}
+                        <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <label
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
+                            title="Thay ảnh"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            Đổi ảnh
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                e.target.value = '';
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = (ev) => {
+                                  const dataUrl = ev.target?.result as string;
+                                  savePolicyImage(item.key, dataUrl);
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); savePolicyImage(item.key, ''); }}
+                            className="inline-flex items-center justify-center w-8 h-8 bg-red-500/30 hover:bg-red-500/50 border border-red-400/50 text-red-200 rounded-md cursor-pointer"
+                            title="Xóa ảnh"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      // Empty — show add-image button
+                      <label
+                        className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
+                        title="Thêm ảnh"
+                      >
+                        <div
+                          className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed"
+                          style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
+                        >
+                          <Upload className="w-5 h-5" style={{ color: item.color }} />
+                        </div>
+                        <span className="text-[11px] font-semibold" style={{ color: item.color }}>
+                          Thêm ảnh 16:9
+                        </span>
+                        <span className="text-[10px] text-gray-500">PNG / JPG / WebP</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const dataUrl = ev.target?.result as string;
+                              savePolicyImage(item.key, dataUrl);
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Bottom: program name — clickable to open detail */}
+                  <button
+                    onClick={() => navigateTo({ sheet: 'report', policyOpen: item.key })}
+                    className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 hover:bg-white/5 transition-colors"
+                    style={{ borderColor: `${item.color}33` }}
+                  >
+                    <h3 className="text-sm font-extrabold truncate leading-tight" style={{ color: item.color }}>
+                      {item.label}
+                    </h3>
+                    <p className="text-[11px] text-gray-400 leading-tight line-clamp-2">
+                      {item.desc}
+                    </p>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -8441,15 +8512,23 @@ export default function QuanLyPage() {
                 <div key={sheet.key}>
                   <button
                     onClick={() => {
-                      navigateTo({ sheet: sheet.key });
-                      setSearchTerm('');
-                      setSortField('');
-                      if (sheet.hasSub) {
-                        handleSubToggle();
-                        // On mobile: don't close sidebar if expanding sub-items
-                        // Only close sidebar when a sub-item is selected
-                      } else {
+                      if (sheet.key === 'report') {
+                        // Chính sách — navigate directly to overview (no expand)
+                        navigateTo({ sheet: 'report', policyOpen: null });
+                        setSearchTerm('');
+                        setSortField('');
                         setSidebarOpen(false);
+                      } else {
+                        navigateTo({ sheet: sheet.key });
+                        setSearchTerm('');
+                        setSortField('');
+                        if (sheet.hasSub) {
+                          handleSubToggle();
+                          // On mobile: don't close sidebar if expanding sub-items
+                          // Only close sidebar when a sub-item is selected
+                        } else {
+                          setSidebarOpen(false);
+                        }
                       }
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
@@ -8459,10 +8538,10 @@ export default function QuanLyPage() {
                     <sheet.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate flex-1 text-left">{sheet.label}</span>
                     {hasSectionLink(sheet.key) && <Link2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
-                    {sheet.hasSub && (isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
+                    {sheet.hasSub && sheet.key !== 'report' && (isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-emerald-300" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />)}
                   </button>
-                  {/* Sub-items (revenue months OR policy items) */}
-                  {sheet.hasSub && isExpanded && subItems.length > 0 && (
+                  {/* Sub-items (revenue months OR structure items — NOT policy) */}
+                  {sheet.hasSub && sheet.key !== 'report' && isExpanded && subItems.length > 0 && (
                     <div className="ml-6 mt-0.5 space-y-0.5">
                       {subItems.map(s => {
                         const subActive = activeSubKey === s.key;
@@ -8485,20 +8564,14 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt — sidebar item with expandable sub-items, placed before Cài đặt area */}
+            {/* Số liệu Sao Việt — sidebar item, direct navigation to overview (no expand) */}
             <div>
               <button
                 onClick={() => {
-                  if (saovietOpen) {
-                    // Already on a sub-page — toggle expand
-                    setSaovietExpanded(!saovietExpanded);
-                  } else {
-                    // Not on sub-page — go to list view + expand
-                    navigateTo({ sheet: 'saoviet', saovietOpen: null });
-                    setSaovietExpanded(true);
-                  }
+                  navigateTo({ sheet: 'saoviet', saovietOpen: null });
                   setSearchTerm('');
                   setSortField('');
+                  setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                   activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
@@ -8507,30 +8580,7 @@ export default function QuanLyPage() {
               >
                 <Star className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate flex-1 text-left">Số liệu Sao Việt</span>
-                {saovietExpanded ? <ChevronDown className="w-3.5 h-3.5 text-violet-300" /> : <ChevronRight className="w-3.5 h-3.5 text-violet-300" />}
               </button>
-              {saovietExpanded && (
-                <div className="ml-6 mt-0.5 space-y-0.5">
-                  {SAOVIET_ITEMS.map(s => {
-                    const subActive = saovietOpen === s.key;
-                    return (
-                      <button
-                        key={s.key}
-                        onClick={() => {
-                          navigateTo({ sheet: 'saoviet', saovietOpen: s.key });
-                          setSidebarOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
-                          subActive ? 'bg-violet-500/20 text-violet-300' : 'text-violet-300/60 hover:bg-violet-500/10 hover:text-violet-300'
-                        }`}
-                      >
-                        <s.icon className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate flex-1 text-left">{s.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
 
