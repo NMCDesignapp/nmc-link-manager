@@ -4012,23 +4012,41 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ---------- SAO VIỆT: upload poster (16:9 image) ----------
+  // ---------- SAO VIỆT: upload poster (FileReader → data URL → Settings API) ----------
+  // Dùng cùng cơ chế với Chính sách: ảnh được convert sang data URL và lưu vào Setting
+  // (key `saoviet-poster-{program}`), tránh ghi file ra /public (read-only trên serverless)
   const handleSaovietPosterUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // reset input để có thể chọn lại cùng file
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'File không hợp lệ', description: 'Vui lòng chọn file ảnh (PNG/JPG/WebP)', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: 'File quá lớn', description: 'Kích thước tối đa 8MB', variant: 'destructive' });
+      return;
+    }
     setSaovietPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
-      const fd = new FormData();
-      fd.append('program', program);
-      fd.append('file', file);
-      const r = await fetch('/api/saoviet-poster', { method: 'POST', body: fd });
-      const d = await r.json().catch(() => ({}));
-      if (r.ok && d.url) {
-        setSaovietPosters(prev => ({ ...prev, [program]: d.url }));
+      // Read file as data URL
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Không đọc được file'));
+        reader.readAsDataURL(file);
+      });
+      // Save to Settings API (same as Policy image)
+      const r = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`saoviet-poster-${program}`]: dataUrl }),
+      });
+      if (r.ok) {
+        setSaovietPosters(prev => ({ ...prev, [program]: dataUrl }));
         toast({ title: 'Đã lưu poster' });
       } else {
-        toast({ title: 'Lỗi upload poster', description: d.error || `HTTP ${r.status}`, variant: 'destructive' });
+        toast({ title: 'Lỗi upload poster', description: `HTTP ${r.status}`, variant: 'destructive' });
       }
     } catch (err) {
       toast({ title: 'Lỗi upload poster', description: String(err), variant: 'destructive' });
@@ -4037,11 +4055,15 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ---------- SAO VIỆT: delete poster ----------
+  // ---------- SAO VIỆT: delete poster (clear Settings value) ----------
   const handleSaovietPosterDelete = useCallback(async (program: string) => {
     if (!confirm('Xóa poster của chương trình này?')) return;
     try {
-      const r = await fetch(`/api/saoviet-poster?program=${program}`, { method: 'DELETE' });
+      const r = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`saoviet-poster-${program}`]: '' }),
+      });
       if (r.ok) {
         setSaovietPosters(prev => {
           const next = { ...prev };
@@ -4050,8 +4072,7 @@ export default function QuanLyPage() {
         });
         toast({ title: 'Đã xóa poster' });
       } else {
-        const d = await r.json().catch(() => ({}));
-        toast({ title: 'Lỗi xóa poster', description: d.error || `HTTP ${r.status}`, variant: 'destructive' });
+        toast({ title: 'Lỗi xóa poster', description: `HTTP ${r.status}`, variant: 'destructive' });
       }
     } catch (e) {
       toast({ title: 'Lỗi xóa poster', description: String(e), variant: 'destructive' });
