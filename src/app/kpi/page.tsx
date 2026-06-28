@@ -266,7 +266,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Phong header (inside rg-card) */
 .kpi-app .rg-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 12px 16px;
+  padding: 12px 12px;
   background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
   color: #fff;
 }
@@ -313,7 +313,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* AFYP + KH row */
 .kpi-app .rg-afyp-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  padding: 10px 16px;
+  padding: 10px 12px;
   background: #fff;
   border-bottom: 1px solid #e0e8f0;
 }
@@ -326,11 +326,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* AD Table (compact, ngay hàng) — 3D raised block, hẹp hơn, viền nhẹ 2 bên */
 .kpi-app .rg-ad-wrap {
   background: transparent;
-  padding: 8px 7px 10px;
-  /* chừa 2 viền nhẹ 2 bên bảng phòng */
+  padding: 8px 0 10px;
+  /* căn trái-phải bằng 0 để bảng AD dùng margin 12px — cùng lề với rg-head/rg-afyp-row */
 }
 .kpi-app .rg-ad-table {
-  width: calc(100% - 12px); margin: 0 6px; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; font-size: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
   border-radius: 3px; overflow: hidden;
   border: 1px solid #c8d8ea;
@@ -480,6 +480,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 5px 2px; }
   .kpi-app .rg-ad-table tbody td { font-size: 10px; padding: 6px 2px; }
   .kpi-app .rg-ad-mini-prog { width: 36px; }
+  /* Đảm bảo bảng AD căn cùng lề 12px với header/AFYP row trên mobile */
+  .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; }
+  .kpi-app .rg-afyp-row { padding: 10px 12px; }
 }
 
 /* Desktop: hide mobile-only region, use rg-wrap */
@@ -675,11 +678,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   min-width: 0;
 }
 .kpi-app .adp-info-key {
-  font-size: 8.5px; font-weight: 800; color: #5a7088;
+  font-size: 9px; font-weight: 800; color: #5a7088;
   text-transform: uppercase; letter-spacing: .03em;
   text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   width: 100%;
+  line-height: 1.15;
 }
 .kpi-app .adp-info-val {
   font-size: 11px; font-weight: 900; color: #1a3a5e;
@@ -3128,39 +3132,39 @@ export default function KPIDashboard() {
                     <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span></div>
                     <div className="adp-info-grid">
                       <div className="adp-info-row">
-                        <span className="adp-info-key">KH AFYP</span>
+                        <span className="adp-info-key" title="Kế hoạch AFYP">KH AFYP</span>
                         <span className="adp-info-val">{(adPopupData.groupInfo.annualKh / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Thực hiện</span>
+                        <span className="adp-info-key" title="Thực hiện">THỰC HIỆN</span>
                         <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">%HT</span>
+                        <span className="adp-info-key" title="% hoàn thành">%HT</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Lượt HĐ</span>
+                        <span className="adp-info-key" title="Lượt hợp đồng">LƯỢT HĐ</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.lhd}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Lượt HĐC</span>
+                        <span className="adp-info-key" title="Lượt hợp đồng chuẩn">LƯỢT HĐC</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.hdChuan}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Tuyển dụng</span>
+                        <span className="adp-info-key" title="Tuyển dụng">TD</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.td}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Năng suất</span>
+                        <span className="adp-info-key" title="Năng suất">NS</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key">Độ lớn HĐ</span>
+                        <span className="adp-info-key" title="Độ lớn hợp đồng">ĐLHĐ</span>
                         <span className="adp-info-val">{(adPopupData.groupInfo.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row adp-info-row-tvv">
-                        <span className="adp-info-key">Tổng số TVV</span>
+                        <span className="adp-info-key">TỔNG SỐ TVV</span>
                         <span className="adp-info-val">
                           {adPopupData.groupInfo.totalTvv}
                           <span className="adp-info-sub"> (TVVm: {adPopupData.groupInfo.tvvMoi} · TTN: {adPopupData.groupInfo.tvvTtn} · còn lại: {adPopupData.groupInfo.tvvConLai})</span>
