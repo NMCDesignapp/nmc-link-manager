@@ -3821,6 +3821,9 @@ export default function QuanLyPage() {
   });
   const [saovietSyncing, setSaovietSyncing] = useState<Record<string, boolean>>({});
   const [saovietUploading, setSaovietUploading] = useState<Record<string, boolean>>({});
+  // Posters: each program has one 16:9 image (URL stored in Settings, file in /public/posters)
+  const [saovietPosters, setSaovietPosters] = useState<Record<string, string>>({});
+  const [saovietPosterUploading, setSaovietPosterUploading] = useState<Record<string, boolean>>({});
 
   // Update summary boxes (top) + footer (bottom) khi policy/filter thay đổi
   // Mỗi render function thêm data-policy-count + data-policy-amount vào div ngoài cùng của bảng
@@ -3891,12 +3894,17 @@ export default function QuanLyPage() {
       .then(r => r.ok ? r.json() : {})
       .then(data => {
         const links: Record<string, string> = {};
+        const posters: Record<string, string> = {};
         for (const [key, value] of Object.entries(data)) {
           if (key.startsWith('saoviet-link-') && value) {
             links[key.replace('saoviet-link-', '')] = String(value);
           }
+          if (key.startsWith('saoviet-poster-') && value) {
+            posters[key.replace('saoviet-poster-', '')] = String(value);
+          }
         }
         setSaovietLinks(links);
+        setSaovietPosters(posters);
       })
       .catch(() => {});
     // 2) Load manual data per program
@@ -4044,6 +4052,52 @@ export default function QuanLyPage() {
       }
     } catch (e) {
       toast({ title: 'Lỗi xóa', description: String(e), variant: 'destructive' });
+    }
+  }, []);
+
+  // ---------- SAO VIỆT: upload poster (16:9 image) ----------
+  const handleSaovietPosterUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // reset input để có thể chọn lại cùng file
+    if (!file) return;
+    setSaovietPosterUploading(prev => ({ ...prev, [program]: true }));
+    try {
+      const fd = new FormData();
+      fd.append('program', program);
+      fd.append('file', file);
+      const r = await fetch('/api/saoviet-poster', { method: 'POST', body: fd });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.url) {
+        setSaovietPosters(prev => ({ ...prev, [program]: d.url }));
+        toast({ title: 'Đã lưu poster' });
+      } else {
+        toast({ title: 'Lỗi upload poster', description: d.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Lỗi upload poster', description: String(err), variant: 'destructive' });
+    } finally {
+      setSaovietPosterUploading(prev => ({ ...prev, [program]: false }));
+    }
+  }, []);
+
+  // ---------- SAO VIỆT: delete poster ----------
+  const handleSaovietPosterDelete = useCallback(async (program: string) => {
+    if (!confirm('Xóa poster của chương trình này?')) return;
+    try {
+      const r = await fetch(`/api/saoviet-poster?program=${program}`, { method: 'DELETE' });
+      if (r.ok) {
+        setSaovietPosters(prev => {
+          const next = { ...prev };
+          delete next[program];
+          return next;
+        });
+        toast({ title: 'Đã xóa poster' });
+      } else {
+        const d = await r.json().catch(() => ({}));
+        toast({ title: 'Lỗi xóa poster', description: d.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi xóa poster', description: String(e), variant: 'destructive' });
     }
   }, []);
 
@@ -7842,68 +7896,109 @@ export default function QuanLyPage() {
   );
 
   const renderSaoVietList = () => (
-    <div className="space-y-3">
-      {/* Header card — Sao Việt period info */}
-      <div className="p-4 border border-violet-500/30 rounded-lg" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
-        <div className="flex items-center gap-2 mb-2">
-          <Star className="w-5 h-5 text-violet-400" />
-          <h2 className="text-lg font-extrabold text-violet-300">Số liệu Sao Việt Năm 2026</h2>
-        </div>
-        <p className="text-sm text-violet-200/70">
-          Kỳ tính thưởng: <span className="font-bold text-violet-200">01/12/2025 - 30/11/2026</span>
-          <br />
-          Bao gồm 3 chương trình thưởng. Chọn 1 chương trình bên dưới (hoặc từ menu bên trái) để xem chi tiết.
-        </p>
-      </div>
-      {/* 3 program cards — click to open detail page */}
+    <div>
+      {/* 3 program cards — rectangle layout: poster 16:9 + name + period */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {SAOVIET_ITEMS.map(item => {
-          const Icon = item.icon;
-          const manualRows = saovietManualData[item.key] || [];
-          const hasManual = manualRows.length > 0;
-          const autoCount = item.key === 'ca-nhan' ? saoVietCaNhanRows.length
-                     : item.key === 'tn-ktm'  ? saoVietTNKTMRows.length
-                     :                          saoVietTNTDRows.length;
-          const count = hasManual ? manualRows.length : autoCount;
+          const posterUrl = saovietPosters[item.key] || '';
+          const isUploading = !!saovietPosterUploading[item.key];
           return (
-            <button
+            <div
               key={item.key}
-              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
-              className="text-left p-4 border-2 rounded-lg transition-all hover:scale-[1.02] active:scale-100"
+              className="rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] flex flex-col"
               style={{
                 borderColor: `${item.color}66`,
-                backgroundColor: `${item.color}11`,
+                backgroundColor: '#0e1424',
                 boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-10 h-10 flex items-center justify-center rounded-md flex-shrink-0"
-                  style={{ backgroundColor: item.color }}
-                >
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold truncate" style={{ color: item.color }}>{item.label}</h3>
-                  <p className="text-[10px] text-gray-400 truncate">{item.desc}</p>
-                </div>
+              {/* Top: 16:9 poster */}
+              <div
+                className="relative w-full bg-black/40 flex items-center justify-center group"
+                style={{ aspectRatio: '16 / 9' }}
+              >
+                {posterUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={posterUrl}
+                      alt={item.label}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Hover overlay with replace/delete buttons */}
+                    <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <label
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
+                        title="Thay poster khác"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        Đổi ảnh
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleSaovietPosterUpload(item.key, e)}
+                          disabled={isUploading}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleSaovietPosterDelete(item.key); }}
+                        className="inline-flex items-center justify-center w-8 h-8 bg-red-500/30 hover:bg-red-500/50 border border-red-400/50 text-red-200 rounded-md cursor-pointer"
+                        title="Xóa poster"
+                        disabled={isUploading}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // Empty poster — show add-image button
+                  <label
+                    className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
+                    title="Thêm poster"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-7 h-7 animate-spin" style={{ color: item.color }} />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed"
+                        style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
+                      >
+                        <Upload className="w-5 h-5" style={{ color: item.color }} />
+                      </div>
+                    )}
+                    <span className="text-[11px] font-semibold" style={{ color: item.color }}>
+                      {isUploading ? 'Đang tải lên...' : 'Thêm poster 16:9'}
+                    </span>
+                    <span className="text-[10px] text-gray-500">PNG / JPG / WebP — tối đa 8MB</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleSaovietPosterUpload(item.key, e)}
+                      disabled={isUploading}
+                    />
+                  </label>
+                )}
               </div>
-              <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: `${item.color}33` }}>
-                <span className="text-[10px] uppercase tracking-wider text-gray-500">Số lượng</span>
-                {count > 0
-                  ? <span className="text-lg font-black" style={{ color: item.color }}>{count}</span>
-                  : <span className="text-[10px] text-gray-500 italic">— chưa có dữ liệu —</span>}
-              </div>
-            </button>
+
+              {/* Bottom: program name + period — clickable to open detail */}
+              <button
+                onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
+                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 hover:bg-white/5 transition-colors"
+                style={{ borderColor: `${item.color}33` }}
+              >
+                <h3 className="text-sm font-extrabold truncate leading-tight" style={{ color: item.color }}>
+                  {item.label}
+                </h3>
+                <p className="text-[11px] text-gray-300 font-semibold leading-tight">
+                  01/12/2025 — 30/11/2026
+                </p>
+              </button>
+            </div>
           );
         })}
-      </div>
-      {/* Footer note */}
-      <div className="p-3 border border-violet-500/20 rounded-lg bg-violet-500/5">
-        <p className="text-[11px] text-violet-200/80 leading-relaxed">
-          <strong className="text-violet-300">Ghi chú:</strong> FYP được tính theo tháng hiệu lực hợp đồng (effectiveDate) trong kỳ 01/12/2025 - 30/11/2026.
-          Nhấn vào 1 chương trình để xem chi tiết bảng xếp hạng và điều kiện đạt hạng.
-        </p>
       </div>
     </div>
   );
