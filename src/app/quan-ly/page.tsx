@@ -6738,10 +6738,11 @@ export default function QuanLyPage() {
                     boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
                   }}
                 >
-                  {/* Top: 16:9 image */}
+                  {/* Top: 16:9 image — bấm vào ảnh cũng mở chi tiết (như bấm tên) */}
                   <div
-                    className="relative w-full bg-black/40 flex items-center justify-center group"
+                    className={`relative w-full bg-black/40 flex items-center justify-center group ${currentImage ? 'cursor-pointer' : ''}`}
                     style={{ aspectRatio: '16 / 9' }}
+                    onClick={currentImage ? () => navigateTo({ sheet: 'report', policyOpen: item.key }) : undefined}
                   >
                     {currentImage ? (
                       <>
@@ -6749,11 +6750,12 @@ export default function QuanLyPage() {
                         <img
                           src={currentImage}
                           alt={item.label}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover pointer-events-none"
                         />
-                        {/* Hover overlay with replace/delete buttons */}
+                        {/* Hover overlay with replace/delete buttons — stopPropagation để không trigger navigate */}
                         <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <label
+                            onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
                             title="Thay ảnh"
                           >
@@ -6764,6 +6766,7 @@ export default function QuanLyPage() {
                               accept="image/*"
                               className="hidden"
                               onChange={e => {
+                                e.stopPropagation();
                                 const file = e.target.files?.[0];
                                 e.target.value = '';
                                 if (!file) return;
@@ -6787,8 +6790,9 @@ export default function QuanLyPage() {
                         </div>
                       </>
                     ) : (
-                      // Empty — show add-image button
+                      // Empty — show add-image button (không navigate, chỉ upload)
                       <label
+                        onClick={(e) => e.stopPropagation()}
                         className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
                         title="Thêm ảnh"
                       >
@@ -7983,10 +7987,11 @@ export default function QuanLyPage() {
                 boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
               }}
             >
-              {/* Top: 16:9 poster */}
+              {/* Top: 16:9 poster — bấm vào ảnh cũng mở chi tiết (như bấm tên) */}
               <div
-                className="relative w-full bg-black/40 flex items-center justify-center group"
+                className={`relative w-full bg-black/40 flex items-center justify-center group ${posterUrl ? 'cursor-pointer' : ''}`}
                 style={{ aspectRatio: '16 / 9' }}
+                onClick={posterUrl ? () => navigateTo({ sheet: 'saoviet', saovietOpen: item.key }) : undefined}
               >
                 {posterUrl ? (
                   <>
@@ -7994,11 +7999,12 @@ export default function QuanLyPage() {
                     <img
                       src={posterUrl}
                       alt={item.label}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover pointer-events-none"
                     />
-                    {/* Hover overlay with replace/delete buttons */}
+                    {/* Hover overlay with replace/delete buttons — stopPropagation để không trigger navigate */}
                     <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <label
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
                         title="Thay poster khác"
                       >
@@ -8008,7 +8014,7 @@ export default function QuanLyPage() {
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => handleSaovietPosterUpload(item.key, e)}
+                          onChange={(e) => { e.stopPropagation(); handleSaovietPosterUpload(item.key, e); }}
                           disabled={isUploading}
                         />
                       </label>
@@ -8024,8 +8030,9 @@ export default function QuanLyPage() {
                     </div>
                   </>
                 ) : (
-                  // Empty poster — show add-image button
+                  // Empty poster — show add-image button (không navigate, chỉ upload)
                   <label
+                    onClick={(e) => e.stopPropagation()}
                     className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
                     title="Thêm poster"
                   >
@@ -8083,12 +8090,12 @@ export default function QuanLyPage() {
     const isUploading = !!saovietUploading[program];
     const manualCount = (saovietManualData[program] || []).length;
     return (
-      <div className="p-3 border border-violet-500/30 rounded-lg" style={{ backgroundColor: 'rgba(124, 58, 237, 0.05)' }}>
+      <div className="p-3 border border-orange-500/30 rounded-lg" style={{ backgroundColor: 'rgba(234, 88, 12, 0.05)' }}>
         <div className="flex items-center gap-2 mb-2">
-          <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-violet-300">Đồng bộ & Upload số liệu</h4>
+          <RefreshCw className="w-3.5 h-3.5 text-orange-400" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Đồng bộ & Upload số liệu</h4>
           {manualCount > 0 && (
-            <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded border border-orange-500/30">
               <CheckCircle2 className="w-3 h-3" /> {manualCount} dòng (từ upload/sync)
             </span>
           )}
@@ -8096,17 +8103,17 @@ export default function QuanLyPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Left col: link input + sync button */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-violet-200/70">Link Google Sheets (CSV)</Label>
+            <Label className="text-[10px] text-orange-200/70">Link Google Sheets (CSV)</Label>
             <div className="flex items-center gap-1">
               <Input
                 defaultValue={link}
                 placeholder="https://docs.google.com/spreadsheets/d/..."
-                className="h-7 text-[11px] bg-white border-violet-500/30 text-gray-800 placeholder-gray-400 flex-1"
+                className="h-7 text-[11px] bg-white border-orange-500/30 text-gray-800 placeholder-gray-400 flex-1"
                 onBlur={(e) => saveSaovietLink(program, e.target.value.trim())}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               />
               {link && (
-                <a href={link} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-700 flex-shrink-0" title="Mở link">
+                <a href={link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-700 flex-shrink-0" title="Mở link">
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
@@ -8116,7 +8123,7 @@ export default function QuanLyPage() {
               size="sm"
               disabled={isSyncing || !link}
               onClick={() => handleSaovietSync(program)}
-              className="h-7 text-[11px] w-full bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-700 disabled:opacity-50"
+              className="h-7 text-[11px] w-full bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 text-orange-700 disabled:opacity-50"
             >
               {isSyncing
                 ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang đồng bộ...</>
@@ -8125,7 +8132,7 @@ export default function QuanLyPage() {
           </div>
           {/* Right col: upload + clear */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-violet-200/70">Upload file Excel/CSV (xóa hết &amp; up lại)</Label>
+            <Label className="text-[10px] text-orange-200/70">Upload file Excel/CSV (xóa hết &amp; up lại)</Label>
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -8157,11 +8164,107 @@ export default function QuanLyPage() {
           </div>
         </div>
         {manualCount > 0 && (
-          <p className="text-[10px] text-violet-600/80 mt-2 leading-relaxed">
+          <p className="text-[10px] text-orange-600/80 mt-2 leading-relaxed">
             <strong>Lưu ý:</strong> Đang hiển thị <strong>{manualCount} dòng</strong> từ dữ liệu upload/sync.
             Toàn bộ dữ liệu cũ của mục này đã bị xóa khi upload. Nhấn "Xóa dữ liệu thủ công" để trở về chế độ tự tính từ Hợp đồng.
           </p>
         )}
+      </div>
+    );
+  };
+
+  // ---------- Helper: shell chi tiết Sao Việt (giống layout Chính sách, màu CAM thay vì xanh lá) ----------
+  // program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  // Bố cục: [Sync panel] + [Top: poster+summary | Middle: bảng cuộn | Bottom: footer tổng]
+  const renderSaovietDetailShell = (
+    program: string,
+    countLabel: string,
+    countValue: number,
+    totalLabel: string,
+    totalValue: number,
+    tableJsx: React.ReactNode,
+  ) => {
+    const item = SAOVIET_ITEMS.find(i => i.key === program);
+    if (!item) return null;
+    const posterUrl = saovietPosters[program] || '';
+    return (
+      <div className="flex flex-col h-full gap-2">
+        {/* Sync + Upload panel (orange) */}
+        {renderSaovietPanel(program)}
+
+        {/* Detail layout — Policy-style, orange theme */}
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(234, 88, 12, 0.10)' }}>
+          {/* Top: poster trái + tổng hợp phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng */}
+          <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+            {/* Left: poster image — mobile 3/5, desktop 1/2, fill đầy ô, góc vuông */}
+            <div className="w-3/5 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+              {posterUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
+                  <Settings className="w-5 h-5 text-gray-500" />
+                  <span>Chưa có ảnh</span>
+                </div>
+              )}
+            </div>
+            {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền — 2 ô tổng hợp (CAM + AMBER) */}
+            <div className="w-2/5 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+              <div className="flex flex-1 flex-col">
+                {/* Ô 1: SL đạt — CAM (thay vì xanh lá #059669 của Chính sách) */}
+                <div className="px-1 py-1 text-center flex-1 flex flex-col justify-center" style={{ backgroundColor: '#EA580C', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #C2410C' }}>
+                  <p className="text-[8px] font-bold uppercase text-white leading-tight">{countLabel}</p>
+                  <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all">{countValue}</p>
+                </div>
+                {/* Ô 2: Tổng FYP — AMBER (giữ nguyên như Chính sách) */}
+                <div className="px-1 py-1 text-center flex-1 flex flex-col justify-center" style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
+                  <p className="text-[8px] font-bold uppercase text-white leading-tight">{totalLabel}</p>
+                  <p className="text-[12px] sm:text-[16px] font-black text-white leading-tight truncate">{formatCurrency(totalValue)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng */}
+          <div className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-saoviet-table={program}>
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media (max-width: 767px) {
+                .saoviet-detail-table-wrapper table { font-size: 9px !important; }
+                .saoviet-detail-table-wrapper th,
+                .saoviet-detail-table-wrapper td {
+                  padding: 3px !important;
+                  min-width: auto !important;
+                  width: auto !important;
+                  font-size: 9px !important;
+                }
+                .saoviet-detail-table-wrapper th span,
+                .saoviet-detail-table-wrapper td span,
+                .saoviet-detail-table-wrapper th br + span,
+                .saoviet-detail-table-wrapper td br + span {
+                  font-size: 8px !important;
+                }
+                .saoviet-detail-table-wrapper td[style*="13px"],
+                .saoviet-detail-table-wrapper td[style*="13px"] span {
+                  font-size: 10px !important;
+                }
+                .saoviet-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+              }
+            `}} />
+            {tableJsx}
+          </div>
+
+          {/* Footer FIXED — CAM (thay vì xanh lá #047857 của Chính sách) */}
+          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#C2410C', borderTop: '2px solid #9A3412' }}>
+            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-orange-300">TỔNG:</span>
+              <span className="text-white">{countValue}</span>
+            </span>
+            <span className="text-[11px] font-bold flex items-center gap-1.5">
+              <span className="text-amber-300 uppercase">{totalLabel}:</span>
+              <span className="text-amber-200 font-black">{formatCurrency(totalValue)}</span>
+            </span>
+          </div>
+        </div>
       </div>
     );
   };
@@ -8175,62 +8278,52 @@ export default function QuanLyPage() {
           .filter(r => r.fyp > 0)
           .sort((a, b) => b.fyp - a.fyp)
       : saoVietCaNhanRows;
-    return (
-    <>
-      {renderSaovietPanel('ca-nhan')}
-      <div className="space-y-3">
-      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
-        <UserCircle className="w-4 h-4 text-violet-400" />
-        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt Cá Nhân (TVV)</h3>
-        {mergedRows.length > 0 && (
-          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TVV</span>
-        )}
-      </div>
-      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MÃ SỐ ĐẠI LÝ</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+    const totalFyp = mergedRows.reduce((s, r) => s + r.fyp, 0);
+
+    const tableJsx = (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-orange-700 hover:bg-orange-700 border-b border-orange-600">
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MÃ SỐ ĐẠI LÝ</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+            {SV1_THRESHOLDS.map(t => (
+              <TableHead
+                key={t.key}
+                className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                style={{ backgroundColor: t.bg, color: t.fg }}
+              >
+                <div className="leading-tight">
+                  <div>{t.label}</div>
+                  <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                  <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {mergedRows.map((r, i) => (
+            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-orange-50 border-b border-gray-200">
+              <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-orange-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV1_THRESHOLDS.map(t => (
-                <TableHead
-                  key={t.key}
-                  className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
-                  style={{ backgroundColor: t.bg, color: t.fg }}
-                >
-                  <div className="leading-tight">
-                    <div>{t.label}</div>
-                    <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                    <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
-                  </div>
-                </TableHead>
+                <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
+                  {renderSaoVietRankCell(r.fyp, t)}
+                </React.Fragment>
               ))}
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mergedRows.map((r, i) => (
-              <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
-                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
-                {SV1_THRESHOLDS.map(t => (
-                  <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
-                    {renderSaoVietRankCell(r.fyp, t)}
-                  </React.Fragment>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-    </>
-  );
+          ))}
+        </TableBody>
+      </Table>
+    );
+
+    return renderSaovietDetailShell('ca-nhan', 'SL TVV đạt', mergedRows.length, 'Tổng FYP', totalFyp, tableJsx);
   };
 
   // ---------- Sub-page: SAO VIỆT TN KTM (Section 2) ----------
@@ -8241,62 +8334,52 @@ export default function QuanLyPage() {
           .filter(r => r.fyp > 0)
           .sort((a, b) => b.fyp - a.fyp)
       : saoVietTNKTMRows;
-    return (
-    <>
-      {renderSaovietPanel('tn-ktm')}
-      <div className="space-y-3">
-      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
-        <Users className="w-4 h-4 text-violet-400" />
-        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN KTM (TN — FYP cá nhân)</h3>
-        {mergedRows.length > 0 && (
-          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
-        )}
-      </div>
-      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MS ĐẠI LÝ</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TN</TableHead>
-              <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+    const totalFyp = mergedRows.reduce((s, r) => s + r.fyp, 0);
+
+    const tableJsx = (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-orange-700 hover:bg-orange-700 border-b border-orange-600">
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">MS ĐẠI LÝ</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TN</TableHead>
+            <TableHead className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+            {SV2_THRESHOLDS.map(t => (
+              <TableHead
+                key={t.key}
+                className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                style={{ backgroundColor: t.bg, color: t.fg }}
+              >
+                <div className="leading-tight">
+                  <div>{t.label}</div>
+                  <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                  <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {mergedRows.map((r, i) => (
+            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-orange-50 border-b border-gray-200">
+              <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-orange-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV2_THRESHOLDS.map(t => (
-                <TableHead
-                  key={t.key}
-                  className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
-                  style={{ backgroundColor: t.bg, color: t.fg }}
-                >
-                  <div className="leading-tight">
-                    <div>{t.label}</div>
-                    <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                    <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
-                  </div>
-                </TableHead>
+                <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
+                  {renderSaoVietRankCell(r.fyp, t)}
+                </React.Fragment>
               ))}
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mergedRows.map((r, i) => (
-              <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
-                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
-                {SV2_THRESHOLDS.map(t => (
-                  <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
-                    {renderSaoVietRankCell(r.fyp, t)}
-                  </React.Fragment>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-    </>
-  );
+          ))}
+        </TableBody>
+      </Table>
+    );
+
+    return renderSaovietDetailShell('tn-ktm', 'SL TN đạt', mergedRows.length, 'Tổng FYP', totalFyp, tableJsx);
   };
 
   // ---------- Sub-page: SAO VIỆT TN TD (Section 3) ----------
@@ -8314,21 +8397,13 @@ export default function QuanLyPage() {
           .filter(r => r.fypTVVm > 0 || r.slTvvmHDC > 0)
           .sort((a, b) => b.fypTVVm - a.fypTVVm)
       : saoVietTNTDRows;
-    return (
-    <>
-      {renderSaovietPanel('tn-td')}
-      <div className="space-y-3">
-      <div className="px-3 py-2 border border-violet-500/30 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(124, 58, 237, 0.08)' }}>
-        <UserPlus className="w-4 h-4 text-violet-400" />
-        <h3 className="text-sm font-bold uppercase tracking-wider text-violet-300">Sao Việt TN TD (TN — FYP &amp; HĐC của TVVm do TN tuyển)</h3>
-        {mergedRows.length > 0 && (
-          <span className="ml-auto text-[11px] bg-violet-600/60 text-white px-2 py-0.5 rounded">{mergedRows.length} TN</span>
-        )}
-      </div>
-      <div className="overflow-x-auto bg-white border border-violet-500/20 rounded-lg">
+    const totalFypTVVm = mergedRows.reduce((s, r) => s + r.fypTVVm, 0);
+
+    const tableJsx = (
+      <>
         <Table>
           <TableHeader>
-            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+            <TableRow className="bg-orange-700 hover:bg-orange-700 border-b border-orange-600">
               <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase text-center align-middle w-[40px]">STT</TableHead>
               <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">NHÓM KD</TableHead>
               <TableHead rowSpan={2} className="text-yellow-100 text-[10px] font-bold uppercase whitespace-nowrap align-middle">MS ĐẠI LÝ</TableHead>
@@ -8350,7 +8425,7 @@ export default function QuanLyPage() {
                 </TableHead>
               ))}
             </TableRow>
-            <TableRow className="bg-violet-700 hover:bg-violet-700 border-b border-violet-600">
+            <TableRow className="bg-orange-700 hover:bg-orange-700 border-b border-orange-600">
               {SV3_RANKS.flatMap(rk => [
                 <TableHead
                   key={`${rk.key}-fyp`}
@@ -8371,13 +8446,13 @@ export default function QuanLyPage() {
           </TableHeader>
           <TableBody>
             {mergedRows.map((r, i) => (
-              <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-violet-50 border-b border-gray-200">
+              <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-orange-50 border-b border-gray-200">
                 <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
                 <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                <TableCell className="text-xs p-1 text-right font-bold text-violet-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
-                <TableCell className="text-xs p-1 text-center font-bold text-violet-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
+                <TableCell className="text-xs p-1 text-right font-bold text-orange-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+                <TableCell className="text-xs p-1 text-center font-bold text-orange-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
                 {SV3_RANKS.flatMap(rk => [
                   renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
                   renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
@@ -8386,17 +8461,17 @@ export default function QuanLyPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-      {/* Footer legend */}
-      <div className="p-3 border border-violet-500/20 rounded-lg bg-violet-500/5">
-        <p className="text-[11px] text-violet-200/80 leading-relaxed">
-          <strong className="text-violet-300">Điều kiện đạt hạng:</strong> Mỗi hạng yêu cầu ĐỒNG THỜI cả 2 điều kiện (FYP TVVm ≥ mốc AND SL TVVm HĐC ≥ mốc).
-          Ô ✓ = đạt điều kiện đó. Ô — = chưa đạt.
-        </p>
-      </div>
-    </div>
-    </>
-  );
+        {/* Footer legend — orange theme */}
+        <div className="p-3 border border-orange-500/20 rounded-lg bg-orange-500/5">
+          <p className="text-[11px] text-orange-200/80 leading-relaxed">
+            <strong className="text-orange-300">Điều kiện đạt hạng:</strong> Mỗi hạng yêu cầu ĐỒNG THỜI cả 2 điều kiện (FYP TVVm ≥ mốc AND SL TVVm HĐC ≥ mốc).
+            Ô ✓ = đạt điều kiện đó. Ô — = chưa đạt.
+          </p>
+        </div>
+      </>
+    );
+
+    return renderSaovietDetailShell('tn-td', 'SL TN đạt', mergedRows.length, 'Tổng FYP TVVm', totalFypTVVm, tableJsx);
   };
 
   const renderSaoViet = () => {
