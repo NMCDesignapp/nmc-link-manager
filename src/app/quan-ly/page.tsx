@@ -4202,6 +4202,9 @@ export default function QuanLyPage() {
   // Posters: each program has one 16:9 image (URL stored in Settings, file in /public/posters)
   const [saovietPosters, setSaovietPosters] = useState<Record<string, string>>({});
   const [saovietPosterUploading, setSaovietPosterUploading] = useState<Record<string, boolean>>({});
+  // CLB Sao Việt posters — same pattern as saovietPosters
+  const [clbsvPosters, setClbsvPosters] = useState<Record<string, string>>({});
+  const [clbsvPosterUploading, setClbsvPosterUploading] = useState<Record<string, boolean>>({});
   // Filters for Sao Việt detail pages (shared, applies to whichever detail page is open)
   const [saovietNhomFilter, setSaovietNhomFilter] = useState<string>('');
   const [saovietNameFilter, setSaovietNameFilter] = useState<string>('');
@@ -4292,6 +4295,20 @@ export default function QuanLyPage() {
         setSaovietLinks(links);
         setSaovietSharedLink(sharedLink);
         setSaovietPosters(posters);
+      })
+      .catch(() => {});
+
+    // ---------- CLB SAO VIỆT: load posters from Settings API ----------
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : {})
+      .then(data => {
+        const posters: Record<string, string> = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (key.startsWith('clbsv-poster-') && value) {
+            posters[key.replace('clbsv-poster-', '')] = String(value);
+          }
+        }
+        setClbsvPosters(posters);
       })
       .catch(() => {});
     // 2) Load manual data per program
@@ -4572,6 +4589,69 @@ export default function QuanLyPage() {
       });
       if (r.ok) {
         setSaovietPosters(prev => {
+          const next = { ...prev };
+          delete next[program];
+          return next;
+        });
+        toast({ title: 'Đã xóa poster' });
+      } else {
+        toast({ title: 'Lỗi xóa poster', description: `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi xóa poster', description: String(e), variant: 'destructive' });
+    }
+  }, []);
+
+  // ---------- CLB SAO VIỆT: upload poster (clone của handleSaovietPosterUpload với key clbsv-poster-) ----------
+  const handleClbsvPosterUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'File không hợp lệ', description: 'Vui lòng chọn file ảnh (PNG/JPG/WebP)', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: 'File quá lớn', description: 'Kích thước tối đa 8MB', variant: 'destructive' });
+      return;
+    }
+    setClbsvPosterUploading(prev => ({ ...prev, [program]: true }));
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Không đọc được file'));
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`clbsv-poster-${program}`]: dataUrl }),
+      });
+      if (r.ok) {
+        setClbsvPosters(prev => ({ ...prev, [program]: dataUrl }));
+        toast({ title: 'Đã lưu poster CLB Sao Việt' });
+      } else {
+        toast({ title: 'Lỗi upload poster', description: `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Lỗi upload poster', description: String(err), variant: 'destructive' });
+    } finally {
+      setClbsvPosterUploading(prev => ({ ...prev, [program]: false }));
+    }
+  }, []);
+
+  // ---------- CLB SAO VIỆT: delete poster ----------
+  const handleClbsvPosterDelete = useCallback(async (program: string) => {
+    if (!confirm('Xóa poster của chương trình này?')) return;
+    try {
+      const r = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`clbsv-poster-${program}`]: '' }),
+      });
+      if (r.ok) {
+        setClbsvPosters(prev => {
           const next = { ...prev };
           delete next[program];
           return next;
@@ -7388,181 +7468,308 @@ export default function QuanLyPage() {
 
     return (
       <div className="flex flex-col h-full p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
-        {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
-        <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-          {/* Left: Image — mobile 3/5, desktop 1/2 — fill đầy ô, góc vuông */}
-          <div className="w-3/5 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+        {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
+        <div className="md:hidden flex flex-col flex-1 min-h-0 relative" style={{ backgroundColor: '#0F172A' }}>
+          {/* Poster — full width 16:9 + program name overlay */}
+          <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
             {imageLink ? (
-              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
-                <Settings className="w-5 h-5 text-gray-500" />
-                <span>Chưa có ảnh</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
+                <BookOpen className="w-8 h-8 text-emerald-300/70" />
+                <span className="italic">Chưa có ảnh</span>
+                <span className="text-[8px] text-gray-500">Quản lý trong Cài đặt</span>
               </div>
             )}
+            {/* Bottom gradient + program name overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
+              <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
+            </div>
           </div>
-          {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền — không dùng rgba */}
-          <div className="w-2/5 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
-            {/* 2 ô tổng hợp — MÀU ĐẶC, cân đối, đổ bóng
-                - TVV policy: flex-shrink-0 (top), filter+search fill phần dưới
-                - TN policy: flex-1 flex-col, 2 ô stack dọc fill đầy chiều cao */}
-            <div className={`gap-1 ${isTvvPolicy ? 'flex flex-shrink-0' : 'flex flex-1 flex-col'}`}>
-              <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#059669', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #047857' }}>
-                <p className="text-[8px] font-bold uppercase text-white leading-tight">SL TVV đạt</p>
-                <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all" id={`policy-count-${policyOpen}`}>—</p>
-              </div>
-              <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
-                <p className="text-[8px] font-bold uppercase text-white leading-tight">Tổng thưởng</p>
-                <p className="text-[12px] sm:text-[16px] font-black text-white leading-tight truncate" id={`policy-total-${policyOpen}`}>—</p>
-              </div>
-            </div>
-            {/* Mobile: nút switch chính sách — popup FIXED overlay */}
-            <div className="relative flex-shrink-0 z-[200] md:hidden">
-              <button
-                onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
-                className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] text-white font-bold transition-all active:scale-95 active:brightness-75"
-                style={{ backgroundColor: '#047857', border: '1px solid #065F46', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-              >
-                <span className="truncate flex items-center gap-1">
-                  <BookOpen className="w-3 h-3 flex-shrink-0" />
-                  {item.label}
-                </span>
-                <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobilePolicyPopupOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {mobilePolicyPopupOpen && (
-                <>
-                  <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobilePolicyPopupOpen(false)} />
-                  <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-emerald-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
-                    <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-emerald-500/60 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <BookOpen className="w-3 h-3" /> Chọn chính sách
-                      </span>
-                      <button onClick={() => setMobilePolicyPopupOpen(false)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    {POLICY_ITEMS.map(p => {
-                      const subActive = policyOpen === p.key;
-                      const PIcon = p.icon;
-                      return (
-                        <button
-                          key={p.key}
-                          onClick={() => { navigateTo({ sheet: 'report', policyOpen: p.key }); setMobilePolicyPopupOpen(false); }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
-                        >
-                          <PIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: p.color }} />
-                          <span className="truncate flex-1">{p.label}</span>
-                          {subActive && <span className="text-emerald-400">●</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-            {/* TVV policies: bộ lọc nhóm + tìm tên — 2 ô bằng nhau về chiều cao */}
-            {isTvvPolicy && (
-              <>
-                <div className="relative flex-1 min-h-0 z-[200]">
+
+          {/* Compact filter row — 2 cols, mỏng (chỉ TVV policy có filter) */}
+          {isTvvPolicy && (
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
+              {/* Nhóm dropdown */}
+              <div className="relative z-[200] flex-1 min-w-0">
+                <button
+                  onClick={(e) => {
+                    const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (dd) dd.classList.toggle('hidden');
+                  }}
+                  className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
+                  style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46', color: '#374151' }}
+                >
+                  <span className="truncate flex items-center gap-1">
+                    <span className="text-emerald-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
+                    <span className="truncate">{nhomFilter || 'Tất cả'}</span>
+                  </span>
+                  <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                </button>
+                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                   <button
-                    onClick={(e) => {
-                      const dd = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (dd) dd.classList.toggle('hidden');
-                    }}
-                    className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
-                    style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-                  >
-                    <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
-                    <ChevronDown className="w-3 h-3 flex-shrink-0" />
-                  </button>
-                  <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
-                    <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
-                    {uniqueNhomList.map(n => (
-                      <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
-                    ))}
-                  </div>
+                    onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }}
+                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                  >Tất cả nhóm</button>
+                  {uniqueNhomList.map(n => (
+                    <button
+                      key={n}
+                      onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }}
+                      className={`w-full text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                    >{n}</button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1 px-1.5 py-1 flex-1 min-h-0" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                  <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+              </div>
+              {/* Search tên */}
+              <div className="relative z-[200] flex-1 min-w-0">
+                <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46' }}>
+                  <Search className="w-3 h-3 text-emerald-700 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Tìm tên TVV..."
                     value={nameFilter}
                     onChange={e => setNameFilter(e.target.value)}
-                    className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+                    className="text-[10px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
                   />
-                  {nameFilter && <button onClick={() => setNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+                  {nameFilter && <button onClick={() => setNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0"><X className="w-3 h-3" /></button>}
                 </div>
-              </>
-            )}
-            {/* TN policies (không có filter): không hiển thị 2 ô info nữa — 2 ô tổng hợp đã fill đầy chiều cao */}
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div
+            className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
+            style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+            data-policy-table={policyOpen}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              const row = target.closest('tr');
+              if (!row) return;
+              if (row.closest('thead')) return;
+              if (row.cells.length < 2) return;
+              const wrapper = e.currentTarget;
+              wrapper.querySelectorAll('tr.policy-row-highlighted').forEach(r => {
+                if (r !== row) r.classList.remove('policy-row-highlighted');
+              });
+              row.classList.toggle('policy-row-highlighted');
+            }}
+          >
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media (max-width: 767px) {
+                .policy-detail-table-wrapper table { font-size: 9px !important; }
+                .policy-detail-table-wrapper th,
+                .policy-detail-table-wrapper td {
+                  padding: 3px !important;
+                  min-width: auto !important;
+                  width: auto !important;
+                  font-size: 9px !important;
+                }
+                .policy-detail-table-wrapper th span,
+                .policy-detail-table-wrapper td span,
+                .policy-detail-table-wrapper th br + span,
+                .policy-detail-table-wrapper td br + span {
+                  font-size: 8px !important;
+                }
+                .policy-detail-table-wrapper td[style*="13px"],
+                .policy-detail-table-wrapper td[style*="13px"] span {
+                  font-size: 10px !important;
+                }
+                .policy-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+              }
+              .policy-detail-table-wrapper tr.policy-row-highlighted > td {
+                background-color: #FEF3C7 !important;
+                color: #92400E !important;
+                font-weight: 700 !important;
+              }
+            `}} />
+            {renderPolicyContent(policyOpen)}
+          </div>
+
+          {/* Footer FIXED */}
+          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', borderTop: '2px solid #065F46' }}>
+            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-emerald-300">TỔNG:</span>
+              <span id="policy-fixed-count" className="text-white">—</span>
+            </span>
+            <span className="text-[11px] font-bold flex items-center gap-1.5">
+              <span className="text-amber-300 uppercase">Tổng thưởng:</span>
+              <span id="policy-fixed-amount" className="text-amber-200 font-black">—</span>
+            </span>
           </div>
         </div>
 
-        {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng — nối liền footer (không gap) */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
-          style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
-          data-policy-table={policyOpen}
-          onClick={(e) => {
-            const target = e.target as HTMLElement;
-            const row = target.closest('tr');
-            if (!row) return;
-            if (row.closest('thead')) return; // skip header
-            if (row.cells.length < 2) return; // skip separator/total rows
-            const wrapper = e.currentTarget;
-            wrapper.querySelectorAll('tr.policy-row-highlighted').forEach(r => {
-              if (r !== row) r.classList.remove('policy-row-highlighted');
-            });
-            row.classList.toggle('policy-row-highlighted');
-          }}
-        >
-          {/* Mobile: thu nhỏ font + padding + bỏ min-width để xem được nhiều cột hơn, giữ tỷ lệ giữa cột và chữ
-              Desktop: giữ nguyên font/padding/min-width theo inline style */}
-          <style dangerouslySetInnerHTML={{ __html: `
-            @media (max-width: 767px) {
-              .policy-detail-table-wrapper table { font-size: 9px !important; }
-              .policy-detail-table-wrapper th,
-              .policy-detail-table-wrapper td {
-                padding: 3px !important;
-                min-width: auto !important;
-                width: auto !important;
-                font-size: 9px !important;
-              }
-              .policy-detail-table-wrapper th span,
-              .policy-detail-table-wrapper td span,
-              .policy-detail-table-wrapper th br + span,
-              .policy-detail-table-wrapper td br + span {
-                font-size: 8px !important;
-              }
-              /* Ô TIỀN THƯỞNG — vẫn to hơn 1 chút để nổi bật trên mobile */
-              .policy-detail-table-wrapper td[style*="13px"],
-              .policy-detail-table-wrapper td[style*="13px"] span {
-                font-size: 10px !important;
-              }
-              /* Header STT nhỏ lại */
-              .policy-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
-            }
-            /* Row-click highlight — light amber cho Chính sách (đậm hơn hover bg-emerald-50) */
-            .policy-detail-table-wrapper tr.policy-row-highlighted > td {
-              background-color: #FEF3C7 !important; /* amber-100 — light yellow */
-              color: #92400E !important; /* amber-800 */
-              font-weight: 700 !important;
-            }
-          `}} />
-          {renderPolicyContent(policyOpen)}
-        </div>
+        {/* ====== DESKTOP LAYOUT (existing): 160px banner (image + summary cards + filters) -> table -> footer ====== */}
+        <div className="hidden md:flex flex-col h-full" style={{ backgroundColor: '#0F172A' }}>
+          {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
+          <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+            {/* Left: Image */}
+            <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+              {imageLink ? (
+                <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
+                  <Settings className="w-5 h-5 text-gray-500" />
+                  <span>Chưa có ảnh</span>
+                </div>
+              )}
+            </div>
+            {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền */}
+            <div className="w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+              {/* 2 ô tổng hợp */}
+              <div className={`gap-1 ${isTvvPolicy ? 'flex flex-shrink-0' : 'flex flex-1 flex-col'}`}>
+                <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#059669', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #047857' }}>
+                  <p className="text-[8px] font-bold uppercase text-white leading-tight">SL TVV đạt</p>
+                  <p className="text-[14px] sm:text-[16px] font-black text-white leading-tight break-all" id={`policy-count-${policyOpen}`}>—</p>
+                </div>
+                <div className={`px-1 py-1 text-center ${isTvvPolicy ? 'flex-1' : 'flex-1 flex flex-col justify-center'}`} style={{ backgroundColor: '#D97706', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', border: '1px solid #B45309' }}>
+                  <p className="text-[8px] font-bold uppercase text-white leading-tight">Tổng thưởng</p>
+                  <p className="text-[12px] sm:text-[16px] font-black text-white leading-tight truncate" id={`policy-total-${policyOpen}`}>—</p>
+                </div>
+              </div>
+              {/* Mobile: nút switch chính sách — popup FIXED overlay */}
+              <div className="relative flex-shrink-0 z-[200] md:hidden">
+                <button
+                  onClick={() => setMobilePolicyPopupOpen(!mobilePolicyPopupOpen)}
+                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] text-white font-bold transition-all active:scale-95 active:brightness-75"
+                  style={{ backgroundColor: '#047857', border: '1px solid #065F46', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+                >
+                  <span className="truncate flex items-center gap-1">
+                    <BookOpen className="w-3 h-3 flex-shrink-0" />
+                    {item.label}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${mobilePolicyPopupOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {mobilePolicyPopupOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobilePolicyPopupOpen(false)} />
+                    <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-emerald-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
+                      <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-emerald-500/60 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <BookOpen className="w-3 h-3" /> Chọn chính sách
+                        </span>
+                        <button onClick={() => setMobilePolicyPopupOpen(false)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {POLICY_ITEMS.map(p => {
+                        const subActive = policyOpen === p.key;
+                        const PIcon = p.icon;
+                        return (
+                          <button
+                            key={p.key}
+                            onClick={() => { navigateTo({ sheet: 'report', policyOpen: p.key }); setMobilePolicyPopupOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                          >
+                            <PIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: p.color }} />
+                            <span className="truncate flex-1">{p.label}</span>
+                            {subActive && <span className="text-emerald-400">●</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* TVV policies: bộ lọc nhóm + tìm tên */}
+              {isTvvPolicy && (
+                <>
+                  <div className="relative flex-1 min-h-0 z-[200]">
+                    <button
+                      onClick={(e) => {
+                        const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (dd) dd.classList.toggle('hidden');
+                      }}
+                      className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
+                      style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                    >
+                      <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
+                      <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                    </button>
+                    <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                      <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
+                      {uniqueNhomList.map(n => (
+                        <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 px-1.5 py-1 flex-1 min-h-0" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                    <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Tìm tên TVV..."
+                      value={nameFilter}
+                      onChange={e => setNameFilter(e.target.value)}
+                      className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+                    />
+                    {nameFilter && <button onClick={() => setNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
-        {/* Footer FIXED — màu đặc, không nhúc nhít, dính đáy container, nối liền bảng (không gap đen) */}
-        <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', borderTop: '2px solid #065F46' }}>
-          <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-            <span className="text-emerald-300">TỔNG:</span>
-            <span id="policy-fixed-count" className="text-white">—</span>
-          </span>
-          <span className="text-[11px] font-bold flex items-center gap-1.5">
-            <span className="text-amber-300 uppercase">Tổng thưởng:</span>
-            <span id="policy-fixed-amount" className="text-amber-200 font-black">—</span>
-          </span>
+          {/* Middle: bảng chi tiết */}
+          <div
+            className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
+            style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+            data-policy-table={policyOpen}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              const row = target.closest('tr');
+              if (!row) return;
+              if (row.closest('thead')) return;
+              if (row.cells.length < 2) return;
+              const wrapper = e.currentTarget;
+              wrapper.querySelectorAll('tr.policy-row-highlighted').forEach(r => {
+                if (r !== row) r.classList.remove('policy-row-highlighted');
+              });
+              row.classList.toggle('policy-row-highlighted');
+            }}
+          >
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media (max-width: 767px) {
+                .policy-detail-table-wrapper table { font-size: 9px !important; }
+                .policy-detail-table-wrapper th,
+                .policy-detail-table-wrapper td {
+                  padding: 3px !important;
+                  min-width: auto !important;
+                  width: auto !important;
+                  font-size: 9px !important;
+                }
+                .policy-detail-table-wrapper th span,
+                .policy-detail-table-wrapper td span,
+                .policy-detail-table-wrapper th br + span,
+                .policy-detail-table-wrapper td br + span {
+                  font-size: 8px !important;
+                }
+                .policy-detail-table-wrapper td[style*="13px"],
+                .policy-detail-table-wrapper td[style*="13px"] span {
+                  font-size: 10px !important;
+                }
+                .policy-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+              }
+              .policy-detail-table-wrapper tr.policy-row-highlighted > td {
+                background-color: #FEF3C7 !important;
+                color: #92400E !important;
+                font-weight: 700 !important;
+              }
+            `}} />
+            {renderPolicyContent(policyOpen)}
+          </div>
+
+          {/* Footer FIXED */}
+          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#047857', borderTop: '2px solid #065F46' }}>
+            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-emerald-300">TỔNG:</span>
+              <span id="policy-fixed-count" className="text-white">—</span>
+            </span>
+            <span className="text-[11px] font-bold flex items-center gap-1.5">
+              <span className="text-amber-300 uppercase">Tổng thưởng:</span>
+              <span id="policy-fixed-amount" className="text-amber-200 font-black">—</span>
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -8657,136 +8864,229 @@ export default function QuanLyPage() {
     const item = SAOVIET_ITEMS.find(i => i.key === program);
     if (!item) return null;
     const posterUrl = saovietPosters[program] || '';
+
+    // Shared compact filter row JSX
+    const filterRowJsx = (
+      <>
+        {/* Nhóm KD dropdown */}
+        <div className="relative z-[200] flex-1 min-w-0">
+          <button
+            onClick={(e) => {
+              const dd = e.currentTarget.nextElementSibling as HTMLElement;
+              if (dd) dd.classList.toggle('hidden');
+            }}
+            className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
+            style={{ backgroundColor: '#FFFFFF', border: '1px solid #92400E', color: '#374151' }}
+          >
+            <span className="truncate flex items-center gap-1">
+              <span className="text-amber-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
+              <span className="truncate">{saovietNhomFilter || 'Tất cả'}</span>
+            </span>
+            <ChevronDown className="w-3 h-3 flex-shrink-0" />
+          </button>
+          <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+            <button
+              onClick={(e) => { setSaovietNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+              className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${!saovietNhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+            >Tất cả nhóm</button>
+            {uniqueNhomList.map(n => (
+              <button
+                key={n}
+                onClick={(e) => { setSaovietNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${saovietNhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+              >{n}</button>
+            ))}
+          </div>
+        </div>
+        {/* Tên / Mã search */}
+        <div className="relative z-[200] flex-1 min-w-0">
+          <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #92400E' }}>
+            <Search className="w-3 h-3 text-amber-700 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm tên / mã..."
+              value={saovietNameFilter}
+              onChange={e => setSaovietNameFilter(e.target.value)}
+              className="text-[10px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+            />
+            {saovietNameFilter && (
+              <button onClick={() => setSaovietNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </>
+    );
+
+    // Shared table block
+    const tableBlock = (
+      <div
+        className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper"
+        style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+        data-saoviet-table={program}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const row = target.closest('tr');
+          if (!row) return;
+          if (row.closest('thead')) return;
+          if (row.cells.length < 2) return;
+          const wrapper = e.currentTarget;
+          wrapper.querySelectorAll('tr.sv-row-highlighted').forEach(r => {
+            if (r !== row) r.classList.remove('sv-row-highlighted');
+          });
+          row.classList.toggle('sv-row-highlighted');
+        }}
+      >
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media (max-width: 767px) {
+            .saoviet-detail-table-wrapper table { font-size: 9px !important; }
+            .saoviet-detail-table-wrapper th,
+            .saoviet-detail-table-wrapper td {
+              padding: 3px !important;
+              min-width: auto !important;
+              width: auto !important;
+              font-size: 9px !important;
+            }
+            .saoviet-detail-table-wrapper th span,
+            .saoviet-detail-table-wrapper td span,
+            .saoviet-detail-table-wrapper th br + span,
+            .saoviet-detail-table-wrapper td br + span {
+              font-size: 8px !important;
+            }
+            .saoviet-detail-table-wrapper td[style*="13px"],
+            .saoviet-detail-table-wrapper td[style*="13px"] span {
+              font-size: 10px !important;
+            }
+            .saoviet-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+          }
+          .saoviet-detail-table-wrapper tr.sv-row-highlighted > td {
+            background-color: #FED7AA !important;
+            color: #7C2D12 !important;
+            font-weight: 700 !important;
+          }
+        `}} />
+        {tableJsx}
+      </div>
+    );
+
+    // Shared footer
+    const footerBlock = (
+      <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#D97706', borderTop: '2px solid #B45309' }}>
+        <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-amber-200">TỔNG:</span>
+          <span className="text-white">{filteredCount}</span>
+        </span>
+        <span className="text-[11px] font-bold flex items-center gap-1.5">
+          <span className="text-amber-200 uppercase">{totalLabel}:</span>
+          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
+        </span>
+      </div>
+    );
+
     return (
       <div className="flex flex-col h-full gap-2">
-        {/* Detail layout — Policy-style, amber theme */}
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
-          {/* Top: poster trái + filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng */}
-          <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-            {/* Left: poster image — mobile 3/5, desktop 1/2, fill đầy ô, góc vuông */}
-            <div className="w-3/5 md:w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+          {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
+          <div className="md:hidden flex flex-col flex-1 min-h-0">
+            {/* Poster — full width 16:9 + program name overlay */}
+            <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
-                  <Settings className="w-5 h-5 text-gray-500" />
-                  <span>Chưa có ảnh</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
+                  <Star className="w-8 h-8 text-amber-300/70" />
+                  <span className="italic">Chưa có ảnh</span>
+                  <span className="text-[8px] text-gray-500">Quản lý trong Cài đặt</span>
                 </div>
               )}
+              {/* Bottom gradient + program name overlay */}
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
+                <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
+              </div>
             </div>
-            {/* Right: nền BẠC ĐẶC + filter nhóm + search tên TVV — căn đối, cân đối, có nhãn */}
-            <div className="w-2/5 md:w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
-              {/* Filter nhóm dropdown — có nhãn trên */}
-              <div className="relative z-[200]">
-                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Nhóm KD</span>
-                <button
-                  onClick={(e) => {
-                    const dd = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (dd) dd.classList.toggle('hidden');
-                  }}
-                  className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
-                  style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-                >
-                  <span className="truncate">{saovietNhomFilter || 'Tất cả nhóm'}</span>
-                  <ChevronDown className="w-3 h-3 flex-shrink-0" />
-                </button>
-                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+
+            {/* Compact filter row — 2 cols, mỏng, không label */}
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#FEF3C7', borderColor: '#D97706' }}>
+              {filterRowJsx}
+            </div>
+
+            {/* Table */}
+            {tableBlock}
+            {/* Footer */}
+            {footerBlock}
+          </div>
+
+          {/* ====== DESKTOP LAYOUT: 160px banner (poster trái + filter phải) -> table -> footer ====== */}
+          <div className="hidden md:flex flex-col flex-1 min-h-0">
+            <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+              {/* Left: poster */}
+              <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+                {posterUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
+                    <Settings className="w-5 h-5 text-gray-500" />
+                    <span>Chưa có ảnh</span>
+                  </div>
+                )}
+              </div>
+              {/* Right: filter nhóm + search tên TVV */}
+              <div className="w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+                <div className="relative z-[200]">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Nhóm KD</span>
                   <button
-                    onClick={(e) => { setSaovietNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                    className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${!saovietNhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
-                  >Tất cả nhóm</button>
-                  {uniqueNhomList.map(n => (
+                    onClick={(e) => {
+                      const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (dd) dd.classList.toggle('hidden');
+                    }}
+                    className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
+                    style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  >
+                    <span className="truncate">{saovietNhomFilter || 'Tất cả nhóm'}</span>
+                    <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                  </button>
+                  <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                     <button
-                      key={n}
-                      onClick={(e) => { setSaovietNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                      className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${saovietNhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
-                    >{n}</button>
-                  ))}
+                      onClick={(e) => { setSaovietNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                      className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${!saovietNhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+                    >Tất cả nhóm</button>
+                    {uniqueNhomList.map(n => (
+                      <button
+                        key={n}
+                        onClick={(e) => { setSaovietNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                        className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${saovietNhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+                      >{n}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              {/* Search tên TVV/TN input — có nhãn trên */}
-              <div className="relative z-[200]">
-                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Tên / Mã</span>
-                <div className="flex items-center gap-1 px-1.5 py-1" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                  <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Tìm tên / mã..."
-                    value={saovietNameFilter}
-                    onChange={e => setSaovietNameFilter(e.target.value)}
-                    className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
-                  />
-                  {saovietNameFilter && (
-                    <button onClick={() => setSaovietNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  )}
+                <div className="relative z-[200]">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Tên / Mã</span>
+                  <div className="flex items-center gap-1 px-1.5 py-1" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                    <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Tìm tên / mã..."
+                      value={saovietNameFilter}
+                      onChange={e => setSaovietNameFilter(e.target.value)}
+                      className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+                    />
+                    {saovietNameFilter && (
+                      <button onClick={() => setSaovietNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng, click row để highlight */}
-          <div
-            className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper"
-            style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
-            data-saoviet-table={program}
-            onClick={(e) => {
-              const target = e.target as HTMLElement;
-              const row = target.closest('tr');
-              if (!row) return;
-              if (row.closest('thead')) return; // skip header
-              if (row.cells.length < 2) return; // skip separator/empty rows
-              const wrapper = e.currentTarget;
-              wrapper.querySelectorAll('tr.sv-row-highlighted').forEach(r => {
-                if (r !== row) r.classList.remove('sv-row-highlighted');
-              });
-              row.classList.toggle('sv-row-highlighted');
-            }}
-          >
-            <style dangerouslySetInnerHTML={{ __html: `
-              @media (max-width: 767px) {
-                .saoviet-detail-table-wrapper table { font-size: 9px !important; }
-                .saoviet-detail-table-wrapper th,
-                .saoviet-detail-table-wrapper td {
-                  padding: 3px !important;
-                  min-width: auto !important;
-                  width: auto !important;
-                  font-size: 9px !important;
-                }
-                .saoviet-detail-table-wrapper th span,
-                .saoviet-detail-table-wrapper td span,
-                .saoviet-detail-table-wrapper th br + span,
-                .saoviet-detail-table-wrapper td br + span {
-                  font-size: 8px !important;
-                }
-                .saoviet-detail-table-wrapper td[style*="13px"],
-                .saoviet-detail-table-wrapper td[style*="13px"] span {
-                  font-size: 10px !important;
-                }
-                .saoviet-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
-              }
-              /* Row-click highlight — light orange cho Sao Việt (đậm hơn hover) */
-              .saoviet-detail-table-wrapper tr.sv-row-highlighted > td {
-                background-color: #FED7AA !important; /* orange-200 */
-                color: #7C2D12 !important; /* amber-900 */
-                font-weight: 700 !important;
-              }
-            `}} />
-            {tableJsx}
-          </div>
-
-          {/* Footer FIXED — VÀNG CAM (amber-600 #D97706 thay vì cam đậm #C2410C) */}
-          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#D97706', borderTop: '2px solid #B45309' }}>
-            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-              <span className="text-amber-200">TỔNG:</span>
-              <span className="text-white">{filteredCount}</span>
-            </span>
-            <span className="text-[11px] font-bold flex items-center gap-1.5">
-              <span className="text-amber-200 uppercase">{totalLabel}:</span>
-              <span className="text-white font-black">{formatCurrency(totalValue)}</span>
-            </span>
+            {/* Table */}
+            {tableBlock}
+            {/* Footer */}
+            {footerBlock}
           </div>
         </div>
       </div>
@@ -9099,6 +9399,9 @@ export default function QuanLyPage() {
   const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
 
   // ---------- Helper: shell chi tiết CLB Sao Việt (giống renderSaovietDetailShell, BLUE/NAVY theme) ----------
+  // Layout (mobile-first):
+  //   - Mobile: poster (full width 16:9) -> compact filter row (2 cols) -> table (scroll) -> fixed bottom footer
+  //   - Desktop: title bar -> 2-col filter bar -> table -> footer
   const renderClbsvDetailShell = (
     program: string,
     uniqueNhomList: string[],
@@ -9110,103 +9413,179 @@ export default function QuanLyPage() {
   ) => {
     const item = CLBSV_ITEMS.find(i => i.key === program);
     if (!item) return null;
+    const posterUrl = clbsvPosters[program] || '';
+    const isUploading = !!clbsvPosterUploading[program];
+
+    // Shared compact filter row JSX (mobile + desktop use same filters, different container styling)
+    const filterRowJsx = (
+      <>
+        {/* Nhóm KD dropdown */}
+        <div className="relative z-[200] flex-1 min-w-0">
+          <button
+            onClick={(e) => {
+              const dd = e.currentTarget.nextElementSibling as HTMLElement;
+              if (dd) dd.classList.toggle('hidden');
+            }}
+            className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
+            style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A', color: '#1E3A8A' }}
+          >
+            <span className="truncate flex items-center gap-1">
+              <span className="text-blue-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
+              <span className="truncate">{clbsvNhomFilter || 'Tất cả'}</span>
+            </span>
+            <ChevronDown className="w-3 h-3 flex-shrink-0" />
+          </button>
+          <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-blue-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
+            <button
+              onClick={(e) => { setClbsvNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+              className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${!clbsvNhomFilter ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
+            >Tất cả nhóm</button>
+            {uniqueNhomList.map(n => (
+              <button
+                key={n}
+                onClick={(e) => { setClbsvNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter === n ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
+              >{n}</button>
+            ))}
+          </div>
+        </div>
+        {/* Tên / Mã search */}
+        <div className="relative z-[200] flex-1 min-w-0">
+          <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A' }}>
+            <Search className="w-3 h-3 text-blue-700 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm tên / mã..."
+              value={clbsvNameFilter}
+              onChange={e => setClbsvNameFilter(e.target.value)}
+              className="text-[10px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-400"
+            />
+            {clbsvNameFilter && (
+              <button onClick={() => setClbsvNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </>
+    );
+
+    // Shared table block (mobile + desktop)
+    const tableBlock = (
+      <div
+        className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border bg-white clbsv-detail-table-wrapper"
+        style={{ borderColor: '#3B82F6' }}
+      >
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media (max-width: 767px) {
+            .clbsv-detail-table-wrapper table { font-size: 9px !important; }
+            .clbsv-detail-table-wrapper th,
+            .clbsv-detail-table-wrapper td {
+              padding: 3px !important;
+              font-size: 9px !important;
+            }
+          }
+          .clbsv-detail-table-wrapper tr.clbsv-row-highlighted > td {
+            background-color: #DBEAFE !important;
+            color: #1E3A8A !important;
+            font-weight: 700 !important;
+          }
+        `}} />
+        {tableJsx}
+      </div>
+    );
+
+    // Shared footer
+    const footerBlock = (
+      <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#1E3A8A', borderTop: '2px solid #1E40AF' }}>
+        <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-amber-300">TỔNG:</span>
+          <span className="text-white">{filteredCount}</span>
+        </span>
+        <span className="text-[11px] font-bold flex items-center gap-1.5">
+          <span className="text-amber-300 uppercase">{totalLabel}:</span>
+          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
+        </span>
+      </div>
+    );
+
     return (
       <div className="flex flex-col h-full gap-2">
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
-          {/* Top bar: title (no month label per user spec — keep only criteria shown in table headers) */}
-          <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#1E3A8A', borderColor: '#1E40AF' }}>
-            <div className="flex items-center gap-2 text-white">
-              <Award className="w-4 h-4 flex-shrink-0" />
-              <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider truncate">{item.label}</h2>
-            </div>
-            <div className="flex items-center gap-2 text-white text-[10px] sm:text-[11px]">
-              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-bold">Chỉ tiêu tháng hiện tại</span>
-            </div>
-          </div>
-
-          {/* Filter bar: nhóm + tên (BLUE theme) */}
-          <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
-            <div className="relative z-[200] flex-1 min-w-0">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-blue-900 mb-0.5">Nhóm KD</span>
-              <button
-                onClick={(e) => {
-                  const dd = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (dd) dd.classList.toggle('hidden');
-                }}
-                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
-                style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A', color: '#1E3A8A' }}
-              >
-                <span className="truncate">{clbsvNhomFilter || 'Tất cả nhóm'}</span>
-                <ChevronDown className="w-3 h-3 flex-shrink-0" />
-              </button>
-              <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-blue-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
-                <button
-                  onClick={(e) => { setClbsvNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                  className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${!clbsvNhomFilter ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
-                >Tất cả nhóm</button>
-                {uniqueNhomList.map(n => (
-                  <button
-                    key={n}
-                    onClick={(e) => { setClbsvNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter === n ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
-                  >{n}</button>
-                ))}
-              </div>
-            </div>
-            <div className="relative z-[200] flex-1 min-w-0">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-blue-900 mb-0.5">Tên / Mã</span>
-              <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A' }}>
-                <Search className="w-3 h-3 text-blue-700 flex-shrink-0" />
+          {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
+          <div className="md:hidden flex flex-col flex-1 min-h-0">
+            {/* Poster — full width 16:9, có nút upload/delete góc phải */}
+            <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
+              {posterUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 text-[10px] text-center p-3 gap-1">
+                  <Award className="w-8 h-8 text-amber-300/70" />
+                  <span className="italic">Chưa có poster</span>
+                  <span className="text-[8px] text-white/40">Quản lý trong Cài đặt</span>
+                </div>
+              )}
+              {/* Upload button overlay (góc phải trên) */}
+              <label className="absolute top-1 right-1 z-10 bg-black/60 hover:bg-black/80 text-white rounded p-1 cursor-pointer transition-colors">
+                <Upload className="w-3 h-3" />
                 <input
-                  type="text"
-                  placeholder="Tìm tên / mã..."
-                  value={clbsvNameFilter}
-                  onChange={e => setClbsvNameFilter(e.target.value)}
-                  className="text-[10px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-400"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => handleClbsvPosterUpload(program, e)}
+                  disabled={isUploading}
                 />
-                {clbsvNameFilter && (
-                  <button onClick={() => setClbsvNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+              </label>
+              {posterUrl && (
+                <button
+                  onClick={() => handleClbsvPosterDelete(program)}
+                  className="absolute top-1 right-8 z-10 bg-red-600/80 hover:bg-red-600 text-white rounded p-1 transition-colors"
+                  title="Xóa poster"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+              {/* Bottom gradient + program name overlay */}
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
+                <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
               </div>
             </div>
+
+            {/* Compact filter row — 2 cols, mỏng, không label */}
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
+              {filterRowJsx}
+            </div>
+
+            {/* Table */}
+            {tableBlock}
+            {/* Footer */}
+            {footerBlock}
           </div>
 
-          {/* Middle: bảng chi tiết */}
-          <div
-            className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border bg-white clbsv-detail-table-wrapper"
-            style={{ borderColor: '#3B82F6' }}
-          >
-            <style dangerouslySetInnerHTML={{ __html: `
-              @media (max-width: 767px) {
-                .clbsv-detail-table-wrapper table { font-size: 9px !important; }
-                .clbsv-detail-table-wrapper th,
-                .clbsv-detail-table-wrapper td {
-                  padding: 3px !important;
-                  font-size: 9px !important;
-                }
-              }
-              .clbsv-detail-table-wrapper tr.clbsv-row-highlighted > td {
-                background-color: #DBEAFE !important;
-                color: #1E3A8A !important;
-                font-weight: 700 !important;
-              }
-            `}} />
-            {tableJsx}
-          </div>
+          {/* ====== DESKTOP LAYOUT: title bar -> 2-col filter bar -> table -> footer ====== */}
+          <div className="hidden md:flex flex-col flex-1 min-h-0">
+            {/* Top bar: title + "Chỉ tiêu tháng hiện tại" badge */}
+            <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#1E3A8A', borderColor: '#1E40AF' }}>
+              <div className="flex items-center gap-2 text-white">
+                <Award className="w-4 h-4 flex-shrink-0" />
+                <h2 className="text-sm font-extrabold uppercase tracking-wider truncate">{item.label}</h2>
+              </div>
+              <div className="flex items-center gap-2 text-white text-[11px]">
+                <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-bold">Chỉ tiêu tháng hiện tại</span>
+              </div>
+            </div>
 
-          {/* Footer FIXED — NAVY (navy-900 #1E3A8A) */}
-          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#1E3A8A', borderTop: '2px solid #1E40AF' }}>
-            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-              <span className="text-amber-300">TỔNG:</span>
-              <span className="text-white">{filteredCount}</span>
-            </span>
-            <span className="text-[11px] font-bold flex items-center gap-1.5">
-              <span className="text-amber-300 uppercase">{totalLabel}:</span>
-              <span className="text-white font-black">{formatCurrency(totalValue)}</span>
-            </span>
+            {/* Filter bar: nhóm + tên (BLUE theme) */}
+            <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
+              {filterRowJsx}
+            </div>
+
+            {/* Table */}
+            {tableBlock}
+            {/* Footer */}
+            {footerBlock}
           </div>
         </div>
       </div>
