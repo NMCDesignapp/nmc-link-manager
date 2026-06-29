@@ -4738,7 +4738,7 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY BĐ LV</th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>CHẶNG XÉT THƯỞNG</th>
-                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP<br/><span className="text-[9px] font-normal normal-case">(tháng {currentMonth})</span></th>
+                <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP<br/><span className="text-[9px] italic font-normal normal-case">(tháng {currentMonth})</span></th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG THÁNG</th>
                 <th className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG IP CHẶNG</th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG CHẶNG<br/><span className="text-[9px] italic font-normal normal-case" style={{ color: '#FCA5A5' }}>(TVV nhận 1 lần/chặng)</span></th>
@@ -4994,8 +4994,8 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th rowSpan={3} className="text-white min-w-[55px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ TVV</th>
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] font-normal normal-case">Quý {currentQuarter}</span></th>
-                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] font-normal normal-case">(Dự kiến 25%)</span></th>
+                <th rowSpan={3} className="text-white min-w-[75px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[9px] italic font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>FYC<br/><span className="text-[9px] italic font-normal normal-case">(Dự kiến 25%)</span></th>
                 <th colSpan={6} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN<br/>THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
@@ -5003,15 +5003,15 @@ export default function QuanLyPage() {
               {/* Row 2: FYP thresholds — solid teal header, white text */}
               <tr style={{ backgroundColor: TIER_HEADER_BG }}>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[11px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, height: '18px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white italic font-normal text-[11px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, height: '18px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates — teal gradient bg, BOLD RED numbers for emphasis */}
+              {/* Row 3: Percentage rates — teal gradient bg, italic red numbers */}
               <tr>
                 {TIERS.map((tier, idx) => (
-                  <th key={idx} className="font-black text-[13px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_BORDER, height: '20px', lineHeight: '1', backgroundColor: TIER_GRADIENT_BG[idx], color: TIER_RATE_COLOR, textShadow: '0 0 1px rgba(255,255,255,0.5)' }}>
+                  <th key={idx} className="italic font-normal text-[13px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_BORDER, height: '20px', lineHeight: '1', backgroundColor: TIER_GRADIENT_BG[idx], color: TIER_RATE_COLOR, textShadow: '0 0 1px rgba(255,255,255,0.5)' }}>
                     {tier.rate}%
                   </th>
                 ))}
@@ -5274,7 +5274,7 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>
                   TỔNG IP T{prevMonth}
                   <br/>
-                  <span className="text-[9px] italic font-bold normal-case" style={{ color: '#A7F3D0' }}>(ĐK ≥ 3 trđ)</span>
+                  <span className="text-[9px] italic font-normal normal-case" style={{ color: '#A7F3D0' }}>(ĐK ≥ 3 trđ)</span>
                 </th>
                 {/* TỔNG IP T6 (tháng hiện tại) — DARK NAVY header (#1E3A8A, white text), body lightest violet tint */}
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#1E3A8A', backgroundColor: '#1E3A8A' }}>
@@ -5517,8 +5517,8 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TB/TN</th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>TL THƯỞNG</th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
@@ -5760,9 +5760,9 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ TVV</th>
                 <th className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TTN</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>FYP TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>FYP TVVm<br/><span className="text-[10px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>TỔNG THƯỞNG TVVm<br/><span className="text-[10px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>SL TVVm HĐC<br/><span className="text-[10px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG ĐỒNG HÀNH</th>
                 <th className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THƯỞNG VƯỢT TRỘI</th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TỔNG TIỀN THƯỞNG</th>
@@ -6005,23 +6005,23 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
                 <th rowSpan={3} className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
-                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
-                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>TVVm HĐC<br/><span className="text-[10px] font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP<br/><span className="text-[10px] italic font-normal normal-case">Quý {currentQuarter}</span></th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>TVVm HĐC<br/><span className="text-[10px] italic font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th colSpan={5} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
               </tr>
               {/* Row 2: FYP thresholds (compact) */}
               <tr style={{ backgroundColor: TIER_HEADER_BG }}>
                 {TN_TIERS.map((tier, idx) => (
-                  <th key={idx} className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, height: '18px', lineHeight: '1' }}>
+                  <th key={idx} className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, height: '18px', lineHeight: '1' }}>
                     {tier.label.replace('FYP ≥ ', '≥').replace('tr', '').replace(' + TVVm', '+TVVm')}
                   </th>
                 ))}
               </tr>
-              {/* Row 3: Percentage rates — yellow gradient bg + bold red number */}
+              {/* Row 3: Percentage rates — yellow gradient bg + italic red number */}
               <tr>
                 {TN_TIERS.map((tier, idx) => (
-                  <th key={idx} className="font-black text-[12px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_BORDER, height: '20px', lineHeight: '1', backgroundColor: TIER_GRADIENT_BG[idx], color: TIER_RATE_COLOR, textShadow: '0 0 1px rgba(255,255,255,0.5)' }}>
+                  <th key={idx} className="italic font-normal text-[12px] px-1 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_BORDER, height: '20px', lineHeight: '1', backgroundColor: TIER_GRADIENT_BG[idx], color: TIER_RATE_COLOR, textShadow: '0 0 1px rgba(255,255,255,0.5)' }}>
                     {tier.rate}%
                   </th>
                 ))}
@@ -6274,8 +6274,8 @@ export default function QuanLyPage() {
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM</th>
                 <th className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
                 <th className="text-white min-w-[110px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TN</th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
-                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐC<br/><span className="text-[11px] font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#2563EB', backgroundColor: '#1D4ED8' }}>TỔNG FYP NHÓM<br/><span className="text-[11px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
+                <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: TIER_GROUP_HEADER_BG, backgroundColor: TIER_GROUP_HEADER_BG }}>LƯỢT HĐC<br/><span className="text-[11px] italic font-normal normal-case">Tháng {currentMonth}</span></th>
                 <th className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#7C3AED', backgroundColor: '#6D28D9' }}>
                   FYC
                   <br/>
@@ -6639,7 +6639,7 @@ export default function QuanLyPage() {
                 <th rowSpan={2} className="text-white min-w-[80px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NHÓM KD</th>
                 <th rowSpan={2} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>MÃ SỐ</th>
                 <th rowSpan={2} className="text-white min-w-[120px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>HỌ TÊN TVV</th>
-                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] font-normal normal-case">CHỨC VỤ</span></th>
+                <th rowSpan={2} className="text-white min-w-[90px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>NGÀY HIỆU LỰC<br/><span className="text-[10px] italic font-normal normal-case">CHỨC VỤ</span></th>
                 <th rowSpan={2} className="text-white min-w-[60px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>THÁNG LÀM<br/>VIỆC</th>
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#0F766E', borderColor: '#0F766E', height: '22px' }}>CHỈ TIÊU</th>
                 <th colSpan={3} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' }}>THỰC HIỆN THÁNG</th>
@@ -6649,15 +6649,15 @@ export default function QuanLyPage() {
               </tr>
               {/* Row 2: Sub-headers */}
               <tr>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857', height: '18px' }}>Quy mô</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>TVVm HĐC</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>Tổng FYP</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Quy mô</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>TVVm HĐC</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Tổng FYP</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Quy mô</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>TVVm HĐC</th>
-                <th className="text-white font-bold text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Tổng FYP</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857', height: '18px' }}>Quy mô</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>TVVm HĐC</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: SUB_HEADER_BG, borderColor: '#047857' }}>Tổng FYP</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Quy mô</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>TVVm HĐC</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E40AF', borderColor: '#1E40AF' }}>Tổng FYP</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Quy mô</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>TVVm HĐC</th>
+                <th className="text-white italic font-normal text-[10px] px-1 text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#6D28D9', borderColor: '#6D28D9' }}>Tổng FYP</th>
               </tr>
             </thead>
             <tbody>
@@ -8350,21 +8350,21 @@ export default function QuanLyPage() {
       <Table>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ ĐẠI LÝ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="italic font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
             {SV1_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
-                className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
                 style={{ backgroundColor: t.bg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
-                  <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                  <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                  <div className="italic font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                  <div className="italic font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
                 </div>
               </TableHead>
             ))}
@@ -8419,21 +8419,21 @@ export default function QuanLyPage() {
       <Table>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MS ĐẠI LÝ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TN</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MS ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TN</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="italic font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
             {SV2_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
-                className="text-[10px] font-bold uppercase text-center whitespace-nowrap p-1"
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
                 style={{ backgroundColor: t.bg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
-                  <div className="font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
-                  <div className="font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
+                  <div className="italic font-normal text-[9px]">{t.sub.split('\n')[0]}</div>
+                  <div className="italic font-normal text-[9px]">{t.sub.split('\n')[1]}</div>
                 </div>
               </TableHead>
             ))}
@@ -8502,11 +8502,11 @@ export default function QuanLyPage() {
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MS ĐẠI LÝ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TN</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              TỔNG FYP TVVm<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              TỔNG FYP TVVm<br /><span className="italic font-normal text-[9px]">01/12/25 - 30/11/26</span>
             </TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              SL TVVm HĐC<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+              SL TVVm HĐC<br /><span className="italic font-normal text-[9px]">01/12/25 - 30/11/26</span>
             </TableHead>
             {SV3_RANKS.flatMap(rk => [
               <TableHead
@@ -8516,7 +8516,7 @@ export default function QuanLyPage() {
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase">{rk.label}</div>
-                  <div className="font-normal text-[9px]">{rk.subFypLabel}</div>
+                  <div className="italic font-normal text-[9px]">{rk.subFypLabel}</div>
                 </div>
               </TableHead>,
               <TableHead
@@ -8526,7 +8526,7 @@ export default function QuanLyPage() {
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
-                  <div className="font-normal text-[9px]">{rk.subHdcLabel}</div>
+                  <div className="italic font-normal text-[9px]">{rk.subHdcLabel}</div>
                 </div>
               </TableHead>,
             ])}
