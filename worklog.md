@@ -772,3 +772,44 @@ Stage Summary:
 - CLB Sao Việt giờ dùng tone màu xanh dương/navy chủ đạo (sidebar, mobile button, header bar, filter bar, footer, row highlight, overview)
 - Hàng tiêu đề CLB Sao Việt chỉ còn hiển thị tên hạng + chỉ tiêu (vd "HẠNG VÀNG / FYP >= 300 trđ"), không còn chữ "Tháng X"
 - Chỉ tiêu tháng hiện tại vẫn auto-cập nhật dựa trên new Date().getMonth()+1 (June→Dec, clamping early months to June)
+
+---
+Task ID: clb-saoviet-text-color-fix
+Agent: main
+Task: Fix chữ màu xanh trên nền tối ở trang tổng quan CLB Sao Việt — đổi sang trắng/vàng nhạt để dễ đọc; ghi nhận CLB Sao Việt sẽ lấy data trực tiếp từ tổng quan app (không cần upload file)
+
+Work Log:
+- User phàn nàn: "tone xanh rồi, nên cho chữ màu trắng hoặc vàng nhạt đi, chứ cho chữ màu xanh luôn nhìn tối lắm"
+- Phân tích renderCLBSaoVietList (lines 9402-9456):
+  * Title "TỔNG QUAN CLB SAO VIỆT": text-blue-300 trên nền tối → khó đọc
+  * Subtitle "Chỉ tiêu tự động cập nhật...": text-blue-200/70 → mờ
+  * Card label (h3): style={{ color: item.color }} = blue trên #0e1424 → tối
+  * Card icon poster: style={{ color: item.color }} = blue trên gradient mờ → thiếu contrast
+  * "Chỉ tiêu tháng hiện tại": text-blue-200/60 → mờ
+  * "Xem chi tiết": style={{ color: item.color }} = blue → tối
+- Fix renderCLBSaoVietList:
+  * Title: text-blue-300 → text-white, icon Award thêm text-amber-300
+  * Subtitle: text-blue-200/70 → text-amber-200/80
+  * Card poster icon: bỏ style color, dùng text-white + drop-shadow white glow
+  * Card poster gradient: tăng opacity 33→55, 11→22 để icon trắng nổi bật hơn
+  * Card label h3: bỏ style color, dùng text-white
+  * Card icon nhỏ: style color → text-amber-300
+  * "Chỉ tiêu tháng hiện tại": text-blue-200/60 → text-amber-200/70
+  * "Xem chi tiết": bỏ style color, dùng text-amber-300
+- Fix sidebar CLB Sao Việt entry (line 9659-9660):
+  * Active: text-blue-300 → text-white
+  * Inactive: text-blue-300/70 → text-white/70
+- Fix detail shell footer (lines 9203, 9207):
+  * "TỔNG:" label: text-blue-200 → text-amber-300 (trên navy-900 background)
+  * totalLabel: text-blue-200 → text-amber-300
+- Build: success (no new errors)
+- Commit: f03d36c
+- Push: success (main → f03d36c)
+
+Stage Summary:
+- Trang tổng quan CLB Sao Việt giờ dùng chữ trắng làm primary + vàng nhạt (amber-300) làm accent — dễ đọc trên nền tối
+- Sidebar entry cũng dùng trắng thay vì xanh
+- Footer detail shell: label vàng nhạt trên nền navy, value vẫn trắng
+- Tone màu xanh dương/navy vẫn giữ làm background/border theme, chỉ đổi text color
+- Ghi nhận yêu cầu mới: CLB Sao Việt sẽ lấy data trực tiếp từ tổng quan app (tvvStructList, contracts, etc.) thay vì upload file — user sẽ hướng dẫn logic fetch sau
+- Hiện 3 bảng chi tiết CLB Sao Việt vẫn đang trống (empty state), chờ user guide để wire up data
