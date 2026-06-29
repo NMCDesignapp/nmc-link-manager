@@ -3773,6 +3773,10 @@ export default function QuanLyPage() {
   const SAOVIET_PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
   type SaoVietProgram = typeof SAOVIET_PROGRAMS[number];
   const [saovietLinks, setSaovietLinks] = useState<Record<string, string>>({});
+  // Shared Google Sheets link — 1 spreadsheet with 3 tabs named 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  // (saved via Settings API key 'saoviet-link-shared')
+  const [saovietSharedLink, setSaovietSharedLink] = useState<string>('');
+  const [saovietSyncingAll, setSaovietSyncingAll] = useState<boolean>(false);
   const [saovietManualData, setSaovietManualData] = useState<Record<string, any[]>>({
     'ca-nhan': [], 'tn-ktm': [], 'tn-td': [],
   });
@@ -3857,8 +3861,11 @@ export default function QuanLyPage() {
       .then(data => {
         const links: Record<string, string> = {};
         const posters: Record<string, string> = {};
+        let sharedLink = '';
         for (const [key, value] of Object.entries(data)) {
-          if (key.startsWith('saoviet-link-') && value) {
+          if (key === 'saoviet-link-shared' && value) {
+            sharedLink = String(value);
+          } else if (key.startsWith('saoviet-link-') && value) {
             links[key.replace('saoviet-link-', '')] = String(value);
           }
           if (key.startsWith('saoviet-poster-') && value) {
@@ -3866,6 +3873,7 @@ export default function QuanLyPage() {
           }
         }
         setSaovietLinks(links);
+        setSaovietSharedLink(sharedLink);
         setSaovietPosters(posters);
       })
       .catch(() => {});
@@ -3898,6 +3906,82 @@ export default function QuanLyPage() {
       toast({ title: 'Lỗi lưu link', variant: 'destructive' });
     }
   }, []);
+
+  // ---------- SAO VIỆT: save SHARED link via Settings API ----------
+  // 1 spreadsheet with 3 tabs (ca-nhan | tn-ktm | tn-td) — syncs all 3 programs at once
+  const saveSaovietSharedLink = useCallback(async (link: string) => {
+    setSaovietSharedLink(link);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'saoviet-link-shared': link }),
+      });
+    } catch {
+      toast({ title: 'Lỗi lưu link', variant: 'destructive' });
+    }
+  }, []);
+
+  // ---------- SAO VIỆT: SYNC ALL 3 programs from 1 shared link ----------
+  // Spreadsheet must have 3 tabs named exactly: ca-nhan, tn-ktm, tn-td
+  // Each tab's data starts from NHÓM column (no STT — app auto-counts)
+  //   ca-nhan / tn-ktm tabs:  NHÓM | MÃ SỐ | HỌ TÊN | FYP
+  //   tn-td tab:               NHÓM | MÃ SỐ | HỌ TÊN | FYP TVVm | SL TVVm HĐC | TVVm COUNT
+  const handleSaovietSyncAll = useCallback(async () => {
+    const link = saovietSharedLink.trim();
+    if (!link) {
+      toast({ title: 'Chưa có link', description: 'Vui lòng nhập link Google Sheets trước', variant: 'destructive' });
+      return;
+    }
+    setSaovietSyncingAll(true);
+    try {
+      const r = await fetch('/api/saoviet-data/sync-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.results) {
+        const res = data.results;
+        const successCount = SAOVIET_PROGRAMS.filter(p => !res[p]?.error).length;
+        const totalRows = SAOVIET_PROGRAMS.reduce((s, p) => s + (res[p]?.count || 0), 0);
+        const failedPrograms = SAOVIET_PROGRAMS.filter(p => res[p]?.error);
+        if (successCount === 3) {
+          toast({
+            title: 'Đồng bộ tất cả thành công',
+            description: `3/3 chương trình — ${totalRows} dòng tổng cộng`,
+          });
+        } else if (successCount > 0) {
+          toast({
+            title: `Đồng bộ ${successCount}/3 chương trình`,
+            description: `${totalRows} dòng — Lỗi: ${failedPrograms.map(p => `${p} (${res[p]?.error})`).join(', ')}`,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Đồng bộ thất bại',
+            description: failedPrograms.map(p => `${p}: ${res[p]?.error}`).join('; '),
+            variant: 'destructive',
+          });
+        }
+        // Reload all 3 programs' data
+        const freshData = await Promise.all(
+          SAOVIET_PROGRAMS.map(p =>
+            fetch(`/api/saoviet-data?program=${p}`).then(r => r.ok ? r.json() : []).then(rows => [p, rows] as const)
+          )
+        );
+        const next: Record<string, any[]> = { 'ca-nhan': [], 'tn-ktm': [], 'tn-td': [] };
+        for (const [p, rows] of freshData) next[p] = Array.isArray(rows) ? rows : [];
+        setSaovietManualData(next);
+      } else {
+        toast({ title: 'Lỗi đồng bộ', description: data.error || `HTTP ${r.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi đồng bộ', description: String(e), variant: 'destructive' });
+    } finally {
+      setSaovietSyncingAll(false);
+    }
+  }, [saovietSharedLink]);
 
   // ---------- SAO VIỆT: sync from Google Sheets link ----------
   const handleSaovietSync = useCallback(async (program: string) => {
@@ -8084,65 +8168,35 @@ export default function QuanLyPage() {
     </div>
   );
 
-  // ---------- Helper: panel đồng bộ + upload (dùng chung cho 3 sub-page) ----------
+  // ---------- Helper: panel upload riêng từng chương trình (dùng chung cho 3 sub-page) ----------
   // program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
-  // UI: input link + nút đồng bộ + nút upload + nút xóa (nếu có data manual)
+  // UI: chỉ có nút upload file + nút xóa dữ liệu (sync qua link chung ở trên)
   const renderSaovietPanel = (program: string) => {
-    const link = saovietLinks[program] || '';
-    const isSyncing = !!saovietSyncing[program];
     const isUploading = !!saovietUploading[program];
     const manualCount = (saovietManualData[program] || []).length;
     return (
       <div className="p-3 border border-orange-500/30 rounded-lg" style={{ backgroundColor: 'rgba(234, 88, 12, 0.05)' }}>
         <div className="flex items-center gap-2 mb-2">
-          <RefreshCw className="w-3.5 h-3.5 text-orange-400" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Đồng bộ & Upload số liệu</h4>
+          <Upload className="w-3.5 h-3.5 text-orange-400" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Upload file (Excel/CSV)</h4>
           {manualCount > 0 && (
             <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded border border-orange-500/30">
-              <CheckCircle2 className="w-3 h-3" /> {manualCount} dòng (từ upload/sync)
+              <CheckCircle2 className="w-3 h-3" /> {manualCount} dòng
             </span>
           )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {/* Left col: link input + sync button */}
-          <div className="space-y-1">
-            <Label className="text-[10px] text-orange-200/70">Link Google Sheets (CSV)</Label>
-            <div className="flex items-center gap-1">
-              <Input
-                defaultValue={link}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                className="h-7 text-[11px] bg-white border-orange-500/30 text-gray-800 placeholder-gray-400 flex-1"
-                onBlur={(e) => saveSaovietLink(program, e.target.value.trim())}
-                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-              />
-              {link && (
-                <a href={link} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-700 flex-shrink-0" title="Mở link">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={isSyncing || !link}
-              onClick={() => handleSaovietSync(program)}
-              className="h-7 text-[11px] w-full bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 text-orange-700 disabled:opacity-50"
-            >
-              {isSyncing
-                ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang đồng bộ...</>
-                : <><RefreshCw className="w-3 h-3 mr-1" /> Đồng bộ từ link</>}
-            </Button>
-          </div>
-          {/* Right col: upload + clear */}
-          <div className="space-y-1">
-            <Label className="text-[10px] text-orange-200/70">Upload file Excel/CSV (xóa hết &amp; up lại)</Label>
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              id={`saoviet-upload-${program}`}
-              onChange={(e) => handleSaovietUpload(program, e)}
-            />
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-orange-200/70 leading-relaxed">
+            Upload file Excel/CSV riêng cho chương trình này (xóa hết &amp; up lại). Khuyến nghị dùng <strong>Đồng bộ tất cả</strong> ở trên.
+          </p>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            id={`saoviet-upload-${program}`}
+            onChange={(e) => handleSaovietUpload(program, e)}
+          />
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -8152,7 +8206,7 @@ export default function QuanLyPage() {
             >
               {isUploading
                 ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Đang upload...</>
-                : <><Upload className="w-3 h-3 mr-1" /> Chọn file upload</>}
+                : <><Upload className="w-3 h-3 mr-1" /> Chọn file</>}
             </Button>
             {manualCount > 0 && (
               <Button
@@ -8161,17 +8215,11 @@ export default function QuanLyPage() {
                 onClick={() => handleSaovietClear(program)}
                 className="h-7 text-[11px] w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600"
               >
-                <Trash2 className="w-3 h-3 mr-1" /> Xóa dữ liệu thủ công
+                <Trash2 className="w-3 h-3 mr-1" /> Xóa dữ liệu
               </Button>
             )}
           </div>
         </div>
-        {manualCount > 0 && (
-          <p className="text-[10px] text-orange-600/80 mt-2 leading-relaxed">
-            <strong>Lưu ý:</strong> Đang hiển thị <strong>{manualCount} dòng</strong> từ dữ liệu upload/sync.
-            Toàn bộ dữ liệu cũ của mục này đã bị xóa khi upload. Nhấn "Xóa dữ liệu thủ công" để trở về chế độ tự tính từ Hợp đồng.
-          </p>
-        )}
       </div>
     );
   };
@@ -8778,12 +8826,75 @@ export default function QuanLyPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Body — 3 panels (one per program) */}
+            {/* Body — shared link section + 3 panels (per program) */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
               <p className="text-[11px] text-amber-200/70 leading-relaxed">
-                Quản lý nguồn dữ liệu và ảnh poster cho từng chương trình: dán link Google Sheets để đồng bộ, upload file Excel/CSV, hoặc tải ảnh poster 16:9.
-                Trong bảng chi tiết chỉ xem được dữ liệu, tất cả cài đặt đều ở đây.
+                Quản lý nguồn dữ liệu và ảnh poster cho 3 chương trình Sao Việt.
               </p>
+
+              {/* ===== SHARED LINK SECTION — 1 spreadsheet, 3 tabs ===== */}
+              <div className="p-3 border-2 border-orange-500/40 rounded-lg" style={{ backgroundColor: 'rgba(234, 88, 12, 0.08)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <RefreshCw className={`w-4 h-4 text-orange-400 ${saovietSyncingAll ? 'animate-spin' : ''}`} />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Đồng bộ tất cả 3 chương trình</h4>
+                </div>
+                <p className="text-[10px] text-orange-200/70 leading-relaxed mb-2">
+                  Dán <strong>1 link Google Sheets</strong> có <strong>3 tab</strong> đặt tên đúng: <code className="px-1 bg-orange-500/20 rounded">ca-nhan</code> · <code className="px-1 bg-orange-500/20 rounded">tn-ktm</code> · <code className="px-1 bg-orange-500/20 rounded">tn-td</code>.
+                  Dữ liệu mỗi tab bắt đầu từ cột <strong>NHÓM</strong> (không cần cột STT — app tự đếm).
+                  Tiêu đề bảng giữ nguyên như trên app.
+                </p>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-orange-200/70">Link Google Sheets (chung cho 3 chương trình)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      defaultValue={saovietSharedLink}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="h-8 text-[11px] bg-white border-orange-500/30 text-gray-800 placeholder-gray-400 flex-1"
+                      onBlur={(e) => saveSaovietSharedLink(e.target.value.trim())}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    />
+                    {saovietSharedLink && (
+                      <a href={saovietSharedLink} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-700 flex-shrink-0 p-1" title="Mở link">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={saovietSyncingAll || !saovietSharedLink}
+                    onClick={handleSaovietSyncAll}
+                    className="h-8 text-[11px] w-full bg-orange-500 hover:bg-orange-600 border border-orange-600 text-white disabled:opacity-50 font-bold"
+                  >
+                    {saovietSyncingAll
+                      ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Đang đồng bộ 3 chương trình...</>
+                      : <><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Đồng bộ tất cả từ link</>}
+                  </Button>
+                  {/* Per-program sync status */}
+                  <div className="grid grid-cols-3 gap-1.5 mt-2">
+                    {SAOVIET_ITEMS.map(item => {
+                      const count = (saovietManualData[item.key] || []).length;
+                      return (
+                        <div key={item.key} className="px-2 py-1 rounded text-center border" style={{ borderColor: `${item.color}44`, backgroundColor: `${item.color}11` }}>
+                          <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: item.color }}>{item.label.replace('Sao Việt ', '')}</div>
+                          <div className="text-[14px] font-black" style={{ color: count > 0 ? item.color : '#9CA3AF' }}>
+                            {count > 0 ? count : '—'}
+                          </div>
+                          <div className="text-[8px] text-gray-400">dòng</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2 py-1">
+                <div className="flex-1 h-px bg-orange-500/20" />
+                <span className="text-[10px] text-orange-300/60 italic">hoặc upload file riêng từng chương trình</span>
+                <div className="flex-1 h-px bg-orange-500/20" />
+              </div>
+
               {SAOVIET_ITEMS.map(item => {
                 const IIcon = item.icon;
                 const posterUrl = saovietPosters[item.key] || '';
