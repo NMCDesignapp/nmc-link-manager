@@ -8839,7 +8839,8 @@ export default function QuanLyPage() {
                   <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Đồng bộ tất cả 3 chương trình</h4>
                 </div>
                 <p className="text-[10px] text-orange-200/70 leading-relaxed mb-2">
-                  Dán <strong>1 link Google Sheets</strong> có <strong>3 tab</strong> đặt tên đúng: <code className="px-1 bg-orange-500/20 rounded">ca-nhan</code> · <code className="px-1 bg-orange-500/20 rounded">tn-ktm</code> · <code className="px-1 bg-orange-500/20 rounded">tn-td</code>.
+                  Dán <strong>1 link Google Sheets</strong> có <strong>3 tab</strong> (theo thứ tự: Cá Nhân / TN KTM / TN TD).
+                  Tên tab có thể là <code className="px-1 bg-orange-500/20 rounded">ca-nhan</code> / <code className="px-1 bg-orange-500/20 rounded">tn-ktm</code> / <code className="px-1 bg-orange-500/20 rounded">tn-td</code>, hoặc <code className="px-1 bg-orange-500/20 rounded">Cá Nhân</code> / <code className="px-1 bg-orange-500/20 rounded">TN KTM</code> / <code className="px-1 bg-orange-500/20 rounded">TN TD</code>, hoặc để tab 1/2/3 theo thứ tự.
                   Dữ liệu mỗi tab bắt đầu từ cột <strong>NHÓM</strong> (không cần cột STT — app tự đếm).
                   Tiêu đề bảng giữ nguyên như trên app.
                 </p>
