@@ -7944,12 +7944,15 @@ export default function QuanLyPage() {
   //   Bạch kim 2: FYP ≥ 1400tr → 02 vé
   //   Kim cương 1: FYP ≥ 1600tr → 01 vé
   //   Kim cương 2: FYP ≥ 3000tr → 02 vé
+  // Body tier backgrounds use VERY LIGHT pastel tints (50-level) so body stays subtle vs header (lightsalmon)
+  // Header tier backgrounds (headerBg) use 200-level so rank column HEADERS are clearly differentiated from body cells
+  // Header label colors (fg) stay saturated for readability on light bg
   const SV1_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
+    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
+    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
   ];
   const saoVietCaNhanRows = tvvStructList.map(tvv => {
     const fyp = saoVietContracts
@@ -7975,11 +7978,11 @@ export default function QuanLyPage() {
   //   Kim cương 1:  FYP ≥ 7,0 tỷ  → 01 vé
   //   Kim cương 2:  FYP ≥ 13 tỷ   → 02 vé
   const SV2_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
+    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
+    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
   ];
   const saoVietTNKTMRows = leaders
     .filter(l => isTBorTNPosition(l.position))
@@ -8007,14 +8010,14 @@ export default function QuanLyPage() {
   //   Hạng bạch kim: FYP TVVm ≥ 1200 Trđ AND  TVVm HĐC ≥ 12 TVV
   const SV3_RANKS = [
     {
-      key: 'vang', label: 'HẠNG VÀNG', bg: '#FEF3C7', fg: '#92400E',
+      key: 'vang', label: 'HẠNG VÀNG', bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E',
       subFypLabel: 'FYP TVVm ≥ 500 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 08 TVV',
       minFyp: 500_000_000,
       minHdc: 8,
     },
     {
-      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#E5E7EB', fg: '#374151',
+      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151',
       subFypLabel: 'FYP TVVm ≥ 1200 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 12 TVV',
       minFyp: 1_200_000_000,
@@ -8080,20 +8083,19 @@ export default function QuanLyPage() {
   // ---------- Render helper: rank cell (sections 1 & 2 — FYP threshold) ----------
   // Same visual language as Chính sách "Tỷ lệ thưởng quý":
   //   - Achieved → green background + "ĐẠT" badge (bold)
-  //   - Not achieved → tier background (yellow/grey/cyan) + DEFICIT in orange-red (how much FYP still needed)
+  //   - Not achieved → tier background (very light pastel) + DEFICIT in muted orange-brown (how much FYP still needed)
+  // Body cells stay very light so they contrast clearly with the salmon header
   const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string; label: string }) => {
     const achieved = fyp >= threshold.min;
     const deficit = threshold.min - fyp;
-    // Lighter tint of tier bg for not-achieved cells (so the cell still feels "alive", not empty)
-    const notAchievedBg = threshold.bg;
     return (
       <TableCell
         className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
         style={{
-          backgroundColor: achieved ? '#A7F3D0' : notAchievedBg,
-          color: achieved ? '#047857' : '#C2723B',
+          backgroundColor: achieved ? '#DCFCE7' : threshold.bg,
+          color: achieved ? '#047857' : '#B45309',
           fontWeight: achieved ? 800 : 700,
-          borderColor: achieved ? '#6EE7B7' : '#FDE68A',
+          borderColor: achieved ? '#BBF7D0' : '#F3F4F6',
         }}
       >
         {achieved ? (
@@ -8103,7 +8105,7 @@ export default function QuanLyPage() {
             <span className="text-[9px] font-semibold opacity-75">({threshold.vouchers} vé)</span>
           </span>
         ) : (
-          <span className="italic font-bold" style={{ color: '#C2723B' }} title={`Cần thêm ${formatSVDeficit(deficit)} để đạt ${threshold.label}`}>
+          <span className="italic font-bold" style={{ color: '#B45309' }} title={`Cần thêm ${formatSVDeficit(deficit)} để đạt ${threshold.label}`}>
             {formatSVDeficit(deficit)}
           </span>
         )}
@@ -8112,23 +8114,21 @@ export default function QuanLyPage() {
   };
 
   // ---------- Render helper: rank sub-cell (section 3 — dual condition: FYP + HĐC) ----------
-  // Each rank in SV3 has TWO sub-columns (FYP TVVm | SL TVVm HĐC) — each shows:
-  //   - Achieved → green + "ĐẠT" (or ✓)
-  //   - Not achieved → tier bg + deficit (how much more needed)
+  // Body cells use very light pastel backgrounds to contrast with the salmon header
   const renderSaoVietRankSubCell = (
     achieved: boolean,
     deficit: number,
     bg: string,
     fg: string,
-    isCount: boolean = false // true = SL TVVm (integer count), false = FYP (currency)
+    isCount: boolean = false
   ) => (
     <TableCell
       className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
       style={{
-        backgroundColor: achieved ? '#A7F3D0' : bg,
-        color: achieved ? '#047857' : '#C2723B',
+        backgroundColor: achieved ? '#DCFCE7' : bg,
+        color: achieved ? '#047857' : '#B45309',
         fontWeight: achieved ? 800 : 700,
-        borderColor: achieved ? '#6EE7B7' : '#FDE68A',
+        borderColor: achieved ? '#BBF7D0' : '#F3F4F6',
       }}
     >
       {achieved ? (
@@ -8137,7 +8137,7 @@ export default function QuanLyPage() {
           <span>ĐẠT</span>
         </span>
       ) : (
-        <span className="italic font-bold" style={{ color: '#C2723B' }}>
+        <span className="italic font-bold" style={{ color: '#B45309' }}>
           {isCount ? `−${Math.round(deficit)}` : formatSVDeficit(deficit)}
         </span>
       )}
@@ -8476,7 +8476,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.bg, color: t.fg }}
+                style={{ backgroundColor: t.headerBg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -8495,12 +8495,12 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV1_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -8545,7 +8545,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.bg, color: t.fg }}
+                style={{ backgroundColor: t.headerBg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -8564,12 +8564,12 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV2_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -8629,7 +8629,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-fyp`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                style={{ backgroundColor: rk.headerBg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase">{rk.label}</div>
@@ -8639,7 +8639,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-hdc`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                style={{ backgroundColor: rk.headerBg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
@@ -8657,13 +8657,13 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
-              <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+              <TableCell className="text-xs p-1 text-center font-bold text-gray-800">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
               {SV3_RANKS.flatMap(rk => [
                 renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.minFyp - r.fypTVVm, rk.bg, rk.fg, false),
                 renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.minHdc - r.slTvvmHDC, rk.bg, rk.fg, true),
