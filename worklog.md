@@ -813,3 +813,49 @@ Stage Summary:
 - Tone màu xanh dương/navy vẫn giữ làm background/border theme, chỉ đổi text color
 - Ghi nhận yêu cầu mới: CLB Sao Việt sẽ lấy data trực tiếp từ tổng quan app (tvvStructList, contracts, etc.) thay vì upload file — user sẽ hướng dẫn logic fetch sau
 - Hiện 3 bảng chi tiết CLB Sao Việt vẫn đang trống (empty state), chờ user guide để wire up data
+
+---
+Task ID: mobile-stacked-layout-3-shells
+Agent: main
+Task: 3 trang chi tiết (CLB SV, SV Toàn Chặng, Chính Sách) dùng bố cục xếp chồng trên mobile — poster trên, 2 bộ lọc mỏng giữa, bảng chi tiết, footer cố định
+
+Work Log:
+- User yêu cầu: "chỗ trang CLB cũng bố trí poster phía trên bảng chi tiết... 2 ô lọc ở giữa ngăn cách bảng chi tiết và hình poster... cho dòng bộ lọc đó mỏng lại... 3 trang CLB, sao việt toàn chặn, chính sách sẽ gồm 3 phần từ trên xuống: Dòng kế nút trở về là tên chương trình, Tiếp đến là ảnh poster, Tiếp đến là 2 bộ lọc, Tiếp đến là bảng chi tiết, Cuối cùng cố định ở dưới là các chỉ số tổng hợp. Các ô tổng hợp phía trên bảng bỏ đi"
+- Phân tích 3 shells hiện tại:
+  * renderClbsvDetailShell: có title bar + filter bar + table + footer, KHÔNG có poster
+  * renderSaovietDetailShell: có banner 160px (poster trái + filter phải) + table + footer
+  * renderPolicy: có banner 160px (image trái + summary cards + filter phải) + table + footer
+
+A. Thêm clbsvPosters state + Settings API integration:
+- State: clbsvPosters, clbsvPosterUploading
+- Loader: fetch /api/settings -> parse 'clbsv-poster-{program}' keys
+- Handlers: handleClbsvPosterUpload, handleClbsvPosterDelete (clone của saoviet)
+
+B. Refactor renderClbsvDetailShell:
+- Tách filterRowJsx, tableBlock, footerBlock thành shared variables (mobile + desktop dùng chung)
+- Mobile (md:hidden): poster (16:9, có nút upload/delete overlay + tên chương trình overlay) -> compact filter row (2 cols, không label) -> table -> footer
+- Desktop (hidden md:flex): title bar -> 2-col filter bar -> table -> footer
+
+C. Refactor renderSaovietDetailShell:
+- Tách filterRowJsx, tableBlock, footerBlock thành shared variables
+- Mobile (md:hidden): poster (16:9, có tên chương trình overlay) -> compact filter row (FEF3C7 amber theme) -> table -> footer
+- Desktop (hidden md:flex): giữ nguyên 160px banner (poster trái + filter phải) -> table -> footer
+
+D. Refactor renderPolicy detail:
+- Mobile (md:hidden): poster (16:9, có tên chương trình overlay) -> compact filter row (D1FAE5 emerald theme, chỉ TVV policy có filter) -> table -> footer
+- BỎ 2 ô tổng hợp (SL TVV đạt + Tổng thưởng) phía trên bảng trên mobile
+- Desktop (hidden md:flex): giữ nguyên layout cũ với 2 ô tổng hợp + filter + popup switch policy
+
+E. Build: success (no new errors)
+F. Commit: 706e551
+G. Push: success (main → 706e551)
+
+Stage Summary:
+- 3 trang chi tiết (CLB SV, SV Toàn Chặng, Chính Sách) trên mobile giờ dùng cùng bố cục:
+  Poster -> 2 bộ lọc mỏng -> Bảng -> Footer cố định
+- Bộ lọc mobile: 2 ô side-by-side, không label, padding mỏng (py-1)
+- Poster overlay: tên chương trình in đậm trắng dưới ảnh (gradient đen mờ)
+- CLB SV mobile: có nút upload/delete poster trực tiếp trên ảnh (overlay góc phải)
+- Chính Sách mobile: bỏ 2 ô tổng hợp (SL TVV đạt + Tổng thưởng) phía trên bảng
+- Desktop layout: giữ nguyên cho cả 3 (160px banner với poster+filter+summary cards)
+- Footer: vẫn hiển thị Tổng + Tổng FYP/Thưởng ở đáy (cố định)
