@@ -676,3 +676,51 @@ Stage Summary:
 - DS Chờ xét gia nhập có dòng TỔNG CỘNG cuối bảng (nền vàng) tính tổng 3 cột IP
 - Số 01/02 trong title in đậm màu vàng theo yêu cầu user
 - Production: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly → Cấu trúc → 2 DS mới
+
+---
+Task ID: clb-saoviet-criteria
+Agent: main
+Task: Tạo mục CLB Sao Việt với 3 bảng chi tiết + chỉ tiêu tự động cập nhật theo tháng (từ slide CTTV 2026 tháng 6-12)
+
+Work Log:
+- Đọc 3 slide PNG từ /home/z/my-project/upload/Slide Sao Viet 2026 - CTTV - Slide 3x4.pptx (1/2/3).png
+- VLM (z-ai vision) trích xuất chỉ tiêu từ slide:
+  * CÁ NHÂN: Vàng 150→550, Bạch Kim 260→900, Kim Cương 390→1550 (kyxet 1/3→1/11)
+  * TN TUYỂN DỤNG: Vàng FYP 120→500 + HĐC 2→8, Bạch Kim FYP 300→1100 + HĐC 4→12
+  * TN KTM: Vàng 440→1600, Bạch Kim 940→3500, Kim Cương 1350→5350
+- Lấy dữ liệu tháng 6-12 (7 tháng) + ngoại suy tháng 12 theo pattern increment
+- Thêm SheetKey 'clb-saoviet' + NavState.clbsvOpen + state (clbsvOpen/Expanded/NhomFilter/NameFilter)
+- Cập nhật navigateTo, handleAppBack, loadSheet loaders cho 'clb-saoviet'
+- Đổi tên "Sao Việt" → "SAO VIỆT TOÀN CHẶNG" ở sidebar (desktop + mobile) + header title
+- Thêm CLB Sao Việt entry ở sidebar (pink-300/500 theme) và mobile menu grid (Award icon)
+- Định nghĩa 3 bộ threshold constants:
+  * CLBSV_CA_NHAN_THRESHOLDS (3 ranks × 7 months)
+  * CLBSV_TN_TD_THRESHOLDS (2 ranks × 2 sub-cols × 7 months — FYP TVVm + TVVm HĐC)
+  * CLBSV_TN_KTM_THRESHOLDS (3 ranks × 7 months)
+- Helper clbsvCurrentMonthIdx: clamp month 1-5 → 0 (June), 12+ → 6 (Dec), else month-6
+- renderClbsvDetailShell: PINK theme shell (DB2777 header + FCE7F3 filter bar + FBCFE8 row highlight)
+- renderCLBSVCaNhan: 8 cols (STT-NHÓM-MÃ SỐ-HỌ TÊN TVV-FYP lũy kế-[VÀNG|BẠCH KIM|KIM CƯƠNG])
+  Mỗi rank header hiển thị "FYP >= X trđ (Tháng Y)" — auto-update theo tháng hiện tại
+- renderCLBSVTNTuyenDung: 10 cols, 2-row header
+  Row 1: STT/NHÓM/MÃ SỐ/HỌ TÊN TVV/FYP TVVm lũy kế/SL TVVm HĐC (rowSpan=2) + HẠNG VÀNG (colSpan=2) + HẠNG BẠCH KIM (colSpan=2)
+  Row 2: sub-cols [FYP TVVm >= X | TVVm HĐC >= Y] cho mỗi rank — hiển thị chỉ tiêu tháng hiện tại
+- renderCLBSVTNKTM: 8 cols (cấu trúc giống CÁ NHÂN)
+- renderCLBSaoVietList: 3 program cards (pink theme, icon poster placeholder)
+- renderCLBSaoViet dispatcher + 'case clb-saoviet' trong renderSheet switch
+- Header title cập nhật để hiển thị "CLB SAO VIỆT" hoặc tên sub-page khi activeSheet='clb-saoviet'
+- Bảng để trống (chưa có data TVV/TN) — chỉ hiển thị cấu trúc + chỉ tiêu tháng hiện tại
+- TypeScript check: không có lỗi mới từ changes
+- Build: success
+- Rebase conflict với remote (remote có partial impl dùng clbSaovietOpen/CLB_SAOVIET_ITEMS khác tên) — resolve bằng cách lấy version của mình (đầy đủ chỉ tiêu)
+- Commit: 3964c75
+- Push: success (main → 3964c75)
+
+Stage Summary:
+- Đã tạo hoàn chỉnh mục CLB Sao Việt với 3 bảng chi tiết theo pattern Sao Việt
+- Chỉ tiêu từ slide CTTV 2026 (tháng 6-12) đã được nạp vào constants
+- Mỗi rank header hiển thị "FYP >= X trđ" tự động cập nhật theo tháng hiện tại
+  (tháng 6 → 300, tháng 7 → 350, ..., tháng 12 → 600 cho Hạng Vàng CÁ NHÂN)
+- Đổi tên mục "Sao Việt" → "SAO VIỆT TOÀN CHẶNG" ở sidebar + mobile + header
+- Bảng trống sẵn sàng — user sẽ cung cấp data TVV/TN sau
+- KHÔNG thực hiện: thêm cột Chức vụ + Excel import cho 2 DS (CLB Members/Pending Members)
+  vì 2 DS này chưa tồn tại trong file (previous session work chưa được commit)
