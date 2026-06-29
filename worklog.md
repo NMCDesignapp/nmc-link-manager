@@ -587,3 +587,32 @@ Stage Summary:
 - Files mới: src/app/api/saoviet-data/route.ts, src/app/api/saoviet-data/sync/route.ts, prisma/migrations/20260628030000_add_saoviet_data/migration.sql
 - Files sửa: prisma/schema.prisma, src/app/quan-ly/page.tsx (state + 4 handlers + renderSaovietPanel + 3 sub-page), src/app/api/admin/fix-schema/route.ts
 - Production verified: API endpoints hoạt động, upload CSV hiển thị đúng data, clear data works
+
+---
+Task ID: saoviet-chinhsach-overview-selection-only
+Agent: main
+Task: Sao Việt & Chính sách overview: bỏ nút đổi ảnh/xoá ảnh trên card (chỉ còn chọn xem), thêm viền + hiệu ứng chuyển mượt + đổ bóng nổi khối
+
+Work Log:
+- git reset --hard origin/main để lấy code mới nhất từ remote (vì local cũ không còn phù hợp — remote đã có commits từ session trước: poster 16:9, header vàng cam, filter nhóm/search, settings modal)
+- renderSaoVietList: bỏ hoàn toàn upload/delete buttons trên poster card, đổi từ <div>+<button> thành 1 <button> duy nhất (toàn bộ card là click target), thêm:
+  + border-2 với color AA opacity (viền rõ hơn)
+  + transition duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+  + hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl
+  + active:scale-95 active:translate-y-0
+  + decorative top glow strip (linear-gradient)
+  + icon hover:scale-110 + rotate
+  + ChevronRight hover:translate-x-1
+  + poster image group-hover:scale-105 (subtle zoom)
+- renderPolicy (!policyOpen): bỏ upload/delete buttons, áp dụng cùng style (border-2, shadow-lg, hover scale + translate + shadow-2xl), thêm header bar + footer note
+- Sao Việt Settings Modal: thêm section "Poster 16:9" per program — preview thumbnail + nút Tải poster lên / Đổi ảnh / Xóa poster (dùng handleSaovietPosterUpload/Delete đã có)
+- Import Image as ImageIcon từ lucide-react
+- Build thành công, commit bbb3d17, push lên main
+
+Stage Summary:
+- Cả 2 trang tổng quan (Sao Việt + Chính sách) giờ đều là SELECTION-ONLY — không còn nút đổi ảnh/xoá ảnh trên card
+- Card có viền đậm hơn (border-2 + AA opacity) tạo sự tách biệt rõ giữa các chương trình
+- Hiệu ứng chuyển mượt: cubic-bezier easing, scale + translate-y + shadow-2xl khi hover, active:scale-95
+- Card "nổi khối" với shadow-lg mặc định + shadow-2xl khi hover, decorative top glow strip
+- Sao Việt: poster management chuyển vào Settings modal (Cài đặt dữ liệu button)
+- Chính sách: image management đã có sẵn trong Settings dialog (global)
