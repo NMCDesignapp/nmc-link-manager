@@ -95,12 +95,12 @@ interface TuyenNgangItem {
 
 // DS Thành viên CLB — Danh sách thành viên Câu lạc bộ (localStorage-persisted)
 interface CLBMemberItem {
-  id: string; ad: string; nhom: string; agentCode: string; agentName: string; note: string;
+  id: string; ad: string; nhom: string; agentCode: string; agentName: string; chucVu: string; note: string;
 }
 
 // DS Chờ xét gia nhập — Danh sách TVV chờ xét gia nhập CLB (localStorage-persisted)
 interface PendingMemberItem {
-  id: string; ad: string; nhom: string; agentCode: string; agentName: string;
+  id: string; ad: string; nhom: string; agentCode: string; agentName: string; chucVu: string;
   ipT2: number; ipT1: number; ipT0: number; note: string;
 }
 
@@ -146,7 +146,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members' | 'pending-members';
@@ -314,6 +314,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   report: '#2563EB',
   structure: '#0D9488',
   saoviet: '#7C3AED',
+  'clb-saoviet': '#B45309',
 };
 
 // Templates
@@ -1425,11 +1426,12 @@ export default function QuanLyPage() {
   const [policyOpen, setPolicyOpen] = useState<string | null>(null);
   const [saovietOpen, setSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
   const [saovietExpanded, setSaovietExpanded] = useState(false); // desktop sidebar expand/collapse
+  const [clbSaovietOpen, setClbSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
   // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
-  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null };
+  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null; clbSaovietOpen?: string | null };
   const navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]);
   const isNavigatingBackRef = useRef(false); // flag: đang pop stack → không push lại
 
@@ -1445,6 +1447,7 @@ export default function QuanLyPage() {
       policyOpen,
       structureSub,
       saovietOpen,
+      clbSaovietOpen,
     };
     navHistoryRef.current.push(current);
     if (next.sheet !== activeSheet) setActiveSheet(next.sheet);
@@ -1452,7 +1455,8 @@ export default function QuanLyPage() {
     if (next.policyOpen !== undefined && next.policyOpen !== policyOpen) setPolicyOpen(next.policyOpen);
     if (next.structureSub !== undefined && next.structureSub !== structureSub) setStructureSub(next.structureSub);
     if (next.saovietOpen !== undefined && next.saovietOpen !== saovietOpen) setSaovietOpen(next.saovietOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen]);
+    if (next.clbSaovietOpen !== undefined && next.clbSaovietOpen !== clbSaovietOpen) setClbSaovietOpen(next.clbSaovietOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbSaovietOpen]);
 
   // Back button handler: pop 1 state từ history
   // - Nếu history còn > 1: pop về state trước đó
@@ -1477,7 +1481,8 @@ export default function QuanLyPage() {
     if (prev.policyOpen !== undefined && prev.policyOpen !== policyOpen) setPolicyOpen(prev.policyOpen);
     if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
     if (prev.saovietOpen !== undefined && prev.saovietOpen !== saovietOpen) setSaovietOpen(prev.saovietOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, router]);
+    if (prev.clbSaovietOpen !== undefined && prev.clbSaovietOpen !== clbSaovietOpen) setClbSaovietOpen(prev.clbSaovietOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbSaovietOpen, router]);
 
 
   // Online settings state (fetched from API instead of localStorage)
@@ -1789,7 +1794,7 @@ export default function QuanLyPage() {
   const addClbMember = () => {
     const newItem: CLBMemberItem = {
       id: `clb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      ad: '', nhom: '', agentCode: '', agentName: '', note: '',
+      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', note: '',
     };
     persistClb([newItem, ...clbMembers]);
   };
@@ -1804,7 +1809,7 @@ export default function QuanLyPage() {
   const addPendingMember = () => {
     const newItem: PendingMemberItem = {
       id: `pend-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      ad: '', nhom: '', agentCode: '', agentName: '',
+      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '',
       ipT2: 0, ipT1: 0, ipT0: 0, note: '',
     };
     persistPending([newItem, ...pendingMembers]);
@@ -1816,16 +1821,109 @@ export default function QuanLyPage() {
     persistPending(pendingMembers.filter(m => m.id !== id));
   };
 
-  // Auto-fill AD/Nhóm/Tên TVV from tvvStructList when MÃ TVV changes
+  // Auto-fill AD/Nhóm/Tên TVV/Chức vụ from tvvStructList when MÃ TVV changes
   const autofillFromAgentCode = (agentCode: string) => {
-    if (!agentCode || !agentCode.trim()) return { ad: '', nhom: '', agentName: '' };
+    if (!agentCode || !agentCode.trim()) return { ad: '', nhom: '', agentName: '', chucVu: '' };
     const tvv = tvvStructList.find(t => t.agentCode === agentCode.trim());
-    if (!tvv) return { ad: '', nhom: '', agentName: '' };
+    if (!tvv) return { ad: '', nhom: '', agentName: '', chucVu: '' };
     // Resolve AD + Nhóm from maBanNhom
     const bn = banNhomList.find(b => b.maBanNhom === tvv.maBanNhom);
     const ad = bn ? adList.find(a => a.maAD === bn.maAD)?.tenAD || '' : '';
     const nhom = bn?.tenBanNhom || '';
-    return { ad, nhom, agentName: tvv.agentName };
+    return { ad, nhom, agentName: tvv.agentName, chucVu: tvv.chucVu || '' };
+  };
+
+  // ========== Excel Import: CLB Members & Pending Members ==========
+  // Parse Excel/CSV file → array of CLBMemberItem or PendingMemberItem → persist to localStorage
+  // Accepts both Vietnamese (AD, NHÓM, MÃ TVV, HỌ TÊN, CHỨC VỤ, GHI CHÚ) and English header variants
+  const handleImportCLBMembers = async (file: File) => {
+    try {
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      const newItems: CLBMemberItem[] = rows.map((row, idx) => {
+        const getVal = (...keys: string[]) => {
+          for (const k of keys) {
+            for (const rk of Object.keys(row)) {
+              if (rk.toLowerCase().trim() === k.toLowerCase().trim()) return String(row[rk] ?? '').trim();
+            }
+          }
+          return '';
+        };
+        const agentCode = getVal('Mã TVV', 'MA TVV', 'MÃ TVV', 'agentCode', 'Mã số', 'Mã ĐL');
+        const autofill = autofillFromAgentCode(agentCode);
+        return {
+          id: `clb-imp-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          ad: getVal('AD', 'ad') || autofill.ad,
+          nhom: getVal('NHÓM', 'Nhóm', 'nhom') || autofill.nhom,
+          agentCode,
+          agentName: getVal('HỌ TÊN TVV', 'HỌ TÊN', 'Họ tên', 'agentName', 'Tên TVV') || autofill.agentName,
+          chucVu: getVal('CHỨC VỤ', 'Chức vụ', 'chucVu') || autofill.chucVu,
+          note: getVal('GHI CHÚ', 'Ghi chú', 'note'),
+        };
+      }).filter(m => m.agentCode || m.agentName);
+      if (newItems.length === 0) {
+        toast({ title: 'Không có dữ liệu', description: 'File không chứa dòng nào hợp lệ', variant: 'destructive' });
+        return;
+      }
+      persistClb([...newItems, ...clbMembers]);
+      toast({ title: 'Import thành công', description: `Đã thêm ${newItems.length} thành viên CLB` });
+    } catch (e) {
+      console.error('Import CLB error', e);
+      toast({ title: 'Lỗi import', description: 'File không hợp lệ. Dùng .xlsx hoặc .csv', variant: 'destructive' });
+    }
+  };
+
+  const handleImportPendingMembers = async (file: File) => {
+    try {
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      const parseNum = (v: any): number => {
+        if (typeof v === 'number') return v;
+        if (!v) return 0;
+        const s = String(v).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+      };
+      const newItems: PendingMemberItem[] = rows.map((row, idx) => {
+        const getVal = (...keys: string[]) => {
+          for (const k of keys) {
+            for (const rk of Object.keys(row)) {
+              if (rk.toLowerCase().trim() === k.toLowerCase().trim()) return String(row[rk] ?? '').trim();
+            }
+          }
+          return '';
+        };
+        const agentCode = getVal('Mã TVV', 'MA TVV', 'MÃ TVV', 'agentCode', 'Mã số', 'Mã ĐL');
+        const autofill = autofillFromAgentCode(agentCode);
+        return {
+          id: `pend-imp-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          ad: getVal('AD', 'ad') || autofill.ad,
+          nhom: getVal('NHÓM', 'Nhóm', 'nhom') || autofill.nhom,
+          agentCode,
+          agentName: getVal('HỌ TÊN TVV', 'HỌ TÊN', 'Họ tên', 'agentName', 'Tên TVV') || autofill.agentName,
+          chucVu: getVal('CHỨC VỤ', 'Chức vụ', 'chucVu') || autofill.chucVu,
+          ipT2: parseNum(getVal('TỔNG IP (T-2)', 'IP (T-2)', 'IP T-2', 'ipT2', 'TỔNG IP (THÁNG T - 2)')),
+          ipT1: parseNum(getVal('TỔNG IP (T-1)', 'IP (T-1)', 'IP T-1', 'ipT1', 'TỔNG IP (THÁNG T - 1)')),
+          ipT0: parseNum(getVal('TỔNG IP (T)', 'IP (T)', 'IP T', 'ipT0', 'TỔNG IP (THÁNG T)')),
+          note: getVal('GHI CHÚ', 'Ghi chú', 'note'),
+        };
+      }).filter(m => m.agentCode || m.agentName);
+      if (newItems.length === 0) {
+        toast({ title: 'Không có dữ liệu', description: 'File không chứa dòng nào hợp lệ', variant: 'destructive' });
+        return;
+      }
+      persistPending([...newItems, ...pendingMembers]);
+      toast({ title: 'Import thành công', description: `Đã thêm ${newItems.length} thành viên chờ xét` });
+    } catch (e) {
+      console.error('Import Pending error', e);
+      toast({ title: 'Lỗi import', description: 'File không hợp lệ. Dùng .xlsx hoặc .csv', variant: 'destructive' });
+    }
   };
 
   // Fetch structure data
@@ -1873,6 +1971,7 @@ export default function QuanLyPage() {
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
       saoviet: async () => { /* No data to load — placeholder page */ },
+      'clb-saoviet': async () => { await Promise.all([fetchTvvStruct(), fetchBanNhom(), fetchAD()]); },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
@@ -2920,7 +3019,29 @@ export default function QuanLyPage() {
                 title="Số liệu Sao Việt"
               >
                 <Star className="w-5 h-5 flex-shrink-0" />
-                <span className="truncate w-full text-center leading-tight text-[11px]">Sao Việt</span>
+                <span className="truncate w-full text-center leading-tight text-[11px]">SV Toàn Chặng</span>
+              </button>
+            </div>
+            {/* CLB Sao Việt button — placed after SV Toàn Chặng. Direct navigation to overview */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null });
+                  setSearchTerm('');
+                  setSortField('');
+                }}
+                className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
+                style={{
+                  backgroundColor: SHEET_MOBILE_COLORS['clb-saoviet'],
+                  borderRadius: 0,
+                  boxShadow: activeSheet === 'clb-saoviet' ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
+                  opacity: activeSheet === 'clb-saoviet' ? 1 : 0.95,
+                  minHeight: '52px',
+                }}
+                title="CLB Sao Việt"
+              >
+                <Trophy className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate w-full text-center leading-tight text-[11px]">CLB SV</span>
               </button>
             </div>
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
@@ -3808,7 +3929,7 @@ export default function QuanLyPage() {
   // Columns: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - GHI CHÚ (inline editable)
   // Persistence: localStorage (key: nmc-clb-members-v1)
   const renderCLBMembers = () => {
-    const filtered = getFiltered(clbMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'note']);
+    const filtered = getFiltered(clbMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
     return (
       <div>
         {/* Title with bold 01 */}
@@ -3838,6 +3959,16 @@ export default function QuanLyPage() {
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button onClick={addClbMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            id="clb-members-import-input"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCLBMembers(f); e.target.value = ''; }}
+          />
+          <label htmlFor="clb-members-import-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
+            <Upload className="w-3.5 h-3.5" /> Import Excel
+          </label>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
@@ -3847,6 +3978,7 @@ export default function QuanLyPage() {
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
               <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
             </TableRow></TableHeader>
@@ -3858,19 +3990,20 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updateClbMember(m.id, 'nhom', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => {
                     const autofill = autofillFromAgentCode(v);
-                    const next = clbMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName } : x);
+                    const next = clbMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName, chucVu: autofill.chucVu || x.chucVu } : x);
                     persistClb(next);
                   }} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updateClbMember(m.id, 'agentName', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updateClbMember(m.id, 'chucVu', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updateClbMember(m.id, 'note', v)} /></TableCell>
                   <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteClbMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới.</TableCell></TableRow>}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới hoặc Import Excel.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV</p>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV/Chức vụ</p>
       </div>
     );
   };
@@ -3879,7 +4012,7 @@ export default function QuanLyPage() {
   // Columns: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - TỔNG IP (T-2) - TỔNG IP (T-1) - TỔNG IP (T) - TỔNG CỘNG - GHI CHÚ
   // Persistence: localStorage (key: nmc-pending-members-v1)
   const renderPendingMembers = () => {
-    const filtered = getFiltered(pendingMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'note']);
+    const filtered = getFiltered(pendingMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
     // Total row
     const totalT2 = filtered.reduce((s, m) => s + (m.ipT2 || 0), 0);
     const totalT1 = filtered.reduce((s, m) => s + (m.ipT1 || 0), 0);
@@ -3916,6 +4049,16 @@ export default function QuanLyPage() {
         </div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button onClick={addPendingMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            id="pending-members-import-input"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImportPendingMembers(f); e.target.value = ''; }}
+          />
+          <label htmlFor="pending-members-import-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
+            <Upload className="w-3.5 h-3.5" /> Import Excel
+          </label>
         </div>
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
@@ -3925,6 +4068,7 @@ export default function QuanLyPage() {
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T-2)</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T-1)</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T)</TableHead>
@@ -3942,10 +4086,11 @@ export default function QuanLyPage() {
                     <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updatePendingMember(m.id, 'nhom', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => {
                       const autofill = autofillFromAgentCode(v);
-                      const next = pendingMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName } : x);
+                      const next = pendingMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName, chucVu: autofill.chucVu || x.chucVu } : x);
                       persistPending(next);
                     }} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updatePendingMember(m.id, 'agentName', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updatePendingMember(m.id, 'chucVu', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.ipT2} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT2', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.ipT1} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT1', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.ipT0} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT0', v)} /></TableCell>
@@ -3958,7 +4103,7 @@ export default function QuanLyPage() {
               {/* Total row */}
               {filtered.length > 0 && (
                 <TableRow className="bg-amber-100 border-t-2 border-amber-400 font-bold">
-                  <TableCell colSpan={5} className="text-xs text-right text-amber-900 uppercase tracking-wider p-2">TỔNG CỘNG</TableCell>
+                  <TableCell colSpan={6} className="text-xs text-right text-amber-900 uppercase tracking-wider p-2">TỔNG CỘNG</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT2)}</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT1)}</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT0)}</TableCell>
@@ -3967,11 +4112,11 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-1"></TableCell>
                 </TableRow>
               )}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới.</TableCell></TableRow>}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới hoặc Import Excel.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV</p>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV/Chức vụ</p>
       </div>
     );
   };
@@ -8172,9 +8317,9 @@ export default function QuanLyPage() {
   // Click a sub-item → opens dedicated page for that single program
   // Click "Số liệu Sao Việt" itself → expands the sub-list (desktop) / opens popup (mobile)
   const SAOVIET_ITEMS = [
-    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
-    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
-    { key: 'tn-td',   label: 'Sao Việt TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
+    { key: 'ca-nhan', label: 'Sao Việt Toàn Chặng - Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
+    { key: 'tn-ktm',  label: 'Sao Việt Toàn Chặng - TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
+    { key: 'tn-td',   label: 'Sao Việt Toàn Chặng - TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
   ];
   // Lightsalmon (#FFA07A) là màu tiêu đề chung cho các bảng Sao Việt (theo yêu cầu)
   // Phần nền nội dung (rank cells) luôn nhạt hơn màu chữ — bg=#xxx light, fg=#xxx dark
@@ -8408,7 +8553,7 @@ export default function QuanLyPage() {
       {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-          <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT
+          <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT TOÀN CHẶNG
         </h2>
         <button
           onClick={() => setSaovietSettingsOpen(true)}
@@ -8943,6 +9088,282 @@ export default function QuanLyPage() {
     return renderSaoVietList();
   };
 
+  // ========== RENDER: CLB Sao Việt (3 sub-sections) ==========
+  // CLB Sao Việt — Cấu trúc tương tự Sao Việt Toàn Chặng nhưng chỉ tiêu theo THÁNG
+  // User sẽ gửi bảng chỉ tiêu từng tháng sau; table structure được tạo sẵn với header đầy đủ
+  // Header colors: lightsalmon (#FFA07A) cho bảng chính, xám nhạt cho các ô hạng (placeholder)
+  const CLB_SAOVIET_ITEMS = [
+    { key: 'clb-ca-nhan', label: 'Xét Danh Hiệu CLB - Cá Nhân', desc: 'TVV — FYP cá nhân + IP tháng hiện tại (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#B45309' },
+    { key: 'clb-tn-td',   label: 'Xét Danh Hiệu - TN Tuyển Dụng', desc: 'TN — FYP TVVm + SL TVVm HĐC (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#D97706' },
+    { key: 'clb-tn-ktm',  label: 'Xét Danh Hiệu CLB - TN KTM', desc: 'TN KTM — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#92400E' },
+  ];
+  // Tier placeholder colors (sẽ cập nhật khi user gửi chỉ tiêu tháng)
+  const CLB_RANK_PLACEHOLDERS = [
+    { key: 'vang', label: 'HẠNG VÀNG', headerBg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bach-kim', label: 'HẠNG BẠCH KIM', headerBg: '#E5E7EB', fg: '#374151' },
+    { key: 'kim-cuong', label: 'HẠNG KIM CƯƠNG', headerBg: '#CFFAFE', fg: '#155E75' },
+  ];
+  const CLB_RANK_PLACEHOLDERS_2 = [
+    { key: 'vang', label: 'HẠNG VÀNG', headerBg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bach-kim', label: 'HẠNG BẠCH KIM', headerBg: '#E5E7EB', fg: '#374151' },
+  ];
+
+  // Lấy tháng hiện tại (auto-adjust khi sang tháng mới)
+  const clbCurrentMonth = new Date().getMonth() + 1; // 1-12
+
+  // Overview page: 3 cards (tương tự renderSaoVietList nhưng đơn giản hơn)
+  const renderCLBSaoVietList = () => (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
+          <Trophy className="w-4 h-4" /> TỔNG QUAN CLB SAO VIỆT
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {CLB_SAOVIET_ITEMS.map(item => {
+          const IIcon = item.icon;
+          return (
+            <button
+              key={item.key}
+              onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: item.key })}
+              className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              style={{ borderColor: `${item.color}AA`, backgroundColor: '#0e1424' }}
+            >
+              <span
+                className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
+                style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
+              />
+              {/* Top: icon placeholder (no poster for CLB) */}
+              <div
+                className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
+                style={{ aspectRatio: '16 / 9' }}
+              >
+                <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
+                    style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
+                  >
+                    <IIcon className="w-6 h-6" style={{ color: item.color }} />
+                  </div>
+                  <span className="text-[11px] font-semibold" style={{ color: item.color }}>{item.label}</span>
+                </div>
+              </div>
+              {/* Bottom: program name + desc */}
+              <div
+                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
+                style={{ borderColor: `${item.color}33` }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
+                  <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>{item.label}</h3>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                </div>
+                <p className="text-[11px] text-gray-300 font-semibold leading-tight">{item.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ===== Sub-page 1: CLB - CÁ NHÂN =====
+  // Bảng: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP lũy kế (01/12-nay) | Tổng IP tháng hiện tại | HẠNG VÀNG | HẠNG BẠCH KIM | HẠNG KIM CƯƠNG
+  const renderCLBSaoVietCaNhan = () => {
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
+            </TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              TỔNG IP THÁNG {clbCurrentMonth}<br /><span className="italic font-normal text-[9px]">tự điều chỉnh</span>
+            </TableHead>
+            {CLB_RANK_PLACEHOLDERS.map(t => (
+              <TableHead
+                key={t.key}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
+                style={{ backgroundColor: t.headerBg, color: t.fg }}
+              >
+                <div className="leading-tight">
+                  <div>{t.label}</div>
+                  <div className="italic font-normal text-[9px]">chỉ tiêu chờ cập nhật</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={6 + CLB_RANK_PLACEHOLDERS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+    return (
+      <div className="flex flex-col h-full gap-2">
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
+          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#B45309', borderColor: '#92400E' }}>
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <UserCircle className="w-4 h-4" />
+              XÉT DANH HIỆU CLB - CÁ NHÂN
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
+            {tableJsx}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ===== Sub-page 2: CLB - TN TUYỂN DỤNG =====
+  // Bảng 2-row header: Row1 có STT/NHÓM/MÃ SỐ/HỌ TÊN TVV/FYP TVVm lũy kế/SL TVVm HĐC (rowSpan=2) + HẠNG VÀNG (colSpan=2) + HẠNG BẠCH KIM (colSpan=2)
+  //                  Row2 có FYP TVVm/TVVm HĐC cho mỗi hạng
+  const renderCLBSaoVietTNTD = () => {
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          {/* Row 1: Main columns (rowSpan=2) + Tier columns (colSpan=2) */}
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              FYP TVVm LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
+            </TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              SL TVVm HĐC<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
+            </TableHead>
+            {CLB_RANK_PLACEHOLDERS_2.map(t => (
+              <TableHead
+                key={t.key}
+                colSpan={2}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
+                style={{ backgroundColor: t.headerBg, color: t.fg }}
+              >
+                {t.label}
+              </TableHead>
+            ))}
+          </TableRow>
+          {/* Row 2: Sub-columns for each tier (FYP TVVm / TVVm HĐC) */}
+          <TableRow>
+            {CLB_RANK_PLACEHOLDERS_2.map(t => (
+              <React.Fragment key={`${t.key}-sub`}>
+                <TableHead className="text-[9px] font-bold uppercase text-center align-middle whitespace-nowrap p-1" style={{ backgroundColor: t.headerBg, color: t.fg }}>
+                  FYP TVVm
+                </TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center align-middle whitespace-nowrap p-1" style={{ backgroundColor: t.headerBg, color: t.fg }}>
+                  TVVm HĐC
+                </TableHead>
+              </React.Fragment>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={6 + CLB_RANK_PLACEHOLDERS_2.length * 2} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+    return (
+      <div className="flex flex-col h-full gap-2">
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
+          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#D97706', borderColor: '#B45309' }}>
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              XÉT DANH HIỆU - TN TUYỂN DỤNG
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
+            {tableJsx}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ===== Sub-page 3: CLB - TN KTM =====
+  // Bảng: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP lũy kế (01/12-nay) | HẠNG VÀNG | HẠNG BẠCH KIM | HẠNG KIM CƯƠNG
+  const renderCLBSaoVietTNKTM = () => {
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
+            </TableHead>
+            {CLB_RANK_PLACEHOLDERS.map(t => (
+              <TableHead
+                key={t.key}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
+                style={{ backgroundColor: t.headerBg, color: t.fg }}
+              >
+                <div className="leading-tight">
+                  <div>{t.label}</div>
+                  <div className="italic font-normal text-[9px]">chỉ tiêu chờ cập nhật</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={5 + CLB_RANK_PLACEHOLDERS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+    return (
+      <div className="flex flex-col h-full gap-2">
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
+          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#92400E', borderColor: '#78350F' }}>
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              XÉT DANH HIỆU CLB - TN KTM
+            </h3>
+            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
+            {tableJsx}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCLBSaoViet = () => {
+    if (clbSaovietOpen === 'clb-ca-nhan') return renderCLBSaoVietCaNhan();
+    if (clbSaovietOpen === 'clb-tn-td')  return renderCLBSaoVietTNTD();
+    if (clbSaovietOpen === 'clb-tn-ktm') return renderCLBSaoVietTNKTM();
+    return renderCLBSaoVietList();
+  };
+
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
@@ -8954,6 +9375,7 @@ export default function QuanLyPage() {
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
       case 'saoviet': return renderSaoViet();
+      case 'clb-saoviet': return renderCLBSaoViet();
       case 'structure': {
         // Sub-dispatch within "Cấu trúc" section
         // NGUYÊN TẮC: DS TVV (sub='tvv') cũng hiển thị dạng cây Phòng → AD → Nhóm → TVV
@@ -8981,7 +9403,7 @@ export default function QuanLyPage() {
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
         <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Số liệu Sao Việt') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Sao Việt Toàn Chặng') : activeSheet === 'clb-saoviet' && clbSaovietOpen ? (CLB_SAOVIET_ITEMS.find(i => i.key === clbSaovietOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB Sao Việt' : activeSheet === 'saoviet' ? 'Sao Việt Toàn Chặng' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
