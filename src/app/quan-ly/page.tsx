@@ -8053,25 +8053,94 @@ export default function QuanLyPage() {
       .sort((a, b) => b.fypTVVm - a.fypTVVm);
 
   // ---------- Render helper: rank cell (sections 1 & 2) ----------
-  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string }) => {
+  // Format deficit as short "−Ntr" / "−N tỷ" string (Vietnamese)
+  const formatSVDeficit = (deficit: number): string => {
+    const abs = Math.abs(deficit);
+    if (abs >= 1_000_000_000) {
+      const billions = abs / 1_000_000_000;
+      // Show 1 decimal if not whole, else integer
+      const txt = billions % 1 === 0 ? String(billions) : billions.toFixed(1);
+      return `−${txt} tỷ`;
+    }
+    const millions = Math.round(abs / 1_000_000);
+    return `−${millions}tr`;
+  };
+
+  // Format an absolute FYP value as short "Ntr" / "N tỷ" string for target display
+  const formatSVTarget = (val: number): string => {
+    if (val >= 1_000_000_000) {
+      const billions = val / 1_000_000_000;
+      const txt = billions % 1 === 0 ? String(billions) : billions.toFixed(1);
+      return `${txt} tỷ`;
+    }
+    const millions = Math.round(val / 1_000_000);
+    return `${millions}tr`;
+  };
+
+  // ---------- Render helper: rank cell (sections 1 & 2 — FYP threshold) ----------
+  // Same visual language as Chính sách "Tỷ lệ thưởng quý":
+  //   - Achieved → green background + "ĐẠT" badge (bold)
+  //   - Not achieved → tier background (yellow/grey/cyan) + DEFICIT in orange-red (how much FYP still needed)
+  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string; label: string }) => {
     const achieved = fyp >= threshold.min;
+    const deficit = threshold.min - fyp;
+    // Lighter tint of tier bg for not-achieved cells (so the cell still feels "alive", not empty)
+    const notAchievedBg = threshold.bg;
     return (
       <TableCell
-        className="text-xs text-center p-1 whitespace-nowrap"
-        style={{ backgroundColor: threshold.bg, color: threshold.fg, fontWeight: achieved ? 800 : 400 }}
+        className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
+        style={{
+          backgroundColor: achieved ? '#A7F3D0' : notAchievedBg,
+          color: achieved ? '#047857' : '#C2723B',
+          fontWeight: achieved ? 800 : 700,
+          borderColor: achieved ? '#6EE7B7' : '#FDE68A',
+        }}
       >
-        {achieved ? `${threshold.vouchers} vé` : <span style={{ color: '#9CA3AF' }}>—</span>}
+        {achieved ? (
+          <span className="inline-flex items-center gap-0.5 font-bold text-[10px]">
+            <span className="text-[11px]">✓</span>
+            <span>ĐẠT</span>
+            <span className="text-[9px] font-semibold opacity-75">({threshold.vouchers} vé)</span>
+          </span>
+        ) : (
+          <span className="italic font-bold" style={{ color: '#C2723B' }} title={`Cần thêm ${formatSVDeficit(deficit)} để đạt ${threshold.label}`}>
+            {formatSVDeficit(deficit)}
+          </span>
+        )}
       </TableCell>
     );
   };
 
-  // ---------- Render helper: rank sub-cell (section 3 — boolean check) ----------
-  const renderSaoVietRankSubCell = (achieved: boolean, bg: string, fg: string) => (
+  // ---------- Render helper: rank sub-cell (section 3 — dual condition: FYP + HĐC) ----------
+  // Each rank in SV3 has TWO sub-columns (FYP TVVm | SL TVVm HĐC) — each shows:
+  //   - Achieved → green + "ĐẠT" (or ✓)
+  //   - Not achieved → tier bg + deficit (how much more needed)
+  const renderSaoVietRankSubCell = (
+    achieved: boolean,
+    deficit: number,
+    bg: string,
+    fg: string,
+    isCount: boolean = false // true = SL TVVm (integer count), false = FYP (currency)
+  ) => (
     <TableCell
-      className="text-xs text-center p-1"
-      style={{ backgroundColor: bg, color: fg, fontWeight: achieved ? 800 : 400 }}
+      className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
+      style={{
+        backgroundColor: achieved ? '#A7F3D0' : bg,
+        color: achieved ? '#047857' : '#C2723B',
+        fontWeight: achieved ? 800 : 700,
+        borderColor: achieved ? '#6EE7B7' : '#FDE68A',
+      }}
     >
-      {achieved ? '✓' : <span style={{ color: '#9CA3AF' }}>—</span>}
+      {achieved ? (
+        <span className="inline-flex items-center gap-0.5 font-bold text-[10px]">
+          <span className="text-[11px]">✓</span>
+          <span>ĐẠT</span>
+        </span>
+      ) : (
+        <span className="italic font-bold" style={{ color: '#C2723B' }}>
+          {isCount ? `−${Math.round(deficit)}` : formatSVDeficit(deficit)}
+        </span>
+      )}
     </TableCell>
   );
 
@@ -8596,8 +8665,8 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
               <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
               {SV3_RANKS.flatMap(rk => [
-                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
-                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
+                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.minFyp - r.fypTVVm, rk.bg, rk.fg, false),
+                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.minHdc - r.slTvvmHDC, rk.bg, rk.fg, true),
               ])}
             </TableRow>
           ))}
