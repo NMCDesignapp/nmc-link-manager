@@ -93,17 +93,6 @@ interface TuyenNgangItem {
   maNguoiTuyenDung: string; tenNguoiTuyenDung: string;
 }
 
-// DS Thành viên CLB — Danh sách thành viên Câu lạc bộ (localStorage-persisted)
-interface CLBMemberItem {
-  id: string; ad: string; nhom: string; agentCode: string; agentName: string; chucVu: string; note: string;
-}
-
-// DS Chờ xét gia nhập — Danh sách TVV chờ xét gia nhập CLB (localStorage-persisted)
-interface PendingMemberItem {
-  id: string; ad: string; nhom: string; agentCode: string; agentName: string; chucVu: string;
-  ipT2: number; ipT1: number; ipT0: number; note: string;
-}
-
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
@@ -149,7 +138,7 @@ const KPI_COLORS: Record<string, string> = {
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
-type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members' | 'pending-members';
+type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
 // Gradient yellow/cream background (light → warmer) for tier header cells and body cells
@@ -302,8 +291,6 @@ const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.Element
   { key: 'leaders', label: 'DS TB/TN', icon: Users },
   { key: 'recruiters', label: 'DS TTN', icon: UserCircle },
   { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
-  { key: 'clb-members', label: 'DS Thành viên CLB', icon: UserCheck },
-  { key: 'pending-members', label: 'DS Chờ Gia Nhập', icon: UserPlus },
 ];
 
 // Mobile menu button colors (solid) — only top-level sheets need a color
@@ -314,7 +301,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   report: '#2563EB',
   structure: '#0D9488',
   saoviet: '#7C3AED',
-  'clb-saoviet': '#B45309',
+  'clb-saoviet': '#DB2777', // pink-600 — distinguish from saoviet (violet)
 };
 
 // Templates
@@ -1426,12 +1413,16 @@ export default function QuanLyPage() {
   const [policyOpen, setPolicyOpen] = useState<string | null>(null);
   const [saovietOpen, setSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
   const [saovietExpanded, setSaovietExpanded] = useState(false); // desktop sidebar expand/collapse
-  const [clbSaovietOpen, setClbSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
+  // CLB Sao Việt — same navigation pattern as Sao Việt (overview + 3 detail sub-pages)
+  const [clbsvOpen, setClbsvOpen] = useState<string | null>(null); // null = show list, key = sub-page
+  const [clbsvExpanded, setClbsvExpanded] = useState(false); // desktop sidebar expand/collapse
+  const [clbsvNhomFilter, setClbsvNhomFilter] = useState<string>('');
+  const [clbsvNameFilter, setClbsvNameFilter] = useState<string>('');
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
   // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
-  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null; clbSaovietOpen?: string | null };
+  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null; clbsvOpen?: string | null };
   const navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]);
   const isNavigatingBackRef = useRef(false); // flag: đang pop stack → không push lại
 
@@ -1447,7 +1438,7 @@ export default function QuanLyPage() {
       policyOpen,
       structureSub,
       saovietOpen,
-      clbSaovietOpen,
+      clbsvOpen,
     };
     navHistoryRef.current.push(current);
     if (next.sheet !== activeSheet) setActiveSheet(next.sheet);
@@ -1455,8 +1446,8 @@ export default function QuanLyPage() {
     if (next.policyOpen !== undefined && next.policyOpen !== policyOpen) setPolicyOpen(next.policyOpen);
     if (next.structureSub !== undefined && next.structureSub !== structureSub) setStructureSub(next.structureSub);
     if (next.saovietOpen !== undefined && next.saovietOpen !== saovietOpen) setSaovietOpen(next.saovietOpen);
-    if (next.clbSaovietOpen !== undefined && next.clbSaovietOpen !== clbSaovietOpen) setClbSaovietOpen(next.clbSaovietOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbSaovietOpen]);
+    if (next.clbsvOpen !== undefined && next.clbsvOpen !== clbsvOpen) setClbsvOpen(next.clbsvOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen]);
 
   // Back button handler: pop 1 state từ history
   // - Nếu history còn > 1: pop về state trước đó
@@ -1481,8 +1472,8 @@ export default function QuanLyPage() {
     if (prev.policyOpen !== undefined && prev.policyOpen !== policyOpen) setPolicyOpen(prev.policyOpen);
     if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
     if (prev.saovietOpen !== undefined && prev.saovietOpen !== saovietOpen) setSaovietOpen(prev.saovietOpen);
-    if (prev.clbSaovietOpen !== undefined && prev.clbSaovietOpen !== clbSaovietOpen) setClbSaovietOpen(prev.clbSaovietOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbSaovietOpen, router]);
+    if (prev.clbsvOpen !== undefined && prev.clbsvOpen !== clbsvOpen) setClbsvOpen(prev.clbsvOpen);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen, router]);
 
 
   // Online settings state (fetched from API instead of localStorage)
@@ -1656,10 +1647,6 @@ export default function QuanLyPage() {
   const [tuyenNgangList, setTuyenNgangList] = useState<TuyenNgangItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // DS Thành viên CLB & DS Chờ xét gia nhập — localStorage-persisted (mới)
-  const [clbMembers, setClbMembers] = useState<CLBMemberItem[]>([]);
-  const [pendingMembers, setPendingMembers] = useState<PendingMemberItem[]>([]);
-
   // Structure state
   const [phongList, setPhongList] = useState<PhongItem[]>([]);
   const [adList, setAdList] = useState<ADItem[]>([]);
@@ -1766,166 +1753,6 @@ export default function QuanLyPage() {
     try { const r = await fetch('/api/tuyen-ngang'); if (r.ok) setTuyenNgangList(await r.json()); } catch {}
   }, []);
 
-  // ===== DS Thành viên CLB & DS Chờ xét gia nhập (localStorage-persisted) =====
-  const CLB_LS_KEY = 'nmc-clb-members-v1';
-  const PENDING_LS_KEY = 'nmc-pending-members-v1';
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      const clbRaw = localStorage.getItem(CLB_LS_KEY);
-      if (clbRaw) setClbMembers(JSON.parse(clbRaw));
-      const pendRaw = localStorage.getItem(PENDING_LS_KEY);
-      if (pendRaw) setPendingMembers(JSON.parse(pendRaw));
-    } catch { /* silent */ }
-  }, [CLB_LS_KEY, PENDING_LS_KEY]);
-
-  // Persist helpers
-  const persistClb = (next: CLBMemberItem[]) => {
-    setClbMembers(next);
-    try { localStorage.setItem(CLB_LS_KEY, JSON.stringify(next)); } catch { /* silent */ }
-  };
-  const persistPending = (next: PendingMemberItem[]) => {
-    setPendingMembers(next);
-    try { localStorage.setItem(PENDING_LS_KEY, JSON.stringify(next)); } catch { /* silent */ }
-  };
-
-  // CRUD: CLB Members
-  const addClbMember = () => {
-    const newItem: CLBMemberItem = {
-      id: `clb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', note: '',
-    };
-    persistClb([newItem, ...clbMembers]);
-  };
-  const updateClbMember = (id: string, field: keyof CLBMemberItem, value: string) => {
-    persistClb(clbMembers.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
-  const deleteClbMember = (id: string) => {
-    persistClb(clbMembers.filter(m => m.id !== id));
-  };
-
-  // CRUD: Pending Members
-  const addPendingMember = () => {
-    const newItem: PendingMemberItem = {
-      id: `pend-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '',
-      ipT2: 0, ipT1: 0, ipT0: 0, note: '',
-    };
-    persistPending([newItem, ...pendingMembers]);
-  };
-  const updatePendingMember = (id: string, field: keyof PendingMemberItem, value: string | number) => {
-    persistPending(pendingMembers.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
-  const deletePendingMember = (id: string) => {
-    persistPending(pendingMembers.filter(m => m.id !== id));
-  };
-
-  // Auto-fill AD/Nhóm/Tên TVV/Chức vụ from tvvStructList when MÃ TVV changes
-  const autofillFromAgentCode = (agentCode: string) => {
-    if (!agentCode || !agentCode.trim()) return { ad: '', nhom: '', agentName: '', chucVu: '' };
-    const tvv = tvvStructList.find(t => t.agentCode === agentCode.trim());
-    if (!tvv) return { ad: '', nhom: '', agentName: '', chucVu: '' };
-    // Resolve AD + Nhóm from maBanNhom
-    const bn = banNhomList.find(b => b.maBanNhom === tvv.maBanNhom);
-    const ad = bn ? adList.find(a => a.maAD === bn.maAD)?.tenAD || '' : '';
-    const nhom = bn?.tenBanNhom || '';
-    return { ad, nhom, agentName: tvv.agentName, chucVu: tvv.chucVu || '' };
-  };
-
-  // ========== Excel Import: CLB Members & Pending Members ==========
-  // Parse Excel/CSV file → array of CLBMemberItem or PendingMemberItem → persist to localStorage
-  // Accepts both Vietnamese (AD, NHÓM, MÃ TVV, HỌ TÊN, CHỨC VỤ, GHI CHÚ) and English header variants
-  const handleImportCLBMembers = async (file: File) => {
-    try {
-      const XLSX = await import('xlsx');
-      const arrayBuffer = await file.arrayBuffer();
-      const wb = XLSX.read(arrayBuffer, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
-      const newItems: CLBMemberItem[] = rows.map((row, idx) => {
-        const getVal = (...keys: string[]) => {
-          for (const k of keys) {
-            for (const rk of Object.keys(row)) {
-              if (rk.toLowerCase().trim() === k.toLowerCase().trim()) return String(row[rk] ?? '').trim();
-            }
-          }
-          return '';
-        };
-        const agentCode = getVal('Mã TVV', 'MA TVV', 'MÃ TVV', 'agentCode', 'Mã số', 'Mã ĐL');
-        const autofill = autofillFromAgentCode(agentCode);
-        return {
-          id: `clb-imp-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
-          ad: getVal('AD', 'ad') || autofill.ad,
-          nhom: getVal('NHÓM', 'Nhóm', 'nhom') || autofill.nhom,
-          agentCode,
-          agentName: getVal('HỌ TÊN TVV', 'HỌ TÊN', 'Họ tên', 'agentName', 'Tên TVV') || autofill.agentName,
-          chucVu: getVal('CHỨC VỤ', 'Chức vụ', 'chucVu') || autofill.chucVu,
-          note: getVal('GHI CHÚ', 'Ghi chú', 'note'),
-        };
-      }).filter(m => m.agentCode || m.agentName);
-      if (newItems.length === 0) {
-        toast({ title: 'Không có dữ liệu', description: 'File không chứa dòng nào hợp lệ', variant: 'destructive' });
-        return;
-      }
-      persistClb([...newItems, ...clbMembers]);
-      toast({ title: 'Import thành công', description: `Đã thêm ${newItems.length} thành viên CLB` });
-    } catch (e) {
-      console.error('Import CLB error', e);
-      toast({ title: 'Lỗi import', description: 'File không hợp lệ. Dùng .xlsx hoặc .csv', variant: 'destructive' });
-    }
-  };
-
-  const handleImportPendingMembers = async (file: File) => {
-    try {
-      const XLSX = await import('xlsx');
-      const arrayBuffer = await file.arrayBuffer();
-      const wb = XLSX.read(arrayBuffer, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
-      const parseNum = (v: any): number => {
-        if (typeof v === 'number') return v;
-        if (!v) return 0;
-        const s = String(v).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
-        const n = parseFloat(s);
-        return isNaN(n) ? 0 : n;
-      };
-      const newItems: PendingMemberItem[] = rows.map((row, idx) => {
-        const getVal = (...keys: string[]) => {
-          for (const k of keys) {
-            for (const rk of Object.keys(row)) {
-              if (rk.toLowerCase().trim() === k.toLowerCase().trim()) return String(row[rk] ?? '').trim();
-            }
-          }
-          return '';
-        };
-        const agentCode = getVal('Mã TVV', 'MA TVV', 'MÃ TVV', 'agentCode', 'Mã số', 'Mã ĐL');
-        const autofill = autofillFromAgentCode(agentCode);
-        return {
-          id: `pend-imp-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
-          ad: getVal('AD', 'ad') || autofill.ad,
-          nhom: getVal('NHÓM', 'Nhóm', 'nhom') || autofill.nhom,
-          agentCode,
-          agentName: getVal('HỌ TÊN TVV', 'HỌ TÊN', 'Họ tên', 'agentName', 'Tên TVV') || autofill.agentName,
-          chucVu: getVal('CHỨC VỤ', 'Chức vụ', 'chucVu') || autofill.chucVu,
-          ipT2: parseNum(getVal('TỔNG IP (T-2)', 'IP (T-2)', 'IP T-2', 'ipT2', 'TỔNG IP (THÁNG T - 2)')),
-          ipT1: parseNum(getVal('TỔNG IP (T-1)', 'IP (T-1)', 'IP T-1', 'ipT1', 'TỔNG IP (THÁNG T - 1)')),
-          ipT0: parseNum(getVal('TỔNG IP (T)', 'IP (T)', 'IP T', 'ipT0', 'TỔNG IP (THÁNG T)')),
-          note: getVal('GHI CHÚ', 'Ghi chú', 'note'),
-        };
-      }).filter(m => m.agentCode || m.agentName);
-      if (newItems.length === 0) {
-        toast({ title: 'Không có dữ liệu', description: 'File không chứa dòng nào hợp lệ', variant: 'destructive' });
-        return;
-      }
-      persistPending([...newItems, ...pendingMembers]);
-      toast({ title: 'Import thành công', description: `Đã thêm ${newItems.length} thành viên chờ xét` });
-    } catch (e) {
-      console.error('Import Pending error', e);
-      toast({ title: 'Lỗi import', description: 'File không hợp lệ. Dùng .xlsx hoặc .csv', variant: 'destructive' });
-    }
-  };
-
   // Fetch structure data
   const fetchPhong = useCallback(async () => {
     try { const res = await fetch('/api/structure/phong'); if (res.ok) { const data = await res.json(); setPhongList(data); } } catch {}
@@ -1971,7 +1798,7 @@ export default function QuanLyPage() {
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
       saoviet: async () => { /* No data to load — placeholder page */ },
-      'clb-saoviet': async () => { await Promise.all([fetchTvvStruct(), fetchBanNhom(), fetchAD()]); },
+      'clb-saoviet': async () => { /* Criteria shown statically — no data to load */ },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
@@ -2980,9 +2807,6 @@ export default function QuanLyPage() {
                                   else if (s.key === 'leaders') fetchLeaders();
                                   else if (s.key === 'recruiters') fetchRecruiters();
                                   else if (s.key === 'tuyen-ngang') fetchTuyenNgang();
-                                  else if (s.key === 'clb-members' || s.key === 'pending-members') {
-                                    fetchTvvStruct(); fetchBanNhom(); fetchAD();
-                                  }
                                 }
                                 setMobileMenuPopup(null);
                               }}
@@ -3016,17 +2840,17 @@ export default function QuanLyPage() {
                   opacity: activeSheet === 'saoviet' ? 1 : 0.95,
                   minHeight: '52px',
                 }}
-                title="Số liệu Sao Việt"
+                title="Sao Việt Toàn Chặng"
               >
                 <Star className="w-5 h-5 flex-shrink-0" />
-                <span className="truncate w-full text-center leading-tight text-[11px]">SV Toàn Chặng</span>
+                <span className="truncate w-full text-center leading-tight text-[10px]">SV Toàn Chặng</span>
               </button>
             </div>
-            {/* CLB Sao Việt button — placed after SV Toàn Chặng. Direct navigation to overview */}
+            {/* CLB Sao Việt button — same style as Sao Việt, pink color */}
             <div className="relative">
               <button
                 onClick={() => {
-                  navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null });
+                  navigateTo({ sheet: 'clb-saoviet', clbsvOpen: null });
                   setSearchTerm('');
                   setSortField('');
                 }}
@@ -3040,7 +2864,7 @@ export default function QuanLyPage() {
                 }}
                 title="CLB Sao Việt"
               >
-                <Trophy className="w-5 h-5 flex-shrink-0" />
+                <Award className="w-5 h-5 flex-shrink-0" />
                 <span className="truncate w-full text-center leading-tight text-[11px]">CLB SV</span>
               </button>
             </div>
@@ -3921,202 +3745,6 @@ export default function QuanLyPage() {
           </Table>
         </div>
         <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Đây là nguồn đối tượng cho các chính sách TVV</p>
-      </div>
-    );
-  };
-
-  // ========== RENDER: 01. DS Thành viên CLB ==========
-  // Columns: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - GHI CHÚ (inline editable)
-  // Persistence: localStorage (key: nmc-clb-members-v1)
-  const renderCLBMembers = () => {
-    const filtered = getFiltered(clbMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
-    return (
-      <div>
-        {/* Title with bold 01 */}
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-emerald-300">
-            <span className="text-amber-400 font-black">01</span><span className="text-emerald-300">. DS Thành Viên CLB</span>
-          </h2>
-        </div>
-        {/* KPI Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-          {[
-            { label: 'Tổng thành viên', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: UserCheck },
-            { label: 'Có mã TVV', value: formatNumber(filtered.filter(m => m.agentCode && m.agentCode.trim()).length), bg: '#059669', badge: '#047857', icon: CheckCircle2 },
-          ].map((kpi, i) => {
-            const Icon = kpi.icon;
-            return (
-              <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
-                  <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
-                </div>
-                <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
-              </div>
-            );
-          })
-          }
-        </div>
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <Button onClick={addClbMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            id="clb-members-import-input"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCLBMembers(f); e.target.value = ''; }}
-          />
-          <label htmlFor="clb-members-import-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
-            <Upload className="w-3.5 h-3.5" /> Import Excel
-          </label>
-        </div>
-        <div className="overflow-x-auto border border-emerald-600">
-          <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px] text-center">STT</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
-              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {filtered.map((m, idx) => (
-                <TableRow key={m.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                  <TableCell className="text-xs text-gray-500 text-center">{idx + 1}</TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.ad} onSave={(v) => updateClbMember(m.id, 'ad', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updateClbMember(m.id, 'nhom', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => {
-                    const autofill = autofillFromAgentCode(v);
-                    const next = clbMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName, chucVu: autofill.chucVu || x.chucVu } : x);
-                    persistClb(next);
-                  }} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updateClbMember(m.id, 'agentName', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updateClbMember(m.id, 'chucVu', v)} /></TableCell>
-                  <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updateClbMember(m.id, 'note', v)} /></TableCell>
-                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteClbMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới hoặc Import Excel.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV/Chức vụ</p>
-      </div>
-    );
-  };
-
-  // ========== RENDER: 02. DS Chờ Xét Gia Nhập ==========
-  // Columns: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - TỔNG IP (T-2) - TỔNG IP (T-1) - TỔNG IP (T) - TỔNG CỘNG - GHI CHÚ
-  // Persistence: localStorage (key: nmc-pending-members-v1)
-  const renderPendingMembers = () => {
-    const filtered = getFiltered(pendingMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
-    // Total row
-    const totalT2 = filtered.reduce((s, m) => s + (m.ipT2 || 0), 0);
-    const totalT1 = filtered.reduce((s, m) => s + (m.ipT1 || 0), 0);
-    const totalT0 = filtered.reduce((s, m) => s + (m.ipT0 || 0), 0);
-    const totalAll = totalT2 + totalT1 + totalT0;
-    return (
-      <div>
-        {/* Title with bold 02 */}
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-emerald-300">
-            <span className="text-amber-400 font-black">02</span><span className="text-emerald-300">. DS Chờ Xét Gia Nhập</span>
-          </h2>
-        </div>
-        {/* KPI Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-          {[
-            { label: 'Tổng chờ xét', value: formatNumber(filtered.length), bg: '#7C3AED', badge: '#6D28D9', icon: UserPlus },
-            { label: 'Tổng IP (T)', value: formatNumber(totalT0), bg: '#059669', badge: '#047857', icon: TrendingUp },
-            { label: 'Tổng IP (T-1)', value: formatNumber(totalT1), bg: '#2563EB', badge: '#1D4ED8', icon: TrendingUp },
-            { label: 'Tổng IP (T-2)', value: formatNumber(totalT2), bg: '#0D9488', badge: '#0F766E', icon: TrendingUp },
-          ].map((kpi, i) => {
-            const Icon = kpi.icon;
-            return (
-              <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
-                  <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
-                </div>
-                <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
-              </div>
-            );
-          })
-          }
-        </div>
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <Button onClick={addPendingMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            id="pending-members-import-input"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleImportPendingMembers(f); e.target.value = ''; }}
-          />
-          <label htmlFor="pending-members-import-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
-            <Upload className="w-3.5 h-3.5" /> Import Excel
-          </label>
-        </div>
-        <div className="overflow-x-auto border border-emerald-600">
-          <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px] text-center">STT</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T-2)</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T-1)</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG IP (T)</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG CỘNG</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
-              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {filtered.map((m, idx) => {
-                const rowTotal = (m.ipT2 || 0) + (m.ipT1 || 0) + (m.ipT0 || 0);
-                return (
-                  <TableRow key={m.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
-                    <TableCell className="text-xs text-gray-500 text-center">{idx + 1}</TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.ad} onSave={(v) => updatePendingMember(m.id, 'ad', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updatePendingMember(m.id, 'nhom', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => {
-                      const autofill = autofillFromAgentCode(v);
-                      const next = pendingMembers.map(x => x.id === m.id ? { ...x, agentCode: v, ad: autofill.ad || x.ad, nhom: autofill.nhom || x.nhom, agentName: autofill.agentName || x.agentName, chucVu: autofill.chucVu || x.chucVu } : x);
-                      persistPending(next);
-                    }} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updatePendingMember(m.id, 'agentName', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updatePendingMember(m.id, 'chucVu', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.ipT2} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT2', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.ipT1} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT1', v)} /></TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.ipT0} type="number" onSave={(v) => updatePendingMember(m.id, 'ipT0', v)} /></TableCell>
-                    <TableCell className="text-xs text-right font-bold text-violet-700 whitespace-nowrap p-2">{formatNumber(rowTotal)}</TableCell>
-                    <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updatePendingMember(m.id, 'note', v)} /></TableCell>
-                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deletePendingMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
-                  </TableRow>
-                );
-              })}
-              {/* Total row */}
-              {filtered.length > 0 && (
-                <TableRow className="bg-amber-100 border-t-2 border-amber-400 font-bold">
-                  <TableCell colSpan={6} className="text-xs text-right text-amber-900 uppercase tracking-wider p-2">TỔNG CỘNG</TableCell>
-                  <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT2)}</TableCell>
-                  <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT1)}</TableCell>
-                  <TableCell className="text-xs text-right text-amber-900 p-2">{formatNumber(totalT0)}</TableCell>
-                  <TableCell className="text-xs text-right text-amber-900 font-black p-2">{formatNumber(totalAll)}</TableCell>
-                  <TableCell className="text-xs p-2"></TableCell>
-                  <TableCell className="text-xs p-1"></TableCell>
-                </TableRow>
-              )}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Bấm "Thêm" để tạo dòng mới hoặc Import Excel.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-fill AD/Nhóm/Tên TVV/Chức vụ</p>
       </div>
     );
   };
@@ -8317,9 +7945,9 @@ export default function QuanLyPage() {
   // Click a sub-item → opens dedicated page for that single program
   // Click "Số liệu Sao Việt" itself → expands the sub-list (desktop) / opens popup (mobile)
   const SAOVIET_ITEMS = [
-    { key: 'ca-nhan', label: 'Sao Việt Toàn Chặng - Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
-    { key: 'tn-ktm',  label: 'Sao Việt Toàn Chặng - TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
-    { key: 'tn-td',   label: 'Sao Việt Toàn Chặng - TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
+    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
+    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
+    { key: 'tn-td',   label: 'Sao Việt TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
   ];
   // Lightsalmon (#FFA07A) là màu tiêu đề chung cho các bảng Sao Việt (theo yêu cầu)
   // Phần nền nội dung (rank cells) luôn nhạt hơn màu chữ — bg=#xxx light, fg=#xxx dark
@@ -8348,15 +7976,12 @@ export default function QuanLyPage() {
   //   Bạch kim 2: FYP ≥ 1400tr → 02 vé
   //   Kim cương 1: FYP ≥ 1600tr → 01 vé
   //   Kim cương 2: FYP ≥ 3000tr → 02 vé
-  // Body tier backgrounds use VERY LIGHT pastel tints (50-level) so body stays subtle vs header (lightsalmon)
-  // Header tier backgrounds (headerBg) use 200-level so rank column HEADERS are clearly differentiated from body cells
-  // Header label colors (fg) stay saturated for readability on light bg
   const SV1_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
   ];
   const saoVietCaNhanRows = tvvStructList.map(tvv => {
     const fyp = saoVietContracts
@@ -8382,11 +8007,11 @@ export default function QuanLyPage() {
   //   Kim cương 1:  FYP ≥ 7,0 tỷ  → 01 vé
   //   Kim cương 2:  FYP ≥ 13 tỷ   → 02 vé
   const SV2_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#ECFEFF', headerBg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
   ];
   const saoVietTNKTMRows = leaders
     .filter(l => isTBorTNPosition(l.position))
@@ -8414,14 +8039,14 @@ export default function QuanLyPage() {
   //   Hạng bạch kim: FYP TVVm ≥ 1200 Trđ AND  TVVm HĐC ≥ 12 TVV
   const SV3_RANKS = [
     {
-      key: 'vang', label: 'HẠNG VÀNG', bg: '#FFFBEB', headerBg: '#FEF3C7', fg: '#92400E',
+      key: 'vang', label: 'HẠNG VÀNG', bg: '#FEF3C7', fg: '#92400E',
       subFypLabel: 'FYP TVVm ≥ 500 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 08 TVV',
       minFyp: 500_000_000,
       minHdc: 8,
     },
     {
-      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#F9FAFB', headerBg: '#E5E7EB', fg: '#374151',
+      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#E5E7EB', fg: '#374151',
       subFypLabel: 'FYP TVVm ≥ 1200 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 12 TVV',
       minFyp: 1_200_000_000,
@@ -8460,91 +8085,25 @@ export default function QuanLyPage() {
       .sort((a, b) => b.fypTVVm - a.fypTVVm);
 
   // ---------- Render helper: rank cell (sections 1 & 2) ----------
-  // Format deficit as short "−Ntr" / "−N tỷ" string (Vietnamese)
-  const formatSVDeficit = (deficit: number): string => {
-    const abs = Math.abs(deficit);
-    if (abs >= 1_000_000_000) {
-      const billions = abs / 1_000_000_000;
-      // Show 1 decimal if not whole, else integer
-      const txt = billions % 1 === 0 ? String(billions) : billions.toFixed(1);
-      return `−${txt} tỷ`;
-    }
-    const millions = Math.round(abs / 1_000_000);
-    return `−${millions}tr`;
-  };
-
-  // Format an absolute FYP value as short "Ntr" / "N tỷ" string for target display
-  const formatSVTarget = (val: number): string => {
-    if (val >= 1_000_000_000) {
-      const billions = val / 1_000_000_000;
-      const txt = billions % 1 === 0 ? String(billions) : billions.toFixed(1);
-      return `${txt} tỷ`;
-    }
-    const millions = Math.round(val / 1_000_000);
-    return `${millions}tr`;
-  };
-
-  // ---------- Render helper: rank cell (sections 1 & 2 — FYP threshold) ----------
-  // Same visual language as Chính sách "Tỷ lệ thưởng quý":
-  //   - Achieved → green background + "ĐẠT" badge (bold)
-  //   - Not achieved → tier background (very light pastel) + DEFICIT in muted orange-brown (how much FYP still needed)
-  // Body cells stay very light so they contrast clearly with the salmon header
-  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string; label: string }) => {
+  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string }) => {
     const achieved = fyp >= threshold.min;
-    const deficit = threshold.min - fyp;
     return (
       <TableCell
-        className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
-        style={{
-          backgroundColor: achieved ? '#DCFCE7' : threshold.bg,
-          color: achieved ? '#047857' : '#B45309',
-          fontWeight: achieved ? 800 : 700,
-          borderColor: achieved ? '#BBF7D0' : '#F3F4F6',
-        }}
+        className="text-xs text-center p-1 whitespace-nowrap"
+        style={{ backgroundColor: threshold.bg, color: threshold.fg, fontWeight: achieved ? 800 : 400 }}
       >
-        {achieved ? (
-          <span className="inline-flex items-center gap-0.5 font-bold text-[10px]">
-            <span className="text-[11px]">✓</span>
-            <span>ĐẠT</span>
-            <span className="text-[9px] font-semibold opacity-75">({threshold.vouchers} vé)</span>
-          </span>
-        ) : (
-          <span className="italic font-bold" style={{ color: '#B45309' }} title={`Cần thêm ${formatSVDeficit(deficit)} để đạt ${threshold.label}`}>
-            {formatSVDeficit(deficit)}
-          </span>
-        )}
+        {achieved ? `${threshold.vouchers} vé` : <span style={{ color: '#9CA3AF' }}>—</span>}
       </TableCell>
     );
   };
 
-  // ---------- Render helper: rank sub-cell (section 3 — dual condition: FYP + HĐC) ----------
-  // Body cells use very light pastel backgrounds to contrast with the salmon header
-  const renderSaoVietRankSubCell = (
-    achieved: boolean,
-    deficit: number,
-    bg: string,
-    fg: string,
-    isCount: boolean = false
-  ) => (
+  // ---------- Render helper: rank sub-cell (section 3 — boolean check) ----------
+  const renderSaoVietRankSubCell = (achieved: boolean, bg: string, fg: string) => (
     <TableCell
-      className="text-[11px] text-center p-1 whitespace-nowrap align-middle"
-      style={{
-        backgroundColor: achieved ? '#DCFCE7' : bg,
-        color: achieved ? '#047857' : '#B45309',
-        fontWeight: achieved ? 800 : 700,
-        borderColor: achieved ? '#BBF7D0' : '#F3F4F6',
-      }}
+      className="text-xs text-center p-1"
+      style={{ backgroundColor: bg, color: fg, fontWeight: achieved ? 800 : 400 }}
     >
-      {achieved ? (
-        <span className="inline-flex items-center gap-0.5 font-bold text-[10px]">
-          <span className="text-[11px]">✓</span>
-          <span>ĐẠT</span>
-        </span>
-      ) : (
-        <span className="italic font-bold" style={{ color: '#B45309' }}>
-          {isCount ? `−${Math.round(deficit)}` : formatSVDeficit(deficit)}
-        </span>
-      )}
+      {achieved ? '✓' : <span style={{ color: '#9CA3AF' }}>—</span>}
     </TableCell>
   );
 
@@ -8553,7 +8112,7 @@ export default function QuanLyPage() {
       {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-          <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT TOÀN CHẶNG
+          <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT
         </h2>
         <button
           onClick={() => setSaovietSettingsOpen(true)}
@@ -8880,7 +8439,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.headerBg, color: t.fg }}
+                style={{ backgroundColor: t.bg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -8899,12 +8458,12 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV1_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -8949,7 +8508,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.headerBg, color: t.fg }}
+                style={{ backgroundColor: t.bg, color: t.fg }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -8968,12 +8527,12 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV2_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -9033,7 +8592,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-fyp`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.headerBg, color: rk.fg }}
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase">{rk.label}</div>
@@ -9043,7 +8602,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-hdc`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.headerBg, color: rk.fg }}
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
@@ -9061,16 +8620,16 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredRows.map((r, i) => (
-            <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-slate-50 border-b border-gray-200 cursor-pointer">
+            <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-              <TableCell className="text-xs p-1 text-gray-700 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-gray-800 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
-              <TableCell className="text-xs p-1 text-center font-bold text-gray-800">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+              <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
               {SV3_RANKS.flatMap(rk => [
-                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.minFyp - r.fypTVVm, rk.bg, rk.fg, false),
-                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.minHdc - r.slTvvmHDC, rk.bg, rk.fg, true),
+                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
+                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
               ])}
             </TableRow>
           ))}
@@ -9088,77 +8647,424 @@ export default function QuanLyPage() {
     return renderSaoVietList();
   };
 
-  // ========== RENDER: CLB Sao Việt (3 sub-sections) ==========
-  // CLB Sao Việt — Cấu trúc tương tự Sao Việt Toàn Chặng nhưng chỉ tiêu theo THÁNG
-  // User sẽ gửi bảng chỉ tiêu từng tháng sau; table structure được tạo sẵn với header đầy đủ
-  // Header colors: lightsalmon (#FFA07A) cho bảng chính, xám nhạt cho các ô hạng (placeholder)
-  const CLB_SAOVIET_ITEMS = [
-    { key: 'clb-ca-nhan', label: 'Xét Danh Hiệu CLB - Cá Nhân', desc: 'TVV — FYP cá nhân + IP tháng hiện tại (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#B45309' },
-    { key: 'clb-tn-td',   label: 'Xét Danh Hiệu - TN Tuyển Dụng', desc: 'TN — FYP TVVm + SL TVVm HĐC (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#D97706' },
-    { key: 'clb-tn-ktm',  label: 'Xét Danh Hiệu CLB - TN KTM', desc: 'TN KTM — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#92400E' },
-  ];
-  // Tier placeholder colors (sẽ cập nhật khi user gửi chỉ tiêu tháng)
-  const CLB_RANK_PLACEHOLDERS = [
-    { key: 'vang', label: 'HẠNG VÀNG', headerBg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bach-kim', label: 'HẠNG BẠCH KIM', headerBg: '#E5E7EB', fg: '#374151' },
-    { key: 'kim-cuong', label: 'HẠNG KIM CƯƠNG', headerBg: '#CFFAFE', fg: '#155E75' },
-  ];
-  const CLB_RANK_PLACEHOLDERS_2 = [
-    { key: 'vang', label: 'HẠNG VÀNG', headerBg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bach-kim', label: 'HẠNG BẠCH KIM', headerBg: '#E5E7EB', fg: '#374151' },
-  ];
+  // ========== RENDER: CLB SAO VIỆT (3 sub-sections — same structure as Sao Việt, pink theme) ==========
+  // CLB Sao Việt — xét danh hiệu theo THÁNG (mỗi tháng có 1 chỉ tiêu riêng, tự động cập nhật theo tháng hiện tại)
+  // 3 chương trình con:
+  //   1. CÁ NHÂN — FYP cá nhân (TVV), 3 hạng: Vàng / Bạch Kim / Kim Cương
+  //   2. TN TUYỂN DỤNG — FYP TVVm + SL TVVm HĐC (TN tuyển dụng), 2 hạng: Vàng / Bạch Kim (mỗi hạng có 2 sub-cols)
+  //   3. TN KTM — FYP cá nhân (TN Kinh tế Mới), 3 hạng: Vàng / Bạch Kim / Kim Cương
+  // Dữ liệu chỉ tiêu lấy từ slide CTTV 2026 — tháng 6 đến tháng 12 (7 tháng).
+  // "Từng tháng sẽ tự động cập nhật" — app hiển thị chỉ tiêu của THÁNG HIỆN TẠI dựa trên new Date().getMonth()+1.
+  const CLBSV_ITEMS = [
+    { key: 'ca-nhan',     label: 'XÉT DANH HIỆU CLB - CÁ NHÂN',     desc: 'FYP cá nhân TVV — 3 hạng: Vàng / Bạch Kim / Kim Cương',   icon: UserCircle, color: '#DB2777' },
+    { key: 'tn-td',       label: 'XÉT DANH HIỆU - TN TUYỂN DỤNG',   desc: 'FYP TVVm + SL TVVm HĐC — 2 hạng: Vàng / Bạch Kim',         icon: UserPlus,   color: '#BE185D' },
+    { key: 'tn-ktm',      label: 'XÉT DANH HIỆU CLB - TN KTM',       desc: 'FYP cá nhân TN KTM — 3 hạng: Vàng / Bạch Kim / Kim Cương', icon: Users,      color: '#9D174D' },
+  ] as const;
+  type CLBSVProgram = typeof CLBSV_ITEMS[number]['key'];
 
-  // Lấy tháng hiện tại (auto-adjust khi sang tháng mới)
-  const clbCurrentMonth = new Date().getMonth() + 1; // 1-12
+  // Header colors — pink/salmon theme (distinct from saoviet's lightsalmon)
+  const CLBSV_HEADER_BG = '#FBCFE8';   // pink-200 — light pink header
+  const CLBSV_HEADER_FG = '#831843';   // pink-900 — dark pink text
+  const CLBSV_HEADER_BORDER = '#F472B6'; // pink-400 — border
 
-  // Overview page: 3 cards (tương tự renderSaoVietList nhưng đơn giản hơn)
+  // ---------- CLBSV threshold tables (from slide CTTV 2026, months 6-12) ----------
+  // Index 0=June, 1=July, 2=Aug, 3=Sep, 4=Oct, 5=Nov, 6=Dec
+  // CÁ NHÂN — FYP lũy kế (triệu VND) — slide 1
+  const CLBSV_CA_NHAN_THRESHOLDS = {
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [300, 350, 400, 450, 500, 550, 600],    bg: '#FEF3C7', fg: '#92400E' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [500, 580, 660, 740, 820, 900, 980],    bg: '#E5E7EB', fg: '#374151' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [825, 970, 1115, 1260, 1405, 1550, 1695], bg: '#CFFAFE', fg: '#155E75' },
+  };
+  // TN TUYỂN DỤNG — FYP TVVm (triệu VND) + SL TVVm HĐC (số lượng) — slide 2
+  // Mỗi hạng có 2 sub-cols: FYP TVVm + TVVm HĐC
+  const CLBSV_TN_TD_THRESHOLDS = {
+    vang: {
+      label: 'HẠNG VÀNG',
+      fypLabel: 'FYP TVVm >=',
+      hdcLabel: 'TVVm HĐC >=',
+      fypValues:  [250, 300, 350, 400, 450, 500, 550],
+      hdcValues:  [5, 6, 7, 7, 8, 8, 9],
+      bg: '#FEF3C7', fg: '#92400E',
+    },
+    bachkim: {
+      label: 'HẠNG BẠCH KIM',
+      fypLabel: 'FYP TVVm >=',
+      hdcLabel: 'TVVm HĐC >=',
+      fypValues:  [600, 700, 800, 900, 1000, 1100, 1200],
+      hdcValues:  [7, 8, 9, 10, 11, 12, 13],
+      bg: '#E5E7EB', fg: '#374151',
+    },
+  };
+  // TN KTM — FYP lũy kế (triệu VND) — slide 3
+  const CLBSV_TN_KTM_THRESHOLDS = {
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [875, 1020, 1165, 1310, 1455, 1600, 1745],   bg: '#FEF3C7', fg: '#92400E' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [1900, 2220, 2540, 2860, 3180, 3500, 3820],   bg: '#E5E7EB', fg: '#374151' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#CFFAFE', fg: '#155E75' },
+  };
+
+  // Lấy index tháng hiện tại (0=June ... 6=Dec). Nếu ngoài khoảng → clamping.
+  // Quy ước: tháng 1-5 → June value; tháng 13+ → Dec value.
+  const clbsvCurrentMonthIdx = (() => {
+    const m = new Date().getMonth() + 1; // 1-12
+    if (m <= 6) return 0;  // Jan-Jun → June threshold (clamping early months)
+    if (m >= 12) return 6; // Dec → Dec threshold
+    return m - 6;          // Jul=1, Aug=2, ..., Nov=5
+  })();
+  const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+  const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
+
+  // ---------- Helper: shell chi tiết CLB Sao Việt (giống renderSaovietDetailShell, PINK theme) ----------
+  const renderClbsvDetailShell = (
+    program: string,
+    uniqueNhomList: string[],
+    filteredCount: number,
+    totalValue: number,
+    countLabel: string,
+    totalLabel: string,
+    tableJsx: React.ReactNode,
+  ) => {
+    const item = CLBSV_ITEMS.find(i => i.key === program);
+    if (!item) return null;
+    return (
+      <div className="flex flex-col h-full gap-2">
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(219, 39, 119, 0.10)' }}>
+          {/* Top bar: title + current-month indicator */}
+          <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#DB2777', borderColor: '#9D174D' }}>
+            <div className="flex items-center gap-2 text-white">
+              <Award className="w-4 h-4 flex-shrink-0" />
+              <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider truncate">{item.label}</h2>
+            </div>
+            <div className="flex items-center gap-2 text-white text-[10px] sm:text-[11px]">
+              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-bold">Chỉ tiêu {clbsvCurrentMonthLabel}</span>
+            </div>
+          </div>
+
+          {/* Filter bar: nhóm + tên (PINK theme) */}
+          <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#FCE7F3', borderColor: '#F472B6' }}>
+            <div className="relative z-[200] flex-1 min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-pink-900 mb-0.5">Nhóm KD</span>
+              <button
+                onClick={(e) => {
+                  const dd = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (dd) dd.classList.toggle('hidden');
+                }}
+                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
+                style={{ backgroundColor: '#FFFFFF', border: '1px solid #DB2777', color: '#831843' }}
+              >
+                <span className="truncate">{clbsvNhomFilter || 'Tất cả nhóm'}</span>
+                <ChevronDown className="w-3 h-3 flex-shrink-0" />
+              </button>
+              <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-pink-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
+                <button
+                  onClick={(e) => { setClbsvNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                  className={`w-full text-left px-2 py-1 text-[10px] hover:bg-pink-100 ${!clbsvNhomFilter ? 'text-pink-700 font-bold' : 'text-gray-700'}`}
+                >Tất cả nhóm</button>
+                {uniqueNhomList.map(n => (
+                  <button
+                    key={n}
+                    onClick={(e) => { setClbsvNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-pink-100 ${clbsvNhomFilter === n ? 'text-pink-700 font-bold' : 'text-gray-700'}`}
+                  >{n}</button>
+                ))}
+              </div>
+            </div>
+            <div className="relative z-[200] flex-1 min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-pink-900 mb-0.5">Tên / Mã</span>
+              <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #DB2777' }}>
+                <Search className="w-3 h-3 text-pink-700 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Tìm tên / mã..."
+                  value={clbsvNameFilter}
+                  onChange={e => setClbsvNameFilter(e.target.value)}
+                  className="text-[10px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-400"
+                />
+                {clbsvNameFilter && (
+                  <button onClick={() => setClbsvNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Middle: bảng chi tiết */}
+          <div
+            className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border bg-white clbsv-detail-table-wrapper"
+            style={{ borderColor: '#F472B6' }}
+          >
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media (max-width: 767px) {
+                .clbsv-detail-table-wrapper table { font-size: 9px !important; }
+                .clbsv-detail-table-wrapper th,
+                .clbsv-detail-table-wrapper td {
+                  padding: 3px !important;
+                  font-size: 9px !important;
+                }
+              }
+              .clbsv-detail-table-wrapper tr.clbsv-row-highlighted > td {
+                background-color: #FBCFE8 !important;
+                color: #831843 !important;
+                font-weight: 700 !important;
+              }
+            `}} />
+            {tableJsx}
+          </div>
+
+          {/* Footer FIXED — PINK (pink-600 #DB2777) */}
+          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#DB2777', borderTop: '2px solid #9D174D' }}>
+            <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-pink-200">TỔNG:</span>
+              <span className="text-white">{filteredCount}</span>
+            </span>
+            <span className="text-[11px] font-bold flex items-center gap-1.5">
+              <span className="text-pink-200 uppercase">{totalLabel}:</span>
+              <span className="text-white font-black">{formatCurrency(totalValue)}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ---------- Sub-page: CLB SAO VIỆT CÁ NHÂN ----------
+  // Bảng trống (chưa có dữ liệu TVV) — chỉ hiển thị cấu trúc + chỉ tiêu tháng hiện tại dưới mỗi rank header
+  const renderCLBSVCaNhan = () => {
+    const ranks = [
+      CLBSV_CA_NHAN_THRESHOLDS.vang,
+      CLBSV_CA_NHAN_THRESHOLDS.bachkim,
+      CLBSV_CA_NHAN_THRESHOLDS.kimcuong,
+    ];
+    const uniqueNhomList: string[] = []; // empty — no data yet
+    const totalCols = 5 + ranks.length; // STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP lũy kế + 3 rank cols
+
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            </TableHead>
+            {ranks.map(rk => (
+              <TableHead
+                key={rk.label}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="font-black">{rk.label}</div>
+                  <div className="italic font-bold text-[10px] mt-0.5">
+                    {rk.sub} {rk.values[clbsvCurrentMonthIdx]} trđ
+                  </div>
+                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              <br />
+              Vui lòng chờ hướng dẫn thêm dữ liệu TVV từ quản trị.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+
+    return renderClbsvDetailShell('ca-nhan', uniqueNhomList, 0, 0, 'SL TVV đạt', 'Tổng FYP', tableJsx);
+  };
+
+  // ---------- Sub-page: CLB SAO VIỆT TN TUYỂN DỤNG ----------
+  // Header 2 tầng: tầng trên gộp ô 2 cột "HẠNG VÀNG" / "HẠNG BẠCH KIM"
+  //                tầng dưới là 2 cột con: FYP TVVm + TVVm HĐC
+  // Below each tier label: hiển thị chỉ tiêu tháng hiện tại ("FYP TVVm >= X trđ" / "TVVm HĐC >= Y")
+  const renderCLBSVTNTuyenDung = () => {
+    const ranks = [CLBSV_TN_TD_THRESHOLDS.vang, CLBSV_TN_TD_THRESHOLDS.bachkim];
+    const uniqueNhomList: string[] = [];
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm lũy kế + SL TVVm HĐC + (2 sub × 2 ranks) = 6 + 4 = 10
+    const totalCols = 6 + ranks.length * 2;
+
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          {/* Row 1: STT (rowSpan=2) | NHÓM (rowSpan=2) | MÃ SỐ (rowSpan=2) | HỌ TÊN TVV (rowSpan=2) | FYP TVVm lũy kế (rowSpan=2) | SL TVVm HĐC (rowSpan=2) | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2) */}
+          <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              FYP TVVm<br />lũy kế<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            </TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              SL TVVm<br />HĐC<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            </TableHead>
+            {ranks.map(rk => (
+              <TableHead
+                key={rk.label}
+                colSpan={2}
+                className="text-[10px] font-black uppercase text-center align-middle whitespace-nowrap p-1 border-l-2 border-white"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="font-black">{rk.label}</div>
+                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+          {/* Row 2: sub-cols FYP TVVm + TVVm HĐC for each rank — hiển thị chỉ tiêu tháng hiện tại */}
+          <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
+            {ranks.flatMap(rk => [
+              <TableHead
+                key={`${rk.label}-fyp`}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="italic font-bold text-[10px]">{rk.fypLabel}</div>
+                  <div className="font-black text-[11px]">{rk.fypValues[clbsvCurrentMonthIdx]} trđ</div>
+                </div>
+              </TableHead>,
+              <TableHead
+                key={`${rk.label}-hdc`}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="italic font-bold text-[10px]">{rk.hdcLabel}</div>
+                  <div className="font-black text-[11px]">{rk.hdcValues[clbsvCurrentMonthIdx]} TVV</div>
+                </div>
+              </TableHead>,
+            ])}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              <br />
+              Vui lòng chờ hướng dẫn thêm dữ liệu TN Tuyển Dụng từ quản trị.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+
+    return renderClbsvDetailShell('tn-td', uniqueNhomList, 0, 0, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
+  };
+
+  // ---------- Sub-page: CLB SAO VIỆT TN KTM ----------
+  // Tương tự CÁ NHÂN — 3 hạng: Vàng / Bạch Kim / Kim Cương
+  const renderCLBSVTNKTM = () => {
+    const ranks = [
+      CLBSV_TN_KTM_THRESHOLDS.vang,
+      CLBSV_TN_KTM_THRESHOLDS.bachkim,
+      CLBSV_TN_KTM_THRESHOLDS.kimcuong,
+    ];
+    const uniqueNhomList: string[] = [];
+    const totalCols = 5 + ranks.length;
+
+    const tableJsx = (
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TN</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            </TableHead>
+            {ranks.map(rk => (
+              <TableHead
+                key={rk.label}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="font-black">{rk.label}</div>
+                  <div className="italic font-bold text-[10px] mt-0.5">
+                    {rk.sub} {rk.values[clbsvCurrentMonthIdx]} trđ
+                  </div>
+                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
+                </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              <br />
+              Vui lòng chờ hướng dẫn thêm dữ liệu TN KTM từ quản trị.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+
+    return renderClbsvDetailShell('tn-ktm', uniqueNhomList, 0, 0, 'SL TN đạt', 'Tổng FYP', tableJsx);
+  };
+
+  // ---------- CLB Sao Việt overview (list of 3 program cards) ----------
   const renderCLBSaoVietList = () => (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-          <Trophy className="w-4 h-4" /> TỔNG QUAN CLB SAO VIỆT
+        <h2 className="text-sm sm:text-base font-extrabold text-pink-300 flex items-center gap-2">
+          <Award className="w-4 h-4" /> TỔNG QUAN CLB SAO VIỆT
         </h2>
+        <span className="text-[10px] text-pink-200/70 italic">
+          Chỉ tiêu {clbsvCurrentMonthLabel} đã auto-cập nhật
+        </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {CLB_SAOVIET_ITEMS.map(item => {
+        {CLBSV_ITEMS.map(item => {
           const IIcon = item.icon;
           return (
             <button
               key={item.key}
-              onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: item.key })}
+              onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: item.key })}
               className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
-              style={{ borderColor: `${item.color}AA`, backgroundColor: '#0e1424' }}
+              style={{
+                borderColor: `${item.color}AA`,
+                backgroundColor: '#0e1424',
+              }}
             >
               <span
                 className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
                 style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
               />
-              {/* Top: icon placeholder (no poster for CLB) */}
+              {/* Poster placeholder — solid color block with icon */}
               <div
-                className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
-                style={{ aspectRatio: '16 / 9' }}
+                className="relative w-full flex items-center justify-center overflow-hidden"
+                style={{ aspectRatio: '16 / 9', background: `linear-gradient(135deg, ${item.color}33, ${item.color}11)` }}
               >
-                <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
-                    style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
-                  >
-                    <IIcon className="w-6 h-6" style={{ color: item.color }} />
-                  </div>
-                  <span className="text-[11px] font-semibold" style={{ color: item.color }}>{item.label}</span>
-                </div>
+                <IIcon className="w-12 h-12 transition-transform duration-500 group-hover:scale-110" style={{ color: item.color }} />
+                <span className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
               </div>
-              {/* Bottom: program name + desc */}
-              <div
-                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
-                style={{ borderColor: `${item.color}33` }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
-                  <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>{item.label}</h3>
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+              {/* Bottom: label + description */}
+              <div className="p-3 text-left flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <IIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: item.color }} />
+                  <h3 className="text-[11px] font-extrabold uppercase tracking-wider truncate" style={{ color: item.color }}>{item.label}</h3>
                 </div>
-                <p className="text-[11px] text-gray-300 font-semibold leading-tight">{item.desc}</p>
+                <p className="text-[10px] text-gray-400 leading-snug">{item.desc}</p>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-[9px] text-pink-200/60 italic">Chỉ tiêu {clbsvCurrentMonthLabel}</span>
+                  <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: item.color }}>
+                    Xem chi tiết <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
               </div>
             </button>
           );
@@ -9167,200 +9073,10 @@ export default function QuanLyPage() {
     </div>
   );
 
-  // ===== Sub-page 1: CLB - CÁ NHÂN =====
-  // Bảng: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP lũy kế (01/12-nay) | Tổng IP tháng hiện tại | HẠNG VÀNG | HẠNG BẠCH KIM | HẠNG KIM CƯƠNG
-  const renderCLBSaoVietCaNhan = () => {
-    const tableJsx = (
-      <Table>
-        <TableHeader className="sticky top-0 z-10">
-          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
-            </TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              TỔNG IP THÁNG {clbCurrentMonth}<br /><span className="italic font-normal text-[9px]">tự điều chỉnh</span>
-            </TableHead>
-            {CLB_RANK_PLACEHOLDERS.map(t => (
-              <TableHead
-                key={t.key}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.headerBg, color: t.fg }}
-              >
-                <div className="leading-tight">
-                  <div>{t.label}</div>
-                  <div className="italic font-normal text-[9px]">chỉ tiêu chờ cập nhật</div>
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell colSpan={6 + CLB_RANK_PLACEHOLDERS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    );
-    return (
-      <div className="flex flex-col h-full gap-2">
-        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
-          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#B45309', borderColor: '#92400E' }}>
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <UserCircle className="w-4 h-4" />
-              XÉT DANH HIỆU CLB - CÁ NHÂN
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
-              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
-            </Button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
-            {tableJsx}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ===== Sub-page 2: CLB - TN TUYỂN DỤNG =====
-  // Bảng 2-row header: Row1 có STT/NHÓM/MÃ SỐ/HỌ TÊN TVV/FYP TVVm lũy kế/SL TVVm HĐC (rowSpan=2) + HẠNG VÀNG (colSpan=2) + HẠNG BẠCH KIM (colSpan=2)
-  //                  Row2 có FYP TVVm/TVVm HĐC cho mỗi hạng
-  const renderCLBSaoVietTNTD = () => {
-    const tableJsx = (
-      <Table>
-        <TableHeader className="sticky top-0 z-10">
-          {/* Row 1: Main columns (rowSpan=2) + Tier columns (colSpan=2) */}
-          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              FYP TVVm LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
-            </TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              SL TVVm HĐC<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
-            </TableHead>
-            {CLB_RANK_PLACEHOLDERS_2.map(t => (
-              <TableHead
-                key={t.key}
-                colSpan={2}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.headerBg, color: t.fg }}
-              >
-                {t.label}
-              </TableHead>
-            ))}
-          </TableRow>
-          {/* Row 2: Sub-columns for each tier (FYP TVVm / TVVm HĐC) */}
-          <TableRow>
-            {CLB_RANK_PLACEHOLDERS_2.map(t => (
-              <React.Fragment key={`${t.key}-sub`}>
-                <TableHead className="text-[9px] font-bold uppercase text-center align-middle whitespace-nowrap p-1" style={{ backgroundColor: t.headerBg, color: t.fg }}>
-                  FYP TVVm
-                </TableHead>
-                <TableHead className="text-[9px] font-bold uppercase text-center align-middle whitespace-nowrap p-1" style={{ backgroundColor: t.headerBg, color: t.fg }}>
-                  TVVm HĐC
-                </TableHead>
-              </React.Fragment>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell colSpan={6 + CLB_RANK_PLACEHOLDERS_2.length * 2} className="text-center text-gray-400 py-10 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    );
-    return (
-      <div className="flex flex-col h-full gap-2">
-        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
-          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#D97706', borderColor: '#B45309' }}>
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              XÉT DANH HIỆU - TN TUYỂN DỤNG
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
-              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
-            </Button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
-            {tableJsx}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ===== Sub-page 3: CLB - TN KTM =====
-  // Bảng: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP lũy kế (01/12-nay) | HẠNG VÀNG | HẠNG BẠCH KIM | HẠNG KIM CƯƠNG
-  const renderCLBSaoVietTNKTM = () => {
-    const tableJsx = (
-      <Table>
-        <TableHeader className="sticky top-0 z-10">
-          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
-              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12 - nay</span>
-            </TableHead>
-            {CLB_RANK_PLACEHOLDERS.map(t => (
-              <TableHead
-                key={t.key}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.headerBg, color: t.fg }}
-              >
-                <div className="leading-tight">
-                  <div>{t.label}</div>
-                  <div className="italic font-normal text-[9px]">chỉ tiêu chờ cập nhật</div>
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell colSpan={5 + CLB_RANK_PLACEHOLDERS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu từng hạng theo tháng sẽ được cập nhật sau.
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    );
-    return (
-      <div className="flex flex-col h-full gap-2">
-        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
-          <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b" style={{ backgroundColor: '#92400E', borderColor: '#78350F' }}>
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              XÉT DANH HIỆU CLB - TN KTM
-            </h3>
-            <Button variant="ghost" size="sm" onClick={() => navigateTo({ sheet: 'clb-saoviet', clbSaovietOpen: null })} className="text-white hover:bg-white/10 h-7 text-xs">
-              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Quay lại
-            </Button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto border bg-white" style={{ borderColor: '#9CA3AF' }}>
-            {tableJsx}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderCLBSaoViet = () => {
-    if (clbSaovietOpen === 'clb-ca-nhan') return renderCLBSaoVietCaNhan();
-    if (clbSaovietOpen === 'clb-tn-td')  return renderCLBSaoVietTNTD();
-    if (clbSaovietOpen === 'clb-tn-ktm') return renderCLBSaoVietTNKTM();
+    if (clbsvOpen === 'ca-nhan') return renderCLBSVCaNhan();
+    if (clbsvOpen === 'tn-td')   return renderCLBSVTNTuyenDung();
+    if (clbsvOpen === 'tn-ktm')  return renderCLBSVTNKTM();
     return renderCLBSaoVietList();
   };
 
@@ -9383,8 +9099,6 @@ export default function QuanLyPage() {
         if (structureSub === 'leaders') return renderLeaders();
         if (structureSub === 'recruiters') return renderRecruiters();
         if (structureSub === 'tuyen-ngang') return renderTuyenNgang();
-        if (structureSub === 'clb-members') return renderCLBMembers();
-        if (structureSub === 'pending-members') return renderPendingMembers();
         return renderStructure();
       }
     }
@@ -9403,7 +9117,7 @@ export default function QuanLyPage() {
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
         <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Sao Việt Toàn Chặng') : activeSheet === 'clb-saoviet' && clbSaovietOpen ? (CLB_SAOVIET_ITEMS.find(i => i.key === clbSaovietOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB Sao Việt' : activeSheet === 'saoviet' ? 'Sao Việt Toàn Chặng' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
@@ -9466,10 +9180,6 @@ export default function QuanLyPage() {
                   else if (subKey === 'leaders') fetchLeaders();
                   else if (subKey === 'recruiters') fetchRecruiters();
                   else if (subKey === 'tuyen-ngang') fetchTuyenNgang();
-                  else if (subKey === 'clb-members' || subKey === 'pending-members') {
-                    // Đảm bảo có tvvStructList + banNhomList + adList để autofill MÃ TVV
-                    fetchTvvStruct(); fetchBanNhom(); fetchAD();
-                  }
                 }
                 setSidebarOpen(false);
               };
@@ -9529,7 +9239,7 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt — sidebar item, direct navigation to overview (no expand) */}
+            {/* SAO VIỆT TOÀN CHẶNG — sidebar item, direct navigation to overview (no expand) */}
             <div>
               <button
                 onClick={() => {
@@ -9541,10 +9251,28 @@ export default function QuanLyPage() {
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                   activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
                 }`}
-                title="Số liệu Sao Việt"
+                title="Sao Việt Toàn Chặng"
               >
                 <Star className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate flex-1 text-left">Số liệu Sao Việt</span>
+                <span className="truncate flex-1 text-left">SV Toàn Chặng</span>
+              </button>
+            </div>
+            {/* CLB Sao Việt — sidebar item, direct navigation to overview */}
+            <div>
+              <button
+                onClick={() => {
+                  navigateTo({ sheet: 'clb-saoviet', clbsvOpen: null });
+                  setSearchTerm('');
+                  setSortField('');
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                  activeSheet === 'clb-saoviet' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/40' : 'text-pink-300/70 hover:bg-pink-500/10 hover:text-pink-300'
+                }`}
+                title="CLB Sao Việt"
+              >
+                <Award className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate flex-1 text-left">CLB Sao Việt</span>
               </button>
             </div>
           </div>
@@ -9595,8 +9323,7 @@ export default function QuanLyPage() {
                   <h4 className="text-xs font-bold uppercase tracking-wider text-orange-300">Đồng bộ tất cả 3 chương trình</h4>
                 </div>
                 <p className="text-[10px] text-orange-200/70 leading-relaxed mb-2">
-                  Dán <strong>1 link Google Sheets</strong> có <strong>3 tab</strong> (theo thứ tự: Cá Nhân / TN KTM / TN TD).
-                  Tên tab có thể là <code className="px-1 bg-orange-500/20 rounded">ca-nhan</code> / <code className="px-1 bg-orange-500/20 rounded">tn-ktm</code> / <code className="px-1 bg-orange-500/20 rounded">tn-td</code>, hoặc <code className="px-1 bg-orange-500/20 rounded">Cá Nhân</code> / <code className="px-1 bg-orange-500/20 rounded">TN KTM</code> / <code className="px-1 bg-orange-500/20 rounded">TN TD</code>, hoặc để tab 1/2/3 theo thứ tự.
+                  Dán <strong>1 link Google Sheets</strong> có <strong>3 tab</strong> đặt tên đúng: <code className="px-1 bg-orange-500/20 rounded">ca-nhan</code> · <code className="px-1 bg-orange-500/20 rounded">tn-ktm</code> · <code className="px-1 bg-orange-500/20 rounded">tn-td</code>.
                   Dữ liệu mỗi tab bắt đầu từ cột <strong>NHÓM</strong> (không cần cột STT — app tự đếm).
                   Tiêu đề bảng giữ nguyên như trên app.
                 </p>
