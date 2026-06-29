@@ -724,3 +724,51 @@ Stage Summary:
 - Bảng trống sẵn sàng — user sẽ cung cấp data TVV/TN sau
 - KHÔNG thực hiện: thêm cột Chức vụ + Excel import cho 2 DS (CLB Members/Pending Members)
   vì 2 DS này chưa tồn tại trong file (previous session work chưa được commit)
+
+---
+Task ID: clb-pending-lists-with-chucvu-and-clbsv-blue-theme
+Agent: main
+Task: (1) Tái tạo 2 DS Thành viên CLB + Chờ xét gia nhập (với cột Chức vụ) — lost từ session trước; (2) Đổi theme CLB Sao Việt từ pink sang blue/navy; (3) Bỏ chữ "Tháng X" khỏi hàng tiêu đề CLB Sao Việt
+
+Work Log:
+- Phát hiện 2 DS (CLB Members + Pending Members) đã bị mất sau rebase ở session trước (clbsv-criteria commit) — StructureSubKey chỉ còn 'leaders'|'recruiters'|'tuyen-ngang'|'tvv'
+- Thêm types CLBMemberItem { id, ad, nhom, agentCode, agentName, chucVu, note } và PendingMemberItem { id, ad, nhom, agentCode, agentName, chucVu, ipT2, ipT1, ipT0, note } — có trường chucVu ngay từ đầu
+- Thêm 'clb-members' | 'pending-members' vào StructureSubKey union
+- Thêm 2 entry vào STRUCTURE_SUBS: DS Thành viên CLB (icon UserCheck) + DS Chờ xét gia nhập (icon UserPlus)
+- Thêm state clbMembers/pendingMembers + localStorage persistence (key nmc-clb-members-v1 / nmc-pending-members-v1)
+- Thêm CRUD: addClbMember, updateClbMember, deleteClbMember + addPendingMember, updatePendingMember, deletePendingMember
+- Thêm autofillFromAgentCode(): lookup tvvStructList → resolve tenAD + tenBanNhom + agentName (cho phép autofill khi nhập MÃ TVV)
+- Thêm handleImportCLBorPending(): parse xlsx/csv → append to localStorage; chấp nhận nhiều alias cột (MÃ TVV / Mã TVV / MÃ SỐ / agentCode; CHỨC VỤ / Chức vụ / POSITION; IP(T-2) / IP T-2 / ipT2)
+- Thêm handleExportCLBorPending(): export ra xlsx
+- renderCLBMembers(): bảng 7 cột STT-AD-NHÓM-MÃ TVV-HỌ TÊN TVV-CHỨC VỤ-GHI CHÚ, KPI cards, Import Excel, autofill khi nhập MÃ TVV
+- renderPendingMembers(): bảng 11 cột STT-AD-NHÓM-MÃ TVV-HỌ TÊN TVV-CHỨC VỤ-IP(T-2)-IP(T-1)-IP(T)-TỔNG CỘNG-GHI CHÚ, KPI cards, row total auto-tính, bottom total row (nền vàng)
+- Wire up renderSheet() switch: thêm 2 case structureSub 'clb-members' và 'pending-members'
+- Wire up mobile menu popup + sidebar: khi click vào 2 DS mới → fetchTvvStruct + fetchBanNhom + fetchAD để hỗ trợ autofill
+- Theme CLB Sao Việt: đổi từ PINK sang BLUE/NAVY
+  * SHEET_MOBILE_COLORS['clb-saoviet']: '#DB2777' → '#1E3A8A' (navy-900)
+  * CLBSV_HEADER_BG: '#FBCFE8' → '#DBEAFE' (blue-100)
+  * CLBSV_HEADER_FG: '#831843' → '#1E3A8A' (navy-900)
+  * CLBSV_HEADER_BORDER: '#F472B6' → '#3B82F6' (blue-500)
+  * CLBSV_ITEMS colors: '#DB2777'/'#BE185D'/'#9D174D' → '#2563EB'/'#1D4ED8'/'#1E3A8A'
+  * Sidebar desktop: bg-pink-500/20 text-pink-300 → bg-blue-500/20 text-blue-300
+  * renderClbsvDetailShell: top bar #DB2777→#1E3A8A, footer #DB2777→#1E3A8A, filter bar #FCE7F3→#DBEAFE, row highlight #FBCFE8→#DBEAFE, all text-pink-* → text-blue-*
+  * renderCLBSaoVietList overview: text-pink-300 → text-blue-300, text-pink-200/60 → text-blue-200/60
+- Bỏ month label khỏi hàng tiêu đề theo yêu cầu user:
+  * Top bar: "Chỉ tiêu {tháng}" → "Chỉ tiêu tháng hiện tại"
+  * CÁ NHÂN + TN KTM: bỏ dòng "({clbsvCurrentMonthLabel})" dưới rank header, chỉ giữ "FYP >= X trđ"
+  * TN TUYỂN DỤNG row 1: bỏ dòng "({clbsvCurrentMonthLabel})" dưới rank label (rank label giờ chỉ có tên hạng)
+  * Empty-state text: bỏ "({clbsvCurrentMonthLabel})" trong câu "Bảng chỉ tiêu đã được nạp theo tháng hiện tại"
+  * Overview: "Chỉ tiêu {tháng} đã auto-cập nhật" → "Chỉ tiêu tự động cập nhật theo tháng hiện tại"; card: "Chỉ tiêu {tháng}" → "Chỉ tiêu tháng hiện tại"
+- TypeScript check: 7 lỗi trong page.tsx (giống hệt baseline — không có lỗi mới)
+- Build: success (6.5s)
+- Commit: pending
+
+Stage Summary:
+- 2 DS Thành viên CLB + Chờ xét gia nhập đã được tái tạo với cột CHỨC VỤ nằm ngay sau HỌ TÊN TVV
+- Cả 2 DS dùng localStorage nên không cần backend API — data persist trong trình duyệt
+- Tất cả ô đều editable (nháy đúp); MÃ TVV khi nhập sẽ auto-fill AD/Nhóm/HỌ TÊN TVV
+- Import Excel hỗ trợ nhiều alias cột (MÃ TVV / Mã TVV / MÃ SỐ / agentCode; CHỨC VỤ / Chức vụ / POSITION)
+- DS Chờ xét gia nhập có dòng TỔNG CỘNG cuối bảng (nền vàng) tính tổng 3 cột IP
+- CLB Sao Việt giờ dùng tone màu xanh dương/navy chủ đạo (sidebar, mobile button, header bar, filter bar, footer, row highlight, overview)
+- Hàng tiêu đề CLB Sao Việt chỉ còn hiển thị tên hạng + chỉ tiêu (vd "HẠNG VÀNG / FYP >= 300 trđ"), không còn chữ "Tháng X"
+- Chỉ tiêu tháng hiện tại vẫn auto-cập nhật dựa trên new Date().getMonth()+1 (June→Dec, clamping early months to June)

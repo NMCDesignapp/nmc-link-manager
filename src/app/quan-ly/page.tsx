@@ -93,6 +93,18 @@ interface TuyenNgangItem {
   maNguoiTuyenDung: string; tenNguoiTuyenDung: string;
 }
 
+// DS Thành viên CLB — dùng localStorage (không cần backend)
+interface CLBMemberItem {
+  id: string; ad: string; nhom: string; agentCode: string; agentName: string;
+  chucVu: string; note: string;
+}
+
+// DS Chờ xét gia nhập — dùng localStorage
+interface PendingMemberItem {
+  id: string; ad: string; nhom: string; agentCode: string; agentName: string;
+  chucVu: string; ipT2: number; ipT1: number; ipT0: number; note: string;
+}
+
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
@@ -138,7 +150,7 @@ const KPI_COLORS: Record<string, string> = {
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
-type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv';
+type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members' | 'pending-members';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
 // Gradient yellow/cream background (light → warmer) for tier header cells and body cells
@@ -291,6 +303,8 @@ const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.Element
   { key: 'leaders', label: 'DS TB/TN', icon: Users },
   { key: 'recruiters', label: 'DS TTN', icon: UserCircle },
   { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
+  { key: 'clb-members', label: 'DS Thành viên CLB', icon: UserCheck },
+  { key: 'pending-members', label: 'DS Chờ xét gia nhập', icon: UserPlus },
 ];
 
 // Mobile menu button colors (solid) — only top-level sheets need a color
@@ -301,7 +315,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   report: '#2563EB',
   structure: '#0D9488',
   saoviet: '#7C3AED',
-  'clb-saoviet': '#DB2777', // pink-600 — distinguish from saoviet (violet)
+  'clb-saoviet': '#1E3A8A', // navy-900 — distinguish from saoviet (violet)
 };
 
 // Templates
@@ -1645,6 +1659,9 @@ export default function QuanLyPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [tuyenNgangList, setTuyenNgangList] = useState<TuyenNgangItem[]>([]);
+  // CLB Members + Pending Members — localStorage backed (no API)
+  const [clbMembers, setClbMembers] = useState<CLBMemberItem[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<PendingMemberItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Structure state
@@ -1766,6 +1783,156 @@ export default function QuanLyPage() {
   const fetchTvvStruct = useCallback(async () => {
     try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch {}
   }, []);
+
+  // ========== CLB Members + Pending Members: localStorage persistence ==========
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const clbRaw = localStorage.getItem('nmc-clb-members-v1');
+      if (clbRaw) setClbMembers(JSON.parse(clbRaw));
+      const pendingRaw = localStorage.getItem('nmc-pending-members-v1');
+      if (pendingRaw) setPendingMembers(JSON.parse(pendingRaw));
+    } catch {}
+  }, []);
+
+  // Persist on change
+  const persistClb = useCallback((list: CLBMemberItem[]) => {
+    try { localStorage.setItem('nmc-clb-members-v1', JSON.stringify(list)); } catch {}
+  }, []);
+  const persistPending = useCallback((list: PendingMemberItem[]) => {
+    try { localStorage.setItem('nmc-pending-members-v1', JSON.stringify(list)); } catch {}
+  }, []);
+
+  // CRUD: CLB Members
+  const addClbMember = useCallback(() => {
+    const newItem: CLBMemberItem = {
+      id: 'clb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', note: '',
+    };
+    setClbMembers(prev => { const next = [newItem, ...prev]; persistClb(next); return next; });
+  }, [persistClb]);
+  const updateClbMember = useCallback((id: string, field: keyof CLBMemberItem, value: any) => {
+    setClbMembers(prev => {
+      const next = prev.map(m => m.id === id ? { ...m, [field]: value } : m);
+      persistClb(next);
+      return next;
+    });
+  }, [persistClb]);
+  const deleteClbMember = useCallback((id: string) => {
+    if (!confirm('Xóa dòng này?')) return;
+    setClbMembers(prev => { const next = prev.filter(m => m.id !== id); persistClb(next); return next; });
+  }, [persistClb]);
+
+  // CRUD: Pending Members
+  const addPendingMember = useCallback(() => {
+    const newItem: PendingMemberItem = {
+      id: 'pen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', ipT2: 0, ipT1: 0, ipT0: 0, note: '',
+    };
+    setPendingMembers(prev => { const next = [newItem, ...prev]; persistPending(next); return next; });
+  }, [persistPending]);
+  const updatePendingMember = useCallback((id: string, field: keyof PendingMemberItem, value: any) => {
+    setPendingMembers(prev => {
+      const next = prev.map(m => m.id === id ? { ...m, [field]: value } : m);
+      persistPending(next);
+      return next;
+    });
+  }, [persistPending]);
+  const deletePendingMember = useCallback((id: string) => {
+    if (!confirm('Xóa dòng này?')) return;
+    setPendingMembers(prev => { const next = prev.filter(m => m.id !== id); persistPending(next); return next; });
+  }, [persistPending]);
+
+  // Autofill AD/Nhóm/Họ tên TVV từ MÃ TVV — lookup tvvStructList → banNhomList → adList
+  const autofillFromAgentCode = useCallback((agentCode: string): { ad: string; nhom: string; agentName: string } | null => {
+    const code = (agentCode || '').trim();
+    if (!code) return null;
+    const tvv = tvvStructList.find(t => (t.agentCode || '').trim().toLowerCase() === code.toLowerCase());
+    if (!tvv) return null;
+    const banNhom = banNhomList.find(b => b.maBanNhom === tvv.maBanNhom);
+    const ad = banNhom ? (adList.find(a => a.maAD === banNhom.maAD)?.tenAD || '') : '';
+    return {
+      ad,
+      nhom: banNhom?.tenBanNhom || '',
+      agentName: tvv.agentName || '',
+    };
+  }, [tvvStructList, banNhomList, adList]);
+
+  // Excel import for CLB Members + Pending Members — parse xlsx/csv and append to localStorage
+  const handleImportCLBorPending = useCallback(async (which: 'clb-members' | 'pending-members', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
+      if (!data.length) { toast({ title: 'File trống', variant: 'destructive' }); e.target.value = ''; return; }
+
+      const parseNum = (v: any) => typeof v === 'number' ? v : parseFloat(String(v || '0').replace(/,/g, '')) || 0;
+      const strVal = (v: any) => String(v ?? '').trim();
+
+      if (which === 'clb-members') {
+        const rows: CLBMemberItem[] = data.map((r: any) => {
+          const agentCode = strVal(r['MÃ TVV'] || r['Mã TVV'] || r['agentCode'] || r['MÃ SỐ'] || r['Mã số']);
+          const auto = agentCode ? autofillFromAgentCode(agentCode) : null;
+          return {
+            id: 'clb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            ad: strVal(r['AD'] || r['ad'] || (auto?.ad ?? '')),
+            nhom: strVal(r['NHÓM'] || r['Nhóm'] || r['nhom'] || (auto?.nhom ?? '')),
+            agentCode,
+            agentName: strVal(r['HỌ TÊN TVV'] || r['Họ tên TVV'] || r['agentName'] || (auto?.agentName ?? '')),
+            chucVu: strVal(r['CHỨC VỤ'] || r['Chức vụ'] || r['chucVu'] || r['POSITION'] || ''),
+            note: strVal(r['GHI CHÚ'] || r['Ghi chú'] || r['note'] || ''),
+          };
+        }).filter(r => r.agentCode || r.agentName);
+        if (!rows.length) { toast({ title: 'Không có dòng hợp lệ', variant: 'destructive' }); e.target.value = ''; return; }
+        setClbMembers(prev => { const next = [...rows, ...prev]; persistClb(next); return next; });
+        toast({ title: `Đã import ${rows.length} dòng vào DS Thành viên CLB` });
+      } else {
+        const rows: PendingMemberItem[] = data.map((r: any) => {
+          const agentCode = strVal(r['MÃ TVV'] || r['Mã TVV'] || r['agentCode'] || r['MÃ SỐ'] || r['Mã số']);
+          const auto = agentCode ? autofillFromAgentCode(agentCode) : null;
+          return {
+            id: 'pen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+            ad: strVal(r['AD'] || r['ad'] || (auto?.ad ?? '')),
+            nhom: strVal(r['NHÓM'] || r['Nhóm'] || r['nhom'] || (auto?.nhom ?? '')),
+            agentCode,
+            agentName: strVal(r['HỌ TÊN TVV'] || r['Họ tên TVV'] || r['agentName'] || (auto?.agentName ?? '')),
+            chucVu: strVal(r['CHỨC VỤ'] || r['Chức vụ'] || r['chucVu'] || r['POSITION'] || ''),
+            ipT2: parseNum(r['IP(T-2)'] || r['IP T-2'] || r['ipT2']),
+            ipT1: parseNum(r['IP(T-1)'] || r['IP T-1'] || r['ipT1']),
+            ipT0: parseNum(r['IP(T)'] || r['IP T'] || r['ipT0']),
+            note: strVal(r['GHI CHÚ'] || r['Ghi chú'] || r['note'] || ''),
+          };
+        }).filter(r => r.agentCode || r.agentName);
+        if (!rows.length) { toast({ title: 'Không có dòng hợp lệ', variant: 'destructive' }); e.target.value = ''; return; }
+        setPendingMembers(prev => { const next = [...rows, ...prev]; persistPending(next); return next; });
+        toast({ title: `Đã import ${rows.length} dòng vào DS Chờ xét gia nhập` });
+      }
+    } catch (err) {
+      console.error('[Import CLB/Pending]', err);
+      toast({ title: 'Lỗi import', variant: 'destructive' });
+    }
+    e.target.value = '';
+  }, [autofillFromAgentCode, persistClb, persistPending]);
+
+  // Excel export for CLB Members + Pending Members
+  const handleExportCLBorPending = useCallback(async (which: 'clb-members' | 'pending-members') => {
+    try {
+      const XLSX = await import('xlsx');
+      const list = which === 'clb-members' ? clbMembers : pendingMembers;
+      const rows = which === 'clb-members'
+        ? (list as CLBMemberItem[]).map((r, i) => ({ STT: i + 1, AD: r.ad, NHÓM: r.nhom, 'MÃ TVV': r.agentCode, 'HỌ TÊN TVV': r.agentName, 'CHỨC VỤ': r.chucVu, 'GHI CHÚ': r.note }))
+        : (list as PendingMemberItem[]).map((r, i) => ({ STT: i + 1, AD: r.ad, NHÓM: r.nhom, 'MÃ TVV': r.agentCode, 'HỌ TÊN TVV': r.agentName, 'CHỨC VỤ': r.chucVu, 'IP(T-2)': r.ipT2, 'IP(T-1)': r.ipT1, 'IP(T)': r.ipT0, 'TỔNG CỘNG': r.ipT2 + r.ipT1 + r.ipT0, 'GHI CHÚ': r.note }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, which === 'clb-members' ? 'DS CLB' : 'DS Chờ');
+      XLSX.writeFile(wb, `${which === 'clb-members' ? 'DS_ThanhVien_CLB' : 'DS_Cho_Xet_Gia_Nhap'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      console.error('[Export CLB/Pending]', err);
+      toast({ title: 'Lỗi xuất file', variant: 'destructive' });
+    }
+  }, [clbMembers, pendingMembers]);
 
   // Fetch all data in one request (for initial page load)
   const fetchAllData = useCallback(async () => {
@@ -2807,6 +2974,12 @@ export default function QuanLyPage() {
                                   else if (s.key === 'leaders') fetchLeaders();
                                   else if (s.key === 'recruiters') fetchRecruiters();
                                   else if (s.key === 'tuyen-ngang') fetchTuyenNgang();
+                                  else if (s.key === 'clb-members' || s.key === 'pending-members') {
+                                    // CLB/Pending DS dùng localStorage + autofill từ DS TVV/BanNhom/AD
+                                    fetchTvvStruct();
+                                    fetchBanNhom();
+                                    fetchAD();
+                                  }
                                 }
                                 setMobileMenuPopup(null);
                               }}
@@ -3745,6 +3918,218 @@ export default function QuanLyPage() {
           </Table>
         </div>
         <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Đây là nguồn đối tượng cho các chính sách TVV</p>
+      </div>
+    );
+  };
+
+  // ========== RENDER: DS Thành viên CLB ==========
+  // Bảng 7 cột: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - CHỨC VỤ - GHI CHÚ
+  // Dữ liệu lưu localStorage (nmc-clb-members-v1)
+  // Khi nhập MÃ TVV → tự động điền AD/Nhóm/HỌ TÊN TVV từ DS TVV tổng
+  const renderCLBMembers = () => {
+    const filtered = getFiltered(clbMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
+    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV
+    const handleAgentCodeChange = (id: string, newCode: string) => {
+      const auto = autofillFromAgentCode(newCode);
+      if (auto) {
+        setClbMembers(prev => {
+          const next = prev.map(m => m.id === id ? {
+            ...m,
+            agentCode: newCode,
+            ad: auto.ad || m.ad,
+            nhom: auto.nhom || m.nhom,
+            agentName: auto.agentName || m.agentName,
+          } : m);
+          persistClb(next);
+          return next;
+        });
+      } else {
+        updateClbMember(id, 'agentCode', newCode);
+      }
+    };
+    return (
+      <div>
+        {/* Title với số thứ tự in đậm vàng */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-amber-400 font-black text-base">01.</span>
+          <h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wider">Danh sách Thành viên CLB</h2>
+        </div>
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng thành viên', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: UserCheck },
+            { label: 'Có mã TVV', value: formatNumber(filtered.filter(m => m.agentCode).length), bg: '#059669', badge: '#047857', icon: CheckCircle2 },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                  <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+                </div>
+                <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+              </div>
+            );
+          })
+          }
+        </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <Button onClick={addClbMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import Excel<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImportCLBorPending('clb-members', e)} /></label>
+          <Button onClick={() => handleExportCLBorPending('clb-members')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+        </div>
+        {/* Bảng 7 cột */}
+        <div className="overflow-x-auto border border-emerald-600">
+          <Table>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
+              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map((m, idx) => (
+                <TableRow key={m.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                  <TableCell className="text-xs text-gray-500 text-center">{idx + 1}</TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.ad} onSave={(v) => updateClbMember(m.id, 'ad', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updateClbMember(m.id, 'nhom', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => handleAgentCodeChange(m.id, v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updateClbMember(m.id, 'agentName', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updateClbMember(m.id, 'chucVu', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updateClbMember(m.id, 'note', v)} /></TableCell>
+                  <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteClbMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm" hoặc Import Excel để bắt đầu.</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • Nhập MÃ TVV để auto-điền AD/Nhóm/Họ tên</p>
+      </div>
+    );
+  };
+
+  // ========== RENDER: DS Chờ xét gia nhập ==========
+  // Bảng 11 cột: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - CHỨC VỤ - IP(T-2) - IP(T-1) - IP(T) - TỔNG CỘNG - GHI CHÚ
+  // TỔNG CỘNG = ipT2 + ipT1 + ipT0 (auto-tính)
+  // Có dòng tổng cuối bảng (nền vàng) tính tổng các cột IP
+  const renderPendingMembers = () => {
+    const filtered = getFiltered(pendingMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
+    const totalT2 = filtered.reduce((s, m) => s + (m.ipT2 || 0), 0);
+    const totalT1 = filtered.reduce((s, m) => s + (m.ipT1 || 0), 0);
+    const totalT0 = filtered.reduce((s, m) => s + (m.ipT0 || 0), 0);
+    const totalAll = totalT2 + totalT1 + totalT0;
+    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV
+    const handleAgentCodeChange = (id: string, newCode: string) => {
+      const auto = autofillFromAgentCode(newCode);
+      if (auto) {
+        setPendingMembers(prev => {
+          const next = prev.map(m => m.id === id ? {
+            ...m,
+            agentCode: newCode,
+            ad: auto.ad || m.ad,
+            nhom: auto.nhom || m.nhom,
+            agentName: auto.agentName || m.agentName,
+          } : m);
+          persistPending(next);
+          return next;
+        });
+      } else {
+        updatePendingMember(id, 'agentCode', newCode);
+      }
+    };
+    return (
+      <div>
+        {/* Title với số thứ tự in đậm vàng */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-amber-400 font-black text-base">02.</span>
+          <h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wider">Danh sách Chờ xét gia nhập</h2>
+        </div>
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          {[
+            { label: 'Tổng chờ xét', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: UserPlus },
+            { label: 'IP(T-2) tổng', value: formatNumber(totalT2), bg: '#7C3AED', badge: '#6D28D9', icon: TrendingUp },
+            { label: 'IP(T-1) tổng', value: formatNumber(totalT1), bg: '#2563EB', badge: '#1D4ED8', icon: TrendingUp },
+            { label: 'IP(T) tổng', value: formatNumber(totalT0), bg: '#DC2626', badge: '#B91C1C', icon: TrendingUp },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="rounded-none p-3 sm:p-4" style={{ backgroundColor: kpi.bg, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: kpi.badge }}><Icon className="w-4 h-4 text-white" /></div>
+                  <p className="text-white/80 text-[10px] sm:text-xs font-bold leading-tight uppercase tracking-wider">{kpi.label}</p>
+                </div>
+                <p className="text-white text-xl sm:text-2xl font-black truncate leading-tight">{kpi.value}</p>
+              </div>
+            );
+          })
+          }
+        </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <Button onClick={addPendingMember} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 h-8 text-xs"><Plus className="w-3.5 h-3.5 mr-1" /> Thêm</Button>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import Excel<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImportCLBorPending('pending-members', e)} /></label>
+          <Button onClick={() => handleExportCLBorPending('pending-members')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
+        </div>
+        {/* Bảng 11 cột */}
+        <div className="overflow-x-auto border border-emerald-600">
+          <Table>
+            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T-2)</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T-1)</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T)</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG CỘNG</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
+              <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map((m, idx) => {
+                const rowTotal = (m.ipT2 || 0) + (m.ipT1 || 0) + (m.ipT0 || 0);
+                return (
+                  <TableRow key={m.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
+                    <TableCell className="text-xs text-gray-500 text-center">{idx + 1}</TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.ad} onSave={(v) => updatePendingMember(m.id, 'ad', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.nhom} onSave={(v) => updatePendingMember(m.id, 'nhom', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => handleAgentCodeChange(m.id, v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updatePendingMember(m.id, 'agentName', v)} /></TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updatePendingMember(m.id, 'chucVu', v)} /></TableCell>
+                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT2} onSave={(v) => updatePendingMember(m.id, 'ipT2', v)} type="number" className="text-right" /></TableCell>
+                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT1} onSave={(v) => updatePendingMember(m.id, 'ipT1', v)} type="number" className="text-right" /></TableCell>
+                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT0} onSave={(v) => updatePendingMember(m.id, 'ipT0', v)} type="number" className="text-right" /></TableCell>
+                    <TableCell className="text-xs p-0 text-right font-bold text-amber-700 bg-amber-50">{formatNumber(rowTotal)}</TableCell>
+                    <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updatePendingMember(m.id, 'note', v)} /></TableCell>
+                    <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deletePendingMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  </TableRow>
+                );
+              })}
+              {/* Bottom total row — nền vàng */}
+              {filtered.length > 0 && (
+                <TableRow className="bg-amber-100 border-t-2 border-amber-400 font-bold">
+                  <TableCell colSpan={6} className="text-xs text-right text-amber-900 uppercase">TỔNG CỘNG ({filtered.length} dòng):</TableCell>
+                  <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT2)}</TableCell>
+                  <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT1)}</TableCell>
+                  <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT0)}</TableCell>
+                  <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalAll)}</TableCell>
+                  <TableCell colSpan={2} className="text-xs text-amber-900"></TableCell>
+                </TableRow>
+              )}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm" hoặc Import Excel để bắt đầu.</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • TỔNG CỘNG tự tính = IP(T-2) + IP(T-1) + IP(T)</p>
       </div>
     );
   };
@@ -8647,7 +9032,7 @@ export default function QuanLyPage() {
     return renderSaoVietList();
   };
 
-  // ========== RENDER: CLB SAO VIỆT (3 sub-sections — same structure as Sao Việt, pink theme) ==========
+  // ========== RENDER: CLB SAO VIỆT (3 sub-sections — same structure as Sao Việt, BLUE/NAVY theme) ==========
   // CLB Sao Việt — xét danh hiệu theo THÁNG (mỗi tháng có 1 chỉ tiêu riêng, tự động cập nhật theo tháng hiện tại)
   // 3 chương trình con:
   //   1. CÁ NHÂN — FYP cá nhân (TVV), 3 hạng: Vàng / Bạch Kim / Kim Cương
@@ -8656,16 +9041,16 @@ export default function QuanLyPage() {
   // Dữ liệu chỉ tiêu lấy từ slide CTTV 2026 — tháng 6 đến tháng 12 (7 tháng).
   // "Từng tháng sẽ tự động cập nhật" — app hiển thị chỉ tiêu của THÁNG HIỆN TẠI dựa trên new Date().getMonth()+1.
   const CLBSV_ITEMS = [
-    { key: 'ca-nhan',     label: 'XÉT DANH HIỆU CLB - CÁ NHÂN',     desc: 'FYP cá nhân TVV — 3 hạng: Vàng / Bạch Kim / Kim Cương',   icon: UserCircle, color: '#DB2777' },
-    { key: 'tn-td',       label: 'XÉT DANH HIỆU - TN TUYỂN DỤNG',   desc: 'FYP TVVm + SL TVVm HĐC — 2 hạng: Vàng / Bạch Kim',         icon: UserPlus,   color: '#BE185D' },
-    { key: 'tn-ktm',      label: 'XÉT DANH HIỆU CLB - TN KTM',       desc: 'FYP cá nhân TN KTM — 3 hạng: Vàng / Bạch Kim / Kim Cương', icon: Users,      color: '#9D174D' },
+    { key: 'ca-nhan',     label: 'XÉT DANH HIỆU CLB - CÁ NHÂN',     desc: 'FYP cá nhân TVV — 3 hạng: Vàng / Bạch Kim / Kim Cương',   icon: UserCircle, color: '#2563EB' },
+    { key: 'tn-td',       label: 'XÉT DANH HIỆU - TN TUYỂN DỤNG',   desc: 'FYP TVVm + SL TVVm HĐC — 2 hạng: Vàng / Bạch Kim',         icon: UserPlus,   color: '#1D4ED8' },
+    { key: 'tn-ktm',      label: 'XÉT DANH HIỆU CLB - TN KTM',       desc: 'FYP cá nhân TN KTM — 3 hạng: Vàng / Bạch Kim / Kim Cương', icon: Users,      color: '#1E3A8A' },
   ] as const;
   type CLBSVProgram = typeof CLBSV_ITEMS[number]['key'];
 
-  // Header colors — pink/salmon theme (distinct from saoviet's lightsalmon)
-  const CLBSV_HEADER_BG = '#FBCFE8';   // pink-200 — light pink header
-  const CLBSV_HEADER_FG = '#831843';   // pink-900 — dark pink text
-  const CLBSV_HEADER_BORDER = '#F472B6'; // pink-400 — border
+  // Header colors — blue/navy theme (distinct from saoviet's lightsalmon)
+  const CLBSV_HEADER_BG = '#DBEAFE';     // blue-100 — light blue header
+  const CLBSV_HEADER_FG = '#1E3A8A';     // navy-900 — dark navy text
+  const CLBSV_HEADER_BORDER = '#3B82F6'; // blue-500 — border
 
   // ---------- CLBSV threshold tables (from slide CTTV 2026, months 6-12) ----------
   // Index 0=June, 1=July, 2=Aug, 3=Sep, 4=Oct, 5=Nov, 6=Dec
@@ -8713,7 +9098,7 @@ export default function QuanLyPage() {
   const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
   const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
 
-  // ---------- Helper: shell chi tiết CLB Sao Việt (giống renderSaovietDetailShell, PINK theme) ----------
+  // ---------- Helper: shell chi tiết CLB Sao Việt (giống renderSaovietDetailShell, BLUE/NAVY theme) ----------
   const renderClbsvDetailShell = (
     program: string,
     uniqueNhomList: string[],
@@ -8727,52 +9112,52 @@ export default function QuanLyPage() {
     if (!item) return null;
     return (
       <div className="flex flex-col h-full gap-2">
-        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(219, 39, 119, 0.10)' }}>
-          {/* Top bar: title + current-month indicator */}
-          <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#DB2777', borderColor: '#9D174D' }}>
+        <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
+          {/* Top bar: title (no month label per user spec — keep only criteria shown in table headers) */}
+          <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#1E3A8A', borderColor: '#1E40AF' }}>
             <div className="flex items-center gap-2 text-white">
               <Award className="w-4 h-4 flex-shrink-0" />
               <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider truncate">{item.label}</h2>
             </div>
             <div className="flex items-center gap-2 text-white text-[10px] sm:text-[11px]">
               <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-bold">Chỉ tiêu {clbsvCurrentMonthLabel}</span>
+              <span className="font-bold">Chỉ tiêu tháng hiện tại</span>
             </div>
           </div>
 
-          {/* Filter bar: nhóm + tên (PINK theme) */}
-          <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#FCE7F3', borderColor: '#F472B6' }}>
+          {/* Filter bar: nhóm + tên (BLUE theme) */}
+          <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
             <div className="relative z-[200] flex-1 min-w-0">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-pink-900 mb-0.5">Nhóm KD</span>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-blue-900 mb-0.5">Nhóm KD</span>
               <button
                 onClick={(e) => {
                   const dd = e.currentTarget.nextElementSibling as HTMLElement;
                   if (dd) dd.classList.toggle('hidden');
                 }}
                 className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold"
-                style={{ backgroundColor: '#FFFFFF', border: '1px solid #DB2777', color: '#831843' }}
+                style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A', color: '#1E3A8A' }}
               >
                 <span className="truncate">{clbsvNhomFilter || 'Tất cả nhóm'}</span>
                 <ChevronDown className="w-3 h-3 flex-shrink-0" />
               </button>
-              <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-pink-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
+              <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-blue-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
                 <button
                   onClick={(e) => { setClbsvNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                  className={`w-full text-left px-2 py-1 text-[10px] hover:bg-pink-100 ${!clbsvNhomFilter ? 'text-pink-700 font-bold' : 'text-gray-700'}`}
+                  className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${!clbsvNhomFilter ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
                 >Tất cả nhóm</button>
                 {uniqueNhomList.map(n => (
                   <button
                     key={n}
                     onClick={(e) => { setClbsvNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-pink-100 ${clbsvNhomFilter === n ? 'text-pink-700 font-bold' : 'text-gray-700'}`}
+                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter === n ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
                   >{n}</button>
                 ))}
               </div>
             </div>
             <div className="relative z-[200] flex-1 min-w-0">
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-pink-900 mb-0.5">Tên / Mã</span>
-              <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #DB2777' }}>
-                <Search className="w-3 h-3 text-pink-700 flex-shrink-0" />
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-blue-900 mb-0.5">Tên / Mã</span>
+              <div className="flex items-center gap-1 px-2 py-1" style={{ backgroundColor: '#FFFFFF', border: '1px solid #1E3A8A' }}>
+                <Search className="w-3 h-3 text-blue-700 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder="Tìm tên / mã..."
@@ -8792,7 +9177,7 @@ export default function QuanLyPage() {
           {/* Middle: bảng chi tiết */}
           <div
             className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border bg-white clbsv-detail-table-wrapper"
-            style={{ borderColor: '#F472B6' }}
+            style={{ borderColor: '#3B82F6' }}
           >
             <style dangerouslySetInnerHTML={{ __html: `
               @media (max-width: 767px) {
@@ -8804,22 +9189,22 @@ export default function QuanLyPage() {
                 }
               }
               .clbsv-detail-table-wrapper tr.clbsv-row-highlighted > td {
-                background-color: #FBCFE8 !important;
-                color: #831843 !important;
+                background-color: #DBEAFE !important;
+                color: #1E3A8A !important;
                 font-weight: 700 !important;
               }
             `}} />
             {tableJsx}
           </div>
 
-          {/* Footer FIXED — PINK (pink-600 #DB2777) */}
-          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#DB2777', borderTop: '2px solid #9D174D' }}>
+          {/* Footer FIXED — NAVY (navy-900 #1E3A8A) */}
+          <div className="flex-shrink-0 flex items-center justify-between px-3 text-white" style={{ height: '32px', backgroundColor: '#1E3A8A', borderTop: '2px solid #1E40AF' }}>
             <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-              <span className="text-pink-200">TỔNG:</span>
+              <span className="text-blue-200">TỔNG:</span>
               <span className="text-white">{filteredCount}</span>
             </span>
             <span className="text-[11px] font-bold flex items-center gap-1.5">
-              <span className="text-pink-200 uppercase">{totalLabel}:</span>
+              <span className="text-blue-200 uppercase">{totalLabel}:</span>
               <span className="text-white font-black">{formatCurrency(totalValue)}</span>
             </span>
           </div>
@@ -8861,7 +9246,6 @@ export default function QuanLyPage() {
                   <div className="italic font-bold text-[10px] mt-0.5">
                     {rk.sub} {rk.values[clbsvCurrentMonthIdx]} trđ
                   </div>
-                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
                 </div>
               </TableHead>
             ))}
@@ -8870,7 +9254,7 @@ export default function QuanLyPage() {
         <TableBody>
           <TableRow>
             <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
               <br />
               Vui lòng chờ hướng dẫn thêm dữ liệu TVV từ quản trị.
             </TableCell>
@@ -8916,7 +9300,6 @@ export default function QuanLyPage() {
               >
                 <div className="leading-tight">
                   <div className="font-black">{rk.label}</div>
-                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
                 </div>
               </TableHead>
             ))}
@@ -8950,7 +9333,7 @@ export default function QuanLyPage() {
         <TableBody>
           <TableRow>
             <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
               <br />
               Vui lòng chờ hướng dẫn thêm dữ liệu TN Tuyển Dụng từ quản trị.
             </TableCell>
@@ -8995,7 +9378,6 @@ export default function QuanLyPage() {
                   <div className="italic font-bold text-[10px] mt-0.5">
                     {rk.sub} {rk.values[clbsvCurrentMonthIdx]} trđ
                   </div>
-                  <div className="italic font-normal text-[9px] opacity-70">({clbsvCurrentMonthLabel})</div>
                 </div>
               </TableHead>
             ))}
@@ -9004,7 +9386,7 @@ export default function QuanLyPage() {
         <TableBody>
           <TableRow>
             <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại ({clbsvCurrentMonthLabel}).
+              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
               <br />
               Vui lòng chờ hướng dẫn thêm dữ liệu TN KTM từ quản trị.
             </TableCell>
@@ -9020,11 +9402,11 @@ export default function QuanLyPage() {
   const renderCLBSaoVietList = () => (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm sm:text-base font-extrabold text-pink-300 flex items-center gap-2">
+        <h2 className="text-sm sm:text-base font-extrabold text-blue-300 flex items-center gap-2">
           <Award className="w-4 h-4" /> TỔNG QUAN CLB SAO VIỆT
         </h2>
-        <span className="text-[10px] text-pink-200/70 italic">
-          Chỉ tiêu {clbsvCurrentMonthLabel} đã auto-cập nhật
+        <span className="text-[10px] text-blue-200/70 italic">
+          Chỉ tiêu tự động cập nhật theo tháng hiện tại
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -9060,7 +9442,7 @@ export default function QuanLyPage() {
                 </div>
                 <p className="text-[10px] text-gray-400 leading-snug">{item.desc}</p>
                 <div className="mt-1.5 flex items-center justify-between">
-                  <span className="text-[9px] text-pink-200/60 italic">Chỉ tiêu {clbsvCurrentMonthLabel}</span>
+                  <span className="text-[9px] text-blue-200/60 italic">Chỉ tiêu tháng hiện tại</span>
                   <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: item.color }}>
                     Xem chi tiết <ChevronRight className="w-3 h-3" />
                   </span>
@@ -9099,6 +9481,8 @@ export default function QuanLyPage() {
         if (structureSub === 'leaders') return renderLeaders();
         if (structureSub === 'recruiters') return renderRecruiters();
         if (structureSub === 'tuyen-ngang') return renderTuyenNgang();
+        if (structureSub === 'clb-members') return renderCLBMembers();
+        if (structureSub === 'pending-members') return renderPendingMembers();
         return renderStructure();
       }
     }
@@ -9180,6 +9564,12 @@ export default function QuanLyPage() {
                   else if (subKey === 'leaders') fetchLeaders();
                   else if (subKey === 'recruiters') fetchRecruiters();
                   else if (subKey === 'tuyen-ngang') fetchTuyenNgang();
+                  else if (subKey === 'clb-members' || subKey === 'pending-members') {
+                    // CLB/Pending DS dùng localStorage + autofill từ DS TVV/BanNhom/AD
+                    fetchTvvStruct();
+                    fetchBanNhom();
+                    fetchAD();
+                  }
                 }
                 setSidebarOpen(false);
               };
@@ -9267,7 +9657,7 @@ export default function QuanLyPage() {
                   setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
-                  activeSheet === 'clb-saoviet' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/40' : 'text-pink-300/70 hover:bg-pink-500/10 hover:text-pink-300'
+                  activeSheet === 'clb-saoviet' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'text-blue-300/70 hover:bg-blue-500/10 hover:text-blue-300'
                 }`}
                 title="CLB Sao Việt"
               >
