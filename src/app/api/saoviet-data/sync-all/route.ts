@@ -5,15 +5,73 @@ import { db, withRetry } from '@/lib/db';
 const PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
 type Program = typeof PROGRAMS[number];
 
-// Tab name candidates per program (try in order — first that returns valid CSV wins)
-// User's sheet tab may be named with Vietnamese accents, hyphen, space, or just numeric gid
-const TAB_NAME_CANDIDATES: Record<Program, string[]> = {
-  'ca-nhan': ['ca-nhan', 'ca nhan', 'Cá Nhân', 'Cá nhân', 'cá nhân', 'canhan', 'CN', 'Cá Nhân TVV', '0'],
-  'tn-ktm':  ['tn-ktm', 'tn ktm', 'TN KTM', 'TN-KTM', 'tnktm', 'KTM', '1'],
-  'tn-td':   ['tn-td', 'tn td', 'TN TD', 'TN-TD', 'tntd', 'TD', '2'],
+// User's sheet (https://docs.google.com/spreadsheets/d/19dZjztqA6dIlK_MuLn3dQx3oUDLPQuZtO8CbGrqRGK4/edit)
+// has tabs named exactly: ca-nhan | tn-ktm | tn-td
+// Google Sheets CSV export endpoint ONLY accepts NUMERIC gids — tab NAMES return HTTP 400.
+// So we MUST discover numeric gids by fetching /htmlembed and parsing the JS.
+const DEFAULT_GIDS: Record<Program, string[]> = {
+  'ca-nhan': ['681352635', '0'],
+  'tn-ktm':  ['1078354882', '1'],
+  'tn-td':   ['1521644652', '2'],
 };
 
-// ---------- CSV helpers ----------
+// ---------- Vietnamese number parsing ----------
+// Vietnamese format: "859.923.791" = 859923791 (dots = thousand separators)
+// Sometimes commas appear too: "1.234,56" = 1234.56
+// We always treat dots as thousand separator (Vietnamese convention) — this matches the user's data.
+function parseVietnameseNumber(v: any): number {
+  if (typeof v === 'number') return v;
+  if (v == null) return 0;
+  const raw = String(v).trim();
+  if (raw === '' || raw === '-') return 0;
+  // Remove currency symbols, spaces, "đ", "Đ", "%"
+  let s = raw.replace(/[^\d.,\-]/g, '');
+  if (s === '' || s === '-') return 0;
+  // Detect decimal separator: if both . and , present, the LAST one is the decimal sep
+  const hasDot = s.includes('.');
+  const hasComma = s.includes(',');
+  if (hasDot && hasComma) {
+    // Last separator = decimal
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+      // Comma is decimal → dots are thousands
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Dot is decimal → commas are thousands
+      s = s.replace(/,/g, '');
+    }
+  } else if (hasDot) {
+    // Only dots — Vietnamese: thousands separator
+    // But could be "1.5" (decimal) — heuristic: if more than one dot OR a group of 3 digits after a dot → thousands
+    const parts = s.split('.');
+    if (parts.length > 2) {
+      // Multiple dots → definitely thousands separators
+      s = parts.join('');
+    } else if (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3) {
+      // "1.234" or "85.923" — ambiguous; treat as thousands (Vietnamese convention)
+      s = parts.join('');
+    }
+    // else: leave as decimal (e.g., "1.5")
+  } else if (hasComma) {
+    // Only commas — Vietnamese: could be decimal OR thousands
+    const parts = s.split(',');
+    if (parts.length > 2) {
+      // Multiple commas → thousands separators
+      s = parts.join('');
+    } else if (parts.length === 2 && parts[1].length === 3 && parts[0].length <= 3) {
+      // "1,234" — assume thousands
+      s = parts.join('');
+    }
+    // else: leave as decimal
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function parseIntVal(v: any): number {
+  return Math.round(parseVietnameseNumber(v));
+}
+
+// ---------- CSV parsing (NO header row — all rows are data) ----------
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
   let cur = '';
@@ -34,162 +92,153 @@ function parseCsvLine(line: string): string[] {
   return out;
 }
 
-function parseCsvToRows(csv: string): any[] {
+// Returns array of cell-arrays (rows). Each row = array of raw cell strings.
+function parseCsvToRowsRaw(csv: string): string[][] {
   const lines = csv.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '');
-  if (lines.length < 2) return [];
-  const header = parseCsvLine(lines[0]).map(h => h.trim());
-  const rows: any[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cells = parseCsvLine(lines[i]);
-    const obj: any = {};
-    header.forEach((h, idx) => { obj[h] = cells[idx] ?? ''; });
-    rows.push(obj);
-  }
-  return rows;
+  return lines.map(parseCsvLine);
 }
 
-// ---------- Row normalizer ----------
-// Data starts from NHÓM column (no STT column — STT auto-counted by app).
-// Expected per-program structure (matches detail table):
-//   ca-nhan / tn-ktm:  NHÓM | MÃ SỐ | HỌ TÊN | FYP
-//   tn-td:             NHÓM | MÃ SỐ | HỌ TÊN | FYP TVVm | SL TVVm HĐC | TVVm COUNT
-function normalizeRow(program: Program, r: any) {
-  const parseNum = (v: any): number => {
-    if (typeof v === 'number') return v;
-    if (v == null || v === '') return 0;
-    const s = String(v).replace(/,/g, '').replace(/[^\d.\-]/g, '');
-    return parseFloat(s) || 0;
-  };
-  const parseIntVal = (v: any): number => Math.round(parseNum(v));
-  const pickStr = (v: any): string => v == null ? '' : String(v).trim();
-
-  const norm = (k: string): string => k.trim().toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[\s_]+/g, ' ').trim();
-
-  const pickField = (obj: any, aliases: string[]): string => {
-    const keys = Object.keys(obj);
-    for (const k of keys) {
-      if (aliases.includes(norm(k))) {
-        const v = obj[k];
-        if (v != null && String(v).trim() !== '') return pickStr(obj[k]);
-      }
-    }
-    for (const k of keys) {
-      const nk = norm(k);
-      for (const a of aliases) {
-        if (a.length >= 4 && (nk.includes(a) || a.includes(nk))) {
-          const v = obj[k];
-          if (v != null && String(v).trim() !== '') return pickStr(obj[k]);
-        }
-      }
-    }
-    return '';
-  };
-
-  // Positional fallback — if header detection fails, use column index
-  // (data starts from NHÓM = col 0, MÃ SỐ = col 1, HỌ TÊN = col 2, ...)
-  const values = Object.values(r) as any[];
-  const positional = (idx: number): string => {
-    const v = values[idx];
+// ---------- Row normalizer (positional — no header) ----------
+// Expected column layout (matches user's sheet, data starts from NHÓM):
+//   ca-nhan / tn-ktm:  col0=NHÓM | col1=MÃ SỐ | col2=HỌ TÊN | col3=FYP | (extra cols ignored)
+//   tn-td:             col0=NHÓM | col1=MÃ SỐ | col2=HỌ TÊN | col3=FYP TVVm | col4=SL TVVm HĐC | col5=TVVm COUNT | (extra cols ignored)
+function normalizeRow(program: Program, cells: string[]) {
+  const pickStr = (idx: number): string => {
+    const v = cells[idx];
     return v == null ? '' : String(v).trim();
   };
-
-  const base = {
-    agentCode: pickField(r, ['ma tvv', 'ma so', 'ma dl', 'ma dai ly', 'ms dai ly', 'agentcode',
-      'mã tvv', 'mã số', 'mã đại lý', 'mã số đại lý', 'ms đại lý', 'ma so dai ly',
-      'ms', 'ma', 'code', 'id', 'mã'])
-      || positional(1),
-    agentName: pickField(r, ['ho ten', 'hoten', 'ho va ten', 'ten tvv', 'ten tn', 'ten',
-      'agentname', 'họ tên', 'tên', 'họ và tên', 'tên tvv', 'tên tn', 'tên đại lý'])
-      || positional(2),
-    nhomKD:    pickField(r, ['nhom kd', 'nhom kinh doanh', 'nhom', 'nhóm kd', 'nhóm kinh doanh',
-      'nhóm', 'group', 'team', 'ban nhom', 'ban nhóm', 'bạn nhóm'])
-      || positional(0),
-  };
+  // Skip rows whose first 3 cells are empty (likely blank line / footer)
+  const nhomKD = pickStr(0);
+  const agentCode = pickStr(1);
+  const agentName = pickStr(2);
 
   if (program === 'tn-td') {
     return {
-      ...base,
+      agentCode,
+      agentName,
+      nhomKD,
       fyp:       0,
-      fypTVVm:   parseNum(pickField(r, ['fyp tvvm', 'tong fyp tvvm', 'fyp', 'tong fyp',
-        'fyp tvv m', 'tong fyp tvv m', 'fypm', 'fyp team']) || positional(3)),
-      slTvvmHDC: parseIntVal(pickField(r, ['sl tvvm hdc', 'tvvm hdc', 'sl hdc', 'so tvvm hdc',
-        'so luong tvvm hdc', 'sl tvv m hdc']) || positional(4)),
-      tvvmCount: parseIntVal(pickField(r, ['tvvm count', 'sl tvvm', 'so tvvm', 'tong tvvm',
-        'sl tvv m', 'so tvv m', 'tong tvv m']) || positional(5)),
+      fypTVVm:   parseVietnameseNumber(pickStr(3)),
+      slTvvmHDC: parseIntVal(pickStr(4)),
+      tvvmCount: parseIntVal(pickStr(5)),
     };
   }
   return {
-    ...base,
-    fyp:       parseNum(pickField(r, ['fyp', 'tong fyp', 'ip', 'tong ip', 'total fyp',
-      'tong fyp ca nhan']) || positional(3)),
+    agentCode,
+    agentName,
+    nhomKD,
+    fyp:       parseVietnameseNumber(pickStr(3)),
     fypTVVm:   0,
     slTvvmHDC: 0,
     tvvmCount: 0,
   };
 }
 
-// ---------- Build CSV URL for a sheet tab ----------
-// Google Sheets CSV export: /d/<ID>/export?format=csv&gid=<sheet_name_or_id>
-// gid can be either numeric ID or sheet tab name (URL-encoded).
-function buildCsvUrl(link: string, gidValue: string): string {
-  let base = link.split('#')[0];
-  base = base.split('?')[0];
-  if (!base.endsWith('/export')) {
-    base = base.replace(/\/(edit|copy|pubhtml|html)(\/.*)?$/, '');
-    base = base.replace(/\/$/, '');
-    base += '/export';
+// ---------- Discover numeric gids via /htmlembed ----------
+// The /htmlembed page contains JS like:
+//   items.push({name: "ca-nhan", pageUrl: "...&gid=681352635", gid: "681352635", ...});
+// We extract these mappings and fall back to DEFAULT_GIDS if discovery fails.
+async function discoverGids(spreadsheetId: string): Promise<Record<Program, string>> {
+  const fallback: Record<Program, string> = {
+    'ca-nhan': DEFAULT_GIDS['ca-nhan'][0],
+    'tn-ktm':  DEFAULT_GIDS['tn-ktm'][0],
+    'tn-td':   DEFAULT_GIDS['tn-td'][0],
+  };
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlembed`;
+    const resp = await fetch(url, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,*/*',
+      },
+      next: { revalidate: 0 },
+    });
+    if (!resp.ok) return fallback;
+    const html = await resp.text();
+    // Match: name: "X", pageUrl: "...&gid=Y", gid: "Y"
+    // OR:    name: "X", ... gid: "Y"
+    const found: Record<string, string> = {};
+    const re = /name:\s*"([^"]+)"[^}]*?gid:\s*"(-?\d+)"/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      found[m[1].trim().toLowerCase()] = m[2];
+    }
+    const result: Record<Program, string> = { ...fallback };
+    for (const p of PROGRAMS) {
+      // Direct name match
+      if (found[p]) { result[p] = found[p]; continue; }
+      // Try with/without Vietnamese accents / hyphens / spaces
+      const candidates = [
+        p, p.replace('-', ' '), p.replace('-', ''),
+        p === 'ca-nhan' ? 'cá nhân' : p === 'tn-ktm' ? 'tn ktm' : 'tn td',
+      ];
+      let matched = false;
+      for (const c of candidates) {
+        if (found[c]) { result[p] = found[c]; matched = true; break; }
+      }
+      if (!matched) {
+        // Try includes match
+        for (const [k, v] of Object.entries(found)) {
+          if (k.includes(p) || p.includes(k)) { result[p] = v; matched = true; break; }
+        }
+      }
+      if (!matched) result[p] = fallback[p]; // Keep default
+    }
+    return result;
+  } catch {
+    return fallback;
   }
-  return `${base}?format=csv&gid=${encodeURIComponent(gidValue)}`;
 }
 
-// ---------- Try fetching CSV with multiple gid candidates ----------
-// Returns { csv?: string, error?: string, gidUsed?: string }
-async function fetchCsvWithFallbacks(link: string, gidCandidates: string[]): Promise<{ csv?: string; error?: string; gidUsed?: string }> {
-  let lastError = 'No candidates tried';
-  for (const gid of gidCandidates) {
-    const csvUrl = buildCsvUrl(link, gid);
-    try {
-      const resp = await fetch(csvUrl, {
-        redirect: 'follow',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/csv,text/plain,application/csv,*/*',
-        },
-        next: { revalidate: 0 },
-      });
-      if (!resp.ok) {
-        lastError = `HTTP ${resp.status} (gid=${gid})`;
-        continue;
-      }
-      const text = await resp.text();
-      // Detect HTML response (Google auth wall or sheet not shared publicly)
-      const trimmed = text.trim().toLowerCase();
-      if (trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
-        lastError = `HTML response (gid=${gid}) — sheet có thể chưa share "Anyone with link"`;
-        continue;
-      }
-      if (!text || !text.trim()) {
-        lastError = `CSV rỗng (gid=${gid})`;
-        continue;
-      }
-      return { csv: text, gidUsed: gid };
-    } catch (e: any) {
-      lastError = `${String(e?.message || e)} (gid=${gid})`;
-      continue;
+// Extract spreadsheet ID from any Google Sheets URL form
+function extractSpreadsheetId(link: string): string | null {
+  // /d/<ID>/  or  /d/<ID>  (with optional subpath)
+  const m = link.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (m) return m[1];
+  // id= query param
+  const m2 = link.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+  if (m2) return m2[1];
+  return null;
+}
+
+// ---------- Build CSV URL with numeric gid ----------
+function buildCsvUrl(spreadsheetId: string, gid: string): string {
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+}
+
+// ---------- Fetch CSV with single gid (already numeric) ----------
+async function fetchCsv(spreadsheetId: string, gid: string): Promise<{ csv?: string; error?: string }> {
+  const csvUrl = buildCsvUrl(spreadsheetId, gid);
+  try {
+    const resp = await fetch(csvUrl, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/csv,text/plain,application/csv,*/*',
+      },
+      next: { revalidate: 0 },
+    });
+    if (!resp.ok) return { error: `HTTP ${resp.status}` };
+    const text = await resp.text();
+    const trimmed = text.trim().toLowerCase();
+    if (trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+      return { error: `Phản hồi HTML (gid=${gid}) — sheet chưa share "Anyone with link"` };
     }
+    if (!text || !text.trim()) return { error: `CSV rỗng (gid=${gid})` };
+    return { csv: text };
+  } catch (e: any) {
+    return { error: `${String(e?.message || e)} (gid=${gid})` };
   }
-  return { error: lastError };
 }
 
 // ---------- POST /api/saoviet-data/sync-all ----------
 // Body: { link: string }
-// Action: For each program in ['ca-nhan', 'tn-ktm', 'tn-td']:
-//   1) Try fetching CSV with multiple gid candidates (program key, Vietnamese name, numeric 0/1/2)
-//   2) Parse → normalize → DELETE old rows → INSERT new rows
-// Returns: { results: { 'ca-nhan': {count, deleted, error?}, ... }, syncedFrom: link }
+// Action:
+//   1) Extract spreadsheet ID from link
+//   2) Discover numeric gids for each tab via /htmlembed (fallback to defaults)
+//   3) For each program: fetch CSV → parse (positional, no header) → normalize → DELETE old → INSERT new
+// Returns: { results: { 'ca-nhan': {count, deleted, error?}, ... }, syncedFrom: link, gidsUsed: {...} }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -198,42 +247,56 @@ export async function POST(req: NextRequest) {
     if (!link) {
       return NextResponse.json({ error: 'Thiếu link Google Sheets' }, { status: 400 });
     }
-    // Lenient URL validation — accept any URL containing 'docs.google.com' or 'sheets'
     if (!link.includes('docs.google.com') && !link.includes('sheets') && !link.includes('googleusercontent.com')) {
       return NextResponse.json({ error: 'URL không hợp lệ — phải là Google Sheets URL' }, { status: 400 });
     }
+
+    const spreadsheetId = extractSpreadsheetId(link);
+    if (!spreadsheetId) {
+      return NextResponse.json({ error: 'Không đọc được spreadsheet ID từ link' }, { status: 400 });
+    }
+
+    // Discover numeric gids for each program tab
+    const gids = await discoverGids(spreadsheetId);
 
     const results: Record<string, { count: number; deleted: number; error?: string; gidUsed?: string }> = {};
 
     for (const program of PROGRAMS) {
       try {
-        // Try multiple gid candidates — first successful one wins
-        const { csv, error, gidUsed } = await fetchCsvWithFallbacks(link, TAB_NAME_CANDIDATES[program]);
+        const gid = gids[program];
+        const { csv, error } = await fetchCsv(spreadsheetId, gid);
         if (error || !csv) {
-          results[program] = { count: 0, deleted: 0, error: error || 'Không tải được CSV' };
+          results[program] = { count: 0, deleted: 0, error: error || 'Không tải được CSV', gidUsed: gid };
           continue;
         }
 
-        const rowsIn = parseCsvToRows(csv);
-        if (rowsIn.length === 0) {
-          // Empty sheet → wipe data for this program
+        const rowsRaw = parseCsvToRowsRaw(csv);
+        if (rowsRaw.length === 0) {
           await withRetry(() => db.saoVietData.deleteMany({ where: { program } }));
-          results[program] = { count: 0, deleted: 0, gidUsed };
+          results[program] = { count: 0, deleted: 0, gidUsed: gid };
           continue;
         }
 
-        const normalized = rowsIn
-          .map((r: any) => normalizeRow(program, r))
-          // Lenient filter: accept any row with at least nhomKD or agentCode or agentName
-          .filter((r: any) => (r.agentCode || '').trim() !== '' || (r.agentName || '').trim() !== '' || (r.nhomKD || '').trim() !== '');
+        // Detect & skip header row if first row looks like header
+        // (e.g., contains "nhóm" or "mã số" or "họ tên")
+        const firstRow = rowsRaw[0].map(c => c.toLowerCase().trim());
+        const looksLikeHeader = firstRow.some(c =>
+          c.includes('nhóm') || c.includes('nhom') ||
+          c.includes('mã số') || c.includes('ma so') ||
+          c.includes('họ tên') || c.includes('ho ten')
+        );
+        const dataRows = looksLikeHeader ? rowsRaw.slice(1) : rowsRaw;
+
+        const normalized = dataRows
+          .map(cells => normalizeRow(program, cells))
+          // Lenient filter: accept any row with at least one of (nhomKD, agentCode, agentName)
+          .filter(r => (r.agentCode || '').trim() !== '' || (r.agentName || '').trim() !== '' || (r.nhomKD || '').trim() !== '');
 
         if (normalized.length === 0) {
-          // No valid rows — still wipe old data
           await withRetry(() => db.saoVietData.deleteMany({ where: { program } }));
-          const cols = Object.keys(rowsIn[0] || {}).join(', ');
           results[program] = {
-            count: 0, deleted: 0, gidUsed,
-            error: `Không có dòng hợp lệ. Cột đọc được: ${cols}`
+            count: 0, deleted: 0, gidUsed: gid,
+            error: `Không có dòng hợp lệ (sheet có ${rowsRaw.length} dòng)`,
           };
           continue;
         }
@@ -246,7 +309,7 @@ export async function POST(req: NextRequest) {
           return { deleted: deleted.count, created: created.count };
         }));
 
-        results[program] = { count: result.created, deleted: result.deleted, gidUsed };
+        results[program] = { count: result.created, deleted: result.deleted, gidUsed: gid };
       } catch (e: any) {
         results[program] = { count: 0, deleted: 0, error: String(e?.message || e) };
       }
@@ -255,6 +318,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       results,
       syncedFrom: link,
+      gidsUsed: gids,
     }, { status: 201 });
   } catch (error: any) {
     console.error('POST /api/saoviet-data/sync-all error:', error);
