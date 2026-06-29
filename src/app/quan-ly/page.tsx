@@ -6999,7 +6999,23 @@ export default function QuanLyPage() {
         </div>
 
         {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng — nối liền footer (không gap) */}
-        <div className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-policy-table={policyOpen}>
+        <div
+          className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
+          style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+          data-policy-table={policyOpen}
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            const row = target.closest('tr');
+            if (!row) return;
+            if (row.closest('thead')) return; // skip header
+            if (row.cells.length < 2) return; // skip separator/total rows
+            const wrapper = e.currentTarget;
+            wrapper.querySelectorAll('tr.policy-row-highlighted').forEach(r => {
+              if (r !== row) r.classList.remove('policy-row-highlighted');
+            });
+            row.classList.toggle('policy-row-highlighted');
+          }}
+        >
           {/* Mobile: thu nhỏ font + padding + bỏ min-width để xem được nhiều cột hơn, giữ tỷ lệ giữa cột và chữ
               Desktop: giữ nguyên font/padding/min-width theo inline style */}
           <style dangerouslySetInnerHTML={{ __html: `
@@ -7025,6 +7041,12 @@ export default function QuanLyPage() {
               }
               /* Header STT nhỏ lại */
               .policy-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+            }
+            /* Row-click highlight — light amber cho Chính sách (đậm hơn hover bg-emerald-50) */
+            .policy-detail-table-wrapper tr.policy-row-highlighted > td {
+              background-color: #FEF3C7 !important; /* amber-100 — light yellow */
+              color: #92400E !important; /* amber-800 */
+              font-weight: 700 !important;
             }
           `}} />
           {renderPolicyContent(policyOpen)}
@@ -7807,10 +7829,15 @@ export default function QuanLyPage() {
   // Click a sub-item → opens dedicated page for that single program
   // Click "Số liệu Sao Việt" itself → expands the sub-list (desktop) / opens popup (mobile)
   const SAOVIET_ITEMS = [
-    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (5 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
-    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (5 hạng: Vàng/BạchKim/KimCương/Đặc biệt/Tối cao)', icon: Users, color: '#2563EB' },
+    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
+    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
     { key: 'tn-td',   label: 'Sao Việt TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
   ];
+  // Lightsalmon (#FFA07A) là màu tiêu đề chung cho các bảng Sao Việt (theo yêu cầu)
+  // Phần nền nội dung (rank cells) luôn nhạt hơn màu chữ — bg=#xxx light, fg=#xxx dark
+  const SV_HEADER_BG = '#FFA07A';   // lightsalmon — màu tiêu đề bảng
+  const SV_HEADER_FG = '#7C2D12';   // amber-900 — chữ đậm trên nền lightsalmon
+  const SV_HEADER_BORDER = '#FB923C'; // orange-400 — viền nhẹ
 
   // Period: 01/12/2025 - 30/11/2026 (Sao Việt year — fixed)
   // Section 1: SAO VIỆT CÁ NHÂN — TVV-based, 5 rank tiers (Vàng, BạchKim, BạchKim, KimCương, KimCương)
@@ -7856,18 +7883,19 @@ export default function QuanLyPage() {
 
   // ---------- Section 2: SAO VIỆT TN KTM ----------
   // Data source: leaders (DS TB/TN) — each TN's personal FYP in Sao Việt period
-  // Rank thresholds:
-  //   Vàng:       FYP ≥ 1,6 tỷ  → 01 vé
-  //   Bạch kim:   FYP ≥ 3,5 tỷ  → 01 vé
-  //   Kim cương:  FYP ≥ 5,5 tỷ  → 02 vé
-  //   Tier 4:     FYP ≥ 7,0 tỷ  → 01 vé
-  //   Tier 5:     FYP ≥ 13 tỷ   → 02 vé
+  // 3 rank categories (Vàng / Bạch kim / Kim cương) — each rank has its own color
+  // 5 tier entries (1 Vàng + 2 Bạch kim + 2 Kim cương):
+  //   Vàng:         FYP ≥ 1,6 tỷ  → 01 vé
+  //   Bạch kim 1:   FYP ≥ 3,5 tỷ  → 01 vé
+  //   Bạch kim 2:   FYP ≥ 5,5 tỷ  → 02 vé
+  //   Kim cương 1:  FYP ≥ 7,0 tỷ  → 01 vé
+  //   Kim cương 2:  FYP ≥ 13 tỷ   → 02 vé
   const SV2_THRESHOLDS = [
-    { key: 'vang',     label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé', min: 1_600_000_000,  vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé', min: 3_500_000_000,  vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong', label: 'Hạng kim cương', sub: 'FYP ≥ 5,5 tỷ\n02 vé', min: 5_500_000_000,  vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
-    { key: 'tier4',    label: 'Hạng đặc biệt',  sub: 'FYP ≥ 7,0 tỷ\n01 vé', min: 7_000_000_000,  vouchers: 1, bg: '#FEE2E2', fg: '#991B1B' },
-    { key: 'tier5',    label: 'Hạng tối cao',   sub: 'FYP ≥ 13 tỷ\n02 vé',  min: 13_000_000_000, vouchers: 2, bg: '#FEE2E2', fg: '#991B1B' },
+    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
+    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
   ];
   const saoVietTNKTMRows = leaders
     .filter(l => isTBorTNPosition(l.position))
@@ -8182,10 +8210,11 @@ export default function QuanLyPage() {
                 </div>
               )}
             </div>
-            {/* Right: nền BẠC ĐẶC + filter nhóm + search tên TVV (giống Chính sách) */}
-            <div className="w-2/5 md:w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
-              {/* Filter nhóm dropdown — amber theme */}
-              <div className="relative flex-1 min-h-0 z-[200]">
+            {/* Right: nền BẠC ĐẶC + filter nhóm + search tên TVV — căn đối, cân đối, có nhãn */}
+            <div className="w-2/5 md:w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
+              {/* Filter nhóm dropdown — có nhãn trên */}
+              <div className="relative z-[200]">
+                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Nhóm KD</span>
                 <button
                   onClick={(e) => {
                     const dd = e.currentTarget.nextElementSibling as HTMLElement;
@@ -8211,27 +8240,46 @@ export default function QuanLyPage() {
                   ))}
                 </div>
               </div>
-              {/* Search tên TVV/TN input — amber theme */}
-              <div className="flex items-center gap-1 px-1.5 py-1 flex-1 min-h-0" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Tìm tên / mã..."
-                  value={saovietNameFilter}
-                  onChange={e => setSaovietNameFilter(e.target.value)}
-                  className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
-                />
-                {saovietNameFilter && (
-                  <button onClick={() => setSaovietNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                )}
+              {/* Search tên TVV/TN input — có nhãn trên */}
+              <div className="relative z-[200]">
+                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Tên / Mã</span>
+                <div className="flex items-center gap-1 px-1.5 py-1" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                  <Search className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Tìm tên / mã..."
+                    value={saovietNameFilter}
+                    onChange={e => setSaovietNameFilter(e.target.value)}
+                    className="text-[9px] bg-transparent outline-none flex-1 min-w-0 text-gray-800 placeholder:text-gray-500"
+                  />
+                  {saovietNameFilter && (
+                    <button onClick={() => setSaovietNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng */}
-          <div className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper" style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }} data-saoviet-table={program}>
+          {/* Middle: bảng chi tiết — flex-1, sticky header, scroll cho 20+ dòng, click row để highlight */}
+          <div
+            className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper"
+            style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+            data-saoviet-table={program}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              const row = target.closest('tr');
+              if (!row) return;
+              if (row.closest('thead')) return; // skip header
+              if (row.cells.length < 2) return; // skip separator/empty rows
+              const wrapper = e.currentTarget;
+              wrapper.querySelectorAll('tr.sv-row-highlighted').forEach(r => {
+                if (r !== row) r.classList.remove('sv-row-highlighted');
+              });
+              row.classList.toggle('sv-row-highlighted');
+            }}
+          >
             <style dangerouslySetInnerHTML={{ __html: `
               @media (max-width: 767px) {
                 .saoviet-detail-table-wrapper table { font-size: 9px !important; }
@@ -8253,6 +8301,12 @@ export default function QuanLyPage() {
                   font-size: 10px !important;
                 }
                 .saoviet-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
+              }
+              /* Row-click highlight — light orange cho Sao Việt (đậm hơn hover) */
+              .saoviet-detail-table-wrapper tr.sv-row-highlighted > td {
+                background-color: #FED7AA !important; /* orange-200 */
+                color: #7C2D12 !important; /* amber-900 */
+                font-weight: 700 !important;
               }
             `}} />
             {tableJsx}
@@ -8276,13 +8330,12 @@ export default function QuanLyPage() {
 
   // ---------- Sub-page: SAO VIỆT CÁ NHÂN (Section 1) ----------
   const renderSaoVietCaNhan = () => {
-    // Ưu tiên data manual (upload/sync) nếu có, ngược lại dùng data tính từ Hợp đồng
-    const allRows = (saovietManualData['ca-nhan'] || []).length > 0
-      ? (saovietManualData['ca-nhan'] || [])
-          .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
-          .filter(r => r.fyp > 0)
-          .sort((a, b) => b.fyp - a.fyp)
-      : saoVietCaNhanRows;
+    // CHỈ dùng data đã upload/sync (từ DB) — KHÔNG còn fallback về data tính từ Hợp đồng
+    // (theo yêu cầu: user sẽ up/sync qua link; app lưu vào DB chung để dùng kể cả khi mất kết nối Google)
+    const allRows = (saovietManualData['ca-nhan'] || [])
+      .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
+      .filter(r => r.fyp > 0)
+      .sort((a, b) => b.fyp - a.fyp);
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
@@ -8295,13 +8348,13 @@ export default function QuanLyPage() {
 
     const tableJsx = (
       <Table>
-        <TableHeader>
-          <TableRow className="bg-amber-600 hover:bg-amber-600 border-b border-amber-500">
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">MÃ SỐ ĐẠI LÝ</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MÃ SỐ ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
             {SV1_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
@@ -8318,8 +8371,14 @@ export default function QuanLyPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRows.map((r, i) => (
-            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+          {filteredRows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5 + SV1_THRESHOLDS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+                Chưa có dữ liệu. Vui lòng đồng bộ từ link Google Sheets hoặc upload file Excel/CSV trong mục « Cài đặt dữ liệu ».
+              </TableCell>
+            </TableRow>
+          ) : filteredRows.map((r, i) => (
+            <TableRow key={`sv1-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
@@ -8341,12 +8400,11 @@ export default function QuanLyPage() {
 
   // ---------- Sub-page: SAO VIỆT TN KTM (Section 2) ----------
   const renderSaoVietTNKTM = () => {
-    const allRows = (saovietManualData['tn-ktm'] || []).length > 0
-      ? (saovietManualData['tn-ktm'] || [])
-          .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
-          .filter(r => r.fyp > 0)
-          .sort((a, b) => b.fyp - a.fyp)
-      : saoVietTNKTMRows;
+    // CHỈ dùng data đã upload/sync (từ DB) — KHÔNG còn fallback về data tính từ Hợp đồng
+    const allRows = (saovietManualData['tn-ktm'] || [])
+      .map(r => ({ agentCode: r.agentCode || '', agentName: r.agentName || '', nhomKD: r.nhomKD || '', fyp: Number(r.fyp) || 0 }))
+      .filter(r => r.fyp > 0)
+      .sort((a, b) => b.fyp - a.fyp);
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
@@ -8359,13 +8417,13 @@ export default function QuanLyPage() {
 
     const tableJsx = (
       <Table>
-        <TableHeader>
-          <TableRow className="bg-amber-600 hover:bg-amber-600 border-b border-amber-500">
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase text-center w-[40px]">STT</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">NHÓM KD</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">MS ĐẠI LÝ</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap">HỌ TÊN TN</TableHead>
-            <TableHead className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap text-right">TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
+        <TableHeader className="sticky top-0 z-10">
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MS ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TN</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>TỔNG FYP<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span></TableHead>
             {SV2_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
@@ -8382,8 +8440,14 @@ export default function QuanLyPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRows.map((r, i) => (
-            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200">
+          {filteredRows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5 + SV2_THRESHOLDS.length} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+                Chưa có dữ liệu. Vui lòng đồng bộ từ link Google Sheets hoặc upload file Excel/CSV trong mục « Cài đặt dữ liệu ».
+              </TableCell>
+            </TableRow>
+          ) : filteredRows.map((r, i) => (
+            <TableRow key={`sv2-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
               <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
@@ -8405,19 +8469,18 @@ export default function QuanLyPage() {
 
   // ---------- Sub-page: SAO VIỆT TN TD (Section 3) ----------
   const renderSaoVietTNTD = () => {
-    const allRows = (saovietManualData['tn-td'] || []).length > 0
-      ? (saovietManualData['tn-td'] || [])
-          .map(r => ({
-            agentCode: r.agentCode || '',
-            agentName: r.agentName || '',
-            nhomKD: r.nhomKD || '',
-            fypTVVm: Number(r.fypTVVm) || 0,
-            slTvvmHDC: Number(r.slTvvmHDC) || 0,
-            tvvmCount: Number(r.tvvmCount) || 0,
-          }))
-          .filter(r => r.fypTVVm > 0 || r.slTvvmHDC > 0)
-          .sort((a, b) => b.fypTVVm - a.fypTVVm)
-      : saoVietTNTDRows;
+    // CHỈ dùng data đã upload/sync (từ DB) — KHÔNG còn fallback về data tính từ Hợp đồng
+    const allRows = (saovietManualData['tn-td'] || [])
+      .map(r => ({
+        agentCode: r.agentCode || '',
+        agentName: r.agentName || '',
+        nhomKD: r.nhomKD || '',
+        fypTVVm: Number(r.fypTVVm) || 0,
+        slTvvmHDC: Number(r.slTvvmHDC) || 0,
+        tvvmCount: Number(r.tvvmCount) || 0,
+      }))
+      .filter(r => r.fypTVVm > 0 || r.slTvvmHDC > 0)
+      .sort((a, b) => b.fypTVVm - a.fypTVVm);
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
@@ -8427,77 +8490,71 @@ export default function QuanLyPage() {
     });
     const totalFypTVVm = filteredRows.reduce((s, r) => s + r.fypTVVm, 0);
     const uniqueNhomList = Array.from(new Set(allRows.map(r => r.nhomKD).filter(Boolean))).sort();
+    // Tổng số cột = 6 cột chính + (2 cột sub × số rank) — dùng cho empty state colSpan
+    const totalCols = 6 + SV3_RANKS.length * 2;
 
     const tableJsx = (
-      <>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-amber-600 hover:bg-amber-600 border-b border-amber-500">
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase text-center align-middle w-[40px]">STT</TableHead>
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap align-middle">NHÓM KD</TableHead>
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap align-middle">MS ĐẠI LÝ</TableHead>
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap align-middle">HỌ TÊN TN</TableHead>
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap text-right align-middle">
-                TỔNG FYP TVVm<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
-              </TableHead>
-              <TableHead rowSpan={2} className="text-yellow-50 text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle">
-                SL TVVm HĐC<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
-              </TableHead>
-              {SV3_RANKS.map(rk => (
-                <TableHead
-                  key={rk.key}
-                  colSpan={2}
-                  className="text-[10px] font-bold uppercase text-center align-middle p-1"
-                  style={{ backgroundColor: rk.bg, color: rk.fg }}
-                >
-                  {rk.label}
-                </TableHead>
-              ))}
+      <Table>
+        <TableHeader className="sticky top-0 z-10">
+          {/* Single-row header — gọn hơn (trước đây 2 row với rowSpan=2 gây dày) */}
+          <TableRow className="border-b" style={{ backgroundColor: SV_HEADER_BG, borderColor: SV_HEADER_BORDER }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>MS ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>HỌ TÊN TN</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-right align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              TỔNG FYP TVVm<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+            </TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: SV_HEADER_FG, backgroundColor: SV_HEADER_BG }}>
+              SL TVVm HĐC<br /><span className="font-normal text-[9px]">01/12/25 - 30/11/26</span>
+            </TableHead>
+            {SV3_RANKS.flatMap(rk => [
+              <TableHead
+                key={`${rk.key}-fyp`}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="text-[10px] font-bold uppercase">{rk.label}</div>
+                  <div className="font-normal text-[9px]">{rk.subFypLabel}</div>
+                </div>
+              </TableHead>,
+              <TableHead
+                key={`${rk.key}-hdc`}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
+              >
+                <div className="leading-tight">
+                  <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
+                  <div className="font-normal text-[9px]">{rk.subHdcLabel}</div>
+                </div>
+              </TableHead>,
+            ])}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredRows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={totalCols} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+                Chưa có dữ liệu. Vui lòng đồng bộ từ link Google Sheets hoặc upload file Excel/CSV trong mục « Cài đặt dữ liệu ».
+              </TableCell>
             </TableRow>
-            <TableRow className="bg-amber-600 hover:bg-amber-600 border-b border-amber-500">
+          ) : filteredRows.map((r, i) => (
+            <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200 cursor-pointer">
+              <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
+              <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+              <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
               {SV3_RANKS.flatMap(rk => [
-                <TableHead
-                  key={`${rk.key}-fyp`}
-                  className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
-                  style={{ backgroundColor: rk.bg, color: rk.fg }}
-                >
-                  {rk.subFypLabel}
-                </TableHead>,
-                <TableHead
-                  key={`${rk.key}-hdc`}
-                  className="text-[9px] font-semibold text-center p-1 whitespace-nowrap"
-                  style={{ backgroundColor: rk.bg, color: rk.fg }}
-                >
-                  {rk.subHdcLabel}
-                </TableHead>,
+                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
+                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
               ])}
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRows.map((r, i) => (
-              <TableRow key={`sv3-${r.agentCode}-${i}`} className="bg-white hover:bg-amber-50 border-b border-gray-200">
-                <TableCell className="text-xs text-center p-1 text-gray-600">{i + 1}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
-                <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-                <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
-                <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
-                {SV3_RANKS.flatMap(rk => [
-                  renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
-                  renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
-                ])}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {/* Footer legend — amber theme */}
-        <div className="p-3 border border-amber-500/20 rounded-lg bg-amber-500/5">
-          <p className="text-[11px] text-amber-700/80 leading-relaxed">
-            <strong className="text-amber-700">Điều kiện đạt hạng:</strong> Mỗi hạng yêu cầu ĐỒNG THỜI cả 2 điều kiện (FYP TVVm ≥ mốc AND SL TVVm HĐC ≥ mốc).
-            Ô ✓ = đạt điều kiện đó. Ô — = chưa đạt.
-          </p>
-        </div>
-      </>
+          ))}
+        </TableBody>
+      </Table>
     );
 
     return renderSaovietDetailShell('tn-td', uniqueNhomList, filteredRows.length, totalFypTVVm, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
