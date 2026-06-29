@@ -616,3 +616,30 @@ Stage Summary:
 - Card "nổi khối" với shadow-lg mặc định + shadow-2xl khi hover, decorative top glow strip
 - Sao Việt: poster management chuyển vào Settings modal (Cài đặt dữ liệu button)
 - Chính sách: image management đã có sẵn trong Settings dialog (global)
+
+---
+Task ID: saoviet-sync-fix
+Agent: main agent
+Task: Fix HTTP 400 error when syncing 3 Sao Việt programs from 1 shared Google Sheets link
+
+Work Log:
+- Inspected screenshot: "Đồng bộ thất bại — ca-nhan: HTTP 400; tn-ktm: HTTP 400; tn-td: HTTP 400"
+- Discovered remote already had /api/saoviet-data/sync-all endpoint (commit aeb4caf)
+- Found root cause: API used gid=ca-nhan/tn-ktm/tn-td (literal tab names) but user's sheet tabs likely named differently (Vietnamese display names or just numeric)
+- Rewrote /api/saoviet-data/sync-all/route.ts with TAB_NAME_CANDIDATES strategy:
+  * ca-nhan: ['ca-nhan', 'ca nhan', 'Cá Nhân', 'Cá nhân', 'cá nhân', 'canhan', 'CN', 'Cá Nhân TVV', '0']
+  * tn-ktm: ['tn-ktm', 'tn ktm', 'TN KTM', 'TN-KTM', 'tnktm', 'KTM', '1']
+  * tn-td: ['tn-td', 'tn td', 'TN TD', 'TN-TD', 'tntd', 'TD', '2']
+- New fetchCsvWithFallbacks(): tries each gid candidate, skips HTML responses (unshared sheet) and HTTP errors, returns first valid CSV
+- Lenient URL validation: accepts 'docs.google.com' OR 'sheets' OR 'googleusercontent.com'
+- Lenient row filter: accepts rows with NHÓM OR MÃ OR TÊN (previously required MÃ+TÊN)
+- Expanded column aliases: added ms, mã, code, id, họ và tên, ban nhóm, total fyp, fyp team, etc.
+- Better error messages: lists columns found when no valid rows
+- Updated UI help text: explains tab can be named multiple ways (ca-nhan | Cá Nhân | tab 1)
+- Build clean, committed cde6eac, pushed to origin/main
+
+Stage Summary:
+- Artifact: src/app/api/saoviet-data/sync-all/route.ts (rewrote)
+- Artifact: src/app/quan-ly/page.tsx (updated help text only)
+- User can now sync from 1 Google Sheets link with 3 tabs — tab names flexible
+- If sync still fails, error message will show which gid candidates were tried
