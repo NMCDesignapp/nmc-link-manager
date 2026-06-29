@@ -643,3 +643,36 @@ Stage Summary:
 - Artifact: src/app/quan-ly/page.tsx (updated help text only)
 - User can now sync from 1 Google Sheets link with 3 tabs — tab names flexible
 - If sync still fails, error message will show which gid candidates were tried
+
+---
+Task ID: structure-clb-pending-lists
+Agent: main
+Task: Thêm 2 DS mới trong mục Cấu trúc — 01. DS Thành viên CLB & 02. DS Chờ xét gia nhập
+
+Work Log:
+- Đọc code hiện tại: STRUCTURE_SUBS, StructureSubKey, renderSheet() switch, sidebar/mobile nav
+- Thêm type CLBMemberItem { id, ad, nhom, agentCode, agentName, note }
+- Thêm type PendingMemberItem { id, ad, nhom, agentCode, agentName, ipT2, ipT1, ipT0, note }
+- Thêm 'clb-members' | 'pending-members' vào StructureSubKey union
+- Thêm 2 entry vào STRUCTURE_SUBS: DS Thành viên CLB (icon UserCheck) + DS Chờ Gia Nhập (icon UserPlus)
+- Thêm state clbMembers/pendingMembers + localStorage persistence (key nmc-clb-members-v1 / nmc-pending-members-v1)
+- Thêm CRUD: addClbMember, updateClbMember, deleteClbMember + addPendingMember, updatePendingMember, deletePendingMember
+- Thêm autofillFromAgentCode(): lookup tvvStructList → resolve tenAD + tenBanNhom + agentName
+- renderCLBMembers(): bảng 6 cột STT-AD-NHÓM-MÃ TVV-HỌ TÊN TVV-GHI CHÚ, GHI CHÚ editable
+- renderPendingMembers(): bảng 10 cột STT-AD-NHÓM-MÃ TVV-HỌ TÊN TVV-IP(T-2)-IP(T-1)-IP(T)-TỔNG CỘNG-GHI CHÚ
+  + Row total = ipT2 + ipT1 + ipT0
+  + Bottom total row (bg amber) hiển thị tổng cộng các cột IP
+- Title có số 01/02 in đậm màu vàng (text-amber-400 font-black)
+- KPI cards: CLB (Tổng thành viên + Có mã TVV), Pending (Tổng chờ xét + 3 KPI IP)
+- Wire up renderSheet() + sidebar nav + mobile menu popup: khi vào 2 DS mới, fetch tvvStruct/banNhom/ad để autofill
+- Build: success (no new errors)
+- Commit: 2270911
+- Push: success (main → 2270911)
+
+Stage Summary:
+- 2 DS mới đã thêm vào mục Cấu trúc trong sidebar (sau DS TTN Tuyển Ngang)
+- Cả 2 DS dùng localStorage nên không cần backend API — data persist trong trình duyệt
+- Tất cả ô đều editable (nháy đúp); riêng MÃ TVV khi nhập sẽ auto-fill AD/Nhóm/HỌ TÊN TVV từ DS TVV tổng
+- DS Chờ xét gia nhập có dòng TỔNG CỘNG cuối bảng (nền vàng) tính tổng 3 cột IP
+- Số 01/02 trong title in đậm màu vàng theo yêu cầu user
+- Production: https://my-project-nmchau022023-4326s-projects.vercel.app/quan-ly → Cấu trúc → 2 DS mới
