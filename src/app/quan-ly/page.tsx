@@ -19,7 +19,7 @@ import {
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
-  FileDown, Star,
+  FileDown, Star, Image as ImageIcon,
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, type ContractDetailRow } from './policy-excel-export';
 
@@ -6748,27 +6748,39 @@ export default function QuanLyPage() {
 
   const renderPolicy = () => {
     if (!policyOpen) {
-      // Tổng hợp chính sách — grid 2 cột, mỗi ô 1 chương trình (ảnh 16:9 + tên)
+      // Tổng hợp chính sách — grid 2 cột, mỗi ô 1 chương trình (ảnh 16:9 + tên) — SELECTION ONLY
       return (
         <div>
+          {/* Top bar: title */}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm sm:text-base font-extrabold text-emerald-300 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" /> TỔNG QUAN CHÍNH SÁCH
+            </h2>
+            <span className="text-[11px] text-emerald-200/60 italic">{POLICY_ITEMS.length} chính sách</span>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {POLICY_ITEMS.map(item => {
               const currentImage = policyImageLinks[item.key] || '';
+              const IIcon = item.icon;
               return (
-                <div
+                <button
                   key={item.key}
-                  className="rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.01] flex flex-col"
+                  onClick={() => navigateTo({ sheet: 'report', policyOpen: item.key })}
+                  className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
                   style={{
-                    borderColor: `${item.color}66`,
+                    borderColor: `${item.color}AA`,
                     backgroundColor: '#0e1424',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
                   }}
                 >
-                  {/* Top: 16:9 image — bấm vào ảnh cũng mở chi tiết (như bấm tên) */}
+                  {/* Decorative top glow strip for elevated feel */}
+                  <span
+                    className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
+                    style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
+                  />
+                  {/* Top: 16:9 image — click anywhere opens detail */}
                   <div
-                    className={`relative w-full bg-black/40 flex items-center justify-center group ${currentImage ? 'cursor-pointer' : ''}`}
+                    className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
                     style={{ aspectRatio: '16 / 9' }}
-                    onClick={currentImage ? () => navigateTo({ sheet: 'report', policyOpen: item.key }) : undefined}
                   >
                     {currentImage ? (
                       <>
@@ -6776,98 +6788,53 @@ export default function QuanLyPage() {
                         <img
                           src={currentImage}
                           alt={item.label}
-                          className="w-full h-full object-cover pointer-events-none"
+                          className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-105"
                         />
-                        {/* Hover overlay with replace/delete buttons — stopPropagation để không trigger navigate */}
-                        <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <label
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
-                            title="Thay ảnh"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            Đổi ảnh
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={e => {
-                                e.stopPropagation();
-                                const file = e.target.files?.[0];
-                                e.target.value = '';
-                                if (!file) return;
-                                const reader = new FileReader();
-                                reader.onload = (ev) => {
-                                  const dataUrl = ev.target?.result as string;
-                                  savePolicyImage(item.key, dataUrl);
-                                };
-                                reader.readAsDataURL(file);
-                              }}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); savePolicyImage(item.key, ''); }}
-                            className="inline-flex items-center justify-center w-8 h-8 bg-red-500/30 hover:bg-red-500/50 border border-red-400/50 text-red-200 rounded-md cursor-pointer"
-                            title="Xóa ảnh"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        {/* Subtle dark gradient at bottom for text legibility */}
+                        <span className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                       </>
                     ) : (
-                      // Empty — show add-image button (không navigate, chỉ upload)
-                      <label
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
-                        title="Thêm ảnh"
-                      >
+                      // Empty — placeholder icon (no upload button — manage in Settings dialog)
+                      <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
                         <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed"
+                          className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
                           style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
                         >
-                          <Upload className="w-5 h-5" style={{ color: item.color }} />
+                          <IIcon className="w-6 h-6" style={{ color: item.color }} />
                         </div>
                         <span className="text-[11px] font-semibold" style={{ color: item.color }}>
-                          Thêm ảnh 16:9
+                          {item.label}
                         </span>
-                        <span className="text-[10px] text-gray-500">PNG / JPG / WebP</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            e.target.value = '';
-                            if (!file) return;
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const dataUrl = ev.target?.result as string;
-                              savePolicyImage(item.key, dataUrl);
-                            };
-                            reader.readAsDataURL(file);
-                          }}
-                        />
-                      </label>
+                        <span className="text-[9px] text-gray-500 italic">Chưa có ảnh</span>
+                      </div>
                     )}
                   </div>
 
-                  {/* Bottom: program name — clickable to open detail */}
-                  <button
-                    onClick={() => navigateTo({ sheet: 'report', policyOpen: item.key })}
-                    className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 hover:bg-white/5 transition-colors"
+                  {/* Bottom: program name + desc */}
+                  <div
+                    className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
                     style={{ borderColor: `${item.color}33` }}
                   >
-                    <h3 className="text-sm font-extrabold truncate leading-tight" style={{ color: item.color }}>
-                      {item.label}
-                    </h3>
-                    <p className="text-[11px] text-gray-400 leading-tight line-clamp-2">
+                    <div className="flex items-center gap-1.5">
+                      <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
+                      <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
+                        {item.label}
+                      </h3>
+                      <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-tight line-clamp-1">
                       {item.desc}
                     </p>
-                  </button>
-                </div>
+                  </div>
+                </button>
               );
             })}
+          </div>
+          {/* Footer note — image management moved to Settings dialog */}
+          <div className="mt-3 p-2.5 border-2 rounded-xl" style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+            <p className="text-[11px] text-emerald-200/70 leading-relaxed">
+              <strong className="text-emerald-300">Ghi chú:</strong> Bấm vào 1 chính sách để xem chi tiết. Quản lý ảnh chính sách ở mục <strong>Cài đặt</strong> (biểu tượng bánh răng trên header).
+            </p>
           </div>
         </div>
       );
@@ -7998,7 +7965,7 @@ export default function QuanLyPage() {
 
   const renderSaoVietList = () => (
     <div>
-      {/* Top bar: title + Settings button (mở modal chứa all sync/upload panels) */}
+      {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
           <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT
@@ -8013,26 +7980,30 @@ export default function QuanLyPage() {
         </button>
       </div>
 
-      {/* 3 program cards — rectangle layout: poster 16:9 + name + period */}
+      {/* 3 program cards — SELECTION ONLY (poster 16:9 + name + period). Upload/delete moved to settings modal */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {SAOVIET_ITEMS.map(item => {
           const posterUrl = saovietPosters[item.key] || '';
-          const isUploading = !!saovietPosterUploading[item.key];
+          const IIcon = item.icon;
           return (
-            <div
+            <button
               key={item.key}
-              className="rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] flex flex-col"
+              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
+              className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
-                borderColor: `${item.color}66`,
+                borderColor: `${item.color}AA`,
                 backgroundColor: '#0e1424',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
               }}
             >
-              {/* Top: 16:9 poster — bấm vào ảnh cũng mở chi tiết (như bấm tên) */}
+              {/* Decorative top glow strip for elevated feel */}
+              <span
+                className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
+                style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
+              />
+              {/* Top: 16:9 poster — click anywhere opens detail */}
               <div
-                className={`relative w-full bg-black/40 flex items-center justify-center group ${posterUrl ? 'cursor-pointer' : ''}`}
+                className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
                 style={{ aspectRatio: '16 / 9' }}
-                onClick={posterUrl ? () => navigateTo({ sheet: 'saoviet', saovietOpen: item.key }) : undefined}
               >
                 {posterUrl ? (
                   <>
@@ -8040,82 +8011,45 @@ export default function QuanLyPage() {
                     <img
                       src={posterUrl}
                       alt={item.label}
-                      className="w-full h-full object-cover pointer-events-none"
+                      className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-105"
                     />
-                    {/* Hover overlay with replace/delete buttons — stopPropagation để không trigger navigate */}
-                    <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <label
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-md text-xs font-semibold cursor-pointer backdrop-blur-sm"
-                        title="Thay poster khác"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        Đổi ảnh
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => { e.stopPropagation(); handleSaovietPosterUpload(item.key, e); }}
-                          disabled={isUploading}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleSaovietPosterDelete(item.key); }}
-                        className="inline-flex items-center justify-center w-8 h-8 bg-red-500/30 hover:bg-red-500/50 border border-red-400/50 text-red-200 rounded-md cursor-pointer"
-                        title="Xóa poster"
-                        disabled={isUploading}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {/* Subtle dark gradient at bottom for text legibility */}
+                    <span className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                   </>
                 ) : (
-                  // Empty poster — show add-image button (không navigate, chỉ upload)
-                  <label
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center cursor-pointer"
-                    title="Thêm poster"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="w-7 h-7 animate-spin" style={{ color: item.color }} />
-                    ) : (
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed"
-                        style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
-                      >
-                        <Upload className="w-5 h-5" style={{ color: item.color }} />
-                      </div>
-                    )}
+                  // Empty poster — placeholder icon (no upload button — manage in Settings)
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
+                      style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
+                    >
+                      <IIcon className="w-6 h-6" style={{ color: item.color }} />
+                    </div>
                     <span className="text-[11px] font-semibold" style={{ color: item.color }}>
-                      {isUploading ? 'Đang tải lên...' : 'Thêm poster 16:9'}
+                      {item.label}
                     </span>
-                    <span className="text-[10px] text-gray-500">PNG / JPG / WebP — tối đa 8MB</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleSaovietPosterUpload(item.key, e)}
-                      disabled={isUploading}
-                    />
-                  </label>
+                    <span className="text-[9px] text-gray-500 italic">Chưa có poster</span>
+                  </div>
                 )}
               </div>
 
-              {/* Bottom: program name + period — clickable to open detail */}
-              <button
-                onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
-                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 hover:bg-white/5 transition-colors"
+              {/* Bottom: program name + period */}
+              <div
+                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
                 style={{ borderColor: `${item.color}33` }}
               >
-                <h3 className="text-sm font-extrabold truncate leading-tight" style={{ color: item.color }}>
-                  {item.label}
-                </h3>
+                <div className="flex items-center gap-1.5">
+                  <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
+                  <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
+                    {item.label}
+                  </h3>
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                </div>
                 <p className="text-[11px] text-gray-300 font-semibold leading-tight">
                   01/12/2025 — 30/11/2026
                 </p>
-              </button>
-            </div>
+              </div>
+            </button>
           );
         })}
       </div>
@@ -8790,11 +8724,13 @@ export default function QuanLyPage() {
             {/* Body — 3 panels (one per program) */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
               <p className="text-[11px] text-amber-200/70 leading-relaxed">
-                Quản lý nguồn dữ liệu cho từng chương trình: dán link Google Sheets để đồng bộ tự động, hoặc upload file Excel/CSV.
+                Quản lý nguồn dữ liệu và ảnh poster cho từng chương trình: dán link Google Sheets để đồng bộ, upload file Excel/CSV, hoặc tải ảnh poster 16:9.
                 Trong bảng chi tiết chỉ xem được dữ liệu, tất cả cài đặt đều ở đây.
               </p>
               {SAOVIET_ITEMS.map(item => {
                 const IIcon = item.icon;
+                const posterUrl = saovietPosters[item.key] || '';
+                const isUploading = !!saovietPosterUploading[item.key];
                 return (
                   <div key={item.key} className="space-y-2">
                     <div className="flex items-center gap-2 px-2 py-1.5 rounded-md" style={{ backgroundColor: `${item.color}22`, borderLeft: `3px solid ${item.color}` }}>
@@ -8802,6 +8738,59 @@ export default function QuanLyPage() {
                       <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: item.color }}>{item.label}</h4>
                     </div>
                     {renderSaovietPanel(item.key)}
+                    {/* Poster management section */}
+                    <div className="p-2.5 border border-orange-500/20 rounded-md" style={{ backgroundColor: 'rgba(234, 88, 12, 0.04)' }}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ImageIcon className="w-3 h-3 text-orange-400" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-orange-300">Poster 16:9</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        {/* Preview thumbnail */}
+                        <div className="w-24 h-14 rounded overflow-hidden border flex-shrink-0 bg-black/40 flex items-center justify-center" style={{ borderColor: `${item.color}44` }}>
+                          {posterUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-gray-600" />
+                          )}
+                        </div>
+                        {/* Actions */}
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            id={`saoviet-settings-poster-${item.key}`}
+                            onChange={(e) => handleSaovietPosterUpload(item.key, e)}
+                            disabled={isUploading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById(`saoviet-settings-poster-${item.key}`)?.click()}
+                            disabled={isUploading}
+                            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                            style={{ backgroundColor: item.color, border: `1px solid ${item.color}` }}
+                          >
+                            {isUploading ? (
+                              <><Loader2 className="w-3 h-3 animate-spin" /> Đang tải...</>
+                            ) : (
+                              <><Upload className="w-3 h-3" /> {posterUrl ? 'Đổi ảnh' : 'Tải poster lên'}</>
+                            )}
+                          </button>
+                          {posterUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleSaovietPosterDelete(item.key)}
+                              disabled={isUploading}
+                              className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-red-300 transition-all hover:bg-red-500/20 active:scale-95 disabled:opacity-50 border border-red-500/30"
+                            >
+                              <Trash2 className="w-3 h-3" /> Xóa poster
+                            </button>
+                          )}
+                          <p className="text-[9px] text-gray-500 leading-tight">PNG / JPG / WebP — tỷ lệ 16:9, tối đa 8MB</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
