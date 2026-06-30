@@ -905,3 +905,29 @@ Stage Summary:
 - Click → confirm dialog → xóa toàn bộ HĐ của tháng đó (theo Ngày PH, fallback Ngày HL)
 - State sync ngay, không cần reload
 - Endpoint cũ /api/contracts/delete-by-range được tái sử dụng, không cần thêm API
+
+---
+Task ID: sv-clb-rank-deficit-display
+Agent: main
+Task: Hiển thị deficit (số tiền còn thiếu) tại các ô rank chưa đạt — áp dụng cho SV Toàn Chặn + CLB SV
+
+Work Log:
+- Update renderSaoVietRankCell (SV CÁ NHÂN + TN KTM): nếu đạt → ✓ + số vé (xanh), chưa đạt → hiển thị deficit dạng "-30 tr" hoặc "-1.2 tỷ"
+- Update renderSaoVietRankSubCell (SV TN TD): thêm tham số deficitStr, nếu chưa đạt hiển thị "-30 tr" (FYP) hoặc "-3" (HĐC)
+- Update caller SV TN TD: tính fypDeficit + hdcDeficit, truyền vào sub-cell
+- Update CLB SV CÁ NHÂN: rank cell tính thresholdVal = values[clbsvCurrentMonthIdx] * 1M, so sánh với fypLuyKe (hiện =0 chờ data), hiển thị ✓ hoặc deficit
+- Update CLB SV TN TD: 2 sub-cells (FYP + HĐC) cho mỗi rank, hiển thị ✓ hoặc deficit
+- Update CLB SV TN KTM: tương tự CÁ NHÂN
+- Thêm helper formatDeficit(deficit): trieu >= 1000 → "-X.Y tỷ", else "-N tr"
+- Fix màu: CLB SV filter bar đổi từ #DBEAFE (trùng table header) → #BFDBFE (đậm hơn)
+- Fix màu: SV mobile filter bar đổi từ #FEF3C7 (trùng Vàng tier cell) → #FED7AA (orange-200)
+- Build pass
+
+Stage Summary:
+- Tất cả 6 bảng rank (SV CÁ NHÂN, SV TN KTM, SV TN TD, CLB SV CÁ NHÂN, CLB SV TN TD, CLB SV TN KTM) hiển thị tiến độ dạng:
+  * Đạt: ✓ + số vé (xanh #047857, font-black)
+  * Chưa đạt: deficit dạng "-30 tr" / "-1.2 tỷ" (gray #9CA3AF, font-bold)
+- CLB SV: FYP chưa có data → deficit = full threshold (vd hạng Vàng CÁ NHÂN tháng hiện tại "-300 tr")
+- Chính sách: Quý TN + Quý TVV đã có sẵn deficit display từ trước (pattern reference)
+- PTKD-TN, Tuyển Luyện, Đồng Hành: dùng TL đơn (matrix-based), không phải tier columns → không cần deficit
+- Màu filter bar khác rõ table header (không còn tình trạng "tiêu đề và nội dung cùng màu")

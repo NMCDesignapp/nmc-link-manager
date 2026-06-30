@@ -8742,27 +8742,60 @@ export default function QuanLyPage() {
       .sort((a, b) => b.fypTVVm - a.fypTVVm);
 
   // ---------- Render helper: rank cell (sections 1 & 2) ----------
+  // Nếu FYP đạt chỉ tiêu → hiển thị ✓ + số vé (xanh, đậm)
+  // Nếu chưa đạt → hiển thị số tiền CÒN THIẾU để đạt hạng này (ví dụ "-30 tr" hoặc "-1.2 tỷ")
+  // Nguyên tắc giống mốc tỷ lệ thưởng Quý TN: luôn hiển thị tiến độ, không để "—" trống
+  const formatDeficit = (deficit: number): string => {
+    // deficit ở đơn vị VND, trả về chuỗi gọn: "-30 tr" hoặc "-1.2 tỷ"
+    const trieu = deficit / 1_000_000;
+    if (trieu >= 1000) return `-${(trieu / 1000).toFixed(1)} tỷ`;
+    return `-${Math.round(trieu)} tr`;
+  };
   const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string }) => {
     const achieved = fyp >= threshold.min;
+    if (achieved) {
+      return (
+        <TableCell
+          className="text-xs text-center p-1 whitespace-nowrap font-black"
+          style={{ backgroundColor: threshold.bg, color: '#047857' }}
+        >
+          ✓ {threshold.vouchers} vé
+        </TableCell>
+      );
+    }
+    const deficit = Math.max(0, threshold.min - fyp);
     return (
       <TableCell
-        className="text-xs text-center p-1 whitespace-nowrap"
-        style={{ backgroundColor: threshold.bg, color: threshold.fg, fontWeight: achieved ? 800 : 400 }}
+        className="text-xs text-center p-1 whitespace-nowrap font-bold"
+        style={{ backgroundColor: threshold.bg, color: '#9CA3AF' }}
       >
-        {achieved ? `${threshold.vouchers} vé` : <span style={{ color: '#9CA3AF' }}>—</span>}
+        {formatDeficit(deficit)}
       </TableCell>
     );
   };
 
-  // ---------- Render helper: rank sub-cell (section 3 — boolean check) ----------
-  const renderSaoVietRankSubCell = (achieved: boolean, bg: string, fg: string) => (
-    <TableCell
-      className="text-xs text-center p-1"
-      style={{ backgroundColor: bg, color: fg, fontWeight: achieved ? 800 : 400 }}
-    >
-      {achieved ? '✓' : <span style={{ color: '#9CA3AF' }}>—</span>}
-    </TableCell>
-  );
+  // ---------- Render helper: rank sub-cell (section 3 — TN TD: FYP + HĐC) ----------
+  // achieved=true → ✓ (xanh), chưa đạt → hiển thị deficit ("‑30 tr" cho FYP, "‑3" cho HĐC)
+  const renderSaoVietRankSubCell = (achieved: boolean, bg: string, fg: string, deficitStr?: string) => {
+    if (achieved) {
+      return (
+        <TableCell
+          className="text-xs text-center p-1 font-black"
+          style={{ backgroundColor: bg, color: '#047857' }}
+        >
+          ✓
+        </TableCell>
+      );
+    }
+    return (
+      <TableCell
+        className="text-xs text-center p-1 font-bold"
+        style={{ backgroundColor: bg, color: '#9CA3AF' }}
+      >
+        {deficitStr || '—'}
+      </TableCell>
+    );
+  };
 
   const renderSaoVietList = () => (
     <div>
@@ -9073,7 +9106,7 @@ export default function QuanLyPage() {
             </div>
 
             {/* Compact filter row — 2 cols, mỏng, không label */}
-            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#FEF3C7', borderColor: '#D97706' }}>
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#FED7AA', borderColor: '#D97706' }}>
               {filterRowJsx}
             </div>
 
@@ -9377,10 +9410,14 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
               <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
               <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
-              {SV3_RANKS.flatMap(rk => [
-                renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg),
-                renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg),
-              ])}
+              {SV3_RANKS.flatMap(rk => {
+                const fypDeficit = Math.max(0, rk.minFyp - r.fypTVVm);
+                const hdcDeficit = Math.max(0, rk.minHdc - r.slTvvmHDC);
+                return [
+                  renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg, formatDeficit(fypDeficit)),
+                  renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg, `-${hdcDeficit}`),
+                ];
+              })}
             </TableRow>
           ))}
         </TableBody>
@@ -9618,7 +9655,7 @@ export default function QuanLyPage() {
             </div>
 
             {/* Compact filter row — 2 cols, mỏng, không label */}
-            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#BFDBFE', borderColor: '#1E40AF' }}>
               {filterRowJsx}
             </div>
 
@@ -9643,7 +9680,7 @@ export default function QuanLyPage() {
             </div>
 
             {/* Filter bar: nhóm + tên (BLUE theme) */}
-            <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
+            <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#BFDBFE', borderColor: '#1E40AF' }}>
               {filterRowJsx}
             </div>
 
@@ -9659,7 +9696,8 @@ export default function QuanLyPage() {
 
   // ---------- Sub-page: CLB SAO VIỆT CÁ NHÂN ----------
   // Đối tượng: TẤT CẢ thành viên trong DS Thành viên CLB (clbMembers)
-  // FYP lũy kế + rank cells: để trống (—) — user sẽ hướng dẫn tính sau
+  // FYP tháng + FYP lũy kế + rank cells: để trống (—) — user sẽ hướng dẫn tính sau
+  // Rank cells hiển thị DEFICIT so với threshold tháng hiện tại (giống SV Toàn Chặng)
   const renderCLBSVCaNhan = () => {
     const ranks = [
       CLBSV_CA_NHAN_THRESHOLDS.vang,
@@ -9679,7 +9717,10 @@ export default function QuanLyPage() {
       }
       return true;
     });
-    const totalCols = 5 + ranks.length; // STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP lũy kế + 3 rank cols
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP THÁNG + FYP LŨY KẾ + 3 rank = 7 + 3 = 10
+    const totalCols = 7 + ranks.length;
+    // Note: FYP THÁNG và FYP LŨY KẾ chưa có data → hiển thị "—"
+    // Rank cells: hiển thị deficit so với threshold tháng hiện tại (FYP=0 → deficit = full threshold)
 
     const tableJsx = (
       <Table>
@@ -9690,7 +9731,10 @@ export default function QuanLyPage() {
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+              TỔNG FYP THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
+            </TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              TỔNG FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
             {ranks.map(rk => (
               <TableHead
@@ -9715,18 +9759,34 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Vui lòng thêm thành viên vào DS Thành viên CLB (Cấu trúc → DS Thành viên CLB).
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => (
-            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
-              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">{m.agentName || '—'}</TableCell>
-              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-              {ranks.map(rk => (
-                <TableCell key={rk.label} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>
-              ))}
-            </TableRow>
-          ))}
+          ) : filteredMembers.map((m, idx) => {
+            // FYP tháng + lũy kế chưa có data → 0
+            const fypThang = 0;
+            const fypLuyKe = 0;
+            return (
+              <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+                <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">{m.agentName || '—'}</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                {ranks.map(rk => {
+                  const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000; // trđ → VND
+                  const achieved = fypLuyKe >= thresholdVal;
+                  if (achieved) {
+                    return (
+                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: '#047857' }}>✓</TableCell>
+                    );
+                  }
+                  const deficit = Math.max(0, thresholdVal - fypLuyKe);
+                  return (
+                    <TableCell key={rk.label} className="text-[10px] text-center font-bold align-middle" style={{ backgroundColor: rk.bg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );
@@ -9739,6 +9799,7 @@ export default function QuanLyPage() {
   // Header 2 tầng: tầng trên gộp ô 2 cột "HẠNG VÀNG" / "HẠNG BẠCH KIM"
   //                tầng dưới là 2 cột con: FYP TVVm + TVVm HĐC
   // Below each tier label: hiển thị chỉ tiêu tháng hiện tại ("FYP TVVm >= X trđ" / "TVVm HĐC >= Y")
+  // Rank cells hiển thị DEFICIT khi chưa đạt, ✓ khi đạt
   const renderCLBSVTNTuyenDung = () => {
     const ranks = [CLBSV_TN_TD_THRESHOLDS.vang, CLBSV_TN_TD_THRESHOLDS.bachkim];
     // Source: chỉ TB / TN
@@ -9754,23 +9815,29 @@ export default function QuanLyPage() {
       }
       return true;
     });
-    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm lũy kế + SL TVVm HĐC + (2 sub × 2 ranks) = 6 + 4 = 10
-    const totalCols = 6 + ranks.length * 2;
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm THÁNG + FYP TVVm LŨY KẾ + SL TVVm HĐC THÁNG + SL TVVm HĐC LŨY KẾ + (2 sub × 2 ranks) = 8 + 4 = 12
+    const totalCols = 8 + ranks.length * 2;
 
     const tableJsx = (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          {/* Row 1: STT (rowSpan=2) | NHÓM (rowSpan=2) | MÃ SỐ (rowSpan=2) | HỌ TÊN TVV (rowSpan=2) | FYP TVVm lũy kế (rowSpan=2) | SL TVVm HĐC (rowSpan=2) | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2) */}
+          {/* Row 1: STT (rowSpan=2) | NHÓM (rowSpan=2) | MÃ SỐ (rowSpan=2) | HỌ TÊN TVV (rowSpan=2) | FYP TVVm THÁNG (rowSpan=2) | FYP TVVm LŨY KẾ (rowSpan=2) | SL TVVm HĐC THÁNG (rowSpan=2) | SL TVVm HĐC LŨY KẾ (rowSpan=2) | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2) */}
           <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              FYP TVVm<br />lũy kế<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+              FYP TVVm<br />THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
             </TableHead>
             <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              SL TVVm<br />HĐC<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+              FYP TVVm<br />LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            </TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              SL TVVm<br />HĐC THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
+            </TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              SL TVVm<br />HĐC LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
             {ranks.map(rk => (
               <TableHead
@@ -9818,23 +9885,42 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => (
-            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
-              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
-                {m.agentName || '—'}
-                {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
-              </TableCell>
-              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-              {ranks.flatMap(rk => [
-                <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>,
-                <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>,
-              ])}
-            </TableRow>
-          ))}
+          ) : filteredMembers.map((m, idx) => {
+            // FYP TVVm + HĐC chưa có data → 0
+            const fypTvvmLuyKe = 0;
+            const slHdcLuyKe = 0;
+            return (
+              <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+                <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
+                  {m.agentName || '—'}
+                  {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
+                </TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                {ranks.flatMap(rk => {
+                  const fypThreshold = rk.fypValues[clbsvCurrentMonthIdx] * 1_000_000;
+                  const hdcThreshold = rk.hdcValues[clbsvCurrentMonthIdx];
+                  const fypAchieved = fypTvvmLuyKe >= fypThreshold;
+                  const hdcAchieved = slHdcLuyKe >= hdcThreshold;
+                  const fypDeficit = Math.max(0, fypThreshold - fypTvvmLuyKe);
+                  const hdcDeficit = Math.max(0, hdcThreshold - slHdcLuyKe);
+                  return [
+                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: fypAchieved ? '#047857' : '#9CA3AF' }}>
+                      {fypAchieved ? '✓' : formatDeficit(fypDeficit)}
+                    </TableCell>,
+                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
+                      {hdcAchieved ? '✓' : `-${hdcDeficit}`}
+                    </TableCell>,
+                  ];
+                })}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );
@@ -9845,6 +9931,7 @@ export default function QuanLyPage() {
   // ---------- Sub-page: CLB SAO VIỆT TN KTM ----------
   // Đối tượng: thành viên CLB có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm)
   // Tương tự CÁ NHÂN — 3 hạng: Vàng / Bạch Kim / Kim Cương
+  // Rank cells hiển thị DEFICIT khi chưa đạt, ✓ khi đạt
   const renderCLBSVTNKTM = () => {
     const ranks = [
       CLBSV_TN_KTM_THRESHOLDS.vang,
@@ -9864,7 +9951,8 @@ export default function QuanLyPage() {
       }
       return true;
     });
-    const totalCols = 5 + ranks.length;
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TN + FYP THÁNG + FYP LŨY KẾ + 3 rank = 7 + 3 = 10
+    const totalCols = 7 + ranks.length;
 
     const tableJsx = (
       <Table>
@@ -9875,7 +9963,10 @@ export default function QuanLyPage() {
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TN</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+              TỔNG FYP THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
+            </TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              TỔNG FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
             {ranks.map(rk => (
               <TableHead
@@ -9900,21 +9991,35 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => (
-            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
-              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
-              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
-                {m.agentName || '—'}
-                {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
-              </TableCell>
-              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-              {ranks.map(rk => (
-                <TableCell key={rk.label} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>
-              ))}
-            </TableRow>
-          ))}
+          ) : filteredMembers.map((m, idx) => {
+            const fypLuyKe = 0;
+            return (
+              <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+                <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+                <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
+                  {m.agentName || '—'}
+                  {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
+                </TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                {ranks.map(rk => {
+                  const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000;
+                  const achieved = fypLuyKe >= thresholdVal;
+                  if (achieved) {
+                    return (
+                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: '#047857' }}>✓</TableCell>
+                    );
+                  }
+                  const deficit = Math.max(0, thresholdVal - fypLuyKe);
+                  return (
+                    <TableCell key={rk.label} className="text-[10px] text-center font-bold align-middle" style={{ backgroundColor: rk.bg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );
