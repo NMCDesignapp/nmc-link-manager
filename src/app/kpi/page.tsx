@@ -22,8 +22,8 @@ const CSS = `
 }
 *, *::before, *::after { box-sizing: border-box; }
 button { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
-.kpi-app { background: var(--bg); font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0c2850 0%, var(--bg) 70%); }
+.kpi-app { background: transparent; font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; position: relative; z-index: 1; }
+.kpi-app .bg-scene { display: none; }
 .kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .22; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
 .kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #0a3060; top: -15%; left: -10%; }
 .kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0c2050; bottom: -10%; right: -10%; animation-delay: -6s; }
@@ -2306,11 +2306,7 @@ export default function KPIDashboard() {
   return (
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="bg-scene" aria-hidden="true">
-        <div className="bg-orb bg-orb-1" />
-        <div className="bg-orb bg-orb-2" />
-        <div className="bg-orb bg-orb-3" />
-      </div>
+      {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + pattern Phật) từ layout.tsx */}
 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}

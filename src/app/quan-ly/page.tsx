@@ -1604,7 +1604,23 @@ function VinhDanhTable({
 // ==================== MAIN PAGE ====================
 export default function QuanLyPage() {
   const router = useRouter();
-  const [activeSheet, setActiveSheet] = useState<SheetKey>('overview');
+  // Lazy init from URL ?sheet=xxx — tránh render 'overview' trước rồi mới switch (causing flash)
+  const [activeSheet, setActiveSheet] = useState<SheetKey>(() => {
+    if (typeof window === 'undefined') return 'overview';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sheetParam = params.get('sheet');
+      const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
+      if (sheetParam && validSheets.includes(sheetParam as SheetKey)) {
+        // Clear ?sheet= from URL so internal nav doesn't keep re-applying it
+        const url = new URL(window.location.href);
+        url.searchParams.delete('sheet');
+        window.history.replaceState({}, '', url.toString());
+        return sheetParam as SheetKey;
+      }
+    } catch {}
+    return 'overview';
+  });
   const [revenueSub, setRevenueSub] = useState<RevenueSubKey>('all');
   const [revenueNhomFilter, setRevenueNhomFilter] = useState<string>('');
   const [revenueExpanded, setRevenueExpanded] = useState(false);
@@ -1643,22 +1659,8 @@ export default function QuanLyPage() {
         setIsAdmin(true);
       }
     } catch {}
-    // ===== Read ?sheet=xxx URL param to open the right tab =====
-    // Supported: report (Chính sách), saoviet (Sao Việt Toàn Chặng), clb-saoviet (CLB Sao Việt), vinh-danh (Tôn vinh)
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const sheetParam = params.get('sheet');
-      if (sheetParam) {
-        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
-        if (validSheets.includes(sheetParam as SheetKey)) {
-          setActiveSheet(sheetParam as SheetKey);
-          // Clear the ?sheet= from URL so internal nav doesn't keep re-applying it
-          const url = new URL(window.location.href);
-          url.searchParams.delete('sheet');
-          window.history.replaceState({}, '', url.toString());
-        }
-      }
-    }
+    // ===== ?sheet=xxx URL param đã được xử lý qua lazy init useState ở trên =====
+    // (tránh render 'overview' trước rồi mới switch gây flash)
   }, []);
 
   // ===== Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /) =====
@@ -5095,61 +5097,46 @@ export default function QuanLyPage() {
     contracts, tvvStructList, leaders, recruiters, banNhomList, adList,
   ]);
 
-  // Load policy image links from Settings API on mount
+  // Load policy image links from onlineSettings (đã preload qua AppDataContext — tránh fetch lại /api/settings nhiều lần)
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : {})
-      .then(data => {
-        const links: Record<string, string> = {};
-        for (const [key, value] of Object.entries(data)) {
-          if (key.startsWith('policy-image-') && value) {
-            links[key.replace('policy-image-', '')] = String(value);
-          }
-        }
-        setPolicyImageLinks(links);
-      })
-      .catch(() => {});
-  }, []);
+    if (!onlineSettings) return;
+    const links: Record<string, string> = {};
+    for (const [key, value] of Object.entries(onlineSettings)) {
+      if (key.startsWith('policy-image-') && value) {
+        links[key.replace('policy-image-', '')] = String(value);
+      }
+    }
+    setPolicyImageLinks(links);
+  }, [onlineSettings]);
 
-  // ---------- SAO VIỆT: load links + manual data on mount ----------
+  // ---------- SAO VIỆT + CLB SAO VIỆT: derive links/posters from onlineSettings (no extra fetch) ----------
   useEffect(() => {
-    // 1) Load sync links from Settings API
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : {})
-      .then(data => {
-        const links: Record<string, string> = {};
-        const posters: Record<string, string> = {};
-        let sharedLink = '';
-        for (const [key, value] of Object.entries(data)) {
-          if (key === 'saoviet-link-shared' && value) {
-            sharedLink = String(value);
-          } else if (key.startsWith('saoviet-link-') && value) {
-            links[key.replace('saoviet-link-', '')] = String(value);
-          }
-          if (key.startsWith('saoviet-poster-') && value) {
-            posters[key.replace('saoviet-poster-', '')] = String(value);
-          }
-        }
-        setSaovietLinks(links);
-        setSaovietSharedLink(sharedLink);
-        setSaovietPosters(posters);
-      })
-      .catch(() => {});
+    if (!onlineSettings) return;
+    const links: Record<string, string> = {};
+    const posters: Record<string, string> = {};
+    const clbsvPostersMap: Record<string, string> = {};
+    let sharedLink = '';
+    for (const [key, value] of Object.entries(onlineSettings)) {
+      if (key === 'saoviet-link-shared' && value) {
+        sharedLink = String(value);
+      } else if (key.startsWith('saoviet-link-') && value) {
+        links[key.replace('saoviet-link-', '')] = String(value);
+      }
+      if (key.startsWith('saoviet-poster-') && value) {
+        posters[key.replace('saoviet-poster-', '')] = String(value);
+      }
+      if (key.startsWith('clbsv-poster-') && value) {
+        clbsvPostersMap[key.replace('clbsv-poster-', '')] = String(value);
+      }
+    }
+    setSaovietLinks(links);
+    setSaovietSharedLink(sharedLink);
+    setSaovietPosters(posters);
+    setClbsvPosters(clbsvPostersMap);
+  }, [onlineSettings]);
 
-    // ---------- CLB SAO VIỆT: load posters from Settings API ----------
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : {})
-      .then(data => {
-        const posters: Record<string, string> = {};
-        for (const [key, value] of Object.entries(data)) {
-          if (key.startsWith('clbsv-poster-') && value) {
-            posters[key.replace('clbsv-poster-', '')] = String(value);
-          }
-        }
-        setClbsvPosters(posters);
-      })
-      .catch(() => {});
-    // 2) Load manual data per program
+  // ---------- SAO VIỆT: load manual data per program (DB-backed, không nằm trong settings) ----------
+  useEffect(() => {
     Promise.all(SAOVIET_PROGRAMS.map(p =>
       fetch(`/api/saoviet-data?program=${p}`).then(r => r.ok ? r.json() : []).then(rows => [p, rows] as const)
     ))
@@ -9454,12 +9441,15 @@ export default function QuanLyPage() {
   //   Vàng      header=gold (255,215,0)  body=light yellow (255,255,224)
   //   Bạch Kim  header=dark gray (169,169,169)  body=gainsboro (220,220,220)
   //   Kim Cương header=deep sky blue (0,191,255)  body=light cyan (224,255,255)
+  // fg: màu chữ header —统一 đổi thành xanh dương đậm (navy-900) cho 3 hạng (Vàng/Bạch Kim/Kim Cương)
+  // theo yêu cầu user: trắng trên xám khó nhìn → đổi hết thành xanh dương cho đồng bộ
+  const SV_RANK_FG = '#1E3A8A'; // navy-900 — đọc tốt trên nền vàng/xám/sky blue
   const SV1_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
-    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FFD700', fg: SV_RANK_FG, bodyBg: '#FFFFE0' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#A9A9A9', fg: SV_RANK_FG, bodyBg: '#DCDCDC' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#A9A9A9', fg: SV_RANK_FG, bodyBg: '#DCDCDC' },
+    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#00BFFF', fg: SV_RANK_FG, bodyBg: '#E0FFFF' },
+    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#00BFFF', fg: SV_RANK_FG, bodyBg: '#E0FFFF' },
   ];
   const saoVietCaNhanRows = tvvStructList.map(tvv => {
     const fyp = saoVietContracts
@@ -9485,11 +9475,11 @@ export default function QuanLyPage() {
   //   Kim cương 1:  FYP ≥ 7,0 tỷ  → 01 vé
   //   Kim cương 2:  FYP ≥ 13 tỷ   → 02 vé
   const SV2_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
-    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FFD700', fg: SV_RANK_FG, bodyBg: '#FFFFE0' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#A9A9A9', fg: SV_RANK_FG, bodyBg: '#DCDCDC' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#A9A9A9', fg: SV_RANK_FG, bodyBg: '#DCDCDC' },
+    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#00BFFF', fg: SV_RANK_FG, bodyBg: '#E0FFFF' },
+    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#00BFFF', fg: SV_RANK_FG, bodyBg: '#E0FFFF' },
   ];
   const saoVietTNKTMRows = leaders
     .filter(l => isTBorTNPosition(l.position))
@@ -9517,14 +9507,14 @@ export default function QuanLyPage() {
   //   Hạng bạch kim: FYP TVVm ≥ 1200 Trđ AND  TVVm HĐC ≥ 12 TVV
   const SV3_RANKS = [
     {
-      key: 'vang', label: 'HẠNG VÀNG', bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0',
+      key: 'vang', label: 'HẠNG VÀNG', bg: '#FFD700', fg: SV_RANK_FG, bodyBg: '#FFFFE0',
       subFypLabel: 'FYP TVVm ≥ 500 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 08 TVV',
       minFyp: 500_000_000,
       minHdc: 8,
     },
     {
-      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC',
+      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#A9A9A9', fg: SV_RANK_FG, bodyBg: '#DCDCDC',
       subFypLabel: 'FYP TVVm ≥ 1200 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 12 TVV',
       minFyp: 1_200_000_000,
@@ -10050,8 +10040,8 @@ export default function QuanLyPage() {
             {SV1_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.bg, color: t.fg }}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 sv-rank-col"
+                style={{ backgroundColor: t.bg, color: t.fg, width: '110px', minWidth: '110px' }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -10119,8 +10109,8 @@ export default function QuanLyPage() {
             {SV2_THRESHOLDS.map(t => (
               <TableHead
                 key={t.key}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: t.bg, color: t.fg }}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 sv-rank-col"
+                style={{ backgroundColor: t.bg, color: t.fg, width: '110px', minWidth: '110px' }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -10203,8 +10193,8 @@ export default function QuanLyPage() {
             {SV3_RANKS.flatMap(rk => [
               <TableHead
                 key={`${rk.key}-fyp`}
-                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap sv-rank-subcol"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase">{rk.label}</div>
@@ -10213,8 +10203,8 @@ export default function QuanLyPage() {
               </TableHead>,
               <TableHead
                 key={`${rk.key}-hdc`}
-                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap sv-rank-subcol"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
@@ -10290,10 +10280,12 @@ export default function QuanLyPage() {
   //   Vàng      header=gold (255,215,0)  body=light yellow (255,255,224)
   //   Bạch Kim  header=dark gray (169,169,169)  body=gainsboro (220,220,220)
   //   Kim Cương header=deep sky blue (0,191,255)  body=light cyan (224,255,255)
+  // CLBSV: cùng màu chữ xanh dương navy-900 cho 3 hạng (đồng bộ với SV Toàn Chặng)
+  const CLBSV_RANK_FG = '#1E3A8A';
   const CLBSV_CA_NHAN_THRESHOLDS = {
-    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [300, 350, 400, 450, 500, 550, 600],    bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
-    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [500, 580, 660, 740, 820, 900, 980],    bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [825, 970, 1115, 1260, 1405, 1550, 1695], bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [300, 350, 400, 450, 500, 550, 600],    bg: '#FFD700', fg: CLBSV_RANK_FG, bodyBg: '#FFFFE0' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [500, 580, 660, 740, 820, 900, 980],    bg: '#A9A9A9', fg: CLBSV_RANK_FG, bodyBg: '#DCDCDC' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [825, 970, 1115, 1260, 1405, 1550, 1695], bg: '#00BFFF', fg: CLBSV_RANK_FG, bodyBg: '#E0FFFF' },
   };
   // TN TUYỂN DỤNG — FYP TVVm (triệu VND) + SL TVVm HĐC (số lượng) — slide 2
   // Mỗi hạng có 2 sub-cols: FYP TVVm + TVVm HĐC
@@ -10304,7 +10296,7 @@ export default function QuanLyPage() {
       hdcLabel: 'TVVm HĐC >=',
       fypValues:  [250, 300, 350, 400, 450, 500, 550],
       hdcValues:  [5, 6, 7, 7, 8, 8, 9],
-      bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0',
+      bg: '#FFD700', fg: CLBSV_RANK_FG, bodyBg: '#FFFFE0',
     },
     bachkim: {
       label: 'HẠNG BẠCH KIM',
@@ -10312,14 +10304,14 @@ export default function QuanLyPage() {
       hdcLabel: 'TVVm HĐC >=',
       fypValues:  [600, 700, 800, 900, 1000, 1100, 1200],
       hdcValues:  [7, 8, 9, 10, 11, 12, 13],
-      bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC',
+      bg: '#A9A9A9', fg: CLBSV_RANK_FG, bodyBg: '#DCDCDC',
     },
   };
   // TN KTM — FYP lũy kế (triệu VND) — slide 3
   const CLBSV_TN_KTM_THRESHOLDS = {
-    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [875, 1020, 1165, 1310, 1455, 1600, 1745],   bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
-    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [1900, 2220, 2540, 2860, 3180, 3500, 3820],   bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
-    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [875, 1020, 1165, 1310, 1455, 1600, 1745],   bg: '#FFD700', fg: CLBSV_RANK_FG, bodyBg: '#FFFFE0' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [1900, 2220, 2540, 2860, 3180, 3500, 3820],   bg: '#A9A9A9', fg: CLBSV_RANK_FG, bodyBg: '#DCDCDC' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#00BFFF', fg: CLBSV_RANK_FG, bodyBg: '#E0FFFF' },
   };
 
   // Lấy index tháng hiện tại (0=June ... 6=Dec). Nếu ngoài khoảng → clamping.
@@ -10565,8 +10557,8 @@ export default function QuanLyPage() {
             {ranks.map(rk => (
               <TableHead
                 key={rk.label}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 clbsv-rank-col"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '130px', minWidth: '130px' }}
               >
                 <div className="leading-tight">
                   <div className="font-black">{rk.label}</div>
@@ -10668,7 +10660,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={rk.label}
                 colSpan={2}
-                className="text-[9px] font-black uppercase text-center align-middle whitespace-nowrap py-0.5 px-1 border-l-2 border-white"
+                className="text-[9px] font-black uppercase text-center align-middle whitespace-nowrap py-0.5 px-1 border-l-2 border-white clbsv-rank-colspan"
                 style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
                 <div className="leading-none">
@@ -10683,8 +10675,8 @@ export default function QuanLyPage() {
             {ranks.flatMap(rk => [
               <TableHead
                 key={`${rk.label}-fyp`}
-                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.fypLabel}</div>
@@ -10693,8 +10685,8 @@ export default function QuanLyPage() {
               </TableHead>,
               <TableHead
                 key={`${rk.label}-hdc`}
-                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.hdcLabel}</div>
@@ -10792,8 +10784,8 @@ export default function QuanLyPage() {
             {ranks.map(rk => (
               <TableHead
                 key={rk.label}
-                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 clbsv-rank-col"
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '130px', minWidth: '130px' }}
               >
                 <div className="leading-tight">
                   <div className="font-black">{rk.label}</div>

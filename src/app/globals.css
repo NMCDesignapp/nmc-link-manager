@@ -32,24 +32,24 @@
 }
 
 .dark {
-  --background: #1a2332;
+  --background: #2a2e36;
   --foreground: #ffffff;
-  --card: #141420;
+  --card: #1f2329;
   --card-foreground: #ffffff;
-  --popover: #141420;
+  --popover: #1f2329;
   --popover-foreground: #ffffff;
   --primary: #00ff88;
   --primary-foreground: #0a0a0f;
-  --secondary: #1a1a2e;
+  --secondary: #2a2e36;
   --secondary-foreground: #ffffff;
-  --muted: #1a1a2e;
+  --muted: #2a2e36;
   --muted-foreground: rgba(255, 255, 255, 0.5);
   --accent: #00cc6a;
   --accent-foreground: #0a0a0f;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
   --border: rgba(0, 255, 136, 0.15);
-  --input: #1a1a2e;
+  --input: #2a2e36;
   --ring: #00ff88;
 }
 
@@ -129,7 +129,7 @@
 
 /* Honeycomb background - subtle space-like effect */
 .honeycomb-bg {
-  background-color: #1a2332;
+  background-color: #2a2e36;
 }
 
 /* Honeycomb flowing line animations */

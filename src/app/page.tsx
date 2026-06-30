@@ -393,7 +393,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden relative z-[1]">
       {/* Branded loading screen — shows on initial app load until first data arrives */}
       <AppLoader show={linksLoading && links.length === 0} />
       {/* Save Status Toast */}
@@ -594,7 +594,7 @@ export default function Home() {
         <div className="flex-shrink-0 h-[50vh] overflow-hidden flex flex-col">
           <div className="max-w-lg mx-auto w-full px-6 pt-1 flex-shrink-0"><NeonDivider color={neonColor} /></div>
           <motion.div className="max-w-lg mx-auto w-full px-4 pt-2 pb-4 flex-1 min-h-0 flex flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
-            <div className="rounded-xl p-3 flex-1 min-h-0 flex flex-col" style={{ background: 'rgba(14, 14, 30, 0.85)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
+            <div className="rounded-xl p-3 flex-1 min-h-0 flex flex-col" style={{ background: 'rgba(42, 46, 54, 0.65)', border: `1px solid ${neonColor}18`, backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 15px ${neonColor}08` }}>
               <MonthlyCalendar neonColor={neonColor} compact />
             </div>
           </motion.div>
@@ -780,7 +780,7 @@ export default function Home() {
           <div
             className="rounded-none p-3 lg:p-4 w-full max-w-[900px] flex-shrink-0"
             style={{
-              background: 'rgba(16, 16, 42, 0.95)',
+              background: 'rgba(42, 46, 54, 0.7)',
               border: `1.5px solid ${neonColor}30`,
               backdropFilter: 'blur(20px)',
               boxShadow: `0 12px 48px rgba(0,0,0,0.5), 0 0 50px ${neonColor}12, inset 0 0 30px ${neonColor}05`,
@@ -840,7 +840,7 @@ export default function Home() {
             <motion.div
               className="w-full max-w-sm rounded-2xl p-5 relative"
               style={{
-                background: 'rgba(16,16,42,0.95)',
+                background: 'rgba(42, 46, 54, 0.95)',
                 border: `1.5px solid ${neonColor}40`,
                 boxShadow: `0 20px 60px rgba(0,0,0,.6), 0 0 50px ${neonColor}20`,
               }}
