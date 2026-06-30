@@ -9396,12 +9396,16 @@ export default function QuanLyPage() {
   //   Bạch kim 2: FYP ≥ 1400tr → 02 vé
   //   Kim cương 1: FYP ≥ 1600tr → 01 vé
   //   Kim cương 2: FYP ≥ 3000tr → 02 vé
+  // Color spec (user 2026-06-30):
+  //   Vàng      header=gold (255,215,0)  body=light yellow (255,255,224)
+  //   Bạch Kim  header=dark gray (169,169,169)  body=gainsboro (220,220,220)
+  //   Kim Cương header=deep sky blue (0,191,255)  body=light cyan (224,255,255)
   const SV1_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',       sub: 'FYP ≥ 550tr\n01 vé',      min: 550_000_000,    vouchers: 1, bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 900tr\n01 vé',      min: 900_000_000,    vouchers: 1, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',   sub: 'FYP ≥ 1400tr\n02 vé',     min: 1_400_000_000,  vouchers: 2, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    { key: 'kimcuong1', label: 'Hạng kim cương',  sub: 'FYP ≥ 1600tr\n01 vé',     min: 1_600_000_000,  vouchers: 1, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    { key: 'kimcuong2', label: 'Hạng kim cương',  sub: 'FYP ≥ 3000tr\n02 vé',     min: 3_000_000_000,  vouchers: 2, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
   ];
   const saoVietCaNhanRows = tvvStructList.map(tvv => {
     const fyp = saoVietContracts
@@ -9427,11 +9431,11 @@ export default function QuanLyPage() {
   //   Kim cương 1:  FYP ≥ 7,0 tỷ  → 01 vé
   //   Kim cương 2:  FYP ≥ 13 tỷ   → 02 vé
   const SV2_THRESHOLDS = [
-    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FEF3C7', fg: '#92400E' },
-    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#E5E7EB', fg: '#374151' },
-    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#CFFAFE', fg: '#155E75' },
-    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#CFFAFE', fg: '#155E75' },
+    { key: 'vang',      label: 'Hạng vàng',      sub: 'FYP ≥ 1,6 tỷ\n01 vé',  min: 1_600_000_000,  vouchers: 1, bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
+    { key: 'bachkim1',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 3,5 tỷ\n01 vé',  min: 3_500_000_000,  vouchers: 1, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    { key: 'bachkim2',  label: 'Hạng bạch kim',  sub: 'FYP ≥ 5,5 tỷ\n02 vé',  min: 5_500_000_000,  vouchers: 2, bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    { key: 'kimcuong1', label: 'Hạng kim cương', sub: 'FYP ≥ 7,0 tỷ\n01 vé',  min: 7_000_000_000,  vouchers: 1, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
+    { key: 'kimcuong2', label: 'Hạng kim cương', sub: 'FYP ≥ 13 tỷ\n02 vé',   min: 13_000_000_000, vouchers: 2, bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
   ];
   const saoVietTNKTMRows = leaders
     .filter(l => isTBorTNPosition(l.position))
@@ -9459,14 +9463,14 @@ export default function QuanLyPage() {
   //   Hạng bạch kim: FYP TVVm ≥ 1200 Trđ AND  TVVm HĐC ≥ 12 TVV
   const SV3_RANKS = [
     {
-      key: 'vang', label: 'HẠNG VÀNG', bg: '#FEF3C7', fg: '#92400E',
+      key: 'vang', label: 'HẠNG VÀNG', bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0',
       subFypLabel: 'FYP TVVm ≥ 500 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 08 TVV',
       minFyp: 500_000_000,
       minHdc: 8,
     },
     {
-      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#E5E7EB', fg: '#374151',
+      key: 'bachkim', label: 'HẠNG BẠCH KIM', bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC',
       subFypLabel: 'FYP TVVm ≥ 1200 Trđ',
       subHdcLabel: 'TVVm HĐC ≥ 12 TVV',
       minFyp: 1_200_000_000,
@@ -9514,13 +9518,13 @@ export default function QuanLyPage() {
     if (trieu >= 1000) return `-${(trieu / 1000).toFixed(1)} tỷ`;
     return `-${Math.round(trieu)} tr`;
   };
-  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string }) => {
+  const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string; bodyBg: string }) => {
     const achieved = fyp >= threshold.min;
     if (achieved) {
       return (
         <TableCell
           className="text-xs text-center p-1 whitespace-nowrap font-bold"
-          style={{ backgroundColor: svRankBodyBg(threshold.bg), color: '#047857' }}
+          style={{ backgroundColor: threshold.bodyBg, color: '#047857' }}
         >
           <span className="inline-flex items-center gap-1 justify-center">
             <CheckBadge size={14} />
@@ -9530,11 +9534,11 @@ export default function QuanLyPage() {
       );
     }
     const deficit = Math.max(0, threshold.min - fyp);
-    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
+    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
     return (
       <TableCell
         className="text-xs text-center p-1 whitespace-nowrap italic font-normal"
-        style={{ backgroundColor: svRankBodyBg(threshold.bg), color: '#9CA3AF' }}
+        style={{ backgroundColor: threshold.bodyBg, color: '#9CA3AF' }}
       >
         {formatDeficit(deficit)}
       </TableCell>
@@ -9543,22 +9547,23 @@ export default function QuanLyPage() {
 
   // ---------- Render helper: rank sub-cell (section 3 — TN TD: FYP + HĐC) ----------
   // achieved=true → ✓ (xanh), chưa đạt → hiển thị deficit ("‑30 tr" cho FYP, "‑3" cho HĐC)
-  const renderSaoVietRankSubCell = (achieved: boolean, bg: string, fg: string, deficitStr?: string) => {
+  // Body cell dùng màu bodyBg cố định theo hạng (light yellow / gainsboro / light cyan)
+  const renderSaoVietRankSubCell = (achieved: boolean, bodyBg: string, deficitStr?: string) => {
     if (achieved) {
       return (
         <TableCell
           className="text-xs text-center p-1"
-          style={{ backgroundColor: svRankBodyBg(bg) }}
+          style={{ backgroundColor: bodyBg }}
         >
           <CheckBadge size={14} />
         </TableCell>
       );
     }
-    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
+    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
     return (
       <TableCell
         className="text-xs text-center p-1 italic font-normal"
-        style={{ backgroundColor: svRankBodyBg(bg), color: '#9CA3AF' }}
+        style={{ backgroundColor: bodyBg, color: '#9CA3AF' }}
       >
         {deficitStr || '—'}
       </TableCell>
@@ -10184,8 +10189,8 @@ export default function QuanLyPage() {
                 const fypDeficit = Math.max(0, rk.minFyp - r.fypTVVm);
                 const hdcDeficit = Math.max(0, rk.minHdc - r.slTvvmHDC);
                 return [
-                  renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bg, rk.fg, formatDeficit(fypDeficit)),
-                  renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bg, rk.fg, `-${hdcDeficit}`),
+                  renderSaoVietRankSubCell(r.fypTVVm >= rk.minFyp, rk.bodyBg, formatDeficit(fypDeficit)),
+                  renderSaoVietRankSubCell(r.slTvvmHDC >= rk.minHdc, rk.bodyBg, `-${hdcDeficit}`),
                 ];
               })}
             </TableRow>
@@ -10227,10 +10232,14 @@ export default function QuanLyPage() {
   // ---------- CLBSV threshold tables (from slide CTTV 2026, months 6-12) ----------
   // Index 0=June, 1=July, 2=Aug, 3=Sep, 4=Oct, 5=Nov, 6=Dec
   // CÁ NHÂN — FYP lũy kế (triệu VND) — slide 1
+  // Color spec (user 2026-06-30):
+  //   Vàng      header=gold (255,215,0)  body=light yellow (255,255,224)
+  //   Bạch Kim  header=dark gray (169,169,169)  body=gainsboro (220,220,220)
+  //   Kim Cương header=deep sky blue (0,191,255)  body=light cyan (224,255,255)
   const CLBSV_CA_NHAN_THRESHOLDS = {
-    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [300, 350, 400, 450, 500, 550, 600],    bg: '#FEF3C7', fg: '#92400E' },
-    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [500, 580, 660, 740, 820, 900, 980],    bg: '#E5E7EB', fg: '#374151' },
-    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [825, 970, 1115, 1260, 1405, 1550, 1695], bg: '#CFFAFE', fg: '#155E75' },
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [300, 350, 400, 450, 500, 550, 600],    bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [500, 580, 660, 740, 820, 900, 980],    bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [825, 970, 1115, 1260, 1405, 1550, 1695], bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
   };
   // TN TUYỂN DỤNG — FYP TVVm (triệu VND) + SL TVVm HĐC (số lượng) — slide 2
   // Mỗi hạng có 2 sub-cols: FYP TVVm + TVVm HĐC
@@ -10241,7 +10250,7 @@ export default function QuanLyPage() {
       hdcLabel: 'TVVm HĐC >=',
       fypValues:  [250, 300, 350, 400, 450, 500, 550],
       hdcValues:  [5, 6, 7, 7, 8, 8, 9],
-      bg: '#FEF3C7', fg: '#92400E',
+      bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0',
     },
     bachkim: {
       label: 'HẠNG BẠCH KIM',
@@ -10249,14 +10258,14 @@ export default function QuanLyPage() {
       hdcLabel: 'TVVm HĐC >=',
       fypValues:  [600, 700, 800, 900, 1000, 1100, 1200],
       hdcValues:  [7, 8, 9, 10, 11, 12, 13],
-      bg: '#E5E7EB', fg: '#374151',
+      bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC',
     },
   };
   // TN KTM — FYP lũy kế (triệu VND) — slide 3
   const CLBSV_TN_KTM_THRESHOLDS = {
-    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [875, 1020, 1165, 1310, 1455, 1600, 1745],   bg: '#FEF3C7', fg: '#92400E' },
-    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [1900, 2220, 2540, 2860, 3180, 3500, 3820],   bg: '#E5E7EB', fg: '#374151' },
-    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#CFFAFE', fg: '#155E75' },
+    vang:      { label: 'HẠNG VÀNG',      sub: 'FYP >=', values: [875, 1020, 1165, 1310, 1455, 1600, 1745],   bg: '#FFD700', fg: '#5B4500', bodyBg: '#FFFFE0' },
+    bachkim:   { label: 'HẠNG BẠCH KIM',  sub: 'FYP >=', values: [1900, 2220, 2540, 2860, 3180, 3500, 3820],   bg: '#A9A9A9', fg: '#FFFFFF', bodyBg: '#DCDCDC' },
+    kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#00BFFF', fg: '#003B5C', bodyBg: '#E0FFFF' },
   };
 
   // Lấy index tháng hiện tại (0=June ... 6=Dec). Nếu ngoài khoảng → clamping.
@@ -10539,15 +10548,15 @@ export default function QuanLyPage() {
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg) }}>
+                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
                         <CheckBadge size={13} />
                       </TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
-                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
+                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
@@ -10615,13 +10624,13 @@ export default function QuanLyPage() {
             ))}
           </TableRow>
           {/* Row 2: sub-cols FYP TVVm + TVVm HĐC for each rank — hiển thị chỉ tiêu tháng hiện tại
-              Gradient đậm->nhạt: tier-1 dùng rk.bg (đậm), tier-2 dùng clbsvRankBodyBg(rk.bg) (siêu mờ) */}
+              Cả tier-1 và tier-2 đều dùng rk.bg (gold/dark gray/deep sky blue) — cùng màu tiêu đề cột */}
           <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
             {ranks.flatMap(rk => [
               <TableHead
                 key={`${rk.label}-fyp`}
                 className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
-                style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: rk.fg }}
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.fypLabel}</div>
@@ -10631,7 +10640,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.label}-hdc`}
                 className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
-                style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: rk.fg }}
+                style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.hdcLabel}</div>
@@ -10670,10 +10679,10 @@ export default function QuanLyPage() {
                   const fypDeficit = Math.max(0, fypThreshold - fypTvvmLuyKe);
                   const hdcDeficit = Math.max(0, hdcThreshold - slHdcLuyKe);
                   return [
-                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: fypAchieved ? '#047857' : '#9CA3AF' }}>
+                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: fypAchieved ? '#047857' : '#9CA3AF' }}>
                       {fypAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">{formatDeficit(fypDeficit)}</span>}
                     </TableCell>,
-                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
+                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
                       {hdcAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">-{hdcDeficit}</span>}
                     </TableCell>,
                   ];
@@ -10765,15 +10774,15 @@ export default function QuanLyPage() {
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg) }}>
+                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
                         <CheckBadge size={13} />
                       </TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
-                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
+                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
