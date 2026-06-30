@@ -1687,8 +1687,10 @@ export default function QuanLyPage() {
 
   // Helper: NON-ADMIN back button behaviour.
   //  - Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → trở về TỔNG QUAN của cùng section.
-  //  - Đang ở overview của section (report / saoviet / clb-saoviet / vinh-danh) → trở về trang KPI.
-  //  - Đang ở overview / sheets khác → trở về KPI.
+  //  - Đang ở overview của 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT → trở về /kpi
+  //    (vì 3 trang này + KPI sẽ được deploy riêng sang địa chỉ khác, public cho TVV).
+  //  - Đang ở overview / sheets khác (overview, leaders, recruiters, tuyen-ngang, revenue,
+  //    structure, kehoach, vinh-danh) → trở về trang chính ứng dụng '/' (admin-only pages).
   const nonAdminBack = useCallback(() => {
     // Sub-page đang mở → reset sub về null (giữ nguyên sheet)
     if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
@@ -1696,8 +1698,13 @@ export default function QuanLyPage() {
     if (activeSheet === 'clb-saoviet' && clbsvOpen) { setClbsvOpen(null); return; }
     if (activeSheet === 'structure' && structureSub !== 'leaders') { setStructureSub('leaders'); return; }
     if (activeSheet === 'revenue' && revenueSub !== 'all') { setRevenueSub('all'); return; }
-    // Đang ở overview của section → về KPI
-    router.push('/kpi');
+    // 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT ở mức tổng quan → về /kpi
+    if (activeSheet === 'report' || activeSheet === 'saoviet' || activeSheet === 'clb-saoviet') {
+      router.push('/kpi');
+      return;
+    }
+    // Tất cả sheet còn lại (overview + các sheet admin-only khác) → về trang chính ứng dụng
+    router.push('/');
   }, [activeSheet, policyOpen, saovietOpen, clbsvOpen, structureSub, revenueSub, router]);
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
@@ -1732,17 +1739,31 @@ export default function QuanLyPage() {
     if (next.vinhdanhSub !== undefined && next.vinhdanhSub !== vinhdanhSub) setVinhDanhSub(next.vinhdanhSub);
   }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen, vinhdanhSub]);
 
-  // Back button handler: pop 1 state từ history
+  // Back button handler (admin mode — uses nav history stack):
   // - Nếu history còn > 1: pop về state trước đó
-  // - Nếu history rỗng (length <= 1) VÀ sheet hiện tại là overview: về trang chủ /
-  // - Nếu history rỗng nhưng sheet hiện tại KHÔNG phải overview: về overview
+  // - Nếu history rỗng (length <= 1):
+  //   • Đang ở 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT (ở mức tổng quan) → về /kpi
+  //     (3 trang này + KPI sẽ được deploy riêng sang địa chỉ khác, public cho TVV).
+  //   • Đang ở overview / sheets admin-only khác → về trang chính ứng dụng '/'
+  //   • Đang ở sheet con (revenue/policy/structure có sub) → reset sub trước
   const handleAppBack = useCallback(() => {
     if (navHistoryRef.current.length <= 1) {
+      // Sub-page đang mở → reset sub về null (giữ nguyên sheet)
+      if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
+      if (activeSheet === 'saoviet' && saovietOpen) { setSaovietOpen(null); return; }
+      if (activeSheet === 'clb-saoviet' && clbsvOpen) { setClbsvOpen(null); return; }
+      if (activeSheet === 'structure' && structureSub !== 'leaders') { setStructureSub('leaders'); return; }
+      if (activeSheet === 'revenue' && revenueSub !== 'all') { setRevenueSub('all'); return; }
+      // 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT ở mức tổng quan → về /kpi
+      if (activeSheet === 'report' || activeSheet === 'saoviet' || activeSheet === 'clb-saoviet') {
+        router.push('/kpi');
+        return;
+      }
+      // Tất cả sheet còn lại (overview + các sheet admin-only khác) → về trang chính ứng dụng
       if (activeSheet === 'overview') {
-        // Đang ở overview + history rỗng → về trang chủ ứng dụng
         router.push('/');
       } else {
-        // Đang ở sheet con (revenue/policy/structure) → về overview trước
+        // Đang ở sheet con (revenue/structure/kehoach/vinh-danh/leaders/recruiters/tuyen-ngang) → về overview trước
         setActiveSheet('overview');
       }
       return;
@@ -10888,21 +10909,25 @@ export default function QuanLyPage() {
         </div>
 
         {/* Content */}
+        {/* Nguyên tắc cột Tôn vinh (áp dụng cho mọi bảng mới tạo từ nay):
+            - Bảng cấp TVV (Top 5 TVV, Top 5 TVVm): 4 cột đầu LUÔN là STT - NHÓM - MÃ TVV - HỌ TÊN TVV, sau đó mới đến cột số liệu.
+            - Bảng cấp Nhóm (Top 5 Nhóm, Nhóm HTKH): 2 cột đầu là STT - NHÓM, sau đó mới đến cột số liệu.
+            - KHÔNG bao giờ hiển thị MÃ NHÓM (maBanNhom) trên bảng — mã nhóm chỉ để tính toán/lookup. */}
         {vinhdanhSub === 'top5-tvv' && (
           <VinhDanhTable
             title="TOP 5 TVV — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
             columns={[
-              { key: 'rank', label: 'Hạng', width: '50px' },
-              { key: 'agentCode', label: 'Mã số' },
-              { key: 'agentName', label: 'Họ tên TVV' },
+              { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'agentCode', label: 'Mã TVV' },
+              { key: 'agentName', label: 'Họ tên TVV' },
               { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
             ]}
             rows={vinhDanhData.top5Tvv.map((t, i) => ({
               rank: i + 1,
+              tenNhom: t.tenNhom,
               agentCode: t.agentCode,
               agentName: t.agentName,
-              tenNhom: t.tenNhom,
               ip: t.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
@@ -10915,17 +10940,17 @@ export default function QuanLyPage() {
             title="TOP 5 TVVm (TVV MỚI) — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
             subtitle="Lưu ý: TVVm đã lọt Top 5 TVV chung (mục 1) sẽ KHÔNG hiển thị ở đây — chỉ lấy hạng cao hơn."
             columns={[
-              { key: 'rank', label: 'Hạng', width: '50px' },
-              { key: 'agentCode', label: 'Mã số' },
-              { key: 'agentName', label: 'Họ tên TVVm' },
+              { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'agentCode', label: 'Mã TVV' },
+              { key: 'agentName', label: 'Họ tên TVVm' },
               { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
             ]}
             rows={vinhDanhData.top5TvvM.map((t, i) => ({
               rank: i + 1,
+              tenNhom: t.tenNhom,
               agentCode: t.agentCode,
               agentName: t.agentName,
-              tenNhom: t.tenNhom,
               ip: t.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
@@ -10937,15 +10962,13 @@ export default function QuanLyPage() {
           <VinhDanhTable
             title="TOP 5 NHÓM — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
             columns={[
-              { key: 'rank', label: 'Hạng', width: '50px' },
+              { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
-              { key: 'maBanNhom', label: 'Mã nhóm' },
               { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
             ]}
             rows={vinhDanhData.top5Nhom.map((n, i) => ({
               rank: i + 1,
               tenNhom: n.tenNhom,
-              maBanNhom: n.maBanNhom,
               ip: n.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
@@ -10960,7 +10983,6 @@ export default function QuanLyPage() {
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
-              { key: 'maBanNhom', label: 'Mã nhóm' },
               { key: 'afypH1', label: 'AFYP H1 (đ)', align: 'right' },
               { key: 'khH1', label: 'KH H1 (đ)', align: 'right' },
               { key: 'pct', label: '% HT', align: 'right' },
@@ -10968,7 +10990,6 @@ export default function QuanLyPage() {
             rows={vinhDanhData.nhomHoanThanhKH.map((n, i) => ({
               rank: i + 1,
               tenNhom: n.tenNhom,
-              maBanNhom: n.maBanNhom,
               afypH1: n.afypH1,
               khH1: n.khH1,
               pct: n.pct,
@@ -11022,14 +11043,15 @@ export default function QuanLyPage() {
         {/* Conditional back-button rendering:
             - Khi CHƯA phải admin: ẩn BackButton + Cài đặt.
               • Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → bấm "Trở về" để về TỔNG QUAN của cùng section.
-              • Đang ở overview của section → bấm "Trở về" để về trang KPI.
+              • Đang ở overview của 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT → bấm "Trở về" để về trang KPI.
+              • Đang ở overview / sheets khác → bấm "Trở về" để về trang chính ứng dụng.
             - Khi đã là admin (đăng nhập từ KPI page): hiện BackButton (handleAppBack) như cũ. */}
         {!isAdmin ? (
           <Button
             variant="ghost"
             onClick={nonAdminBack}
             className="text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 gap-1.5 px-2.5 text-xs font-bold flex-shrink-0"
-            title={((activeSheet === 'report' && policyOpen) || (activeSheet === 'saoviet' && saovietOpen) || (activeSheet === 'clb-saoviet' && clbsvOpen)) ? 'Trở về tổng quan' : 'Trở về trang KPI'}
+            title={((activeSheet === 'report' && policyOpen) || (activeSheet === 'saoviet' && saovietOpen) || (activeSheet === 'clb-saoviet' && clbsvOpen)) ? 'Trở về tổng quan' : (activeSheet === 'report' || activeSheet === 'saoviet' || activeSheet === 'clb-saoviet') ? 'Trở về trang KPI' : 'Trở về trang chính'}
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Trở về</span>

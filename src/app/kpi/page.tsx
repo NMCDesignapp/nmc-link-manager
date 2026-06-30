@@ -1957,7 +1957,9 @@ export default function KPIDashboard() {
             });
           }
           const khTrd = Math.round(periodKh / 1000000);
-          const pct = khTrd ? (afypTrd / khTrd * 100) : 0;
+          // Tỷ lệ hoàn thành: dùng số AFYP và KH nguyên thủy (đ), KHÔNG dùng số đã làm tròn sang triệu đồng
+          // để tránh sai lệch % khi AFYP/KH nhỏ (vd 10.5M / 8.3M = 126.5% thay vì 11/8 = 137.5%).
+          const pct = periodKh > 0 ? (afyp / periodKh * 100) : 0;
 
           // Get TN (Trưởng Nhóm/Ban) only — no TVV as per user request
           const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3 };
@@ -2299,7 +2301,19 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C). */}
+              {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
+                  Nút back (btn-back-u) chỉ hiện khi đã đăng nhập Admin — bấm để trở về trang chính ứng dụng '/'. */}
+              {adminAuthed && (
+                <button
+                  type="button"
+                  className="btn-back-u"
+                  onClick={() => router.push('/')}
+                  title="Trở về trang chính ứng dụng"
+                  aria-label="Trở về trang chính ứng dụng"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>

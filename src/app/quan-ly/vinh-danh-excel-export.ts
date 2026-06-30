@@ -108,7 +108,10 @@ function textCellStyle(bold: boolean = false): XLSX.CellObject['s'] {
 // SHEET BUILDERS
 // ============================================================================
 
-/** Build sheet for Top 5 TVV or Top 5 TVVm */
+/** Build sheet for Top 5 TVV or Top 5 TVVm
+ *  Nguyên tắc cột: STT - NHÓM - MÃ TVV - HỌ TÊN TVV - <số liệu>.
+ *  KHÔNG hiển thị MÃ NHÓM trên bảng.
+ */
 function buildTvvSheet(
   title: string,
   subtitle: string,
@@ -136,8 +139,8 @@ function buildTvvSheet(
   aoa.push(['', '', '', '', '']);
   styles.push([null as any, null as any, null as any, null as any, null as any]);
 
-  // Row 3: Header
-  aoa.push(['Hạng', 'Mã số', 'Họ tên TVV', 'Nhóm', 'Tổng IP (đ)']);
+  // Row 3: Header — STT - NHÓM - MÃ TVV - HỌ TÊN TVV - Tổng IP
+  aoa.push(['STT', 'Nhóm', 'Mã TVV', 'Họ tên TVV', 'Tổng IP (đ)']);
   styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL]);
 
   // Data rows
@@ -147,12 +150,12 @@ function buildTvvSheet(
   } else {
     rows.forEach((r, i) => {
       const rank = i + 1;
-      aoa.push([rank, r.agentCode, r.agentName, r.tenNhom, r.ip]);
+      aoa.push([rank, r.tenNhom, r.agentCode, r.agentName, r.ip]);
       styles.push([
         rankCellStyle(rank),
         textCellStyle(),
-        textCellStyle(true),
         textCellStyle(),
+        textCellStyle(true),
         numberCellStyle(true),
       ]);
     });
@@ -185,7 +188,10 @@ function buildTvvSheet(
   return ws;
 }
 
-/** Build sheet for Top 5 Nhóm (IP) */
+/** Build sheet for Top 5 Nhóm (IP)
+ *  Nguyên tắc cột: STT - NHÓM - <số liệu>.
+ *  KHÔNG hiển thị MÃ NHÓM trên bảng.
+ */
 function buildNhomSheet(
   title: string,
   subtitle: string,
@@ -195,35 +201,34 @@ function buildNhomSheet(
   const aoa: any[][] = [];
   const styles: XLSX.CellObject['s'][][] = [];
 
-  aoa.push([title, '', '', '']);
+  aoa.push([title, '', '']);
   styles.push([
     { fill: { patternType: 'solid', fgColor: { rgb: '92400E' } }, font: { bold: true, color: { rgb: 'FFF8E0' }, sz: 13, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any, null as any,
+    null as any, null as any,
   ]);
 
-  aoa.push([subtitle, '', '', '']);
+  aoa.push([subtitle, '', '']);
   styles.push([
     { fill: { patternType: 'solid', fgColor: { rgb: 'FEF3C7' } }, font: { italic: true, color: { rgb: '92400E' }, sz: 9, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any, null as any,
+    null as any, null as any,
   ]);
 
-  aoa.push(['', '', '', '']);
-  styles.push([null as any, null as any, null as any, null as any]);
+  aoa.push(['', '', '']);
+  styles.push([null as any, null as any, null as any]);
 
-  aoa.push(['Hạng', 'Nhóm', 'Mã nhóm', 'Tổng IP (đ)']);
-  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL]);
+  aoa.push(['STT', 'Nhóm', 'Tổng IP (đ)']);
+  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL]);
 
   if (rows.length === 0) {
-    aoa.push(['(Chưa có dữ liệu)', '', '', '']);
-    styles.push([textCellStyle(true), textCellStyle(), textCellStyle(), textCellStyle()]);
+    aoa.push(['(Chưa có dữ liệu)', '', '']);
+    styles.push([textCellStyle(true), textCellStyle(), textCellStyle()]);
   } else {
     rows.forEach((r, i) => {
       const rank = i + 1;
-      aoa.push([rank, r.tenNhom, r.maBanNhom, r.ip]);
+      aoa.push([rank, r.tenNhom, r.ip]);
       styles.push([
         rankCellStyle(rank),
         textCellStyle(true),
-        textCellStyle(),
         numberCellStyle(true),
       ]);
     });
@@ -241,8 +246,8 @@ function buildNhomSheet(
     }
   }
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
   ];
   ws['!cols'] = colWidths;
   ws['!rows'] = [
@@ -254,7 +259,10 @@ function buildNhomSheet(
   return ws;
 }
 
-/** Build sheet for Nhóm hoàn thành KH (AFYP) */
+/** Build sheet for Nhóm hoàn thành KH (AFYP)
+ *  Nguyên tắc cột: STT - NHÓM - <số liệu>.
+ *  KHÔNG hiển thị MÃ NHÓM trên bảng.
+ */
 function buildHoanThanhSheet(
   title: string,
   subtitle: string,
@@ -264,35 +272,34 @@ function buildHoanThanhSheet(
   const aoa: any[][] = [];
   const styles: XLSX.CellObject['s'][][] = [];
 
-  aoa.push([title, '', '', '', '', '']);
+  aoa.push([title, '', '', '', '']);
   styles.push([
     { fill: { patternType: 'solid', fgColor: { rgb: '92400E' } }, font: { bold: true, color: { rgb: 'FFF8E0' }, sz: 13, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any, null as any, null as any, null as any,
+    null as any, null as any, null as any, null as any,
   ]);
 
-  aoa.push([subtitle, '', '', '', '', '']);
+  aoa.push([subtitle, '', '', '', '']);
   styles.push([
     { fill: { patternType: 'solid', fgColor: { rgb: 'FEF3C7' } }, font: { italic: true, color: { rgb: '92400E' }, sz: 9, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any, null as any, null as any, null as any,
+    null as any, null as any, null as any, null as any,
   ]);
 
-  aoa.push(['', '', '', '', '', '']);
-  styles.push([null as any, null as any, null as any, null as any, null as any, null as any]);
+  aoa.push(['', '', '', '', '']);
+  styles.push([null as any, null as any, null as any, null as any, null as any]);
 
-  aoa.push(['STT', 'Nhóm', 'Mã nhóm', 'AFYP H1 (đ)', 'KH H1 (đ)', '% HT']);
-  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL]);
+  aoa.push(['STT', 'Nhóm', 'AFYP H1 (đ)', 'KH H1 (đ)', '% HT']);
+  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL]);
 
   if (rows.length === 0) {
-    aoa.push(['(Chưa có nhóm nào hoàn thành KH H1)', '', '', '', '', '']);
-    styles.push([textCellStyle(true), textCellStyle(), textCellStyle(), textCellStyle(), textCellStyle(), textCellStyle()]);
+    aoa.push(['(Chưa có nhóm nào hoàn thành KH H1)', '', '', '', '']);
+    styles.push([textCellStyle(true), textCellStyle(), textCellStyle(), textCellStyle(), textCellStyle()]);
   } else {
     rows.forEach((r, i) => {
       const stt = i + 1;
-      aoa.push([stt, r.tenNhom, r.maBanNhom, r.afypH1, r.khH1, r.pct / 100]); // pct as decimal → format as %
+      aoa.push([stt, r.tenNhom, r.afypH1, r.khH1, r.pct / 100]); // pct as decimal → format as %
       styles.push([
         textCellStyle(true),
         textCellStyle(true),
-        textCellStyle(),
         numberCellStyle(true),
         numberCellStyle(false, '1A2332'),
         {
@@ -317,8 +324,8 @@ function buildHoanThanhSheet(
     }
   }
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
   ];
   ws['!cols'] = colWidths;
   ws['!rows'] = [
@@ -337,9 +344,12 @@ function buildHoanThanhSheet(
 export function downloadVinhDanhExcel(data: VinhDanhExportData): void {
   const wb = XLSX.utils.book_new();
 
-  const tvvColWidths = [{ wch: 6 }, { wch: 14 }, { wch: 26 }, { wch: 22 }, { wch: 18 }];
-  const nhomColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }, { wch: 18 }];
-  const htColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 10 }];
+  // Cột TVV: STT - NHÓM - MÃ TVV - HỌ TÊN TVV - Tổng IP
+  const tvvColWidths = [{ wch: 6 }, { wch: 22 }, { wch: 14 }, { wch: 26 }, { wch: 18 }];
+  // Cột Nhóm: STT - NHÓM - Tổng IP (no MÃ NHÓM)
+  const nhomColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }];
+  // Cột HTKH: STT - NHÓM - AFYP - KH - % (no MÃ NHÓM)
+  const htColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 10 }];
 
   // Sheet 1: Top 5 TVV
   const ws1 = buildTvvSheet(
