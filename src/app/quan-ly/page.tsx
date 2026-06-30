@@ -705,6 +705,56 @@ function safeFormatDate(val: any): string {
   return s;
 }
 
+// ==================== IMAGE COMPRESSION HELPER ====================
+// Nén ảnh trước khi lưu: resize về max 1200px, JPEG quality 0.82
+// Tránh data URL quá lớn làm chậm load settings JSON
+async function compressImage(file: File, maxSize = 1200, quality = 0.82): Promise<string> {
+  // Nếu là PNG/WebP và nhỏ (<300KB) → giữ nguyên
+  if (file.size < 300 * 1024 && (file.type === 'image/png' || file.type === 'image/webp')) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Không đọc được file'));
+      reader.readAsDataURL(file);
+    });
+  }
+  // Các trường hợp khác: vẽ lên canvas, resize, xuất JPEG
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Không đọc được file'));
+    reader.readAsDataURL(file);
+  });
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise((resolve, reject) => {
+    img.onload = () => resolve(null);
+    img.onerror = () => reject(new Error('Không load được ảnh'));
+  });
+  let { width, height } = img;
+  if (width > maxSize || height > maxSize) {
+    if (width >= height) {
+      height = Math.round(height * maxSize / width);
+      width = maxSize;
+    } else {
+      width = Math.round(width * maxSize / height);
+      height = maxSize;
+    }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataUrl; // fallback
+  ctx.drawImage(img, 0, 0, width, height);
+  // PNG with transparency → giữ PNG; else JPEG
+  if (file.type === 'image/png' && /-transparent/i.test(file.type) === false) {
+    // Try JPEG first (smaller); if image has alpha, fallback PNG
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
 // ==================== EDITABLE CELL ====================
 function EditableCell({ value, onSave, type = 'text', className = '' }: {
   value: string | number; onSave: (val: any) => void; type?: 'text' | 'number' | 'date'; className?: string;
@@ -1635,6 +1685,10 @@ export default function QuanLyPage() {
   const [mobilePolicyPopupOpen, setMobilePolicyPopupOpen] = useState(false); // mobile: policy sub-item popup
   const [mobileRevenuePopupOpen, setMobileRevenuePopupOpen] = useState(false); // mobile: revenue month popup
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  // ===== MOUNTED GUARD =====
+  // Tránh flash bug: SSR render 'overview' trước rồi client hydrate mới switch sang sheet từ URL.
+  // Khi chưa mounted → render skeleton loading, sau khi mounted mới render nội dung đúng.
+  const [mounted, setMounted] = useState(false);
   // policyOpen declared here (used by navigateTo/handleAppBack below)
   const [policyOpen, setPolicyOpen] = useState<string | null>(null);
   const [saovietOpen, setSaovietOpen] = useState<string | null>(null); // null = show list, key = sub-page
@@ -1654,6 +1708,7 @@ export default function QuanLyPage() {
   // Khi đã admin (đăng nhập từ KPI page): hiện lại BackButton + Cài đặt.
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
+    setMounted(true);
     try {
       if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
         setIsAdmin(true);
@@ -5377,13 +5432,8 @@ export default function QuanLyPage() {
     }
     setSaovietPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
-      // Read file as data URL
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Không đọc được file'));
-        reader.readAsDataURL(file);
-      });
+      // Read file as data URL (đã nén)
+      const dataUrl: string = await compressImage(file);
       // Save to Settings API (same as Policy image)
       const r = await fetch('/api/settings', {
         method: 'PUT',
@@ -5442,12 +5492,7 @@ export default function QuanLyPage() {
     }
     setClbsvPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Không đọc được file'));
-        reader.readAsDataURL(file);
-      });
+      const dataUrl: string = await compressImage(file);
       const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -8320,7 +8365,7 @@ export default function QuanLyPage() {
           <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
             {imageLink ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={imageLink} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
                 <BookOpen className="w-8 h-8 text-emerald-300/70" />
@@ -8453,7 +8498,7 @@ export default function QuanLyPage() {
             {/* Left: Image */}
             <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
               {imageLink ? (
-                <img src={imageLink} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                <img src={imageLink} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
                   <Settings className="w-5 h-5 text-gray-500" />
@@ -9400,7 +9445,7 @@ export default function QuanLyPage() {
   // Lightsalmon (#FFA07A) là màu tiêu đề chung cho các bảng Sao Việt (theo yêu cầu)
   // Phần nền nội dung (rank cells) luôn nhạt hơn màu chữ — bg=#xxx light, fg=#xxx dark
   const SV_HEADER_BG = '#FFA07A';   // lightsalmon — màu tiêu đề bảng
-  const SV_HEADER_FG = '#7C2D12';   // amber-900 — chữ đậm trên nền lightsalmon
+  const SV_HEADER_FG = '#1E3A8A';   // navy-900 — chữ xanh dương đậm trên nền lightsalmon (theo yêu cầu user: đổi từ brown sang blue)
   const SV_HEADER_BORDER = '#FB923C'; // orange-400 — viền nhẹ
 
   // Helper: convert rank header bg (đậm) sang rank body bg (siêu mờ — alpha 8%)
@@ -9582,7 +9627,7 @@ export default function QuanLyPage() {
     return (
       <TableCell
         className="text-xs text-center p-1 whitespace-nowrap italic font-normal"
-        style={{ backgroundColor: threshold.bodyBg, color: '#9CA3AF' }}
+        style={{ backgroundColor: threshold.bodyBg, color: '#1E3A8A' }}
       >
         {formatDeficit(deficit)}
       </TableCell>
@@ -9607,7 +9652,7 @@ export default function QuanLyPage() {
     return (
       <TableCell
         className="text-xs text-center p-1 italic font-normal"
-        style={{ backgroundColor: bodyBg, color: '#9CA3AF' }}
+        style={{ backgroundColor: bodyBg, color: '#1E3A8A' }}
       >
         {deficitStr || '—'}
       </TableCell>
@@ -9910,7 +9955,7 @@ export default function QuanLyPage() {
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
                   <Star className="w-8 h-8 text-amber-300/70" />
@@ -9942,7 +9987,7 @@ export default function QuanLyPage() {
               <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
                 {posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                  <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
                     <Settings className="w-5 h-5 text-gray-500" />
@@ -10041,7 +10086,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 sv-rank-col"
-                style={{ backgroundColor: t.bg, color: t.fg, width: '110px', minWidth: '110px' }}
+                style={{ backgroundColor: t.bg, color: t.fg, width: '115px', minWidth: '115px' }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -10110,7 +10155,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={t.key}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 sv-rank-col"
-                style={{ backgroundColor: t.bg, color: t.fg, width: '110px', minWidth: '110px' }}
+                style={{ backgroundColor: t.bg, color: t.fg, width: '115px', minWidth: '115px' }}
               >
                 <div className="leading-tight">
                   <div>{t.label}</div>
@@ -10194,7 +10239,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-fyp`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap sv-rank-subcol"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase">{rk.label}</div>
@@ -10204,7 +10249,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.key}-hdc`}
                 className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap sv-rank-subcol"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
                   <div className="text-[10px] font-bold uppercase opacity-0 select-none">{rk.label}</div>
@@ -10458,7 +10503,7 @@ export default function QuanLyPage() {
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={posterUrl} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 text-[10px] text-center p-3 gap-1">
                   <Award className="w-8 h-8 text-amber-300/70" />
@@ -10558,7 +10603,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={rk.label}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 clbsv-rank-col"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '130px', minWidth: '130px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '115px', minWidth: '115px' }}
               >
                 <div className="leading-tight">
                   <div className="font-black">{rk.label}</div>
@@ -10602,7 +10647,7 @@ export default function QuanLyPage() {
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
                   // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#1E3A8A' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
@@ -10676,7 +10721,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.label}-fyp`}
                 className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.fypLabel}</div>
@@ -10686,7 +10731,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={`${rk.label}-hdc`}
                 className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '95px', minWidth: '95px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
                   <div className="italic font-bold text-[9px]">{rk.hdcLabel}</div>
@@ -10725,10 +10770,10 @@ export default function QuanLyPage() {
                   const fypDeficit = Math.max(0, fypThreshold - fypTvvmLuyKe);
                   const hdcDeficit = Math.max(0, hdcThreshold - slHdcLuyKe);
                   return [
-                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: fypAchieved ? '#047857' : '#9CA3AF' }}>
+                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: fypAchieved ? '#047857' : '#1E3A8A' }}>
                       {fypAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">{formatDeficit(fypDeficit)}</span>}
                     </TableCell>,
-                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
+                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg, color: hdcAchieved ? '#047857' : '#1E3A8A' }}>
                       {hdcAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">-{hdcDeficit}</span>}
                     </TableCell>,
                   ];
@@ -10785,7 +10830,7 @@ export default function QuanLyPage() {
               <TableHead
                 key={rk.label}
                 className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1 clbsv-rank-col"
-                style={{ backgroundColor: rk.bg, color: rk.fg, width: '130px', minWidth: '130px' }}
+                style={{ backgroundColor: rk.bg, color: rk.fg, width: '115px', minWidth: '115px' }}
               >
                 <div className="leading-tight">
                   <div className="font-black">{rk.label}</div>
@@ -10828,7 +10873,7 @@ export default function QuanLyPage() {
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
                   // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#1E3A8A' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
@@ -10889,7 +10934,7 @@ export default function QuanLyPage() {
               >
                 {posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={posterUrl} alt={item.label} className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <IIcon className="w-10 h-10 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
                 )}
@@ -11063,6 +11108,9 @@ export default function QuanLyPage() {
 
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    // Mounted guard: khi chưa mounted (SSR hoặc hydration đầu tiên) → render skeleton
+    // tránh flash bug hiện overview rồi mới switch sang sheet từ URL (?sheet=xxx)
+    if (!mounted) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
       case 'overview': return renderOverview();
       case 'leaders': return renderLeaders();
@@ -11456,7 +11504,7 @@ export default function QuanLyPage() {
                         <div className="w-24 h-14 rounded overflow-hidden border flex-shrink-0 bg-black/40 flex items-center justify-center" style={{ borderColor: `${item.color}44` }}>
                           {posterUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+                            <img src={posterUrl} alt="Poster" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                           ) : (
                             <ImageIcon className="w-5 h-5 text-gray-600" />
                           )}
@@ -11777,7 +11825,7 @@ export default function QuanLyPage() {
                     {/* Preview */}
                     {currentImage && (
                       <div className="rounded-md overflow-hidden border border-amber-500/30" style={{ height: '100px' }}>
-                        <img src={currentImage} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={currentImage} alt="Preview" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </div>
                     )}
                     {/* Upload */}
@@ -11786,14 +11834,14 @@ export default function QuanLyPage() {
                       <input type="file" accept="image/*" className="hidden" id="settings-policy-image-upload" onChange={e => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          const dataUrl = ev.target?.result as string;
+                        // Nén ảnh trước khi lưu
+                        compressImage(file).then(dataUrl => {
                           setPolicyImageInput(dataUrl);
                           // Auto-save on upload
                           savePolicyImage(policyOpen, dataUrl);
-                        };
-                        reader.readAsDataURL(file);
+                        }).catch(err => {
+                          toast({ title: 'Lỗi xử lý ảnh', description: String(err), variant: 'destructive' });
+                        });
                       }} />
                       <Button variant="ghost" onClick={() => document.getElementById('settings-policy-image-upload')?.click()} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs w-full">
                         <Upload className="w-3 h-3 mr-1" /> Chọn file ảnh

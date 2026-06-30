@@ -39,7 +39,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes cardSlideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Hero */
-.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(1.4rem, 5.5vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #e0c060; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
 .kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
@@ -205,15 +205,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Navigation */
 .kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
 .kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
-.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
-.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #e8eef7; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.02) 100%); box-shadow: 0 6px 14px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.14) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 3px 8px rgba(0,0,0,.40), 0 1px 0 rgba(255,255,255,.06) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
-.kpi-app .nav-detail { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 6px 22px #3b82f6aa, 0 0 12px #60a5fa66; border: 1px solid #60a5fa80; }
-.kpi-app .nav-plan { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 22px #10b981aa, 0 0 12px #34d39966; border: 1px solid #34d39980; }
-.kpi-app .nav-race { background: linear-gradient(135deg, #0ea5e9, #0284c7); box-shadow: 0 6px 22px #0ea5e9aa, 0 0 12px #38bdf866; border: 1px solid #38bdf8aa; }
-.kpi-app .nav-policy { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 22px #f59e0baa, 0 0 12px #fbbf2466; border: 1px solid #fbbf24aa; }
-.kpi-app .nav-clb { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 6px 22px #f97316aa, 0 0 12px #fb923c66; border: 1px solid #fb923caa; }
+.kpi-app .nav-detail { border-color: rgba(96,165,250,.55); box-shadow: 0 6px 16px rgba(59,130,246,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-plan { border-color: rgba(52,211,153,.55); box-shadow: 0 6px 16px rgba(16,185,129,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-race { border-color: rgba(56,189,248,.55); box-shadow: 0 6px 16px rgba(14,165,233,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-policy { border-color: rgba(251,191,36,.55); box-shadow: 0 6px 16px rgba(245,158,11,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-clb { border-color: rgba(251,146,60,.55); box-shadow: 0 6px 16px rgba(249,115,22,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -463,17 +463,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   white-space: nowrap; z-index: 2;
 }
 
-/* Region divider: TIẾN ĐỘ KHU VỰC to + rõ hơn */
-.kpi-app .region-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px !important; padding: 0 4px; }
-.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #3a7cc8, transparent); }
+/* Region divider: TIẾN ĐỘ KHU VỰC — gold text + gold gradient lines, no bg fill */
+.kpi-app .region-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px !important; padding: 0 4px; background: transparent !important; }
+.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #d4a843, #ffd76b, #d4a843, transparent); }
 .kpi-app .region-divider-title {
   font-size: 16px !important; font-weight: 900; text-transform: uppercase; letter-spacing: .15em;
-  color: #1a4a7a; white-space: nowrap;
-  text-shadow: 0 1px 0 #ffffff, 0 2px 8px #3a7cc833;
+  color: #ffd76b; white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(255,215,107,.35), 0 0 18px rgba(212,168,67,.30);
   padding: 4px 14px; border-radius: 4px;
-  background: linear-gradient(135deg, #e8f0fa 0%, #d4e2f4 100%);
-  border: 1px solid #b8cae0;
-  box-shadow: 0 2px 8px rgba(10,30,60,.1);
+  background: transparent; border: none; box-shadow: none;
 }
 
 /* Mobile compact: smaller fonts/padding */
@@ -923,27 +921,27 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .sub-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; color: #ffb12b; text-transform: uppercase; letter-spacing: -.03em; text-align: center; line-height: 1.05; }
 .kpi-app .sub-line-wrap { padding: 0 24px; margin-top: 12px; }
 .kpi-app .sub-line { height: 1px; background: linear-gradient(90deg, transparent, #d4a84340, #d4a84366, #d4a84340, transparent); }
-.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 14px; }
-.kpi-app .cal-fbtn { padding: 7px 2px; border-radius: 7px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 9px; text-align: center; transition: all .2s; }
+.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 10px; }
+.kpi-app .cal-fbtn { padding: 4px 2px; border-radius: 6px; border: 1.2px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 8px; text-align: center; transition: all .2s; min-height: 24px; }
 .kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
-.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 14px #0080804d; font-weight: 900; }
-.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 50px #0000004d; border: 1px solid #00808066; border-bottom: 4px solid #008080; margin-top: 16px; }
-.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; padding: 14px 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; text-align: center; border-radius: 8px 8px 0 0; }
-.kpi-app .cal-head span { padding: 0 10px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
-.kpi-app .cal-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
+.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 10px #0080804d; font-weight: 900; }
+.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 16px 40px #0000004d; border: 1px solid #00808066; border-bottom: 3px solid #008080; margin-top: 10px; }
+.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; padding: 6px 0; display: grid; grid-template-columns: 42px minmax(0,1fr) 60px; text-align: center; border-radius: 8px 8px 0 0; }
+.kpi-app .cal-head span { padding: 0 6px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
+.kpi-app .cal-row { display: grid; grid-template-columns: 42px minmax(0,1fr) 60px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
 .kpi-app .cal-row:hover { background: #eef9f9; }
 .kpi-app .cal-row.is-today { background: #e0f2fe; box-shadow: inset 0 0 0 2px #38bdf8; }
 .kpi-app .cal-row.is-weekend { background: #e8f4f0; }
 .kpi-app .cal-row.is-sunday { background: #f5e8e8; }
-.kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
-.kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
+.kpi-app .cal-day { padding: 5px 4px; font-weight: 900; font-size: 11px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.kpi-app .cal-day-num { line-height: 1; font-size: 11px; }
+.kpi-app .cal-day-week { font-size: 7px; font-weight: 700; color: #5a7a99; line-height: 1; }
 .kpi-app .cal-row.is-sunday .cal-day { color: #dc2626; background: #fde8e8; }
 .kpi-app .cal-row.is-sunday .cal-day-week { color: #dc2626; }
 .kpi-app .cal-row.is-weekend .cal-day { color: #ea580c; background: #fff0e0; }
 .kpi-app .cal-row.is-weekend .cal-day-week { color: #ea580c; }
-.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
-.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; background: #f7ffff; word-break: break-word; }
+.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 5px 7px; font-weight: 600; font-size: 10.5px; line-height: 1.25; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
+.kpi-app .cal-owner { min-width: 50px; border-left: 1px solid #00808055; padding: 4px 3px; font-size: 8px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
 .kpi-app .cal-line { display: block; }
 .kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s, box-shadow .12s; }
@@ -959,8 +957,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .cal-line.editable.locked:hover { background: #f1f5f9; box-shadow: 0 0 0 1px #94a3b8; }
 .kpi-app .cal-owner-tag {
-  display: inline-block; padding: 2px 5px; border-radius: 3px;
-  font-size: 9px; font-weight: 800; line-height: 1.2;
+  display: inline-block; padding: 1px 4px; border-radius: 3px;
+  font-size: 7.5px; font-weight: 800; line-height: 1.2;
   max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -1205,10 +1203,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .ad-stat-label { font-size: 5.5px; }
   .kpi-app .ad-stat-val { font-size: 9px; }
   .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
-  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 3px; }
-  .kpi-app .cal-fbtn { padding: 5px 1px; border-radius: 6px; min-height: 28px; font-size: 8px; }
-  .kpi-app .cal-row { grid-template-columns: 46px minmax(0,1fr) 58px; }
-  .kpi-app .cal-head { grid-template-columns: 46px minmax(0,1fr) 58px; }
+  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }
+  .kpi-app .cal-fbtn { padding: 3px 1px; border-radius: 5px; min-height: 20px; font-size: 7px; }
+  .kpi-app .cal-row { grid-template-columns: 38px minmax(0,1fr) 52px; }
+  .kpi-app .cal-head { grid-template-columns: 38px minmax(0,1fr) 52px; padding: 5px 0; font-size: 8px; }
+  .kpi-app .cal-day { padding: 4px 3px; font-size: 10px; }
+  .kpi-app .cal-day-num { font-size: 10px; }
+  .kpi-app .cal-day-week { font-size: 6.5px; }
+  .kpi-app .cal-text { padding: 4px 5px; font-size: 9px; }
+  .kpi-app .cal-owner { padding: 3px 2px; font-size: 7px; }
+  .kpi-app .cal-owner-tag { font-size: 6.5px; padding: 1px 3px; }
   .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
   .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
   .kpi-app .month-cell .mc-label { font-size: 8px; }
@@ -2332,7 +2336,7 @@ export default function KPIDashboard() {
               </div>
             </div>
             <div className="ctrl-bar">
-              <span className="ctrl-hint">chọn thời gian xem</span>
+              <span className="ctrl-hint">Chọn thời gian xem</span>
               <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
                 <button type="button" className="ctrl-select ctrl-select-period" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
                   <span className="ctrl-period-label">{overviewPeriod.startsWith('month-') ? `T${overviewPeriod.split('-')[1]}` : overviewPeriod.startsWith('q') ? overviewPeriod.replace('q', 'Q').toUpperCase() : overviewPeriod === 'h1' ? 'H1' : overviewPeriod === 'h2' ? 'H2' : overviewPeriod === 'year' ? 'Năm' : 'T?'}</span>
@@ -2457,10 +2461,10 @@ export default function KPIDashboard() {
 
               {/* Navigation Grid */}
               <nav className="nav-grid" aria-label="Điều hướng">
-                <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); }}>
+                <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
                 </button>
-                <button className="nav-btn nav-plan" onClick={() => setView('calendar')}>
+                <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
@@ -2883,12 +2887,13 @@ export default function KPIDashboard() {
         {/* ===== DETAIL VIEW ===== */}
         <section className={`view ${view === 'detail' ? 'active' : ''}`} id="view-detail" role="region">
           <div className="detail-shell">
-            <div className="detail-topbar">
+            <div className="sub-header">
               <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-              <div style={{ width: 38, height: 38, flexShrink: 0 }} />
+              <span className="sub-title">Chi Tiết Ban Nhóm</span>
+              <div style={{ width: 32 }} />
             </div>
-            <div className="detail-hero">
-              <div className="detail-title">Chi Tiết Ban Nhóm</div>
+            <div className="sub-line-wrap"><div className="sub-line" /></div>
+            <div className="detail-hero" style={{ textAlign: 'center', marginTop: 6 }}>
               <div className="detail-meta">AFYP — {detailMonth === 'Y' ? `Năm ${CUR_YEAR}` : detailMonth === 'H1' ? `6T đầu ${CUR_YEAR}` : detailMonth.startsWith('Q') ? `${detailMonth} ${CUR_YEAR}` : `T${parseInt(detailMonth)}/${CUR_YEAR}`}</div>
             </div>
             <div className="month-grid">
