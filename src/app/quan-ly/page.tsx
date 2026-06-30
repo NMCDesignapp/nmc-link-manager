@@ -274,6 +274,22 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
   return !isTTNPosition(position);
 }
 
+// Helper: kiểm tra chức vụ TB hoặc TN cho CLB Sao Việt (TN TUYỂN DỤNG / TN KTM)
+// User spec: chỉ những người có chức vụ "Trưởng ban (TB)" hoặc "Trưởng nhóm (TN)" mới vào 2 chương trình này
+// TTN (Tiền trưởng nhóm) KHÔNG được tính
+function isCLBMemberTBorTN(position: string | null | undefined): boolean {
+  const p = (position || '').toLowerCase().trim();
+  if (!p) return false;
+  // Loại TTN trước
+  if (p.includes('tiền trưởng nhóm') || p.includes('trưởng tổ nhóm')) return false;
+  if (p === 'ttn' || p.includes('ttn ') || p.includes(' ttn')) return false;
+  // Match text
+  if (p.includes('trưởng ban') || p.includes('trưởng nhóm')) return true;
+  // Match token TB / TN (chia theo whitespace, dấu câu)
+  const tokens = p.split(/[\s,;/|\\-]+/).filter(Boolean);
+  return tokens.includes('tb') || tokens.includes('tn');
+}
+
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
@@ -9593,14 +9609,27 @@ export default function QuanLyPage() {
   };
 
   // ---------- Sub-page: CLB SAO VIỆT CÁ NHÂN ----------
-  // Bảng trống (chưa có dữ liệu TVV) — chỉ hiển thị cấu trúc + chỉ tiêu tháng hiện tại dưới mỗi rank header
+  // Đối tượng: TẤT CẢ thành viên trong DS Thành viên CLB (clbMembers)
+  // FYP lũy kế + rank cells: để trống (—) — user sẽ hướng dẫn tính sau
   const renderCLBSVCaNhan = () => {
     const ranks = [
       CLBSV_CA_NHAN_THRESHOLDS.vang,
       CLBSV_CA_NHAN_THRESHOLDS.bachkim,
       CLBSV_CA_NHAN_THRESHOLDS.kimcuong,
     ];
-    const uniqueNhomList: string[] = []; // empty — no data yet
+    // Source: tất cả thành viên CLB
+    const sourceMembers = clbMembers;
+    const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
+    // Apply user filters (nhóm + tên/mã)
+    const filteredMembers = sourceMembers.filter(m => {
+      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNameFilter) {
+        const q = clbsvNameFilter.toLowerCase().trim();
+        if (!String(m.agentCode || '').toLowerCase().includes(q) &&
+            !String(m.agentName || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
     const totalCols = 5 + ranks.length; // STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP lũy kế + 3 rank cols
 
     const tableJsx = (
@@ -9631,27 +9660,51 @@ export default function QuanLyPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
-              <br />
-              Vui lòng chờ hướng dẫn thêm dữ liệu TVV từ quản trị.
-            </TableCell>
-          </TableRow>
+          {filteredMembers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+                Chưa có đối tượng. Vui lòng thêm thành viên vào DS Thành viên CLB (Cấu trúc → DS Thành viên CLB).
+              </TableCell>
+            </TableRow>
+          ) : filteredMembers.map((m, idx) => (
+            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">{m.agentName || '—'}</TableCell>
+              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+              {ranks.map(rk => (
+                <TableCell key={rk.label} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>
+              ))}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     );
 
-    return renderClbsvDetailShell('ca-nhan', uniqueNhomList, 0, 0, 'SL TVV đạt', 'Tổng FYP', tableJsx);
+    return renderClbsvDetailShell('ca-nhan', uniqueNhomList, filteredMembers.length, 0, 'SL TVV đạt', 'Tổng FYP', tableJsx);
   };
 
   // ---------- Sub-page: CLB SAO VIỆT TN TUYỂN DỤNG ----------
+  // Đối tượng: thành viên CLB có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm)
   // Header 2 tầng: tầng trên gộp ô 2 cột "HẠNG VÀNG" / "HẠNG BẠCH KIM"
   //                tầng dưới là 2 cột con: FYP TVVm + TVVm HĐC
   // Below each tier label: hiển thị chỉ tiêu tháng hiện tại ("FYP TVVm >= X trđ" / "TVVm HĐC >= Y")
   const renderCLBSVTNTuyenDung = () => {
     const ranks = [CLBSV_TN_TD_THRESHOLDS.vang, CLBSV_TN_TD_THRESHOLDS.bachkim];
-    const uniqueNhomList: string[] = [];
+    // Source: chỉ TB / TN
+    const sourceMembers = clbMembers.filter(m => isCLBMemberTBorTN(m.chucVu));
+    const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
+    // Apply user filters
+    const filteredMembers = sourceMembers.filter(m => {
+      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNameFilter) {
+        const q = clbsvNameFilter.toLowerCase().trim();
+        if (!String(m.agentCode || '').toLowerCase().includes(q) &&
+            !String(m.agentName || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
     // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm lũy kế + SL TVVm HĐC + (2 sub × 2 ranks) = 6 + 4 = 10
     const totalCols = 6 + ranks.length * 2;
 
@@ -9710,21 +9763,38 @@ export default function QuanLyPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
-              <br />
-              Vui lòng chờ hướng dẫn thêm dữ liệu TN Tuyển Dụng từ quản trị.
-            </TableCell>
-          </TableRow>
+          {filteredMembers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+                Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
+              </TableCell>
+            </TableRow>
+          ) : filteredMembers.map((m, idx) => (
+            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
+                {m.agentName || '—'}
+                {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
+              </TableCell>
+              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+              {ranks.flatMap(rk => [
+                <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>,
+                <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>,
+              ])}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     );
 
-    return renderClbsvDetailShell('tn-td', uniqueNhomList, 0, 0, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
+    return renderClbsvDetailShell('tn-td', uniqueNhomList, filteredMembers.length, 0, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
   };
 
   // ---------- Sub-page: CLB SAO VIỆT TN KTM ----------
+  // Đối tượng: thành viên CLB có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm)
   // Tương tự CÁ NHÂN — 3 hạng: Vàng / Bạch Kim / Kim Cương
   const renderCLBSVTNKTM = () => {
     const ranks = [
@@ -9732,7 +9802,19 @@ export default function QuanLyPage() {
       CLBSV_TN_KTM_THRESHOLDS.bachkim,
       CLBSV_TN_KTM_THRESHOLDS.kimcuong,
     ];
-    const uniqueNhomList: string[] = [];
+    // Source: chỉ TB / TN
+    const sourceMembers = clbMembers.filter(m => isCLBMemberTBorTN(m.chucVu));
+    const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
+    // Apply user filters
+    const filteredMembers = sourceMembers.filter(m => {
+      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNameFilter) {
+        const q = clbsvNameFilter.toLowerCase().trim();
+        if (!String(m.agentCode || '').toLowerCase().includes(q) &&
+            !String(m.agentName || '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
     const totalCols = 5 + ranks.length;
 
     const tableJsx = (
@@ -9763,18 +9845,32 @@ export default function QuanLyPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
-              Chưa có dữ liệu. Bảng chỉ tiêu đã được nạp theo tháng hiện tại.
-              <br />
-              Vui lòng chờ hướng dẫn thêm dữ liệu TN KTM từ quản trị.
-            </TableCell>
-          </TableRow>
+          {filteredMembers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={totalCols} className="text-center text-gray-400 py-12 italic text-xs bg-white">
+                Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
+              </TableCell>
+            </TableRow>
+          ) : filteredMembers.map((m, idx) => (
+            <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
+              <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
+              <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
+                {m.agentName || '—'}
+                {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
+              </TableCell>
+              <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+              {ranks.map(rk => (
+                <TableCell key={rk.label} className="text-[10px] text-center text-gray-300 italic align-middle" style={{ backgroundColor: rk.bg }}>—</TableCell>
+              ))}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     );
 
-    return renderClbsvDetailShell('tn-ktm', uniqueNhomList, 0, 0, 'SL TN đạt', 'Tổng FYP', tableJsx);
+    return renderClbsvDetailShell('tn-ktm', uniqueNhomList, filteredMembers.length, 0, 'SL TN đạt', 'Tổng FYP', tableJsx);
   };
 
   // ---------- CLB Sao Việt overview (list of 3 program cards) ----------

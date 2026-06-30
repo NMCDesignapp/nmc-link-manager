@@ -859,3 +859,25 @@ Stage Summary:
 - Chính Sách mobile: bỏ 2 ô tổng hợp (SL TVV đạt + Tổng thưởng) phía trên bảng
 - Desktop layout: giữ nguyên cho cả 3 (160px banner với poster+filter+summary cards)
 - Footer: vẫn hiển thị Tổng + Tổng FYP/Thưởng ở đáy (cố định)
+
+---
+Task ID: clb-saoviet-doituong-from-members
+Agent: main
+Task: Dùng DS Thành viên CLB để đưa vào danh sách đối tượng của 3 chương trình CLB Sao Việt (CÁ NHÂN / TN TUYỂN DỤNG / TN KTM)
+
+Work Log:
+- Đọc CLBMemberItem interface (id, ad, nhom, agentCode, agentName, chucVu, note) và 3 renderers renderCLBSVCaNhan / renderCLBSVTNTuyenDung / renderCLBSVTNKTM
+- Thêm helper isCLBMemberTBorTN(position) tại module scope (sau isTBorTNPosition) — match "Trưởng ban"/"Trưởng nhóm" hoặc token TB/TN, loại TTN
+- renderCLBSVCaNhan: source = TẤT CẢ clbMembers; build uniqueNhomList từ member.nhom; apply clbsvNhomFilter + clbsvNameFilter; render rows với STT/NHÓM/MÃ SỐ/HỌ TÊN TVV/FYP(—)/rank cells(—)
+- renderCLBSVTNTuyenDung: source = clbMembers.filter(m => isCLBMemberTBorTN(m.chucVu)); render rows có thêm chức vụ sau tên ( "(TB)"/"(TN)" nhỏ bên cạnh ); FYP TVVm + SL TVVm HĐC + 4 rank sub-cells đều "—"
+- renderCLBSVTNKTM: source = clbMembers.filter(m => isCLBMemberTBorTN(m.chucVu)); render rows tương tự CÁ NHÂN nhưng header "HỌ TÊN TN"
+- Footer counts: filteredMembers.length (SL), totalValue = 0 (Tổng FYP placeholder — user sẽ hướng dẫn tính sau)
+- Empty state: nếu filteredMembers.length === 0 → hiển thị message "Chưa có đối tượng. Cần thêm thành viên..."
+- Build Next.js thành công, không có error mới
+
+Stage Summary:
+- 3 trang CLB Sao Việt đã có đối tượng tự động từ DS Thành viên CLB (localStorage nmc-clb-members-v1)
+- CÁ NHÂN: tất cả thành viên; TN TUYỂN DỤNG + TN KTM: chỉ TB/TN
+- Bộ lọc Nhóm + Tên/Mã hoạt động trên 3 trang (persistent state — cùng pattern với Sao Việt Toàn Chặng)
+- FYP + rank cells để trống (—) chờ user hướng dẫn cách tính
+- Helper isCLBMemberTBorTN typescript-safe, loại TTN rõ ràng
