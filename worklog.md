@@ -1070,3 +1070,45 @@ Stage Summary:
 - TN-KTM: bỏ 1 cột THÁNG (TỔNG FYP), còn 8 cột
 - TN-TD + TN-KTM: bỏ chức vụ trong ngoặc ở cột HỌ TÊN
 - TN-TD: tier-1 header (Vàng/Bạch Kim) thu gọn 50%, gradient đậm->nhạt tier-1→tier-2
+
+---
+Task ID: saoviet-contrast-fix
+Agent: main
+Task: Sửa contrast header vs body + số âm in nghiêng ở 3 bảng Sao Việt Toàn Chặng (Cá Nhân, TN-KTM, TN-TD)
+
+Work Log:
+- User yêu cầu: "chỉnh màu lại ở trang sao việt toàn chặng" (lần thứ N — user bực vì lặp lại)
+- Phân tích: cùng vấn đề như CLBSV
+  + Header tier-1 cột hạng dùng t.bg (vd #FEF3C7 amber-100)
+  + Body cell (renderSaoVietRankCell, renderSaoVietRankSubCell) cũng dùng t.bg → CÙNG MÀU
+  + Deficit đang font-bold → user muốn italic + không đậm
+- Tìm thấy: 3 bảng SV đều dùng 2 helper chung
+  + renderSaoVietRankCell (dùng cho SV Cá Nhân + SV TN-KTM)
+  + renderSaoVietRankSubCell (dùng cho SV TN-TD — 2 sub-cols FYP TVVm + TVVm HĐC)
+- Giải pháp: sửa 2 helper 1 lần → fix hết 3 bảng
+
+Thay đổi cụ thể (page.tsx):
+
+1) Helper mới (page.tsx:8772-8782):
+   - svRankBodyBg(headerBg: string): string — hex → rgba(r,g,b,0.08) alpha 8% siêu mờ
+   - Đặt cạnh SV_HEADER_BG/FG/BORDER cho dễ tìm
+
+2) renderSaoVietRankCell (page.tsx:8924-8946):
+   - Body cell achieved: backgroundColor svRankBodyBg(threshold.bg), color #047857, ✓ font-black
+   - Body cell deficit: backgroundColor svRankBodyBg(threshold.bg), color #9CA3AF,
+     italic font-normal (trước: font-bold, backgroundColor threshold.bg)
+
+3) renderSaoVietRankSubCell (page.tsx:8950-8970):
+   - Body cell achieved: backgroundColor svRankBodyBg(bg), color #047857, ✓ font-black
+   - Body cell deficit: backgroundColor svRankBodyBg(bg), color #9CA3AF,
+     italic font-normal (trước: font-bold, backgroundColor bg)
+
+Build: success
+Commit: 1047364
+Push: success (main → 1047364) → trigger Vercel auto-deploy
+
+Stage Summary:
+- 3 bảng SV Toàn Chặng (Cá Nhân, TN-KTM, TN-TD) giờ tuân thủ nguyên tắc: header đậm, body siêu mờ
+- Deficit (số âm): italic font-normal — không còn in đậm
+- Đạt: giữ nguyên font-black + ✓ + số vé (cho SV Cá Nhân/TN-KTM) hoặc ✓ (cho SV TN-TD sub-cols)
+- Pattern đồng bộ với CLBSV (cùng helper concept: clbsvRankBodyBg cho CLBSV, svRankBodyBg cho SV)
