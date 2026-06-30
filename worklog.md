@@ -1112,3 +1112,64 @@ Stage Summary:
 - Deficit (số âm): italic font-normal — không còn in đậm
 - Đạt: giữ nguyên font-black + ✓ + số vé (cho SV Cá Nhân/TN-KTM) hoặc ✓ (cho SV TN-TD sub-cols)
 - Pattern đồng bộ với CLBSV (cùng helper concept: clbsvRankBodyBg cho CLBSV, svRankBodyBg cho SV)
+
+---
+Task ID: pending-members-ip-auto-compute
+Agent: main
+Task: 3 cột IP trong DS Chờ xét gia nhập tự tính từ Hợp đồng theo tháng hiện tại + tiêu đề động
+
+Work Log:
+- User yêu cầu: 3 cột IP(T-2)/IP(T-1)/IP(T) tính dựa trên số liệu trên app, "T" = tháng hiện tại
+- VD: tháng 6 → IP(T-2) = IP T4, IP(T-1) = IP T5, IP(T) = IP T6
+- Tiêu đề 3 cột linh hoạt theo tháng, số liệu tự tính lại khi sang tháng mới
+
+Phân tích:
+- Trước đây: 3 cột IP là EditableCell — nhập tay, lưu DB (ipT2/ipT1/ipT0 fields)
+- User muốn: tự tính từ data Hợp đồng (contracts) theo agentCode + tháng doanh số
+
+Thay đổi cụ thể trong renderPendingMembers (page.tsx:4218-4394):
+
+1) Tính T-2/T-1/T với year wrap:
+   - offsetMonth(offset) = {year, month, label: `T${month}`}
+   - t2 = offsetMonth(-2), t1 = offsetMonth(-1), t0 = offsetMonth(0)
+   - VD tháng 1/2026 → t2 = {2025, 11, 'T11'}, t1 = {2025, 12, 'T12'}, t0 = {2026, 1, 'T1'}
+
+2) Build ipMap: agentCode (lowercase) → { t2, t1, t0 }
+   - Duyệt qua tất cả contracts
+   - Lấy doanhSoMonth qua getDoanhSoMonth(c) (issueDate fallback effectiveDate)
+   - Nếu month/year khớp t2/t1/t0 → cộng dồn FYP vào ipMap[code]
+   - Bỏ qua contracts không có agentCode hoặc không có doanhSoMonth
+
+3) computed = filtered.map → gắn ipT2/ipT1/ipT0 từ ipMap (fallback {0,0,0})
+
+4) Tiêu đề 3 cột động:
+   - 'IP(T-2)' → `IP ${t2.label}` (vd 'IP T4')
+   - 'IP(T-1)' → `IP ${t1.label}` (vd 'IP T5')
+   - 'IP(T)' → `IP ${t0.label}` (vd 'IP T6')
+
+5) 3 ô IP: EditableCell → TableCell read-only
+   - Nếu ip > 0: formatNumber(ip)
+   - Nếu ip = 0: '0' in nghiêng màu xám
+   - Không còn edit tay được
+
+6) KPI cards labels động: 'IP(T-2) tổng' → `IP ${t2.label} tổng`
+
+7) Footer text động: '3 cột IP tự tính từ Hợp đồng trên app (theo tháng T4/2026, T5/2026, T6/2026) • TỔNG CỘNG = IP T4 + IP T5 + IP T6'
+
+8) Bottom total row: giữ nguyên logic (tổng của computed values)
+
+Giữ nguyên:
+- DB schema (ipT2/ipT1/ipT0 fields vẫn còn nhưng không còn dùng cho display)
+- Excel import vẫn nhận ipT2/ipT1/ipT0 (backward compat — sẽ bị override bởi computed values khi render)
+- Excel export vẫn xuất r.ipT2/ipT1/ipT0 (giá trị DB cũ — user có thể cập nhật sau)
+- 6 cột editable: AD, NHÓM, MÃ TVV, HỌ TÊN TVV, CHỨC VỤ, GHI CHÚ
+
+Build: success
+Commit: b0c2436
+Push: success (main → b0c2436) → trigger Vercel auto-deploy
+
+Stage Summary:
+- DS Chờ xét gia nhập giờ tuân thủ nguyên tắc: 3 cột IP auto-compute từ Hợp đồng theo tháng hiện tại
+- Tiêu đề 3 cột động: IP T{t2} / IP T{t1} / IP T{t0} (vd T4/T5/T6 cho tháng 6)
+- Khi sang tháng mới → tự động tính lại + đổi tiêu đề (không cần config gì thêm)
+- Pattern dùng getDoanhSoMonth() — khớp với logic IP ở các bảng khác (Sao Việt, CLBSV, Revenue)
