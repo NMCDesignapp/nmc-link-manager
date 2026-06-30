@@ -557,6 +557,39 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0, roundingMode: 'halfEven' }).format(Math.round(n));
 }
 
+// CheckBadge — dấu tích trong vòng tròn xanh lá, chữ ✓ trắng ở giữa
+// Dùng chung cho 3 trang: Chính sách, Sao Việt, CLB Sao Việt
+// Nguyên tắc (theo yêu cầu user):
+//   - Hình tròn, nền xanh lá (#22C55E), dấu tích trắng ở giữa
+//   - Kích thước cân đối (mặc định 16px) — không làm thay đổi chiều cao dòng
+//   - Dùng inline-flex + flexShrink:0 để không bị co ép khi trong cell hẹp
+//   - fontSize bằng ~62% size để ✓ cân đối trong vòng tròn
+export function CheckBadge({ size = 16 }: { size?: number }) {
+  const fontSize = Math.max(9, Math.round(size * 0.62));
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '50%',
+        backgroundColor: '#22C55E',
+        color: '#FFFFFF',
+        fontSize: `${fontSize}px`,
+        fontWeight: 900,
+        lineHeight: 1,
+        flexShrink: 0,
+        boxShadow: '0 1px 2px rgba(34,197,94,0.35)',
+      }}
+      aria-label="Đạt"
+    >
+      ✓
+    </span>
+  );
+}
+
 // Render nội dung ô TIỀN THƯỞNG / TỔNG TIỀN THƯỞNG — đồng nhất tất cả chính sách
 // Thiết kế: nền trắng (cell), chữ XANH LÁ in đậm to hơn 1 chút (13px), icon 💰 trong chip vàng nhạt (chỉ icon có nền vàng, không tô hết ô)
 export function renderThuongCellContent(amount: number, fontSize: string = '13px', fontWeight: number = 800) {
@@ -2069,13 +2102,46 @@ export default function QuanLyPage() {
   }, [autofillFromAgentCode, fetchClbMembers, fetchPendingMembers]);
 
   // Excel export for CLB Members + Pending Members
+  // QUAN TRỌNG: với pending-members, 3 cột IP phải tự tính từ Hợp đồng theo tháng Phát hành
+  // (đồng nhất với renderPendingMembers) — không dùng giá trị DB cũ (có thể đã stale)
   const handleExportCLBorPending = useCallback(async (which: 'clb-members' | 'pending-members') => {
     try {
       const XLSX = await import('xlsx');
       const list = which === 'clb-members' ? clbMembers : pendingMembers;
+      // Compute T-2/T-1/T relative to current month (year wrap aware) — same logic as renderPendingMembers
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+      const offsetMonth = (offset: number) => {
+        const d = new Date(curYear, curMonth - 1 + offset, 1);
+        return { year: d.getFullYear(), month: d.getMonth() + 1, label: `T${d.getMonth() + 1}` };
+      };
+      const t2 = offsetMonth(-2);
+      const t1 = offsetMonth(-1);
+      const t0 = offsetMonth(0);
+      // Build IP map: agentCode (lowercase) → { t2, t1, t0 }
+      const ipMap: Record<string, { t2: number; t1: number; t0: number }> = {};
+      for (const c of contracts) {
+        const d = getDoanhSoMonth(c);
+        if (isNaN(d.getTime())) continue;
+        const cy = d.getFullYear();
+        const cm = d.getMonth() + 1;
+        const code = (c.agentCode || '').trim().toLowerCase();
+        if (!code) continue;
+        if (!ipMap[code]) ipMap[code] = { t2: 0, t1: 0, t0: 0 };
+        const fyp = c.fyp || 0;
+        if (cy === t2.year && cm === t2.month) ipMap[code].t2 += fyp;
+        else if (cy === t1.year && cm === t1.month) ipMap[code].t1 += fyp;
+        else if (cy === t0.year && cm === t0.month) ipMap[code].t0 += fyp;
+      }
       const rows = which === 'clb-members'
         ? (list as CLBMemberItem[]).map((r, i) => ({ STT: i + 1, AD: r.ad, NHÓM: r.nhom, 'MÃ TVV': r.agentCode, 'HỌ TÊN TVV': r.agentName, 'CHỨC VỤ': r.chucVu, 'GHI CHÚ': r.note }))
-        : (list as PendingMemberItem[]).map((r, i) => ({ STT: i + 1, AD: r.ad, NHÓM: r.nhom, 'MÃ TVV': r.agentCode, 'HỌ TÊN TVV': r.agentName, 'CHỨC VỤ': r.chucVu, 'IP(T-2)': r.ipT2, 'IP(T-1)': r.ipT1, 'IP(T)': r.ipT0, 'TỔNG CỘNG': r.ipT2 + r.ipT1 + r.ipT0, 'GHI CHÚ': r.note }));
+        : (list as PendingMemberItem[]).map((r, i) => {
+          const key = (r.agentCode || '').trim().toLowerCase();
+          const ip = ipMap[key] || { t2: 0, t1: 0, t0: 0 };
+          const total = ip.t2 + ip.t1 + ip.t0;
+          return { STT: i + 1, AD: r.ad, NHÓM: r.nhom, 'MÃ TVV': r.agentCode, 'HỌ TÊN TVV': r.agentName, 'CHỨC VỤ': r.chucVu, [`IP ${t2.label}`]: ip.t2, [`IP ${t1.label}`]: ip.t1, [`IP ${t0.label}`]: ip.t0, 'TỔNG CỘNG': total, 'GHI CHÚ': r.note };
+        });
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, which === 'clb-members' ? 'DS CLB' : 'DS Chờ');
@@ -2084,7 +2150,7 @@ export default function QuanLyPage() {
       console.error('[Export CLB/Pending]', err);
       toast({ title: 'Lỗi xuất file', variant: 'destructive' });
     }
-  }, [clbMembers, pendingMembers]);
+  }, [clbMembers, pendingMembers, contracts]);
 
   // Fetch all data in one request (for initial page load)
   const fetchAllData = useCallback(async () => {
@@ -3955,9 +4021,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('tuyen-ngang')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('tuyen-ngang')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-auto border border-emerald-600" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+            <TableHeader className="sticky top-0 z-10"><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
               {[
                 { f: 'nhom', l: 'Nhóm' },
@@ -4068,9 +4134,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleDownloadTemplate('structure-tvv')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('structure-tvv')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-auto border border-emerald-600" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+            <TableHeader className="sticky top-0 z-10"><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               {[
                 { f: 'agentCode', l: 'Mã TVV' },
                 { f: 'agentName', l: 'Họ tên' },
@@ -4181,9 +4247,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleExportCLBorPending('clb-members')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         {/* Bảng 7 cột */}
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-auto border border-emerald-600" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+            <TableHeader className="sticky top-0 z-10"><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
@@ -4334,9 +4400,9 @@ export default function QuanLyPage() {
           <Button onClick={() => handleExportCLBorPending('pending-members')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
         {/* Bảng 11 cột — tiêu đề 3 cột IP động theo tháng */}
-        <div className="overflow-x-auto border border-emerald-600">
+        <div className="overflow-auto border border-emerald-600" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <Table>
-            <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
+            <TableHeader className="sticky top-0 z-10"><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap w-[40px]">STT</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">AD</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">NHÓM</TableHead>
@@ -4387,7 +4453,7 @@ export default function QuanLyPage() {
           </Table>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          {filtered.length} dòng • 3 cột IP tự tính từ Hợp đồng trên app (theo tháng {t2.label}/{t2.year}, {t1.label}/{t1.year}, {t0.label}/{t0.year}) • TỔNG CỘNG = IP {t2.label} + IP {t1.label} + IP {t0.label}
+          {filtered.length} dòng • 3 cột IP tự tính từ Hợp đồng trên app — tháng tính theo <span className="font-bold text-gray-700">Ngày Phát hành</span> (nếu trống thì lấy theo Ngày Hiệu lực) — kỳ {t2.label}/{t2.year}, {t1.label}/{t1.year}, {t0.label}/{t0.year} • TỔNG CỘNG = IP {t2.label} + IP {t1.label} + IP {t0.label}
         </p>
       </div>
     );
@@ -6885,7 +6951,7 @@ export default function QuanLyPage() {
                   <td className="text-[11px] font-bold text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#BFDBFE', backgroundColor: '#DBEAFE', color: '#1E40AF' }}>{row.tongFYPQuy > 0 ? formatNumber(row.tongFYPQuy) : '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5' }}>
                     {row.hasTVVmHDC ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#22C55E', color: '#FFFFFF', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✓</span>
+                      <CheckBadge size={16} />
                     ) : (
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#EF4444', color: '#FFFFFF', fontSize: '11px', fontWeight: 900, lineHeight: 1 }}>✗</span>
                     )}
@@ -8975,10 +9041,13 @@ export default function QuanLyPage() {
     if (achieved) {
       return (
         <TableCell
-          className="text-xs text-center p-1 whitespace-nowrap font-black"
+          className="text-xs text-center p-1 whitespace-nowrap font-bold"
           style={{ backgroundColor: svRankBodyBg(threshold.bg), color: '#047857' }}
         >
-          ✓ {threshold.vouchers} vé
+          <span className="inline-flex items-center gap-1 justify-center">
+            <CheckBadge size={14} />
+            <span className="font-black">{threshold.vouchers} vé</span>
+          </span>
         </TableCell>
       );
     }
@@ -9000,10 +9069,10 @@ export default function QuanLyPage() {
     if (achieved) {
       return (
         <TableCell
-          className="text-xs text-center p-1 font-black"
-          style={{ backgroundColor: svRankBodyBg(bg), color: '#047857' }}
+          className="text-xs text-center p-1"
+          style={{ backgroundColor: svRankBodyBg(bg) }}
         >
-          ✓
+          <CheckBadge size={14} />
         </TableCell>
       );
     }
@@ -9990,7 +10059,9 @@ export default function QuanLyPage() {
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#047857' }}>✓</TableCell>
+                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg) }}>
+                        <CheckBadge size={13} />
+                      </TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
@@ -10120,10 +10191,10 @@ export default function QuanLyPage() {
                   const hdcDeficit = Math.max(0, hdcThreshold - slHdcLuyKe);
                   return [
                     <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: fypAchieved ? '#047857' : '#9CA3AF' }}>
-                      {fypAchieved ? <span className="font-black">✓</span> : <span className="italic font-normal">{formatDeficit(fypDeficit)}</span>}
+                      {fypAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">{formatDeficit(fypDeficit)}</span>}
                     </TableCell>,
                     <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
-                      {hdcAchieved ? <span className="font-black">✓</span> : <span className="italic font-normal">-{hdcDeficit}</span>}
+                      {hdcAchieved ? <CheckBadge size={13} /> : <span className="italic font-normal">-{hdcDeficit}</span>}
                     </TableCell>,
                   ];
                 })}
@@ -10214,7 +10285,9 @@ export default function QuanLyPage() {
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#047857' }}>✓</TableCell>
+                      <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg) }}>
+                        <CheckBadge size={13} />
+                      </TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
