@@ -1817,6 +1817,8 @@ export default function QuanLyPage() {
   }, []);
 
   // One-time migration: localStorage → DB (chạy 1 lần khi chưa có data trong DB)
+  // CRITICAL: Chỉ xóa localStorage sau khi DB write THÀNH CÔNG + verify bằng re-fetch.
+  // Nếu POST fail (server error, DB schema chưa apply, network issue) → GIỮ localStorage để retry lần sau.
   useEffect(() => {
     (async () => {
       try {
@@ -1833,24 +1835,57 @@ export default function QuanLyPage() {
         const clbDb: CLBMemberItem[] = clbRes.ok ? await clbRes.json() : [];
         const pendingDb: PendingMemberItem[] = pendingRes.ok ? await pendingRes.json() : [];
 
-        // Nếu DB rỗng NHƯNG localStorage có data → migrate lên DB
+        // Migrate CLB: chỉ nếu DB rỗng + localStorage có data
         if (clbDb.length === 0 && clbLocal.length > 0) {
-          await fetch('/api/clb-members', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(clbLocal),
-          });
+          try {
+            const r = await fetch('/api/clb-members', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(clbLocal),
+            });
+            if (!r.ok) throw new Error(`POST /api/clb-members failed: ${r.status}`);
+            // Verify: re-fetch để confirm DB đã có data
+            const verify = await fetch('/api/clb-members');
+            const verifyRows: CLBMemberItem[] = verify.ok ? await verify.json() : [];
+            if (verifyRows.length >= clbLocal.length) {
+              localStorage.removeItem('nmc-clb-members-v1');
+              console.log('[CLB migration] OK: migrated', clbLocal.length, 'rows to DB, localStorage cleared');
+            } else {
+              console.warn('[CLB migration] Verify failed: expected', clbLocal.length, 'got', verifyRows.length, '— giữ localStorage để retry');
+            }
+          } catch (e) {
+            console.error('[CLB migration] FAILED — giữ localStorage để retry lần sau:', e);
+          }
+        } else if (clbLocal.length > 0 && clbDb.length > 0) {
+          // DB đã có data → xóa localStorage (không cần migrate nữa)
+          localStorage.removeItem('nmc-clb-members-v1');
+          console.log('[CLB migration] DB đã có data, localStorage cleared');
         }
+
+        // Migrate Pending: tương tự
         if (pendingDb.length === 0 && pendingLocal.length > 0) {
-          await fetch('/api/pending-members', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(pendingLocal),
-          });
+          try {
+            const r = await fetch('/api/pending-members', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(pendingLocal),
+            });
+            if (!r.ok) throw new Error(`POST /api/pending-members failed: ${r.status}`);
+            const verify = await fetch('/api/pending-members');
+            const verifyRows: PendingMemberItem[] = verify.ok ? await verify.json() : [];
+            if (verifyRows.length >= pendingLocal.length) {
+              localStorage.removeItem('nmc-pending-members-v1');
+              console.log('[Pending migration] OK: migrated', pendingLocal.length, 'rows to DB, localStorage cleared');
+            } else {
+              console.warn('[Pending migration] Verify failed: expected', pendingLocal.length, 'got', verifyRows.length, '— giữ localStorage để retry');
+            }
+          } catch (e) {
+            console.error('[Pending migration] FAILED — giữ localStorage để retry lần sau:', e);
+          }
+        } else if (pendingLocal.length > 0 && pendingDb.length > 0) {
+          localStorage.removeItem('nmc-pending-members-v1');
+          console.log('[Pending migration] DB đã có data, localStorage cleared');
         }
-        // Xóa localStorage sau khi migrate (dù thành công hay không — tránh dữ liệu cũ)
-        if (clbLocal.length > 0) localStorage.removeItem('nmc-clb-members-v1');
-        if (pendingLocal.length > 0) localStorage.removeItem('nmc-pending-members-v1');
 
         // Re-fetch để set state với data mới nhất từ DB
         await Promise.all([fetchClbMembers(), fetchPendingMembers()]);
