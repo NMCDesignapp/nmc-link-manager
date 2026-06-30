@@ -1173,3 +1173,68 @@ Stage Summary:
 - Tiêu đề 3 cột động: IP T{t2} / IP T{t1} / IP T{t0} (vd T4/T5/T6 cho tháng 6)
 - Khi sang tháng mới → tự động tính lại + đổi tiêu đề (không cần config gì thêm)
 - Pattern dùng getDoanhSoMonth() — khớp với logic IP ở các bảng khác (Sao Việt, CLBSV, Revenue)
+
+---
+Task ID: review-pass-1
+Agent: main
+Task: (1) IP tính theo tháng Phát hành, (2) dấu tích → CheckBadge xanh lá, (3) sticky header cho DS đông người, (4) rà soát toàn app
+
+Work Log:
+- User yêu cầu 4 việc:
+  1. IP tính theo tháng Phát hành (đã đúng — getDoanhSoMonth ưu tiên issueDate)
+  2. Dấu tích ở 3 trang (chính sách, sao việt, clb sao việt) hiển thị dạng hình tròn nền xanh lá, dấu tích trắng ở giữa, kích thước cân đối, không thay đổi chiều cao dòng
+  3. Chương trình dành cho nhóm (27 nhóm) không cần cố định tiêu đề; chương trình đông người thì cố định tiêu đề
+  4. Rà soát toàn app, fix lỗi và nguy cơ
+
+Thay đổi cụ thể (page.tsx):
+
+1) Helper CheckBadge (page.tsx:560-591):
+   - Function component: `<CheckBadge size={16} />`
+   - Hình tròn, nền #22C55E (xanh lá), chữ ✓ trắng, fontWeight 900
+   - fontSize = max(9, round(size * 0.62)) — cân đối trong vòng tròn
+   - inline-flex + flexShrink:0 — không bị co ép khi cell hẹp
+   - boxShadow nhẹ cho chiều sâu
+   - Dùng chung cho 3 trang
+
+2) Áp dụng CheckBadge (8 vị trí):
+   - Line 6921: Quý TN TVVm HĐC (size=16) — thay inline span cũ
+   - Line 9015: renderSaoVietRankCell (size=14) — ✓ + voucher count
+   - Line 9042: renderSaoVietRankSubCell (size=14) — chỉ ✓
+   - Line 10030: CLBSV Cá Nhân (size=13) — chỉ ✓
+   - Line 10161: CLBSV TN-TD FYP sub-cell (size=13) — chỉ ✓
+   - Line 10164: CLBSV TN-TD HĐC sub-cell (size=13) — chỉ ✓
+   - Line 10256: CLBSV TN-KTM (size=13) — chỉ ✓
+
+3) Sticky header cho 4 DS tables đông người:
+   - renderTuyenNgang (DS TTN Tuyển Ngang)
+   - renderTvvList (DS TVV)
+   - renderCLBMembers (DS Thành viên CLB)
+   - renderPendingMembers (DS Chờ xét gia nhập)
+   - Container: overflow-auto + maxHeight: calc(100vh - 220px)
+   - TableHeader: className="sticky top-0 z-10"
+   - DS TB/TN (renderLeaders) + DS TTN (renderRecruiters): GIỮ NGUYÊN không sticky
+     (vì 27 rows — dành cho nhóm, theo yêu cầu user)
+
+4) IP calculation (page.tsx:4390):
+   - Footer text cập nhật: "tháng tính theo Ngày Phát hành (nếu trống thì lấy theo Ngày Hiệu lực)"
+   - renderPendingMembers đã dùng getDoanhSoMonth (issueDate first, fallback effectiveDate) — đúng spec
+
+5) Excel export pending-members (page.tsx:2107-2153):
+   - TRƯỚC: xuất r.ipT2/r.ipT1/r.ipT0 từ DB (giá trị cũ, có thể stale)
+   - SAU: tự tính ipMap từ contracts theo tháng Phát hành (đồng nhất với display)
+   - Tiêu đề cột động: 'IP T4' / 'IP T5' / 'IP T6' (thay vì 'IP(T-2)' / 'IP(T-1)' / 'IP(T)')
+   - Thêm 'contracts' vào useCallback deps
+   - Thêm TỔNG CỘNG = ip.t2 + ip.t1 + ip.t0 (computed)
+
+Build: success (6.3s)
+Commit: 211b842
+Push: success (main → 211b842) → trigger Vercel auto-deploy
+
+Stage Summary:
+- 3 trang (chính sách, sao việt, clb sao việt): dấu tích đồng nhất — vòng tròn xanh lá, ✓ trắng, cân đối
+- 4 DS tables (TVV, CLB, Pending, Tuyen Ngang): sticky header khi scroll
+- 2 DS tables (TB/TN, TTN): không sticky (27 rows, dành cho nhóm)
+- IP calculation: đã đúng theo tháng Phát hành (getDoanhSoMonth)
+- Excel export: IP tự tính từ contracts, không còn dùng DB stale values
+- Footer text: rõ ràng nguồn tháng (Phát hành, fallback Hiệu lực)
+- Ko thay đổi DB schema, ko thay đổi import (backward compat)
