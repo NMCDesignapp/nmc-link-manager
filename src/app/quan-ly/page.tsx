@@ -1675,7 +1675,7 @@ export default function QuanLyPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [tuyenNgangList, setTuyenNgangList] = useState<TuyenNgangItem[]>([]);
-  // CLB Members + Pending Members — localStorage backed (no API)
+  // CLB Members + Pending Members — DB-backed (đồng bộ đa thiết bị)
   const [clbMembers, setClbMembers] = useState<CLBMemberItem[]>([]);
   const [pendingMembers, setPendingMembers] = useState<PendingMemberItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1800,64 +1800,149 @@ export default function QuanLyPage() {
     try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch {}
   }, []);
 
-  // ========== CLB Members + Pending Members: localStorage persistence ==========
-  // Load from localStorage on mount
-  useEffect(() => {
+  // ========== CLB Members + Pending Members: DB-backed (đồng bộ đa thiết bị) ==========
+  // Migration: nếu có data cũ trong localStorage → push lên DB 1 lần rồi xóa localStorage
+  // Sau đó load từ API mỗi lần vào trang
+  const fetchClbMembers = useCallback(async () => {
     try {
-      const clbRaw = localStorage.getItem('nmc-clb-members-v1');
-      if (clbRaw) setClbMembers(JSON.parse(clbRaw));
-      const pendingRaw = localStorage.getItem('nmc-pending-members-v1');
-      if (pendingRaw) setPendingMembers(JSON.parse(pendingRaw));
+      const r = await fetch('/api/clb-members');
+      if (r.ok) setClbMembers(await r.json());
+    } catch {}
+  }, []);
+  const fetchPendingMembers = useCallback(async () => {
+    try {
+      const r = await fetch('/api/pending-members');
+      if (r.ok) setPendingMembers(await r.json());
     } catch {}
   }, []);
 
-  // Persist on change
-  const persistClb = useCallback((list: CLBMemberItem[]) => {
-    try { localStorage.setItem('nmc-clb-members-v1', JSON.stringify(list)); } catch {}
-  }, []);
-  const persistPending = useCallback((list: PendingMemberItem[]) => {
-    try { localStorage.setItem('nmc-pending-members-v1', JSON.stringify(list)); } catch {}
-  }, []);
+  // One-time migration: localStorage → DB (chạy 1 lần khi chưa có data trong DB)
+  useEffect(() => {
+    (async () => {
+      try {
+        const clbRaw = localStorage.getItem('nmc-clb-members-v1');
+        const pendingRaw = localStorage.getItem('nmc-pending-members-v1');
+        const clbLocal: CLBMemberItem[] = clbRaw ? JSON.parse(clbRaw) : [];
+        const pendingLocal: PendingMemberItem[] = pendingRaw ? JSON.parse(pendingRaw) : [];
 
-  // CRUD: CLB Members
-  const addClbMember = useCallback(() => {
-    const newItem: CLBMemberItem = {
-      id: 'clb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', note: '',
-    };
-    setClbMembers(prev => { const next = [newItem, ...prev]; persistClb(next); return next; });
-  }, [persistClb]);
-  const updateClbMember = useCallback((id: string, field: keyof CLBMemberItem, value: any) => {
-    setClbMembers(prev => {
-      const next = prev.map(m => m.id === id ? { ...m, [field]: value } : m);
-      persistClb(next);
-      return next;
-    });
-  }, [persistClb]);
-  const deleteClbMember = useCallback((id: string) => {
-    if (!confirm('Xóa dòng này?')) return;
-    setClbMembers(prev => { const next = prev.filter(m => m.id !== id); persistClb(next); return next; });
-  }, [persistClb]);
+        // Fetch existing DB rows
+        const [clbRes, pendingRes] = await Promise.all([
+          fetch('/api/clb-members'),
+          fetch('/api/pending-members'),
+        ]);
+        const clbDb: CLBMemberItem[] = clbRes.ok ? await clbRes.json() : [];
+        const pendingDb: PendingMemberItem[] = pendingRes.ok ? await pendingRes.json() : [];
 
-  // CRUD: Pending Members
-  const addPendingMember = useCallback(() => {
-    const newItem: PendingMemberItem = {
-      id: 'pen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', ipT2: 0, ipT1: 0, ipT0: 0, note: '',
-    };
-    setPendingMembers(prev => { const next = [newItem, ...prev]; persistPending(next); return next; });
-  }, [persistPending]);
-  const updatePendingMember = useCallback((id: string, field: keyof PendingMemberItem, value: any) => {
-    setPendingMembers(prev => {
-      const next = prev.map(m => m.id === id ? { ...m, [field]: value } : m);
-      persistPending(next);
-      return next;
-    });
-  }, [persistPending]);
-  const deletePendingMember = useCallback((id: string) => {
+        // Nếu DB rỗng NHƯNG localStorage có data → migrate lên DB
+        if (clbDb.length === 0 && clbLocal.length > 0) {
+          await fetch('/api/clb-members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(clbLocal),
+          });
+        }
+        if (pendingDb.length === 0 && pendingLocal.length > 0) {
+          await fetch('/api/pending-members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pendingLocal),
+          });
+        }
+        // Xóa localStorage sau khi migrate (dù thành công hay không — tránh dữ liệu cũ)
+        if (clbLocal.length > 0) localStorage.removeItem('nmc-clb-members-v1');
+        if (pendingLocal.length > 0) localStorage.removeItem('nmc-pending-members-v1');
+
+        // Re-fetch để set state với data mới nhất từ DB
+        await Promise.all([fetchClbMembers(), fetchPendingMembers()]);
+      } catch (e) {
+        console.error('[CLB/Pending migration]', e);
+        // Fallback: thử fetch bình thường
+        await Promise.all([fetchClbMembers(), fetchPendingMembers()]);
+      }
+    })();
+  }, [fetchClbMembers, fetchPendingMembers]);
+
+  // CRUD: CLB Members — gọi API, update state optimistic
+  const addClbMember = useCallback(async () => {
+    try {
+      const r = await fetch('/api/clb-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', note: '' }),
+      });
+      if (r.ok) { const n: CLBMemberItem = await r.json(); setClbMembers(prev => [n, ...prev]); toast({ title: 'Đã thêm' }); }
+    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const updateClbMember = useCallback(async (id: string, field: keyof CLBMemberItem, value: any) => {
+    // Optimistic update
+    setClbMembers(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+    try {
+      const r = await fetch(`/api/clb-members/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!r.ok) {
+        // Revert: re-fetch
+        await fetchClbMembers();
+        toast({ title: 'Lỗi lưu', variant: 'destructive' });
+      }
+    } catch {
+      await fetchClbMembers();
+      toast({ title: 'Lỗi mạng', variant: 'destructive' });
+    }
+  }, [fetchClbMembers]);
+  const deleteClbMember = useCallback(async (id: string) => {
     if (!confirm('Xóa dòng này?')) return;
-    setPendingMembers(prev => { const next = prev.filter(m => m.id !== id); persistPending(next); return next; });
-  }, [persistPending]);
+    setClbMembers(prev => prev.filter(m => m.id !== id));
+    try {
+      await fetch(`/api/clb-members/${id}`, { method: 'DELETE' });
+      toast({ title: 'Đã xóa' });
+    } catch {
+      await fetchClbMembers();
+      toast({ title: 'Lỗi mạng', variant: 'destructive' });
+    }
+  }, [fetchClbMembers]);
+
+  // CRUD: Pending Members — tương tự
+  const addPendingMember = useCallback(async () => {
+    try {
+      const r = await fetch('/api/pending-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ad: '', nhom: '', agentCode: '', agentName: '', chucVu: '', ipT2: 0, ipT1: 0, ipT0: 0, note: '' }),
+      });
+      if (r.ok) { const n: PendingMemberItem = await r.json(); setPendingMembers(prev => [n, ...prev]); toast({ title: 'Đã thêm' }); }
+    } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+  }, []);
+  const updatePendingMember = useCallback(async (id: string, field: keyof PendingMemberItem, value: any) => {
+    setPendingMembers(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+    try {
+      const r = await fetch(`/api/pending-members/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!r.ok) {
+        await fetchPendingMembers();
+        toast({ title: 'Lỗi lưu', variant: 'destructive' });
+      }
+    } catch {
+      await fetchPendingMembers();
+      toast({ title: 'Lỗi mạng', variant: 'destructive' });
+    }
+  }, [fetchPendingMembers]);
+  const deletePendingMember = useCallback(async (id: string) => {
+    if (!confirm('Xóa dòng này?')) return;
+    setPendingMembers(prev => prev.filter(m => m.id !== id));
+    try {
+      await fetch(`/api/pending-members/${id}`, { method: 'DELETE' });
+      toast({ title: 'Đã xóa' });
+    } catch {
+      await fetchPendingMembers();
+      toast({ title: 'Lỗi mạng', variant: 'destructive' });
+    }
+  }, [fetchPendingMembers]);
 
   // Autofill AD/Nhóm/Họ tên TVV từ MÃ TVV — lookup tvvStructList → banNhomList → adList
   const autofillFromAgentCode = useCallback((agentCode: string): { ad: string; nhom: string; agentName: string } | null => {
@@ -1874,7 +1959,7 @@ export default function QuanLyPage() {
     };
   }, [tvvStructList, banNhomList, adList]);
 
-  // Excel import for CLB Members + Pending Members — parse xlsx/csv and append to localStorage
+  // Excel import for CLB Members + Pending Members — parse xlsx/csv, append vào DB
   const handleImportCLBorPending = useCallback(async (which: 'clb-members' | 'pending-members', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1888,11 +1973,10 @@ export default function QuanLyPage() {
       const strVal = (v: any) => String(v ?? '').trim();
 
       if (which === 'clb-members') {
-        const rows: CLBMemberItem[] = data.map((r: any) => {
+        const rows = data.map((r: any) => {
           const agentCode = strVal(r['MÃ TVV'] || r['Mã TVV'] || r['agentCode'] || r['MÃ SỐ'] || r['Mã số']);
           const auto = agentCode ? autofillFromAgentCode(agentCode) : null;
           return {
-            id: 'clb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
             ad: strVal(r['AD'] || r['ad'] || (auto?.ad ?? '')),
             nhom: strVal(r['NHÓM'] || r['Nhóm'] || r['nhom'] || (auto?.nhom ?? '')),
             agentCode,
@@ -1902,14 +1986,22 @@ export default function QuanLyPage() {
           };
         }).filter(r => r.agentCode || r.agentName);
         if (!rows.length) { toast({ title: 'Không có dòng hợp lệ', variant: 'destructive' }); e.target.value = ''; return; }
-        setClbMembers(prev => { const next = [...rows, ...prev]; persistClb(next); return next; });
-        toast({ title: `Đã import ${rows.length} dòng vào DS Thành viên CLB` });
+        const r = await fetch('/api/clb-members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rows),
+        });
+        if (r.ok) {
+          await fetchClbMembers();
+          toast({ title: `Đã import ${rows.length} dòng vào DS Thành viên CLB` });
+        } else {
+          toast({ title: 'Lỗi import', variant: 'destructive' });
+        }
       } else {
-        const rows: PendingMemberItem[] = data.map((r: any) => {
+        const rows = data.map((r: any) => {
           const agentCode = strVal(r['MÃ TVV'] || r['Mã TVV'] || r['agentCode'] || r['MÃ SỐ'] || r['Mã số']);
           const auto = agentCode ? autofillFromAgentCode(agentCode) : null;
           return {
-            id: 'pen_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
             ad: strVal(r['AD'] || r['ad'] || (auto?.ad ?? '')),
             nhom: strVal(r['NHÓM'] || r['Nhóm'] || r['nhom'] || (auto?.nhom ?? '')),
             agentCode,
@@ -1922,15 +2014,24 @@ export default function QuanLyPage() {
           };
         }).filter(r => r.agentCode || r.agentName);
         if (!rows.length) { toast({ title: 'Không có dòng hợp lệ', variant: 'destructive' }); e.target.value = ''; return; }
-        setPendingMembers(prev => { const next = [...rows, ...prev]; persistPending(next); return next; });
-        toast({ title: `Đã import ${rows.length} dòng vào DS Chờ xét gia nhập` });
+        const r = await fetch('/api/pending-members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rows),
+        });
+        if (r.ok) {
+          await fetchPendingMembers();
+          toast({ title: `Đã import ${rows.length} dòng vào DS Chờ xét gia nhập` });
+        } else {
+          toast({ title: 'Lỗi import', variant: 'destructive' });
+        }
       }
     } catch (err) {
       console.error('[Import CLB/Pending]', err);
       toast({ title: 'Lỗi import', variant: 'destructive' });
     }
     e.target.value = '';
-  }, [autofillFromAgentCode, persistClb, persistPending]);
+  }, [autofillFromAgentCode, fetchClbMembers, fetchPendingMembers]);
 
   // Excel export for CLB Members + Pending Members
   const handleExportCLBorPending = useCallback(async (which: 'clb-members' | 'pending-members') => {
@@ -3979,25 +4080,35 @@ export default function QuanLyPage() {
 
   // ========== RENDER: DS Thành viên CLB ==========
   // Bảng 7 cột: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - CHỨC VỤ - GHI CHÚ
-  // Dữ liệu lưu localStorage (nmc-clb-members-v1)
+  // Dữ liệu lưu DB (đồng bộ đa thiết bị) — bảng ClbMember
   // Khi nhập MÃ TVV → tự động điền AD/Nhóm/HỌ TÊN TVV từ DS TVV tổng
   const renderCLBMembers = () => {
     const filtered = getFiltered(clbMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
-    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV
-    const handleAgentCodeChange = (id: string, newCode: string) => {
+    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV, rồi PATCH tất cả field về DB
+    const handleAgentCodeChange = async (id: string, newCode: string) => {
       const auto = autofillFromAgentCode(newCode);
       if (auto) {
-        setClbMembers(prev => {
-          const next = prev.map(m => m.id === id ? {
-            ...m,
-            agentCode: newCode,
-            ad: auto.ad || m.ad,
-            nhom: auto.nhom || m.nhom,
-            agentName: auto.agentName || m.agentName,
-          } : m);
-          persistClb(next);
-          return next;
-        });
+        const patch = {
+          agentCode: newCode,
+          ad: auto.ad || '',
+          nhom: auto.nhom || '',
+          agentName: auto.agentName || '',
+        };
+        // Optimistic update
+        setClbMembers(prev => prev.map(m => m.id === id ? {
+          ...m, ...patch,
+          ad: patch.ad || m.ad,
+          nhom: patch.nhom || m.nhom,
+          agentName: patch.agentName || m.agentName,
+        } : m));
+        try {
+          const r = await fetch(`/api/clb-members/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+          });
+          if (!r.ok) { await fetchClbMembers(); toast({ title: 'Lỗi lưu', variant: 'destructive' }); }
+        } catch { await fetchClbMembers(); toast({ title: 'Lỗi mạng', variant: 'destructive' }); }
       } else {
         updateClbMember(id, 'agentCode', newCode);
       }
@@ -4079,21 +4190,30 @@ export default function QuanLyPage() {
     const totalT1 = filtered.reduce((s, m) => s + (m.ipT1 || 0), 0);
     const totalT0 = filtered.reduce((s, m) => s + (m.ipT0 || 0), 0);
     const totalAll = totalT2 + totalT1 + totalT0;
-    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV
-    const handleAgentCodeChange = (id: string, newCode: string) => {
+    // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV, rồi PATCH về DB
+    const handleAgentCodeChange = async (id: string, newCode: string) => {
       const auto = autofillFromAgentCode(newCode);
       if (auto) {
-        setPendingMembers(prev => {
-          const next = prev.map(m => m.id === id ? {
-            ...m,
-            agentCode: newCode,
-            ad: auto.ad || m.ad,
-            nhom: auto.nhom || m.nhom,
-            agentName: auto.agentName || m.agentName,
-          } : m);
-          persistPending(next);
-          return next;
-        });
+        const patch = {
+          agentCode: newCode,
+          ad: auto.ad || '',
+          nhom: auto.nhom || '',
+          agentName: auto.agentName || '',
+        };
+        setPendingMembers(prev => prev.map(m => m.id === id ? {
+          ...m, ...patch,
+          ad: patch.ad || m.ad,
+          nhom: patch.nhom || m.nhom,
+          agentName: patch.agentName || m.agentName,
+        } : m));
+        try {
+          const r = await fetch(`/api/pending-members/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+          });
+          if (!r.ok) { await fetchPendingMembers(); toast({ title: 'Lỗi lưu', variant: 'destructive' }); }
+        } catch { await fetchPendingMembers(); toast({ title: 'Lỗi mạng', variant: 'destructive' }); }
       } else {
         updatePendingMember(id, 'agentCode', newCode);
       }
@@ -4265,6 +4385,8 @@ export default function QuanLyPage() {
   const [saovietNameFilter, setSaovietNameFilter] = useState<string>('');
   // Settings modal toggle (overview page only) — contains all sync/upload panels
   const [saovietSettingsOpen, setSaovietSettingsOpen] = useState<boolean>(false);
+  // CLB Sao Việt settings modal — quản lý poster cho 3 chương trình CLBSV (ngoài detail tables)
+  const [clbsvSettingsOpen, setClbsvSettingsOpen] = useState<boolean>(false);
 
   // Update summary boxes (top) + footer (bottom) khi policy/filter thay đổi
   // Mỗi render function thêm data-policy-count + data-policy-amount vào div ngoài cùng của bảng
@@ -9616,7 +9738,7 @@ export default function QuanLyPage() {
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
           <div className="md:hidden flex flex-col flex-1 min-h-0">
-            {/* Poster — full width 16:9, có nút upload/delete góc phải */}
+            {/* Poster — full width 16:9, chỉ hiển thị (quản lý trong Cài đặt) */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -9627,26 +9749,6 @@ export default function QuanLyPage() {
                   <span className="italic">Chưa có poster</span>
                   <span className="text-[8px] text-white/40">Quản lý trong Cài đặt</span>
                 </div>
-              )}
-              {/* Upload button overlay (góc phải trên) */}
-              <label className="absolute top-1 right-1 z-10 bg-black/60 hover:bg-black/80 text-white rounded p-1 cursor-pointer transition-colors">
-                <Upload className="w-3 h-3" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => handleClbsvPosterUpload(program, e)}
-                  disabled={isUploading}
-                />
-              </label>
-              {posterUrl && (
-                <button
-                  onClick={() => handleClbsvPosterDelete(program)}
-                  className="absolute top-1 right-8 z-10 bg-red-600/80 hover:bg-red-600 text-white rounded p-1 transition-colors"
-                  title="Xóa poster"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
               )}
               {/* Bottom gradient + program name overlay */}
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
@@ -10030,17 +10132,28 @@ export default function QuanLyPage() {
   // ---------- CLB Sao Việt overview (list of 3 program cards) ----------
   const renderCLBSaoVietList = () => (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <h2 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
           <Award className="w-4 h-4 text-amber-300" /> TỔNG QUAN CLB SAO VIỆT
         </h2>
-        <span className="text-[10px] text-amber-200/80 italic">
-          Chỉ tiêu tự động cập nhật theo tháng hiện tại
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-amber-200/80 italic hidden sm:inline">
+            Chỉ tiêu tự động cập nhật theo tháng hiện tại
+          </span>
+          <button
+            onClick={() => setClbsvSettingsOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+            style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Cài đặt dữ liệu
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {CLBSV_ITEMS.map(item => {
           const IIcon = item.icon;
+          const posterUrl = clbsvPosters[item.key] || '';
           return (
             <button
               key={item.key}
@@ -10055,12 +10168,17 @@ export default function QuanLyPage() {
                 className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
                 style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
               />
-              {/* Poster placeholder — solid color block with icon */}
+              {/* Poster — hiển thị ảnh nếu có, fallback gradient + icon */}
               <div
                 className="relative w-full flex items-center justify-center overflow-hidden"
-                style={{ aspectRatio: '16 / 9', background: `linear-gradient(135deg, ${item.color}55, ${item.color}22)` }}
+                style={{ aspectRatio: '16 / 9', background: posterUrl ? '#000' : `linear-gradient(135deg, ${item.color}55, ${item.color}22)` }}
               >
-                <IIcon className="w-12 h-12 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                {posterUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={posterUrl} alt={item.label} className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <IIcon className="w-12 h-12 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                )}
                 <span className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
               </div>
               {/* Bottom: label + description */}
@@ -10472,6 +10590,104 @@ export default function QuanLyPage() {
                 onClick={() => setSaovietSettingsOpen(false)}
                 className="px-4 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
                 style={{ backgroundColor: '#D97706', border: '1px solid #B45309' }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== CLB SAO VIỆT Settings Modal — quản lý poster 3 chương trình ========== */}
+      {/* Tách riêng khỏi detail tables — detail chỉ xem, cài đặt ở đây */}
+      {clbsvSettingsOpen && (
+        <div className="fixed inset-0 z-[700] bg-black/70 flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-[#1a2332] border-2 border-blue-500/50 rounded-lg w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden" style={{ boxShadow: '0 12px 50px rgba(0,0,0,0.7)' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b-2 border-blue-500/40" style={{ backgroundColor: '#1E3A8A' }}>
+              <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                <Settings className="w-4 h-4" /> CÀI ĐẶT DỮ LIỆU CLB SAO VIỆT
+              </h3>
+              <button
+                onClick={() => setClbsvSettingsOpen(false)}
+                className="text-white/80 hover:text-white p-1 hover:bg-white/10 rounded transition-colors"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Body — poster management per program */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+              <p className="text-[11px] text-blue-200/70 leading-relaxed">
+                Quản lý ảnh poster 16:9 cho 3 chương trình CLB Sao Việt. Đối tượng được lấy tự động từ <strong>DS Thành viên CLB</strong> (Cấu trúc → DS Thành viên CLB).
+              </p>
+
+              {CLBSV_ITEMS.map(item => {
+                const IIcon = item.icon;
+                const posterUrl = clbsvPosters[item.key] || '';
+                const isUploading = !!clbsvPosterUploading[item.key];
+                return (
+                  <div key={item.key} className="p-3 border border-blue-500/30 rounded-md" style={{ backgroundColor: 'rgba(30, 58, 138, 0.10)' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <IIcon className="w-3.5 h-3.5" style={{ color: item.color }} />
+                      <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: item.color }}>{item.label}</h4>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      {/* Preview thumbnail */}
+                      <div className="w-24 h-14 rounded overflow-hidden border flex-shrink-0 bg-black/40 flex items-center justify-center" style={{ borderColor: `${item.color}44` }}>
+                        {posterUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-gray-600" />
+                        )}
+                      </div>
+                      {/* Actions */}
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id={`clbsv-settings-poster-${item.key}`}
+                          onChange={(e) => handleClbsvPosterUpload(item.key, e)}
+                          disabled={isUploading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById(`clbsv-settings-poster-${item.key}`)?.click()}
+                          disabled={isUploading}
+                          className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                          style={{ backgroundColor: item.color, border: `1px solid ${item.color}` }}
+                        >
+                          {isUploading ? (
+                            <><Loader2 className="w-3 h-3 animate-spin" /> Đang tải...</>
+                          ) : (
+                            <><Upload className="w-3 h-3" /> {posterUrl ? 'Đổi ảnh' : 'Tải poster lên'}</>
+                          )}
+                        </button>
+                        {posterUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleClbsvPosterDelete(item.key)}
+                            disabled={isUploading}
+                            className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-red-300 transition-all hover:bg-red-500/20 active:scale-95 disabled:opacity-50 border border-red-500/30"
+                          >
+                            <Trash2 className="w-3 h-3" /> Xóa poster
+                          </button>
+                        )}
+                        <p className="text-[9px] text-gray-500 leading-tight">PNG / JPG / WebP — tỷ lệ 16:9, tối đa 8MB</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-4 py-2.5 border-t border-blue-500/30" style={{ backgroundColor: 'rgba(30, 58, 138, 0.12)' }}>
+              <button
+                onClick={() => setClbsvSettingsOpen(false)}
+                className="px-4 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+                style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF' }}
               >
                 Đóng
               </button>

@@ -169,10 +169,87 @@ export async function POST() {
     const svExists = verifySV[0]?.exists === true;
     results.push(svExists ? 'VERIFY: SaoVietData table exists' : 'VERIFY FAILED: SaoVietData table still missing');
 
+    // 11. Create ClbMember table if not exists (DS Thành viên CLB — đồng bộ đa thiết bị)
+    await db.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "ClbMember" (
+        "id" TEXT NOT NULL,
+        "ad" TEXT NOT NULL DEFAULT '',
+        "nhom" TEXT NOT NULL DEFAULT '',
+        "agentCode" TEXT NOT NULL DEFAULT '',
+        "agentName" TEXT NOT NULL DEFAULT '',
+        "chucVu" TEXT NOT NULL DEFAULT '',
+        "note" TEXT NOT NULL DEFAULT '',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "ClbMember_pkey" PRIMARY KEY ("id")
+      )
+    `;
+    results.push('OK: ClbMember table ensured');
+
+    // 12. Create PendingMember table if not exists (DS Chờ xét gia nhập)
+    await db.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "PendingMember" (
+        "id" TEXT NOT NULL,
+        "ad" TEXT NOT NULL DEFAULT '',
+        "nhom" TEXT NOT NULL DEFAULT '',
+        "agentCode" TEXT NOT NULL DEFAULT '',
+        "agentName" TEXT NOT NULL DEFAULT '',
+        "chucVu" TEXT NOT NULL DEFAULT '',
+        "ipT2" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "ipT1" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "ipT0" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "note" TEXT NOT NULL DEFAULT '',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "PendingMember_pkey" PRIMARY KEY ("id")
+      )
+    `;
+    results.push('OK: PendingMember table ensured');
+
+    // 13. Mark migration 20260630030000 as applied
+    try {
+      await db.$executeRaw`
+        INSERT INTO "_prisma_migrations" (id, checksum, migration_name, logs, started_at, finished_at, applied_steps_count)
+        SELECT
+          gen_random_uuid()::text,
+          'manual-fix-' || extract(epoch from now())::text,
+          '20260630030000_add_clb_pending_members',
+          NULL,
+          NOW(),
+          NOW(),
+          1
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "_prisma_migrations" WHERE migration_name = '20260630030000_add_clb_pending_members'
+        )
+      `;
+      results.push('OK: migration 20260630030000 marked applied');
+    } catch (e: any) {
+      results.push(`SKIP: mark migration 20260630030000 failed (${e?.message?.substring(0, 80) || 'unknown'}) — not critical`);
+    }
+
+    // 14. Verify ClbMember + PendingMember tables exist
+    const verifyClb = await db.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'ClbMember'
+      ) as exists
+    `;
+    const clbExists = verifyClb[0]?.exists === true;
+    results.push(clbExists ? 'VERIFY: ClbMember table exists' : 'VERIFY FAILED: ClbMember table still missing');
+
+    const verifyPen = await db.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'PendingMember'
+      ) as exists
+    `;
+    const penExists = verifyPen[0]?.exists === true;
+    results.push(penExists ? 'VERIFY: PendingMember table exists' : 'VERIFY FAILED: PendingMember table still missing');
+
     return NextResponse.json({
-      success: tableExists && colExists && svExists,
-      message: tableExists && colExists && svExists
-        ? 'Schema fixed. You can now upload DS TTN Tuyển Ngang, sync Sao Việt data per program. NTD column in CS TVVm will populate.'
+      success: tableExists && colExists && svExists && clbExists && penExists,
+      message: tableExists && colExists && svExists && clbExists && penExists
+        ? 'Schema fixed. You can now upload DS TTN Tuyển Ngang, sync Sao Việt data per program. NTD column in CS TVVm will populate. CLB & Pending members sync across devices.'
         : 'Schema fix completed but verification failed. Check server logs.',
       steps: results,
     });

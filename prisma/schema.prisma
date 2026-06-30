@@ -270,3 +270,35 @@ model SaoVietData {
 
   @@index([program])
 }
+
+// DS Thành viên CLB — Đồng bộ trên mọi thiết bị (thay localStorage)
+// Cột: AD, NHÓM, MÃ TVV, HỌ TÊN TVV, CHỨC VỤ, GHI CHÚ
+// Sử dụng cho: CLB SV CÁ NHÂN (toàn bộ) + CLB SV TN-TD/TN-KTM (chỉ TB/TN)
+model ClbMember {
+  id        String   @id @default(uuid())
+  ad        String   @default("")
+  nhom      String   @default("")
+  agentCode String   @default("")
+  agentName String   @default("")
+  chucVu    String   @default("")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// DS Chờ xét gia nhập — Đồng bộ trên mọi thiết bị (thay localStorage)
+// Cột: AD, NHÓM, MÃ TVV, HỌ TÊN TVV, CHỨC VỤ, IP(T-2), IP(T-1), IP(T), GHI CHÚ
+model PendingMember {
+  id        String   @id @default(uuid())
+  ad        String   @default("")
+  nhom      String   @default("")
+  agentCode String   @default("")
+  agentName String   @default("")
+  chucVu    String   @default("")
+  ipT2      Float    @default(0)
+  ipT1      Float    @default(0)
+  ipT0      Float    @default(0)
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
