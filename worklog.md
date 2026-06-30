@@ -931,3 +931,43 @@ Stage Summary:
 - Chính sách: Quý TN + Quý TVV đã có sẵn deficit display từ trước (pattern reference)
 - PTKD-TN, Tuyển Luyện, Đồng Hành: dùng TL đơn (matrix-based), không phải tier columns → không cần deficit
 - Màu filter bar khác rõ table header (không còn tình trạng "tiêu đề và nội dung cùng màu")
+
+---
+Task ID: clb-members-sync-db
+Agent: main
+Task: 1) Đồng bộ DS Thành viên CLB + DS Chờ xét gia nhập đa thiết bị (thay localStorage bằng DB). 2) Bỏ tất cả chức năng cài đặt khỏi bảng chi tiết — chỉ xem, cài đặt chuyển ra nút riêng.
+
+Work Log:
+- Phát hiện root cause: clbMembers + pendingMembers lưu trong localStorage (nmc-clb-members-v1, nmc-pending-members-v1) → mỗi máy 1 data riêng, không sync → user sang máy khác thấy rỗng
+- Phát hiện: CLBSV detail shell (mobile) có nút upload/delete poster trực tiếp trên poster → vi phạm nguyên tắc "detail table chỉ xem"
+- Thêm 2 models vào prisma/schema.prisma:
+  + ClbMember: id, ad, nhom, agentCode, agentName, chucVu, note, createdAt, updatedAt
+  + PendingMember: id, ad, nhom, agentCode, agentName, chucVu, ipT2, ipT1, ipT0, note, createdAt, updatedAt
+- Tạo migration SQL: prisma/migrations/20260630030000_add_clb_pending_members/migration.sql
+- Mở rộng /api/admin/fix-schema: thêm 4 bước (CREATE TABLE ClbMember + PendingMember, mark migration applied, verify both tables exist) — production DB không chạy được prisma migrate nên phải qua endpoint này
+- Tạo API routes:
+  + /api/clb-members: GET (list), POST (single + bulk append + mode:'replace'), DELETE ?mode=delete-all
+  + /api/clb-members/[id]: PATCH (single field), DELETE (single)
+  + /api/pending-members: tương tự với thêm ipT2/ipT1/ipT0
+  + /api/pending-members/[id]: tương tự
+- Update frontend src/app/quan-ly/page.tsx:
+  + Thay useEffect load localStorage bằng fetchClbMembers + fetchPendingMembers (gọi API)
+  + One-time migration useEffect: nếu DB rỗng NHƯNG localStorage có data → POST lên DB → xóa localStorage → re-fetch
+  + CRUD callbacks (add/update/delete) đổi từ localStorage sang API call (optimistic update + revert on error)
+  + handleImportCLBorPending: import Excel → POST bulk vào DB → re-fetch
+  + handleAgentCodeChange trong renderCLBMembers + renderPendingMembers: PATCH API thay vì persistClb/persistPending
+- Bỏ nút upload/delete poster khỏi CLBSV detail shell (mobile layout) — chỉ còn hiển thị poster
+- Thêm state clbsvSettingsOpen + modal "CÀI ĐẾT DỮ LIỆU CLB SAO VIỆT" (poster management cho 3 chương trình)
+- Thêm nút "Cài đặt dữ liệu" vào renderCLBSaoVietList (top-right, cùng pattern với SV Toàn Chặng)
+- Update CLBSV list cards: hiển thị poster thật nếu có (fallback gradient + icon nếu chưa có)
+- Build Next.js thành công, không có error/warning mới
+- Commit 1f40505, push main → trigger Netlify deploy
+- (Sau deploy) Cần gọi GET /api/admin/fix-schema để tạo ClbMember + PendingMember tables trên production DB
+
+Stage Summary:
+- DS Thành viên CLB + DS Chờ xét gia nhập giờ lưu DB (PostgreSQL) → đồng bộ mọi thiết bị
+- Migration 1 chiều: localStorage → DB (chạy 1 lần khi user mở app, DB rỗng nhưng localStorage có data) → xóa localStorage
+- Bảng chi tiết CLBSV (mobile) chỉ còn hiển thị — không còn nút upload/delete poster
+- Poster CLBSV quản lý qua modal "Cài đặt dữ liệu" ở trang tổng quan CLBSV
+- Files mới: prisma/migrations/20260630030000..., src/app/api/clb-members/{route.ts,[id]/route.ts}, src/app/api/pending-members/{route.ts,[id]/route.ts}
+- Files sửa: prisma/schema.prisma, src/app/api/admin/fix-schema/route.ts, src/app/quan-ly/page.tsx
