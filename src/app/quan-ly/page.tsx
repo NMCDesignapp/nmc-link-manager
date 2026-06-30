@@ -8769,6 +8769,19 @@ export default function QuanLyPage() {
   const SV_HEADER_FG = '#7C2D12';   // amber-900 — chữ đậm trên nền lightsalmon
   const SV_HEADER_BORDER = '#FB923C'; // orange-400 — viền nhẹ
 
+  // Helper: convert rank header bg (đậm) sang rank body bg (siêu mờ — alpha 8%)
+  // Nguyên tắc: header đậm, body nhạt tối đa → contrast rõ ràng, dễ phân biệt
+  // Tránh tình trạng header tier và body cell cùng 1 màu (đã xảy ra nhiều lần)
+  const svRankBodyBg = (headerBg: string): string => {
+    const hex = headerBg.replace('#', '');
+    if (hex.length !== 6) return '#FFFFFF';
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.08)`; // 8% alpha — siêu mờ
+  };
+
+
   // Period: 01/12/2025 - 30/11/2026 (Sao Việt year — fixed)
   // Section 1: SAO VIỆT CÁ NHÂN — TVV-based, 5 rank tiers (Vàng, BạchKim, BạchKim, KimCương, KimCương)
   // Section 2: SAO VIỆT TN KTM — TN-based (individual FYP), 5 rank tiers
@@ -8914,17 +8927,18 @@ export default function QuanLyPage() {
       return (
         <TableCell
           className="text-xs text-center p-1 whitespace-nowrap font-black"
-          style={{ backgroundColor: threshold.bg, color: '#047857' }}
+          style={{ backgroundColor: svRankBodyBg(threshold.bg), color: '#047857' }}
         >
           ✓ {threshold.vouchers} vé
         </TableCell>
       );
     }
     const deficit = Math.max(0, threshold.min - fyp);
+    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
     return (
       <TableCell
-        className="text-xs text-center p-1 whitespace-nowrap font-bold"
-        style={{ backgroundColor: threshold.bg, color: '#9CA3AF' }}
+        className="text-xs text-center p-1 whitespace-nowrap italic font-normal"
+        style={{ backgroundColor: svRankBodyBg(threshold.bg), color: '#9CA3AF' }}
       >
         {formatDeficit(deficit)}
       </TableCell>
@@ -8938,16 +8952,17 @@ export default function QuanLyPage() {
       return (
         <TableCell
           className="text-xs text-center p-1 font-black"
-          style={{ backgroundColor: bg, color: '#047857' }}
+          style={{ backgroundColor: svRankBodyBg(bg), color: '#047857' }}
         >
           ✓
         </TableCell>
       );
     }
+    // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
     return (
       <TableCell
-        className="text-xs text-center p-1 font-bold"
-        style={{ backgroundColor: bg, color: '#9CA3AF' }}
+        className="text-xs text-center p-1 italic font-normal"
+        style={{ backgroundColor: svRankBodyBg(bg), color: '#9CA3AF' }}
       >
         {deficitStr || '—'}
       </TableCell>
