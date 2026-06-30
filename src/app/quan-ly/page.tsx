@@ -4219,12 +4219,58 @@ export default function QuanLyPage() {
   // Bảng 11 cột: STT - AD - NHÓM - MÃ TVV - HỌ TÊN TVV - CHỨC VỤ - IP(T-2) - IP(T-1) - IP(T) - TỔNG CỘNG - GHI CHÚ
   // TỔNG CỘNG = ipT2 + ipT1 + ipT0 (auto-tính)
   // Có dòng tổng cuối bảng (nền vàng) tính tổng các cột IP
+  //
+  // QUAN TRỌNG (theo yêu cầu user):
+  //   - "T" = tháng hiện tại (new Date().getMonth()+1)
+  //   - 3 cột IP tự tính từ data Hợp đồng trên app, không nhập tay
+  //   - IP(T-2) = tổng FYP các HĐ có doanhSoMonth = T-2, cùng agentCode
+  //   - IP(T-1) = tổng FYP các HĐ có doanhSoMonth = T-1, cùng agentCode
+  //   - IP(T)   = tổng FYP các HĐ có doanhSoMonth = T,   cùng agentCode
+  //   - Tiêu đề 3 cột động theo tháng: "IP T4" / "IP T5" / "IP T6" (vd tháng 6)
+  //   - Khi sang tháng mới → tự động tính lại + đổi tiêu đề
   const renderPendingMembers = () => {
     const filtered = getFiltered(pendingMembers, ['ad', 'nhom', 'agentCode', 'agentName', 'chucVu', 'note']);
-    const totalT2 = filtered.reduce((s, m) => s + (m.ipT2 || 0), 0);
-    const totalT1 = filtered.reduce((s, m) => s + (m.ipT1 || 0), 0);
-    const totalT0 = filtered.reduce((s, m) => s + (m.ipT0 || 0), 0);
+
+    // Compute T-2, T-1, T months based on current date (handle year wrap)
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1; // 1-12
+    const offsetMonth = (offset: number): { year: number; month: number; label: string } => {
+      const d = new Date(curYear, curMonth - 1 + offset, 1);
+      return { year: d.getFullYear(), month: d.getMonth() + 1, label: `T${d.getMonth() + 1}` };
+    };
+    const t2 = offsetMonth(-2);
+    const t1 = offsetMonth(-1);
+    const t0 = offsetMonth(0);
+
+    // Build IP map: agentCode (lowercase) → { t2, t1, t0 } sums of FYP from contracts
+    const ipMap: Record<string, { t2: number; t1: number; t0: number }> = {};
+    for (const c of contracts) {
+      const d = getDoanhSoMonth(c);
+      if (isNaN(d.getTime())) continue;
+      const cy = d.getFullYear();
+      const cm = d.getMonth() + 1;
+      const code = (c.agentCode || '').trim().toLowerCase();
+      if (!code) continue;
+      if (!ipMap[code]) ipMap[code] = { t2: 0, t1: 0, t0: 0 };
+      const fyp = c.fyp || 0;
+      if (cy === t2.year && cm === t2.month) ipMap[code].t2 += fyp;
+      else if (cy === t1.year && cm === t1.month) ipMap[code].t1 += fyp;
+      else if (cy === t0.year && cm === t0.month) ipMap[code].t0 += fyp;
+    }
+
+    // For each pending member, get computed IP (fallback 0 if agentCode empty or no contracts)
+    const computed = filtered.map(m => {
+      const key = (m.agentCode || '').trim().toLowerCase();
+      const ip = ipMap[key] || { t2: 0, t1: 0, t0: 0 };
+      return { ...m, ipT2: ip.t2, ipT1: ip.t1, ipT0: ip.t0 };
+    });
+
+    const totalT2 = computed.reduce((s, m) => s + m.ipT2, 0);
+    const totalT1 = computed.reduce((s, m) => s + m.ipT1, 0);
+    const totalT0 = computed.reduce((s, m) => s + m.ipT0, 0);
     const totalAll = totalT2 + totalT1 + totalT0;
+
     // Khi thay MÃ TVV → autofill AD/Nhóm/HỌ TÊN TVV, rồi PATCH về DB
     const handleAgentCodeChange = async (id: string, newCode: string) => {
       const auto = autofillFromAgentCode(newCode);
@@ -4260,13 +4306,13 @@ export default function QuanLyPage() {
           <span className="text-amber-400 font-black text-base">02.</span>
           <h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wider">Danh sách Chờ xét gia nhập</h2>
         </div>
-        {/* KPI cards */}
+        {/* KPI cards — labels động theo tháng */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
             { label: 'Tổng chờ xét', value: formatNumber(filtered.length), bg: '#0D9488', badge: '#0F766E', icon: UserPlus },
-            { label: 'IP(T-2) tổng', value: formatNumber(totalT2), bg: '#7C3AED', badge: '#6D28D9', icon: TrendingUp },
-            { label: 'IP(T-1) tổng', value: formatNumber(totalT1), bg: '#2563EB', badge: '#1D4ED8', icon: TrendingUp },
-            { label: 'IP(T) tổng', value: formatNumber(totalT0), bg: '#DC2626', badge: '#B91C1C', icon: TrendingUp },
+            { label: `IP ${t2.label} tổng`, value: formatNumber(totalT2), bg: '#7C3AED', badge: '#6D28D9', icon: TrendingUp },
+            { label: `IP ${t1.label} tổng`, value: formatNumber(totalT1), bg: '#2563EB', badge: '#1D4ED8', icon: TrendingUp },
+            { label: `IP ${t0.label} tổng`, value: formatNumber(totalT0), bg: '#DC2626', badge: '#B91C1C', icon: TrendingUp },
           ].map((kpi, i) => {
             const Icon = kpi.icon;
             return (
@@ -4287,7 +4333,7 @@ export default function QuanLyPage() {
           <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer"><Upload className="w-3.5 h-3.5" /> Import Excel<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImportCLBorPending('pending-members', e)} /></label>
           <Button onClick={() => handleExportCLBorPending('pending-members')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
-        {/* Bảng 11 cột */}
+        {/* Bảng 11 cột — tiêu đề 3 cột IP động theo tháng */}
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
             <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
@@ -4297,15 +4343,15 @@ export default function QuanLyPage() {
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">MÃ TVV</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">HỌ TÊN TVV</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">CHỨC VỤ</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T-2)</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T-1)</TableHead>
-              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP(T)</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP {t2.label}</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP {t1.label}</TableHead>
+              <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">IP {t0.label}</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap text-right">TỔNG CỘNG</TableHead>
               <TableHead className="text-yellow-100 text-xs font-bold uppercase whitespace-nowrap">GHI CHÚ</TableHead>
               <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {filtered.map((m, idx) => {
+              {computed.map((m, idx) => {
                 const rowTotal = (m.ipT2 || 0) + (m.ipT1 || 0) + (m.ipT0 || 0);
                 return (
                   <TableRow key={m.id} className="bg-white hover:bg-emerald-50 border-b border-gray-200">
@@ -4315,19 +4361,20 @@ export default function QuanLyPage() {
                     <TableCell className="text-xs p-0"><EditableCell value={m.agentCode} onSave={(v) => handleAgentCodeChange(m.id, v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.agentName} onSave={(v) => updatePendingMember(m.id, 'agentName', v)} /></TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.chucVu} onSave={(v) => updatePendingMember(m.id, 'chucVu', v)} /></TableCell>
-                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT2} onSave={(v) => updatePendingMember(m.id, 'ipT2', v)} type="number" className="text-right" /></TableCell>
-                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT1} onSave={(v) => updatePendingMember(m.id, 'ipT1', v)} type="number" className="text-right" /></TableCell>
-                    <TableCell className="text-xs p-0 text-right"><EditableCell value={m.ipT0} onSave={(v) => updatePendingMember(m.id, 'ipT0', v)} type="number" className="text-right" /></TableCell>
-                    <TableCell className="text-xs p-0 text-right font-bold text-amber-700 bg-amber-50">{formatNumber(rowTotal)}</TableCell>
+                    {/* 3 ô IP — read-only, tự tính từ contracts theo tháng */}
+                    <TableCell className="text-xs p-1 text-right text-gray-800">{m.ipT2 > 0 ? formatNumber(m.ipT2) : <span className="text-gray-400 italic">0</span>}</TableCell>
+                    <TableCell className="text-xs p-1 text-right text-gray-800">{m.ipT1 > 0 ? formatNumber(m.ipT1) : <span className="text-gray-400 italic">0</span>}</TableCell>
+                    <TableCell className="text-xs p-1 text-right text-gray-800">{m.ipT0 > 0 ? formatNumber(m.ipT0) : <span className="text-gray-400 italic">0</span>}</TableCell>
+                    <TableCell className="text-xs p-1 text-right font-bold text-amber-700 bg-amber-50">{formatNumber(rowTotal)}</TableCell>
                     <TableCell className="text-xs p-0"><EditableCell value={m.note} onSave={(v) => updatePendingMember(m.id, 'note', v)} /></TableCell>
                     <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deletePendingMember(m.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                   </TableRow>
                 );
               })}
               {/* Bottom total row — nền vàng */}
-              {filtered.length > 0 && (
+              {computed.length > 0 && (
                 <TableRow className="bg-amber-100 border-t-2 border-amber-400 font-bold">
-                  <TableCell colSpan={6} className="text-xs text-right text-amber-900 uppercase">TỔNG CỘNG ({filtered.length} dòng):</TableCell>
+                  <TableCell colSpan={6} className="text-xs text-right text-amber-900 uppercase">TỔNG CỘNG ({computed.length} dòng):</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT2)}</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT1)}</TableCell>
                   <TableCell className="text-xs text-right text-amber-900 font-black">{formatNumber(totalT0)}</TableCell>
@@ -4335,11 +4382,13 @@ export default function QuanLyPage() {
                   <TableCell colSpan={2} className="text-xs text-amber-900"></TableCell>
                 </TableRow>
               )}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm" hoặc Import Excel để bắt đầu.</TableCell></TableRow>}
+              {computed.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu. Nhấn "Thêm" hoặc Import Excel để bắt đầu.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
-        <p className="text-xs text-gray-500 mt-2">{filtered.length} dòng • Nháy đúp ô để sửa • TỔNG CỘNG tự tính = IP(T-2) + IP(T-1) + IP(T)</p>
+        <p className="text-xs text-gray-500 mt-2">
+          {filtered.length} dòng • 3 cột IP tự tính từ Hợp đồng trên app (theo tháng {t2.label}/{t2.year}, {t1.label}/{t1.year}, {t0.label}/{t0.year}) • TỔNG CỘNG = IP {t2.label} + IP {t1.label} + IP {t0.label}
+        </p>
       </div>
     );
   };
