@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, type ContractDetailRow } from './policy-excel-export';
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
+import { useAppData } from '@/lib/app-data-context';
 
 // ==================== TYPES ====================
 interface LeaderInfo {
@@ -2604,6 +2605,42 @@ export default function QuanLyPage() {
   // Keep ref in sync so auto-sync can call it
   fetchAllDataRef.current = fetchAllData;
 
+  // ===== AppDataContext: đọc dữ liệu đã preload khi app mở (lần đầu) =====
+  // Khi dataVersion tăng (tức là context vừa load xong), sync vào local state.
+  // Sheet-specific fetch vẫn giữ nguyên để dùng sau CRUD / đổi sheet.
+  const { data: appData, dataVersion: appDataVersion, isReloading: appDataReloading } = useAppData();
+  const lastSyncedVersion = useRef<number>(-1);
+  useEffect(() => {
+    if (appDataVersion <= lastSyncedVersion.current) return;
+    lastSyncedVersion.current = appDataVersion;
+    // Chỉ sync khi context có dữ liệu thực
+    const hasData = appData.contracts?.length || appData.leaders?.length || appData.revenue?.length || appData.staff?.length || appData.recruiters?.length;
+    if (!hasData) return;
+    // Ưu tiên quanLyAll (đã gộp), fallback về từng mảng riêng
+    if (appData.quanLyAll) {
+      setLeaders(appData.quanLyAll.leaders || appData.leaders || []);
+      setRevenue(appData.quanLyAll.revenue || appData.revenue || []);
+      setContracts(appData.quanLyAll.contracts || appData.contracts || []);
+      setStaff(appData.quanLyAll.staff || appData.staff || []);
+      setRecruiters(appData.recruiters || []);
+      if (appData.quanLyAll.tvvStruct) setTvvStructList(appData.quanLyAll.tvvStruct);
+    } else {
+      setLeaders(appData.leaders || []);
+      setRevenue(appData.revenue || []);
+      setContracts(appData.contracts || []);
+      setStaff(appData.staff || []);
+      setRecruiters(appData.recruiters || []);
+    }
+    if (appData.tuyenNgang) setTuyenNgangList(appData.tuyenNgang);
+    if (appData.structurePhong) setPhongList(appData.structurePhong);
+    if (appData.structureAd) setAdList(appData.structureAd);
+    if (appData.structureBanNhom) setBanNhomList(appData.structureBanNhom);
+    if (appData.structureTvv) setTvvStructList(appData.structureTvv);
+    if (appData.clbMembers) setClbMembers(appData.clbMembers);
+    if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
+    if (appData.settings) setOnlineSettings(appData.settings);
+  }, [appData, appDataVersion]);
+
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
@@ -2622,7 +2659,16 @@ export default function QuanLyPage() {
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
 
-  useEffect(() => { loadSheet(activeSheet); }, [activeSheet, loadSheet]);
+  // Skip initial loadSheet — context đã preload dữ liệu toàn app.
+  // Chỉ gọi loadSheet khi user chủ động đổi sheet (để load sheet-specific data nếu cần).
+  const skipInitialLoadSheet = useRef(true);
+  useEffect(() => {
+    if (skipInitialLoadSheet.current) {
+      skipInitialLoadSheet.current = false;
+      return;
+    }
+    loadSheet(activeSheet);
+  }, [activeSheet, loadSheet]);
 
   // ========== CRUD: Leaders ==========
   const updateLeader = useCallback(async (id: string, field: string, value: any) => {

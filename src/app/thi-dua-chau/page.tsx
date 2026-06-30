@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAppData } from '@/lib/app-data-context';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
@@ -514,24 +515,31 @@ export default function ThiDuaPage() {
     catch { /* silent - status shown by green check / spinner */ }
     finally { setIsLoading(false); }
   }, []);
-  useEffect(() => { fetchContracts(); }, [fetchContracts]);
 
   const fetchSavedContests = useCallback(async () => {
     try { const res = await fetch('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
   }, []);
-  useEffect(() => { fetchSavedContests(); }, [fetchSavedContests]);
 
   // Fetch staff list for group membership reference
   const fetchStaff = useCallback(async () => {
     try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
   }, []);
-  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
   // Fetch recruiter list for NYD reference
   const fetchRecruiters = useCallback(async () => {
     try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
   }, []);
-  useEffect(() => { fetchRecruiters(); }, [fetchRecruiters]);
+
+  // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
+  const { data: appData, dataVersion } = useAppData();
+
+  // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
+  useEffect(() => {
+    if (appData.contracts && appData.contracts.length > 0) setContracts(appData.contracts);
+    if (appData.contests) setSavedContests(appData.contests);
+    if (appData.staff) setStaffList(appData.staff);
+    if (appData.recruiters) setRecruiterList(appData.recruiters);
+  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, dataVersion]);
 
   // fetchRevenue removed — all data now sourced from Contracts table only
 

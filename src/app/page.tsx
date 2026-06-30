@@ -8,11 +8,12 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, Unlock, X } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, X, RefreshCw } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { AppLoader } from '@/components/app-loader'
 import { useSettings } from '@/hooks/use-settings'
+import { useAppData } from '@/lib/app-data-context'
 import { cn } from '@/lib/utils'
 import useSWR, { mutate } from 'swr'
 import { motion, AnimatePresence, staggerContainer, staggerItem, glowPulseAnimation } from '@/lib/animations'
@@ -262,6 +263,7 @@ export default function Home() {
   const links = useMemo(() => Array.isArray(linksData) ? linksData : [], [linksData])
   const categories = useMemo(() => Array.isArray(categoriesData) ? categoriesData : [], [categoriesData])
   const { settings } = useSettings()
+  const { reload: reloadAppData, isReloading: appDataReloading, lastSync } = useAppData()
 
   // Apply neon color from server settings (no localStorage)
   useEffect(() => {
@@ -269,6 +271,16 @@ export default function Home() {
       document.documentElement.style.setProperty('--primary', settings.neon_color)
     }
   }, [settings?.neon_color])
+
+  // Handler cho nút "Load dữ liệu" — ép đồng bộ toàn app:
+  // 1) Reload context (KPI, Quản lý, Thi đua)
+  // 2) Refresh SWR cache của trang chính (links, categories, stats)
+  const handleReloadAll = useCallback(async () => {
+    await reloadAppData();
+    mutate('/api/links');
+    mutate('/api/categories');
+    mutate('/api/stats');
+  }, [reloadAppData]);
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
   const [editingLink, setEditingLink] = useState<Link | null>(null)
@@ -438,30 +450,38 @@ export default function Home() {
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <p className="text-xs text-muted-foreground">{settings.profile_bio}</p>
-            {/* Admin button — bên dưới chữ N.M.C. Bấm để đăng nhập/đăng xuất Admin. */}
-            {(() => {
-              const adminBtnStyle = adminAuthed
-                ? { background: 'rgba(108,199,138,.15)', border: '1px solid rgba(108,199,138,.45)', boxShadow: '0 0 8px rgba(108,199,138,.30)' }
-                : { background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` };
-              const adminHoverShadow = adminAuthed ? '0 0 20px rgba(108,199,138,.50)' : `0 0 20px ${neonColor}50`;
+            {/* Admin button — bên dưới chữ N.M.C. CHỈ HIỆN khi chưa đăng nhập. Khi đã đăng nhập → ẩn (đã có nút Cài đặt). */}
+            {!adminAuthed && (() => {
+              const adminBtnStyle = { background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` };
+              const adminHoverShadow = `0 0 20px ${neonColor}50`;
               return (
                 <motion.button
-                  onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
+                  onClick={() => openAdminPwd()}
                   className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                   style={adminBtnStyle}
-                  animate={adminAuthed ? {} : { boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
-                  transition={adminAuthed ? {} : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   whileHover={{ scale: 1.2, boxShadow: adminHoverShadow }}
                   whileTap={{ scale: 0.85 }}
-                  title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
-                  aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                  title="Đăng nhập Admin"
+                  aria-label="Đăng nhập Admin"
                 >
-                  {adminAuthed
-                    ? <Unlock className="w-3 h-3" style={{ color: '#6cc78a' }} />
-                    : <Lock className="w-3 h-3" style={{ color: neonColor }} />}
+                  <Lock className="w-3 h-3" style={{ color: neonColor }} />
                 </motion.button>
               );
             })()}
+            {/* Load dữ liệu button — ép đồng bộ toàn app. Hiện cho mọi user. */}
+            <motion.button
+              onClick={() => handleReloadAll()}
+              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+              whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }}
+              whileTap={{ scale: 0.85 }}
+              title={lastSync ? `Đồng bộ lần cuối: ${lastSync.toLocaleTimeString('vi-VN')}` : 'Đồng bộ dữ liệu'}
+              aria-label="Đồng bộ dữ liệu toàn ứng dụng"
+            >
+              <RefreshCw className={`w-3 h-3 ${appDataReloading ? 'animate-spin' : ''}`} style={{ color: neonColor }} />
+            </motion.button>
             {/* Settings button — chỉ hiện khi đã đăng nhập Admin */}
             {adminAuthed && (
               <motion.button
@@ -600,30 +620,34 @@ export default function Home() {
               transition={{ delay: 0.5, duration: 0.5 }}
             >
               <p className="text-sm text-muted-foreground">{settings.profile_bio}</p>
-              {/* Admin button — bên dưới chữ N.M.C. Bấm để đăng nhập/đăng xuất Admin. */}
-              {(() => {
-                const adminBtnStyle = adminAuthed
-                  ? { background: 'rgba(108,199,138,.15)', border: '1px solid rgba(108,199,138,.45)', boxShadow: '0 0 8px rgba(108,199,138,.30)' }
-                  : { background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` };
-                const adminHoverShadow = adminAuthed ? '0 0 20px rgba(108,199,138,.50)' : `0 0 20px ${neonColor}50`;
-                return (
-                  <motion.button
-                    onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
-                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={adminBtnStyle}
-                    animate={adminAuthed ? {} : { boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
-                    transition={adminAuthed ? {} : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    whileHover={{ scale: 1.2, boxShadow: adminHoverShadow }}
-                    whileTap={{ scale: 0.85 }}
-                    title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
-                    aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
-                  >
-                    {adminAuthed
-                      ? <Unlock className="w-3.5 h-3.5" style={{ color: '#6cc78a' }} />
-                      : <Lock className="w-3.5 h-3.5" style={{ color: neonColor }} />}
-                  </motion.button>
-                );
-              })()}
+              {/* Admin button — bên dưới chữ N.M.C. CHỈ HIỆN khi chưa đăng nhập. Khi đã đăng nhập → ẩn (đã có nút Cài đặt). */}
+              {!adminAuthed && (
+                <motion.button
+                  onClick={() => openAdminPwd()}
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                  animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }}
+                  whileTap={{ scale: 0.85 }}
+                  title="Đăng nhập Admin"
+                  aria-label="Đăng nhập Admin"
+                >
+                  <Lock className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                </motion.button>
+              )}
+              {/* Load dữ liệu button — ép đồng bộ toàn app. Hiện cho mọi user. */}
+              <motion.button
+                onClick={() => handleReloadAll()}
+                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }}
+                whileTap={{ scale: 0.85 }}
+                title={lastSync ? `Đồng bộ lần cuối: ${lastSync.toLocaleTimeString('vi-VN')}` : 'Đồng bộ dữ liệu'}
+                aria-label="Đồng bộ dữ liệu toàn ứng dụng"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${appDataReloading ? 'animate-spin' : ''}`} style={{ color: neonColor }} />
+              </motion.button>
               {/* Settings button — chỉ hiện khi đã đăng nhập Admin */}
               {adminAuthed && (
                 <motion.button
@@ -790,6 +814,7 @@ export default function Home() {
       <SettingsPanel
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        onLogoutAdmin={logoutAdmin}
         onAddLink={() => {
           setEditingLink(null)
           setIsAddModalOpen(true)

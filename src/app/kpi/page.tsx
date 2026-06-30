@@ -7,6 +7,7 @@ import {
   ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
+import { useAppData } from '@/lib/app-data-context';
 
 /* ================= CSS ================= */
 const CSS = `
@@ -1483,14 +1484,38 @@ export default function KPIDashboard() {
   const CUR_YEAR = NOW.getFullYear();
   const CUR_MONTH = String(NOW.getMonth() + 1).padStart(2, '0');
 
-  /* Fetch data */
+  /* Fetch data — dùng dữ liệu đã preload từ AppDataContext (load 1 lần khi app mở).
+     Trang KPI chỉ đọc context, không tự fetch lại khi mount. */
+  const { data: appData, dataVersion, reload: reloadAppData, isReloading: appDataReloading } = useAppData();
+
+  // Sync rawData từ context (quanLyAll ưu tiên, fallback về các mảng riêng)
+  useEffect(() => {
+    if (appData.quanLyAll) {
+      setRawData({
+        contracts: appData.quanLyAll.contracts || appData.contracts || [],
+        staff: appData.quanLyAll.staff || appData.staff || [],
+        revenue: appData.quanLyAll.revenue || appData.revenue || [],
+        leaders: appData.quanLyAll.leaders || appData.leaders || [],
+      });
+      setError(false);
+    } else if (appData.contracts.length || appData.staff.length || appData.revenue.length || appData.leaders.length) {
+      setRawData({
+        contracts: appData.contracts,
+        staff: appData.staff,
+        revenue: appData.revenue,
+        leaders: appData.leaders,
+      });
+      setError(false);
+    }
+    setLoading(false);
+    setSyncing(appDataReloading);
+  }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataReloading, dataVersion]);
+
+  // Hàm sync thủ công — gọi reloadAppData (đồng bộ toàn app)
   const fetchData = useCallback(async () => {
     setSyncing(true);
     try {
-      const res = await fetch('/api/quan-ly/all');
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      setRawData(data);
+      await reloadAppData();
       setError(false);
     } catch {
       setError(true);
@@ -1498,32 +1523,20 @@ export default function KPIDashboard() {
       setLoading(false);
       setSyncing(false);
     }
-  }, []);
+  }, [reloadAppData]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  /* Fetch online settings (KPI targets from quan-ly) */
+  /* Online settings (KPI targets) — đọc từ context */
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : {})
-      .then(data => setOnlineSettings(data))
-      .catch(() => setOnlineSettings({}));
-  }, []);
+    if (appData.settings) setOnlineSettings(appData.settings);
+  }, [appData.settings, dataVersion]);
 
-  /* Fetch AD/Phong/BanNhom/TVV structure — same as quan-ly page */
+  /* Structure AD/Phong/BanNhom/TVV — đọc từ context */
   useEffect(() => {
-    Promise.all([
-      fetch('/api/structure/ad').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/phong').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/bannhom').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/tvv').then(r => r.ok ? r.json() : []),
-    ]).then(([ads, phongs, bannhoms, tvvs]) => {
-      setAdStructList(ads);
-      setPhongStructList(phongs);
-      setBanNhomStructList(bannhoms);
-      setTvvStructList(tvvs);
-    }).catch(() => {});
-  }, []);
+    setAdStructList(appData.structureAd || []);
+    setPhongStructList(appData.structurePhong || []);
+    setBanNhomStructList(appData.structureBanNhom || []);
+    setTvvStructList(appData.structureTvv || []);
+  }, [appData.structureAd, appData.structurePhong, appData.structureBanNhom, appData.structureTvv, dataVersion]);
 
   /* Fetch calendar events */
   const refreshCalendarEvents = useCallback(() => {

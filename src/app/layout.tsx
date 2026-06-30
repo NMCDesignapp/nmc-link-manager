@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
+import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -53,9 +54,11 @@ export default function RootLayout({
       <body className="h-full overflow-auto honeycomb-bg">
         <SpaceBackground />
         <ErrorBoundary>
-          {children}
-          <PwaInstallPrompt />
-          <Toaster />
+          <AppDataProvider>
+            {children}
+            <PwaInstallPrompt />
+            <Toaster />
+          </AppDataProvider>
         </ErrorBoundary>
         {process.env.NODE_ENV === 'production' && <Analytics />}
         <script

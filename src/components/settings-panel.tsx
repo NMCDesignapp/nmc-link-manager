@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database, Link2, Star, Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, UserPlus, UserCheck } from 'lucide-react'
+import { X, Settings, Palette, Zap, Volume2, Vibrate, User, Save, Plus, BarChart3, Database, Link2, Star, Edit, Trash2, Globe, Users, ChevronDown, ChevronRight, UserPlus, UserCheck, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSettings, AppSettings, defaultSettings } from '@/hooks/use-settings'
 import { Link } from '@/lib/types'
@@ -43,6 +43,7 @@ interface SettingsPanelProps {
   onAddLink: () => void
   onEditLink: (link: Link) => void
   onOpenStats: () => void
+  onLogoutAdmin?: () => void
 }
 
 const NEON_COLORS = [
@@ -60,7 +61,7 @@ const ANIMATION_SPEEDS = [
   { name: 'Nhanh', value: 'fast' },
 ]
 
-export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenStats }: SettingsPanelProps) {
+export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenStats, onLogoutAdmin }: SettingsPanelProps) {
   const { settings, updateSettings, isLoading } = useSettings()
   const { data: linksData } = useSWR<Link[]>('/api/links', fetcher, {
     revalidateOnFocus: false,
@@ -346,14 +347,28 @@ export function SettingsPanel({ isOpen, onClose, onAddLink, onEditLink, onOpenSt
                 </motion.div>
                 <h2 className="text-base font-semibold">Cài đặt</h2>
               </div>
-              <motion.button
-                onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-white/10 smooth-transition neon-press"
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <X className="w-4 h-4" />
-              </motion.button>
+              <div className="flex items-center gap-1">
+                {onLogoutAdmin && (
+                  <motion.button
+                    onClick={() => { onLogoutAdmin(); onClose(); }}
+                    className="p-1.5 rounded-lg hover:bg-red-500/15 smooth-transition neon-press"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    title="Đăng xuất Admin"
+                    aria-label="Đăng xuất Admin"
+                  >
+                    <LogOut className="w-4 h-4 text-red-400" />
+                  </motion.button>
+                )}
+                <motion.button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-white/10 smooth-transition neon-press"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
             </motion.div>
 
             {isLoading ? (
