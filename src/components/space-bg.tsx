@@ -1,143 +1,77 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSettings } from '@/hooks/use-settings'
 
+/**
+ * SpaceBackground — nền tĩnh xám với pattern hình Phật (Buddha silhouette) thấp sắc.
+ *
+ * Trước đây là Matrix binary rain (0/1 rơi). Đã thay theo yêu cầu user:
+ *   - Nền gradient xám tối (không còn binary rain)
+ *   - PatternSVG hình Phật lặp lại, opacity thấp (5-8%) — nhẹ nhàng, không gây nhiễu
+ *   - Áp dụng cho tất cả trang (render ở layout.tsx)
+ *
+ * PatternSVG: một Phật tổ ngồi thiền trên hoa sen, vẽ tay (SVG path đơn giản).
+ */
 export function SpaceBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const { settings } = useSettings()
   const neonColor = settings.neon_color || '#00ff88'
   const pathname = usePathname()
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+  // SVG Buddha silhouette — seated Buddha on lotus, simple flat design
+  // Dùng data URI để nhúng trực tiếp vào CSS background-image
+  const buddhaPattern = `
+<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'>
+  <g fill='none' stroke='${encodeURIComponent(neonColor)}' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'>
+    <!-- Halo (đầu Phật) -->
+    <circle cx='80' cy='50' r='22'/>
+    <circle cx='80' cy='50' r='16'/>
+    <!-- Đầu -->
+    <path d='M 70 50 Q 80 38 90 50 Q 88 60 80 62 Q 72 60 70 50 Z'/>
+    <!-- Thân (áo cà sa) — hình tam giác mở rộng xuống -->
+    <path d='M 60 70 Q 80 64 100 70 L 110 120 Q 80 130 50 120 Z'/>
+    <!-- Hai tay chắp trước ngực -->
+    <path d='M 70 90 Q 80 86 90 90 Q 88 100 80 102 Q 72 100 70 90 Z'/>
+    <!-- Hoa sen dưới chân -->
+    <path d='M 50 130 Q 60 122 70 130 Q 80 122 90 130 Q 100 122 110 130'/>
+    <path d='M 55 138 Q 80 130 105 138'/>
+    <!-- Cánh sen hai bên -->
+    <path d='M 45 132 Q 38 128 36 134 Q 40 138 45 136'/>
+    <path d='M 115 132 Q 122 128 124 134 Q 120 138 115 136'/>
+  </g>
+</svg>`.trim()
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animationId: number
-    let time = 0
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    // Parse neon color to RGB
-    const hexToRgb = (hex: string) => {
-      const r = parseInt(hex.slice(1, 3), 16)
-      const g = parseInt(hex.slice(3, 5), 16)
-      const b = parseInt(hex.slice(5, 7), 16)
-      return { r, g, b }
-    }
-
-    // ===== MATRIX BINARY RAIN (full screen) =====
-    class MatrixColumn {
-      x: number
-      y: number
-      speed: number
-      chars: string[]
-      length: number
-      fontSize: number
-      brightness: number
-
-      constructor(x: number, canvasHeight: number) {
-        this.x = x
-        this.y = Math.random() * -500
-        this.speed = 1.5 + Math.random() * 3.5
-        this.length = 8 + Math.floor(Math.random() * 20)
-        this.fontSize = 14 + Math.floor(Math.random() * 8) // larger font: 14-22px (was 10-16px)
-        this.brightness = 0.3 + Math.random() * 0.7
-        const chars: string[] = []
-        for (let i = 0; i < this.length; i++) {
-          chars.push(Math.random() > 0.5 ? '1' : '0')
-        }
-        this.chars = chars
-      }
-
-      update() {
-        this.y += this.speed
-        if (Math.random() < 0.05) {
-          const idx = Math.floor(Math.random() * this.chars.length)
-          this.chars[idx] = Math.random() > 0.5 ? '1' : '0'
-        }
-        const totalHeight = this.length * this.fontSize
-        if (this.y > canvas!.height + totalHeight) {
-          this.y = -totalHeight - Math.random() * 200
-          this.speed = 1.5 + Math.random() * 3.5
-        }
-      }
-
-      draw(ctx: CanvasRenderingContext2D, color: { r: number; g: number; b: number }) {
-        ctx.font = `${this.fontSize}px monospace`
-        for (let i = 0; i < this.chars.length; i++) {
-          const charY = this.y + i * this.fontSize
-          if (charY < 0 || charY > canvas!.height) continue
-
-          const fadeRatio = i / this.chars.length
-          const alpha = (1 - fadeRatio) * this.brightness
-
-          if (i === this.chars.length - 1) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`
-            ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`
-            ctx.shadowBlur = 8
-          } else if (i > this.chars.length - 4) {
-            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.8})`
-            ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`
-            ctx.shadowBlur = 4
-          } else {
-            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.35})`
-            ctx.shadowBlur = 0
-          }
-
-          ctx.fillText(this.chars[i], this.x, charY)
-          ctx.shadowBlur = 0
-        }
-      }
-    }
-
-    // Create matrix columns — wider spacing for larger font
-    const columnSpacing = 28
-    const columnCount = Math.ceil(canvas.width / columnSpacing) + 1
-    const matrixColumns: MatrixColumn[] = []
-    for (let i = 0; i < columnCount; i++) {
-      matrixColumns.push(new MatrixColumn(i * columnSpacing, canvas.height))
-    }
-
-    const color = hexToRgb(neonColor)
-
-    const animate = () => {
-      time += 0.016
-      // Clear with dark background (no transparency — solid fill)
-      ctx.fillStyle = '#1a2332'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Draw matrix rain across full screen
-      matrixColumns.forEach(col => {
-        col.update()
-        col.draw(ctx, color)
-      })
-
-      animationId = requestAnimationFrame(animate)
-    }
-
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animationId)
-      window.removeEventListener('resize', resize)
-    }
-  }, [neonColor])
+  // Encode SVG → data URI (cho background-image CSS)
+  const dataUri = `url("data:image/svg+xml,${buddhaPattern.replace(/#/g, '%23').replace(/\n/g, '')}")`
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
+      key={pathname}
       className="pointer-events-none fixed inset-0 z-0"
-      style={{ opacity: 1 }}
-    />
+      style={{
+        // Nền gradient xám tối — không còn binary rain
+        background: `
+          radial-gradient(ellipse at top, #2a2e36 0%, #1a1d24 60%, #0f1116 100%)
+        `,
+      }}
+    >
+      {/* Pattern Phật overlay — opacity thấp, lặp đều */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: dataUri,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '160px 160px',
+          opacity: 0.08,
+        }}
+      />
+      {/* Vignette nhẹ ở 4 góc để tập trung vào content giữa */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.45) 100%)',
+        }}
+      />
+    </div>
   )
 }

@@ -26,12 +26,12 @@ const CSS = `
 }
 *, *::before, *::after { box-sizing: border-box; }
 button { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
-.kpi-app { background: transparent; font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; position: relative; }
-/* Background: global SpaceBackground (gray + faint Buddha pattern) shows through.
-   KPI content gets a subtle dark overlay to keep text readable on gray bg. */
-.kpi-app::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(180deg, rgba(4,24,40,0.78) 0%, rgba(4,24,40,0.85) 100%); }
-.kpi-app .bg-scene { display: none; }
-.kpi-app .bg-orb { display: none; }
+.kpi-app { background: var(--bg); font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0c2850 0%, var(--bg) 70%); }
+.kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .22; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
+.kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #0a3060; top: -15%; left: -10%; }
+.kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0c2050; bottom: -10%; right: -10%; animation-delay: -6s; }
+.kpi-app .bg-orb-3 { width: 300px; height: 300px; background: #104070; top: 50%; left: 60%; animation-delay: -12s; }
 @keyframes orbFloat { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.08); } 100% { transform: translate(-15px,15px) scale(.95); } }
 
 .kpi-app .app-wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 24px; }
@@ -48,8 +48,14 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
 .kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
 .kpi-app .main-header .btn-back-u:hover { color: #6cc78a; background: rgba(108,199,138,.12); border-color: #6cc78a44; }
+/* Admin button (lock icon) — replaces BackButton on KPI main header */
+.kpi-app .main-header .btn-admin-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #c0a060; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; cursor: pointer; }
+.kpi-app .main-header .btn-admin-u:hover { color: #ffd040; background: rgba(255,208,64,.12); border-color: #ffd04044; }
+.kpi-app .main-header .btn-admin-u.authed { color: #6cc78a; border-color: #6cc78a44; background: rgba(108,199,138,.10); }
+.kpi-app .main-header .btn-admin-u.authed:hover { color: #8ee0a8; background: rgba(108,199,138,.18); }
 .kpi-app .main-header > div { flex: 1; text-align: center; }
 .kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
+.kpi-app .main-header > .btn-admin-u + div { margin-right: 46px; }
 
 /* Controls */
 .kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; position: relative; }
@@ -100,10 +106,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #6ab0e8; font-weight: 700; }
 .kpi-app .cty-progress { width: 100%; height: 12px; border-radius: 99px; background: #1a3050; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
 .kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); will-change: width; box-shadow: 0 0 8px #40d89044; }
-.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-top: 12px; }
-.kpi-app .cty-stat { border-radius: 6px; padding: 5px 3px 4px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 40px; }
-.kpi-app .cty-stat-label { font-size: 8px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
-.kpi-app .cty-stat-val { font-size: 13px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
+.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; margin-top: 14px; }
+.kpi-app .cty-stat { border-radius: 6px; padding: 8px 4px 7px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
+.kpi-app .cty-stat-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
+.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
 .kpi-app .cty-stat-sub { font-size: 0.5em; font-weight: 700; opacity: .75; margin-left: 1px; }
 .kpi-app .cty-stat.hd { background: #3a7cc8; } .kpi-app .cty-stat.hd .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.td { background: #8a7ab8; } .kpi-app .cty-stat.td .cty-stat-val { color: #ffffff; }
@@ -201,17 +207,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
-.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 14px 10px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .2s; position: relative; overflow: hidden; }
-.kpi-app .nav-btn:hover { transform: translateY(-2px); }
-.kpi-app .nav-btn:active { transform: scale(.97); }
-.kpi-app .nav-btn .nav-icon { font-size: 14px; line-height: 1; }
-.kpi-app .nav-detail { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 6px 22px #3b82f6aa, 0 0 0 1px #60a5fa55 inset; }
-.kpi-app .nav-plan { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 22px #10b981aa, 0 0 0 1px #34d39955 inset; }
-.kpi-app .nav-race { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 6px 22px #06b6d4aa, 0 0 0 1px #22d3ee55 inset; }
-.kpi-app .nav-policy { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 6px 22px #8b5cf6aa, 0 0 0 1px #a78bfa55 inset; }
-.kpi-app .nav-clb { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 22px #f59e0baa, 0 0 0 1px #fbbf2455 inset; }
+.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
+.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
+.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
+.kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
+.kpi-app .nav-detail { background: linear-gradient(135deg, #1e40af, #1e3a8a); box-shadow: 0 6px 18px #1e40af66; }
+.kpi-app .nav-plan { background: linear-gradient(135deg, #059669, #065f46); box-shadow: 0 6px 18px #05966966; }
+.kpi-app .nav-race { background: linear-gradient(135deg, #0c4a6e, #082f49); box-shadow: 0 6px 18px #0c4a6e80; border: 1.5px solid #38bdf840; }
+
+.kpi-app .nav-clb { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 6px 18px #b4530966; border: 1.5px solid #fbbf2440; }
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -577,12 +583,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes adpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .kpi-app .adp-modal {
-  width: 100%; max-width: 1080px; height: calc(100vh - 24px); max-height: 760px;
+  width: 100%; max-width: 1080px;
+  /* Chiều cao = 3× kích thước đã thu nhỏ (1/4 → 3/4 so với ban đầu) */
+  height: calc(75vh - 18px); min-height: 450px; max-height: 570px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
   border-radius: 8px; overflow: hidden;
   box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
   display: flex; flex-direction: column;
-  /* Scale down entire popup ~10% like shrinking an image */
   transform: scale(.9);
   transform-origin: center center;
   animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
@@ -620,7 +627,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   flex: 1; min-height: 0;
   display: grid; grid-template-rows: auto 1fr; gap: 4px;
   padding: 6px 8px 8px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .kpi-app .adp-top {
@@ -793,7 +800,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 720px) {
   .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
-    max-width: 100%; height: calc(100vh - 8px); max-height: none;
+    max-width: 100%; height: 75vh; min-height: 390px; max-height: 570px;
     border-radius: 5px;
   }
   .kpi-app .adp-header { padding: 5px 9px; }
@@ -921,29 +928,29 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .sub-line-wrap { padding: 0 24px; margin-top: 12px; }
 .kpi-app .sub-line { height: 1px; background: linear-gradient(90deg, transparent, #d4a84340, #d4a84366, #d4a84340, transparent); }
 .kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 14px; }
-.kpi-app .cal-fbtn { padding: 5px 2px; border-radius: 2px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 8px; text-align: center; transition: all .2s; }
+.kpi-app .cal-fbtn { padding: 7px 2px; border-radius: 7px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 9px; text-align: center; transition: all .2s; }
 .kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
-.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 10px #0080804d; font-weight: 900; }
-.kpi-app .cal-wrap { background: #f7ffff; border-radius: 2px; overflow: hidden; box-shadow: 0 12px 36px #0000004d; border: 1px solid #00808066; border-bottom: 3px solid #008080; margin-top: 14px; }
-.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; padding: 8px 0; display: grid; grid-template-columns: 46px minmax(0,1fr) 64px; text-align: center; border-radius: 0; }
-.kpi-app .cal-head span { padding: 0 6px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
-.kpi-app .cal-row { display: grid; grid-template-columns: 46px minmax(0,1fr) 64px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
+.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 14px #0080804d; font-weight: 900; }
+.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 50px #0000004d; border: 1px solid #00808066; border-bottom: 4px solid #008080; margin-top: 16px; }
+.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; padding: 14px 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; text-align: center; border-radius: 8px 8px 0 0; }
+.kpi-app .cal-head span { padding: 0 10px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
+.kpi-app .cal-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
 .kpi-app .cal-row:hover { background: #eef9f9; }
 .kpi-app .cal-row.is-today { background: #e0f2fe; box-shadow: inset 0 0 0 2px #38bdf8; }
 .kpi-app .cal-row.is-weekend { background: #e8f4f0; }
 .kpi-app .cal-row.is-sunday { background: #f5e8e8; }
-.kpi-app .cal-day { padding: 6px 4px; font-weight: 900; font-size: 11px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
-.kpi-app .cal-day-num { line-height: 1; font-size: 11px; }
-.kpi-app .cal-day-week { font-size: 7px; font-weight: 700; color: #5a7a99; line-height: 1; }
+.kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
+.kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
 .kpi-app .cal-row.is-sunday .cal-day { color: #dc2626; background: #fde8e8; }
 .kpi-app .cal-row.is-sunday .cal-day-week { color: #dc2626; }
 .kpi-app .cal-row.is-weekend .cal-day { color: #ea580c; background: #fff0e0; }
 .kpi-app .cal-row.is-weekend .cal-day-week { color: #ea580c; }
-.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 5px 7px; font-weight: 600; font-size: 10px; line-height: 1.3; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
-.kpi-app .cal-owner { min-width: 56px; border-left: 1px solid #00808055; padding: 4px 3px; font-size: 8px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; background: #f7ffff; word-break: break-word; }
+.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
+.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
 .kpi-app .cal-line { display: block; }
-.kpi-app .cal-line.editable { cursor: pointer; padding: 1px 3px; border-radius: 1px; transition: background .12s, box-shadow .12s; }
+.kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s, box-shadow .12s; }
 .kpi-app .cal-line.editable.authed:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
 .kpi-app .cal-line.editable.locked { cursor: pointer; }
 .kpi-app .cal-line.editable.locked::before {
@@ -1110,18 +1117,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem) !important; margin: 0 !important; }
   .kpi-app .hero-sub { display: none; }
   .kpi-app .ctrl-bar { margin-top: 0 !important; }
-  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
+  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 10px; margin: 12px 0 0; flex-wrap: nowrap; }
   .kpi-app .nav-row-3 { display: contents; }
-  .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
+  .kpi-app .nav-btn { flex: 1; padding: 7px 8px; font-size: 9.5px; border-radius: 5px; white-space: nowrap; }
 
   .kpi-app .kpi-cty { display: none !important; }
   .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
-  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 4px; }
-  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-  .kpi-app .dsk-cty-main-head { padding: 8px 16px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
+  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 3px; }
+  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+  .kpi-app .dsk-cty-main-head { padding: 5px 14px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
   .kpi-app .dsk-cty-main-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: #fff; }
-  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 14px 18px 14px; background: #132a4a; }
-  .kpi-app .dsk-cty-pct { font-size: 2.6rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
+  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px 16px 10px; background: #132a4a; }
+  .kpi-app .dsk-cty-pct { font-size: 2.2rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
   .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
   .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px #00000044; }
   .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 10px #40d89044; }
@@ -1130,11 +1137,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-right { display: flex; flex-direction: column; flex: 1; gap: 4px; }
   .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 1; }
   .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 6px; display: flex; flex-direction: column; }
-  .kpi-app .dsk-cty-kpi-head { padding: 5px 6px; display: flex; align-items: center; justify-content: center; gap: 3px; }
-  .kpi-app .dsk-cty-kpi-label { font-size: 7px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+  .kpi-app .dsk-cty-kpi-head { padding: 4px 6px; display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #fff; line-height: 1.15; white-space: nowrap; text-align: center; }
   .kpi-app .dsk-cty-kpi-sub { font-size: 0.55em; font-weight: 700; opacity: .75; margin-left: 1px; }
-  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px 6px; text-align: center; }
-  .kpi-app .dsk-cty-kpi-val { font-size: 1rem; font-weight: 900; line-height: 1; text-shadow: 0 0 8px currentColor; }
+  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 6px; text-align: center; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1rem; font-weight: 800; line-height: 1; text-shadow: 0 0 8px currentColor; }
   .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
   .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-head { background: #8a7ab8; } .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-val { color: #b8a8e0; }
   .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-head { background: #2a9aaa; } .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-val { color: #60d0d8; }
@@ -1194,18 +1201,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .phong-main-name { font-size: 10px; }
   .kpi-app .phong-main-pct { font-size: 15px; }
   .kpi-app .phong-main-afyp { font-size: 1.3rem; }
-  .kpi-app .nav-grid { gap: 7px; margin-top: 18px; }
-  .kpi-app .nav-btn { padding: 11px 9px; border-radius: 10px; font-size: 10px; min-height: 46px; }
+  .kpi-app .nav-grid { gap: 10px; margin-top: 18px; }
+  .kpi-app .nav-btn { padding: 9px 8px; border-radius: 6px; font-size: 9.5px; min-height: 42px; }
   .kpi-app .ad-top { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; }
   .kpi-app .ad-name { font-size: 11px; }
   .kpi-app .ad-pct { font-size: 11px; }
   .kpi-app .ad-stat-label { font-size: 5.5px; }
   .kpi-app .ad-stat-val { font-size: 9px; }
   .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
-  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }
-  .kpi-app .cal-fbtn { padding: 4px 1px; border-radius: 2px; min-height: 24px; font-size: 7px; }
-  .kpi-app .cal-row { grid-template-columns: 40px minmax(0,1fr) 52px; }
-  .kpi-app .cal-head { grid-template-columns: 40px minmax(0,1fr) 52px; }
+  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 3px; }
+  .kpi-app .cal-fbtn { padding: 5px 1px; border-radius: 6px; min-height: 28px; font-size: 8px; }
+  .kpi-app .cal-row { grid-template-columns: 46px minmax(0,1fr) 58px; }
+  .kpi-app .cal-head { grid-template-columns: 46px minmax(0,1fr) 58px; }
   .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
   .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
   .kpi-app .month-cell .mc-label { font-size: 8px; }
@@ -1421,6 +1428,41 @@ export default function KPIDashboard() {
   const [calAuthed, setCalAuthed] = useState(false);
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
+
+  // ===== ADMIN AUTH =====
+  // Admin login/logout đã được chuyển sang giao diện chính ứng dụng (/src/app/page.tsx).
+  // Trạng thái đăng nhập vẫn được chia sẻ qua sessionStorage('kpi_admin_authed').
+  // Trang /quan-ly đọc sessionStorage này để quyết định ẩn/hiện nút Trở về & Cài đặt.
+  const [adminAuthed, setAdminAuthed] = useState(false);
+
+  // On mount: check sessionStorage for existing admin auth
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
+        setAdminAuthed(true);
+      }
+    } catch {}
+  }, []);
+
+  // Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'kpi_admin_authed') {
+        setAdminAuthed(e.newValue === '1');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    // Poll mỗi 800ms — sessionStorage không trigger storage event trong cùng tab
+    const poll = setInterval(() => {
+      try {
+        const v = sessionStorage.getItem('kpi_admin_authed') === '1';
+        setAdminAuthed(prev => prev !== v ? v : prev);
+      } catch {}
+    }, 800);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
+  }, []);
+
   const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
@@ -1893,31 +1935,18 @@ export default function KPIDashboard() {
         const adBannhoms = banNhomStructList.filter(bn => bn.maAD === adStruct.maAD);
 
         for (const bn of adBannhoms) {
-          // Find contracts for this BanNhom — UNION of maBanNhom match AND name match (dedup by id)
-          // Previously: if maBanNhom match returned 0, fallback to name match.
-          // Problem: contracts with empty maBanNhom but matching name were MISSED when other contracts had matching maBanNhom.
-          // Fix: union both, dedup by contract id.
-          const bnContractIds = new Set<string>();
-          const bnContractsByName: typeof periodContracts = [];
-          for (const c of periodContracts) {
-            if (bnContractIds.has(c.id)) continue;
+          // Find contracts for this BanNhom via maBanNhom
+          const bnContracts = periodContracts.filter(c => {
             const cMaBN = c.maBanNhom || '';
-            let matched = false;
-            if (cMaBN && cMaBN === bn.maBanNhom) {
-              matched = true;
-            } else {
-              // Fallback: name match (only if maBanNhom didn't match)
-              const cNhom = normKey(c.nhom || '');
-              const bnName = normKey(bn.tenBanNhom);
-              if (cNhom && bnName && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom))) {
-                matched = true;
-              }
-            }
-            if (matched) {
-              bnContractIds.add(c.id);
-              bnContractsByName.push(c);
-            }
-          }
+            return cMaBN === bn.maBanNhom;
+          });
+
+          // Also try matching by nhom name if maBanNhom is empty
+          const bnContractsByName = bnContracts.length > 0 ? bnContracts : periodContracts.filter(c => {
+            const cNhom = normKey(c.nhom || '');
+            const bnName = normKey(bn.tenBanNhom);
+            return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
+          });
 
           const afyp = bnContractsByName.reduce((s, c) => s + num(c.afyp), 0);
           const afypTrd = Math.round(afyp / 1000000);
@@ -1933,8 +1962,8 @@ export default function KPIDashboard() {
             });
           }
           const khTrd = Math.round(periodKh / 1000000);
-          // CRITICAL: pct must use RAW values (đồng), not rounded-to-millions
-          // Using afypTrd/khTrd causes huge errors when values are small (e.g. 1.5M/1.4M → 2/1=200% instead of 107%)
+          // Tỷ lệ hoàn thành: dùng số AFYP và KH nguyên thủy (đ), KHÔNG dùng số đã làm tròn sang triệu đồng
+          // để tránh sai lệch % khi AFYP/KH nhỏ (vd 10.5M / 8.3M = 126.5% thay vì 11/8 = 137.5%).
           const pct = periodKh > 0 ? (afyp / periodKh * 100) : 0;
 
           // Get TN (Trưởng Nhóm/Ban) only — no TVV as per user request
@@ -2277,7 +2306,19 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              <BackButton href={MAIN_APP_URL} size={20} title="Trở về trang chính" />
+              {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
+                  Nút back (btn-back-u) chỉ hiện khi đã đăng nhập Admin — bấm để trở về trang chính ứng dụng '/'. */}
+              {adminAuthed && (
+                <button
+                  type="button"
+                  className="btn-back-u"
+                  onClick={() => router.push('/')}
+                  title="Trở về trang chính ứng dụng"
+                  aria-label="Trở về trang chính ứng dụng"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -2319,10 +2360,12 @@ export default function KPIDashboard() {
                     onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
-              <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
-                <span className="sync-check"><Check size={16} /></span>
-                <span className="sync-spinner"><RotateCw size={14} /></span>
-              </button>
+              {adminAuthed ? (
+                <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
+                  <span className="sync-check"><Check size={16} /></span>
+                  <span className="sync-spinner"><RotateCw size={14} /></span>
+                </button>
+              ) : <div style={{ width: 36, height: 36, flexShrink: 0 }} />}
             </div>
           </header>
 
@@ -2414,15 +2457,15 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href={thiDuaChauHref}>
+                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
-                  <button className="nav-btn nav-policy">
+                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                  </button>
-                  <button className="nav-btn nav-clb">
+                  </a>
+                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                  </button>
+                  </a>
                 </div>
               </nav>
 
@@ -2942,14 +2985,17 @@ export default function KPIDashboard() {
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
-            <button
-              className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
-              onClick={calAuthed ? openCalEditForNew : openCalPwd}
-              title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
-              aria-label="Cài đặt lịch"
-            >
-              <Settings size={16} />
-            </button>
+            {/* Nút cài đặt lịch — chỉ hiện khi đã đăng nhập Admin */}
+            {adminAuthed ? (
+              <button
+                className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
+                onClick={calAuthed ? openCalEditForNew : openCalPwd}
+                title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
+                aria-label="Cài đặt lịch"
+              >
+                <Settings size={16} />
+              </button>
+            ) : <div style={{ width: 32 }} />}
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="cal-filter">
@@ -3246,6 +3292,8 @@ export default function KPIDashboard() {
           </div>
         </div>
       )}
+
+      {/* ===== ADMIN LOGIN POPUP — đã chuyển sang giao diện chính ứng dụng (/src/app/page.tsx) ===== */}
     </div>
   );
 }

@@ -1474,7 +1474,7 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
 
 // ============= TÔN VINH — Reusable Table Component =============
 // Bảng Top 5 dùng chung cho 4 mục Tôn vinh.
-// - Tiêu đề gradient vàng đồng, body tối
+// - Tiêu đề gradient xanh lục (đồng bộ với Chính sách), body tối
 // - Hạng 1-3 có huy hiệu Vàng/Bạc/Đồng
 // - Cell IP/AFYP/KH format số + align phải
 interface VinhDanhColumn {
@@ -1529,7 +1529,7 @@ function VinhDanhTable({
           </span>
         );
       }
-      return <span className="font-bold text-amber-200/70">{row.rank}</span>;
+      return <span className="font-bold text-emerald-200/70">{row.rank}</span>;
     }
     if (col.key === 'ip' || col.key === 'afypH1' || col.key === 'khH1') {
       return <span className="font-bold text-emerald-300">{fmtNum(v)}</span>;
@@ -1541,30 +1541,30 @@ function VinhDanhTable({
     return <span>{v ?? '—'}</span>;
   };
   return (
-    <div className="bg-[#1a2332]/80 border border-amber-500/30 rounded-lg overflow-hidden">
+    <div className="bg-[#1a2332]/80 border border-emerald-500/30 rounded-lg overflow-hidden">
       {/* Title bar */}
       <div
         className="px-3 py-2"
         style={{
-          background: 'linear-gradient(135deg, #B45309 0%, #92400E 100%)',
-          borderBottom: '2px solid #FCD34D',
+          background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+          borderBottom: '2px solid #34d399',
         }}
       >
-        <h3 className="text-sm font-extrabold text-amber-100 tracking-wide uppercase">{title}</h3>
-        {subtitle && <p className="text-[10px] text-amber-200/80 mt-0.5 italic">{subtitle}</p>}
+        <h3 className="text-sm font-extrabold text-emerald-100 tracking-wide uppercase">{title}</h3>
+        {subtitle && <p className="text-[10px] text-emerald-200/80 mt-0.5 italic">{subtitle}</p>}
       </div>
       {/* Table */}
       {rows.length === 0 ? (
-        <div className="py-8 text-center text-amber-200/50 text-xs italic">{emptyText}</div>
+        <div className="py-8 text-center text-emerald-200/50 text-xs italic">{emptyText}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-amber-500/10 border-b border-amber-500/20">
+              <tr className="bg-emerald-500/10 border-b border-emerald-500/20">
                 {columns.map(col => (
                   <th
                     key={col.key}
-                    className="px-2.5 py-1.5 text-amber-300 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap"
+                    className="px-2.5 py-1.5 text-emerald-300 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap"
                     style={{
                       textAlign: col.align || 'left',
                       width: col.width,
@@ -1579,12 +1579,12 @@ function VinhDanhTable({
               {rows.map((row, idx) => (
                 <tr
                   key={idx}
-                  className="border-b border-amber-500/10 hover:bg-amber-500/5 transition-colors"
+                  className="border-b border-emerald-500/10 hover:bg-emerald-500/5 transition-colors"
                 >
                   {columns.map(col => (
                     <td
                       key={col.key}
-                      className="px-2.5 py-2 text-amber-100/90"
+                      className="px-2.5 py-2 text-emerald-100/90"
                       style={{ textAlign: col.align || 'left' }}
                     >
                       {renderCell(col, row)}
@@ -2159,7 +2159,7 @@ export default function QuanLyPage() {
       .slice(0, 5);
 
     // ===== 3. IP per Nhóm (maBanNhom) trong H1 =====
-    const ipByNhom = new Map<string, { maBanNhom: string; tenNhom: string; ip: number }>();
+    const ipByNhom = new Map<string, { maBanNhom: string; tenNhom: string; ip: number; truongNhomMaSo?: string; truongNhomHoTen?: string }>();
     h1Contracts.forEach(c => {
       if (isContractExcluded(c)) return;
       const maBN = c.maBanNhom || c.maNhom;
@@ -2170,6 +2170,14 @@ export default function QuanLyPage() {
         cur.ip += c.fyp || 0;
       } else {
         ipByNhom.set(maBN, { maBanNhom: maBN, tenNhom, ip: c.fyp || 0 });
+      }
+    });
+    // Gắn thông tin Trưởng Nhóm/Ban (TB/TN) cho mỗi nhóm — lookup từ leaders
+    ipByNhom.forEach(n => {
+      const ld = leaders.find(l => l.maNhom === n.maBanNhom && isTBorTNPosition(l.position));
+      if (ld) {
+        n.truongNhomMaSo = ld.agentCode;
+        n.truongNhomHoTen = ld.agentName;
       }
     });
     const top5Nhom = Array.from(ipByNhom.values())
@@ -4226,45 +4234,45 @@ export default function QuanLyPage() {
         </div>
 
         {/* Minimap: Công ty — KH năm tổng */}
-        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
+        <div className="rounded-sm p-2.5 sm:p-3" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
-              <Building2 className="w-4 h-4 text-amber-400" />
+            <div className="w-7 h-7 flex items-center justify-center rounded-sm" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Công ty — Kế hoạch năm</p>
-              <p className="text-amber-400 text-xl sm:text-2xl font-black">{congTyPlan > 0 ? formatSmartCurrency(congTyPlan) : '—'}</p>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Công ty — Kế hoạch năm</p>
+              <p className="text-amber-400 text-base sm:text-lg font-black">{congTyPlan > 0 ? formatSmartCurrency(congTyPlan) : '—'}</p>
             </div>
           </div>
           {congTyPlan > 0 && (
-            <p className="text-[9px] text-white/30 mt-1">Phân bổ theo 12 tháng bên dưới</p>
+            <p className="text-[8px] text-white/30 mt-0.5">Phân bổ theo 12 tháng bên dưới</p>
           )}
         </div>
 
         {/* Minimap: 12 tháng — chỉ KH tháng */}
-        <div className="rounded-none p-3 sm:p-4" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
-              <Calendar className="w-4 h-4 text-amber-400" />
+        <div className="rounded-sm p-2.5 sm:p-3" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 flex items-center justify-center rounded-sm" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <h3 className="text-xs sm:text-sm font-bold text-white/80 uppercase tracking-wider">KH AFYP từng tháng</h3>
+            <h3 className="text-[10px] sm:text-xs font-bold text-white/80 uppercase tracking-wider">KH AFYP từng tháng</h3>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1 sm:gap-1.5">
             {Array.from({ length: 12 }, (_, i) => {
               const m = String(i + 1).padStart(2, '0');
               const ratio = monthlyRatios[i] || 0;
               const monthlyPlan = congTyPlan > 0 && ratio > 0 ? congTyPlan * ratio / 100 : 0;
               const isCurrent = i + 1 === new Date().getMonth() + 1;
               return (
-                <div key={i} className="rounded-none p-1.5 sm:p-2 text-center" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
-                  <p className={`text-[10px] sm:text-xs font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
-                  <p className="text-[8px] sm:text-[9px] text-gray-500">{ratio > 0 ? `${ratio}%` : '—'}</p>
-                  <p className="text-[9px] sm:text-[10px] text-amber-400 font-bold mt-0.5">{monthlyPlan > 0 ? fmtPlan(monthlyPlan) : '—'}</p>
+                <div key={i} className="rounded-sm p-1 sm:p-1.5 text-center" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
+                  <p className={`text-[9px] sm:text-[10px] font-bold mb-0.5 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>T{i + 1}</p>
+                  <p className="text-[7px] sm:text-[8px] text-gray-500">{ratio > 0 ? `${ratio}%` : '—'}</p>
+                  <p className="text-[8px] sm:text-[9px] text-amber-400 font-bold mt-0.5">{monthlyPlan > 0 ? fmtPlan(monthlyPlan) : '—'}</p>
                 </div>
               );
             })}
           </div>
-          <p className="text-[9px] sm:text-[10px] text-white/30 mt-2">KH tháng = KH năm × tỷ lệ tháng | Tổng KH năm: {formatSmartCurrency(congTyPlan)}</p>
+          <p className="text-[8px] sm:text-[9px] text-white/30 mt-1.5">KH tháng = KH năm × tỷ lệ tháng | Tổng KH năm: {formatSmartCurrency(congTyPlan)}</p>
         </div>
 
         {/* Minimap: Phòng → AD → Nhóm hierarchy — chỉ KH */}
@@ -4272,16 +4280,16 @@ export default function QuanLyPage() {
           const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
           const phongPlan = phongPlans.get(p.maPhong) || 0;
           return (
-            <div key={p.maPhong} className="rounded-none overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
+            <div key={p.maPhong} className="rounded-sm overflow-hidden" style={{ backgroundColor: '#1E293B', boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}>
               {/* Phòng header */}
-              <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs sm:text-sm font-bold text-amber-300">{p.tenPhong}</span>
+              <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[10px] sm:text-xs font-bold text-amber-300">{p.tenPhong}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-amber-400 text-sm sm:text-lg font-black">{phongPlan > 0 ? formatSmartCurrency(phongPlan) : '—'}</span>
-                  <span className="text-[9px] text-gray-500 font-semibold">KH năm</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-amber-400 text-xs sm:text-sm font-black">{phongPlan > 0 ? formatSmartCurrency(phongPlan) : '—'}</span>
+                  <span className="text-[8px] text-gray-500 font-semibold">KH năm</span>
                 </div>
               </div>
               {/* AD rows */}
@@ -4290,22 +4298,22 @@ export default function QuanLyPage() {
                 const adPlan = adPlans.get(ad.maAD) || 0;
                 return (
                   <div key={ad.maAD}>
-                    <div className="px-3 py-1.5 sm:px-4 flex items-center justify-between border-t border-gray-800/50 hover:bg-gray-800/30">
-                      <span className="text-[10px] sm:text-xs text-sky-300 font-bold">AD: {ad.tenAD}</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-amber-400/90 text-[10px] sm:text-xs font-bold">{adPlan > 0 ? formatSmartCurrency(adPlan) : '—'}</span>
-                        <span className="text-[8px] text-gray-600">KH năm</span>
+                    <div className="px-2.5 py-1 sm:px-3 flex items-center justify-between border-t border-gray-800/50 hover:bg-gray-800/30">
+                      <span className="text-[9px] sm:text-[10px] text-sky-300 font-bold">AD: {ad.tenAD}</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-amber-400/90 text-[9px] sm:text-[10px] font-bold">{adPlan > 0 ? formatSmartCurrency(adPlan) : '—'}</span>
+                        <span className="text-[7px] text-gray-600">KH năm</span>
                       </div>
                     </div>
                     {/* Nhóm mini rows */}
                     {nhomsOfAD.map(bn => {
                       const bnPlan = nhomPlans.get(bn.maBanNhom) || 0;
                       return (
-                        <div key={bn.maBanNhom} className="px-3 py-1 sm:px-6 flex items-center justify-between border-t border-gray-800/20 hover:bg-gray-800/20">
-                          <span className="text-[9px] sm:text-[10px] text-gray-400 truncate max-w-[50%]">├ {bn.tenBanNhom}</span>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-amber-400/70 text-[9px] sm:text-[10px] font-bold">{bnPlan > 0 ? formatSmartCurrency(bnPlan) : '—'}</span>
-                            <span className="text-[7px] text-gray-600">KH</span>
+                        <div key={bn.maBanNhom} className="px-2.5 py-0.5 sm:px-5 flex items-center justify-between border-t border-gray-800/20 hover:bg-gray-800/20">
+                          <span className="text-[8px] sm:text-[9px] text-gray-400 truncate max-w-[50%]">├ {bn.tenBanNhom}</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-amber-400/70 text-[8px] sm:text-[9px] font-bold">{bnPlan > 0 ? formatSmartCurrency(bnPlan) : '—'}</span>
+                            <span className="text-[6px] text-gray-600">KH</span>
                           </div>
                         </div>
                       );
@@ -10885,7 +10893,7 @@ export default function QuanLyPage() {
     const Icon = cur.icon;
     return (
       <div className="space-y-3">
-        {/* Sub-tabs */}
+        {/* Sub-tabs — xanh lục đồng bộ với Chính sách */}
         <div className="flex flex-wrap gap-1.5">
           {VINH_DANH_SUBS.map(s => {
             const SIcon = s.icon;
@@ -10896,8 +10904,8 @@ export default function QuanLyPage() {
                 onClick={() => navigateTo({ sheet: 'vinh-danh', vinhdanhSub: s.key })}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
                   active
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'text-amber-300/60 border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-300'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'text-emerald-300/60 border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-300'
                 }`}
               >
                 <SIcon className="w-3.5 h-3.5" />
@@ -10909,10 +10917,10 @@ export default function QuanLyPage() {
 
         {/* Current sub-page header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-base font-extrabold text-amber-300 flex items-center gap-2 drop-shadow-[0_0_6px_rgba(245,158,11,0.3)]">
+          <h2 className="text-base font-extrabold text-emerald-300 flex items-center gap-2 drop-shadow-[0_0_6px_rgba(16,185,129,0.3)]">
             <Icon className="w-5 h-5" /> {cur.label}
           </h2>
-          <span className="text-[10px] text-amber-200/70 italic">
+          <span className="text-[10px] text-emerald-200/70 italic">
             Kỳ tính: 6 tháng đầu năm {new Date().getFullYear()} (T01 – T06)
           </span>
         </div>
@@ -10973,11 +10981,15 @@ export default function QuanLyPage() {
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'truongNhomMaSo', label: 'Mã Trưởng Nhóm/Ban' },
+              { key: 'truongNhomHoTen', label: 'Họ Tên Trưởng Nhóm/Ban' },
               { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
             ]}
             rows={vinhDanhData.top5Nhom.map((n, i) => ({
               rank: i + 1,
               tenNhom: n.tenNhom,
+              truongNhomMaSo: n.truongNhomMaSo || '—',
+              truongNhomHoTen: n.truongNhomHoTen || '—',
               ip: n.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}

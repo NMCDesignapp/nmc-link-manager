@@ -69,3 +69,5 @@ server.log
 # Tool outputs and work logs (should not be tracked)
 tool-results/
 worklog.md
+.vercel-creds/
+.vercel-creds/

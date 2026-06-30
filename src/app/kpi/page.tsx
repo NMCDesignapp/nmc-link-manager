@@ -101,11 +101,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cty .kh-small { font-size: clamp(.8rem, 2vw, 1rem); color: #6ab0e8; font-weight: 700; }
 .kpi-app .cty-progress { width: 100%; height: 12px; border-radius: 99px; background: #1a3050; overflow: hidden; box-shadow: inset 0 1px 2px #00000033; }
 .kpi-app .cty-progress-fill { height: 100%; width: 0; border-radius: inherit; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); will-change: width; box-shadow: 0 0 8px #40d89044; }
-.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; margin-top: 14px; }
-.kpi-app .cty-stat { border-radius: 6px; padding: 8px 4px 7px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
-.kpi-app .cty-stat-label { font-size: 9px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; color: rgba(255,255,255,.85); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .04em; }
-.kpi-app .cty-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; white-space: nowrap; color: #fff; }
-.kpi-app .cty-stat-sub { font-size: 0.5em; font-weight: 700; opacity: .75; margin-left: 1px; }
+.kpi-app .cty-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin-top: 10px; }
+.kpi-app .cty-stat { border-radius: 5px; padding: 4px 3px 4px; text-align: center; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 38px; }
+.kpi-app .cty-stat-label { font-size: 7px; font-weight: 800; text-transform: uppercase; margin-bottom: 2px; color: rgba(255,255,255,.85); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; letter-spacing: .03em; }
+.kpi-app .cty-stat-val { font-size: 13px; font-weight: 800; line-height: 1.05; white-space: nowrap; color: #fff; }
+.kpi-app .cty-stat-sub { font-size: 0.55em; font-weight: 700; opacity: .7; margin-left: 1px; }
 .kpi-app .cty-stat.hd { background: #3a7cc8; } .kpi-app .cty-stat.hd .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.td { background: #8a7ab8; } .kpi-app .cty-stat.td .cty-stat-val { color: #ffffff; }
 .kpi-app .cty-stat.chuan { background: #2a9aaa; } .kpi-app .cty-stat.chuan .cty-stat-val { color: #ffffff; }
@@ -208,11 +208,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
 .kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
-.kpi-app .nav-detail { background: linear-gradient(135deg, #1e40af, #1e3a8a); box-shadow: 0 6px 18px #1e40af66; }
-.kpi-app .nav-plan { background: linear-gradient(135deg, #059669, #065f46); box-shadow: 0 6px 18px #05966966; }
-.kpi-app .nav-race { background: linear-gradient(135deg, #0c4a6e, #082f49); box-shadow: 0 6px 18px #0c4a6e80; border: 1.5px solid #38bdf840; }
-
-.kpi-app .nav-clb { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 6px 18px #b4530966; border: 1.5px solid #fbbf2440; }
+.kpi-app .nav-detail { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 6px 22px #3b82f6aa, 0 0 12px #60a5fa66; border: 1px solid #60a5fa80; }
+.kpi-app .nav-plan { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 22px #10b981aa, 0 0 12px #34d39966; border: 1px solid #34d39980; }
+.kpi-app .nav-race { background: linear-gradient(135deg, #0ea5e9, #0284c7); box-shadow: 0 6px 22px #0ea5e9aa, 0 0 12px #38bdf866; border: 1px solid #38bdf8aa; }
+.kpi-app .nav-policy { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 22px #f59e0baa, 0 0 12px #fbbf2466; border: 1px solid #fbbf24aa; }
+.kpi-app .nav-clb { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 6px 22px #f97316aa, 0 0 12px #fb923c66; border: 1px solid #fb923caa; }
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -1930,13 +1930,16 @@ export default function KPIDashboard() {
         const adBannhoms = banNhomStructList.filter(bn => bn.maAD === adStruct.maAD);
 
         for (const bn of adBannhoms) {
-          // Find contracts for this BanNhom via maBanNhom
+          // Find contracts for this BanNhom via maBanNhom, fallback maNhom (đồng bộ với Tôn vinh trong /quan-ly)
+          // Nguyên tắc: nếu contract có maBanNhom → match theo maBanNhom;
+          //             nếu maBanNhom trống → match theo maNhom (cùng pattern với Tôn vinh).
+          // Trước đây chỉ dùng maBanNhom + fallback name-match → lệch số với Tôn vinh.
           const bnContracts = periodContracts.filter(c => {
-            const cMaBN = c.maBanNhom || '';
+            const cMaBN = c.maBanNhom || c.maNhom || '';
             return cMaBN === bn.maBanNhom;
           });
 
-          // Also try matching by nhom name if maBanNhom is empty
+          // Fallback by name nếu cả maBanNhom lẫn maNhom đều trống
           const bnContractsByName = bnContracts.length > 0 ? bnContracts : periodContracts.filter(c => {
             const cNhom = normKey(c.nhom || '');
             const bnName = normKey(bn.tenBanNhom);

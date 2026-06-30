@@ -28,6 +28,8 @@ export interface VinhDanhNhomRow {
   maBanNhom: string;
   tenNhom: string;
   ip: number;
+  truongNhomMaSo?: string;
+  truongNhomHoTen?: string;
 }
 
 export interface VinhDanhHoanThanhRow {
@@ -189,8 +191,8 @@ function buildTvvSheet(
 }
 
 /** Build sheet for Top 5 Nhóm (IP)
- *  Nguyên tắc cột: STT - NHÓM - <số liệu>.
- *  KHÔNG hiển thị MÃ NHÓM trên bảng.
+ *  Nguyên tắc cột: STT - NHÓM - MÃ TN/TB - HỌ TÊN TN/TB - <số liệu>.
+ *  KHÔNG hiển thị MÃ NHÓM (maBanNhom) trên bảng — mã nhóm chỉ để tính toán.
  */
 function buildNhomSheet(
   title: string,
@@ -201,33 +203,35 @@ function buildNhomSheet(
   const aoa: any[][] = [];
   const styles: XLSX.CellObject['s'][][] = [];
 
-  aoa.push([title, '', '']);
+  aoa.push([title, '', '', '', '']);
   styles.push([
-    { fill: { patternType: 'solid', fgColor: { rgb: '92400E' } }, font: { bold: true, color: { rgb: 'FFF8E0' }, sz: 13, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any,
+    { fill: { patternType: 'solid', fgColor: { rgb: '065F46' } }, font: { bold: true, color: { rgb: 'ECFDF5' }, sz: 13, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
+    null as any, null as any, null as any, null as any,
   ]);
 
-  aoa.push([subtitle, '', '']);
+  aoa.push([subtitle, '', '', '', '']);
   styles.push([
-    { fill: { patternType: 'solid', fgColor: { rgb: 'FEF3C7' } }, font: { italic: true, color: { rgb: '92400E' }, sz: 9, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
-    null as any, null as any,
+    { fill: { patternType: 'solid', fgColor: { rgb: 'D1FAE5' } }, font: { italic: true, color: { rgb: '065F46' }, sz: 9, name: 'Calibri' }, alignment: { horizontal: 'center', vertical: 'center' } },
+    null as any, null as any, null as any, null as any,
   ]);
 
-  aoa.push(['', '', '']);
-  styles.push([null as any, null as any, null as any]);
+  aoa.push(['', '', '', '', '']);
+  styles.push([null as any, null as any, null as any, null as any, null as any]);
 
-  aoa.push(['STT', 'Nhóm', 'Tổng IP (đ)']);
-  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL]);
+  aoa.push(['STT', 'Nhóm', 'Mã Trưởng Nhóm/Ban', 'Họ Tên Trưởng Nhóm/Ban', 'Tổng IP (đ)']);
+  styles.push([HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL, HEADER_FILL]);
 
   if (rows.length === 0) {
-    aoa.push(['(Chưa có dữ liệu)', '', '']);
-    styles.push([textCellStyle(true), textCellStyle(), textCellStyle()]);
+    aoa.push(['(Chưa có dữ liệu)', '', '', '', '']);
+    styles.push([textCellStyle(true), textCellStyle(), textCellStyle(), textCellStyle(), textCellStyle()]);
   } else {
     rows.forEach((r, i) => {
       const rank = i + 1;
-      aoa.push([rank, r.tenNhom, r.ip]);
+      aoa.push([rank, r.tenNhom, r.truongNhomMaSo || '—', r.truongNhomHoTen || '—', r.ip]);
       styles.push([
         rankCellStyle(rank),
+        textCellStyle(true),
+        textCellStyle(),
         textCellStyle(true),
         numberCellStyle(true),
       ]);
@@ -347,7 +351,7 @@ export function downloadVinhDanhExcel(data: VinhDanhExportData): void {
   // Cột TVV: STT - NHÓM - MÃ TVV - HỌ TÊN TVV - Tổng IP
   const tvvColWidths = [{ wch: 6 }, { wch: 22 }, { wch: 14 }, { wch: 26 }, { wch: 18 }];
   // Cột Nhóm: STT - NHÓM - Tổng IP (no MÃ NHÓM)
-  const nhomColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }];
+  const nhomColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }, { wch: 24 }, { wch: 18 }];
   // Cột HTKH: STT - NHÓM - AFYP - KH - % (no MÃ NHÓM)
   const htColWidths = [{ wch: 6 }, { wch: 26 }, { wch: 18 }, { wch: 18 }, { wch: 10 }];
 
