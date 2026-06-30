@@ -1482,6 +1482,39 @@ export default function QuanLyPage() {
   const [clbsvNhomFilter, setClbsvNhomFilter] = useState<string>('');
   const [clbsvNameFilter, setClbsvNameFilter] = useState<string>('');
 
+  // ===== ADMIN AUTH (read from sessionStorage set by KPI page) =====
+  // Khi chưa admin: ẩn BackButton + nút Cài đặt, chỉ hiện nút "Về trang KPI".
+  // Khi đã admin (đăng nhập từ KPI page): hiện lại BackButton + Cài đặt.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
+        setIsAdmin(true);
+      }
+    } catch {}
+    // ===== Read ?sheet=xxx URL param to open the right tab =====
+    // Supported: report (Chính sách), saoviet (Sao Việt Toàn Chặng), clb-saoviet (CLB Sao Việt)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sheetParam = params.get('sheet');
+      if (sheetParam) {
+        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet'];
+        if (validSheets.includes(sheetParam as SheetKey)) {
+          setActiveSheet(sheetParam as SheetKey);
+          // Clear the ?sheet= from URL so internal nav doesn't keep re-applying it
+          const url = new URL(window.location.href);
+          url.searchParams.delete('sheet');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+    }
+  }, []);
+
+  // Helper: navigate back to KPI main page
+  const goToKpiMain = useCallback(() => {
+    router.push('/kpi');
+  }, [router]);
+
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
   // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
@@ -3298,22 +3331,31 @@ export default function QuanLyPage() {
                 <span className="truncate w-full text-center leading-tight text-[11px]">CLB SV</span>
               </button>
             </div>
-            {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons) */}
-            <button
-              onClick={() => setSettingsDialogOpen(true)}
-              className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
-              style={{
-                backgroundColor: '#475569',
-                borderRadius: 0,
-                boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
-                opacity: 0.95,
-                minHeight: '52px',
-              }}
-              title="Cài đặt hệ thống"
-            >
-              <Settings className="w-5 h-5 flex-shrink-0" />
-              <span className="truncate w-full text-center leading-tight text-[11px]">Cài đặt</span>
-            </button>
+            {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons).
+                Khi chưa admin: ẩn nút Cài đặt, thay bằng cell trống (giữ layout 4×2). */}
+            {isAdmin ? (
+              <button
+                onClick={() => setSettingsDialogOpen(true)}
+                className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
+                style={{
+                  backgroundColor: '#475569',
+                  borderRadius: 0,
+                  boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
+                  opacity: 0.95,
+                  minHeight: '52px',
+                }}
+                title="Cài đặt hệ thống"
+              >
+                <Settings className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate w-full text-center leading-tight text-[11px]">Cài đặt</span>
+              </button>
+            ) : (
+              <div
+                className="w-full aspect-square"
+                style={{ backgroundColor: 'transparent', minHeight: '52px' }}
+                aria-hidden="true"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -10423,8 +10465,22 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
-        {/* Back button — nhỏ (20px), trên trái. Dùng history.back() để trở về thao tác trước (không phải về trang chủ) */}
-        <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
+        {/* Conditional back-button rendering:
+            - Khi CHƯA phải admin: ẩn BackButton + Cài đặt, chỉ hiện nút "Về trang KPI" (về /kpi).
+            - Khi đã là admin (đăng nhập từ KPI page): hiện BackButton (handleAppBack) như cũ. */}
+        {!isAdmin ? (
+          <Button
+            variant="ghost"
+            onClick={goToKpiMain}
+            className="text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 gap-1.5 px-2.5 text-xs font-bold flex-shrink-0"
+            title="Về trang chính KPI"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Về KPI</span>
+          </Button>
+        ) : (
+          <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
+        )}
         <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
@@ -10433,8 +10489,10 @@ export default function QuanLyPage() {
           {activeSheet === 'report' && policyOpen && (
             <Button variant="ghost" onClick={handleDownloadPolicyExcel} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải file Excel chính sách"><FileDown className="w-4 h-4" /></Button>
           )}
-          {/* Desktop: vẫn giữ nút Cài đặt vì sidebar không có — chỉ hiện md+ */}
-          <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="hidden md:inline-flex text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
+          {/* Desktop: nút Cài đặt — chỉ hiện khi đã là admin (đăng nhập từ KPI page). Khi chưa admin, ẩn đi. */}
+          {isAdmin && (
+            <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="hidden md:inline-flex text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
+          )}
         </div>
       </header>
 

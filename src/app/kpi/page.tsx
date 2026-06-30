@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings,
+  Lock, Unlock
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 
@@ -43,8 +44,14 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
 .kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
 .kpi-app .main-header .btn-back-u:hover { color: #6cc78a; background: rgba(108,199,138,.12); border-color: #6cc78a44; }
+/* Admin button (lock icon) — replaces BackButton on KPI main header */
+.kpi-app .main-header .btn-admin-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #c0a060; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; cursor: pointer; }
+.kpi-app .main-header .btn-admin-u:hover { color: #ffd040; background: rgba(255,208,64,.12); border-color: #ffd04044; }
+.kpi-app .main-header .btn-admin-u.authed { color: #6cc78a; border-color: #6cc78a44; background: rgba(108,199,138,.10); }
+.kpi-app .main-header .btn-admin-u.authed:hover { color: #8ee0a8; background: rgba(108,199,138,.18); }
 .kpi-app .main-header > div { flex: 1; text-align: center; }
 .kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
+.kpi-app .main-header > .btn-admin-u + div { margin-right: 46px; }
 
 /* Controls */
 .kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; position: relative; }
@@ -572,12 +579,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes adpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .kpi-app .adp-modal {
-  width: 100%; max-width: 1080px; height: calc(100vh - 24px); max-height: 760px;
+  width: 100%; max-width: 1080px;
+  /* Chiều cao giảm xuống 1/4 so với ban đầu (100vh - 24px → 25vh - 6px; 760px → 190px) */
+  height: calc(25vh - 6px); min-height: 150px; max-height: 190px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
   border-radius: 8px; overflow: hidden;
   box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
   display: flex; flex-direction: column;
-  /* Scale down entire popup ~10% like shrinking an image */
   transform: scale(.9);
   transform-origin: center center;
   animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
@@ -615,7 +623,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   flex: 1; min-height: 0;
   display: grid; grid-template-rows: auto 1fr; gap: 4px;
   padding: 6px 8px 8px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .kpi-app .adp-top {
@@ -788,7 +796,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 720px) {
   .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
-    max-width: 100%; height: calc(100vh - 8px); max-height: none;
+    max-width: 100%; height: 25vh; min-height: 130px; max-height: 190px;
     border-radius: 5px;
   }
   .kpi-app .adp-header { padding: 5px 9px; }
@@ -1416,6 +1424,40 @@ export default function KPIDashboard() {
   const [calAuthed, setCalAuthed] = useState(false);
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
+
+  // ===== ADMIN AUTH (for showing back+settings on sub-pages: chính sách, sao việt, clb) =====
+  // Persisted in sessionStorage so /quan-ly can read it after navigation.
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
+  const [adminPwdInput, setAdminPwdInput] = useState('');
+  const [adminPwdError, setAdminPwdError] = useState(false);
+  const ADMIN_PWD = '123456';
+
+  // On mount: check sessionStorage for existing admin auth
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
+        setAdminAuthed(true);
+      }
+    } catch {}
+  }, []);
+
+  const openAdminPwd = () => {
+    setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false);
+  };
+  const submitAdminPwd = () => {
+    if (adminPwdInput === ADMIN_PWD) {
+      setAdminAuthed(true);
+      try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
+      setAdminPwdOpen(false); setAdminPwdInput(''); setAdminPwdError(false);
+    } else {
+      setAdminPwdError(true);
+    }
+  };
+  const logoutAdmin = () => {
+    setAdminAuthed(false);
+    try { sessionStorage.removeItem('kpi_admin_authed'); } catch {}
+  };
   const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
@@ -2257,7 +2299,16 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              <BackButton href="/" size={20} title="Trở về trang chủ" />
+              {/* Admin button — replaces BackButton. Click to login (password modal). When authed, click to logout. */}
+              <button
+                type="button"
+                className={`btn-admin-u${adminAuthed ? ' authed' : ''}`}
+                onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
+                title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+              >
+                {adminAuthed ? <Unlock size={18} /> : <Lock size={18} />}
+              </button>
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -2394,15 +2445,15 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href="/thi-dua-chau">
+                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
-                  <button className="nav-btn nav-policy">
+                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                  </button>
-                  <button className="nav-btn nav-clb">
+                  </a>
+                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                  </button>
+                  </a>
                 </div>
               </nav>
 
@@ -3222,6 +3273,32 @@ export default function KPIDashboard() {
                   </table>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ADMIN LOGIN POPUP ===== */}
+      {adminPwdOpen && (
+        <div className="cal-modal-overlay" onClick={() => setAdminPwdOpen(false)}>
+          <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
+            <div className="cal-modal-head">
+              <span>Xác thực Admin</span>
+              <button className="cal-modal-x" onClick={() => setAdminPwdOpen(false)}>×</button>
+            </div>
+            <div className="cal-modal-body">
+              <p className="cal-modal-hint">Nhập mật khẩu Admin để mở khóa nút Trở về &amp; Cài đặt trên các trang Chính sách / Sao Việt / CLB:</p>
+              <input
+                type="password"
+                className={`cal-pwd-input${adminPwdError ? ' err' : ''}`}
+                value={adminPwdInput}
+                autoFocus
+                onChange={e => { setAdminPwdInput(e.target.value); setAdminPwdError(false); }}
+                onKeyDown={e => { if (e.key === 'Enter') submitAdminPwd(); }}
+                placeholder="••••••"
+              />
+              {adminPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
+              <button className="cal-modal-save" onClick={submitAdminPwd}>Xác nhận</button>
             </div>
           </div>
         </div>
