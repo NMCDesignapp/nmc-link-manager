@@ -1015,3 +1015,58 @@ Stage Summary:
 - CLB members data đã có trong DB production (user up thành công trước đó)
 - Pending members list hiện rỗng — cần user up lại (do bug cũ có thể đã làm mất data nếu user từng up)
 - Going forward: mọi upload/edit/delete CLB + Pending đều sync DB → đồng bộ mọi thiết bị
+
+---
+Task ID: clbsv-tables-contrast-fix
+Agent: main
+Task: Sửa contrast header vs body + số âm in nghiêng + bỏ cột THÁNG + bỏ chức vụ trong 3 bảng CLB SV
+
+Work Log:
+- User phàn nàn (lần thứ N): màu nền tiêu đề cột hạng == màu nền nội dung → không phân biệt được
+- User yêu cầu: số âm (deficit) in nghiêng + bỏ in đậm
+- User yêu cầu: bỏ cột FYP + TVVm HDC của tháng 6 (cột THÁNG) ở TN-TD + TN-KTM
+- User yêu cầu: bỏ chức vụ trong ngoặc ở cột HỌ TÊN (TN-TD + TN-KTM)
+- User yêu cầu: thu gọn 50% dòng header tier-1 (HẠNG VÀNG / HẠNG BẠCH KIM) ở TN-TD
+- User yêu cầu: gradient đậm->nhạt từ trên xuống
+
+Root cause: Header tier-1 dùng rk.bg (vd #FEF3C7 amber-100) + body cell cũng dùng rk.bg → cùng màu
+→ Giải pháp: tạo helper clbsvRankBodyBg(headerBg) → rgba(r,g,b, 0.08) — alpha 8%, siêu mờ
+
+Thay đổi cụ thể:
+
+1) Helper mới (page.tsx:9660-9670):
+   - clbsvRankBodyBg(headerBg: string): string — hex → rgba alpha 0.08
+
+2) CLBSV Cá nhân (renderCLBSVCaNhan, ~9900-9940):
+   - Body cell achieved: backgroundColor clbsvRankBodyBg(rk.bg), color #047857, ✓ font-black
+   - Body cell deficit: backgroundColor clbsvRankBodyBg(rk.bg), color #9CA3AF, italic font-normal (trước là font-bold)
+   - Sticky header: đã có sẵn (sticky top-0 z-10)
+
+3) CLBSV TN-TD (renderCLBSVTNTuyenDung, ~9954-10074):
+   - Bỏ 2 cột THÁNG (FYP TVVm THÁNG + SL TVVm HĐC THÁNG)
+   - Còn 10 cột: 4 fixed + 2 lũy kế + 4 rank sub
+   - Bỏ (m.chucVu) trong cột HỌ TÊN TVV
+   - Tier-1 header: py-0.5 + text-[9px] + leading-none (thu gọn 50%)
+   - Tier-2 header (sub-cols): backgroundColor clbsvRankBodyBg(rk.bg) — nhạt hơn tier-1
+   - Body rank cells: backgroundColor clbsvRankBodyBg(rk.bg)
+   - Deficit: italic font-normal; Đạt: ✓ font-black
+
+4) CLBSV TN-KTM (renderCLBSVTNKTM, ~10080-10170):
+   - Bỏ cột TỔNG FYP THÁNG
+   - Còn 8 cột: 4 fixed + 1 lũy kế + 3 ranks
+   - Bỏ (m.chucVu) trong cột HỌ TÊN TN
+   - Body rank cells: backgroundColor clbsvRankBodyBg(rk.bg)
+   - Deficit: italic font-normal; Đạt: ✓ font-black
+
+Build: success
+Commit: 1df6fe8
+Push: success (main → 1df6fe8) → trigger Vercel auto-deploy
+
+Stage Summary:
+- Helper clbsvRankBodyBg: convert hex → rgba alpha 8% → nền body siêu mờ, contrast rõ với header
+- 3 bảng CLBSV (Cá nhân, TN-TD, TN-KTM) giờ tuân thủ nguyên tắc: header đậm, body nhạt
+- Deficit (số âm): italic font-normal — không còn in đậm
+- TN-TD: bỏ 2 cột THÁNG (FYP TVVm + SL TVVm HĐC), còn 10 cột
+- TN-KTM: bỏ 1 cột THÁNG (TỔNG FYP), còn 8 cột
+- TN-TD + TN-KTM: bỏ chức vụ trong ngoặc ở cột HỌ TÊN
+- TN-TD: tier-1 header (Vàng/Bạch Kim) thu gọn 50%, gradient đậm->nhạt tier-1→tier-2
