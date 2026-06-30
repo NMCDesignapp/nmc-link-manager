@@ -1,0 +1,47 @@
+import { NextResponse } from 'next/server'
+import { db, withRetry } from '@/lib/db'
+
+export async function GET() {
+  try {
+    const settings = await withRetry(() => db.setting.findMany({ orderBy: { key: 'asc' } }))
+
+    const settingsObject = settings.reduce((acc: Record<string, string>, setting: { key: string; value: string | null }) => {
+      acc[setting.key] = setting.value || ''
+      return acc
+    }, {})
+
+    return NextResponse.json(settingsObject, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  } catch (error) {
+    console.error('Error fetching settings:', error)
+    return NextResponse.json({}, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json()
+    const entries = Object.entries(data)
+
+    if (entries.length === 0) {
+      return NextResponse.json({ success: true })
+    }
+
+    // Batch upsert using $transaction for better performance
+    await withRetry(() => db.$transaction(
+      entries.map(([key, value]) =>
+        db.setting.upsert({
+          where: { key },
+          update: { value: String(value), updated_at: new Date() },
+          create: { key, value: String(value) },
+        })
+      )
+    ))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error updating settings:', error)
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
+  }
+}

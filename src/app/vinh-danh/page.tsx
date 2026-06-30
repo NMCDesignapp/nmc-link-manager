@@ -66,7 +66,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 1',
     description: 'Vinh danh Phòng - Mẫu 1',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-1.png',
+    backgroundImage: '/posters/template-phong-1.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -88,7 +88,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 2',
     description: 'Vinh danh Phòng - Mẫu 2',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-2.png',
+    backgroundImage: '/posters/template-phong-2.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -110,7 +110,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 3',
     description: 'Vinh danh Phòng - Mẫu 3',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-3.png',
+    backgroundImage: '/posters/template-phong-3.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -132,7 +132,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 4',
     description: 'Vinh danh Phòng - Mẫu 4',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-4.png',
+    backgroundImage: '/posters/template-phong-4.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -154,7 +154,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 5',
     description: 'Vinh danh Phòng - Mẫu 5',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-5.png',
+    backgroundImage: '/posters/template-phong-5.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -176,7 +176,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: 'Phòng 6',
     description: 'Vinh danh Phòng - Mẫu 6',
     group: 'phong',
-    backgroundImage: '/posters/template-phong-6.png',
+    backgroundImage: '/posters/template-phong-6.webp',
     aspectRatio: '2/1',
     textFields: [
       {
@@ -199,7 +199,7 @@ const TEMPLATES: PosterTemplate[] = [
     name: `AD ${i + 1}`,
     description: `Vinh danh AD - Mẫu ${i + 1}`,
     group: 'ad' as const,
-    backgroundImage: `/posters/template-AD-${i + 1}.png`,
+    backgroundImage: `/posters/template-AD-${i + 1}.webp`,
     aspectRatio: '2/1',
     textFields: [
       {

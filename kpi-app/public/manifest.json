@@ -1,0 +1,13 @@
+{
+  "name": "KPI N.M.C",
+  "short_name": "KPI NMC",
+  "description": "KPI Dashboard - Trung tam quan ly lien ket",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#041828",
+  "theme_color": "#041828",
+  "icons": [
+    { "src": "/icon/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

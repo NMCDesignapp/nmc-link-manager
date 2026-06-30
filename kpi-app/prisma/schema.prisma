@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Link {
+  id          Int      @id @default(autoincrement())
+  title       String
+  url         String?
+  description String?
+  icon        String   @default("globe")
+  category    String   @default("General")
+  color       String   @default("#3b82f6")
+  link_type   String   @default("web")
+  file_url    String?
+  file_name   String?
+  file_type   String?
+  thumbnail   String?
+  is_favorite Boolean  @default(false)
+  click_count Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Category {
+  id         Int      @id @default(autoincrement())
+  name       String
+  icon       String?
+  color      String   @default("#3b82f6")
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+}
+
+model Setting {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      String?
+  updated_at DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        String   // format: YYYY-MM-DD
+  color       String   @default("#00ff88")
+  owner       String   @default("") // Phụ trách: Công ty / HTKD / PTKD / DVKH / Other text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Contract {
+  id                  String    @id @default(uuid())
+  stt                 Int       @default(0)
+  contractNumber      String    @unique
+  agentCode           String
+  agentName           String
+  position            String    @default("")
+  ban                 String    @default("")
+  maTruongBan         String    @default("")
+  nhom                String    @default("")
+  maBanNhom           String    @default("")
+  maTruongBanNhom     String    @default("")
+  maDL                String    @default("")
+  maNhom              String    @default("")
+  leaderAgentCode     String    @default("")
+  ngayBatDauLamViec   DateTime?
+  effectiveDate       DateTime?
+  issueDate           DateTime?
+  pdt10DT             Float     @default(0)
+  fyp                 Float     @default(0)
+  nguonDuLieu         String    @default("")
+  hopDongToChuc       String    @default("")
+  dkDongPhi           String    @default("")
+  phiDongThem         Float     @default(0)
+  afypChuaTru10DT     Float     @default(0)
+  afyp                Float     @default(0)
+  ad                  String    @default("")
+  nhom2               String    @default("")
+  ngayBatDauLamViec2  DateTime?
+  thangTD             Int       @default(0)
+  namTD               Int       @default(0)
+  thangHL             Int       @default(0)
+  tinhLuot            Float     @default(0)
+  tinhLuot3tr         Float     @default(0)
+  maDaiLyTD           String    @default("")
+  danhDauTVV          String    @default("")
+  chucVu2             String    @default("")
+  recruiterCode       String    @default("")
+  startDate           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Staff {
+  id        String    @id @default(uuid())
+  nhom      String    @default("")  // Tên nhóm
+  maNhom    String    @default("")  // Mã nhóm
+  agentCode String    @unique       // Mã số
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Recruiter {
+  id        String    @id @default(uuid())
+  nhom      String    @default("")  // Nhóm
+  agentCode String    @unique       // Mã số NTD
+  agentName String                   // Họ tên
+  position  String    @default("")  // Chức vụ
+  startDate DateTime?               // Ngày bắt đầu
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Contest {
+  id              String   @id @default(uuid())
+  title           String
+  startDate       DateTime
+  endDate         DateTime
+  issueDate       DateTime?
+  conditionType   String   @default("per_contract_ip")
+  targetType      String   @default("tvv")
+  bonusTiers      String
+  posterUrl       String   @default("")
+  participants    String   @default("[]")
+  usePhase2       Boolean  @default(false)
+  phase2StartDate DateTime?
+  phase2EndDate   DateTime?
+  bonusTiers2     String   @default("[]")
+  useSecondaryCondition Boolean @default(false)
+  secondaryAFYPMin Float  @default(0)
+  secondaryIPMin   Float  @default(0)
+  secondaryLuotHDMin   Float @default(0)
+  secondaryLuotHDCMin  Float @default(0)
+  secondaryLuotHDFilter String @default("all")
+  secondaryLuotHDCFilter String @default("all")
+  secondaryTotalAFYPMin Float @default(0)
+  secondaryTotalIPMin   Float @default(0)
+  hideNotAchieved  Boolean  @default(false)
+  includeIndividualNTD Boolean @default(false)
+  includeIndividualTN  Boolean @default(false)
+  luotHDThreshold  Float  @default(3000000)
+  luotHDCTThreshold Float  @default(12000000)
+  tvv90MaxMonths   Float  @default(3)
+  tvv90MinIP       Float  @default(12000000)
+  referenceContestId String @default("")
+  includeTNInPassCount Boolean @default(false)
+  csvContractUrl   String   @default("")
+  csvStaffUrl      String   @default("")
+  csvRecruiterUrl  String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model LeaderInfo {
+  id            String    @id @default(uuid())
+  agentCode     String    @unique
+  agentName     String
+  position      String    @default("")
+  ban           String    @default("")
+  nhom          String    @default("")
+  maNhom        String    @default("")
+  salary        Float     @default(0)
+  phone         String    @default("")
+  email         String    @default("")
+  note          String    @default("")
+  startDate     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model MonthlyRevenue {
+  id            String   @id @default(uuid())
+  month         String
+  maNhom        String   @default("")
+  nhom          String   @default("")
+  agentCode     String   @default("")
+  agentName     String   @default("")
+  totalFYP      Float    @default(0)
+  totalAFYP     Float    @default(0)
+  contractCount Int      @default(0)
+  activityRounds Int     @default(0)
+  note          String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Phong {
+  id          String   @id @default(uuid())
+  maPhong     String   @unique
+  tenPhong    String
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AD {
+  id          String   @id @default(uuid())
+  maAD        String   @unique
+  tenAD       String
+  maPhong     String   @default("")
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BanNhom {
+  id          String   @id @default(uuid())
+  maBanNhom   String   @unique
+  tenBanNhom  String
+  maAD        String   @default("")
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TVVStruct {
+  id              String   @id @default(uuid())
+  agentCode       String   @unique
+  agentName       String
+  maBanNhom       String   @default("")
+  chucVu          String   @default("")
+  ngayBatDau      DateTime?
+  maTVVTuyendung  String   @default("")
+  note            String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// DS TTN Tuyển Ngang — Trưởng Tổ Nhóm tuyển dụng ngang cấp
+// Columns: STT, NHÓM, MÃ TVV, HỌ TÊN, Ngày bắt đầu làm việc, Ngày hiệu lực chức vụ,
+//          MÃ NGƯỜI TUYỂN DỤNG, TÊN NGƯỜI TUYỂN DỤNG
+model TuyenNgang {
+  id                String    @id @default(uuid())
+  nhom              String    @default("")   // NHÓM (tên nhóm)
+  agentCode         String    @unique         // MÃ TVV
+  agentName         String                     // HỌ TÊN
+  ngayBatDau        DateTime?                 // Ngày bắt đầu làm việc
+  ngayHieuLuc       DateTime?                 // Ngày hiệu lực chức vụ
+  maNguoiTuyenDung  String    @default("")   // MÃ NGƯỜI TUYỂN DỤNG
+  tenNguoiTuyenDung String    @default("")   // TÊN NGƯỜI TUYỂN DỤNG
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Số liệu Sao Việt — upload/sync thủ công per chương trình
+// program: 'ca-nhan' | 'tn-ktm' | 'tn-td'
+// Nguyên tắc upfile: xóa toàn bộ rows của program, rồi insert rows mới
+// ca-nhan & tn-ktm: dùng fyp
+// tn-td: dùng fypTVVm + slTvvmHDC + tvvmCount
+model SaoVietData {
+  id          String   @id @default(uuid())
+  program     String                                  // 'ca-nhan' | 'tn-ktm' | 'tn-td'
+  agentCode   String   @default("")
+  agentName   String   @default("")
+  nhomKD      String   @default("")
+  fyp         Float    @default(0)                    // For ca-nhan & tn-ktm
+  fypTVVm     Float    @default(0)                    // For tn-td
+  slTvvmHDC   Int      @default(0)                    // For tn-td
+  tvvmCount   Int      @default(0)                    // For tn-td
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([program])
+}
