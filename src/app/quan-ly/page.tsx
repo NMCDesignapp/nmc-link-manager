@@ -10370,6 +10370,87 @@ export default function QuanLyPage() {
   const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
   const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
 
+  // ========== CLB SAO VIỆT: Lookup maps từ các section Sao Việt Toàn Chặng ==========
+  // User yêu cầu (2026-07-01):
+  //   • CÁ NHÂN: FYP Tháng = tổng IP tháng HIỆN TẠI từ contracts (auto-switch month).
+  //              FYP Lũy Kế = lookup từ saoVietCaNhanRows (Sao Việt Cá Nhân) theo agentCode.
+  //              Điều kiện cần: FYP Tháng >= 12 triệu mới được xét hạng.
+  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế >= threshold → "thiếu IP tháng" in nghiêng, chữ đỏ.
+  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế < threshold → vẫn hiện deficit (chưa đạt hạng).
+  //   • TN TUYỂN DỤNG: Ánh xạ từ saoVietTNTDRows (FYP TVVm + SL TVVm HĐC) theo agentCode. Áp dụng 12tr condition (FYP cá nhân TN tháng hiện tại).
+  //   • TN KTM: Ánh xạ từ saoVietTNKTMRows (FYP lũy kế) theo agentCode. Áp dụng 12tr condition.
+  const CLBSV_FYP_THANG_MIN = 12_000_000; // 12 triệu — điều kiện cần để được xét hạng
+
+  // Map agentCode (lowercase) → FYP lũy kế từ SV CÁ NHÂN
+  const svCaNhanFypMap = new Map<string, number>();
+  saoVietCaNhanRows.forEach(r => {
+    svCaNhanFypMap.set((r.agentCode || '').trim().toLowerCase(), r.fyp);
+  });
+
+  // Map agentCode (lowercase) → { fyp, } từ SV TN KTM
+  const svTNKTMFypMap = new Map<string, number>();
+  saoVietTNKTMRows.forEach(r => {
+    svTNKTMFypMap.set((r.agentCode || '').trim().toLowerCase(), r.fyp);
+  });
+
+  // Map agentCode (lowercase) → { fypTVVm, slTvvmHDC } từ SV TN TD
+  const svTNTDMap = new Map<string, { fypTVVm: number; slTvvmHDC: number }>();
+  saoVietTNTDRows.forEach(r => {
+    svTNTDMap.set((r.agentCode || '').trim().toLowerCase(), {
+      fypTVVm: r.fypTVVm,
+      slTvvmHDC: r.slTvvmHDC,
+    });
+  });
+
+  // Contracts trong THÁNG HIỆN TẠI (dùng getDoanhSoMonth — issueDate, fallback effectiveDate)
+  const clbsvNow = new Date();
+  const clbsvCurMonth = clbsvNow.getMonth();       // 0-11
+  const clbsvCurYear = clbsvNow.getFullYear();
+  const clbsvCurrentMonthContracts = contracts.filter(c => {
+    const d = getDoanhSoMonth(c);
+    return !isNaN(d.getTime()) && d.getMonth() === clbsvCurMonth && d.getFullYear() === clbsvCurYear;
+  });
+
+  // Helper: FYP tháng hiện tại của 1 agentCode (từ contracts tháng hiện tại)
+  const getClbsvFypThang = (agentCode: string): number => {
+    const ac = (agentCode || '').trim().toLowerCase();
+    if (!ac) return 0;
+    return clbsvCurrentMonthContracts
+      .filter(c => (c.agentCode || '').trim().toLowerCase() === ac)
+      .reduce((s, c) => s + (c.fyp || 0), 0);
+  };
+
+  // Helper: FYP lũy kế từ SV Cá Nhân (cho CLB CÁ NHÂN)
+  const getClbsvFypLuyKeCaNhan = (agentCode: string): number => {
+    const ac = (agentCode || '').trim().toLowerCase();
+    return svCaNhanFypMap.get(ac) || 0;
+  };
+
+  // Helper: FYP lũy kế từ SV TN KTM (cho CLB TN KTM)
+  const getClbsvFypLuyKeTNKTM = (agentCode: string): number => {
+    const ac = (agentCode || '').trim().toLowerCase();
+    return svTNKTMFypMap.get(ac) || 0;
+  };
+
+  // Helper: data lũy kế từ SV TN TD (cho CLB TN TUYỂN DỤNG)
+  const getClbsvTNTDData = (agentCode: string): { fypTVVm: number; slTvvmHDC: number } => {
+    const ac = (agentCode || '').trim().toLowerCase();
+    return svTNTDMap.get(ac) || { fypTVVm: 0, slTvvmHDC: 0 };
+  };
+
+  // Helper: kiểm tra điều kiện cần (FYP tháng >= 12tr)
+  const isClbsvEligibleForRank = (agentCode: string): boolean => {
+    return getClbsvFypThang(agentCode) >= CLBSV_FYP_THANG_MIN;
+  };
+
+  // Helper: format FYP cell (triệu VND) — gọn, dễ đọc
+  const formatFypShort = (vnd: number): string => {
+    if (!vnd) return '0';
+    const trieu = vnd / 1_000_000;
+    if (trieu >= 1000) return `${(trieu / 1000).toFixed(2)} tỷ`;
+    return `${trieu.toFixed(1)} tr`;
+  };
+
   // Helper: convert rank header bg (đậm) sang rank body bg (siêu mờ — alpha 8%)
   // Nguyên tắc: header đậm, body nhạt tối đa → contrast rõ ràng, dễ phân biệt
   const clbsvRankBodyBg = (headerBg: string): string => {
@@ -10623,21 +10704,38 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredMembers.map((m, idx) => {
-            // FYP tháng + lũy kế chưa có data → 0
-            const fypThang = 0;
-            const fypLuyKe = 0;
+            // FYP Tháng = tổng IP tháng hiện tại từ contracts (auto-switch tháng)
+            // FYP Lũy Kế = lookup từ saoVietCaNhanRows (Sao Việt Cá Nhân) theo agentCode
+            const fypThang = getClbsvFypThang(m.agentCode);
+            const fypLuyKe = getClbsvFypLuyKeCaNhan(m.agentCode);
+            const eligible = isClbsvEligibleForRank(m.agentCode); // FYP Tháng >= 12tr
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">{m.agentName || '—'}</TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap" style={{ color: eligible ? '#047857' : '#DC2626', fontWeight: 700 }}>
+                  {formatFypShort(fypThang)}
+                </TableCell>
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
+                  {formatFypShort(fypLuyKe)}
+                </TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000; // trđ → VND
-                  const achieved = fypLuyKe >= thresholdVal;
-                  if (achieved) {
+                  const wouldAchieve = fypLuyKe >= thresholdVal;
+                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
+                  // - Nếu chưa đủ 12tr → "thiếu IP tháng" (in nghiêng, chữ đỏ)
+                  // - Nếu đủ 12tr + đạt threshold → ✓
+                  // - Nếu đủ 12tr + chưa đạt → deficit
+                  if (!eligible) {
+                    return (
+                      <TableCell key={rk.label} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }}>
+                        thiếu IP tháng
+                      </TableCell>
+                    );
+                  }
+                  if (wouldAchieve) {
                     return (
                       <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
                         <CheckBadge size={13} />
@@ -10657,7 +10755,8 @@ export default function QuanLyPage() {
       </Table>
     );
 
-    return renderClbsvDetailShell('ca-nhan', uniqueNhomList, filteredMembers.length, 0, 'SL TVV đạt', 'Tổng FYP', tableJsx);
+    const totalFypLuyKe = filteredMembers.reduce((s, m) => s + getClbsvFypLuyKeCaNhan(m.agentCode), 0);
+    return renderClbsvDetailShell('ca-nhan', uniqueNhomList, filteredMembers.length, totalFypLuyKe, 'SL TVV đạt', 'Tổng FYP LK', tableJsx);
   };
 
   // ---------- Sub-page: CLB SAO VIỆT TN TUYỂN DỤNG ----------
@@ -10749,9 +10848,12 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredMembers.map((m, idx) => {
-            // FYP TVVm + HĐC chưa có data → 0
-            const fypTvvmLuyKe = 0;
-            const slHdcLuyKe = 0;
+            // Ánh xạ từ saoVietTNTDRows (Sao Việt TN Tuyển Dụng) theo agentCode
+            const tntdData = getClbsvTNTDData(m.agentCode);
+            const fypTvvmLuyKe = tntdData.fypTVVm;
+            const slHdcLuyKe = tntdData.slTvvmHDC;
+            // Điều kiện cần: FYP cá nhân TN tháng hiện tại >= 12tr
+            const eligible = isClbsvEligibleForRank(m.agentCode);
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
@@ -10760,9 +10862,22 @@ export default function QuanLyPage() {
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
                   {m.agentName || '—'}
                 </TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
+                  {formatFypShort(fypTvvmLuyKe)}
+                </TableCell>
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
+                  {slHdcLuyKe}
+                </TableCell>
                 {ranks.flatMap(rk => {
+                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
+                  if (!eligible) {
+                    // Mỗi rank có 2 sub-cols (fyp + hdc), cả 2 đều hiện "thiếu IP tháng"
+                    return [
+                      <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }} colSpan={2}>
+                        thiếu IP tháng
+                      </TableCell>,
+                    ];
+                  }
                   const fypThreshold = rk.fypValues[clbsvCurrentMonthIdx] * 1_000_000;
                   const hdcThreshold = rk.hdcValues[clbsvCurrentMonthIdx];
                   const fypAchieved = fypTvvmLuyKe >= fypThreshold;
@@ -10785,7 +10900,8 @@ export default function QuanLyPage() {
       </Table>
     );
 
-    return renderClbsvDetailShell('tn-td', uniqueNhomList, filteredMembers.length, 0, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
+    const totalFypTVVm = filteredMembers.reduce((s, m) => s + getClbsvTNTDData(m.agentCode).fypTVVm, 0);
+    return renderClbsvDetailShell('tn-td', uniqueNhomList, filteredMembers.length, totalFypTVVm, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
   };
 
   // ---------- Sub-page: CLB SAO VIỆT TN KTM ----------
@@ -10850,7 +10966,10 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : filteredMembers.map((m, idx) => {
-            const fypLuyKe = 0;
+            // Ánh xạ từ saoVietTNKTMRows (Sao Việt TN KTM) theo agentCode
+            const fypLuyKe = getClbsvFypLuyKeTNKTM(m.agentCode);
+            // Điều kiện cần: FYP cá nhân TN tháng hiện tại >= 12tr
+            const eligible = isClbsvEligibleForRank(m.agentCode);
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
@@ -10859,11 +10978,21 @@ export default function QuanLyPage() {
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
                   {m.agentName || '—'}
                 </TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
+                  {formatFypShort(fypLuyKe)}
+                </TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000;
-                  const achieved = fypLuyKe >= thresholdVal;
-                  if (achieved) {
+                  const wouldAchieve = fypLuyKe >= thresholdVal;
+                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
+                  if (!eligible) {
+                    return (
+                      <TableCell key={rk.label} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }}>
+                        thiếu IP tháng
+                      </TableCell>
+                    );
+                  }
+                  if (wouldAchieve) {
                     return (
                       <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
                         <CheckBadge size={13} />
@@ -10883,7 +11012,8 @@ export default function QuanLyPage() {
       </Table>
     );
 
-    return renderClbsvDetailShell('tn-ktm', uniqueNhomList, filteredMembers.length, 0, 'SL TN đạt', 'Tổng FYP', tableJsx);
+    const totalFypLuyKe = filteredMembers.reduce((s, m) => s + getClbsvFypLuyKeTNKTM(m.agentCode), 0);
+    return renderClbsvDetailShell('tn-ktm', uniqueNhomList, filteredMembers.length, totalFypLuyKe, 'SL TN đạt', 'Tổng FYP LK', tableJsx);
   };
 
   // ---------- CLB Sao Việt overview (list of 3 program cards) ----------
