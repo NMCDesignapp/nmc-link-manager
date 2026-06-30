@@ -9657,6 +9657,19 @@ export default function QuanLyPage() {
   const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
   const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
 
+  // Helper: convert rank header bg (đậm) sang rank body bg (siêu mờ — alpha 8%)
+  // Nguyên tắc: header đậm, body nhạt tối đa → contrast rõ ràng, dễ phân biệt
+  const clbsvRankBodyBg = (headerBg: string): string => {
+    // Strip leading # và parse RGB
+    const hex = headerBg.replace('#', '');
+    if (hex.length !== 6) return '#FFFFFF';
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.08)`; // 8% alpha — siêu mờ
+  };
+
+
   // ---------- Helper: shell chi tiết CLB Sao Việt (giống renderSaovietDetailShell, BLUE/NAVY theme) ----------
   // Layout (mobile-first):
   //   - Mobile: poster (full width 16:9) -> compact filter row (2 cols) -> table (scroll) -> fixed bottom footer
@@ -9913,12 +9926,13 @@ export default function QuanLyPage() {
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: '#047857' }}>✓</TableCell>
+                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#047857' }}>✓</TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
+                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center font-bold align-middle" style={{ backgroundColor: rk.bg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
@@ -9952,64 +9966,61 @@ export default function QuanLyPage() {
       }
       return true;
     });
-    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm THÁNG + FYP TVVm LŨY KẾ + SL TVVm HĐC THÁNG + SL TVVm HĐC LŨY KẾ + (2 sub × 2 ranks) = 8 + 4 = 12
-    const totalCols = 8 + ranks.length * 2;
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm LŨY KẾ + SL TVVm HĐC LŨY KẾ + (2 sub × 2 ranks) = 6 + 4 = 10
+    // (Đã bỏ FYP TVVm THÁNG + SL TVVm HĐC THÁNG theo yêu cầu user)
+    const totalCols = 6 + ranks.length * 2;
 
     const tableJsx = (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          {/* Row 1: STT (rowSpan=2) | NHÓM (rowSpan=2) | MÃ SỐ (rowSpan=2) | HỌ TÊN TVV (rowSpan=2) | FYP TVVm THÁNG (rowSpan=2) | FYP TVVm LŨY KẾ (rowSpan=2) | SL TVVm HĐC THÁNG (rowSpan=2) | SL TVVm HĐC LŨY KẾ (rowSpan=2) | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2) */}
+          {/* Row 1: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP TVVm LŨY KẾ | SL TVVm HĐC LŨY KẾ | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2)
+              Tier-1 header được thu gọn 50% (py-0.5, text-[9px], dòng con text-[8px]) theo yêu cầu user */}
           <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              FYP TVVm<br />THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
-            </TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px] py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
               FYP TVVm<br />LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              SL TVVm<br />HĐC THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
-            </TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
               SL TVVm<br />HĐC LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
             {ranks.map(rk => (
               <TableHead
                 key={rk.label}
                 colSpan={2}
-                className="text-[10px] font-black uppercase text-center align-middle whitespace-nowrap p-1 border-l-2 border-white"
+                className="text-[9px] font-black uppercase text-center align-middle whitespace-nowrap py-0.5 px-1 border-l-2 border-white"
                 style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
-                <div className="leading-tight">
-                  <div className="font-black">{rk.label}</div>
+                <div className="leading-none">
+                  <div className="font-black text-[9px]">{rk.label}</div>
                 </div>
               </TableHead>
             ))}
           </TableRow>
-          {/* Row 2: sub-cols FYP TVVm + TVVm HĐC for each rank — hiển thị chỉ tiêu tháng hiện tại */}
+          {/* Row 2: sub-cols FYP TVVm + TVVm HĐC for each rank — hiển thị chỉ tiêu tháng hiện tại
+              Gradient đậm->nhạt: tier-1 dùng rk.bg (đậm), tier-2 dùng clbsvRankBodyBg(rk.bg) (siêu mờ) */}
           <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
             {ranks.flatMap(rk => [
               <TableHead
                 key={`${rk.label}-fyp`}
-                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
+                style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: rk.fg }}
               >
                 <div className="leading-tight">
-                  <div className="italic font-bold text-[10px]">{rk.fypLabel}</div>
-                  <div className="font-black text-[11px]">{rk.fypValues[clbsvCurrentMonthIdx]} trđ</div>
+                  <div className="italic font-bold text-[9px]">{rk.fypLabel}</div>
+                  <div className="font-black text-[10px]">{rk.fypValues[clbsvCurrentMonthIdx]} trđ</div>
                 </div>
               </TableHead>,
               <TableHead
                 key={`${rk.label}-hdc`}
-                className="text-[9px] font-bold text-center align-middle p-1 whitespace-nowrap"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap"
+                style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: rk.fg }}
               >
                 <div className="leading-tight">
-                  <div className="italic font-bold text-[10px]">{rk.hdcLabel}</div>
-                  <div className="font-black text-[11px]">{rk.hdcValues[clbsvCurrentMonthIdx]} TVV</div>
+                  <div className="italic font-bold text-[9px]">{rk.hdcLabel}</div>
+                  <div className="font-black text-[10px]">{rk.hdcValues[clbsvCurrentMonthIdx]} TVV</div>
                 </div>
               </TableHead>,
             ])}
@@ -10033,10 +10044,7 @@ export default function QuanLyPage() {
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
                   {m.agentName || '—'}
-                  {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
                 </TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
                 <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
                 <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
                 {ranks.flatMap(rk => {
@@ -10047,11 +10055,11 @@ export default function QuanLyPage() {
                   const fypDeficit = Math.max(0, fypThreshold - fypTvvmLuyKe);
                   const hdcDeficit = Math.max(0, hdcThreshold - slHdcLuyKe);
                   return [
-                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: fypAchieved ? '#047857' : '#9CA3AF' }}>
-                      {fypAchieved ? '✓' : formatDeficit(fypDeficit)}
+                    <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: fypAchieved ? '#047857' : '#9CA3AF' }}>
+                      {fypAchieved ? <span className="font-black">✓</span> : <span className="italic font-normal">{formatDeficit(fypDeficit)}</span>}
                     </TableCell>,
-                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
-                      {hdcAchieved ? '✓' : `-${hdcDeficit}`}
+                    <TableCell key={`${rk.label}-hdc-${m.id}`} className="text-[10px] text-center align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: hdcAchieved ? '#047857' : '#9CA3AF' }}>
+                      {hdcAchieved ? <span className="font-black">✓</span> : <span className="italic font-normal">-{hdcDeficit}</span>}
                     </TableCell>,
                   ];
                 })}
@@ -10088,8 +10096,9 @@ export default function QuanLyPage() {
       }
       return true;
     });
-    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TN + FYP THÁNG + FYP LŨY KẾ + 3 rank = 7 + 3 = 10
-    const totalCols = 7 + ranks.length;
+    // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TN + FYP LŨY KẾ + 3 rank = 5 + 3 = 8
+    // (Đã bỏ TỔNG FYP THÁNG theo yêu cầu user)
+    const totalCols = 5 + ranks.length;
 
     const tableJsx = (
       <Table>
@@ -10099,9 +10108,6 @@ export default function QuanLyPage() {
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TN</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              TỔNG FYP THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
-            </TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
               TỔNG FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
             </TableHead>
@@ -10137,21 +10143,20 @@ export default function QuanLyPage() {
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">
                   {m.agentName || '—'}
-                  {m.chucVu && <span className="ml-1 text-[8px] text-blue-700 font-normal">({m.chucVu})</span>}
                 </TableCell>
-                <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
                 <TableCell className="text-[10px] text-center text-gray-400 italic align-middle">—</TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000;
                   const achieved = fypLuyKe >= thresholdVal;
                   if (achieved) {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: rk.bg, color: '#047857' }}>✓</TableCell>
+                      <TableCell key={rk.label} className="text-[10px] text-center font-black align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#047857' }}>✓</TableCell>
                     );
                   }
                   const deficit = Math.max(0, thresholdVal - fypLuyKe);
+                  // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền siêu mờ
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center font-bold align-middle" style={{ backgroundColor: rk.bg, color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: clbsvRankBodyBg(rk.bg), color: '#9CA3AF' }}>{formatDeficit(deficit)}</TableCell>
                   );
                 })}
               </TableRow>
