@@ -8,7 +8,7 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3 } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, Unlock, X } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { AppLoader } from '@/components/app-loader'
@@ -278,6 +278,41 @@ export default function Home() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [modalKey, setModalKey] = useState(0)
 
+  // ===== ADMIN AUTH =====
+  // Admin đăng nhập tại đây → lưu sessionStorage('kpi_admin_authed')='1'.
+  // Các trang /kpi và /quan-ly đọc sessionStorage này để hiện nút Trở về + Cài đặt + Sync.
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
+  const [adminPwdInput, setAdminPwdInput] = useState('');
+  const [adminPwdError, setAdminPwdError] = useState(false);
+  const ADMIN_PWD = '123456';
+
+  // Đọc sessionStorage khi mount
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
+        setAdminAuthed(true);
+      }
+    } catch {}
+  }, []);
+
+  const openAdminPwd = useCallback(() => {
+    setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false);
+  }, []);
+  const submitAdminPwd = useCallback(() => {
+    if (adminPwdInput === ADMIN_PWD) {
+      setAdminAuthed(true);
+      try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
+      setAdminPwdOpen(false); setAdminPwdInput(''); setAdminPwdError(false);
+    } else {
+      setAdminPwdError(true);
+    }
+  }, [adminPwdInput]);
+  const logoutAdmin = useCallback(() => {
+    setAdminAuthed(false);
+    try { sessionStorage.removeItem('kpi_admin_authed'); } catch {}
+  }, []);
+
   const handleAddOrUpdateLink = async (data: Partial<Link>) => {
     setSaveStatus('saving')
     try {
@@ -403,17 +438,43 @@ export default function Home() {
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <p className="text-xs text-muted-foreground">{settings.profile_bio}</p>
-            <motion.button
-              onClick={() => setIsSettingsOpen(true)}
-              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
-              animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
-              whileTap={{ scale: 0.85 }}
-            >
-              <Settings className="w-3 h-3" style={{ color: neonColor }} />
-            </motion.button>
+            {/* Admin button — bên dưới chữ N.M.C. Bấm để đăng nhập/đăng xuất Admin. */}
+            {(() => {
+              const adminBtnStyle = adminAuthed
+                ? { background: 'rgba(108,199,138,.15)', border: '1px solid rgba(108,199,138,.45)', boxShadow: '0 0 8px rgba(108,199,138,.30)' }
+                : { background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` };
+              const adminHoverShadow = adminAuthed ? '0 0 20px rgba(108,199,138,.50)' : `0 0 20px ${neonColor}50`;
+              return (
+                <motion.button
+                  onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={adminBtnStyle}
+                  animate={adminAuthed ? {} : { boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+                  transition={adminAuthed ? {} : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  whileHover={{ scale: 1.2, boxShadow: adminHoverShadow }}
+                  whileTap={{ scale: 0.85 }}
+                  title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                  aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                >
+                  {adminAuthed
+                    ? <Unlock className="w-3 h-3" style={{ color: '#6cc78a' }} />
+                    : <Lock className="w-3 h-3" style={{ color: neonColor }} />}
+                </motion.button>
+              );
+            })()}
+            {/* Settings button — chỉ hiện khi đã đăng nhập Admin */}
+            {adminAuthed && (
+              <motion.button
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+                whileTap={{ scale: 0.85 }}
+                title="Cài đặt"
+              >
+                <Settings className="w-3 h-3" style={{ color: neonColor }} />
+              </motion.button>
+            )}
           </motion.div>
         </motion.header>
 
@@ -539,17 +600,43 @@ export default function Home() {
               transition={{ delay: 0.5, duration: 0.5 }}
             >
               <p className="text-sm text-muted-foreground">{settings.profile_bio}</p>
-              <motion.button
-                onClick={() => setIsSettingsOpen(true)}
-                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
-                animate={{ boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
-                whileTap={{ scale: 0.85 }}
-              >
-                <Settings className="w-3.5 h-3.5" style={{ color: neonColor }} />
-              </motion.button>
+              {/* Admin button — bên dưới chữ N.M.C. Bấm để đăng nhập/đăng xuất Admin. */}
+              {(() => {
+                const adminBtnStyle = adminAuthed
+                  ? { background: 'rgba(108,199,138,.15)', border: '1px solid rgba(108,199,138,.45)', boxShadow: '0 0 8px rgba(108,199,138,.30)' }
+                  : { background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` };
+                const adminHoverShadow = adminAuthed ? '0 0 20px rgba(108,199,138,.50)' : `0 0 20px ${neonColor}50`;
+                return (
+                  <motion.button
+                    onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={adminBtnStyle}
+                    animate={adminAuthed ? {} : { boxShadow: [`0 0 8px ${neonColor}20`, `0 0 16px ${neonColor}35`, `0 0 8px ${neonColor}20`] }}
+                    transition={adminAuthed ? {} : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    whileHover={{ scale: 1.2, boxShadow: adminHoverShadow }}
+                    whileTap={{ scale: 0.85 }}
+                    title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                    aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
+                  >
+                    {adminAuthed
+                      ? <Unlock className="w-3.5 h-3.5" style={{ color: '#6cc78a' }} />
+                      : <Lock className="w-3.5 h-3.5" style={{ color: neonColor }} />}
+                  </motion.button>
+                );
+              })()}
+              {/* Settings button — chỉ hiện khi đã đăng nhập Admin */}
+              {adminAuthed && (
+                <motion.button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                  whileHover={{ scale: 1.2, rotate: 90, boxShadow: `0 0 20px ${neonColor}50` }}
+                  whileTap={{ scale: 0.85 }}
+                  title="Cài đặt"
+                >
+                  <Settings className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                </motion.button>
+              )}
             </motion.div>
           </motion.header>
 
@@ -713,6 +800,77 @@ export default function Home() {
         }}
         onOpenStats={() => setIsStatsOpen(true)}
       />
+
+      {/* ===== ADMIN LOGIN MODAL ===== */}
+      <AnimatePresence>
+        {adminPwdOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setAdminPwdOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-sm rounded-2xl p-5 relative"
+              style={{
+                background: 'rgba(16,16,42,0.95)',
+                border: `1.5px solid ${neonColor}40`,
+                boxShadow: `0 20px 60px rgba(0,0,0,.6), 0 0 50px ${neonColor}20`,
+              }}
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            >
+              <button
+                onClick={() => setAdminPwdOpen(false)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex flex-col items-center text-center mb-4">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-2"
+                  style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}40`, boxShadow: `0 0 12px ${neonColor}30` }}
+                >
+                  <Lock className="w-5 h-5" style={{ color: neonColor }} />
+                </div>
+                <h3 className="text-base font-extrabold text-white">Xác thực Admin</h3>
+                <p className="text-[11px] text-white/60 mt-1 leading-relaxed">
+                  Nhập mật khẩu Admin để mở khóa các nút Cài đặt số liệu, hình ảnh và link liên kết trên toàn ứng dụng.
+                </p>
+              </div>
+              <input
+                type="password"
+                className={`w-full bg-black/40 border ${adminPwdError ? 'border-red-500/70' : 'border-white/20'} rounded-lg px-3 py-2.5 text-white text-sm placeholder-white/30 outline-none focus:border-${neonColor} transition-colors`}
+                style={adminPwdError ? {} : { boxShadow: adminPwdError ? 'none' : `inset 0 0 8px ${neonColor}10` }}
+                value={adminPwdInput}
+                autoFocus
+                onChange={e => { setAdminPwdInput(e.target.value); setAdminPwdError(false); }}
+                onKeyDown={e => { if (e.key === 'Enter') submitAdminPwd(); }}
+                placeholder="••••••"
+              />
+              {adminPwdError && (
+                <p className="text-[11px] text-red-400 mt-1.5 text-center">Mật khẩu không đúng</p>
+              )}
+              <button
+                onClick={submitAdminPwd}
+                className="w-full mt-3 py-2.5 rounded-lg text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[.98]"
+                style={{
+                  background: `linear-gradient(135deg, ${neonColor}, ${neonColor}cc)`,
+                  boxShadow: `0 4px 12px ${neonColor}40`,
+                }}
+              >
+                Xác nhận
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

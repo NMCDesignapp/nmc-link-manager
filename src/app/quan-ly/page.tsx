@@ -1660,10 +1660,45 @@ export default function QuanLyPage() {
     }
   }, []);
 
+  // ===== Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /) =====
+  // sessionStorage không trigger storage event trong cùng tab, nhưng khi điều hướng trang mới,
+  // useEffect mount lại sẽ đọc lại giá trị mới nhất. Vẫn thêm poll để bắt thay đổi khi mở nhiều tab.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'kpi_admin_authed') {
+        setIsAdmin(e.newValue === '1');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    const poll = setInterval(() => {
+      try {
+        const v = sessionStorage.getItem('kpi_admin_authed') === '1';
+        setIsAdmin(prev => prev !== v ? v : prev);
+      } catch {}
+    }, 1000);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
+  }, []);
+
   // Helper: navigate back to KPI main page
   const goToKpiMain = useCallback(() => {
     router.push('/kpi');
   }, [router]);
+
+  // Helper: NON-ADMIN back button behaviour.
+  //  - Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → trở về TỔNG QUAN của cùng section.
+  //  - Đang ở overview của section (report / saoviet / clb-saoviet / vinh-danh) → trở về trang KPI.
+  //  - Đang ở overview / sheets khác → trở về KPI.
+  const nonAdminBack = useCallback(() => {
+    // Sub-page đang mở → reset sub về null (giữ nguyên sheet)
+    if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
+    if (activeSheet === 'saoviet' && saovietOpen) { setSaovietOpen(null); return; }
+    if (activeSheet === 'clb-saoviet' && clbsvOpen) { setClbsvOpen(null); return; }
+    if (activeSheet === 'structure' && structureSub !== 'leaders') { setStructureSub('leaders'); return; }
+    if (activeSheet === 'revenue' && revenueSub !== 'all') { setRevenueSub('all'); return; }
+    // Đang ở overview của section → về KPI
+    router.push('/kpi');
+  }, [activeSheet, policyOpen, saovietOpen, clbsvOpen, structureSub, revenueSub, router]);
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
@@ -8088,7 +8123,7 @@ export default function QuanLyPage() {
             </h2>
             <span className="text-[11px] text-emerald-200/60 italic">{POLICY_ITEMS.length} chính sách</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {POLICY_ITEMS.map(item => {
               const currentImage = policyImageLinks[item.key] || '';
               const IIcon = item.icon;
@@ -8096,7 +8131,7 @@ export default function QuanLyPage() {
                 <button
                   key={item.key}
                   onClick={() => navigateTo({ sheet: 'report', policyOpen: item.key })}
-                  className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                  className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
                   style={{
                     borderColor: `${item.color}AA`,
                     backgroundColor: '#0e1424',
@@ -8125,34 +8160,34 @@ export default function QuanLyPage() {
                       </>
                     ) : (
                       // Empty — placeholder icon (no upload button — manage in Settings dialog)
-                      <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
+                      <div className="flex flex-col items-center justify-center gap-1 px-3 py-3 text-center">
                         <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
+                          className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
                           style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
                         >
-                          <IIcon className="w-6 h-6" style={{ color: item.color }} />
+                          <IIcon className="w-5 h-5" style={{ color: item.color }} />
                         </div>
-                        <span className="text-[11px] font-semibold" style={{ color: item.color }}>
+                        <span className="text-[10px] font-semibold" style={{ color: item.color }}>
                           {item.label}
                         </span>
-                        <span className="text-[9px] text-gray-500 italic">Chưa có ảnh</span>
+                        <span className="text-[8px] text-gray-500 italic">Chưa có ảnh</span>
                       </div>
                     )}
                   </div>
 
                   {/* Bottom: program name + desc */}
                   <div
-                    className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
+                    className="text-left px-2.5 py-2 border-t flex-1 flex flex-col gap-0.5 transition-colors"
                     style={{ borderColor: `${item.color}33` }}
                   >
                     <div className="flex items-center gap-1.5">
-                      <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
-                      <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
+                      <IIcon className="w-3 h-3 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
+                      <h3 className="text-[11px] font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
                         {item.label}
                       </h3>
-                      <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                      <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
                     </div>
-                    <p className="text-[11px] text-gray-400 leading-tight line-clamp-1">
+                    <p className="text-[10px] text-gray-400 leading-tight line-clamp-1">
                       {item.desc}
                     </p>
                   </div>
@@ -9516,18 +9551,20 @@ export default function QuanLyPage() {
         <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
           <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT
         </h2>
-        <button
-          onClick={() => setSaovietSettingsOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
-          style={{ backgroundColor: '#D97706', border: '1px solid #B45309', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          Cài đặt dữ liệu
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setSaovietSettingsOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+            style={{ backgroundColor: '#D97706', border: '1px solid #B45309', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Cài đặt dữ liệu
+          </button>
+        )}
       </div>
 
       {/* 3 program cards — SELECTION ONLY (poster 16:9 + name + period). Upload/delete moved to settings modal */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {SAOVIET_ITEMS.map(item => {
           const posterUrl = saovietPosters[item.key] || '';
           const IIcon = item.icon;
@@ -9535,7 +9572,7 @@ export default function QuanLyPage() {
             <button
               key={item.key}
               onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
-              className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: `${item.color}AA`,
                 backgroundColor: '#0e1424',
@@ -9564,34 +9601,34 @@ export default function QuanLyPage() {
                   </>
                 ) : (
                   // Empty poster — placeholder icon (no upload button — manage in Settings)
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
+                  <div className="flex flex-col items-center justify-center gap-1 px-3 py-3 text-center">
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
+                      className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
                       style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
                     >
-                      <IIcon className="w-6 h-6" style={{ color: item.color }} />
+                      <IIcon className="w-5 h-5" style={{ color: item.color }} />
                     </div>
-                    <span className="text-[11px] font-semibold" style={{ color: item.color }}>
+                    <span className="text-[10px] font-semibold" style={{ color: item.color }}>
                       {item.label}
                     </span>
-                    <span className="text-[9px] text-gray-500 italic">Chưa có poster</span>
+                    <span className="text-[8px] text-gray-500 italic">Chưa có poster</span>
                   </div>
                 )}
               </div>
 
               {/* Bottom: program name + period */}
               <div
-                className="text-left px-3 py-2.5 border-t flex-1 flex flex-col gap-0.5 transition-colors"
+                className="text-left px-2.5 py-2 border-t flex-1 flex flex-col gap-0.5 transition-colors"
                 style={{ borderColor: `${item.color}33` }}
               >
                 <div className="flex items-center gap-1.5">
-                  <IIcon className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
-                  <h3 className="text-sm font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
+                  <IIcon className="w-3 h-3 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
+                  <h3 className="text-[11px] font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
                     {item.label}
                   </h3>
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                  <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
                 </div>
-                <p className="text-[11px] text-gray-300 font-semibold leading-tight">
+                <p className="text-[10px] text-gray-300 font-semibold leading-tight">
                   01/12/2025 — 30/11/2026
                 </p>
               </div>
@@ -10739,17 +10776,19 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-amber-200/80 italic hidden sm:inline">
             Chỉ tiêu tự động cập nhật theo tháng hiện tại
           </span>
-          <button
-            onClick={() => setClbsvSettingsOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
-            style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Cài đặt dữ liệu
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setClbsvSettingsOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+              style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Cài đặt dữ liệu
+            </button>
+          )}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {CLBSV_ITEMS.map(item => {
           const IIcon = item.icon;
           const posterUrl = clbsvPosters[item.key] || '';
@@ -10757,7 +10796,7 @@ export default function QuanLyPage() {
             <button
               key={item.key}
               onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: item.key })}
-              className="group relative rounded-xl overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.03] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: `${item.color}AA`,
                 backgroundColor: '#0e1424',
@@ -10776,21 +10815,22 @@ export default function QuanLyPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={posterUrl} alt={item.label} className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
-                  <IIcon className="w-12 h-12 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                  <IIcon className="w-10 h-10 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
                 )}
                 <span className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
               </div>
               {/* Bottom: label + description */}
-              <div className="p-3 text-left flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <IIcon className="w-3.5 h-3.5 flex-shrink-0 text-amber-300" />
+              <div className="px-2.5 py-2 text-left flex flex-col gap-1">
+                <div className="flex items-center gap-1.5">
+                  <IIcon className="w-3 h-3 flex-shrink-0 text-amber-300" />
                   <h3 className="text-[11px] font-extrabold uppercase tracking-wider truncate text-white">{item.label}</h3>
+                  <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
                 </div>
                 <p className="text-[10px] text-gray-300 leading-snug">{item.desc}</p>
-                <div className="mt-1.5 flex items-center justify-between">
+                <div className="mt-1 flex items-center justify-between">
                   <span className="text-[9px] text-amber-200/70 italic">Chỉ tiêu tháng hiện tại</span>
-                  <span className="text-[10px] font-bold flex items-center gap-1 text-amber-300">
-                    Xem chi tiết <ChevronRight className="w-3 h-3" />
+                  <span className="text-[9px] font-bold flex items-center gap-1 text-amber-300">
+                    Xem chi tiết <ChevronRight className="w-2.5 h-2.5" />
                   </span>
                 </div>
               </div>
@@ -10980,22 +11020,24 @@ export default function QuanLyPage() {
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Conditional back-button rendering:
-            - Khi CHƯA phải admin: ẩn BackButton + Cài đặt, chỉ hiện nút "Về trang KPI" (về /kpi).
+            - Khi CHƯA phải admin: ẩn BackButton + Cài đặt.
+              • Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → bấm "Trở về" để về TỔNG QUAN của cùng section.
+              • Đang ở overview của section → bấm "Trở về" để về trang KPI.
             - Khi đã là admin (đăng nhập từ KPI page): hiện BackButton (handleAppBack) như cũ. */}
         {!isAdmin ? (
           <Button
             variant="ghost"
-            onClick={goToKpiMain}
+            onClick={nonAdminBack}
             className="text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 gap-1.5 px-2.5 text-xs font-bold flex-shrink-0"
-            title="Về trang chính KPI"
+            title={((activeSheet === 'report' && policyOpen) || (activeSheet === 'saoviet' && saovietOpen) || (activeSheet === 'clb-saoviet' && clbsvOpen)) ? 'Trở về tổng quan' : 'Trở về trang KPI'}
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Về KPI</span>
+            <span className="hidden sm:inline">Trở về</span>
           </Button>
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>

@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings,
-  Lock, Unlock
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 
@@ -203,12 +202,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
-.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 14px 10px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .2s; position: relative; overflow: hidden; }
-.kpi-app .nav-btn:hover { transform: translateY(-2px); }
-.kpi-app .nav-btn:active { transform: scale(.97); }
-.kpi-app .nav-btn .nav-icon { font-size: 14px; line-height: 1; }
+.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
+.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
+.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
+.kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
 .kpi-app .nav-detail { background: linear-gradient(135deg, #1e40af, #1e3a8a); box-shadow: 0 6px 18px #1e40af66; }
 .kpi-app .nav-plan { background: linear-gradient(135deg, #059669, #065f46); box-shadow: 0 6px 18px #05966966; }
 .kpi-app .nav-race { background: linear-gradient(135deg, #0c4a6e, #082f49); box-shadow: 0 6px 18px #0c4a6e80; border: 1.5px solid #38bdf840; }
@@ -580,8 +579,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 .kpi-app .adp-modal {
   width: 100%; max-width: 1080px;
-  /* Chiều cao giảm xuống 1/4 so với ban đầu (100vh - 24px → 25vh - 6px; 760px → 190px) */
-  height: calc(25vh - 6px); min-height: 150px; max-height: 190px;
+  /* Chiều cao = 3× kích thước đã thu nhỏ (1/4 → 3/4 so với ban đầu) */
+  height: calc(75vh - 18px); min-height: 450px; max-height: 570px;
   background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
   border-radius: 8px; overflow: hidden;
   box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
@@ -796,7 +795,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 720px) {
   .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
-    max-width: 100%; height: 25vh; min-height: 130px; max-height: 190px;
+    max-width: 100%; height: 75vh; min-height: 390px; max-height: 570px;
     border-radius: 5px;
   }
   .kpi-app .adp-header { padding: 5px 9px; }
@@ -1113,18 +1112,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem) !important; margin: 0 !important; }
   .kpi-app .hero-sub { display: none; }
   .kpi-app .ctrl-bar { margin-top: 0 !important; }
-  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 6px; margin: 12px 0 0; flex-wrap: nowrap; }
+  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 10px; margin: 12px 0 0; flex-wrap: nowrap; }
   .kpi-app .nav-row-3 { display: contents; }
-  .kpi-app .nav-btn { flex: 1; padding: 8px 10px; font-size: 10px; border-radius: 8px; white-space: nowrap; }
+  .kpi-app .nav-btn { flex: 1; padding: 7px 8px; font-size: 9.5px; border-radius: 5px; white-space: nowrap; }
 
   .kpi-app .kpi-cty { display: none !important; }
   .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
-  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 4px; }
-  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-  .kpi-app .dsk-cty-main-head { padding: 8px 16px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
+  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 3px; }
+  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+  .kpi-app .dsk-cty-main-head { padding: 5px 14px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
   .kpi-app .dsk-cty-main-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: #fff; }
-  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 14px 18px 14px; background: #132a4a; }
-  .kpi-app .dsk-cty-pct { font-size: 2.6rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
+  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px 16px 10px; background: #132a4a; }
+  .kpi-app .dsk-cty-pct { font-size: 2.2rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
   .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
   .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px #00000044; }
   .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 10px #40d89044; }
@@ -1132,12 +1131,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kh { font-size: .72rem; font-weight: 700; color: #6ab0e8; }
   .kpi-app .dsk-cty-right { display: flex; flex-direction: column; flex: 1; gap: 4px; }
   .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 1; }
-  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 8px; display: flex; flex-direction: column; }
-  .kpi-app .dsk-cty-kpi-head { padding: 7px 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-  .kpi-app .dsk-cty-kpi-label { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 6px; display: flex; flex-direction: column; }
+  .kpi-app .dsk-cty-kpi-head { padding: 4px 6px; display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #fff; line-height: 1.15; white-space: nowrap; text-align: center; }
   .kpi-app .dsk-cty-kpi-sub { font-size: 0.55em; font-weight: 700; opacity: .75; margin-left: 1px; }
-  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 8px; text-align: center; }
-  .kpi-app .dsk-cty-kpi-val { font-size: 1.3rem; font-weight: 900; line-height: 1; text-shadow: 0 0 10px currentColor; }
+  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 6px; text-align: center; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1rem; font-weight: 800; line-height: 1; text-shadow: 0 0 8px currentColor; }
   .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
   .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-head { background: #8a7ab8; } .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-val { color: #b8a8e0; }
   .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-head { background: #2a9aaa; } .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-val { color: #60d0d8; }
@@ -1197,8 +1196,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .phong-main-name { font-size: 10px; }
   .kpi-app .phong-main-pct { font-size: 15px; }
   .kpi-app .phong-main-afyp { font-size: 1.3rem; }
-  .kpi-app .nav-grid { gap: 7px; margin-top: 18px; }
-  .kpi-app .nav-btn { padding: 11px 9px; border-radius: 10px; font-size: 10px; min-height: 46px; }
+  .kpi-app .nav-grid { gap: 10px; margin-top: 18px; }
+  .kpi-app .nav-btn { padding: 9px 8px; border-radius: 6px; font-size: 9.5px; min-height: 42px; }
   .kpi-app .ad-top { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; }
   .kpi-app .ad-name { font-size: 11px; }
   .kpi-app .ad-pct { font-size: 11px; }
@@ -1425,13 +1424,11 @@ export default function KPIDashboard() {
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
 
-  // ===== ADMIN AUTH (for showing back+settings on sub-pages: chính sách, sao việt, clb) =====
-  // Persisted in sessionStorage so /quan-ly can read it after navigation.
+  // ===== ADMIN AUTH =====
+  // Admin login/logout đã được chuyển sang giao diện chính ứng dụng (/src/app/page.tsx).
+  // Trạng thái đăng nhập vẫn được chia sẻ qua sessionStorage('kpi_admin_authed').
+  // Trang /quan-ly đọc sessionStorage này để quyết định ẩn/hiện nút Trở về & Cài đặt.
   const [adminAuthed, setAdminAuthed] = useState(false);
-  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
-  const [adminPwdInput, setAdminPwdInput] = useState('');
-  const [adminPwdError, setAdminPwdError] = useState(false);
-  const ADMIN_PWD = '123456';
 
   // On mount: check sessionStorage for existing admin auth
   useEffect(() => {
@@ -1442,22 +1439,25 @@ export default function KPIDashboard() {
     } catch {}
   }, []);
 
-  const openAdminPwd = () => {
-    setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false);
-  };
-  const submitAdminPwd = () => {
-    if (adminPwdInput === ADMIN_PWD) {
-      setAdminAuthed(true);
-      try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
-      setAdminPwdOpen(false); setAdminPwdInput(''); setAdminPwdError(false);
-    } else {
-      setAdminPwdError(true);
-    }
-  };
-  const logoutAdmin = () => {
-    setAdminAuthed(false);
-    try { sessionStorage.removeItem('kpi_admin_authed'); } catch {}
-  };
+  // Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'kpi_admin_authed') {
+        setAdminAuthed(e.newValue === '1');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    // Poll mỗi 800ms — sessionStorage không trigger storage event trong cùng tab
+    const poll = setInterval(() => {
+      try {
+        const v = sessionStorage.getItem('kpi_admin_authed') === '1';
+        setAdminAuthed(prev => prev !== v ? v : prev);
+      } catch {}
+    }, 800);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
+  }, []);
+
   const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
@@ -2299,16 +2299,7 @@ export default function KPIDashboard() {
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              {/* Admin button — replaces BackButton. Click to login (password modal). When authed, click to logout. */}
-              <button
-                type="button"
-                className={`btn-admin-u${adminAuthed ? ' authed' : ''}`}
-                onClick={() => adminAuthed ? logoutAdmin() : openAdminPwd()}
-                title={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
-                aria-label={adminAuthed ? 'Đăng xuất Admin' : 'Đăng nhập Admin'}
-              >
-                {adminAuthed ? <Unlock size={18} /> : <Lock size={18} />}
-              </button>
+              {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C). */}
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -2350,10 +2341,12 @@ export default function KPIDashboard() {
                     onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
-              <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
-                <span className="sync-check"><Check size={16} /></span>
-                <span className="sync-spinner"><RotateCw size={14} /></span>
-              </button>
+              {adminAuthed ? (
+                <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
+                  <span className="sync-check"><Check size={16} /></span>
+                  <span className="sync-spinner"><RotateCw size={14} /></span>
+                </button>
+              ) : <div style={{ width: 36, height: 36, flexShrink: 0 }} />}
             </div>
           </header>
 
@@ -2973,14 +2966,17 @@ export default function KPIDashboard() {
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
-            <button
-              className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
-              onClick={calAuthed ? openCalEditForNew : openCalPwd}
-              title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
-              aria-label="Cài đặt lịch"
-            >
-              <Settings size={16} />
-            </button>
+            {/* Nút cài đặt lịch — chỉ hiện khi đã đăng nhập Admin */}
+            {adminAuthed ? (
+              <button
+                className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
+                onClick={calAuthed ? openCalEditForNew : openCalPwd}
+                title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
+                aria-label="Cài đặt lịch"
+              >
+                <Settings size={16} />
+              </button>
+            ) : <div style={{ width: 32 }} />}
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="cal-filter">
@@ -3278,31 +3274,7 @@ export default function KPIDashboard() {
         </div>
       )}
 
-      {/* ===== ADMIN LOGIN POPUP ===== */}
-      {adminPwdOpen && (
-        <div className="cal-modal-overlay" onClick={() => setAdminPwdOpen(false)}>
-          <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
-            <div className="cal-modal-head">
-              <span>Xác thực Admin</span>
-              <button className="cal-modal-x" onClick={() => setAdminPwdOpen(false)}>×</button>
-            </div>
-            <div className="cal-modal-body">
-              <p className="cal-modal-hint">Nhập mật khẩu Admin để mở khóa nút Trở về &amp; Cài đặt trên các trang Chính sách / Sao Việt / CLB:</p>
-              <input
-                type="password"
-                className={`cal-pwd-input${adminPwdError ? ' err' : ''}`}
-                value={adminPwdInput}
-                autoFocus
-                onChange={e => { setAdminPwdInput(e.target.value); setAdminPwdError(false); }}
-                onKeyDown={e => { if (e.key === 'Enter') submitAdminPwd(); }}
-                placeholder="••••••"
-              />
-              {adminPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
-              <button className="cal-modal-save" onClick={submitAdminPwd}>Xác nhận</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ===== ADMIN LOGIN POPUP — đã chuyển sang giao diện chính ứng dụng (/src/app/page.tsx) ===== */}
     </div>
   );
 }
