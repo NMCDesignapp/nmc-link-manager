@@ -971,3 +971,47 @@ Stage Summary:
 - Poster CLBSV quản lý qua modal "Cài đặt dữ liệu" ở trang tổng quan CLBSV
 - Files mới: prisma/migrations/20260630030000..., src/app/api/clb-members/{route.ts,[id]/route.ts}, src/app/api/pending-members/{route.ts,[id]/route.ts}
 - Files sửa: prisma/schema.prisma, src/app/api/admin/fix-schema/route.ts, src/app/quan-ly/page.tsx
+
+---
+Task ID: clb-pending-migration-fix
+Agent: main
+Task: Sửa bug mất dữ liệu CLB/Pending khi migrate localStorage → DB; xác nhận DS Chờ xét gia nhập cũng online
+
+Work Log:
+- Phân tích: User báo "Ds chờ xét gia nhập cũng fai onl và không bị mất"
+- Verify state hiện tại:
+  + Prisma schema: ClbMember + PendingMember models đã có (từ task clb-members-sync-db)
+  + Migration SQL: prisma/migrations/20260630030000_add_clb_pending_members/migration.sql đã có
+  + API: /api/clb-members + /api/pending-members (cùng [id] routes) đã có full CRUD
+  + Frontend: state clbMembers + pendingMembers, fetchClbMembers/fetchPendingMembers, CRUD callbacks đã gọi API
+  + Migration useEffect: đã có logic migrate localStorage → DB
+- Tìm thấy BUG nghiêm trọng trong migration logic (page.tsx:1837-1853 cũ):
+  + Code cũ: POST lên DB → không check r.ok → xóa localStorage DÙ THÀNH CÔNG HAY THẤT BẠI
+  + Comment cũ: "Xóa localStorage sau khi migrate (dù thành công hay không — tránh dữ liệu cũ)"
+  + Hậu quả: nếu POST fail (server timeout / DB schema chưa apply / network lỗi) → DATA LOST VĨNH VIỄN
+  + Đây chính là root cause user báo "tôi đã up lên rồi, sao giờ tôi lên máy tính khác thì lại trống lõng"
+- FIX migration logic (page.tsx:1819-1898 mới):
+  + Wrap POST trong try/catch riêng
+  + Check r.ok → nếu fail, log error, GIỮ localStorage để retry lần sau
+  + Sau POST thành công → re-fetch từ DB → verify số rows >= số rows localStorage
+  + Chỉ khi verify pass mới xóa localStorage
+  + Nếu DB đã có data (clbDb.length > 0) → xóa localStorage luôn (đã migrate rồi, không cần retry)
+  + Log chi tiết: '[CLB migration] OK: migrated N rows', '[CLB migration] FAILED — giữ localStorage để retry'
+  + Áp dụng đồng bộ cho cả /api/clb-members và /api/pending-members
+- TypeScript check: không có error mới từ fix (errors tại lines 2326, 2621, 3064, 10324 là pre-existing)
+- Build: success
+- Commit: 2954aa8
+- Push: success (main → 2954aa8)
+- Trigger Vercel auto-deploy (GitHub push → Vercel build)
+- Verify production DB:
+  + curl POST /api/admin/fix-schema → "OK: ClbMember table ensured", "OK: PendingMember table ensured", "VERIFY: ClbMember table exists", "VERIFY: PendingMember table exists"
+  + curl GET /api/clb-members → trả về actual data (8c144a2f-..., ad: "AD Uy", nhom: "Hiệp Tiến", agentCode: "D104132535", agentName: "Nguyễn Thị Thảo", chucVu: "Trưởng ban", note: "SV 2025") → DB có data thật
+  + curl GET /api/pending-members → [] (user chưa up DS Chờ xét gia nhập, hoặc đã bị mất do bug cũ)
+
+Stage Summary:
+- Bug critical đã fix: localStorage chỉ bị xóa SAU khi DB write thành công + verify re-fetch
+- Trước đây nếu POST fail → localStorage bị xóa vĩnh viễn → DATA LOST → giải thích hiện tượng "up trên máy 1, máy 2 thấy rỗng"
+- Production DB đã confirm có cả 2 tables (ClbMember + PendingMember)
+- CLB members data đã có trong DB production (user up thành công trước đó)
+- Pending members list hiện rỗng — cần user up lại (do bug cũ có thể đã làm mất data nếu user từng up)
+- Going forward: mọi upload/edit/delete CLB + Pending đều sync DB → đồng bộ mọi thiết bị
