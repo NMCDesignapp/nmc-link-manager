@@ -19,9 +19,11 @@ import {
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
+  Crown, Medal,
   FileDown, Star, Image as ImageIcon,
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, type ContractDetailRow } from './policy-excel-export';
+import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 
 // ==================== TYPES ====================
 interface LeaderInfo {
@@ -147,10 +149,12 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members' | 'pending-members';
+// Sub-sheets within "Tôn vinh" section: 4 bảng Top 5 trong 6 tháng đầu năm
+type VinhDanhSubKey = 'top5-tvv' | 'top5-tvvm' | 'top5-nhom' | 'nhom-hoan-thanh-kh';
 
 // ── Design system: Tỷ lệ thưởng (used by Quý TVV, NS TVV, and future policy tables) ──
 // Gradient yellow/cream background (light → warmer) for tier header cells and body cells
@@ -308,6 +312,19 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false, hasSub: true },
 ];
 
+// Sub-items for "Tôn vinh" — 4 bảng Top 5 trong 6 tháng đầu năm (H1)
+//   1. top5-tvv:        Top 5 TVV có tổng IP cao nhất H1
+//   2. top5-tvvm:       Top 5 TVVm (TVV mới) có tổng IP cao nhất H1
+//                      (TVVm đã lọt Top 5 ở mục 1 thì chỉ hiển thị ở 1 chỗ — lấy hạng cao hơn)
+//   3. top5-nhom:       Top 5 Nhóm có tổng IP cao nhất H1
+//   4. nhom-hoan-thanh-kh: Các nhóm KD hoàn thành KH 6 tháng (theo AFYP)
+const VINH_DANH_SUBS: { key: VinhDanhSubKey; label: string; icon: React.ElementType }[] = [
+  { key: 'top5-tvv',         label: 'Top 5 TVV (IP H1)',          icon: Trophy },
+  { key: 'top5-tvvm',        label: 'Top 5 TVVm (IP H1)',         icon: Award },
+  { key: 'top5-nhom',        label: 'Top 5 Nhóm (IP H1)',         icon: Crown },
+  { key: 'nhom-hoan-thanh-kh', label: 'Nhóm hoàn thành KH H1',    icon: Medal },
+];
+
 // Sub-items for "Cấu trúc" — DS TVV (tổng), DS TB/TN, DS TTN, DS TTN Tuyển Ngang
 // NGUYÊN TẮC PHÂN BỔ ĐỐI TƯỢNG (mỗi CS là 1 bộ RIÊNG, cố định — không suy luận chéo):
 //   - CS cá nhân TVV (TVVm, NS-TVV, Quý-TVV)            → DS Tổng TVV (tvvStructList)
@@ -332,6 +349,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   structure: '#0D9488',
   saoviet: '#7C3AED',
   'clb-saoviet': '#1E3A8A', // navy-900 — distinguish from saoviet (violet)
+  'vinh-danh': '#B45309',    // amber-700 — màu vàng đồng cho Tôn vinh
 };
 
 // Templates
@@ -1454,6 +1472,134 @@ function SpreadsheetSheet({ onlineSettings, saveSetting }: { onlineSettings: Rec
   );
 }
 
+// ============= TÔN VINH — Reusable Table Component =============
+// Bảng Top 5 dùng chung cho 4 mục Tôn vinh.
+// - Tiêu đề gradient vàng đồng, body tối
+// - Hạng 1-3 có huy hiệu Vàng/Bạc/Đồng
+// - Cell IP/AFYP/KH format số + align phải
+interface VinhDanhColumn {
+  key: string;
+  label: string;
+  width?: string;
+  align?: 'left' | 'right' | 'center';
+}
+interface VinhDanhRow {
+  rank: number;
+  [key: string]: any;
+}
+function VinhDanhTable({
+  title,
+  subtitle,
+  columns,
+  rows,
+  rankColors,
+  emptyText,
+}: {
+  title: string;
+  subtitle?: string;
+  columns: VinhDanhColumn[];
+  rows: VinhDanhRow[];
+  rankColors: string[]; // gold/silver/bronze colors for ranks 1, 2, 3 (empty = no badge)
+  emptyText: string;
+}) {
+  const fmtNum = (n: number) => {
+    if (typeof n !== 'number' || isNaN(n)) return '—';
+    return n.toLocaleString('vi-VN');
+  };
+  const fmtPct = (n: number) => {
+    if (typeof n !== 'number' || isNaN(n)) return '—';
+    return `${n.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  };
+  const renderCell = (col: VinhDanhColumn, row: VinhDanhRow) => {
+    const v = row[col.key];
+    if (col.key === 'rank') {
+      const color = rankColors[row.rank - 1];
+      if (color) {
+        return (
+          <span
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full font-extrabold text-[11px]"
+            style={{
+              background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+              color: '#1a2332',
+              boxShadow: `0 0 8px ${color}88`,
+              border: `1.5px solid ${color}`,
+            }}
+          >
+            {row.rank}
+          </span>
+        );
+      }
+      return <span className="font-bold text-amber-200/70">{row.rank}</span>;
+    }
+    if (col.key === 'ip' || col.key === 'afypH1' || col.key === 'khH1') {
+      return <span className="font-bold text-emerald-300">{fmtNum(v)}</span>;
+    }
+    if (col.key === 'pct') {
+      const isOver100 = typeof v === 'number' && v >= 100;
+      return <span className={`font-bold ${isOver100 ? 'text-emerald-300' : 'text-amber-300'}`}>{fmtPct(v)}</span>;
+    }
+    return <span>{v ?? '—'}</span>;
+  };
+  return (
+    <div className="bg-[#1a2332]/80 border border-amber-500/30 rounded-lg overflow-hidden">
+      {/* Title bar */}
+      <div
+        className="px-3 py-2"
+        style={{
+          background: 'linear-gradient(135deg, #B45309 0%, #92400E 100%)',
+          borderBottom: '2px solid #FCD34D',
+        }}
+      >
+        <h3 className="text-sm font-extrabold text-amber-100 tracking-wide uppercase">{title}</h3>
+        {subtitle && <p className="text-[10px] text-amber-200/80 mt-0.5 italic">{subtitle}</p>}
+      </div>
+      {/* Table */}
+      {rows.length === 0 ? (
+        <div className="py-8 text-center text-amber-200/50 text-xs italic">{emptyText}</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-amber-500/10 border-b border-amber-500/20">
+                {columns.map(col => (
+                  <th
+                    key={col.key}
+                    className="px-2.5 py-1.5 text-amber-300 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap"
+                    style={{
+                      textAlign: col.align || 'left',
+                      width: col.width,
+                    }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, idx) => (
+                <tr
+                  key={idx}
+                  className="border-b border-amber-500/10 hover:bg-amber-500/5 transition-colors"
+                >
+                  {columns.map(col => (
+                    <td
+                      key={col.key}
+                      className="px-2.5 py-2 text-amber-100/90"
+                      style={{ textAlign: col.align || 'left' }}
+                    >
+                      {renderCell(col, row)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ==================== MAIN PAGE ====================
 export default function QuanLyPage() {
   const router = useRouter();
@@ -1482,6 +1628,10 @@ export default function QuanLyPage() {
   const [clbsvNhomFilter, setClbsvNhomFilter] = useState<string>('');
   const [clbsvNameFilter, setClbsvNameFilter] = useState<string>('');
 
+  // ===== TÔN VINH — 4 bảng Top 5 (H1) =====
+  const [vinhdanhSub, setVinhDanhSub] = useState<VinhDanhSubKey>('top5-tvv');
+  const [vinhdanhExpanded, setVinhDanhExpanded] = useState(false); // desktop sidebar expand/collapse
+
   // ===== ADMIN AUTH (read from sessionStorage set by KPI page) =====
   // Khi chưa admin: ẩn BackButton + nút Cài đặt, chỉ hiện nút "Về trang KPI".
   // Khi đã admin (đăng nhập từ KPI page): hiện lại BackButton + Cài đặt.
@@ -1493,12 +1643,12 @@ export default function QuanLyPage() {
       }
     } catch {}
     // ===== Read ?sheet=xxx URL param to open the right tab =====
-    // Supported: report (Chính sách), saoviet (Sao Việt Toàn Chặng), clb-saoviet (CLB Sao Việt)
+    // Supported: report (Chính sách), saoviet (Sao Việt Toàn Chặng), clb-saoviet (CLB Sao Việt), vinh-danh (Tôn vinh)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const sheetParam = params.get('sheet');
       if (sheetParam) {
-        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet'];
+        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
         if (validSheets.includes(sheetParam as SheetKey)) {
           setActiveSheet(sheetParam as SheetKey);
           // Clear the ?sheet= from URL so internal nav doesn't keep re-applying it
@@ -1518,7 +1668,7 @@ export default function QuanLyPage() {
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
   // Back button sẽ pop stack để trở về TRẠNG THÁI TRƯỚC (không phải trang chủ).
-  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null; clbsvOpen?: string | null };
+  type NavState = { sheet: SheetKey; revenueSub?: RevenueSubKey; policyOpen?: string | null; structureSub?: StructureSubKey; saovietOpen?: string | null; clbsvOpen?: string | null; vinhdanhSub?: VinhDanhSubKey };
   const navHistoryRef = useRef<NavState[]>([{ sheet: 'overview' }]);
   const isNavigatingBackRef = useRef(false); // flag: đang pop stack → không push lại
 
@@ -1535,6 +1685,7 @@ export default function QuanLyPage() {
       structureSub,
       saovietOpen,
       clbsvOpen,
+      vinhdanhSub,
     };
     navHistoryRef.current.push(current);
     if (next.sheet !== activeSheet) setActiveSheet(next.sheet);
@@ -1543,7 +1694,8 @@ export default function QuanLyPage() {
     if (next.structureSub !== undefined && next.structureSub !== structureSub) setStructureSub(next.structureSub);
     if (next.saovietOpen !== undefined && next.saovietOpen !== saovietOpen) setSaovietOpen(next.saovietOpen);
     if (next.clbsvOpen !== undefined && next.clbsvOpen !== clbsvOpen) setClbsvOpen(next.clbsvOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen]);
+    if (next.vinhdanhSub !== undefined && next.vinhdanhSub !== vinhdanhSub) setVinhDanhSub(next.vinhdanhSub);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen, vinhdanhSub]);
 
   // Back button handler: pop 1 state từ history
   // - Nếu history còn > 1: pop về state trước đó
@@ -1569,7 +1721,8 @@ export default function QuanLyPage() {
     if (prev.structureSub !== undefined && prev.structureSub !== structureSub) setStructureSub(prev.structureSub);
     if (prev.saovietOpen !== undefined && prev.saovietOpen !== saovietOpen) setSaovietOpen(prev.saovietOpen);
     if (prev.clbsvOpen !== undefined && prev.clbsvOpen !== clbsvOpen) setClbsvOpen(prev.clbsvOpen);
-  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen, router]);
+    if (prev.vinhdanhSub !== undefined && prev.vinhdanhSub !== vinhdanhSub) setVinhDanhSub(prev.vinhdanhSub);
+  }, [activeSheet, revenueSub, policyOpen, structureSub, saovietOpen, clbsvOpen, vinhdanhSub, router]);
 
 
   // Online settings state (fetched from API instead of localStorage)
@@ -1831,6 +1984,189 @@ export default function QuanLyPage() {
 
   const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
   const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
+
+  // ===== TÔN VINH — Tính toán 4 bảng Top 5 (6 tháng đầu năm = H1) =====
+  // Nguyên tắc:
+  //   - IP = sum of contract.fyp trong H1 (theo getDoanhSoMonth = issueDate, fallback effectiveDate)
+  //   - AFYP = sum of contract.afyp trong H1 (cho mục "Nhóm hoàn thành KH")
+  //   - TVVm = TVV có ngayBatDau ≤ 12 tháng (cùng định nghĩa isTVVm trong chính sách)
+  //   - Loại trừ TVV/nhóm thuộc phòng Banca (PHONG_EXCLUDED_FROM_REWARDS)
+  //   - Top 5 TVVm: nếu TVVm đã lọt Top 5 TVV chung (mục 1) thì KHÔNG hiển thị lại ở mục 2
+  //     (chỉ hiển thị 1 chỗ, lấy hạng cao hơn)
+  //   - "Hoàn thành KH 6 tháng" = nhóm có AFYP H1 >= KH năm × (tổng ratio tháng 1-6 / 100)
+  //     Nếu không có ratio tháng 1-6 trong settings thì fallback 50% (chia đều cả năm)
+  const VINH_DANH_H1_MONTHS = ['01', '02', '03', '04', '05', '06'];
+
+  const vinhDanhData = useMemo(() => {
+    const curYear = new Date().getFullYear();
+    // H1 = tháng 1-6 của năm hiện tại
+    const h1Start = new Date(curYear, 0, 1);
+    const h1End = new Date(curYear, 5, 30, 23, 59, 59);
+
+    // ===== Filter contracts in H1 (theo tháng phát hành, fallback hiệu lực) =====
+    const h1Contracts = contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      if (isNaN(d.getTime())) return false;
+      return d >= h1Start && d <= h1End;
+    });
+
+    // ===== Build lookup: maBanNhom → AD/Phong (to exclude Banca) =====
+    const bnToAd = new Map<string, string>();
+    const bnToPhong = new Map<string, string>();
+    banNhomList.forEach(bn => {
+      bnToAd.set(bn.maBanNhom, bn.maAD);
+      const ad = adList.find(a => a.maAD === bn.maAD);
+      if (ad) {
+        bnToPhong.set(bn.maBanNhom, ad.maPhong);
+      }
+    });
+    // Helper: check if a contract's nhóm is Banca (excluded from rewards)
+    const isContractExcluded = (c: Contract): boolean => {
+      // 1. Check via maBanNhom → AD → Phong
+      const maPhong = bnToPhong.get(c.maBanNhom) || bnToPhong.get(c.maNhom);
+      if (maPhong && PHONG_EXCLUDED_FROM_REWARDS(maPhong)) return true;
+      // 2. Check alias trực tiếp trên maBanNhom / maNhom (PA/Banca alias)
+      if (isBancaCode(c.maBanNhom) || isBancaCode(c.maNhom)) return true;
+      return false;
+    };
+
+    // ===== Helper: resolve TenNhóm for display =====
+    // Ưu tiên: leader.nhom (DS TB/TN), fallback banNhom.tenBanNhom, fallback contract.nhom
+    const maNhomToTen = new Map<string, string>();
+    leaders.forEach(ld => {
+      if (ld.maNhom && ld.nhom && !/^[A-Z0-9]{6,}$/.test(ld.nhom)) {
+        maNhomToTen.set(ld.maNhom, ld.nhom);
+      }
+    });
+    banNhomList.forEach(bn => {
+      if (!maNhomToTen.has(bn.maBanNhom) && bn.tenBanNhom) {
+        maNhomToTen.set(bn.maBanNhom, bn.tenBanNhom);
+      }
+    });
+    const resolveTenNhom = (maBanNhom: string, fallback: string): string => {
+      return maNhomToTen.get(maBanNhom) || fallback || maBanNhom;
+    };
+
+    // ===== 1. IP per TVV (agentCode) trong H1 =====
+    const ipByTvv = new Map<string, { agentCode: string; agentName: string; maBanNhom: string; tenNhom: string; ip: number }>();
+    h1Contracts.forEach(c => {
+      if (isContractExcluded(c)) return;
+      const key = c.agentCode || c.maDL;
+      if (!key) return;
+      const cur = ipByTvv.get(key);
+      const tenNhom = resolveTenNhom(c.maBanNhom, c.nhom);
+      if (cur) {
+        cur.ip += c.fyp || 0;
+      } else {
+        ipByTvv.set(key, {
+          agentCode: key,
+          agentName: c.agentName || '',
+          maBanNhom: c.maBanNhom || c.maNhom || '',
+          tenNhom,
+          ip: c.fyp || 0,
+        });
+      }
+    });
+
+    // ===== 2. TVVm lookup (từ tvvStructList — đã có ngayBatDau) =====
+    const tvvStructMap = new Map<string, TVVStructItem>();
+    tvvStructList.forEach(t => {
+      if (t.agentCode) tvvStructMap.set(t.agentCode, t);
+    });
+    // Helper check TVVm (≤12 tháng từ startDate)
+    const checkIsTVVm = (startDate: string | null, maxMonths: number = 12): boolean => {
+      if (!startDate) return false;
+      const start = new Date(startDate);
+      if (isNaN(start.getTime())) return false;
+      const now = new Date();
+      const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      return diffMonths < maxMonths;
+    };
+    // Map: agentCode → isTVVm
+    const tvvmSet = new Set<string>();
+    tvvStructList.forEach(t => {
+      if (checkIsTVVm(t.ngayBatDau)) tvvmSet.add(t.agentCode);
+    });
+
+    // ===== Sort Top 5 TVV (tất cả) theo IP giảm dần =====
+    const top5TvvAll = Array.from(ipByTvv.values())
+      .filter(t => t.ip > 0)
+      .sort((a, b) => b.ip - a.ip)
+      .slice(0, 5);
+
+    // ===== Top 5 TVVm: TVVm có IP > 0, KHÔNG trùng với top5TvvAll =====
+    // (nếu đã lọt Top 5 TVV chung thì chỉ hiển thị ở mục 1, lấy hạng cao hơn)
+    const tvvInTop5All = new Set(top5TvvAll.map(t => t.agentCode));
+    const top5TvvM = Array.from(ipByTvv.values())
+      .filter(t => t.ip > 0 && tvvmSet.has(t.agentCode) && !tvvInTop5All.has(t.agentCode))
+      .sort((a, b) => b.ip - a.ip)
+      .slice(0, 5);
+
+    // ===== 3. IP per Nhóm (maBanNhom) trong H1 =====
+    const ipByNhom = new Map<string, { maBanNhom: string; tenNhom: string; ip: number }>();
+    h1Contracts.forEach(c => {
+      if (isContractExcluded(c)) return;
+      const maBN = c.maBanNhom || c.maNhom;
+      if (!maBN) return;
+      const cur = ipByNhom.get(maBN);
+      const tenNhom = resolveTenNhom(maBN, c.nhom);
+      if (cur) {
+        cur.ip += c.fyp || 0;
+      } else {
+        ipByNhom.set(maBN, { maBanNhom: maBN, tenNhom, ip: c.fyp || 0 });
+      }
+    });
+    const top5Nhom = Array.from(ipByNhom.values())
+      .filter(n => n.ip > 0)
+      .sort((a, b) => b.ip - a.ip)
+      .slice(0, 5);
+
+    // ===== 4. AFYP per Nhóm + KH H1 =====
+    // KH H1 = (KH năm của nhóm) × (tổng ratio tháng 1-6 / 100)
+    // Nếu ratio tháng 1-6 = 0 thì fallback 50% KH năm
+    const afypByNhom = new Map<string, number>();
+    h1Contracts.forEach(c => {
+      if (isContractExcluded(c)) return;
+      const maBN = c.maBanNhom || c.maNhom;
+      if (!maBN) return;
+      afypByNhom.set(maBN, (afypByNhom.get(maBN) || 0) + (c.afyp || 0));
+    });
+    // Total ratio tháng 1-6 từ settings
+    const h1Ratio = VINH_DANH_H1_MONTHS.reduce((s, m) => s + (parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0), 0);
+    const h1RatioPct = h1Ratio > 0 ? h1Ratio / 100 : 0.5; // fallback 50%
+
+    const nhomHoanThanhKH = banNhomList
+      .map(bn => {
+        const khYear = parseFloat(onlineSettings[`nmc-kh-nhom-${bn.maBanNhom}`] || '0') || 0;
+        const khH1 = khYear * h1RatioPct;
+        const afypH1 = afypByNhom.get(bn.maBanNhom) || 0;
+        // Loại nhóm Banca
+        const maPhong = bnToPhong.get(bn.maBanNhom);
+        const isExcluded = (maPhong && PHONG_EXCLUDED_FROM_REWARDS(maPhong)) || isBancaCode(bn.maBanNhom);
+        return {
+          maBanNhom: bn.maBanNhom,
+          tenNhom: resolveTenNhom(bn.maBanNhom, bn.tenBanNhom),
+          afypH1,
+          khH1,
+          pct: khH1 > 0 ? (afypH1 / khH1) * 100 : 0,
+          hoanThanh: khH1 > 0 && afypH1 >= khH1,
+          isExcluded,
+        };
+      })
+      .filter(n => !n.isExcluded && n.khH1 > 0) // chỉ xét nhóm có KH > 0
+      .sort((a, b) => b.pct - a.pct); // xếp theo % hoàn thành giảm dần
+
+    return {
+      top5Tvv: top5TvvAll,
+      top5TvvM,
+      top5Nhom,
+      nhomHoanThanhKH: nhomHoanThanhKH.filter(n => n.hoanThanh),
+      // Toàn bộ nhóm có KH (để hiển thị cả những nhóm chưa đạt — bonus info)
+      allNhomWithKH: nhomHoanThanhKH,
+      h1RatioPct,
+    };
+  }, [contracts, banNhomList, adList, leaders, tvvStructList, onlineSettings]);
+
 
   // Fetch individual (for refresh or single-tab loads after initial load)
   const fetchLeaders = useCallback(async () => {
@@ -2217,6 +2553,7 @@ export default function QuanLyPage() {
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
       saoviet: async () => { /* No data to load — placeholder page */ },
       'clb-saoviet': async () => { /* Criteria shown statically — no data to load */ },
+      'vinh-danh': async () => { await Promise.all([fetchContracts(), fetchLeaders(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
@@ -3329,6 +3666,28 @@ export default function QuanLyPage() {
               >
                 <Award className="w-5 h-5 flex-shrink-0" />
                 <span className="truncate w-full text-center leading-tight text-[11px]">CLB SV</span>
+              </button>
+            </div>
+            {/* Tôn vinh button — direct navigation to default sub-page (top5-tvv) */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  navigateTo({ sheet: 'vinh-danh', vinhdanhSub: 'top5-tvv' });
+                  setSearchTerm('');
+                  setSortField('');
+                }}
+                className="w-full flex flex-col items-center justify-center gap-1 px-0.5 py-1 text-[11px] font-bold text-white transition-all aspect-square active:scale-90 active:brightness-75 active:shadow-inner"
+                style={{
+                  backgroundColor: SHEET_MOBILE_COLORS['vinh-danh'],
+                  borderRadius: 0,
+                  boxShadow: activeSheet === 'vinh-danh' ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
+                  opacity: activeSheet === 'vinh-danh' ? 1 : 0.95,
+                  minHeight: '52px',
+                }}
+                title="Tôn vinh"
+              >
+                <Trophy className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate w-full text-center leading-tight text-[11px]">Tôn vinh</span>
               </button>
             </div>
             {/* 8th cell — Cài đặt button to balance the 4×2 grid (same size as other buttons).
@@ -5399,6 +5758,27 @@ export default function QuanLyPage() {
       toast({ title: 'Lỗi tạo file Excel', description: String(err), variant: 'destructive' });
     }
   }, [policyOpen, buildContractDetailRows]);
+
+  // ===== Tôn vinh Excel export: tải 4 bảng Top 5 (H1) về 1 file Excel 4 sheet =====
+  const handleDownloadVinhDanhExcel = useCallback(() => {
+    try {
+      downloadVinhDanhExcel({
+        top5Tvv: vinhDanhData.top5Tvv,
+        top5TvvM: vinhDanhData.top5TvvM,
+        top5Nhom: vinhDanhData.top5Nhom,
+        nhomHoanThanhKH: vinhDanhData.nhomHoanThanhKH,
+        h1RatioPct: vinhDanhData.h1RatioPct,
+        year: new Date().getFullYear(),
+      });
+      toast({
+        title: 'Đã tải file Excel Tôn vinh',
+        description: `4 sheet: Top 5 TVV • Top 5 TVVm • Top 5 Nhóm • Nhóm hoàn thành KH H1`,
+      });
+    } catch (err) {
+      console.error('[VinhDanh Excel Export] Error:', err);
+      toast({ title: 'Lỗi tạo file Excel', description: String(err), variant: 'destructive' });
+    }
+  }, [vinhDanhData]);
 
   // Save policy image link to Settings API (uses PUT method to match /api/settings route)
   const savePolicyImage = useCallback(async (policyKey: string, link: string) => {
@@ -10428,6 +10808,139 @@ export default function QuanLyPage() {
     return renderCLBSaoVietList();
   };
 
+  // ============= TÔN VINH — 4 bảng Top 5 (H1) =============
+  // Render header chung + switch theo vinhdanhSub
+  const renderVinhDanh = () => {
+    const cur = VINH_DANH_SUBS.find(s => s.key === vinhdanhSub) || VINH_DANH_SUBS[0];
+    const Icon = cur.icon;
+    return (
+      <div className="space-y-3">
+        {/* Sub-tabs */}
+        <div className="flex flex-wrap gap-1.5">
+          {VINH_DANH_SUBS.map(s => {
+            const SIcon = s.icon;
+            const active = vinhdanhSub === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => navigateTo({ sheet: 'vinh-danh', vinhdanhSub: s.key })}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
+                  active
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    : 'text-amber-300/60 border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-300'
+                }`}
+              >
+                <SIcon className="w-3.5 h-3.5" />
+                <span>{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Current sub-page header */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-base font-extrabold text-amber-300 flex items-center gap-2 drop-shadow-[0_0_6px_rgba(245,158,11,0.3)]">
+            <Icon className="w-5 h-5" /> {cur.label}
+          </h2>
+          <span className="text-[10px] text-amber-200/70 italic">
+            Kỳ tính: 6 tháng đầu năm {new Date().getFullYear()} (T01 – T06)
+          </span>
+        </div>
+
+        {/* Content */}
+        {vinhdanhSub === 'top5-tvv' && (
+          <VinhDanhTable
+            title="TOP 5 TVV — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            columns={[
+              { key: 'rank', label: 'Hạng', width: '50px' },
+              { key: 'agentCode', label: 'Mã số' },
+              { key: 'agentName', label: 'Họ tên TVV' },
+              { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
+            ]}
+            rows={vinhDanhData.top5Tvv.map((t, i) => ({
+              rank: i + 1,
+              agentCode: t.agentCode,
+              agentName: t.agentName,
+              tenNhom: t.tenNhom,
+              ip: t.ip,
+            }))}
+            rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
+            emptyText="Chưa có dữ liệu IP trong 6 tháng đầu năm"
+          />
+        )}
+
+        {vinhdanhSub === 'top5-tvvm' && (
+          <VinhDanhTable
+            title="TOP 5 TVVm (TVV MỚI) — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            subtitle="Lưu ý: TVVm đã lọt Top 5 TVV chung (mục 1) sẽ KHÔNG hiển thị ở đây — chỉ lấy hạng cao hơn."
+            columns={[
+              { key: 'rank', label: 'Hạng', width: '50px' },
+              { key: 'agentCode', label: 'Mã số' },
+              { key: 'agentName', label: 'Họ tên TVVm' },
+              { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
+            ]}
+            rows={vinhDanhData.top5TvvM.map((t, i) => ({
+              rank: i + 1,
+              agentCode: t.agentCode,
+              agentName: t.agentName,
+              tenNhom: t.tenNhom,
+              ip: t.ip,
+            }))}
+            rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
+            emptyText="Chưa có TVVm nào có IP trong 6 tháng đầu năm (sau khi loại trừ các TVVm đã lọt Top 5 TVV chung)"
+          />
+        )}
+
+        {vinhdanhSub === 'top5-nhom' && (
+          <VinhDanhTable
+            title="TOP 5 NHÓM — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            columns={[
+              { key: 'rank', label: 'Hạng', width: '50px' },
+              { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'maBanNhom', label: 'Mã nhóm' },
+              { key: 'ip', label: 'Tổng IP (đ)', align: 'right' },
+            ]}
+            rows={vinhDanhData.top5Nhom.map((n, i) => ({
+              rank: i + 1,
+              tenNhom: n.tenNhom,
+              maBanNhom: n.maBanNhom,
+              ip: n.ip,
+            }))}
+            rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
+            emptyText="Chưa có dữ liệu IP theo nhóm trong 6 tháng đầu năm"
+          />
+        )}
+
+        {vinhdanhSub === 'nhom-hoan-thanh-kh' && (
+          <VinhDanhTable
+            title="NHÓM KINH DOANH HOÀN THÀNH KẾ HOẠCH 6 THÁNG ĐẦU NĂM"
+            subtitle={`Tính theo AFYP H1 ≥ KH H1 (KH H1 = KH năm × ${(vinhDanhData.h1RatioPct * 100).toFixed(1)}% tỷ lệ tháng T01-T06). Chỉ hiển thị các nhóm đã đạt.`}
+            columns={[
+              { key: 'rank', label: 'STT', width: '50px' },
+              { key: 'tenNhom', label: 'Nhóm' },
+              { key: 'maBanNhom', label: 'Mã nhóm' },
+              { key: 'afypH1', label: 'AFYP H1 (đ)', align: 'right' },
+              { key: 'khH1', label: 'KH H1 (đ)', align: 'right' },
+              { key: 'pct', label: '% HT', align: 'right' },
+            ]}
+            rows={vinhDanhData.nhomHoanThanhKH.map((n, i) => ({
+              rank: i + 1,
+              tenNhom: n.tenNhom,
+              maBanNhom: n.maBanNhom,
+              afypH1: n.afypH1,
+              khH1: n.khH1,
+              pct: n.pct,
+            }))}
+            rankColors={[]}
+            emptyText="Chưa có nhóm nào hoàn thành kế hoạch H1 (hoặc chưa thiết lập KH cho nhóm)"
+          />
+        )}
+      </div>
+    );
+  };
+
   const renderSheet = () => {
     if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
@@ -10440,6 +10953,7 @@ export default function QuanLyPage() {
       case 'report': return renderPolicy();
       case 'saoviet': return renderSaoViet();
       case 'clb-saoviet': return renderCLBSaoViet();
+      case 'vinh-danh': return renderVinhDanh();
       case 'structure': {
         // Sub-dispatch within "Cấu trúc" section
         // NGUYÊN TẮC: DS TVV (sub='tvv') cũng hiển thị dạng cây Phòng → AD → Nhóm → TVV
@@ -10481,13 +10995,17 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Quản Lý Dữ Liệu') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
           {/* Tải Excel — chỉ hiện khi đang xem chính sách (activeSheet='report' && policyOpen) */}
           {activeSheet === 'report' && policyOpen && (
             <Button variant="ghost" onClick={handleDownloadPolicyExcel} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải file Excel chính sách"><FileDown className="w-4 h-4" /></Button>
+          )}
+          {/* Tải Excel — Tôn vinh: tải toàn bộ 4 bảng Top 5 (H1) về 1 file Excel */}
+          {activeSheet === 'vinh-danh' && (
+            <Button variant="ghost" onClick={handleDownloadVinhDanhExcel} className="text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 h-8 w-8 p-0" title="Tải file Excel Tôn vinh"><FileDown className="w-4 h-4" /></Button>
           )}
           {/* Desktop: nút Cài đặt — chỉ hiện khi đã là admin (đăng nhập từ KPI page). Khi chưa admin, ẩn đi. */}
           {isAdmin && (
@@ -10646,6 +11164,48 @@ export default function QuanLyPage() {
                 <Award className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate flex-1 text-left">CLB Sao Việt</span>
               </button>
+            </div>
+            {/* TÔN VINH — sidebar item with 4 sub-pages */}
+            <div>
+              <button
+                onClick={() => {
+                  setVinhDanhExpanded(!vinhdanhExpanded);
+                  navigateTo({ sheet: 'vinh-danh', vinhdanhSub: vinhdanhSub || 'top5-tvv' });
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+                  activeSheet === 'vinh-danh' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-amber-300/70 hover:bg-amber-500/10 hover:text-amber-300'
+                }`}
+                title="Tôn vinh"
+              >
+                <Trophy className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate flex-1 text-left">Tôn vinh</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${vinhdanhExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              {/* Sub-items */}
+              {vinhdanhExpanded && (
+                <div className="ml-6 mt-0.5 space-y-0.5">
+                  {VINH_DANH_SUBS.map(s => {
+                    const SIcon = s.icon;
+                    const subActive = activeSheet === 'vinh-danh' && vinhdanhSub === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={() => {
+                          navigateTo({ sheet: 'vinh-danh', vinhdanhSub: s.key });
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold rounded transition-colors ${
+                          subActive ? 'bg-amber-500/20 text-amber-300' : 'text-amber-300/60 hover:bg-amber-500/10 hover:text-amber-300'
+                        }`}
+                      >
+                        <SIcon className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate flex-1 text-left">{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
