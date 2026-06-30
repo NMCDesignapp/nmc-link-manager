@@ -2039,6 +2039,45 @@ export default function QuanLyPage() {
     if (!confirm('Xóa?')) return; try { const r = await fetch(`/api/contracts/${id}`, { method: 'DELETE' }); if (r.ok) { setContracts(p => p.filter(c => c.id !== id)); toast({ title: 'Đã xóa' }); } } catch {}
   }, []);
 
+  // ========== Bulk delete: xóa toàn bộ HĐ của 1 tháng cụ thể (Revenue page) ==========
+  // Gọi /api/contracts/delete-by-range với fromMonth = toMonth = tháng đang chọn
+  // Backend xóa theo issueDate (Ngày PH), fallback effectiveDate (Ngày HL) — khớp getDoanhSoMonth
+  const handleDeleteRevenueMonth = useCallback(async (monthKey: RevenueSubKey) => {
+    if (monthKey === 'all') return; // không cho xóa "Cả năm"
+    const currentY = new Date().getFullYear();
+    const monthStr = `${currentY}-${monthKey}`; // vd: "2026-06"
+    const monthLabel = `Tháng ${parseInt(monthKey, 10)}`;
+    const ok = confirm(
+      `⚠️ XÓA TOÀN BỘ DỮ LIỆU THÁNG\n\n` +
+      `Bạn đang chọn xóa tất cả hợp đồng của ${monthLabel}/${currentY}.\n` +
+      `Hành động này KHÔNG thể hoàn tác.\n\n` +
+      `Nhấn OK để xác nhận xóa.`
+    );
+    if (!ok) return;
+    try {
+      const r = await fetch('/api/contracts/delete-by-range', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromMonth: monthStr, toMonth: monthStr }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        // Cập nhật state: loại bỏ các HĐ có doanh số tháng = monthKey
+        setContracts(prev => prev.filter(c => {
+          const d = getDoanhSoMonth(c);
+          if (isNaN(d.getTime())) return true; // giữ lại HĐ không có ngày (sẽ xử lý riêng)
+          return !(d.getFullYear() === currentY && String(d.getMonth() + 1).padStart(2, '0') === monthKey);
+        }));
+        toast({ title: `Đã xóa ${data.deletedCount ?? 0} hợp đồng của ${monthLabel}/${currentY}` });
+      } else {
+        const err = await r.json().catch(() => ({}));
+        toast({ title: 'Lỗi khi xóa', description: err.error || 'Không xác định', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi mạng', description: 'Không thể kết nối server', variant: 'destructive' });
+    }
+  }, []);
+
   // ========== CRUD: Staff ==========
   const updateStaffMember = useCallback(async (id: string, field: string, value: any) => {
     try { const r = await fetch(`/api/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) }); if (r.ok) setStaff(p => p.map(s => s.id === id ? { ...s, [field]: value } : s)); } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
@@ -7972,6 +8011,16 @@ export default function QuanLyPage() {
           <label className="inline-flex items-center gap-1 px-2 py-1 bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-800 rounded-[2px] text-[11px] font-medium cursor-pointer shadow-sm"><Upload className="w-3 h-3" /> Import HĐ<input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleImport('contracts', e)} /></label>
           <Button onClick={() => handleDownloadTemplate('contracts')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 h-7 text-xs rounded-[2px]"><FileSpreadsheet className="w-3 h-3 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('contracts')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 h-7 text-xs rounded-[2px]"><Download className="w-3 h-3 mr-1" /> Xuất</Button>
+          {revenueSub !== 'all' && (
+            <Button
+              onClick={() => handleDeleteRevenueMonth(revenueSub)}
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 h-7 text-xs rounded-[2px]"
+              title={`Xóa toàn bộ hợp đồng của ${monthLabel}`}
+            >
+              <Trash2 className="w-3 h-3 mr-1" /> Xóa dữ liệu tháng
+            </Button>
+          )}
         </div>
 
         {/* ===== Mobile card view (hidden on md+) ===== */}

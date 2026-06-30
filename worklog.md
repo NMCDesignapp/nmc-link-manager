@@ -881,3 +881,27 @@ Stage Summary:
 - Bộ lọc Nhóm + Tên/Mã hoạt động trên 3 trang (persistent state — cùng pattern với Sao Việt Toàn Chặng)
 - FYP + rank cells để trống (—) chờ user hướng dẫn cách tính
 - Helper isCLBMemberTBorTN typescript-safe, loại TTN rõ ràng
+
+---
+Task ID: revenue-delete-month
+Agent: main
+Task: Thêm nút "Xóa dữ liệu tháng" tại mục Doanh số — chỉ xóa HĐ của tháng đang chọn
+
+Work Log:
+- Đọc renderRevenue (line ~7794) — tìm action bar có Import/Tải mẫu/Xuất
+- Phát hiện endpoint có sẵn /api/contracts/delete-by-range (POST {fromMonth, toMonth}) — xóa theo issueDate (Ngày PH), fallback effectiveDate (Ngày HL) — khớp getDoanhSoMonth
+- Thêm handleDeleteRevenueMonth(monthKey: RevenueSubKey) callback:
+  * Refuse "all" (không cho xóa Cả năm)
+  * Tính monthStr = `${currentYear}-${monthKey}` (vd "2026-06")
+  * Confirm dialog cảnh báo KHÔNG thể hoàn tác
+  * POST /api/contracts/delete-by-range với fromMonth=toMonth=monthStr
+  * Cập nhật state: filter bỏ các HĐ có getDoanhSoMonth trùng tháng/năm
+  * Toast thành công / lỗi
+- Thêm button "Xóa dữ liệu tháng" (icon Trash2, red outline) sau nút Xuất, chỉ render khi revenueSub !== 'all'
+- Build pass
+
+Stage Summary:
+- Tại trang Doanh số → mỗi tháng (trừ "Cả năm"), có nút đỏ "Xóa dữ liệu tháng"
+- Click → confirm dialog → xóa toàn bộ HĐ của tháng đó (theo Ngày PH, fallback Ngày HL)
+- State sync ngay, không cần reload
+- Endpoint cũ /api/contracts/delete-by-range được tái sử dụng, không cần thêm API
