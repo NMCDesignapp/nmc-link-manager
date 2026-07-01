@@ -1296,3 +1296,64 @@ Stage Summary:
 - Dữ liệu Nguyễn Thị Kim Ngân đã đúng theo source (596.067.508 / 13 HĐC)
 - KHÔNG có bug code — chỉ là dữ liệu DB bị stale do source cập nhật sau lần sync cuối
 - Lưu ý cho user: khi cập nhật source Google Sheet, cần bấm nút "Đồng bộ tất cả" trong mục Cài đặt dữ liệu (Sao Việt) để re-sync DB
+
+---
+Task ID: perf-poster-storage-bytea
+Agent: main
+Task: User hỏi tại sao trang Chính sách load nhanh hơn SV Toàn Chặng / CLB SV. Phát hiện: posters SV/CLB lưu base64 trong Setting → /api/settings trả về 16.9 MB. Refactor sang BYTEA trong PosterImage table + URL ngắn trong Setting.
+
+Work Log:
+- Phân tích: Settings API 16.9 MB (12.22 MB là 3 poster SV + 3.92 MB là 3 poster CLB) → load 3-4 giây. Chính sách chỉ 0.5 KB (URL Google).
+- Refactor:
+  - Thêm Prisma model PosterImage { key, data BYTEA, contentType, updatedAt }
+  - API mới:
+    - POST /api/poster-image (upsert binary, return URL)
+    - GET /api/poster-image/[key] (serve binary với Cache-Control: public, max-age=31536000, immutable + ETag)
+    - DELETE /api/poster-image?key=...
+  - Update handleSaoviet/ClbsvPosterUpload:
+    - Compress image → POST base64 → /api/poster-image → lưu URL ngắn trong Setting
+  - Update delete handlers: clear Setting + delete binary
+  - Backward compat: <img src> hoạt động cho cả URL mới và data: URL cũ
+- Migration:
+  - Script client: scripts/migrate-posters-to-bytea.js (chạy đầu tiên, migrate 5/6 posters — 1 cái 4.29 MB vượt Vercel 4.5 MB payload limit)
+  - Server-side endpoint: POST /api/admin/migrate-posters (chạy lần 2, migrate nốt 1 cái còn lại — 3.38 MB binary)
+- Kết quả verify production:
+  - /api/settings size: 16.15 MB → 4.5 KB (3,600x nhỏ hơn)
+  - /api/settings load time: 3.87s → 0.90s (4.3x nhanh hơn)
+  - Tất cả 6 posters serve với Cache-Control: public, max-age=31536000, immutable
+  - ETag working: 2nd load = 304 Not Modified (0 byte, 46ms)
+- Sau migration: posters được browser cache vĩnh viễn → lần sau load gần như instant
+
+Stage Summary:
+- /api/settings giảm từ 16.9 MB → 4.5 KB
+- Trang SV Toàn Chặng / CLB SV giờ load nhanh ngang Chính sách (chỉ ~1 KB settings + images lazy-load + cache)
+- Poster images: 1st load ~1-4s (tùy size), 2nd load ~50ms (cache 304)
+
+---
+Task ID: kpi-calendar-multi-select-and-line-break
+Agent: main
+Task: KPI page - Kế hoạch khung - Bảng chi tiết: (1) hiển thị xuống dòng đúng như lúc nhập, (2) cột Phụ trách cho phép chọn nhiều đối tượng, hiển thị xuống dòng không làm ô rộng ra.
+
+Work Log:
+- CSS line break preservation:
+  - .cal-line: thêm `white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;`
+    → textarea line breaks (\n) được giữ nguyên khi hiển thị trong bảng chi tiết
+  - .cal-owner-tag: đổi `white-space: nowrap` → `white-space: normal` + word-break: break-word
+    → text dài tự xuống dòng thay vì bị overflow/ellipsis
+- Multi-select Phụ trách:
+  - calEditForm.owner (string) → calEditForm.owners (string[])
+  - 4 buttons (Công ty/HTKD/PTKD/DVKH) toggle on/off independently (click thêm, click lại xóa)
+  - Bỏ nút "Khác" — thay bằng input text: gõ + Enter → thêm vào owners array
+  - Hiển thị owners đã chọn dưới dạng chips có nút × để xóa
+  - cal-owner-grid: 5 cols → 4 cols (vì bỏ nút Khác)
+  - parseOwners(ev.owner): split string by ',' → array (dùng trong submitCalPwd + openCalEditFor)
+  - saveCalEdit: owners.join(', ') → string (vd "Công ty, HTKD, DVKH")
+  - Display trong cal-owner cell: split owner by ',' → render mỗi item thành 1 cal-owner-tag riêng
+    (cột đã flex-direction: column → tự xuống dòng, không làm ô rộng ra)
+- DB schema: không đổi (owner vẫn là TEXT, chỉ là format chuỗi)
+- Backward compat: entry cũ "Công ty" → parseOwners → ["Công ty"] → hiển thị 1 tag
+
+Stage Summary:
+- Bảng chi tiết: nội dung có \n giờ hiển thị đúng với line breaks
+- Phụ trách: chọn nhiều đối tượng (4 nút toggle + custom text input)
+- Hiển thị: mỗi đối tượng 1 tag riêng, tự xuống dòng, không làm cột rộng ra
