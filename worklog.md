@@ -1441,3 +1441,38 @@ Stage Summary:
 - Filter đồng nhất với trang Cấu trúc — có thể đối chiếu trực tiếp
 - 6 TVV từ hợp đồng (có ad='Banca - PA' nhưng không có trong cấu trúc TVV) bị loại — admin cần thêm vào cấu trúc nếu muốn hiển thị
 - Card 'SL TVV PA' trên dashboard vẫn dùng logic cũ (đếm TVV có AD thuộc Phòng PA) — không thay đổi
+
+---
+Task ID: deploy-kpi-nc-link
+Agent: main
+Task: Deploy kpi-nc-link standalone project với git auto-deploy
+
+Work Log:
+- Cài Vercel CLI 54.18.6 (npm install -g vercel)
+- Verify token với vercel whoami → user nmchau022023-4326
+- List projects: my-project (main app), kpi-nc-link (standalone, 1 ngày cũ)
+- Kiểm tra kpi-nc-link config:
+  - RootDirectory: None (sai — cần 'kpi-app')
+  - Framework: None (sai — cần 'nextjs')
+  - Link (git): null (sai — chưa kết nối GitHub repo)
+  - Env vars: DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_MAIN_APP_URL (đã có sẵn)
+- PATCH /v9/projects/kpi-nc-link → set rootDirectory=kpi-app, framework=nextjs
+- cd kpi-app && vercel link --project kpi-nc-link → link local folder
+- vercel git connect https://github.com/NMCDesignapp/nmc-link-manager → connect git
+- Verify project config: rootDirectory=kpi-app, framework=nextjs, repo=NMCDesignapp/nmc-link-manager branch=main
+- Push empty commit 1426470 'trigger: deploy kpi-nc-link via git push'
+- Git push → Vercel auto-trigger deployment dpl_CeovwShEa2kvKwFsoFfspdhYffxw
+- Wait ~60s → state=READY, build time 1m
+- Production alias: kpi-nc-link.vercel.app → resolves to new deployment
+- HTTP check: kpi-nc-link.vercel.app → 200, HTML contains 'KPI - N.M.C' title + 'kpi-standalone-back-btn'
+- Cleanup 2 stuck BLOCKED deployments (dpl_J1CtKK7x, dpl_FRPbPY8c) — failed CLI uploads from earlier attempts
+- Verify main app: nc-link.vercel.app → 200, nc-link.vercel.app/kpi → 200
+
+Stage Summary:
+- ✅ kpi-nc-link standalone KPI app DEPLOYED tại https://kpi-nc-link.vercel.app
+- ✅ Git auto-deploy ĐÃ KÍCH HOẠT — mỗi push lên main branch sẽ auto-deploy cả 2 projects:
+  - my-project (main app) → https://nc-link.vercel.app (+ /kpi route)
+  - kpi-nc-link (standalone) → https://kpi-nc-link.vercel.app
+- ✅ Standalone KPI page đồng bộ 1:1 với main app KPI page (qua sync-kpi-app.sh)
+- ⚠️ Vercel token đã dùng để deploy — user nên revoke sau khi xác nhận mọi thứ OK
+- Workflow user: chỉ cần sửa src/app/kpi/page.tsx → bash scripts/sync-kpi-app.sh → git push → cả 2 auto-deploy
