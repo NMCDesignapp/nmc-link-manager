@@ -1267,3 +1267,32 @@ Stage Summary:
 - CLB TN-TD: 2 cột "FYP TVVm lũy kế" + "SL TVVm HĐC lũy kế" khớp 100% với SV TOÀN CHẶNG TN-TD
 - CLB TN-KTM: cột "FYP LŨY KẾ" khớp 100% với SV TOÀN CHẶNG TN-KTM
 - Không cần sửa code — đã đúng từ commit 8a80108
+
+---
+Task ID: resync-saoviet-kim-ngan
+Agent: main
+Task: User báo Nguyễn Thị Kim Ngân trong source link là 596.067.508 / 13 HĐC, nhưng app hiển thị 611.096.849 / 14 HĐC.
+
+Work Log:
+- Đã verify trực tiếp source Google Sheet CSV (gid=1521644652):
+  - Row 1: Nguyễn Thị Kim Ngân, D1041A3I8E, FYP TVVm = 596.067.508, HĐC = 13
+  - Row 29: Trần Kim Ngân, D104130564, FYP TVVm = 57.297.495, HĐC = 2
+- DB đang có dữ liệu cũ (sync lần cuối 2026-06-29 12:27 UTC):
+  - Nguyễn Thị Kim Ngân: 611.096.849 / 14 HĐC (giá trị cũ — source đã cập nhật sau lần sync đó)
+- Root cause: source Google Sheet đã được cập nhật sau lần sync cuối → DB bị stale, KHÔNG phải bug code
+- Action: trigger re-sync qua API /api/saoviet-data/sync-all
+- Kết quả sau re-sync:
+  - 3 programs đều sync thành công (ca-nhan: 889 rows, tn-ktm: 29 rows, tn-td: 29 rows)
+  - Nguyễn Thị Kim Ngân giờ hiển thị đúng: 596.067.508 / 13 HĐC ✓
+  - Top 5 TN-TD updated:
+    1. Nguyễn Thị Kim Ngân — 596.067.508 / 13 HĐC
+    2. Nguyễn Thị Nguyệt Phượng — 391.194.665 / 8 HĐC
+    3. Dương Thanh Ny — 341.960.536 / 8 HĐC
+    4. Nguyễn Thị Lê Giào — 337.335.596 / 5 HĐC
+    5. Nguyễn Thị Thảo — 293.465.752 / 2 HĐC
+
+Stage Summary:
+- DB đã được re-sync với source Google Sheet mới nhất
+- Dữ liệu Nguyễn Thị Kim Ngân đã đúng theo source (596.067.508 / 13 HĐC)
+- KHÔNG có bug code — chỉ là dữ liệu DB bị stale do source cập nhật sau lần sync cuối
+- Lưu ý cho user: khi cập nhật source Google Sheet, cần bấm nút "Đồng bộ tất cả" trong mục Cài đặt dữ liệu (Sao Việt) để re-sync DB
