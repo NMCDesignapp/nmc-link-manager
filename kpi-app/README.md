@@ -75,22 +75,40 @@ Make sure your git repo includes the `kpi-app/` subfolder.
 The KPI page source lives in **`/src/app/kpi/page.tsx`** of the main app (single source of truth).
 The `kpi-app/` folder is a deployable copy.
 
-Whenever you edit `/src/app/kpi/page.tsx`, run:
+### Auto-sync mechanism (NEW)
+
+Standalone `kpi-app/src/lib/app-data-context.tsx` provides a SHIM with the same
+`useAppData()` interface as main app's `src/lib/app-data-context.tsx`. This means
+`page.tsx` can be copied 1:1 from main app — **NO manual code changes needed**.
+
+The shim fetches data from the same `/api/*` routes (which exist in both projects),
+so the standalone page works identically to the main app's KPI page.
+
+### Whenever you edit `/src/app/kpi/page.tsx`, run:
 
 ```bash
 bash scripts/sync-kpi-app.sh
 ```
 
 This script:
-1. Copies `src/app/kpi/page.tsx` → `kpi-app/src/app/page.tsx`
-2. Injects the `MAIN_APP_URL` constant + adjusts `BackButton` and `/thi-dua-chau` links to point to the main app
-3. Syncs dependent files: API routes, components, lib, prisma schema, icons
-4. Verifies the result
+1. Copies `src/app/kpi/page.tsx` → `kpi-app/src/app/page.tsx` (1:1)
+2. Auto-patches 4 standalone-specific things:
+   - Inserts `MAIN_APP_URL` constant (env: `NEXT_PUBLIC_MAIN_APP_URL`)
+   - Patches `BackButton href="/"` → `href={MAIN_APP_URL}` (if pattern exists)
+   - Patches `<a href="/thi-dua-chau">` → `href={thiDuaChauHref}` (if pattern exists)
+   - Injects floating `← App` button (top-left, links to main app)
+3. Syncs dependent files: API routes, components, lib, public icons
+4. Verifies the result (should show `✅ SYNCED`)
 
-After sync:
-1. Commit: `git add kpi-app/ && git commit -m "sync kpi-app"`
+### After sync:
+1. Commit: `git add kpi-app/ && git commit -m "sync kpi-app with main"`
 2. Push: `git push`
-3. Vercel auto-deploys both projects (main app + kpi-app) from the same push
+3. Vercel auto-deploys BOTH projects (main app + kpi-app) from the same push
+
+### Verify sync status without writing files:
+```bash
+bash scripts/sync-kpi-app.sh --check
+```
 
 ## Local Development
 
