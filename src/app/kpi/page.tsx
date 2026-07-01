@@ -2025,9 +2025,12 @@ export default function KPIDashboard() {
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     });
 
-    // Contracts của nhóm đang chọn — strict match bằng maBanNhom.
-    // KHÔNG fallback name-match: nếu không có HĐ nào khớp maBanNhom → để trống (0).
-    const finalContracts = popupYearContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
+    // Contracts của nhóm đang chọn — match bằng maBanNhom || maNhom (đồng bộ với dashboard).
+    // Dữ liệu hợp đồng đôi khi thiếu maBanNhom (trống) nhưng vẫn có maNhom → vẫn match được.
+    const finalContracts = popupYearContracts.filter(c => {
+      const cMaBN = c.maBanNhom || c.maNhom || '';
+      return cMaBN === selectedBN.maBanNhom;
+    });
 
     // Group metrics
     const afyp = finalContracts.reduce((s, c) => s + num(c.afyp), 0);
@@ -2078,18 +2081,20 @@ export default function KPIDashboard() {
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 3-9) — strict matching by agentCode, không fallback.
+    // IP per month per TVV (months 3-9) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
+    // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
+    // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
     // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
-    // Nếu pdt10DT = 0 hoặc agentCode không match → để 0 (không thay thế bằng fyp hay số khác).
+    // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
     const months37 = [3, 4, 5, 6, 7, 8, 9];
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
-        ipByMonth[m] = finalContracts
+        ipByMonth[m] = popupYearContracts
           .filter(c => c.agentCode === t.agentCode)
           .filter(c => {
             const d = getDoanhSoMonth(c);
-            return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && (d.getMonth() + 1) === m;
+            return !isNaN(d.getTime()) && (d.getMonth() + 1) === m;
           })
           .reduce((s, c) => s + num(c.pdt10DT), 0);
       });
