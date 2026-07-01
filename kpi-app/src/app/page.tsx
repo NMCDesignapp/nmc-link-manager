@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
   ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
+import { useAppData } from '@/lib/app-data-context';
 
 
 // === KPI standalone app: link back to main nc-link app ===
@@ -26,8 +27,8 @@ const CSS = `
 }
 *, *::before, *::after { box-sizing: border-box; }
 button { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
-.kpi-app { background: var(--bg); font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-.kpi-app .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 30% 20%, #0c2850 0%, var(--bg) 70%); }
+.kpi-app { background: transparent; font-family: Tahoma, Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: var(--fg); overflow-x: hidden; -webkit-font-smoothing: antialiased; min-height: 100vh; position: relative; z-index: 1; }
+.kpi-app .bg-scene { display: none; }
 .kpi-app .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: .22; animation: orbFloat 18s ease-in-out infinite alternate; will-change: transform; }
 .kpi-app .bg-orb-1 { width: 500px; height: 500px; background: #0a3060; top: -15%; left: -10%; }
 .kpi-app .bg-orb-2 { width: 400px; height: 400px; background: #0c2050; bottom: -10%; right: -10%; animation-delay: -6s; }
@@ -43,7 +44,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @keyframes cardSlideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Hero */
-.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(1.4rem, 5.5vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #e0c060; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
 .kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
@@ -209,15 +210,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Navigation */
 .kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
 .kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
-.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
-.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); }
+.kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
+.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
-.kpi-app .nav-detail { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 6px 22px #3b82f6aa, 0 0 12px #60a5fa66; border: 1px solid #60a5fa80; }
-.kpi-app .nav-plan { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 22px #10b981aa, 0 0 12px #34d39966; border: 1px solid #34d39980; }
-.kpi-app .nav-race { background: linear-gradient(135deg, #0ea5e9, #0284c7); box-shadow: 0 6px 22px #0ea5e9aa, 0 0 12px #38bdf866; border: 1px solid #38bdf8aa; }
-.kpi-app .nav-policy { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 22px #f59e0baa, 0 0 12px #fbbf2466; border: 1px solid #fbbf24aa; }
-.kpi-app .nav-clb { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 6px 22px #f97316aa, 0 0 12px #fb923c66; border: 1px solid #fb923caa; }
+/* 5 nút — mỗi nút 1 màu solid, bỏ glow halo, chỉ giữ drop shadow đen */
+.kpi-app .nav-detail { background: #2563EB; }   /* blue-600 */
+.kpi-app .nav-plan   { background: #16A34A; }   /* green-600 */
+.kpi-app .nav-race   { background: #0891B2; }   /* cyan-600 */
+.kpi-app .nav-policy { background: #CA8A04; }   /* yellow-600 */
+.kpi-app .nav-clb    { background: #EA580C; }   /* orange-600 */
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -467,17 +469,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   white-space: nowrap; z-index: 2;
 }
 
-/* Region divider: TIẾN ĐỘ KHU VỰC to + rõ hơn */
-.kpi-app .region-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px !important; padding: 0 4px; }
-.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #3a7cc8, transparent); }
+/* Region divider: TIẾN ĐỘ KHU VỰC — gold text + gold gradient lines, no bg fill */
+.kpi-app .region-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px !important; padding: 0 4px; background: transparent !important; }
+.kpi-app .region-divider::before, .kpi-app .region-divider::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, transparent, #d4a843, #ffd76b, #d4a843, transparent); }
 .kpi-app .region-divider-title {
   font-size: 16px !important; font-weight: 900; text-transform: uppercase; letter-spacing: .15em;
-  color: #1a4a7a; white-space: nowrap;
-  text-shadow: 0 1px 0 #ffffff, 0 2px 8px #3a7cc833;
+  color: #ffd76b; white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(255,215,107,.35), 0 0 18px rgba(212,168,67,.30);
   padding: 4px 14px; border-radius: 4px;
-  background: linear-gradient(135deg, #e8f0fa 0%, #d4e2f4 100%);
-  border: 1px solid #b8cae0;
-  box-shadow: 0 2px 8px rgba(10,30,60,.1);
+  background: transparent; border: none; box-shadow: none;
 }
 
 /* Mobile compact: smaller fonts/padding */
@@ -927,29 +927,29 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .sub-title { font-size: clamp(1.45rem, 5vw, 2rem); font-weight: 900; color: #ffb12b; text-transform: uppercase; letter-spacing: -.03em; text-align: center; line-height: 1.05; }
 .kpi-app .sub-line-wrap { padding: 0 24px; margin-top: 12px; }
 .kpi-app .sub-line { height: 1px; background: linear-gradient(90deg, transparent, #d4a84340, #d4a84366, #d4a84340, transparent); }
-.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 14px; }
-.kpi-app .cal-fbtn { padding: 7px 2px; border-radius: 7px; border: 1.5px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 9px; text-align: center; transition: all .2s; }
+.kpi-app .cal-filter { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 10px; }
+.kpi-app .cal-fbtn { padding: 4px 2px; border-radius: 6px; border: 1.2px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 8px; text-align: center; transition: all .2s; min-height: 24px; }
 .kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
-.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 14px #0080804d; font-weight: 900; }
-.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 20px 50px #0000004d; border: 1px solid #00808066; border-bottom: 4px solid #008080; margin-top: 16px; }
-.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; padding: 14px 0; display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; text-align: center; border-radius: 8px 8px 0 0; }
-.kpi-app .cal-head span { padding: 0 10px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
-.kpi-app .cal-row { display: grid; grid-template-columns: 54px minmax(0,1fr) 72px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
+.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 10px #0080804d; font-weight: 900; }
+.kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 16px 40px #0000004d; border: 1px solid #00808066; border-bottom: 3px solid #008080; margin-top: 10px; }
+.kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; padding: 6px 0; display: grid; grid-template-columns: 42px minmax(0,1fr) 60px; text-align: center; border-radius: 8px 8px 0 0; }
+.kpi-app .cal-head span { padding: 0 6px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
+.kpi-app .cal-row { display: grid; grid-template-columns: 42px minmax(0,1fr) 60px; gap: 0; border-bottom: 1px dashed #00808055; transition: background .2s; animation: cardSlideIn .4s ease-out both; background: #f7ffff; align-items: stretch; }
 .kpi-app .cal-row:hover { background: #eef9f9; }
 .kpi-app .cal-row.is-today { background: #e0f2fe; box-shadow: inset 0 0 0 2px #38bdf8; }
 .kpi-app .cal-row.is-weekend { background: #e8f4f0; }
 .kpi-app .cal-row.is-sunday { background: #f5e8e8; }
-.kpi-app .cal-day { padding: 10px 6px; font-weight: 900; font-size: 14px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.kpi-app .cal-day-num { line-height: 1; font-size: 14px; }
-.kpi-app .cal-day-week { font-size: 9px; font-weight: 700; color: #5a7a99; line-height: 1; }
+.kpi-app .cal-day { padding: 5px 4px; font-weight: 900; font-size: 11px; color: #008080; background: #f1fbfb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.kpi-app .cal-day-num { line-height: 1; font-size: 11px; }
+.kpi-app .cal-day-week { font-size: 7px; font-weight: 700; color: #5a7a99; line-height: 1; }
 .kpi-app .cal-row.is-sunday .cal-day { color: #dc2626; background: #fde8e8; }
 .kpi-app .cal-row.is-sunday .cal-day-week { color: #dc2626; }
 .kpi-app .cal-row.is-weekend .cal-day { color: #ea580c; background: #fff0e0; }
 .kpi-app .cal-row.is-weekend .cal-day-week { color: #ea580c; }
-.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 9px 10px; font-weight: 600; font-size: 13px; line-height: 1.3; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
-.kpi-app .cal-owner { min-width: 64px; border-left: 1px solid #00808055; padding: 6px 4px; font-size: 10px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; background: #f7ffff; word-break: break-word; }
+.kpi-app .cal-text { border-left: 1px solid #00808055; padding: 5px 7px; font-weight: 600; font-size: 10.5px; line-height: 1.25; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
+.kpi-app .cal-owner { min-width: 50px; border-left: 1px solid #00808055; padding: 4px 3px; font-size: 8px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
-.kpi-app .cal-line { display: block; }
+.kpi-app .cal-line { display: block; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s, box-shadow .12s; }
 .kpi-app .cal-line.editable.authed:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
 .kpi-app .cal-line.editable.locked { cursor: pointer; }
@@ -963,9 +963,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .cal-line.editable.locked:hover { background: #f1f5f9; box-shadow: 0 0 0 1px #94a3b8; }
 .kpi-app .cal-owner-tag {
-  display: inline-block; padding: 2px 5px; border-radius: 3px;
-  font-size: 9px; font-weight: 800; line-height: 1.2;
-  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: inline-block; padding: 1px 4px; border-radius: 3px;
+  font-size: 7.5px; font-weight: 800; line-height: 1.2;
+  max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere;
 }
 
 /* Settings button (gear, top-right of calendar header) */
@@ -1048,7 +1048,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .cal-field-textarea:focus { outline: none; border-color: #008080; box-shadow: 0 0 0 3px #00808022; }
 .kpi-app .cal-owner-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
 }
 .kpi-app .cal-owner-opt {
   padding: 6px 4px; border-radius: 5px;
@@ -1209,16 +1209,124 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .ad-stat-label { font-size: 5.5px; }
   .kpi-app .ad-stat-val { font-size: 9px; }
   .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
-  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 3px; }
-  .kpi-app .cal-fbtn { padding: 5px 1px; border-radius: 6px; min-height: 28px; font-size: 8px; }
-  .kpi-app .cal-row { grid-template-columns: 46px minmax(0,1fr) 58px; }
-  .kpi-app .cal-head { grid-template-columns: 46px minmax(0,1fr) 58px; }
+  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }
+  .kpi-app .cal-fbtn { padding: 3px 1px; border-radius: 5px; min-height: 20px; font-size: 7px; }
+  .kpi-app .cal-row { grid-template-columns: 38px minmax(0,1fr) 52px; }
+  .kpi-app .cal-head { grid-template-columns: 38px minmax(0,1fr) 52px; padding: 5px 0; font-size: 8px; }
+  .kpi-app .cal-day { padding: 4px 3px; font-size: 10px; }
+  .kpi-app .cal-day-num { font-size: 10px; }
+  .kpi-app .cal-day-week { font-size: 6.5px; }
+  .kpi-app .cal-text { padding: 4px 5px; font-size: 9px; }
+  .kpi-app .cal-owner { padding: 3px 2px; font-size: 7px; }
+  .kpi-app .cal-owner-tag { font-size: 6.5px; padding: 1px 3px; }
   .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
   .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
   .kpi-app .month-cell .mc-label { font-size: 8px; }
   .kpi-app .main-header .btn-back-u { width: 34px; height: 34px; }
 }
+
+/* ============= BANCA YELLOW SEPARATOR ============= */
+.kpi-app .banca-separator {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #f5c842 8%, #ffd700 50%, #f5c842 92%, transparent 100%);
+  box-shadow: 0 0 8px rgba(245, 200, 66, 0.65), 0 0 16px rgba(255, 215, 0, 0.35);
+  border-radius: 2px;
+  margin: 8px 0 4px;
+  position: relative;
+}
+.kpi-app .banca-separator::before,
+.kpi-app .banca-separator::after {
+  content: '';
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  width: 8px; height: 8px;
+  background: #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8), 0 0 14px rgba(255, 215, 0, 0.4);
+}
+.kpi-app .banca-separator::before { left: 6px; }
+.kpi-app .banca-separator::after { right: 6px; }
+
+.kpi-app .rg-card.is-banca.is-clickable { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.kpi-app .rg-card.is-banca.is-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px #ffd700aa, 0 14px 30px rgba(10,30,60,.24), 0 0 28px #ffd70066;
+}
+.kpi-app .rg-card.is-banca .rg-head-hint {
+  margin-left: auto;
+  font-size: 9px; font-weight: 700; opacity: 0.85;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ============= BANCA POPUP (no summary, only detail table) ============= */
+.kpi-app .adp-modal.is-banca-modal {
+  /* Same look as AD modal but slimmer (no top section) */
+}
+.kpi-app .adp-modal.is-banca-modal .adp-body {
+  grid-template-rows: 1fr;
+}
+.kpi-app .adp-modal.is-banca-modal .adp-header {
+  background: linear-gradient(135deg, #c89828 0%, #a87818 100%);
+  border-bottom: 2px solid #806010;
+}
+
+/* ============= SCROLLING NOTIFICATION BANNER ============= */
+.kpi-app .kpi-notice-banner {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #fff3c0 0%, #ffd966 25%, #ffc34d 50%, #ffd966 75%, #fff3c0 100%);
+  background-size: 200% 100%;
+  animation: kpiNoticeShine 6s linear infinite;
+  border: 1.5px solid #d4a017;
+  box-shadow: 0 2px 10px rgba(212, 160, 23, 0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+  position: relative;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+@keyframes kpiNoticeShine {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+.kpi-app .kpi-notice-banner::before {
+  content: '📢';
+  position: absolute;
+  left: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 14px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  z-index: 2;
+}
+.kpi-app .kpi-notice-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 32px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0b5d1f;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  animation: kpiNoticeScroll 22s linear infinite;
+  letter-spacing: 0.02em;
+}
+@keyframes kpiNoticeScroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.kpi-app .kpi-notice-banner:hover .kpi-notice-marquee {
+  animation-play-state: paused;
+}
+@media (max-width: 720px) {
+  .kpi-app .kpi-notice-banner { height: 28px; }
+  .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 28px; }
+}
 `;
+
 
 /* ================= TYPES ================= */
 interface Contract {
@@ -1430,9 +1538,9 @@ export default function KPIDashboard() {
   const [calPwdInput, setCalPwdInput] = useState('');
 
   // ===== ADMIN AUTH =====
-  // Admin login/logout đã được chuyển sang giao diện chính ứng dụng (/src/app/page.tsx).
-  // Trạng thái đăng nhập vẫn được chia sẻ qua sessionStorage('kpi_admin_authed').
-  // Trang /quan-ly đọc sessionStorage này để quyết định ẩn/hiện nút Trở về & Cài đặt.
+  // Admin login/logout NẰM Ở giao diện chính ứng dụng (/src/app/page.tsx).
+  // Trang /kpi KHÔNG có nút admin riêng — user phải đăng nhập Admin ở trang chính.
+  // Trạng thái đăng nhập chia sẻ qua sessionStorage('kpi_admin_authed').
   const [adminAuthed, setAdminAuthed] = useState(false);
 
   // On mount: check sessionStorage for existing admin auth
@@ -1465,7 +1573,7 @@ export default function KPIDashboard() {
 
   const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
-  const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
+  const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owners: string[]; ownerCustom: string }>({ id: null, date: '', title: '', owners: [], ownerCustom: '' });
   const [calEditSaving, setCalEditSaving] = useState(false);
   const [calEditError, setCalEditError] = useState<string | null>(null);
   // Remember which existing event the user wanted to edit, so after password
@@ -1484,18 +1592,49 @@ export default function KPIDashboard() {
   const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
   const [adPopupNhom, setAdPopupNhom] = useState<string | null>(null);
 
+  /* Banca-PA detail popup state — chỉ hiện bảng chi tiết (không có tổng hợp) */
+  const [bancaPopupOpen, setBancaPopupOpen] = useState(false);
+
+  /* KPI notification banner — đọc từ settings (do admin nhập ở trang chính) */
+  const noticeContent = (onlineSettings['kpi-notice-content'] || '').trim();
+  const noticeEnabled = onlineSettings['kpi-notice-enabled'] !== '0'; // default true
+
   const NOW = useMemo(() => new Date(), []);
   const CUR_YEAR = NOW.getFullYear();
   const CUR_MONTH = String(NOW.getMonth() + 1).padStart(2, '0');
 
-  /* Fetch data */
+  /* Fetch data — dùng dữ liệu đã preload từ AppDataContext (load 1 lần khi app mở).
+     Trang KPI chỉ đọc context, không tự fetch lại khi mount. */
+  const { data: appData, dataVersion, reload: reloadAppData, isReloading: appDataReloading } = useAppData();
+
+  // Sync rawData từ context (quanLyAll ưu tiên, fallback về các mảng riêng)
+  useEffect(() => {
+    if (appData.quanLyAll) {
+      setRawData({
+        contracts: appData.quanLyAll.contracts || appData.contracts || [],
+        staff: appData.quanLyAll.staff || appData.staff || [],
+        revenue: appData.quanLyAll.revenue || appData.revenue || [],
+        leaders: appData.quanLyAll.leaders || appData.leaders || [],
+      });
+      setError(false);
+    } else if (appData.contracts.length || appData.staff.length || appData.revenue.length || appData.leaders.length) {
+      setRawData({
+        contracts: appData.contracts,
+        staff: appData.staff,
+        revenue: appData.revenue,
+        leaders: appData.leaders,
+      });
+      setError(false);
+    }
+    setLoading(false);
+    setSyncing(appDataReloading);
+  }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataReloading, dataVersion]);
+
+  // Hàm sync thủ công — gọi reloadAppData (đồng bộ toàn app)
   const fetchData = useCallback(async () => {
     setSyncing(true);
     try {
-      const res = await fetch('/api/quan-ly/all');
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      setRawData(data);
+      await reloadAppData();
       setError(false);
     } catch {
       setError(true);
@@ -1503,32 +1642,20 @@ export default function KPIDashboard() {
       setLoading(false);
       setSyncing(false);
     }
-  }, []);
+  }, [reloadAppData]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  /* Fetch online settings (KPI targets from quan-ly) */
+  /* Online settings (KPI targets) — đọc từ context */
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : {})
-      .then(data => setOnlineSettings(data))
-      .catch(() => setOnlineSettings({}));
-  }, []);
+    if (appData.settings) setOnlineSettings(appData.settings);
+  }, [appData.settings, dataVersion]);
 
-  /* Fetch AD/Phong/BanNhom/TVV structure — same as quan-ly page */
+  /* Structure AD/Phong/BanNhom/TVV — đọc từ context */
   useEffect(() => {
-    Promise.all([
-      fetch('/api/structure/ad').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/phong').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/bannhom').then(r => r.ok ? r.json() : []),
-      fetch('/api/structure/tvv').then(r => r.ok ? r.json() : []),
-    ]).then(([ads, phongs, bannhoms, tvvs]) => {
-      setAdStructList(ads);
-      setPhongStructList(phongs);
-      setBanNhomStructList(bannhoms);
-      setTvvStructList(tvvs);
-    }).catch(() => {});
-  }, []);
+    setAdStructList(appData.structureAd || []);
+    setPhongStructList(appData.structurePhong || []);
+    setBanNhomStructList(appData.structureBanNhom || []);
+    setTvvStructList(appData.structureTvv || []);
+  }, [appData.structureAd, appData.structurePhong, appData.structureBanNhom, appData.structureTvv, dataVersion]);
 
   /* Fetch calendar events */
   const refreshCalendarEvents = useCallback(() => {
@@ -1558,6 +1685,13 @@ export default function KPIDashboard() {
     setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
   };
 
+  // Parse owner string from DB into array — supports multi-select format "Công ty, HTKD"
+  // và giữ lại custom text không thuộc CAL_OWNERS.
+  const parseOwners = (owner: string | undefined | null): string[] => {
+    if (!owner) return [];
+    return owner.split(',').map(s => s.trim()).filter(Boolean);
+  };
+
   const submitCalPwd = () => {
     if (calPwdInput === '123456') {
       setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
@@ -1565,17 +1699,17 @@ export default function KPIDashboard() {
       // Otherwise, open blank new-entry form.
       if (calPendingEdit) {
         const ev = calPendingEdit;
-        const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+        const owners = parseOwners(ev.owner);
         setCalEditForm({
           id: ev.id,
           date: ev.date,
           title: ev.title,
-          owner: isCustom ? '__other' : (ev.owner || ''),
-          ownerCustom: isCustom ? (ev.owner || '') : '',
+          owners,
+          ownerCustom: '',
         });
         setCalPendingEdit(null);
       } else {
-        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
       }
       setCalEditError(null);
       setCalEditOpen(true);
@@ -1586,13 +1720,13 @@ export default function KPIDashboard() {
 
   const openCalEditFor = (ev: CalendarEvent) => {
     if (calAuthed) {
-      const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+      const owners = parseOwners(ev.owner);
       setCalEditForm({
         id: ev.id,
         date: ev.date,
         title: ev.title,
-        owner: isCustom ? '__other' : (ev.owner || ''),
-        ownerCustom: isCustom ? (ev.owner || '') : '',
+        owners,
+        ownerCustom: '',
       });
       setCalEditError(null);
       setCalEditOpen(true);
@@ -1607,7 +1741,7 @@ export default function KPIDashboard() {
   };
 
   const openCalEditForNew = () => {
-    setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+    setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
     setCalEditError(null);
     setCalEditOpen(true);
   };
@@ -1617,7 +1751,14 @@ export default function KPIDashboard() {
       setCalEditError('Vui lòng nhập ngày và nội dung.');
       return;
     }
-    const owner = calEditForm.owner === '__other' ? calEditForm.ownerCustom.trim() : calEditForm.owner;
+    // Gộp owners chọn sẵn + custom text (nếu có nhập)
+    const finalOwners = [...calEditForm.owners];
+    const customText = calEditForm.ownerCustom.trim();
+    if (customText && !finalOwners.includes(customText)) {
+      finalOwners.push(customText);
+    }
+    // Join bằng ", " để hiển thị dạng "Công ty, HTKD"
+    const owner = finalOwners.join(', ');
     setCalEditSaving(true);
     setCalEditError(null);
     try {
@@ -1691,10 +1832,20 @@ export default function KPIDashboard() {
     });
 
     // ========== KH (Kế hoạch) AFYP — from online settings, same keys as quan-ly ==========
+    // AD plan = Σ 12 monthly values (keys: nmc-kh-ad-${maAD}-t01..t12)
+    const readAdMonthlyPlan = (maAD: string, month: number): number => {
+      const mm = String(month).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`] || '0') || 0;
+    };
+    const readAdAnnualPlan = (maAD: string): number => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) sum += readAdMonthlyPlan(maAD, m);
+      return sum;
+    };
+
     const adPlans = new Map<string, number>();
     adStructList.forEach(ad => {
-      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-      adPlans.set(ad.maAD, val);
+      adPlans.set(ad.maAD, readAdAnnualPlan(ad.maAD));
     });
     const targetTongAFYP = adStructList.reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
 
@@ -1849,8 +2000,9 @@ export default function KPIDashboard() {
         const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
-        const adKh = adPlans.get(adStruct.maAD) || 0;
-        const adPeriodKh = calcPeriodKh(adKh);
+        // Period KH for AD = Σ of AD's monthly values for months in selected period
+        // (AD now uses 12 monthly inputs directly; ratio only applies to Nhóm)
+        const adPeriodKh = periodMonths.reduce((s, m) => s + readAdMonthlyPlan(adStruct.maAD, m), 0);
 
         const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
         p.ads.push(d);
@@ -1935,23 +2087,14 @@ export default function KPIDashboard() {
         const adBannhoms = banNhomStructList.filter(bn => bn.maAD === adStruct.maAD);
 
         for (const bn of adBannhoms) {
-          // Find contracts for this BanNhom via maBanNhom, fallback maNhom (đồng bộ với Tôn vinh trong /quan-ly)
-          // Nguyên tắc: nếu contract có maBanNhom → match theo maBanNhom;
-          //             nếu maBanNhom trống → match theo maNhom (cùng pattern với Tôn vinh).
-          // Trước đây chỉ dùng maBanNhom + fallback name-match → lệch số với Tôn vinh.
+          // Match contracts cho BanNhom bằng maBanNhom hoặc maNhom (strict, không fallback name).
+          // Nếu contract không có maBanNhom/maNhom khớp → không cộng HĐ đó (để trống).
           const bnContracts = periodContracts.filter(c => {
             const cMaBN = c.maBanNhom || c.maNhom || '';
             return cMaBN === bn.maBanNhom;
           });
 
-          // Fallback by name nếu cả maBanNhom lẫn maNhom đều trống
-          const bnContractsByName = bnContracts.length > 0 ? bnContracts : periodContracts.filter(c => {
-            const cNhom = normKey(c.nhom || '');
-            const bnName = normKey(bn.tenBanNhom);
-            return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
-          });
-
-          const afyp = bnContractsByName.reduce((s, c) => s + num(c.afyp), 0);
+          const afyp = bnContracts.reduce((s, c) => s + num(c.afyp), 0);
           const afypTrd = Math.round(afyp / 1000000);
 
           // KH for this BanNhom — annual × monthly ratios for selected period
@@ -2021,12 +2164,11 @@ export default function KPIDashboard() {
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     });
 
-    // Contracts of selected nhóm
-    const bnContracts = popupYearContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
-    const finalContracts = bnContracts.length > 0 ? bnContracts : popupYearContracts.filter(c => {
-      const cNhom = normKey(c.nhom || '');
-      const bnName = normKey(selectedBN.tenBanNhom);
-      return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
+    // Contracts của nhóm đang chọn — match bằng maBanNhom || maNhom (đồng bộ với dashboard).
+    // Dữ liệu hợp đồng đôi khi thiếu maBanNhom (trống) nhưng vẫn có maNhom → vẫn match được.
+    const finalContracts = popupYearContracts.filter(c => {
+      const cMaBN = c.maBanNhom || c.maNhom || '';
+      return cMaBN === selectedBN.maBanNhom;
     });
 
     // Group metrics
@@ -2078,16 +2220,20 @@ export default function KPIDashboard() {
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 3-9)
+    // IP per month per TVV (months 3-9) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
+    // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
+    // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
+    // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
+    // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
     const months37 = [3, 4, 5, 6, 7, 8, 9];
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
-        ipByMonth[m] = finalContracts
+        ipByMonth[m] = popupYearContracts
           .filter(c => c.agentCode === t.agentCode)
           .filter(c => {
             const d = getDoanhSoMonth(c);
-            return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && (d.getMonth() + 1) === m;
+            return !isNaN(d.getTime()) && (d.getMonth() + 1) === m;
           })
           .reduce((s, c) => s + num(c.pdt10DT), 0);
       });
@@ -2126,6 +2272,87 @@ export default function KPIDashboard() {
   }, [adPopup, adPopupNhom, dashboard, rawData, banNhomStructList, tvvStructList, onlineSettings, CUR_YEAR]);
 
 
+  /* ============= BANCA-PA detail popup data ============= */
+  /* Popup cho phòng Banca - PA: KHÔNG có phần tổng hợp ở trên, chỉ có bảng chi tiết.
+     Bao gồm TVV thuộc phòng Banca + phòng PA (hoặc nhóm PA).
+
+     Filter (per user spec — đối chiếu trang Cấu trúc):
+     - maBanNhom = U104101014  → Nhóm PA (user-confirmed: đây là mã nhóm PA)
+     - maBanNhom = PA          → Phòng PA (bannhom "PA" → AD "PA" → Phòng PA)
+     - maBanNhom = Banca       → Phòng Banca (bannhom "Banca" → AD "Banca" → Phòng Banca)
+     - maBanNhom = A473DSO000  → Banca/DSO (Nguyễn Yến Linh)
+     - maBanNhom = DSO         → Banca/DSO (variation) */
+  const bancaPopupData = useMemo(() => {
+    if (!dashboard || !rawData) return null;
+
+    // Per user: U104101014 = mã nhóm PA. Plus Banca codes.
+    const TARGET_BANNHOM_CODES = new Set(['U104101014', 'PA', 'BANCA', 'A473DSO000', 'DSO']);
+
+    // Filter TVV by maBanNhom (case-insensitive, trim whitespace)
+    const bancaTvvList: TVVStructItem[] = tvvStructList.filter(t => {
+      const code = String(t.maBanNhom || '').trim().toUpperCase();
+      return TARGET_BANNHOM_CODES.has(code);
+    });
+
+    // Sort TVV by chucVu: TB → TN → TTN → TVV
+    const getOrder = (cv: string): number => {
+      const n = normKey(cv);
+      if (n.includes('TRUONG') && n.includes('BAN')) return 1;
+      if (n.includes('TRUONG') && n.includes('NHOM') && !n.includes('TIEN')) return 2;
+      if (n.includes('TIEN') || n.includes('TIENTRUONGNHOM')) return 3;
+      return 4;
+    };
+    const abbreviateChucVu = (cv: string): string => {
+      const n = normKey(cv);
+      if (n.includes('TRUONG') && n.includes('BAN')) return 'TB';
+      if (n.includes('TRUONG') && n.includes('NHOM') && !n.includes('TIEN')) return 'TN';
+      if (n.includes('TIEN')) return 'TTN';
+      return 'TVV';
+    };
+
+    const sortedTvv = [...bancaTvvList].sort((a, b) => {
+      const ordA = getOrder(a.chucVu);
+      const ordB = getOrder(b.chucVu);
+      if (ordA !== ordB) return ordA - ordB;
+      return a.agentName.localeCompare(b.agentName, 'vi');
+    });
+
+    // Use ALL year contracts (months 3-9) — same approach as AD popup
+    const popupYearContracts = rawData.contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+    });
+
+    const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const tvvTable = sortedTvv.map((t, idx) => {
+      const ipByMonth: Record<number, number> = {};
+      months37.forEach(m => {
+        ipByMonth[m] = popupYearContracts
+          .filter(c => c.agentCode === t.agentCode)
+          .filter(c => {
+            const d = getDoanhSoMonth(c);
+            return !isNaN(d.getTime()) && (d.getMonth() + 1) === m;
+          })
+          .reduce((s, c) => s + num(c.pdt10DT), 0);
+      });
+      return {
+        stt: idx + 1,
+        agentCode: t.agentCode,
+        agentName: t.agentName,
+        chucVu: abbreviateChucVu(t.chucVu),
+        ipByMonth,
+        ipTotal: months37.reduce((s, m) => s + ipByMonth[m], 0),
+      };
+    });
+
+    return {
+      tvvTable,
+      months37,
+      totalTvv: sortedTvv.length,
+    };
+  }, [dashboard, rawData, tvvStructList, CUR_YEAR]);
+
+
   /* Monthly AFYP chart data */
   const chartData = useMemo(() => {
     if (!rawData) return [];
@@ -2135,10 +2362,19 @@ export default function KPIDashboard() {
     const currentYear = new Date().getFullYear();
 
     // Use adStructList for KH calculation (same as quan-ly)
+    // AD plan = Σ 12 monthly values (keys: nmc-kh-ad-${maAD}-t01..t12)
+    const chartReadAdMonthlyPlan = (maAD: string, month: number): number => {
+      const mm = String(month).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`] || '0') || 0;
+    };
+    const chartReadAdAnnualPlan = (maAD: string): number => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) sum += chartReadAdMonthlyPlan(maAD, m);
+      return sum;
+    };
     const chartAdPlans = new Map<string, number>();
     adStructList.forEach(ad => {
-      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-      chartAdPlans.set(ad.maAD, val);
+      chartAdPlans.set(ad.maAD, chartReadAdAnnualPlan(ad.maAD));
     });
     const chartTargetTong = adStructList.reduce((s, ad) => s + (chartAdPlans.get(ad.maAD) || 0), 0);
 
@@ -2157,10 +2393,8 @@ export default function KPIDashboard() {
         }).forEach(c => { afyp += num(c.afyp); });
       });
 
-      // KH for this month — same as quan-ly: annual × ratio / 100
-      const mm = String(m).padStart(2, '0');
-      const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-      const kh = chartTargetTong > 0 && ratio > 0 ? chartTargetTong * ratio / 100 : 0;
+      // KH for this month = Σ all ADs' monthly value for this month (AD uses 12 monthly inputs directly)
+      const kh = adStructList.reduce((s, ad) => s + chartReadAdMonthlyPlan(ad.maAD, m), 0);
 
       months.push({ month: m, label: `T${m}`, afyp, kh });
     }
@@ -2297,16 +2531,22 @@ export default function KPIDashboard() {
 
   return (
     <div className="kpi-app">
+        <a href={MAIN_APP_URL} className="kpi-standalone-back-btn" title="Về app chính" aria-label="Về app chính">← App</a>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="bg-scene" aria-hidden="true">
-        <div className="bg-orb bg-orb-1" />
-        <div className="bg-orb bg-orb-2" />
-        <div className="bg-orb bg-orb-3" />
-      </div>
+      {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
+          {/* ===== NOTIFICATION BANNER (yellow-gold gradient, green text, scrolls continuously; auto-hidden when empty) ===== */}
+          {noticeEnabled && noticeContent && (
+            <div className="kpi-notice-banner" role="marquee" aria-live="polite">
+              <span
+                className="kpi-notice-marquee"
+                dangerouslySetInnerHTML={{ __html: noticeContent }}
+              />
+            </div>
+          )}
           <header>
             <div className="main-header">
               {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
@@ -2328,7 +2568,7 @@ export default function KPIDashboard() {
               </div>
             </div>
             <div className="ctrl-bar">
-              <span className="ctrl-hint">chọn thời gian xem</span>
+              <span className="ctrl-hint">Chọn thời gian xem</span>
               <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
                 <button type="button" className="ctrl-select ctrl-select-period" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
                   <span className="ctrl-period-label">{overviewPeriod.startsWith('month-') ? `T${overviewPeriod.split('-')[1]}` : overviewPeriod.startsWith('q') ? overviewPeriod.replace('q', 'Q').toUpperCase() : overviewPeriod === 'h1' ? 'H1' : overviewPeriod === 'h2' ? 'H2' : overviewPeriod === 'year' ? 'Năm' : 'T?'}</span>
@@ -2453,10 +2693,10 @@ export default function KPIDashboard() {
 
               {/* Navigation Grid */}
               <nav className="nav-grid" aria-label="Điều hướng">
-                <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); }}>
+                <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
                 </button>
-                <button className="nav-btn nav-plan" onClick={() => setView('calendar')}>
+                <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
@@ -2488,8 +2728,15 @@ export default function KPIDashboard() {
                   const pKhTrd = Math.round(phong.kh / 1000000);
                   const pCls = phong.noAds ? 'is-banca' : '';
                   const glowClsStr = glowCls(pPct);
+                  const isBanca = !!phong.noAds;
                   return (
-                    <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
+                    <Fragment key={pi}>
+                      {isBanca && <div className="banca-separator" aria-hidden="true" />}
+                      <div
+                        className={`rg-card ${pCls} anim-in${glowClsStr}${isBanca ? ' is-clickable' : ''}`}
+                        style={{ animationDelay: `${pi * 60}ms` }}
+                        onClick={isBanca ? () => setBancaPopupOpen(true) : undefined}
+                      >
                       {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                       <div className="rg-head">
                         <div className="rg-head-left">
@@ -2497,6 +2744,7 @@ export default function KPIDashboard() {
                           <span className="rg-head-name">{phong.ten}</span>
                         </div>
                         {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                        {isBanca && <span className="rg-head-hint">Xem chi tiết TVV →</span>}
                       </div>
                       {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
                       {(phong.afyp > 0 || phong.noAds) && (
@@ -2611,6 +2859,7 @@ export default function KPIDashboard() {
                         </div>
                       )}
                     </div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -2645,9 +2894,11 @@ export default function KPIDashboard() {
                       const progEnd = progressColor(pPct);
                       const afypTrd = Math.round(phong.afyp / 1000000);
                       const khTrd = Math.round(phong.kh / 1000000);
+                      const isBanca = !!phong.noAds;
 
                       return (
                         <div className="dept-section" key={pi}>
+                          {isBanca && <div className="banca-separator" aria-hidden="true" />}
                           {/* Mobile Phong Card - HIDDEN, replaced by rg-card */}
                           {false && (
                           <div className={`kpi-card kpi-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
@@ -2678,7 +2929,11 @@ export default function KPIDashboard() {
                           )}
 
                           {/* Desktop Phong Card - Redesign as lighter floating card */}
-                          <div className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+                          <div
+                            className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}${isBanca ? ' is-clickable' : ''}`}
+                            style={{ animationDelay: `${pi * 60}ms` }}
+                            onClick={isBanca ? () => setBancaPopupOpen(true) : undefined}
+                          >
                             {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                             <div className="rg-head">
                               <div className="rg-head-left">
@@ -2686,6 +2941,7 @@ export default function KPIDashboard() {
                                 <span className="rg-head-name">{phong.ten}</span>
                               </div>
                               {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                              {isBanca && <span className="rg-head-hint">Xem chi tiết TVV →</span>}
                             </div>
                             {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
                             {(phong.afyp > 0 || phong.noAds) && (
@@ -2879,12 +3135,13 @@ export default function KPIDashboard() {
         {/* ===== DETAIL VIEW ===== */}
         <section className={`view ${view === 'detail' ? 'active' : ''}`} id="view-detail" role="region">
           <div className="detail-shell">
-            <div className="detail-topbar">
+            <div className="sub-header">
               <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-              <div style={{ width: 38, height: 38, flexShrink: 0 }} />
+              <span className="sub-title">Chi Tiết Ban Nhóm</span>
+              <div style={{ width: 32 }} />
             </div>
-            <div className="detail-hero">
-              <div className="detail-title">Chi Tiết Ban Nhóm</div>
+            <div className="sub-line-wrap"><div className="sub-line" /></div>
+            <div className="detail-hero" style={{ textAlign: 'center', marginTop: 6 }}>
               <div className="detail-meta">AFYP — {detailMonth === 'Y' ? `Năm ${CUR_YEAR}` : detailMonth === 'H1' ? `6T đầu ${CUR_YEAR}` : detailMonth.startsWith('Q') ? `${detailMonth} ${CUR_YEAR}` : `T${parseInt(detailMonth)}/${CUR_YEAR}`}</div>
             </div>
             <div className="month-grid">
@@ -2988,17 +3245,32 @@ export default function KPIDashboard() {
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
-            {/* Nút cài đặt lịch — chỉ hiện khi đã đăng nhập Admin */}
-            {adminAuthed ? (
-              <button
-                className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
-                onClick={calAuthed ? openCalEditForNew : openCalPwd}
-                title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
-                aria-label="Cài đặt lịch"
-              >
-                <Settings size={16} />
-              </button>
-            ) : <div style={{ width: 32 }} />}
+            {/* Nút "Nhập kế hoạch khung" — luôn hiện, có label rõ ràng.
+                - Chưa calAuthed → mở popup calPwd (mật khẩu lịch)
+                - Đã calAuthed → mở form tạo kế hoạch mới */}
+            <button
+              type="button"
+              onClick={() => {
+                if (calAuthed) {
+                  openCalEditForNew();
+                } else {
+                  openCalPwd();
+                }
+              }}
+              title="Nhập kế hoạch khung mới"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 10px', borderRadius: 8,
+                background: calAuthed ? '#0d4d4d' : '#3a3f48',
+                color: calAuthed ? '#f3ffff' : '#c0c8d0',
+                border: `1px solid ${calAuthed ? '#008080' : '#5a6068'}`,
+                fontSize: 11, fontWeight: 800, cursor: 'pointer',
+                transition: 'all .2s',
+              }}
+            >
+              <Settings size={14} />
+              <span>Nhập kế hoạch</span>
+            </button>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="cal-filter">
@@ -3039,16 +3311,32 @@ export default function KPIDashboard() {
                         : <span className="cal-empty" />}
                     </div>
                     <div className="cal-owner">
-                      {row.events.map((e, ei) => (
-                        <span
-                          className="cal-owner-tag"
-                          key={ei}
-                          style={{ color: '#fff', background: getOwnerColor(e.owner || '') }}
-                          title={e.owner || ''}
-                        >
-                          {e.owner || '—'}
-                        </span>
-                      ))}
+                      {row.events.map((e, ei) => {
+                        // Multi-select: split owner string by ", " → render each as separate tag on its own line
+                        const ownerList = (e.owner || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (ownerList.length === 0) {
+                          return (
+                            <span
+                              className="cal-owner-tag"
+                              key={ei}
+                              style={{ color: '#fff', background: '#94a3b8' }}
+                              title=""
+                            >
+                              —
+                            </span>
+                          );
+                        }
+                        return ownerList.map((o, oi) => (
+                          <span
+                            className="cal-owner-tag"
+                            key={`${ei}-${oi}`}
+                            style={{ color: '#fff', background: getOwnerColor(o) }}
+                            title={o}
+                          >
+                            {o}
+                          </span>
+                        ));
+                      })}
                     </div>
                   </div>
                 );
@@ -3113,36 +3401,73 @@ export default function KPIDashboard() {
                   />
                 </label>
                 <div className="cal-field">
-                  <span className="cal-field-label">Phụ trách</span>
+                  <span className="cal-field-label">Phụ trách (có thể chọn nhiều)</span>
                   <div className="cal-owner-grid">
-                    {CAL_OWNERS.map(o => (
-                      <button
-                        key={o}
-                        type="button"
-                        className={`cal-owner-opt${calEditForm.owner === o ? ' on' : ''}`}
-                        style={calEditForm.owner === o ? { background: getOwnerColor(o), borderColor: getOwnerColor(o) } : {}}
-                        onClick={() => setCalEditForm(s => ({ ...s, owner: o, ownerCustom: '' }))}
-                      >
-                        {o}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={`cal-owner-opt${calEditForm.owner === '__other' ? ' on' : ''}`}
-                      style={calEditForm.owner === '__other' ? { background: '#475569', borderColor: '#475569' } : {}}
-                      onClick={() => setCalEditForm(s => ({ ...s, owner: '__other' }))}
-                    >
-                      Khác
-                    </button>
+                    {CAL_OWNERS.map(o => {
+                      const selected = calEditForm.owners.includes(o);
+                      return (
+                        <button
+                          key={o}
+                          type="button"
+                          className={`cal-owner-opt${selected ? ' on' : ''}`}
+                          style={selected ? { background: getOwnerColor(o), borderColor: getOwnerColor(o) } : {}}
+                          // Multi-select toggle: click to add, click again to remove
+                          onClick={() => setCalEditForm(s => ({
+                            ...s,
+                            owners: selected
+                              ? s.owners.filter(x => x !== o)
+                              : [...s.owners, o],
+                          }))}
+                        >
+                          {o}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {calEditForm.owner === '__other' && (
-                    <input
-                      type="text"
-                      className="cal-field-input cal-owner-custom"
-                      placeholder="Nhập đối tượng phụ trách..."
-                      value={calEditForm.ownerCustom}
-                      onChange={e => setCalEditForm(s => ({ ...s, ownerCustom: e.target.value }))}
-                    />
+                  {/* Custom "Khác" input — type text and press Enter to add as new owner tag */}
+                  <input
+                    type="text"
+                    className="cal-field-input cal-owner-custom"
+                    placeholder="Nhập đối tượng khác rồi nhấn Enter để thêm..."
+                    value={calEditForm.ownerCustom}
+                    onChange={e => setCalEditForm(s => ({ ...s, ownerCustom: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const v = calEditForm.ownerCustom.trim();
+                        if (v && !calEditForm.owners.includes(v)) {
+                          setCalEditForm(s => ({ ...s, owners: [...s.owners, v], ownerCustom: '' }));
+                        }
+                      }
+                    }}
+                  />
+                  {/* Show selected owners as removable chips */}
+                  {calEditForm.owners.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                      {calEditForm.owners.map(o => (
+                        <span
+                          key={o}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 6px', borderRadius: 4,
+                            background: getOwnerColor(o), color: '#fff',
+                            fontSize: 10, fontWeight: 800, lineHeight: 1.2,
+                          }}
+                        >
+                          {o}
+                          <button
+                            type="button"
+                            onClick={() => setCalEditForm(s => ({ ...s, owners: s.owners.filter(x => x !== o) }))}
+                            style={{
+                              background: 'rgba(255,255,255,0.25)', border: 'none', color: '#fff',
+                              cursor: 'pointer', padding: '0 4px', borderRadius: 3,
+                              fontSize: 11, lineHeight: 1, fontWeight: 900,
+                            }}
+                            title="Xóa"
+                          >×</button>
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
                 {calEditError && <div className="cal-edit-err">{calEditError}</div>}
@@ -3277,6 +3602,74 @@ export default function KPIDashboard() {
                           <td className="adp-td-name">{row.agentName}</td>
                           <td className="adp-td-pos">{row.chucVu}</td>
                           {adPopupData.months37.map(m => {
+                            const v = row.ipByMonth[m];
+                            const vM = Math.round(v / 1000000);
+                            return (
+                              <td key={m} className={`adp-td-ip${v > 0 ? ' has' : ''}`}>
+                                {v > 0 ? vM.toLocaleString('vi-VN') : '–'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== BANCA-PA DETAIL POPUP (no summary, only detail table) ===== */}
+      {bancaPopupOpen && bancaPopupData && (
+        <div className="adp-overlay" onClick={() => setBancaPopupOpen(false)}>
+          <div
+            className="adp-modal is-banca-modal"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Slim header: title + close */}
+            <div className="adp-header">
+              <span className="adp-header-name">BANCA - PA — Chi tiết TVV (Tổng: {bancaPopupData.totalTvv})</span>
+              <button className="adp-close" onClick={() => setBancaPopupOpen(false)} aria-label="Đóng">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="adp-body">
+              {/* Bảng chi tiết TVV — giống của AD nhưng không có phần tổng hợp ở trên */}
+              <div className="adp-bottom">
+                <div className="adp-section-label">Thông tin chi tiết</div>
+                <div className="adp-table-wrap">
+                  <table className="adp-table">
+                    <thead>
+                      <tr>
+                        <th rowSpan={2} className="adp-th-stt">STT</th>
+                        <th rowSpan={2} className="adp-th-code">Mã số</th>
+                        <th rowSpan={2} className="adp-th-name">Họ tên TVV</th>
+                        <th rowSpan={2} className="adp-th-pos">CV</th>
+                        <th colSpan={bancaPopupData.months37.length} className="adp-th-ip">
+                          <span className="adp-th-ip-label">IP</span>
+                          <span className="adp-th-ip-unit">(Triệu đồng)</span>
+                        </th>
+                      </tr>
+                      <tr>
+                        {bancaPopupData.months37.map(m => (
+                          <th key={m} className="adp-th-month">{m}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bancaPopupData.tvvTable.length === 0 && (
+                        <tr><td colSpan={4 + bancaPopupData.months37.length} className="adp-empty">Chưa có TVV trong phòng Banca - PA</td></tr>
+                      )}
+                      {bancaPopupData.tvvTable.map(row => (
+                        <tr key={row.agentCode}>
+                          <td className="adp-td-stt">{row.stt}</td>
+                          <td className="adp-td-code">{row.agentCode}</td>
+                          <td className="adp-td-name">{row.agentName}</td>
+                          <td className="adp-td-pos">{row.chucVu}</td>
+                          {bancaPopupData.months37.map(m => {
                             const v = row.ipByMonth[m];
                             const vM = Math.round(v / 1000000);
                             return (

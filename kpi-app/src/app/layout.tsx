@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
   title: 'KPI - N.M.C',
@@ -41,7 +42,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto" style={{ background: '#041828' }}>
-        {children}
+        <AppDataProvider>{children}</AppDataProvider>
       </body>
     </html>
   )
