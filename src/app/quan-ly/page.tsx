@@ -10849,11 +10849,10 @@ export default function QuanLyPage() {
             </TableRow>
           ) : filteredMembers.map((m, idx) => {
             // Ánh xạ từ saoVietTNTDRows (Sao Việt TN Tuyển Dụng) theo agentCode
+            // Lưu ý: TN TUYỂN DỤNG KHÔNG áp điều kiện FYP tháng >= 12tr (chỉ CÁ NHÂN mới có)
             const tntdData = getClbsvTNTDData(m.agentCode);
             const fypTvvmLuyKe = tntdData.fypTVVm;
             const slHdcLuyKe = tntdData.slTvvmHDC;
-            // Điều kiện cần: FYP cá nhân TN tháng hiện tại >= 12tr
-            const eligible = isClbsvEligibleForRank(m.agentCode);
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
@@ -10869,15 +10868,6 @@ export default function QuanLyPage() {
                   {slHdcLuyKe}
                 </TableCell>
                 {ranks.flatMap(rk => {
-                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
-                  if (!eligible) {
-                    // Mỗi rank có 2 sub-cols (fyp + hdc), cả 2 đều hiện "thiếu IP tháng"
-                    return [
-                      <TableCell key={`${rk.label}-fyp-${m.id}`} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }} colSpan={2}>
-                        thiếu IP tháng
-                      </TableCell>,
-                    ];
-                  }
                   const fypThreshold = rk.fypValues[clbsvCurrentMonthIdx] * 1_000_000;
                   const hdcThreshold = rk.hdcValues[clbsvCurrentMonthIdx];
                   const fypAchieved = fypTvvmLuyKe >= fypThreshold;
@@ -10967,9 +10957,8 @@ export default function QuanLyPage() {
             </TableRow>
           ) : filteredMembers.map((m, idx) => {
             // Ánh xạ từ saoVietTNKTMRows (Sao Việt TN KTM) theo agentCode
+            // Lưu ý: TN KTM KHÔNG áp điều kiện FYP tháng >= 12tr (chỉ CÁ NHÂN mới có)
             const fypLuyKe = getClbsvFypLuyKeTNKTM(m.agentCode);
-            // Điều kiện cần: FYP cá nhân TN tháng hiện tại >= 12tr
-            const eligible = isClbsvEligibleForRank(m.agentCode);
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
@@ -10984,14 +10973,6 @@ export default function QuanLyPage() {
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000;
                   const wouldAchieve = fypLuyKe >= thresholdVal;
-                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
-                  if (!eligible) {
-                    return (
-                      <TableCell key={rk.label} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }}>
-                        thiếu IP tháng
-                      </TableCell>
-                    );
-                  }
                   if (wouldAchieve) {
                     return (
                       <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
