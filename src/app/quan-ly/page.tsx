@@ -10388,32 +10388,37 @@ export default function QuanLyPage() {
   // ========== CLB SAO VIỆT: Lookup maps từ các section Sao Việt Toàn Chặng ==========
   // User yêu cầu (2026-07-01):
   //   • CÁ NHÂN: FYP Tháng = tổng IP tháng HIỆN TẠI từ contracts (auto-switch month).
-  //              FYP Lũy Kế = lookup từ saoVietCaNhanRows (Sao Việt Cá Nhân) theo agentCode.
+  //              FYP Lũy Kế = lookup từ saovietManualData['ca-nhan'] theo agentCode (cùng nguồn SV TOÀN CHẶNG).
   //              Điều kiện cần: FYP Tháng >= 12 triệu mới được xét hạng.
   //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế >= threshold → "thiếu IP tháng" in nghiêng, chữ đỏ.
   //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế < threshold → vẫn hiện deficit (chưa đạt hạng).
-  //   • TN TUYỂN DỤNG: Ánh xạ từ saoVietTNTDRows (FYP TVVm + SL TVVm HĐC) theo agentCode. Áp dụng 12tr condition (FYP cá nhân TN tháng hiện tại).
-  //   • TN KTM: Ánh xạ từ saoVietTNKTMRows (FYP lũy kế) theo agentCode. Áp dụng 12tr condition.
+  //   • TN TUYỂN DỤNG: FYP TVVm + SL TVVm HĐC = lookup từ saovietManualData['tn-td'] theo agentCode.
+  //   • TN KTM: FYP Lũy Kế = lookup từ saovietManualData['tn-ktm'] theo agentCode.
   const CLBSV_FYP_THANG_MIN = 12_000_000; // 12 triệu — điều kiện cần để được xét hạng
 
-  // Map agentCode (lowercase) → FYP lũy kế từ SV CÁ NHÂN
+  // Map agentCode (lowercase) → fyp lũy kế từ SV CÁ NHÂN (saovietManualData — cùng nguồn với SV TOÀN CHẶNG)
+  // QUAN TRỌNG: phải dùng saovietManualData (data đã upload/sync) — KHÔNG dùng saoVietCaNhanRows
+  // (tính từ contracts) vì 2 nguồn này khác nhau → CLB và SV TOÀN CHẶNG sẽ lệch số.
   const svCaNhanFypMap = new Map<string, number>();
-  saoVietCaNhanRows.forEach(r => {
-    svCaNhanFypMap.set((r.agentCode || '').trim().toLowerCase(), r.fyp);
+  (saovietManualData['ca-nhan'] || []).forEach((r: any) => {
+    const ac = (r.agentCode || '').trim().toLowerCase();
+    if (ac) svCaNhanFypMap.set(ac, Number(r.fyp) || 0);
   });
 
-  // Map agentCode (lowercase) → { fyp, } từ SV TN KTM
+  // Map agentCode (lowercase) → fyp lũy kế từ SV TN KTM (saovietManualData)
   const svTNKTMFypMap = new Map<string, number>();
-  saoVietTNKTMRows.forEach(r => {
-    svTNKTMFypMap.set((r.agentCode || '').trim().toLowerCase(), r.fyp);
+  (saovietManualData['tn-ktm'] || []).forEach((r: any) => {
+    const ac = (r.agentCode || '').trim().toLowerCase();
+    if (ac) svTNKTMFypMap.set(ac, Number(r.fyp) || 0);
   });
 
-  // Map agentCode (lowercase) → { fypTVVm, slTvvmHDC } từ SV TN TD
+  // Map agentCode (lowercase) → { fypTVVm, slTvvmHDC } từ SV TN TD (saovietManualData)
   const svTNTDMap = new Map<string, { fypTVVm: number; slTvvmHDC: number }>();
-  saoVietTNTDRows.forEach(r => {
-    svTNTDMap.set((r.agentCode || '').trim().toLowerCase(), {
-      fypTVVm: r.fypTVVm,
-      slTvvmHDC: r.slTvvmHDC,
+  (saovietManualData['tn-td'] || []).forEach((r: any) => {
+    const ac = (r.agentCode || '').trim().toLowerCase();
+    if (ac) svTNTDMap.set(ac, {
+      fypTVVm: Number(r.fypTVVm) || 0,
+      slTvvmHDC: Number(r.slTvvmHDC) || 0,
     });
   });
 
@@ -10676,6 +10681,10 @@ export default function QuanLyPage() {
       }
       return true;
     });
+    // Sắp xếp theo Tổng FYP Lũy Kế từ CAO xuống THẤP (theo yêu cầu user)
+    const sortedMembers = [...filteredMembers].sort((a, b) =>
+      getClbsvFypLuyKeCaNhan(b.agentCode) - getClbsvFypLuyKeCaNhan(a.agentCode)
+    );
     // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP THÁNG + FYP LŨY KẾ + 3 rank = 7 + 3 = 10
     const totalCols = 7 + ranks.length;
     // Note: FYP THÁNG và FYP LŨY KẾ chưa có data → hiển thị "—"
@@ -10718,9 +10727,9 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Vui lòng thêm thành viên vào DS Thành viên CLB (Cấu trúc → DS Thành viên CLB).
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => {
+          ) : sortedMembers.map((m, idx) => {
             // FYP Tháng = tổng IP tháng hiện tại từ contracts (auto-switch tháng)
-            // FYP Lũy Kế = lookup từ saoVietCaNhanRows (Sao Việt Cá Nhân) theo agentCode
+            // FYP Lũy Kế = lookup từ saovietManualData['ca-nhan'] theo agentCode
             const fypThang = getClbsvFypThang(m.agentCode);
             const fypLuyKe = getClbsvFypLuyKeCaNhan(m.agentCode);
             const eligible = isClbsvEligibleForRank(m.agentCode); // FYP Tháng >= 12tr
@@ -10795,6 +10804,10 @@ export default function QuanLyPage() {
       }
       return true;
     });
+    // Sắp xếp theo Tổng FYP TVVm Lũy Kế từ CAO xuống THẤP (theo yêu cầu user)
+    const sortedMembers = [...filteredMembers].sort((a, b) =>
+      getClbsvTNTDData(b.agentCode).fypTVVm - getClbsvTNTDData(a.agentCode).fypTVVm
+    );
     // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TVV + FYP TVVm LŨY KẾ + SL TVVm HĐC LŨY KẾ + (2 sub × 2 ranks) = 6 + 4 = 10
     // (Đã bỏ FYP TVVm THÁNG + SL TVVm HĐC THÁNG theo yêu cầu user)
     const totalCols = 6 + ranks.length * 2;
@@ -10862,8 +10875,8 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => {
-            // Ánh xạ từ saoVietTNTDRows (Sao Việt TN Tuyển Dụng) theo agentCode
+          ) : sortedMembers.map((m, idx) => {
+            // Ánh xạ từ saovietManualData['tn-td'] (Sao Việt TN Tuyển Dụng) theo agentCode
             // Lưu ý: TN TUYỂN DỤNG KHÔNG áp điều kiện FYP tháng >= 12tr (chỉ CÁ NHÂN mới có)
             const tntdData = getClbsvTNTDData(m.agentCode);
             const fypTvvmLuyKe = tntdData.fypTVVm;
@@ -10932,6 +10945,10 @@ export default function QuanLyPage() {
       }
       return true;
     });
+    // Sắp xếp theo Tổng FYP Lũy Kế từ CAO xuống THẤP (theo yêu cầu user)
+    const sortedMembers = [...filteredMembers].sort((a, b) =>
+      getClbsvFypLuyKeTNKTM(b.agentCode) - getClbsvFypLuyKeTNKTM(a.agentCode)
+    );
     // Cols: STT + NHÓM + MÃ SỐ + HỌ TÊN TN + FYP LŨY KẾ + 3 rank = 5 + 3 = 8
     // (Đã bỏ TỔNG FYP THÁNG theo yêu cầu user)
     const totalCols = 5 + ranks.length;
@@ -10970,8 +10987,8 @@ export default function QuanLyPage() {
                 Chưa có đối tượng. Cần thêm thành viên có chức vụ TB (Trưởng ban) hoặc TN (Trưởng nhóm) vào DS Thành viên CLB.
               </TableCell>
             </TableRow>
-          ) : filteredMembers.map((m, idx) => {
-            // Ánh xạ từ saoVietTNKTMRows (Sao Việt TN KTM) theo agentCode
+          ) : sortedMembers.map((m, idx) => {
+            // Ánh xạ từ saovietManualData['tn-ktm'] (Sao Việt TN KTM) theo agentCode
             // Lưu ý: TN KTM KHÔNG áp điều kiện FYP tháng >= 12tr (chỉ CÁ NHÂN mới có)
             const fypLuyKe = getClbsvFypLuyKeTNKTM(m.agentCode);
             return (
