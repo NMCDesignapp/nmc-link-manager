@@ -144,18 +144,84 @@ for route in quan-ly/all settings calendar structure/ad structure/phong structur
 done
 
 # 5. Components
-echo "[5/8] Syncing components/back-button.tsx"
+echo "[5/8] Syncing components (back-button, space-bg, honeycomb-bg)"
 if [ $CHECK_ONLY -eq 0 ]; then
   mkdir -p "$KPI_APP/src/components"
   cp "$ROOT/src/components/back-button.tsx" "$KPI_APP/src/components/back-button.tsx"
+  # Sync background components để standalone có cùng visual identity với main app
+  cp "$ROOT/src/components/space-bg.tsx" "$KPI_APP/src/components/space-bg.tsx" 2>/dev/null || true
+  cp "$ROOT/src/components/honeycomb-bg.tsx" "$KPI_APP/src/components/honeycomb-bg.tsx" 2>/dev/null || true
 fi
 
-# 6. Lib
-echo "[6/8] Syncing lib/db.ts, lib/utils.ts"
+# 6. Lib + globals.css + layout
+echo "[6/8] Syncing lib/db.ts, lib/utils.ts, globals.css, layout.tsx"
 if [ $CHECK_ONLY -eq 0 ]; then
   mkdir -p "$KPI_APP/src/lib"
   cp "$ROOT/src/lib/db.ts" "$KPI_APP/src/lib/db.ts"
   cp "$ROOT/src/lib/utils.ts" "$KPI_APP/src/lib/utils.ts" 2>/dev/null || true
+  # Sync globals.css (honeycomb-bg + animations)
+  cp "$ROOT/src/app/globals.css" "$KPI_APP/src/app/globals.css"
+fi
+
+# 6b. Layout — overwrite với standalone layout template (đã được viết tay cẩn thận)
+# Layout này giống main app nhưng bỏ: ErrorBoundary, PwaInstallPrompt, Toaster, Analytics, Service Worker
+# vì standalone kpi-app không có các components/UI đó
+echo "[6b/8] Overwriting kpi-app/src/app/layout.tsx với standalone template"
+if [ $CHECK_ONLY -eq 0 ]; then
+  cat > "$KPI_APP/src/app/layout.tsx" << 'LAYOUT_EOF'
+import type { Metadata, Viewport } from 'next'
+import './globals.css'
+import { SpaceBackground } from '@/components/space-bg'
+import { AppDataProvider } from '@/lib/app-data-context'
+
+export const metadata: Metadata = {
+  title: 'KPI - N.M.C',
+  description: 'KPI Dashboard - Trung tam quan ly lien ket',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'KPI NMC',
+  },
+  icons: {
+    icon: [
+      { url: '/icon/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icon/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#0a0a0f',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="vi" className="dark h-full">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className="h-full overflow-auto honeycomb-bg">
+        <SpaceBackground />
+        <AppDataProvider>{children}</AppDataProvider>
+      </body>
+    </html>
+  )
+}
+LAYOUT_EOF
+  echo "  → layout.tsx overwritten với standalone template"
 fi
 
 # 7. Prisma schema (only the tables kpi-app needs — main schema has PosterImage table etc)

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { SpaceBackground } from '@/components/space-bg'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#041828',
+  themeColor: '#0a0a0f',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -41,7 +42,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="h-full overflow-auto" style={{ background: '#041828' }}>
+      <body className="h-full overflow-auto honeycomb-bg">
+        <SpaceBackground />
         <AppDataProvider>{children}</AppDataProvider>
       </body>
     </html>
