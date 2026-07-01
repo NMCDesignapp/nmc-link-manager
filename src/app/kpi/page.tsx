@@ -2310,7 +2310,7 @@ export default function KPIDashboard() {
   return (
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + pattern Phật) từ layout.tsx */}
+      {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
