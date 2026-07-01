@@ -2458,7 +2458,7 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+                  <a className="nav-btn nav-race" href="/thi-dua-chau">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
                   <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">

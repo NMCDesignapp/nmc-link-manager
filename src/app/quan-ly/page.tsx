@@ -1714,8 +1714,23 @@ export default function QuanLyPage() {
         setIsAdmin(true);
       }
     } catch {}
-    // ===== ?sheet=xxx URL param đã được xử lý qua lazy init useState ở trên =====
-    // (tránh render 'overview' trước rồi mới switch gây flash)
+    // ===== ?sheet=xxx URL param =====
+    // Lazy init useState ở trên KHÔNG chạy lại khi hydrate từ static prerender,
+    // nên ta phải đọc URL param trong useEffect và setActiveSheet thủ công.
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const sheetParam = params.get('sheet');
+        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
+        if (sheetParam && validSheets.includes(sheetParam as SheetKey) && sheetParam !== activeSheet) {
+          // Clear ?sheet= from URL so internal nav doesn't keep re-applying it
+          const url = new URL(window.location.href);
+          url.searchParams.delete('sheet');
+          window.history.replaceState({}, '', url.toString());
+          setActiveSheet(sheetParam as SheetKey);
+        }
+      }
+    } catch {}
   }, []);
 
   // ===== Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /) =====
