@@ -2260,103 +2260,23 @@ export default function KPIDashboard() {
   /* Popup cho phòng Banca - PA: KHÔNG có phần tổng hợp ở trên, chỉ có bảng chi tiết.
      Bao gồm TVV thuộc phòng Banca + phòng PA (hoặc nhóm PA).
 
-     Detection (comprehensive — đối chiếu được với trang Cấu trúc):
-     1. TVV trong cấu trúc có maBanNhom trực tiếp match PA/Banca/DSO/A473DSO000
-     2. TVV trong cấu trúc có ban nhom (tenBanNhom) chứa Banca/DSO/PGB/Nhóm PA
-     3. TVV trong cấu trúc có ban nhom → AD → phong là PA/Banca
-     4. TVV KHÔNG trong cấu trúc nhưng có hợp đồng Banca-PA (ad/ban/nhom/maNhom chứa Banca/DSO/PGB)
-        → still include (lấy agentName từ hợp đồng, chucVu = 'TVV') để popup khớp với tổng hợp của dashboard card. */
+     Filter (per user spec — đối chiếu trang Cấu trúc):
+     - maBanNhom = U104101014  → Nhóm PA (user-confirmed: đây là mã nhóm PA)
+     - maBanNhom = PA          → Phòng PA (bannhom "PA" → AD "PA" → Phòng PA)
+     - maBanNhom = Banca       → Phòng Banca (bannhom "Banca" → AD "Banca" → Phòng Banca)
+     - maBanNhom = A473DSO000  → Banca/DSO (Nguyễn Yến Linh)
+     - maBanNhom = DSO         → Banca/DSO (variation) */
   const bancaPopupData = useMemo(() => {
     if (!dashboard || !rawData) return null;
 
-    // Build AD -> Phong lookup
-    const adToPhongMap = new Map<string, { maPhong: string; tenPhong: string; tenAD: string }>();
-    for (const ad of adStructList) {
-      const p = phongStructList.find(pp => pp.maPhong === ad.maPhong);
-      const pName = p?.tenPhong || ad.maPhong;
-      adToPhongMap.set(ad.maAD, { maPhong: ad.maPhong, tenPhong: pName, tenAD: ad.tenAD });
-    }
+    // Per user: U104101014 = mã nhóm PA. Plus Banca codes.
+    const TARGET_BANNHOM_CODES = new Set(['U104101014', 'PA', 'BANCA', 'A473DSO000', 'DSO']);
 
-    // PA / Banca detection — same logic as the dashboard
-    const isPaCode = (code: string): boolean => {
-      if (!code) return false;
-      const c = String(code).trim();
-      return c === 'PA' || c === 'U104101014' || c.toLowerCase() === 'pa';
-    };
-    const isBancaCode = (code: string): boolean => {
-      if (!code) return false;
-      const c = String(code).trim();
-      return c === 'Banca' || c === 'A473DSO000' || c === 'DSO' || c.toLowerCase() === 'banca' || c.toLowerCase() === 'dso';
-    };
-    const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
-
-    // 1. Build set of Banca/PA ban nhom codes from structure (comprehensive detection)
-    const bancaPaBanNhomCodes = new Set<string>();
-    banNhomStructList.forEach(bn => {
-      // Direct maBanNhom match (PA, Banca, A473DSO000, DSO)
-      if (isPaOrBanca(bn.maBanNhom)) {
-        bancaPaBanNhomCodes.add(bn.maBanNhom);
-        return;
-      }
-      // tenBanNhom contains Banca/DSO/PGB or is "Nhóm PA"
-      const tenNorm = normKey(bn.tenBanNhom || '');
-      if (tenNorm.includes('BANCA') || tenNorm.includes('DSO') || tenNorm.includes('PGB') || tenNorm === 'NHOMPA' || tenNorm === 'PA') {
-        bancaPaBanNhomCodes.add(bn.maBanNhom);
-        return;
-      }
-      // AD's phong is PA/Banca
-      const adInfo = adToPhongMap.get(bn.maAD);
-      if (adInfo && (isPaOrBanca(adInfo.maPhong) || isPaOrBanca(adInfo.tenPhong))) {
-        bancaPaBanNhomCodes.add(bn.maBanNhom);
-      }
+    // Filter TVV by maBanNhom (case-insensitive, trim whitespace)
+    const bancaTvvList: TVVStructItem[] = tvvStructList.filter(t => {
+      const code = String(t.maBanNhom || '').trim().toUpperCase();
+      return TARGET_BANNHOM_CODES.has(code);
     });
-
-    // 2. TVV in structure with Banca/PA ban nhom
-    const structBancaTvv: TVVStructItem[] = tvvStructList.filter(t => bancaPaBanNhomCodes.has(t.maBanNhom));
-
-    // 3. TVV NOT in structure but with Banca-PA contracts (lấy agentName từ hợp đồng)
-    const popupYearContracts = rawData.contracts.filter(c => {
-      const d = getDoanhSoMonth(c);
-      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
-    });
-
-    const isBancaPaContract = (c: { nhom?: string; ban?: string; maNhom?: string; ad?: string }): boolean => {
-      if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
-      const adNorm = normKey(c.ad || '');
-      if (adNorm.includes('BANCA')) return true;
-      const banNorm = normKey(c.ban || '');
-      if (banNorm.includes('PGB')) return true;
-      const nhomNorm = normKey(c.nhom || '');
-      if (nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')) return true;
-      const maNhomNorm = normKey(c.maNhom || '');
-      if (maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO')) return true;
-      return false;
-    };
-
-    const bancaPaContractAgents = new Set<string>();
-    popupYearContracts.forEach(c => {
-      if (isBancaPaContract(c)) bancaPaContractAgents.add(c.agentCode);
-    });
-
-    const knownStructCodes = new Set(structBancaTvv.map(t => t.agentCode));
-    const extraTvv: TVVStructItem[] = Array.from(bancaPaContractAgents)
-      .filter(code => !knownStructCodes.has(code))
-      .map(code => {
-        // Pick the most recent contract for this agent to get the latest name
-        const cs = popupYearContracts.filter(c => c.agentCode === code);
-        const latest = cs[cs.length - 1];
-        return {
-          id: `extra-${code}`,
-          agentCode: code,
-          agentName: latest?.agentName || code,
-          maBanNhom: '',
-          chucVu: '',
-          ngayBatDau: null,
-          note: 'Từ hợp đồng Banca-PA (chưa có trong cấu trúc TVV)',
-        };
-      });
-
-    const bancaTvvList: TVVStructItem[] = [...structBancaTvv, ...extraTvv];
 
     // Sort TVV by chucVu: TB → TN → TTN → TVV
     const getOrder = (cv: string): number => {
@@ -2379,6 +2299,12 @@ export default function KPIDashboard() {
       const ordB = getOrder(b.chucVu);
       if (ordA !== ordB) return ordA - ordB;
       return a.agentName.localeCompare(b.agentName, 'vi');
+    });
+
+    // Use ALL year contracts (months 3-9) — same approach as AD popup
+    const popupYearContracts = rawData.contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     });
 
     const months37 = [3, 4, 5, 6, 7, 8, 9];
@@ -2408,7 +2334,7 @@ export default function KPIDashboard() {
       months37,
       totalTvv: sortedTvv.length,
     };
-  }, [dashboard, rawData, adStructList, phongStructList, banNhomStructList, tvvStructList, CUR_YEAR]);
+  }, [dashboard, rawData, tvvStructList, CUR_YEAR]);
 
 
   /* Monthly AFYP chart data */
