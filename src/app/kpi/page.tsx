@@ -205,15 +205,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Navigation */
 .kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
 .kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #e8eef7; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, box-shadow .15s; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.02) 100%); box-shadow: 0 6px 14px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.14) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); box-shadow: 0 3px 8px rgba(0,0,0,.40), 0 1px 0 rgba(255,255,255,.06) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); }
+.kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
+.kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
-.kpi-app .nav-detail { border-color: rgba(96,165,250,.55); box-shadow: 0 6px 16px rgba(59,130,246,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-plan { border-color: rgba(52,211,153,.55); box-shadow: 0 6px 16px rgba(16,185,129,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-race { border-color: rgba(56,189,248,.55); box-shadow: 0 6px 16px rgba(14,165,233,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-policy { border-color: rgba(251,191,36,.55); box-shadow: 0 6px 16px rgba(245,158,11,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
-.kpi-app .nav-clb { border-color: rgba(251,146,60,.55); box-shadow: 0 6px 16px rgba(249,115,22,.30), 0 1px 0 rgba(255,255,255,.10) inset, 0 -2px 6px rgba(0,0,0,.30) inset; }
+/* 5 nút — mỗi nút 1 màu solid, bỏ glow halo, chỉ giữ drop shadow đen */
+.kpi-app .nav-detail { background: #2563EB; }   /* blue-600 */
+.kpi-app .nav-plan   { background: #16A34A; }   /* green-600 */
+.kpi-app .nav-race   { background: #0891B2; }   /* cyan-600 */
+.kpi-app .nav-policy { background: #CA8A04; }   /* yellow-600 */
+.kpi-app .nav-clb    { background: #EA580C; }   /* orange-600 */
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -1429,11 +1430,14 @@ export default function KPIDashboard() {
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
 
-  // ===== ADMIN AUTH =====
-  // Admin login/logout đã được chuyển sang giao diện chính ứng dụng (/src/app/page.tsx).
-  // Trạng thái đăng nhập vẫn được chia sẻ qua sessionStorage('kpi_admin_authed').
-  // Trang /quan-ly đọc sessionStorage này để quyết định ẩn/hiện nút Trở về & Cài đặt.
+  // ===== ADMIN AUTH (login directly on /kpi page) =====
+  // User có thể đăng nhập Admin ngay tại /kpi — không cần quay về trang chính.
+  // Trạng thái chia sẻ qua sessionStorage('kpi_admin_authed') với trang /.
+  const ADMIN_PWD = '123456';
   const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
+  const [adminPwdInput, setAdminPwdInput] = useState('');
+  const [adminPwdError, setAdminPwdError] = useState(false);
 
   // On mount: check sessionStorage for existing admin auth
   useEffect(() => {
@@ -1568,6 +1572,24 @@ export default function KPIDashboard() {
     if (calAuthed) { setCalEditOpen(true); return; }
     setCalPendingEdit(null);
     setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
+  };
+
+  // ===== ADMIN LOGIN (on /kpi page) =====
+  // Khi user bấm "Nhập kế hoạch khung" mà chưa adminAuthed → mở popup nhập mật khẩu Admin.
+  // Sau khi đăng nhập thành công, tự động mở popup calPwd (đăng nhập cấp 2 cho lịch).
+  const openAdminPwdForCal = () => {
+    setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false);
+  };
+  const submitAdminPwd = () => {
+    if (adminPwdInput === ADMIN_PWD) {
+      setAdminAuthed(true);
+      try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
+      setAdminPwdOpen(false); setAdminPwdInput(''); setAdminPwdError(false);
+      // Sau khi đăng nhập Admin thành công, mở tiếp popup calPwd (cấp 2)
+      setTimeout(() => openCalPwd(), 100);
+    } else {
+      setAdminPwdError(true);
+    }
   };
 
   const submitCalPwd = () => {
@@ -2091,17 +2113,25 @@ export default function KPIDashboard() {
     });
 
     // IP per month per TVV (months 3-9)
+    // Fix: matching agentCode dùng trim+lowercase để tránh mismatch do whitespace/case.
+    // Fix: nếu pdt10DT = 0, fallback sang fyp (user gọi fyp là "IP" trong CLB SAO VIỆT).
     const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const normCode = (s: string) => (s || '').trim().toLowerCase();
     const tvvTable = sortedTvv.map((t, idx) => {
+      const tCode = normCode(t.agentCode);
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
         ipByMonth[m] = finalContracts
-          .filter(c => c.agentCode === t.agentCode)
+          .filter(c => normCode(c.agentCode) === tCode)
           .filter(c => {
             const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && (d.getMonth() + 1) === m;
           })
-          .reduce((s, c) => s + num(c.pdt10DT), 0);
+          .reduce((s, c) => {
+            const pdt = num(c.pdt10DT);
+            // Fallback: nếu pdt10DT = 0, dùng fyp (cùng ngữ nghĩa IP)
+            return s + (pdt > 0 ? pdt : num(c.fyp));
+          }, 0);
       });
       return {
         stt: idx + 1,
@@ -2997,17 +3027,35 @@ export default function KPIDashboard() {
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
-            {/* Nút cài đặt lịch — chỉ hiện khi đã đăng nhập Admin */}
-            {adminAuthed ? (
-              <button
-                className={`cal-settings-btn${calAuthed ? ' authed' : ''}`}
-                onClick={calAuthed ? openCalEditForNew : openCalPwd}
-                title={calAuthed ? 'Thêm kế hoạch mới' : 'Mở cài đặt (cần mật khẩu)'}
-                aria-label="Cài đặt lịch"
-              >
-                <Settings size={16} />
-              </button>
-            ) : <div style={{ width: 32 }} />}
+            {/* Nút "Nhập kế hoạch khung" — luôn hiện, có label rõ ràng.
+                - Chưa đăng nhập Admin → mở popup Admin login
+                - Đã Admin nhưng chưa calAuthed → mở popup calPwd
+                - Đã cả 2 → mở form tạo kế hoạch mới */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!adminAuthed) {
+                  openAdminPwdForCal();
+                } else if (calAuthed) {
+                  openCalEditForNew();
+                } else {
+                  openCalPwd();
+                }
+              }}
+              title="Nhập kế hoạch khung mới"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 10px', borderRadius: 8,
+                background: adminAuthed ? '#0d4d4d' : '#3a3f48',
+                color: adminAuthed ? '#f3ffff' : '#c0c8d0',
+                border: `1px solid ${adminAuthed ? '#008080' : '#5a6068'}`,
+                fontSize: 11, fontWeight: 800, cursor: 'pointer',
+                transition: 'all .2s',
+              }}
+            >
+              <Settings size={14} />
+              <span>Nhập kế hoạch</span>
+            </button>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="cal-filter">
@@ -3087,6 +3135,32 @@ export default function KPIDashboard() {
                 />
                 {calPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
                 <button className="cal-modal-save" onClick={submitCalPwd}>Xác nhận</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== ADMIN LOGIN POPUP (for /kpi page) ===== */}
+        {adminPwdOpen && (
+          <div className="cal-modal-overlay" onClick={() => setAdminPwdOpen(false)}>
+            <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
+              <div className="cal-modal-head">
+                <span>Đăng nhập Admin</span>
+                <button className="cal-modal-x" onClick={() => setAdminPwdOpen(false)}>×</button>
+              </div>
+              <div className="cal-modal-body">
+                <p className="cal-modal-hint">Nhập mật khẩu Admin để tiếp tục:</p>
+                <input
+                  type="password"
+                  className={`cal-pwd-input${adminPwdError ? ' err' : ''}`}
+                  value={adminPwdInput}
+                  autoFocus
+                  onChange={e => { setAdminPwdInput(e.target.value); setAdminPwdError(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') submitAdminPwd(); }}
+                  placeholder="••••••"
+                />
+                {adminPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
+                <button className="cal-modal-save" onClick={submitAdminPwd}>Xác nhận</button>
               </div>
             </div>
           </div>
