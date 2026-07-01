@@ -1238,3 +1238,32 @@ Stage Summary:
 - Excel export: IP tự tính từ contracts, không còn dùng DB stale values
 - Footer text: rõ ràng nguồn tháng (Phát hành, fallback Hiệu lực)
 - Ko thay đổi DB schema, ko thay đổi import (backward compat)
+
+---
+Task ID: verify-clb-sv-match
+Agent: main
+Task: (1) CLB SAO VIỆT — sort 3 chương trình theo Tổng FYP Lũy Kế giảm dần. (2) Verify CLB TN-TD cột "FYP TVVm lũy kế" + "SL TVM HDC lũy kế" lấy đúng từ SV TOÀN CHẶNG TN-TD. (3) Verify CLB TN-KTM cột "FYP LŨY KẾ" lấy đúng từ SV TOÀN CHẶNG TN-KTM.
+
+Work Log:
+- Đã kiểm tra code hiện tại (commit 8a80108 đã triển khai đầy đủ):
+  - renderCLBSVCaNhan (line 10684-10687): sort by getClbsvFypLuyKeCaNhan descending ✓
+  - renderCLBSVTNTuyenDung (line 10807-10810): sort by getClbsvTNTDData().fypTVVm descending ✓
+  - renderCLBSVTNKTM (line 10948-10951): sort by getClbsvFypLuyKeTNKTM descending ✓
+- Data source đã verify:
+  - SV TOÀN CHẶNG TN-TD (line 10215) đọc saovietManualData['tn-td'] với fields r.fypTVVm + r.slTvvmHDC
+  - CLB TN-TD map (line 10416-10423) đọc cùng saovietManualData['tn-td'] với cùng fields → KHỚP
+  - SV TOÀN CHẶNG TN-KTM (line 10146) đọc saovietManualData['tn-ktm'] với field r.fyp
+  - CLB TN-KTM map (line 10409-10413) đọc cùng saovietManualData['tn-ktm'] với cùng field → KHỚP
+- Script verify: /home/z/my-project/scripts/verify-clb-sv-match.js (gọi API production)
+- Kết quả verify thực tế (production data):
+  - CLB members: 50 → tất cả 50 đều có matching row trong SV CÁ NHÂN (889 rows)
+  - CLB TN-KTM members (TB/TN): 19 → tất cả 19 đều có matching row trong SV TN-KTM (29 rows)
+  - CLB TN-TD members (TB/TN): 19 → tất cả 19 đều có matching row trong SV TN-TD (29 rows)
+  - Top 10 CLB TN-KTM = Top 10 SV TN-KTM (cùng tên, cùng FYP, cùng thứ tự)
+  - Top 10 CLB TN-TD = Top 10 SV TN-TD (cùng tên, cùng FYP TVVm, cùng HĐC, cùng thứ tự)
+
+Stage Summary:
+- 3 chương trình CLB SAO VIỆT đã sort đúng theo Tổng FYP Lũy Kế từ cao xuống thấp
+- CLB TN-TD: 2 cột "FYP TVVm lũy kế" + "SL TVVm HĐC lũy kế" khớp 100% với SV TOÀN CHẶNG TN-TD
+- CLB TN-KTM: cột "FYP LŨY KẾ" khớp 100% với SV TOÀN CHẶNG TN-KTM
+- Không cần sửa code — đã đúng từ commit 8a80108
