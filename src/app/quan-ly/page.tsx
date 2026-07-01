@@ -5430,9 +5430,11 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ---------- SAO VIỆT: upload poster (FileReader → data URL → Settings API) ----------
-  // Dùng cùng cơ chế với Chính sách: ảnh được convert sang data URL và lưu vào Setting
-  // (key `saoviet-poster-{program}`), tránh ghi file ra /public (read-only trên serverless)
+  // ---------- SAO VIỆT: upload poster (file → compress → BYTEA in Postgres → URL in Setting) ----------
+  // TRƯỚC: lưu base64 trong Setting → /api/settings trả về 16.9 MB (chậm).
+  // SAU: lưu binary trong bảng PosterImage, Setting chỉ lưu URL ngắn
+  //      "/api/poster-image/saoviet-poster-{program}" → /api/settings chỉ ~50 KB.
+  // Ảnh được serve với Cache-Control: public, max-age=31536000, immutable → browser cache.
   const handleSaovietPosterUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // reset input để có thể chọn lại cùng file
@@ -5447,19 +5449,32 @@ export default function QuanLyPage() {
     }
     setSaovietPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
-      // Read file as data URL (đã nén)
+      // 1) Compress image → base64 data URL
       const dataUrl: string = await compressImage(file);
-      // Save to Settings API (same as Policy image)
+      // 2) Upload binary to PosterImage table (returns URL)
+      const settingKey = `saoviet-poster-${program}`;
+      const upRes = await fetch('/api/poster-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: settingKey, dataBase64: dataUrl }),
+      });
+      if (!upRes.ok) {
+        const errData = await upRes.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${upRes.status}`);
+      }
+      const upData = await upRes.json();
+      const posterUrl: string = upData.url; // "/api/poster-image/saoviet-poster-ca-nhan"
+      // 3) Save URL (short string) to Settings
       const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [`saoviet-poster-${program}`]: dataUrl }),
+        body: JSON.stringify({ [settingKey]: posterUrl }),
       });
       if (r.ok) {
-        setSaovietPosters(prev => ({ ...prev, [program]: dataUrl }));
+        setSaovietPosters(prev => ({ ...prev, [program]: posterUrl }));
         toast({ title: 'Đã lưu poster' });
       } else {
-        toast({ title: 'Lỗi upload poster', description: `HTTP ${r.status}`, variant: 'destructive' });
+        throw new Error(`HTTP ${r.status}`);
       }
     } catch (err) {
       toast({ title: 'Lỗi upload poster', description: String(err), variant: 'destructive' });
@@ -5468,14 +5483,18 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ---------- SAO VIỆT: delete poster (clear Settings value) ----------
+  // ---------- SAO VIỆT: delete poster (clear Setting + delete binary) ----------
   const handleSaovietPosterDelete = useCallback(async (program: string) => {
     if (!confirm('Xóa poster của chương trình này?')) return;
+    const settingKey = `saoviet-poster-${program}`;
     try {
+      // 1) Delete binary from PosterImage table (best-effort, non-fatal)
+      await fetch(`/api/poster-image?key=${encodeURIComponent(settingKey)}`, { method: 'DELETE' });
+      // 2) Clear Setting value
       const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [`saoviet-poster-${program}`]: '' }),
+        body: JSON.stringify({ [settingKey]: '' }),
       });
       if (r.ok) {
         setSaovietPosters(prev => {
@@ -5492,7 +5511,7 @@ export default function QuanLyPage() {
     }
   }, []);
 
-  // ---------- CLB SAO VIỆT: upload poster (clone của handleSaovietPosterUpload với key clbsv-poster-) ----------
+  // ---------- CLB SAO VIỆT: upload poster (same pattern as saoviet) ----------
   const handleClbsvPosterUpload = useCallback(async (program: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -5508,16 +5527,28 @@ export default function QuanLyPage() {
     setClbsvPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
       const dataUrl: string = await compressImage(file);
+      const settingKey = `clbsv-poster-${program}`;
+      const upRes = await fetch('/api/poster-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: settingKey, dataBase64: dataUrl }),
+      });
+      if (!upRes.ok) {
+        const errData = await upRes.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${upRes.status}`);
+      }
+      const upData = await upRes.json();
+      const posterUrl: string = upData.url;
       const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [`clbsv-poster-${program}`]: dataUrl }),
+        body: JSON.stringify({ [settingKey]: posterUrl }),
       });
       if (r.ok) {
-        setClbsvPosters(prev => ({ ...prev, [program]: dataUrl }));
+        setClbsvPosters(prev => ({ ...prev, [program]: posterUrl }));
         toast({ title: 'Đã lưu poster CLB Sao Việt' });
       } else {
-        toast({ title: 'Lỗi upload poster', description: `HTTP ${r.status}`, variant: 'destructive' });
+        throw new Error(`HTTP ${r.status}`);
       }
     } catch (err) {
       toast({ title: 'Lỗi upload poster', description: String(err), variant: 'destructive' });
@@ -5529,11 +5560,13 @@ export default function QuanLyPage() {
   // ---------- CLB SAO VIỆT: delete poster ----------
   const handleClbsvPosterDelete = useCallback(async (program: string) => {
     if (!confirm('Xóa poster của chương trình này?')) return;
+    const settingKey = `clbsv-poster-${program}`;
     try {
+      await fetch(`/api/poster-image?key=${encodeURIComponent(settingKey)}`, { method: 'DELETE' });
       const r = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [`clbsv-poster-${program}`]: '' }),
+        body: JSON.stringify({ [settingKey]: '' }),
       });
       if (r.ok) {
         setClbsvPosters(prev => {

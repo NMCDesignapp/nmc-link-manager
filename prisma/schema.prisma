@@ -302,3 +302,15 @@ model PendingMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Poster images — Lưu binary ảnh poster (Sao Việt / CLB Sao Việt)
+// Trước đây lưu base64 trong Setting → làm /api/settings trả về 16.9 MB (chậm).
+// Giờ chuyển sang bảng riêng: binary BYTEA + serve qua /api/poster-image/[key]
+// với Cache-Control: public, max-age=31536000, immutable → browser cache.
+// Trong Setting chỉ lưu URL ngắn: "/api/poster-image/saoviet-poster-ca-nhan"
+model PosterImage {
+  key         String   @id
+  data        Bytes
+  contentType String   @default("image/jpeg")
+  updatedAt   DateTime @updatedAt
+}

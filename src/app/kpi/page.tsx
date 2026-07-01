@@ -944,7 +944,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cal-text { border-left: 1px solid #00808055; padding: 5px 7px; font-weight: 600; font-size: 10.5px; line-height: 1.25; color: #1a2e1a; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #f7ffff; }
 .kpi-app .cal-owner { min-width: 50px; border-left: 1px solid #00808055; padding: 4px 3px; font-size: 8px; color: #2a3a2a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; background: #f7ffff; word-break: break-word; }
 .kpi-app .cal-empty { color: #94a3b8; font-style: italic; }
-.kpi-app .cal-line { display: block; }
+.kpi-app .cal-line { display: block; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .kpi-app .cal-line.editable { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background .12s, box-shadow .12s; }
 .kpi-app .cal-line.editable.authed:hover { background: #fef9c3; box-shadow: 0 0 0 1px #facc15; }
 .kpi-app .cal-line.editable.locked { cursor: pointer; }
@@ -960,7 +960,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cal-owner-tag {
   display: inline-block; padding: 1px 4px; border-radius: 3px;
   font-size: 7.5px; font-weight: 800; line-height: 1.2;
-  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere;
 }
 
 /* Settings button (gear, top-right of calendar header) */
@@ -1043,7 +1043,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .cal-field-textarea:focus { outline: none; border-color: #008080; box-shadow: 0 0 0 3px #00808022; }
 .kpi-app .cal-owner-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
 }
 .kpi-app .cal-owner-opt {
   padding: 6px 4px; border-radius: 5px;
@@ -1466,7 +1466,7 @@ export default function KPIDashboard() {
 
   const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
-  const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owner: string; ownerCustom: string }>({ id: null, date: '', title: '', owner: '', ownerCustom: '' });
+  const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owners: string[]; ownerCustom: string }>({ id: null, date: '', title: '', owners: [], ownerCustom: '' });
   const [calEditSaving, setCalEditSaving] = useState(false);
   const [calEditError, setCalEditError] = useState<string | null>(null);
   // Remember which existing event the user wanted to edit, so after password
@@ -1571,6 +1571,13 @@ export default function KPIDashboard() {
     setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
   };
 
+  // Parse owner string from DB into array — supports multi-select format "Công ty, HTKD"
+  // và giữ lại custom text không thuộc CAL_OWNERS.
+  const parseOwners = (owner: string | undefined | null): string[] => {
+    if (!owner) return [];
+    return owner.split(',').map(s => s.trim()).filter(Boolean);
+  };
+
   const submitCalPwd = () => {
     if (calPwdInput === '123456') {
       setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
@@ -1578,17 +1585,17 @@ export default function KPIDashboard() {
       // Otherwise, open blank new-entry form.
       if (calPendingEdit) {
         const ev = calPendingEdit;
-        const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+        const owners = parseOwners(ev.owner);
         setCalEditForm({
           id: ev.id,
           date: ev.date,
           title: ev.title,
-          owner: isCustom ? '__other' : (ev.owner || ''),
-          ownerCustom: isCustom ? (ev.owner || '') : '',
+          owners,
+          ownerCustom: '',
         });
         setCalPendingEdit(null);
       } else {
-        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
       }
       setCalEditError(null);
       setCalEditOpen(true);
@@ -1599,13 +1606,13 @@ export default function KPIDashboard() {
 
   const openCalEditFor = (ev: CalendarEvent) => {
     if (calAuthed) {
-      const isCustom = !!ev.owner && !CAL_OWNERS.includes(ev.owner);
+      const owners = parseOwners(ev.owner);
       setCalEditForm({
         id: ev.id,
         date: ev.date,
         title: ev.title,
-        owner: isCustom ? '__other' : (ev.owner || ''),
-        ownerCustom: isCustom ? (ev.owner || '') : '',
+        owners,
+        ownerCustom: '',
       });
       setCalEditError(null);
       setCalEditOpen(true);
@@ -1620,7 +1627,7 @@ export default function KPIDashboard() {
   };
 
   const openCalEditForNew = () => {
-    setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owner: '', ownerCustom: '' });
+    setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
     setCalEditError(null);
     setCalEditOpen(true);
   };
@@ -1630,7 +1637,14 @@ export default function KPIDashboard() {
       setCalEditError('Vui lòng nhập ngày và nội dung.');
       return;
     }
-    const owner = calEditForm.owner === '__other' ? calEditForm.ownerCustom.trim() : calEditForm.owner;
+    // Gộp owners chọn sẵn + custom text (nếu có nhập)
+    const finalOwners = [...calEditForm.owners];
+    const customText = calEditForm.ownerCustom.trim();
+    if (customText && !finalOwners.includes(customText)) {
+      finalOwners.push(customText);
+    }
+    // Join bằng ", " để hiển thị dạng "Công ty, HTKD"
+    const owner = finalOwners.join(', ');
     setCalEditSaving(true);
     setCalEditError(null);
     try {
@@ -3058,16 +3072,32 @@ export default function KPIDashboard() {
                         : <span className="cal-empty" />}
                     </div>
                     <div className="cal-owner">
-                      {row.events.map((e, ei) => (
-                        <span
-                          className="cal-owner-tag"
-                          key={ei}
-                          style={{ color: '#fff', background: getOwnerColor(e.owner || '') }}
-                          title={e.owner || ''}
-                        >
-                          {e.owner || '—'}
-                        </span>
-                      ))}
+                      {row.events.map((e, ei) => {
+                        // Multi-select: split owner string by ", " → render each as separate tag on its own line
+                        const ownerList = (e.owner || '').split(',').map(s => s.trim()).filter(Boolean);
+                        if (ownerList.length === 0) {
+                          return (
+                            <span
+                              className="cal-owner-tag"
+                              key={ei}
+                              style={{ color: '#fff', background: '#94a3b8' }}
+                              title=""
+                            >
+                              —
+                            </span>
+                          );
+                        }
+                        return ownerList.map((o, oi) => (
+                          <span
+                            className="cal-owner-tag"
+                            key={`${ei}-${oi}`}
+                            style={{ color: '#fff', background: getOwnerColor(o) }}
+                            title={o}
+                          >
+                            {o}
+                          </span>
+                        ));
+                      })}
                     </div>
                   </div>
                 );
@@ -3132,36 +3162,73 @@ export default function KPIDashboard() {
                   />
                 </label>
                 <div className="cal-field">
-                  <span className="cal-field-label">Phụ trách</span>
+                  <span className="cal-field-label">Phụ trách (có thể chọn nhiều)</span>
                   <div className="cal-owner-grid">
-                    {CAL_OWNERS.map(o => (
-                      <button
-                        key={o}
-                        type="button"
-                        className={`cal-owner-opt${calEditForm.owner === o ? ' on' : ''}`}
-                        style={calEditForm.owner === o ? { background: getOwnerColor(o), borderColor: getOwnerColor(o) } : {}}
-                        onClick={() => setCalEditForm(s => ({ ...s, owner: o, ownerCustom: '' }))}
-                      >
-                        {o}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={`cal-owner-opt${calEditForm.owner === '__other' ? ' on' : ''}`}
-                      style={calEditForm.owner === '__other' ? { background: '#475569', borderColor: '#475569' } : {}}
-                      onClick={() => setCalEditForm(s => ({ ...s, owner: '__other' }))}
-                    >
-                      Khác
-                    </button>
+                    {CAL_OWNERS.map(o => {
+                      const selected = calEditForm.owners.includes(o);
+                      return (
+                        <button
+                          key={o}
+                          type="button"
+                          className={`cal-owner-opt${selected ? ' on' : ''}`}
+                          style={selected ? { background: getOwnerColor(o), borderColor: getOwnerColor(o) } : {}}
+                          // Multi-select toggle: click to add, click again to remove
+                          onClick={() => setCalEditForm(s => ({
+                            ...s,
+                            owners: selected
+                              ? s.owners.filter(x => x !== o)
+                              : [...s.owners, o],
+                          }))}
+                        >
+                          {o}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {calEditForm.owner === '__other' && (
-                    <input
-                      type="text"
-                      className="cal-field-input cal-owner-custom"
-                      placeholder="Nhập đối tượng phụ trách..."
-                      value={calEditForm.ownerCustom}
-                      onChange={e => setCalEditForm(s => ({ ...s, ownerCustom: e.target.value }))}
-                    />
+                  {/* Custom "Khác" input — type text and press Enter to add as new owner tag */}
+                  <input
+                    type="text"
+                    className="cal-field-input cal-owner-custom"
+                    placeholder="Nhập đối tượng khác rồi nhấn Enter để thêm..."
+                    value={calEditForm.ownerCustom}
+                    onChange={e => setCalEditForm(s => ({ ...s, ownerCustom: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const v = calEditForm.ownerCustom.trim();
+                        if (v && !calEditForm.owners.includes(v)) {
+                          setCalEditForm(s => ({ ...s, owners: [...s.owners, v], ownerCustom: '' }));
+                        }
+                      }
+                    }}
+                  />
+                  {/* Show selected owners as removable chips */}
+                  {calEditForm.owners.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                      {calEditForm.owners.map(o => (
+                        <span
+                          key={o}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 6px', borderRadius: 4,
+                            background: getOwnerColor(o), color: '#fff',
+                            fontSize: 10, fontWeight: 800, lineHeight: 1.2,
+                          }}
+                        >
+                          {o}
+                          <button
+                            type="button"
+                            onClick={() => setCalEditForm(s => ({ ...s, owners: s.owners.filter(x => x !== o) }))}
+                            style={{
+                              background: 'rgba(255,255,255,0.25)', border: 'none', color: '#fff',
+                              cursor: 'pointer', padding: '0 4px', borderRadius: 3,
+                              fontSize: 11, lineHeight: 1, fontWeight: 900,
+                            }}
+                            title="Xóa"
+                          >×</button>
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
                 {calEditError && <div className="cal-edit-err">{calEditError}</div>}
