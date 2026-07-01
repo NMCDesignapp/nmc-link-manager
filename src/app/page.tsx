@@ -8,7 +8,7 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, X, RefreshCw } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, X, RefreshCw, Bell, Bold, Italic, Underline } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { AppLoader } from '@/components/app-loader'
@@ -299,6 +299,79 @@ export default function Home() {
   const [adminPwdError, setAdminPwdError] = useState(false);
   const ADMIN_PWD = '123456';
 
+  // ===== KPI NOTICE (banner thông báo chạy cuộn trên trang KPI) =====
+  // Admin nhập nội dung + bật/tắt hiển thị tại đây → lưu vào settings → KPI page đọc và hiển thị.
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [noticeContent, setNoticeContent] = useState('');
+  const [noticeEnabled, setNoticeEnabled] = useState(true);
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const noticeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Sync notice state từ settings khi mount hoặc khi settings thay đổi
+  useEffect(() => {
+    const raw = (settings as Record<string, string>)['kpi-notice-content'] || '';
+    setNoticeContent(raw);
+    setNoticeEnabled((settings as Record<string, string>)['kpi-notice-enabled'] !== '0');
+  }, [settings]);
+
+  // Wrap selection trong textarea bằng HTML tag (<b>, <i>, <u>)
+  const wrapSelection = useCallback((openTag: string, closeTag: string) => {
+    const ta = noticeTextareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = noticeContent.slice(0, start);
+    const sel = noticeContent.slice(start, end);
+    const after = noticeContent.slice(end);
+    const next = `${before}${openTag}${sel}${closeTag}${after}`;
+    setNoticeContent(next);
+    // Đặt lại caret sau khi render
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = (before + openTag + sel + closeTag).length;
+      ta.setSelectionRange(pos, pos);
+    });
+  }, [noticeContent]);
+
+  const saveNotice = useCallback(async () => {
+    setNoticeSaving(true);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          'kpi-notice-content': noticeContent,
+          'kpi-notice-enabled': noticeEnabled ? '1' : '0',
+        }),
+      });
+      mutate('/api/settings');
+    } catch (e) {
+      console.warn('Lưu thông báo thất bại:', e);
+    } finally {
+      setNoticeSaving(false);
+    }
+  }, [noticeContent, noticeEnabled]);
+
+  const toggleNotice = useCallback(async () => {
+    const next = !noticeEnabled;
+    setNoticeEnabled(next);
+    setNoticeSaving(true);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          'kpi-notice-enabled': next ? '1' : '0',
+        }),
+      });
+      mutate('/api/settings');
+    } catch (e) {
+      console.warn('Bật/tắt thông báo thất bại:', e);
+    } finally {
+      setNoticeSaving(false);
+    }
+  }, [noticeEnabled]);
+
   // Đọc sessionStorage khi mount
   useEffect(() => {
     try {
@@ -495,6 +568,26 @@ export default function Home() {
                 <Settings className="w-3 h-3" style={{ color: neonColor }} />
               </motion.button>
             )}
+            {/* Notice button — chỉ hiện khi đã đăng nhập Admin. Mở popup nhập thông báo cho băng rôn KPI. */}
+            {adminAuthed && (
+              <motion.button
+                onClick={() => setNoticeOpen(true)}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 relative"
+                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }}
+                whileTap={{ scale: 0.85 }}
+                title="Thông báo KPI"
+                aria-label="Thông báo KPI"
+              >
+                <Bell className="w-3 h-3" style={{ color: neonColor }} />
+                {noticeEnabled && noticeContent && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                    style={{ background: '#ffd700', boxShadow: '0 0 6px #ffd700' }}
+                  />
+                )}
+              </motion.button>
+            )}
           </motion.div>
         </motion.header>
 
@@ -659,6 +752,26 @@ export default function Home() {
                   title="Cài đặt"
                 >
                   <Settings className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                </motion.button>
+              )}
+              {/* Notice button — chỉ hiện khi đã đăng nhập Admin. Mở popup nhập thông báo cho băng rôn KPI. */}
+              {adminAuthed && (
+                <motion.button
+                  onClick={() => setNoticeOpen(true)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 relative"
+                  style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                  whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }}
+                  whileTap={{ scale: 0.85 }}
+                  title="Thông báo KPI"
+                  aria-label="Thông báo KPI"
+                >
+                  <Bell className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                  {noticeEnabled && noticeContent && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                      style={{ background: '#ffd700', boxShadow: '0 0 6px #ffd700' }}
+                    />
+                  )}
                 </motion.button>
               )}
             </motion.div>
@@ -892,6 +1005,160 @@ export default function Home() {
               >
                 Xác nhận
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== KPI NOTICE EDITOR MODAL ===== */}
+      <AnimatePresence>
+        {noticeOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setNoticeOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-lg rounded-2xl p-5 relative"
+              style={{
+                background: 'rgba(42, 46, 54, 0.96)',
+                border: '1.5px solid #ffd70040',
+                boxShadow: '0 20px 60px rgba(0,0,0,.6), 0 0 50px #ffd70020',
+              }}
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            >
+              <button
+                onClick={() => setNoticeOpen(false)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex flex-col items-center text-center mb-4">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-2"
+                  style={{ background: '#ffd70015', border: '1px solid #ffd70040', boxShadow: '0 0 12px #ffd70030' }}
+                >
+                  <Bell className="w-5 h-5" style={{ color: '#ffd700' }} />
+                </div>
+                <h3 className="text-base font-extrabold text-white">Thông báo KPI</h3>
+                <p className="text-[11px] text-white/60 mt-1 leading-relaxed">
+                  Nội dung nhập ở đây sẽ hiển thị như băng rôn chạy cuộn liên tục trên đầu trang KPI. Để trống để ẩn băng rôn.
+                </p>
+              </div>
+
+              {/* Phía trên: nội dung thông báo (textarea) */}
+              <textarea
+                ref={noticeTextareaRef}
+                className="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm placeholder-white/30 outline-none focus:border-[#ffd700] transition-colors resize-y min-h-[120px] leading-relaxed"
+                placeholder="Nhập nội dung thông báo… (hỗ trợ thẻ HTML: <b>, <i>, <u>)"
+                value={noticeContent}
+                onChange={e => setNoticeContent(e.target.value)}
+                autoFocus
+              />
+
+              {/* Bên dưới ô nhập: thanh icon gợi ý định dạng (in đậm, in nghiêng, gạch chân) */}
+              <div className="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+                <span className="text-[10px] text-white/40 uppercase tracking-wider">Gợi ý định dạng:</span>
+                <button
+                  type="button"
+                  onClick={() => wrapSelection('<b>', '</b>')}
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-white text-sm font-bold transition-colors hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  title="In đậm (bọc chọn trong <b>…</b>)"
+                  aria-label="In đậm"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => wrapSelection('<i>', '</i>')}
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-white text-sm italic transition-colors hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  title="In nghiêng (bọc chọn trong <i>…</i>)"
+                  aria-label="In nghiêng"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => wrapSelection('<u>', '</u>')}
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-white text-sm underline transition-colors hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  title="Gạch chân (bọc chọn trong <u>…</u>)"
+                  aria-label="Gạch chân"
+                >
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
+                {/* Trạng thái bật/tắt hiện tại — small badge */}
+                <span
+                  className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                  style={{
+                    background: noticeEnabled ? '#16a34a30' : '#71717a30',
+                    color: noticeEnabled ? '#86efac' : '#d4d4d8',
+                    border: `1px solid ${noticeEnabled ? '#16a34a80' : '#71717a80'}`,
+                  }}
+                >
+                  {noticeEnabled ? 'Đang bật' : 'Đang tắt'}
+                </span>
+              </div>
+
+              {/* Preview nhỏ để admin thấy nội dung sẽ hiển thị */}
+              {noticeContent.trim() && (
+                <div className="mb-3">
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Xem trước:</span>
+                  <div
+                    className="rounded-md px-3 py-1.5 text-[12px] font-bold overflow-hidden whitespace-nowrap"
+                    style={{
+                      background: 'linear-gradient(90deg, #fff3c0 0%, #ffd966 50%, #fff3c0 100%)',
+                      color: '#0b5d1f',
+                      border: '1px solid #d4a017',
+                    }}
+                  >
+                    <span dangerouslySetInnerHTML={{ __html: noticeContent }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Nút lưu + nút bật/tắt thông báo */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={saveNotice}
+                  disabled={noticeSaving}
+                  className="flex-1 py-2.5 rounded-lg text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[.98] disabled:opacity-60"
+                  style={{
+                    background: 'linear-gradient(135deg, #ffd700, #d4a017)',
+                    boxShadow: '0 4px 12px #ffd70040',
+                    color: '#3a2a00',
+                  }}
+                >
+                  {noticeSaving ? 'Đang lưu…' : 'Lưu thông báo'}
+                </button>
+                <button
+                  onClick={toggleNotice}
+                  disabled={noticeSaving}
+                  className="px-4 py-2.5 rounded-lg text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[.98] disabled:opacity-60"
+                  style={{
+                    background: noticeEnabled
+                      ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                      : 'linear-gradient(135deg, #16a34a, #15803d)',
+                    boxShadow: noticeEnabled ? '0 4px 12px #ef444440' : '0 4px 12px #16a34a40',
+                  }}
+                  title={noticeEnabled ? 'Tắt hiển thị thông báo' : 'Bật hiển thị thông báo'}
+                >
+                  {noticeEnabled ? 'Tắt thông báo' : 'Bật thông báo'}
+                </button>
+              </div>
+              <p className="text-[10px] text-white/40 mt-2 text-center leading-relaxed">
+                Mẹo: bôi đen đoạn chữ trong ô nhập rồi bấm icon để bọc nó bằng thẻ &lt;b&gt;, &lt;i&gt; hoặc &lt;u&gt;.
+              </p>
             </motion.div>
           </motion.div>
         )}

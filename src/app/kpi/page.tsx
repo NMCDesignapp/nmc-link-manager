@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
@@ -1219,7 +1219,109 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .month-cell .mc-label { font-size: 8px; }
   .kpi-app .main-header .btn-back-u { width: 34px; height: 34px; }
 }
+
+/* ============= BANCA YELLOW SEPARATOR ============= */
+.kpi-app .banca-separator {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #f5c842 8%, #ffd700 50%, #f5c842 92%, transparent 100%);
+  box-shadow: 0 0 8px rgba(245, 200, 66, 0.65), 0 0 16px rgba(255, 215, 0, 0.35);
+  border-radius: 2px;
+  margin: 8px 0 4px;
+  position: relative;
+}
+.kpi-app .banca-separator::before,
+.kpi-app .banca-separator::after {
+  content: '';
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  width: 8px; height: 8px;
+  background: #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8), 0 0 14px rgba(255, 215, 0, 0.4);
+}
+.kpi-app .banca-separator::before { left: 6px; }
+.kpi-app .banca-separator::after { right: 6px; }
+
+.kpi-app .rg-card.is-banca.is-clickable { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.kpi-app .rg-card.is-banca.is-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px #ffd700aa, 0 14px 30px rgba(10,30,60,.24), 0 0 28px #ffd70066;
+}
+.kpi-app .rg-card.is-banca .rg-head-hint {
+  margin-left: auto;
+  font-size: 9px; font-weight: 700; opacity: 0.85;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ============= BANCA POPUP (no summary, only detail table) ============= */
+.kpi-app .adp-modal.is-banca-modal {
+  /* Same look as AD modal but slimmer (no top section) */
+}
+.kpi-app .adp-modal.is-banca-modal .adp-body {
+  grid-template-rows: 1fr;
+}
+.kpi-app .adp-modal.is-banca-modal .adp-header {
+  background: linear-gradient(135deg, #c89828 0%, #a87818 100%);
+  border-bottom: 2px solid #806010;
+}
+
+/* ============= SCROLLING NOTIFICATION BANNER ============= */
+.kpi-app .kpi-notice-banner {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #fff3c0 0%, #ffd966 25%, #ffc34d 50%, #ffd966 75%, #fff3c0 100%);
+  background-size: 200% 100%;
+  animation: kpiNoticeShine 6s linear infinite;
+  border: 1.5px solid #d4a017;
+  box-shadow: 0 2px 10px rgba(212, 160, 23, 0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+  position: relative;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+@keyframes kpiNoticeShine {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+.kpi-app .kpi-notice-banner::before {
+  content: '📢';
+  position: absolute;
+  left: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 14px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  z-index: 2;
+}
+.kpi-app .kpi-notice-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 32px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0b5d1f;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  animation: kpiNoticeScroll 22s linear infinite;
+  letter-spacing: 0.02em;
+}
+@keyframes kpiNoticeScroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.kpi-app .kpi-notice-banner:hover .kpi-notice-marquee {
+  animation-play-state: paused;
+}
+@media (max-width: 720px) {
+  .kpi-app .kpi-notice-banner { height: 28px; }
+  .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 28px; }
+}
 `;
+
 
 /* ================= TYPES ================= */
 interface Contract {
@@ -1484,6 +1586,13 @@ export default function KPIDashboard() {
   /* AD detail popup state */
   const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
   const [adPopupNhom, setAdPopupNhom] = useState<string | null>(null);
+
+  /* Banca-PA detail popup state — chỉ hiện bảng chi tiết (không có tổng hợp) */
+  const [bancaPopupOpen, setBancaPopupOpen] = useState(false);
+
+  /* KPI notification banner — đọc từ settings (do admin nhập ở trang chính) */
+  const noticeContent = (onlineSettings['kpi-notice-content'] || '').trim();
+  const noticeEnabled = onlineSettings['kpi-notice-enabled'] !== '0'; // default true
 
   const NOW = useMemo(() => new Date(), []);
   const CUR_YEAR = NOW.getFullYear();
@@ -2147,6 +2256,107 @@ export default function KPIDashboard() {
   }, [adPopup, adPopupNhom, dashboard, rawData, banNhomStructList, tvvStructList, onlineSettings, CUR_YEAR]);
 
 
+  /* ============= BANCA-PA detail popup data ============= */
+  /* Popup cho phòng Banca - PA: KHÔNG có phần tổng hợp ở trên, chỉ có bảng chi tiết.
+     Bao gồm TVV thuộc phòng Banca + phòng PA (hoặc nhóm PA). */
+  const bancaPopupData = useMemo(() => {
+    if (!dashboard || !rawData) return null;
+
+    // Build AD -> Phong lookup (need it here since this memo doesn't depend on adPopup)
+    const adToPhongMap = new Map<string, { maPhong: string; tenPhong: string; tenAD: string }>();
+    for (const ad of adStructList) {
+      const p = phongStructList.find(pp => pp.maPhong === ad.maPhong);
+      const pName = p?.tenPhong || ad.maPhong;
+      adToPhongMap.set(ad.maAD, { maPhong: ad.maPhong, tenPhong: pName, tenAD: ad.tenAD });
+    }
+    // BanNhom -> AD lookup
+    const bnToAdMap = new Map<string, { maAD: string; tenAD: string; maPhong: string; tenPhong: string }>();
+    for (const bn of banNhomStructList) {
+      const adInfo = adToPhongMap.get(bn.maAD);
+      if (adInfo) {
+        bnToAdMap.set(bn.maBanNhom, { maAD: bn.maAD, tenAD: adInfo.tenAD, maPhong: adInfo.maPhong, tenPhong: adInfo.tenPhong });
+      }
+    }
+
+    // PA / Banca detection — same logic as the dashboard
+    const isPaCode = (code: string): boolean => {
+      if (!code) return false;
+      const c = String(code).trim();
+      return c === 'PA' || c === 'U104101014' || c.toLowerCase() === 'pa';
+    };
+    const isBancaCode = (code: string): boolean => {
+      if (!code) return false;
+      const c = String(code).trim();
+      return c === 'Banca' || c === 'A473DSO000' || c === 'DSO' || c.toLowerCase() === 'banca' || c.toLowerCase() === 'dso';
+    };
+    const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
+
+    // Find all TVV whose AD's phong is PA or Banca
+    const bancaTvvList = tvvStructList.filter(t => {
+      const adInfo = bnToAdMap.get(t.maBanNhom);
+      if (!adInfo) return false;
+      return isPaOrBanca(adInfo.maPhong) || isPaOrBanca(adInfo.tenPhong);
+    });
+
+    // Sort TVV by chucVu: TB → TN → TTN → TVV
+    const getOrder = (cv: string): number => {
+      const n = normKey(cv);
+      if (n.includes('TRUONG') && n.includes('BAN')) return 1;
+      if (n.includes('TRUONG') && n.includes('NHOM') && !n.includes('TIEN')) return 2;
+      if (n.includes('TIEN') || n.includes('TIENTRUONGNHOM')) return 3;
+      return 4;
+    };
+    const abbreviateChucVu = (cv: string): string => {
+      const n = normKey(cv);
+      if (n.includes('TRUONG') && n.includes('BAN')) return 'TB';
+      if (n.includes('TRUONG') && n.includes('NHOM') && !n.includes('TIEN')) return 'TN';
+      if (n.includes('TIEN')) return 'TTN';
+      return 'TVV';
+    };
+
+    const sortedTvv = [...bancaTvvList].sort((a, b) => {
+      const ordA = getOrder(a.chucVu);
+      const ordB = getOrder(b.chucVu);
+      if (ordA !== ordB) return ordA - ordB;
+      return a.agentName.localeCompare(b.agentName, 'vi');
+    });
+
+    // Use ALL year contracts (months 3-9) — same approach as AD popup
+    const popupYearContracts = rawData.contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+    });
+
+    const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const tvvTable = sortedTvv.map((t, idx) => {
+      const ipByMonth: Record<number, number> = {};
+      months37.forEach(m => {
+        ipByMonth[m] = popupYearContracts
+          .filter(c => c.agentCode === t.agentCode)
+          .filter(c => {
+            const d = getDoanhSoMonth(c);
+            return !isNaN(d.getTime()) && (d.getMonth() + 1) === m;
+          })
+          .reduce((s, c) => s + num(c.pdt10DT), 0);
+      });
+      return {
+        stt: idx + 1,
+        agentCode: t.agentCode,
+        agentName: t.agentName,
+        chucVu: abbreviateChucVu(t.chucVu),
+        ipByMonth,
+        ipTotal: months37.reduce((s, m) => s + ipByMonth[m], 0),
+      };
+    });
+
+    return {
+      tvvTable,
+      months37,
+      totalTvv: sortedTvv.length,
+    };
+  }, [dashboard, rawData, adStructList, phongStructList, banNhomStructList, tvvStructList, CUR_YEAR]);
+
+
   /* Monthly AFYP chart data */
   const chartData = useMemo(() => {
     if (!rawData) return [];
@@ -2324,6 +2534,15 @@ export default function KPIDashboard() {
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
+          {/* ===== NOTIFICATION BANNER (yellow-gold gradient, green text, scrolls continuously; auto-hidden when empty) ===== */}
+          {noticeEnabled && noticeContent && (
+            <div className="kpi-notice-banner" role="marquee" aria-live="polite">
+              <span
+                className="kpi-notice-marquee"
+                dangerouslySetInnerHTML={{ __html: noticeContent }}
+              />
+            </div>
+          )}
           <header>
             <div className="main-header">
               {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
@@ -2505,8 +2724,15 @@ export default function KPIDashboard() {
                   const pKhTrd = Math.round(phong.kh / 1000000);
                   const pCls = phong.noAds ? 'is-banca' : '';
                   const glowClsStr = glowCls(pPct);
+                  const isBanca = !!phong.noAds;
                   return (
-                    <div className={`rg-card ${pCls} anim-in${glowClsStr}`} key={pi} style={{ animationDelay: `${pi * 60}ms` }}>
+                    <Fragment key={pi}>
+                      {isBanca && <div className="banca-separator" aria-hidden="true" />}
+                      <div
+                        className={`rg-card ${pCls} anim-in${glowClsStr}${isBanca ? ' is-clickable' : ''}`}
+                        style={{ animationDelay: `${pi * 60}ms` }}
+                        onClick={isBanca ? () => setBancaPopupOpen(true) : undefined}
+                      >
                       {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                       <div className="rg-head">
                         <div className="rg-head-left">
@@ -2514,6 +2740,7 @@ export default function KPIDashboard() {
                           <span className="rg-head-name">{phong.ten}</span>
                         </div>
                         {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                        {isBanca && <span className="rg-head-hint">Xem chi tiết TVV →</span>}
                       </div>
                       {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
                       {(phong.afyp > 0 || phong.noAds) && (
@@ -2628,6 +2855,7 @@ export default function KPIDashboard() {
                         </div>
                       )}
                     </div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -2662,9 +2890,11 @@ export default function KPIDashboard() {
                       const progEnd = progressColor(pPct);
                       const afypTrd = Math.round(phong.afyp / 1000000);
                       const khTrd = Math.round(phong.kh / 1000000);
+                      const isBanca = !!phong.noAds;
 
                       return (
                         <div className="dept-section" key={pi}>
+                          {isBanca && <div className="banca-separator" aria-hidden="true" />}
                           {/* Mobile Phong Card - HIDDEN, replaced by rg-card */}
                           {false && (
                           <div className={`kpi-card kpi-phong ${phong.noAds ? 'banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
@@ -2695,7 +2925,11 @@ export default function KPIDashboard() {
                           )}
 
                           {/* Desktop Phong Card - Redesign as lighter floating card */}
-                          <div className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}`} style={{ animationDelay: `${pi * 60}ms` }}>
+                          <div
+                            className={`rg-card ${phong.noAds ? 'is-banca ' : ''}anim-in${glowCls(pPct)}${isBanca ? ' is-clickable' : ''}`}
+                            style={{ animationDelay: `${pi * 60}ms` }}
+                            onClick={isBanca ? () => setBancaPopupOpen(true) : undefined}
+                          >
                             {/* Header: tên phòng + %KH trên góc phải (như cũ) */}
                             <div className="rg-head">
                               <div className="rg-head-left">
@@ -2703,6 +2937,7 @@ export default function KPIDashboard() {
                                 <span className="rg-head-name">{phong.ten}</span>
                               </div>
                               {!phong.noAds && phong.kh > 0 && <span className="rg-head-pct"><AnimPct value={pPct} /></span>}
+                              {isBanca && <span className="rg-head-hint">Xem chi tiết TVV →</span>}
                             </div>
                             {/* AFYP row: AFYP + KH inline (1 bên, như cũ) — đơn vị đ */}
                             {(phong.afyp > 0 || phong.noAds) && (
@@ -3363,6 +3598,74 @@ export default function KPIDashboard() {
                           <td className="adp-td-name">{row.agentName}</td>
                           <td className="adp-td-pos">{row.chucVu}</td>
                           {adPopupData.months37.map(m => {
+                            const v = row.ipByMonth[m];
+                            const vM = Math.round(v / 1000000);
+                            return (
+                              <td key={m} className={`adp-td-ip${v > 0 ? ' has' : ''}`}>
+                                {v > 0 ? vM.toLocaleString('vi-VN') : '–'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== BANCA-PA DETAIL POPUP (no summary, only detail table) ===== */}
+      {bancaPopupOpen && bancaPopupData && (
+        <div className="adp-overlay" onClick={() => setBancaPopupOpen(false)}>
+          <div
+            className="adp-modal is-banca-modal"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Slim header: title + close */}
+            <div className="adp-header">
+              <span className="adp-header-name">BANCA - PA — Chi tiết TVV (Tổng: {bancaPopupData.totalTvv})</span>
+              <button className="adp-close" onClick={() => setBancaPopupOpen(false)} aria-label="Đóng">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="adp-body">
+              {/* Bảng chi tiết TVV — giống của AD nhưng không có phần tổng hợp ở trên */}
+              <div className="adp-bottom">
+                <div className="adp-section-label">Thông tin chi tiết</div>
+                <div className="adp-table-wrap">
+                  <table className="adp-table">
+                    <thead>
+                      <tr>
+                        <th rowSpan={2} className="adp-th-stt">STT</th>
+                        <th rowSpan={2} className="adp-th-code">Mã số</th>
+                        <th rowSpan={2} className="adp-th-name">Họ tên TVV</th>
+                        <th rowSpan={2} className="adp-th-pos">CV</th>
+                        <th colSpan={bancaPopupData.months37.length} className="adp-th-ip">
+                          <span className="adp-th-ip-label">IP</span>
+                          <span className="adp-th-ip-unit">(Triệu đồng)</span>
+                        </th>
+                      </tr>
+                      <tr>
+                        {bancaPopupData.months37.map(m => (
+                          <th key={m} className="adp-th-month">{m}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bancaPopupData.tvvTable.length === 0 && (
+                        <tr><td colSpan={4 + bancaPopupData.months37.length} className="adp-empty">Chưa có TVV trong phòng Banca - PA</td></tr>
+                      )}
+                      {bancaPopupData.tvvTable.map(row => (
+                        <tr key={row.agentCode}>
+                          <td className="adp-td-stt">{row.stt}</td>
+                          <td className="adp-td-code">{row.agentCode}</td>
+                          <td className="adp-td-name">{row.agentName}</td>
+                          <td className="adp-td-pos">{row.chucVu}</td>
+                          {bancaPopupData.months37.map(m => {
                             const v = row.ipByMonth[m];
                             const vM = Math.round(v / 1000000);
                             return (
