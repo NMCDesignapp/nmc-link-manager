@@ -26,6 +26,7 @@ on:
       - 'src/app/api/structure/tvv/route.ts'
       - 'scripts/sync-kpi-app.sh'
       - '.github/workflows/sync-kpi-app.yml'
+  workflow_dispatch:  # Cho phép trigger thủ công từ GitHub UI
 
 permissions:
   contents: write  # Cần để push commit sync trở lại repo
