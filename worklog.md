@@ -1387,3 +1387,29 @@ Stage Summary:
 - Băng rôn thông báo: nền vàng gold chuyển màu + chữ xanh lá + chạy cuộn liên tục, tự ẩn khi không có nội dung
 - Admin nhập thông báo từ trang chính (icon chuông bên dưới NMC), có toolbar B/I/U + nút Lưu + nút Bật/Tắt
 - Settings API không cần thay đổi (POST/PUT sẵn cho bất kỳ key nào)
+
+---
+Task ID: kpi-banca-popup-fix
+Agent: main
+Task: Fix Banca-PA popup đang hiển thị 0 TVV — đối chiếu với trang Cấu trúc
+
+Work Log:
+- Điều tra production: curl /api/structure/phong, /ad, /bannhom, /tvv, /contracts
+- Phát hiện root cause: bnToAdMap chỉ chứa ban nhom có maAD. A473DSO000 có maAD='' (empty) → không có trong map → TVV D261264554 (Nguyễn Yến Linh) bị filter out
+- Cũng phát hiện: 6 TVV khác (Nguyễn Xuân Thông, Lê Đỗ Quang Chương, Lê Bảo Trị, Nguyễn Thành Sang, Hồng Nhơn Ái, Châu Ngọc Thảo) có hợp đồng Banca-PA (ad='Banca - PA', ban='PGB An Giang...') nhưng KHÔNG có trong cấu trúc TVV
+- Thay thế bancaPopupData useMemo bằng 4 lớp detection:
+  1. maBanNhom trực tiếp match PA/Banca/DSO/A473DSO000 (isPaOrBanca)
+  2. tenBanNhom chứa Banca/DSO/PGB hoặc là 'Nhóm PA' (normKey + includes)
+  3. ban nhom → AD → phong là PA/Banca (qua adToPhongMap)
+  4. TVV không có trong cấu trúc nhưng có hợp đồng Banca-PA (nhom/ban/maNhom/ad chứa Banca/DSO/PGB)
+     → include với agentName lấy từ hợp đồng mới nhất, chucVu='TVV'
+- TypeScript check: không có error mới trong kpi/page.tsx (pre-existing errors khác không liên quan)
+- Build: ✓ Compiled successfully + ✓ 47/47 static pages
+- Commit: f9336d4
+- Push: success (main → f9336d4)
+
+Stage Summary:
+- Popup Banca-PA giờ hiển thị 7 TVV (1 từ cấu trúc: Nguyễn Yến Linh + 6 từ hợp đồng: Nguyễn Xuân Thông, Lê Đỗ Quang Chương, Lê Bảo Trị, Nguyễn Thành Sang, Hồng Nhơn Ái, Châu Ngọc Thảo)
+- Tổng TVV trong popup khớp với tổng hợp AFYP/IP của dashboard card (vì dashboard cũng match contracts với Banca-PA hints)
+- 6 TVV chưa có trong cấu trúc sẽ hiển thị với note 'Từ hợp đồng Banca-PA (chưa có trong cấu trúc TVV)' — admin có thể bổ sung vào cấu trúc sau
+- Logic detection đồng nhất với dashboard's paContracts matching logic
