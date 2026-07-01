@@ -1413,3 +1413,31 @@ Stage Summary:
 - Tổng TVV trong popup khớp với tổng hợp AFYP/IP của dashboard card (vì dashboard cũng match contracts với Banca-PA hints)
 - 6 TVV chưa có trong cấu trúc sẽ hiển thị với note 'Từ hợp đồng Banca-PA (chưa có trong cấu trúc TVV)' — admin có thể bổ sung vào cấu trúc sau
 - Logic detection đồng nhất với dashboard's paContracts matching logic
+
+---
+Task ID: kpi-banca-popup-simplify
+Agent: main
+Task: Đơn giản hóa filter popup Banca-PA — lọc theo maBanNhom = U104101014 (mã nhóm PA) + Banca codes
+
+Work Log:
+- Verify production data: U104101014 = 1105 TVV (mã nhóm PA per user), A473DSO000 = 1 TVV (Nguyễn Yến Linh)
+- Verify U104101014 không có trong contracts (0 contracts) → 1105 TVV này chưa bán được HĐ nào
+- Previous fix (f9336d4) có 4 lớp detection phức tạp + contract-based fallback (6 TVV không có trong cấu trúc)
+- User yêu cầu: 'U104101014 đang là mã của nhóm PA, lọc theo mã nhóm này, + với banca'
+- Thay thế bằng filter đơn giản: TARGET_BANNHOM_CODES = {U104101014, PA, BANCA, A473DSO000, DSO}
+- Filter TVV by maBanNhom (case-insensitive, trim whitespace)
+- Bỏ contract-based fallback — 6 TVV (Nguyễn Xuân Thông, Lê Đỗ Quang Chương, Lê Bảo Trị, Nguyễn Thành Sang, Hồng Nhơn Ái, Châu Ngọc Thảo) không có trong cấu trúc → không hiển thị
+- Bỏ adToPhongMap, isPaCode, isBancaCode, isPaOrBanca helpers trong popup (không cần nữa)
+- Bỏ dependency adStructList, phongStructList, banNhomStructList trong useMemo deps
+- TypeScript: no errors
+- Build: ✓ success
+- Commit: 48d5ed0
+- Push: success (main → 48d5ed0)
+
+Stage Summary:
+- Popup Banca-PA giờ hiển thị 1106 TVV:
+  - 1105 TVV với maBanNhom=U104101014 (Nhóm PA per user)
+  - 1 TVV với maBanNhom=A473DSO000 (Nguyễn Yến Linh, Banca/DSO)
+- Filter đồng nhất với trang Cấu trúc — có thể đối chiếu trực tiếp
+- 6 TVV từ hợp đồng (có ad='Banca - PA' nhưng không có trong cấu trúc TVV) bị loại — admin cần thêm vào cấu trúc nếu muốn hiển thị
+- Card 'SL TVV PA' trên dashboard vẫn dùng logic cũ (đếm TVV có AD thuộc Phòng PA) — không thay đổi
