@@ -1357,3 +1357,33 @@ Stage Summary:
 - Bảng chi tiết: nội dung có \n giờ hiển thị đúng với line breaks
 - Phụ trách: chọn nhiều đối tượng (4 nút toggle + custom text input)
 - Hiển thị: mỗi đối tượng 1 tag riêng, tự xuống dòng, không làm cột rộng ra
+
+---
+Task ID: kpi-banca-popup-and-notice-banner
+Agent: main
+Task: KPI - vẽ line vàng phân cách phòng Banca + popup chi tiết + băng rôn thông báo chạy cuộn
+
+Work Log:
+- Investigate KPI page structure (rg-card, rg-wrap, AD popup, banca-PA phong là noAds=true)
+- Add CSS for banca-separator (yellow gold line with glow + dots), is-clickable hover, kpi-notice-banner (yellow-gold gradient + green text + scroll animation), is-banca-modal (no top summary)
+- Add bancaPopupOpen state + bancaPopupData useMemo (lists all TVV whose AD's phong is PA or Banca, builds same IP-per-month table as AD popup)
+- Add Fragment wrapper + banca-separator before Banca card (both mobile rg-wrap and desktop split-right)
+- Make Banca card clickable + add 'Xem chi tiết TVV →' hint badge on rg-head
+- Render Banca popup (no summary, only detail table) right before closing kpi-app div
+- Add notification banner above header (auto-hidden when noticeContent empty or noticeEnabled=false)
+- Homepage: add Bell icon import + Bold/Italic/Underline icons from lucide-react
+- Add notice state (noticeOpen, noticeContent, noticeEnabled, noticeSaving) + wrapSelection helper for HTML tag wrapping
+- Add Bell button below NMC logo (mobile + desktop, admin only) with yellow dot indicator when active
+- Add notice editor popup: textarea + format toolbar (B/I/U buttons wrap selection) + live preview + Save + Toggle on/off buttons
+- Settings stored as kpi-notice-content + kpi-notice-enabled via /api/settings (existing route, no schema change needed)
+- TypeScript: no new errors introduced (pre-existing motion variants errors unchanged)
+- Build: success
+- Commit: 1ecad92
+- Push: success (main → 1ecad92)
+
+Stage Summary:
+- Phòng Banca - PA giờ có line vàng phân cách rõ ràng với 3 phòng trên, có thể click để mở popup
+- Popup Banca: KHÔNG có tổng hợp ở trên, chỉ có bảng chi tiết TVV (giống AD) cho TVV thuộc Banca + PA
+- Băng rôn thông báo: nền vàng gold chuyển màu + chữ xanh lá + chạy cuộn liên tục, tự ẩn khi không có nội dung
+- Admin nhập thông báo từ trang chính (icon chuông bên dưới NMC), có toolbar B/I/U + nút Lưu + nút Bật/Tắt
+- Settings API không cần thay đổi (POST/PUT sẵn cho bất kỳ key nào)
