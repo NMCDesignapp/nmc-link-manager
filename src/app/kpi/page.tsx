@@ -1430,14 +1430,11 @@ export default function KPIDashboard() {
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
 
-  // ===== ADMIN AUTH (login directly on /kpi page) =====
-  // User có thể đăng nhập Admin ngay tại /kpi — không cần quay về trang chính.
-  // Trạng thái chia sẻ qua sessionStorage('kpi_admin_authed') với trang /.
-  const ADMIN_PWD = '123456';
+  // ===== ADMIN AUTH =====
+  // Admin login/logout NẰM Ở giao diện chính ứng dụng (/src/app/page.tsx).
+  // Trang /kpi KHÔNG có nút admin riêng — user phải đăng nhập Admin ở trang chính.
+  // Trạng thái đăng nhập chia sẻ qua sessionStorage('kpi_admin_authed').
   const [adminAuthed, setAdminAuthed] = useState(false);
-  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
-  const [adminPwdInput, setAdminPwdInput] = useState('');
-  const [adminPwdError, setAdminPwdError] = useState(false);
 
   // On mount: check sessionStorage for existing admin auth
   useEffect(() => {
@@ -1572,24 +1569,6 @@ export default function KPIDashboard() {
     if (calAuthed) { setCalEditOpen(true); return; }
     setCalPendingEdit(null);
     setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
-  };
-
-  // ===== ADMIN LOGIN (on /kpi page) =====
-  // Khi user bấm "Nhập kế hoạch khung" mà chưa adminAuthed → mở popup nhập mật khẩu Admin.
-  // Sau khi đăng nhập thành công, tự động mở popup calPwd (đăng nhập cấp 2 cho lịch).
-  const openAdminPwdForCal = () => {
-    setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false);
-  };
-  const submitAdminPwd = () => {
-    if (adminPwdInput === ADMIN_PWD) {
-      setAdminAuthed(true);
-      try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
-      setAdminPwdOpen(false); setAdminPwdInput(''); setAdminPwdError(false);
-      // Sau khi đăng nhập Admin thành công, mở tiếp popup calPwd (cấp 2)
-      setTimeout(() => openCalPwd(), 100);
-    } else {
-      setAdminPwdError(true);
-    }
   };
 
   const submitCalPwd = () => {
@@ -1969,23 +1948,14 @@ export default function KPIDashboard() {
         const adBannhoms = banNhomStructList.filter(bn => bn.maAD === adStruct.maAD);
 
         for (const bn of adBannhoms) {
-          // Find contracts for this BanNhom via maBanNhom, fallback maNhom (đồng bộ với Tôn vinh trong /quan-ly)
-          // Nguyên tắc: nếu contract có maBanNhom → match theo maBanNhom;
-          //             nếu maBanNhom trống → match theo maNhom (cùng pattern với Tôn vinh).
-          // Trước đây chỉ dùng maBanNhom + fallback name-match → lệch số với Tôn vinh.
+          // Match contracts cho BanNhom bằng maBanNhom hoặc maNhom (strict, không fallback name).
+          // Nếu contract không có maBanNhom/maNhom khớp → không cộng HĐ đó (để trống).
           const bnContracts = periodContracts.filter(c => {
             const cMaBN = c.maBanNhom || c.maNhom || '';
             return cMaBN === bn.maBanNhom;
           });
 
-          // Fallback by name nếu cả maBanNhom lẫn maNhom đều trống
-          const bnContractsByName = bnContracts.length > 0 ? bnContracts : periodContracts.filter(c => {
-            const cNhom = normKey(c.nhom || '');
-            const bnName = normKey(bn.tenBanNhom);
-            return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
-          });
-
-          const afyp = bnContractsByName.reduce((s, c) => s + num(c.afyp), 0);
+          const afyp = bnContracts.reduce((s, c) => s + num(c.afyp), 0);
           const afypTrd = Math.round(afyp / 1000000);
 
           // KH for this BanNhom — annual × monthly ratios for selected period
@@ -2055,13 +2025,9 @@ export default function KPIDashboard() {
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     });
 
-    // Contracts of selected nhóm
-    const bnContracts = popupYearContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
-    const finalContracts = bnContracts.length > 0 ? bnContracts : popupYearContracts.filter(c => {
-      const cNhom = normKey(c.nhom || '');
-      const bnName = normKey(selectedBN.tenBanNhom);
-      return cNhom && (cNhom === bnName || cNhom.includes(bnName) || bnName.includes(cNhom));
-    });
+    // Contracts của nhóm đang chọn — strict match bằng maBanNhom.
+    // KHÔNG fallback name-match: nếu không có HĐ nào khớp maBanNhom → để trống (0).
+    const finalContracts = popupYearContracts.filter(c => (c.maBanNhom || '') === selectedBN.maBanNhom);
 
     // Group metrics
     const afyp = finalContracts.reduce((s, c) => s + num(c.afyp), 0);
@@ -2112,26 +2078,20 @@ export default function KPIDashboard() {
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 3-9)
-    // Fix: matching agentCode dùng trim+lowercase để tránh mismatch do whitespace/case.
-    // Fix: nếu pdt10DT = 0, fallback sang fyp (user gọi fyp là "IP" trong CLB SAO VIỆT).
+    // IP per month per TVV (months 3-9) — strict matching by agentCode, không fallback.
+    // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
+    // Nếu pdt10DT = 0 hoặc agentCode không match → để 0 (không thay thế bằng fyp hay số khác).
     const months37 = [3, 4, 5, 6, 7, 8, 9];
-    const normCode = (s: string) => (s || '').trim().toLowerCase();
     const tvvTable = sortedTvv.map((t, idx) => {
-      const tCode = normCode(t.agentCode);
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
         ipByMonth[m] = finalContracts
-          .filter(c => normCode(c.agentCode) === tCode)
+          .filter(c => c.agentCode === t.agentCode)
           .filter(c => {
             const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && (d.getMonth() + 1) === m;
           })
-          .reduce((s, c) => {
-            const pdt = num(c.pdt10DT);
-            // Fallback: nếu pdt10DT = 0, dùng fyp (cùng ngữ nghĩa IP)
-            return s + (pdt > 0 ? pdt : num(c.fyp));
-          }, 0);
+          .reduce((s, c) => s + num(c.pdt10DT), 0);
       });
       return {
         stt: idx + 1,
@@ -3028,15 +2988,12 @@ export default function KPIDashboard() {
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Kế Hoạch Khung</span>
             {/* Nút "Nhập kế hoạch khung" — luôn hiện, có label rõ ràng.
-                - Chưa đăng nhập Admin → mở popup Admin login
-                - Đã Admin nhưng chưa calAuthed → mở popup calPwd
-                - Đã cả 2 → mở form tạo kế hoạch mới */}
+                - Chưa calAuthed → mở popup calPwd (mật khẩu lịch)
+                - Đã calAuthed → mở form tạo kế hoạch mới */}
             <button
               type="button"
               onClick={() => {
-                if (!adminAuthed) {
-                  openAdminPwdForCal();
-                } else if (calAuthed) {
+                if (calAuthed) {
                   openCalEditForNew();
                 } else {
                   openCalPwd();
@@ -3046,9 +3003,9 @@ export default function KPIDashboard() {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '6px 10px', borderRadius: 8,
-                background: adminAuthed ? '#0d4d4d' : '#3a3f48',
-                color: adminAuthed ? '#f3ffff' : '#c0c8d0',
-                border: `1px solid ${adminAuthed ? '#008080' : '#5a6068'}`,
+                background: calAuthed ? '#0d4d4d' : '#3a3f48',
+                color: calAuthed ? '#f3ffff' : '#c0c8d0',
+                border: `1px solid ${calAuthed ? '#008080' : '#5a6068'}`,
                 fontSize: 11, fontWeight: 800, cursor: 'pointer',
                 transition: 'all .2s',
               }}
@@ -3135,32 +3092,6 @@ export default function KPIDashboard() {
                 />
                 {calPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
                 <button className="cal-modal-save" onClick={submitCalPwd}>Xác nhận</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ===== ADMIN LOGIN POPUP (for /kpi page) ===== */}
-        {adminPwdOpen && (
-          <div className="cal-modal-overlay" onClick={() => setAdminPwdOpen(false)}>
-            <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
-              <div className="cal-modal-head">
-                <span>Đăng nhập Admin</span>
-                <button className="cal-modal-x" onClick={() => setAdminPwdOpen(false)}>×</button>
-              </div>
-              <div className="cal-modal-body">
-                <p className="cal-modal-hint">Nhập mật khẩu Admin để tiếp tục:</p>
-                <input
-                  type="password"
-                  className={`cal-pwd-input${adminPwdError ? ' err' : ''}`}
-                  value={adminPwdInput}
-                  autoFocus
-                  onChange={e => { setAdminPwdInput(e.target.value); setAdminPwdError(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') submitAdminPwd(); }}
-                  placeholder="••••••"
-                />
-                {adminPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
-                <button className="cal-modal-save" onClick={submitAdminPwd}>Xác nhận</button>
               </div>
             </div>
           </div>
