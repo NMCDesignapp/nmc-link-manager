@@ -1827,10 +1827,20 @@ export default function KPIDashboard() {
     });
 
     // ========== KH (Kế hoạch) AFYP — from online settings, same keys as quan-ly ==========
+    // AD plan = Σ 12 monthly values (keys: nmc-kh-ad-${maAD}-t01..t12)
+    const readAdMonthlyPlan = (maAD: string, month: number): number => {
+      const mm = String(month).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`] || '0') || 0;
+    };
+    const readAdAnnualPlan = (maAD: string): number => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) sum += readAdMonthlyPlan(maAD, m);
+      return sum;
+    };
+
     const adPlans = new Map<string, number>();
     adStructList.forEach(ad => {
-      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-      adPlans.set(ad.maAD, val);
+      adPlans.set(ad.maAD, readAdAnnualPlan(ad.maAD));
     });
     const targetTongAFYP = adStructList.reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
 
@@ -1985,8 +1995,9 @@ export default function KPIDashboard() {
         const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
-        const adKh = adPlans.get(adStruct.maAD) || 0;
-        const adPeriodKh = calcPeriodKh(adKh);
+        // Period KH for AD = Σ of AD's monthly values for months in selected period
+        // (AD now uses 12 monthly inputs directly; ratio only applies to Nhóm)
+        const adPeriodKh = periodMonths.reduce((s, m) => s + readAdMonthlyPlan(adStruct.maAD, m), 0);
 
         const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
         p.ads.push(d);
@@ -2346,10 +2357,19 @@ export default function KPIDashboard() {
     const currentYear = new Date().getFullYear();
 
     // Use adStructList for KH calculation (same as quan-ly)
+    // AD plan = Σ 12 monthly values (keys: nmc-kh-ad-${maAD}-t01..t12)
+    const chartReadAdMonthlyPlan = (maAD: string, month: number): number => {
+      const mm = String(month).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`] || '0') || 0;
+    };
+    const chartReadAdAnnualPlan = (maAD: string): number => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) sum += chartReadAdMonthlyPlan(maAD, m);
+      return sum;
+    };
     const chartAdPlans = new Map<string, number>();
     adStructList.forEach(ad => {
-      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-      chartAdPlans.set(ad.maAD, val);
+      chartAdPlans.set(ad.maAD, chartReadAdAnnualPlan(ad.maAD));
     });
     const chartTargetTong = adStructList.reduce((s, ad) => s + (chartAdPlans.get(ad.maAD) || 0), 0);
 
@@ -2368,10 +2388,8 @@ export default function KPIDashboard() {
         }).forEach(c => { afyp += num(c.afyp); });
       });
 
-      // KH for this month — same as quan-ly: annual × ratio / 100
-      const mm = String(m).padStart(2, '0');
-      const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-      const kh = chartTargetTong > 0 && ratio > 0 ? chartTargetTong * ratio / 100 : 0;
+      // KH for this month = Σ all ADs' monthly value for this month (AD uses 12 monthly inputs directly)
+      const kh = adStructList.reduce((s, ad) => s + chartReadAdMonthlyPlan(ad.maAD, m), 0);
 
       months.push({ month: m, label: `T${m}`, afyp, kh });
     }

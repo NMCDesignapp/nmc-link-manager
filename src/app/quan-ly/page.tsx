@@ -3528,11 +3528,15 @@ export default function QuanLyPage() {
   }
 
   // Target values — ALL plans come from KẾ HOẠCH section only
-  // AFYP plan: calculated from KẾ HOẠCH (sum of all Phòng = sum of all AD plans)
+  // AFYP plan: calculated from KẾ HOẠCH — AD = sum of 12 monthly values (nmc-kh-ad-${maAD}-t01..t12)
   const adPlansForTarget = new Map<string, number>();
   adList.forEach(ad => {
-    const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-    adPlansForTarget.set(ad.maAD, val);
+    let sum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const mm = String(m).padStart(2, '0');
+      sum += parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}-t${mm}`] || '0') || 0;
+    }
+    adPlansForTarget.set(ad.maAD, sum);
   });
   const targetTongAFYP = adList.reduce((s, ad) => s + (adPlansForTarget.get(ad.maAD) || 0), 0);
 
@@ -4177,29 +4181,52 @@ export default function QuanLyPage() {
       return parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
     });
 
-    // AFYP plan per AD (from settings)
+    // ===== AD plan: 12 monthly values per AD =====
+    // Storage keys: nmc-kh-ad-${maAD}-t01 ... nmc-kh-ad-${maAD}-t12
+    // AD annual = sum of 12 months. Phong = sum of ADs. Công ty = sum of Phòng.
+    const readAdMonthlyPlan = (maAD: string, month: number): number => {
+      const mm = String(month).padStart(2, '0');
+      return parseFloat(onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`] || '0') || 0;
+    };
+    const readAdAnnualPlan = (maAD: string): number => {
+      let sum = 0;
+      for (let m = 1; m <= 12; m++) sum += readAdMonthlyPlan(maAD, m);
+      return sum;
+    };
+
+    // AFYP plan per AD (annual = sum of 12 months)
     const adPlans = new Map<string, number>();
     adList.forEach(ad => {
-      const val = parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}`] || '0') || 0;
-      adPlans.set(ad.maAD, val);
+      adPlans.set(ad.maAD, readAdAnnualPlan(ad.maAD));
     });
 
-    // AFYP plan per Nhóm (from settings)
+    // AFYP plan per AD per month (for monthly breakdown)
+    const adMonthlyPlans = new Map<string, number[]>();
+    adList.forEach(ad => {
+      adMonthlyPlans.set(ad.maAD, Array.from({ length: 12 }, (_, i) => readAdMonthlyPlan(ad.maAD, i + 1)));
+    });
+
+    // AFYP plan per Nhóm (from settings — unchanged, annual scalar)
     const nhomPlans = new Map<string, number>();
     banNhomList.forEach(bn => {
       const val = parseFloat(onlineSettings[`nmc-kh-nhom-${bn.maBanNhom}`] || '0') || 0;
       nhomPlans.set(bn.maBanNhom, val);
     });
 
-    // Auto-calculate: Phòng = sum of its ADs
+    // Auto-calculate: Phòng = sum of its ADs (annual)
     const phongPlans = new Map<string, number>();
     phongList.forEach(p => {
       const sum = adList.filter(ad => ad.maPhong === p.maPhong).reduce((s, ad) => s + (adPlans.get(ad.maAD) || 0), 0);
       phongPlans.set(p.maPhong, sum);
     });
 
-    // Auto-calculate: Công ty = sum of all Phòng
+    // Auto-calculate: Công ty = sum of all Phòng (annual)
     const congTyPlan = phongList.reduce((s, p) => s + (phongPlans.get(p.maPhong) || 0), 0);
+
+    // Auto-calculate: Công ty per month = sum of all ADs' value for that month
+    const congTyMonthlyPlans = Array.from({ length: 12 }, (_, i) => {
+      return adList.reduce((s, ad) => s + (adMonthlyPlans.get(ad.maAD)?.[i] || 0), 0);
+    });
 
     // Total annual ratio check
     const totalRatio = monthlyRatios.reduce((s, r) => s + r, 0);
@@ -4209,8 +4236,9 @@ export default function QuanLyPage() {
       setKhEditRatio(null);
     };
 
-    const saveADPlan = (maAD: string, val: number) => {
-      saveSetting(`nmc-kh-ad-${maAD}`, String(val));
+    const saveADPlanMonth = (maAD: string, month: number, val: number) => {
+      const mm = String(month).padStart(2, '0');
+      saveSetting(`nmc-kh-ad-${maAD}-t${mm}`, String(val));
     };
 
     const saveNhomPlan = (maBanNhom: string, val: number) => {
@@ -4278,9 +4306,9 @@ export default function QuanLyPage() {
                   </p>
                 </div>
 
-                {/* AD plans */}
+                {/* AD plans — 12 monthly inputs per AD */}
                 <div>
-                  <p className="text-[10px] text-gray-400 mb-1">Kế hoạch năm — AD (Phòng tự tính = tổng AD)</p>
+                  <p className="text-[10px] text-gray-400 mb-1">Kế hoạch AFYP — AD (12 tháng/năm; Tổng năm = Σ 12 tháng; Phòng = Σ AD)</p>
                   {phongList.map(p => {
                     const adsOfPhong = adList.filter(ad => ad.maPhong === p.maPhong);
                     const phongTotal = phongPlans.get(p.maPhong) || 0;
@@ -4288,20 +4316,31 @@ export default function QuanLyPage() {
                       <div key={p.maPhong} className="mb-3">
                         <div className="flex items-center justify-between bg-amber-500/10 px-2 py-1 rounded-t border-b border-amber-500/20">
                           <span className="text-[10px] text-amber-300 font-bold">{p.tenPhong}</span>
-                          <span className="text-[10px] text-amber-200 font-bold">{phongTotal > 0 ? formatSmartCurrency(phongTotal) : '—'}</span>
+                          <span className="text-[10px] text-amber-200 font-bold">Σ năm: {phongTotal > 0 ? formatSmartCurrency(phongTotal) : '—'}</span>
                         </div>
                         {adsOfPhong.map(ad => {
-                          const plan = adPlans.get(ad.maAD) || 0;
+                          const monthly = adMonthlyPlans.get(ad.maAD) || Array.from({ length: 12 }, () => 0);
+                          const annual = adPlans.get(ad.maAD) || 0;
                           return (
-                            <div key={ad.maAD} className="flex items-center gap-2 px-2 py-1 border-b border-gray-800 hover:bg-gray-800/50">
-                              <span className="text-[10px] text-gray-300 flex-1 truncate">├ {ad.tenAD}</span>
-                              <input
-                                type="number"
-                                value={plan || ''}
-                                onChange={e => saveADPlan(ad.maAD, parseFloat(e.target.value) || 0)}
-                                placeholder="KH năm..."
-                                className="w-28 h-6 text-[10px] text-right bg-gray-800 border border-gray-700 text-white rounded px-1.5 hover:border-amber-500/50 focus:border-amber-400 outline-none"
-                              />
+                            <div key={ad.maAD} className="px-2 py-1 border-b border-gray-800 hover:bg-gray-800/50">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] text-sky-300 font-bold flex-1 truncate">├ {ad.tenAD}</span>
+                                <span className="text-[9px] text-amber-400 font-bold ml-2 whitespace-nowrap">Σ: {annual > 0 ? formatSmartCurrency(annual) : '—'}</span>
+                              </div>
+                              <div className="grid grid-cols-6 sm:grid-cols-12 gap-1">
+                                {monthly.map((val, i) => (
+                                  <div key={i} className="text-center">
+                                    <p className="text-[8px] text-gray-500 font-bold mb-0.5">T{i + 1}</p>
+                                    <input
+                                      type="number"
+                                      value={val || ''}
+                                      onChange={e => saveADPlanMonth(ad.maAD, i + 1, parseFloat(e.target.value) || 0)}
+                                      placeholder="—"
+                                      className="w-full h-6 text-[9px] text-right bg-gray-800 border border-gray-700 text-amber-300 rounded px-0.5 hover:border-amber-500/50 focus:border-amber-400 outline-none"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
@@ -4344,7 +4383,7 @@ export default function QuanLyPage() {
                 </div>
 
                 <div className="text-[9px] text-gray-500 pt-2 border-t border-gray-800">
-                  Phòng = tổng AD trong phòng • Công ty = tổng các phòng • KH tháng = KH năm × tỷ lệ tháng
+                  AD: nhập KH 12 tháng trực tiếp • Phòng = Σ AD • Công ty = Σ Phòng • Nhóm: KH năm × tỷ lệ tháng
                 </div>
               </div>
             </PopoverContent>
@@ -4379,7 +4418,9 @@ export default function QuanLyPage() {
             {Array.from({ length: 12 }, (_, i) => {
               const m = String(i + 1).padStart(2, '0');
               const ratio = monthlyRatios[i] || 0;
-              const monthlyPlan = congTyPlan > 0 && ratio > 0 ? congTyPlan * ratio / 100 : 0;
+              // Monthly KH at company level = Σ all ADs' value for that month
+              // (AD uses 12 monthly inputs directly; ratio only applies to Nhóm annual → monthly)
+              const monthlyPlan = congTyMonthlyPlans[i] || 0;
               const isCurrent = i + 1 === new Date().getMonth() + 1;
               return (
                 <div key={i} className="rounded-sm p-1 sm:p-1.5 text-center" style={{ backgroundColor: isCurrent ? '#0F766E' : '#0F172A', boxShadow: isCurrent ? '0 0 8px rgba(15,118,110,0.4)' : 'none' }}>
@@ -4390,7 +4431,7 @@ export default function QuanLyPage() {
               );
             })}
           </div>
-          <p className="text-[8px] sm:text-[9px] text-white/30 mt-1.5">KH tháng = KH năm × tỷ lệ tháng | Tổng KH năm: {formatSmartCurrency(congTyPlan)}</p>
+          <p className="text-[8px] sm:text-[9px] text-white/30 mt-1.5">KH tháng (công ty) = Σ KH tháng của tất cả AD | Tổng KH năm: {formatSmartCurrency(congTyPlan)}</p>
         </div>
 
         {/* Minimap: Phòng → AD → Nhóm hierarchy — chỉ KH */}
