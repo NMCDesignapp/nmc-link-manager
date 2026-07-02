@@ -1476,3 +1476,33 @@ Stage Summary:
 - ✅ Standalone KPI page đồng bộ 1:1 với main app KPI page (qua sync-kpi-app.sh)
 - ⚠️ Vercel token đã dùng để deploy — user nên revoke sau khi xác nhận mọi thứ OK
 - Workflow user: chỉ cần sửa src/app/kpi/page.tsx → bash scripts/sync-kpi-app.sh → git push → cả 2 auto-deploy
+
+---
+Task ID: kpi-sync-cleanup
+Agent: main
+Task: Bỏ floating "← App" button + kết nối 3 nút nav (Thi đua/Chính sách/CLB) trong standalone kpi-app
+
+Work Log:
+- Đọc sync script hiện tại + 2 file KPI page (main 3689 dòng + standalone)
+- Phát hiện 3 nút nav trong main app (lines 2697/2700/2703) trỏ tới /quan-ly?sheet=... — không tồn tại trong standalone → 404
+- Sửa scripts/sync-kpi-app.sh:
+  * Bỏ Patch 4 (inject floating "← App" button + CSS)
+  * Thêm Patch mới: 3 nút nav (nav-race/nav-policy/nav-clb) → href={buildMainUrl('/quan-ly?sheet=...')} target="_blank" rel="noopener noreferrer"
+  * Helper mới buildMainUrl(path) thay cho thiDuaChauHref (tổng quát hơn)
+  * Thêm logic dọn dẹp legacy floating button + CSS nếu có từ lần sync trước
+- Tách logic patch JS ra file riêng scripts/apply-standalone-patches.js (tránh vấn đề escape khi nhúng JS inline trong bash)
+- Cập nhật diff check exclude pattern: thêm buildMainUrl + target="_blank" rel="noopener noreferrer"
+- Re-run sync script → 3 nav hrefs đã được patch, không còn kpi-standalone-back-btn
+- Build standalone OK: npm run build → ✓ Compiled successfully in 2.5s, 10 routes
+- Commit + push (9748855..c86276b) → Vercel auto-deploy cả 2 projects
+
+Stage Summary:
+- Standalone kpi-app giờ:
+  * Không còn floating "← App" button (user yêu cầu bỏ)
+  * 3 nút nav (Thi đua/Chính sách 2026/CLB Sao Việt) mở sang main app
+    (https://nc-link.vercel.app/quan-ly?sheet=...) trong tab mới — không còn 404
+- Sync mechanism vẫn giữ 1:1 với main page, chỉ thêm 3 patches:
+  1. MAIN_APP_URL + buildMainUrl helper constant
+  2. (legacy) BackButton href patch — main app đã không còn pattern này, không cần
+  3. 3 nav hrefs → MAIN_APP_URL target=_blank
+- File mới: scripts/apply-standalone-patches.js (Node script, dễ maintain hơn inline)
