@@ -10362,7 +10362,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
               <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fypTVVm)}</TableCell>
-              <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
+              <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}</TableCell>
               {SV3_RANKS.flatMap(rk => {
                 const fypDeficit = Math.max(0, rk.minFyp - r.fypTVVm);
                 const hdcDeficit = Math.max(0, rk.minHdc - r.slTvvmHDC);
