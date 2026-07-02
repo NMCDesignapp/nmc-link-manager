@@ -1271,18 +1271,23 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
+/* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
-  grid-column: 1 / -1;
-  margin: 0 0 6px;
-  border-radius: 6px;
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: 0;
+  margin-bottom: 8px;
+  border-radius: 0;
   overflow: hidden;
   background: linear-gradient(90deg, #fff3c0 0%, #ffd966 25%, #ffc34d 50%, #ffd966 75%, #fff3c0 100%);
   background-size: 200% 100%;
   animation: kpiNoticeShine 6s linear infinite;
-  border: 1.5px solid #d4a017;
+  border-top: 1.5px solid #d4a017;
+  border-bottom: 1.5px solid #d4a017;
   box-shadow: 0 2px 10px rgba(212, 160, 23, 0.35), inset 0 1px 0 rgba(255,255,255,0.5);
-  position: relative;
-  height: 32px;
+  height: 36px;
   display: flex;
   align-items: center;
 }
@@ -1293,32 +1298,36 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .kpi-notice-banner::before {
   content: '📢';
   position: absolute;
-  left: 8px; top: 50%; transform: translateY(-50%);
-  font-size: 14px;
+  left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 16px;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
   z-index: 2;
 }
 .kpi-app .kpi-notice-marquee {
   display: inline-block;
   white-space: nowrap;
-  padding-left: 32px;
+  padding-left: 36px;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   color: #0b5d1f;
   text-shadow: 0 1px 0 rgba(255,255,255,0.4);
-  animation: kpiNoticeScroll 22s linear infinite;
+  /* Animation: chạy ngay khi load. Bắt đầu ở translateX(0%) (tức ngay cạnh 📢),
+     trượt sang trái -100% (hết chữ), rồi lặp lại.
+     Duration 18s cho ~1 vòng. */
+  animation: kpiNoticeScroll 18s linear infinite;
   letter-spacing: 0.02em;
+  will-change: transform;
 }
 @keyframes kpiNoticeScroll {
-  0%   { transform: translateX(100%); }
+  0%   { transform: translateX(0%); }
   100% { transform: translateX(-100%); }
 }
 .kpi-app .kpi-notice-banner:hover .kpi-notice-marquee {
   animation-play-state: paused;
 }
 @media (max-width: 720px) {
-  .kpi-app .kpi-notice-banner { height: 28px; }
-  .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 28px; }
+  .kpi-app .kpi-notice-banner { height: 30px; }
+  .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 30px; }
 }
 `;
 
