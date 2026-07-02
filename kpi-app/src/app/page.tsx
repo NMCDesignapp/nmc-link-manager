@@ -12,7 +12,7 @@ import { useAppData } from '@/lib/app-data-context';
 
 // === KPI standalone app: link back to main nc-link app ===
 const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || '/';
-const thiDuaChauHref = MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + 'thi-dua-chau' : MAIN_APP_URL + '/thi-dua-chau';
+const buildMainUrl = (path) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
 /* ================= CSS ================= */
 const CSS = `
@@ -2531,7 +2531,6 @@ export default function KPIDashboard() {
 
   return (
     <div className="kpi-app">
-        <a href={MAIN_APP_URL} className="kpi-standalone-back-btn" title="Về app chính" aria-label="Về app chính">← App</a>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
 
@@ -2700,13 +2699,13 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+                  <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
-                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
+                  <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                   </a>
-                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
+                  <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                   </a>
                 </div>
