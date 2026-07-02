@@ -127,6 +127,28 @@ function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   return diffMonths <= maxMonths;
 }
 
+// Helper: kiểm tra chức vụ TTN (Tiền/Tổ Trưởng Nhóm) — để loại khỏi "TVV cũ"
+function isTTNPosition(position: string | null | undefined): boolean {
+  const pos = (position || '').toLowerCase().trim();
+  if (!pos) return false;
+  return pos.includes('tiền trưởng nhóm')
+      || pos.includes('trưởng tổ nhóm')
+      || pos === 'ttn'
+      || pos.includes('ttn ')
+      || pos.includes(' ttn');
+}
+
+// Helper: kiểm tra chức vụ TB/TN (Trưởng Ban / Trưởng Nhóm) — để loại khỏi "TVV cũ"
+function isTBorTNPosition(position: string | null | undefined): boolean {
+  const p = (position || '').toLowerCase().trim();
+  if (!p) return false;
+  // Loại TTN trước (trường hợp position gộp)
+  if (isTTNPosition(position)) return false;
+  if (p.includes('trưởng ban') || p.includes('trưởng nhóm')) return true;
+  const tokens = p.split(/[\s,;/|\\-]+/).filter(Boolean);
+  return tokens.includes('tb') || tokens.includes('tn');
+}
+
 // TVV90: TVV có thời gian làm việc không quá N tháng
 function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: number = 3, _minIP?: number): boolean {
   const agentContract = contracts.find(c => c.agentCode === agentCode);
@@ -495,6 +517,8 @@ export default function ThiDuaPage() {
   const [isResultExpanded, setIsResultExpanded] = useState(false);
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+  // 4 nút chọn nhanh đối tượng: TVVm | TVV cũ | TTN | TN (chọn nhiều được)
+  const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<'tvvm' | 'tvvcu' | 'ttn' | 'tn'>>(new Set());
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
@@ -640,6 +664,62 @@ export default function ThiDuaPage() {
     const raw = thiDuaSubjects.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
     return [...new Set(raw)];
   }, [thiDuaSubjects]);
+
+  // ===== 4 danh sách đối tượng dùng cho nút chọn nhanh =====
+  // TVVm:   DS TVV có startDate → nay ≤ 12 tháng (lấy từ Contracts, unique theo agentCode)
+  // TVV cũ: DS TVV KHÔNG phải TVVm VÀ KHÔNG phải ban cán (position không phải TB/TN/TTN)
+  // TTN:    DS TTN từ Recruiter table (DS TTN ở Cấu trúc)
+  // TN:     DS TB/TN từ Staff table (DS TB/TN ở Cấu trúc — loại TTN)
+  const subjectLists = useMemo(() => {
+    // Unique TVV theo agentCode — lấy record đầu tiên để dùng position/startDate
+    const tvvMap = new Map<string, Contract>();
+    for (const c of contracts) {
+      if (!tvvMap.has(c.agentCode)) tvvMap.set(c.agentCode, c);
+    }
+    const tvvAll = Array.from(tvvMap.values());
+
+    const tvvm = tvvAll
+      .filter(c => isTVVm(c.ngayBatDauLamViec || c.startDate))
+      .map(c => c.agentCode)
+      .filter(Boolean);
+
+    const tvvCu = tvvAll
+      .filter(c => !isTVVm(c.ngayBatDauLamViec || c.startDate))
+      .filter(c => !isTTNPosition(c.position) && !isTBorTNPosition(c.position))
+      .map(c => c.agentCode)
+      .filter(Boolean);
+
+    const tn = staffList
+      .filter(s => isTBorTNPosition(s.position))
+      .map(s => s.agentCode)
+      .filter(Boolean);
+
+    const ttn = recruiterList
+      .map(r => r.agentCode)
+      .filter(Boolean);
+
+    return { tvvm, tvvCu, tn, ttn };
+  }, [contracts, staffList, recruiterList]);
+
+  // Toggle 1 trong 4 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
+  const toggleSubjectType = useCallback((type: 'tvvm' | 'tvvcu' | 'ttn' | 'tn') => {
+    const list = subjectLists[type];
+    const currentSet = new Set(subjectCodes);
+    const newSelected = new Set(selectedSubjectTypes);
+
+    if (selectedSubjectTypes.has(type)) {
+      // Đang on → tắt và remove các code của type này
+      newSelected.delete(type);
+      list.forEach(code => currentSet.delete(code));
+    } else {
+      // Đang off → bật và add các code (dedupe tự động qua Set)
+      newSelected.add(type);
+      list.forEach(code => currentSet.add(code));
+    }
+
+    setSelectedSubjectTypes(newSelected);
+    setThiDuaSubjects([...currentSet].join('\n'));
+  }, [subjectLists, subjectCodes, selectedSubjectTypes]);
 
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
@@ -3535,6 +3615,38 @@ export default function ThiDuaPage() {
                 className="w-full h-32 text-xs bg-gray-800 border border-gray-600 text-white rounded-lg p-2 font-mono resize-none focus:outline-none focus:border-sky-500/50"
               />
             </div>
+            {/* ===== 4 nút chọn nhanh đối tượng — cho phép chọn nhiều ===== */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-emerald-300/70">Chọn nhanh theo nhóm đối tượng (có thể chọn nhiều):</Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {([
+                  { key: 'tvvm'  as const, label: 'TVVm',  desc: `TVV mới ≤ 12 tháng`, count: subjectLists.tvvm.length },
+                  { key: 'tvvcu' as const, label: 'TVV cũ', desc: `TVV còn lại (trừ ban cán)`, count: subjectLists.tvvCu.length },
+                  { key: 'ttn'   as const, label: 'TTN',   desc: `Trưởng tổ nhóm (Cấu trúc)`, count: subjectLists.ttn.length },
+                  { key: 'tn'    as const, label: 'TN',    desc: `Trưởng ban/nhóm (Cấu trúc)`, count: subjectLists.tn.length },
+                ]).map(btn => {
+                  const active = selectedSubjectTypes.has(btn.key);
+                  return (
+                    <button
+                      key={btn.key}
+                      type="button"
+                      onClick={() => toggleSubjectType(btn.key)}
+                      className={`text-left px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                        active
+                          ? 'bg-sky-500/25 border-sky-400/60 text-white'
+                          : 'bg-gray-800/40 border-gray-600/50 text-emerald-200/80 hover:bg-sky-500/10 hover:border-sky-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold">{btn.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${active ? 'bg-sky-400/30 text-sky-100' : 'bg-gray-700/50 text-emerald-300/60'}`}>{btn.count}</span>
+                      </div>
+                      <div className="text-[9px] mt-0.5 text-emerald-300/50 leading-tight">{btn.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {thiDuaSubjects.trim() && (
               <div className="rounded-lg bg-sky-500/10 border border-sky-500/20 p-2 text-xs text-sky-300">
                 <p className="font-medium">Đã nhập {subjectCodes.length} đối tượng</p>
@@ -3563,7 +3675,7 @@ export default function ThiDuaPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setThiDuaSubjects(''); }} className="h-8 border-red-500/30 text-red-400 bg-transparent hover:bg-red-500/10"><Trash2 className="w-3 h-3 mr-1" /> Xóa tất cả</Button>
+            <Button variant="outline" onClick={() => { setThiDuaSubjects(''); setSelectedSubjectTypes(new Set()); }} className="h-8 border-red-500/30 text-red-400 bg-transparent hover:bg-red-500/10"><Trash2 className="w-3 h-3 mr-1" /> Xóa tất cả</Button>
             <Button variant="outline" onClick={() => setIsSubjectDialogOpen(false)} className="h-8 border-emerald-500/30 bg-transparent text-emerald-200">Đóng</Button>
             <Button onClick={() => { setIsSubjectDialogOpen(false); toast({ title: 'Đã áp dụng', description: subjectCodes.length > 0 ? `Lọc theo ${subjectCodes.length} đối tượng` : 'Hiển thị tất cả' }); }} className="bg-sky-500/80 hover:bg-sky-600 h-8 border border-sky-500/30">Áp dụng</Button>
           </DialogFooter>
