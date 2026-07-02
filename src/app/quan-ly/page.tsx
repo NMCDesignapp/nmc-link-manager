@@ -8251,7 +8251,7 @@ export default function QuanLyPage() {
                   {/* THỰC HIỆN LŨY KẾ */}
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkQuymo || '—'}</td>
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '12px', fontWeight: 800 }}>{row.lkTvvmHDC || '—'}</td>
-                  <td className="text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '11px', fontWeight: 800 }}>{row.lkFYP > 0 ? formatNumber(row.lkFYP) : '—'}</td>
+                  <td className="text-right whitespace-nowrap p-2 align-middle" style={{ borderColor: '#DDD6FE', backgroundColor: '#EDE9FE', color: '#5B21B6', fontSize: '11px', fontWeight: 800 }}>{row.lkFYP > 0 ? formatCurrency(row.lkFYP) : '—'}</td>
                   {/* THƯỞNG BẮT KỲP */}
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: row.tienThuongBatKip > 0 ? '#FEF3C7' : '#FFFFFF', color: row.tienThuongBatKip > 0 ? '#047857' : '#9CA3AF', fontSize: '12px', fontWeight: 800 }}>
                     {row.tienThuongBatKip > 0 ? <>{formatNumber(row.tienThuongBatKip)}<div style={{ fontSize: '9px', fontWeight: 600, color: '#7C3AED' }}>{row.batKipLabel}</div></> : (row.batKipLabel ? <span style={{ color: '#9CA3AF' }}>—</span> : '—')}
@@ -8275,7 +8275,7 @@ export default function QuanLyPage() {
                   {/* THỰC HIỆN LŨY KẾ tổng */}
                   <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkQuymo}</td>
                   <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkTvvmHDC}</td>
-                  <td className="text-white text-right text-[11px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkFYP > 0 ? formatNumber(totalLkFYP) : '—'}</td>
+                  <td className="text-white text-right text-[11px] font-black p-2 align-middle" style={{ borderColor: '#6D28D9', backgroundColor: '#6D28D9' }}>{totalLkFYP > 0 ? formatCurrency(totalLkFYP) : '—'}</td>
                   {/* THƯỞNG BẮT KỲP tổng */}
                   <td className="text-white text-center text-[12px] font-black p-2 align-middle" style={{ borderColor: '#047857', backgroundColor: '#FEF3C7', color: '#047857' }}>{totalThuongBatKip > 0 ? formatNumber(totalThuongBatKip) : '—'}</td>
                 </tr>
@@ -10030,7 +10030,7 @@ export default function QuanLyPage() {
         </span>
         <span className="text-[11px] font-bold flex items-center gap-1.5">
           <span className="text-amber-200 uppercase">{totalLabel}:</span>
-          <span className="text-white font-black">{formatNumber(totalValue)}</span>
+          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
         </span>
       </div>
     );
@@ -10199,7 +10199,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV1_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -10268,7 +10268,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
               {SV2_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -10361,7 +10361,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fypTVVm)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
               <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}</TableCell>
               {SV3_RANKS.flatMap(rk => {
                 const fypDeficit = Math.max(0, rk.minFyp - r.fypTVVm);
@@ -10664,7 +10664,7 @@ export default function QuanLyPage() {
         </span>
         <span className="text-[11px] font-bold flex items-center gap-1.5">
           <span className="text-amber-300 uppercase">{totalLabel}:</span>
-          <span className="text-white font-black">{formatNumber(totalValue)}</span>
+          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
         </span>
       </div>
     );
@@ -10817,7 +10817,7 @@ export default function QuanLyPage() {
                   {formatFypShort(fypThang)}
                 </TableCell>
                 <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
-                  {formatFypShort(fypLuyKe)}
+                  {formatCurrency(fypLuyKe)}
                 </TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000; // trđ → VND
@@ -10889,29 +10889,33 @@ export default function QuanLyPage() {
     const tableJsx = (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          {/* Row 1: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP TVVm LŨY KẾ | SL TVVm HĐC LŨY KẾ | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2)
-              Tier-1 header được thu gọn 50% (py-0.5, text-[9px], dòng con text-[8px]) theo yêu cầu user */}
+          {/* Row 1: STT | NHÓM | MÃ SỐ | HỌ TÊN TVV | FYP TVVm LK | SL TVVm HĐC LK | HẠNG VÀNG (colSpan=2) | HẠNG BẠCH KIM (colSpan=2)
+              Tier-1 header ép mỏng tối đa (py-0, text-[8px], gộp 3 dòng → 2 dòng) theo yêu cầu user */}
           <TableRow className="border-b" style={{ backgroundColor: CLBSV_HEADER_BG, borderColor: CLBSV_HEADER_BORDER }}>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px] py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              FYP TVVm<br />LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase text-center align-middle w-[40px] py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>STT</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>NHÓM</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              <div className="leading-[1.1]">
+                <div>FYP TVVm LK</div>
+                <div className="italic font-normal text-[8px] opacity-80">01/12/25 - nay</div>
+              </div>
             </TableHead>
-            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0.5" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              SL TVVm<br />HĐC LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
+            <TableHead rowSpan={2} className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle py-0" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
+              <div className="leading-[1.1]">
+                <div>SL TVVm HĐC LK</div>
+                <div className="italic font-normal text-[8px] opacity-80">01/12/25 - nay</div>
+              </div>
             </TableHead>
             {ranks.map(rk => (
               <TableHead
                 key={rk.label}
                 colSpan={2}
-                className="text-[9px] font-black uppercase text-center align-middle whitespace-nowrap py-0.5 px-1 border-l-2 border-white clbsv-rank-colspan"
+                className="text-[8px] font-black uppercase text-center align-middle whitespace-nowrap py-0 px-1 border-l-2 border-white clbsv-rank-colspan leading-[1]"
                 style={{ backgroundColor: rk.bg, color: rk.fg }}
               >
-                <div className="leading-none">
-                  <div className="font-black text-[9px]">{rk.label}</div>
-                </div>
+                <div className="font-black text-[8px] leading-[1]">{rk.label}</div>
               </TableHead>
             ))}
           </TableRow>
@@ -10921,7 +10925,7 @@ export default function QuanLyPage() {
             {ranks.flatMap(rk => [
               <TableHead
                 key={`${rk.label}-fyp`}
-                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
+                className="text-[9px] font-bold text-center align-middle py-0 px-1 whitespace-nowrap clbsv-rank-subcol"
                 style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
@@ -10931,7 +10935,7 @@ export default function QuanLyPage() {
               </TableHead>,
               <TableHead
                 key={`${rk.label}-hdc`}
-                className="text-[9px] font-bold text-center align-middle py-0.5 px-1 whitespace-nowrap clbsv-rank-subcol"
+                className="text-[9px] font-bold text-center align-middle py-0 px-1 whitespace-nowrap clbsv-rank-subcol"
                 style={{ backgroundColor: rk.bg, color: rk.fg, width: '58px', minWidth: '58px' }}
               >
                 <div className="leading-tight">
@@ -10964,7 +10968,7 @@ export default function QuanLyPage() {
                   {m.agentName || '—'}
                 </TableCell>
                 <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
-                  {formatFypShort(fypTvvmLuyKe)}
+                  {formatCurrency(fypTvvmLuyKe)}
                 </TableCell>
                 <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
                   {slHdcLuyKe}
@@ -11074,7 +11078,7 @@ export default function QuanLyPage() {
                   {m.agentName || '—'}
                 </TableCell>
                 <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
-                  {formatFypShort(fypLuyKe)}
+                  {formatCurrency(fypLuyKe)}
                 </TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000;
