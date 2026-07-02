@@ -1329,6 +1329,137 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .kpi-notice-banner { height: 30px; }
   .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 30px; }
 }
+
+/* ===== Splash Loading Overlay =====
+   Hiển thị lần đầu khi mở trang KPI, che toàn màn hình trong khi app đang
+   preload dữ liệu (~3-4s). Khi data sẵn sàng → fade out mượt mà → hiện dashboard. */
+.kpi-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background:
+    radial-gradient(ellipse at 50% 35%, #0e2c4a 0%, #082138 45%, #041828 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity .55s cubic-bezier(.22,1,.36,1), transform .55s cubic-bezier(.22,1,.36,1);
+  overflow: hidden;
+}
+.kpi-splash.exiting {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+/* Subtle bg orb cho splash */
+.kpi-splash::before {
+  content: '';
+  position: absolute;
+  width: 460px; height: 460px;
+  border-radius: 50%;
+  background: #0a3060;
+  top: -10%; left: -10%;
+  filter: blur(100px);
+  opacity: .35;
+  animation: splashOrb 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.kpi-splash::after {
+  content: '';
+  position: absolute;
+  width: 360px; height: 360px;
+  border-radius: 50%;
+  background: #0c2050;
+  bottom: -10%; right: -10%;
+  filter: blur(100px);
+  opacity: .3;
+  animation: splashOrb 14s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+}
+@keyframes splashOrb {
+  0% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(30px,-30px) scale(1.08); }
+  100% { transform: translate(-15px,15px) scale(.95); }
+}
+.kpi-splash-logo {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffd66a 0%, #f2b24d 50%, #b07820 100%);
+  box-shadow: 0 0 60px #f2b24d55, 0 0 120px #f2b24d33, inset 0 2px 6px #ffffff66;
+  animation: splashPulse 1.6s ease-in-out infinite;
+}
+.kpi-splash-logo svg {
+  color: #fff;
+  filter: drop-shadow(0 2px 4px #00000055);
+}
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 60px #f2b24d55, 0 0 120px #f2b24d33, inset 0 2px 6px #ffffff66; }
+  50% { transform: scale(1.06); box-shadow: 0 0 80px #f2b24d77, 0 0 160px #f2b24d44, inset 0 2px 8px #ffffff88; }
+}
+.kpi-splash-text { position: relative; z-index: 1; text-align: center; }
+.kpi-splash-title {
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  line-height: 1.15;
+  background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: .01em;
+}
+.kpi-splash-sub {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e0c060;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  margin-top: 6px;
+}
+.kpi-splash-bar {
+  position: relative;
+  z-index: 1;
+  width: min(220px, 70vw);
+  height: 4px;
+  border-radius: 99px;
+  background: #0a1c30;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.kpi-splash-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #40d890, #60e8ff, transparent);
+  animation: splashBar 1.2s ease-in-out infinite;
+}
+@keyframes splashBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+.kpi-splash-hint {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  color: #6a8aab;
+  font-style: italic;
+  text-align: center;
+}
 `;
 
 
@@ -1527,6 +1658,9 @@ export default function KPIDashboard() {
     leaders: LeaderInfo[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  // Splash screen overlay — chỉ hiện lần đầu khi app vừa mở, tự fade-out khi data sẵn sàng.
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashExiting, setSplashExiting] = useState(false);
   const [error, setError] = useState(false);
   const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
   const [selectedKy, setSelectedKy] = useState('');
@@ -1647,6 +1781,19 @@ export default function KPIDashboard() {
       setSyncing(false);
     }
   }, [reloadAppData]);
+
+  /* Splash exit — khi data đã load xong (loading=false) VÀ dashboard đã sẵn sàng,
+     đợi 1 nhịp rồi fade-out splash (~550ms) rồi unmount. */
+  useEffect(() => {
+    if (!splashVisible) return;
+    if (loading || !dashboard) return;
+    const t1 = setTimeout(() => setSplashExiting(true), 250);
+    const t2 = setTimeout(() => {
+      setSplashVisible(false);
+      setSplashExiting(false);
+    }, 250 + 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [loading, dashboard, splashVisible]);
 
   /* Online settings (KPI targets) — đọc từ context */
   useEffect(() => {
@@ -2537,6 +2684,23 @@ export default function KPIDashboard() {
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
+
+      {/* ===== SPLASH OVERLAY =====
+          Che toàn màn hình khi app vừa mở (đang preload data).
+          Tự fade-out mượt mà khi dashboard sẵn sàng — xem useEffect [loading, dashboard, splashVisible] ở trên. */}
+      {splashVisible && (
+        <div className={`kpi-splash${splashExiting ? ' exiting' : ''}`} aria-hidden={splashExiting}>
+          <div className="kpi-splash-logo" aria-hidden="true">
+            <Trophy size={48} />
+          </div>
+          <div className="kpi-splash-text">
+            <div className="kpi-splash-title">Tiến Độ Kinh Doanh</div>
+            <div className="kpi-splash-sub">Bảo Việt Nhân Thọ An Giang</div>
+          </div>
+          <div className="kpi-splash-bar" aria-hidden="true" />
+          <div className="kpi-splash-hint">Đang tải dữ liệu…</div>
+        </div>
+      )}
 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
