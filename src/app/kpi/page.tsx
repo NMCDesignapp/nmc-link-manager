@@ -1535,135 +1535,124 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 30px; }
 }
 
-/* ===== Splash Loading Overlay =====
-   Hiển thị lần đầu khi mở trang KPI, che toàn màn hình trong khi app đang
-   preload dữ liệu (~3-4s). Khi data sẵn sàng → fade out mượt mà → hiện dashboard. */
+/* ===== Popup Loading =====
+   Popup nhỏ ở giữa màn hình khi vừa mở trang KPI.
+   Tự động biến mất (fade + scale out) khi app đã load xong dữ liệu. */
 .kpi-splash {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background:
-    radial-gradient(ellipse at 50% 35%, #0e2c4a 0%, #082138 45%, #041828 100%);
+  background: rgba(4, 18, 32, .62);
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  padding: 24px;
+  padding: 20px;
   opacity: 1;
-  transform: scale(1);
-  transition: opacity .55s cubic-bezier(.22,1,.36,1), transform .55s cubic-bezier(.22,1,.36,1);
-  overflow: hidden;
+  transition: opacity .4s cubic-bezier(.22,1,.36,1);
 }
 .kpi-splash.exiting {
   opacity: 0;
-  transform: scale(1.04);
   pointer-events: none;
 }
-/* Subtle bg orb cho splash */
-.kpi-splash::before {
+.kpi-splash.exiting .kpi-splash-card {
+  transform: translateY(8px) scale(.96);
+  opacity: 0;
+}
+.kpi-splash-card {
+  position: relative;
+  width: min(340px, 88vw);
+  padding: 28px 24px 22px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(20, 40, 64, .96) 0%, rgba(10, 28, 48, .96) 100%);
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, .55),
+    0 0 0 1px rgba(94, 232, 156, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: transform .45s cubic-bezier(.22,1,.36,1), opacity .45s cubic-bezier(.22,1,.36,1);
+  overflow: hidden;
+}
+.kpi-splash-card::before {
   content: '';
   position: absolute;
-  width: 460px; height: 460px;
+  top: -40%; left: 50%;
+  transform: translateX(-50%);
+  width: 280px; height: 280px;
   border-radius: 50%;
-  background: #0a3060;
-  top: -10%; left: -10%;
-  filter: blur(100px);
-  opacity: .35;
-  animation: splashOrb 12s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(94, 232, 156, .14) 0%, transparent 60%);
   pointer-events: none;
-}
-.kpi-splash::after {
-  content: '';
-  position: absolute;
-  width: 360px; height: 360px;
-  border-radius: 50%;
-  background: #0c2050;
-  bottom: -10%; right: -10%;
-  filter: blur(100px);
-  opacity: .3;
-  animation: splashOrb 14s ease-in-out infinite alternate-reverse;
-  pointer-events: none;
-}
-@keyframes splashOrb {
-  0% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(30px,-30px) scale(1.08); }
-  100% { transform: translate(-15px,15px) scale(.95); }
 }
 .kpi-splash-logo {
   position: relative;
   z-index: 1;
-  width: 96px;
-  height: 96px;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffd66a 0%, #f2b24d 50%, #b07820 100%);
-  box-shadow: 0 0 60px #f2b24d55, 0 0 120px #f2b24d33, inset 0 2px 6px #ffffff66;
+  background: radial-gradient(circle at 35% 30%, #ffd66a 0%, #f2b24d 55%, #b07820 100%);
+  box-shadow: 0 6px 20px rgba(242, 178, 77, .35), inset 0 2px 4px rgba(255, 255, 255, .4);
   animation: splashPulse 1.6s ease-in-out infinite;
 }
 .kpi-splash-logo svg {
   color: #fff;
-  filter: drop-shadow(0 2px 4px #00000055);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
 }
 @keyframes splashPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 60px #f2b24d55, 0 0 120px #f2b24d33, inset 0 2px 6px #ffffff66; }
-  50% { transform: scale(1.06); box-shadow: 0 0 80px #f2b24d77, 0 0 160px #f2b24d44, inset 0 2px 8px #ffffff88; }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
 }
-.kpi-splash-text { position: relative; z-index: 1; text-align: center; }
+.kpi-splash-text { position: relative; z-index: 1; }
 .kpi-splash-title {
-  font-size: clamp(1.4rem, 5vw, 2rem);
-  font-weight: 900;
-  font-style: italic;
-  text-transform: uppercase;
-  line-height: 1.15;
-  background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #f0f4f8;
   letter-spacing: .01em;
 }
 .kpi-splash-sub {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   color: #e0c060;
   text-transform: uppercase;
   letter-spacing: .18em;
-  margin-top: 6px;
-}
-.kpi-splash-bar {
-  position: relative;
-  z-index: 1;
-  width: min(220px, 70vw);
-  height: 4px;
-  border-radius: 99px;
-  background: #0a1c30;
-  overflow: hidden;
   margin-top: 4px;
 }
-.kpi-splash-bar::after {
+.kpi-splash-spinner {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+}
+.kpi-splash-spinner::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 40%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, transparent, #40d890, #60e8ff, transparent);
-  animation: splashBar 1.2s ease-in-out infinite;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid rgba(94, 232, 156, .18);
+  border-top-color: #5ee89c;
+  animation: splashSpin .85s linear infinite;
 }
-@keyframes splashBar {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
+@keyframes splashSpin {
+  to { transform: rotate(360deg); }
 }
 .kpi-splash-hint {
   position: relative;
   z-index: 1;
   font-size: 11px;
-  color: #6a8aab;
+  color: #8a9ab0;
   font-style: italic;
-  text-align: center;
 }
 `;
 
@@ -2890,20 +2879,22 @@ export default function KPIDashboard() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
 
-      {/* ===== SPLASH OVERLAY =====
-          Che toàn màn hình khi app vừa mở (đang preload data).
-          Tự fade-out mượt mà khi dashboard sẵn sàng — xem useEffect [loading, dashboard, splashVisible] ở trên. */}
+      {/* ===== POPUP LOADING =====
+          Popup nhỏ ở giữa màn hình khi vừa mở trang KPI (đang preload data).
+          Tự động fade-out mượt mà khi dashboard sẵn sàng — xem useEffect [loading, dashboard, splashVisible] ở trên. */}
       {splashVisible && (
         <div className={`kpi-splash${splashExiting ? ' exiting' : ''}`} aria-hidden={splashExiting}>
-          <div className="kpi-splash-logo" aria-hidden="true">
-            <Trophy size={48} />
+          <div className="kpi-splash-card">
+            <div className="kpi-splash-logo" aria-hidden="true">
+              <Trophy size={32} />
+            </div>
+            <div className="kpi-splash-text">
+              <div className="kpi-splash-title">Tiến Độ Kinh Doanh</div>
+              <div className="kpi-splash-sub">Bảo Việt Nhân Thọ An Giang</div>
+            </div>
+            <div className="kpi-splash-spinner" aria-hidden="true" />
+            <div className="kpi-splash-hint">Đang tải dữ liệu…</div>
           </div>
-          <div className="kpi-splash-text">
-            <div className="kpi-splash-title">Tiến Độ Kinh Doanh</div>
-            <div className="kpi-splash-sub">Bảo Việt Nhân Thọ An Giang</div>
-          </div>
-          <div className="kpi-splash-bar" aria-hidden="true" />
-          <div className="kpi-splash-hint">Đang tải dữ liệu…</div>
         </div>
       )}
 
