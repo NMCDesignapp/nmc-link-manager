@@ -7,7 +7,8 @@
  *
  * Patches:
  *  1. Insert MAIN_APP_URL constant + buildMainUrl helper
- *  2. BackButton href='/' → href={MAIN_APP_URL} (về trang chính main app)
+ *  2. Back button fallback (STANDALONE_BACK_FALLBACK marker):
+ *     router.push('/') → window.location.href = MAIN_APP_URL
  *  3. 3 nút nav (Thi đua / Chính sách / CLB) → mở sang MAIN_APP_URL (target=_blank)
  *  4. (REMOVED — user yêu cầu bỏ) floating "← App" button
  *  5. Dọn dẹp legacy floating button + CSS nếu có từ lần sync trước
@@ -48,17 +49,26 @@ const buildMainUrl = (path) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.
   changed.push('MAIN_APP_URL + buildMainUrl already present');
 }
 
-// Patch 2: BackButton href='/' → href={MAIN_APP_URL}
-if (c.includes('<BackButton href="/"')) {
+// Patch 2: Back button fallback — `router.push('/');  // STANDALONE_BACK_FALLBACK`
+// → `window.location.href = MAIN_APP_URL;  // STANDALONE_BACK_FALLBACK`
+// (Standalone không có trang '/' — phải mở MAIN_APP_URL)
+if (c.includes("router.push('/');  // STANDALONE_BACK_FALLBACK")) {
   c = c.replace(
-    /<BackButton\s+href="\/"\s+size=\{20\}\s+title="Trở về trang chủ"/,
-    '<BackButton href={MAIN_APP_URL} size={20} title="Trở về trang chính"'
+    /router\.push\('\/\'\);\s*\/\/ STANDALONE_BACK_FALLBACK/,
+    "window.location.href = MAIN_APP_URL;  // STANDALONE_BACK_FALLBACK"
   );
-  changed.push('patched BackButton href');
-} else if (c.includes('<BackButton href={MAIN_APP_URL}')) {
-  changed.push('BackButton already patched');
+  changed.push('patched back button fallback → MAIN_APP_URL');
+} else if (c.includes('window.location.href = MAIN_APP_URL;  // STANDALONE_BACK_FALLBACK')) {
+  changed.push('back button fallback already patched');
 } else {
-  changed.push('BackButton pattern not found (OK if main page changed)');
+  changed.push('STANDALONE_BACK_FALLBACK marker not found (OK if main page changed)');
+}
+
+// Dọn dẹp legacy: BackButton href={MAIN_APP_URL} từ layout cũ (nếu có) — không còn dùng nữa
+if (c.includes('<BackButton href={MAIN_APP_URL}')) {
+  // Legacy — không sửa nữa vì main app không còn pattern này.
+  // (chỉ log để biết)
+  changed.push('legacy <BackButton href={MAIN_APP_URL}> still present (harmless)');
 }
 
 // Patch 3: 3 nút nav → mở sang MAIN_APP_URL (target=_blank)

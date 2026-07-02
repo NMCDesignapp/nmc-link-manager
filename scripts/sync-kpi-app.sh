@@ -178,9 +178,9 @@ echo "  kpi-app/src/app/page.tsx   : $LINES lines"
 echo ""
 
 # Diff check (excluding standalone patches)
-# Standalone patches: MAIN_APP_URL constant, buildMainUrl helper, BackButton href,
+# Standalone patches: MAIN_APP_URL constant, buildMainUrl helper, STANDALONE_BACK_FALLBACK line,
 #                    3 nav hrefs (target=_blank + rel=noopener)
-DIFF_COUNT=$(diff <(grep -v "MAIN_APP_URL\|buildMainUrl\|Trở về trang chính\|target=\"_blank\" rel=\"noopener noreferrer\"" "$ROOT/src/app/kpi/page.tsx") <(grep -v "MAIN_APP_URL\|buildMainUrl\|Trở về trang chính\|target=\"_blank\" rel=\"noopener noreferrer\"" "$KPI_APP/src/app/page.tsx") | wc -l)
+DIFF_COUNT=$(diff <(grep -v "MAIN_APP_URL\|buildMainUrl\|STANDALONE_BACK_FALLBACK\|window\.location\.href = MAIN_APP_URL\|target=\"_blank\" rel=\"noopener noreferrer\"" "$ROOT/src/app/kpi/page.tsx") <(grep -v "MAIN_APP_URL\|buildMainUrl\|STANDALONE_BACK_FALLBACK\|window\.location\.href = MAIN_APP_URL\|target=\"_blank\" rel=\"noopener noreferrer\"" "$KPI_APP/src/app/page.tsx") | wc -l)
 echo "  Diff (sau khi bỏ standalone patches): $DIFF_COUNT lines"
 if [ $DIFF_COUNT -eq 0 ]; then
   echo "  ✅ SYNCED — kpi-app/src/app/page.tsx ≡ src/app/kpi/page.tsx"

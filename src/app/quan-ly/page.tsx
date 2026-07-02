@@ -10030,7 +10030,7 @@ export default function QuanLyPage() {
         </span>
         <span className="text-[11px] font-bold flex items-center gap-1.5">
           <span className="text-amber-200 uppercase">{totalLabel}:</span>
-          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
+          <span className="text-white font-black">{formatNumber(totalValue)}</span>
         </span>
       </div>
     );
@@ -10199,7 +10199,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fyp)}</TableCell>
               {SV1_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv1-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -10268,7 +10268,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fyp)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fyp)}</TableCell>
               {SV2_THRESHOLDS.map(t => (
                 <React.Fragment key={`sv2-${r.agentCode}-${t.key}`}>
                   {renderSaoVietRankCell(r.fyp, t)}
@@ -10361,7 +10361,7 @@ export default function QuanLyPage() {
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap">{r.nhomKD || '—'}</TableCell>
               <TableCell className="text-xs p-1 text-gray-800 whitespace-nowrap font-mono">{r.agentCode}</TableCell>
               <TableCell className="text-xs p-1 text-gray-900 font-medium whitespace-nowrap">{r.agentName}</TableCell>
-              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatCurrency(r.fypTVVm)}</TableCell>
+              <TableCell className="text-xs p-1 text-right font-bold text-amber-700 whitespace-nowrap">{formatNumber(r.fypTVVm)}</TableCell>
               <TableCell className="text-xs p-1 text-center font-bold text-amber-700">{r.slTvvmHDC}<span className="text-[9px] text-gray-400 font-normal"> / {r.tvvmCount} TVVm</span></TableCell>
               {SV3_RANKS.flatMap(rk => {
                 const fypDeficit = Math.max(0, rk.minFyp - r.fypTVVm);
@@ -10664,7 +10664,7 @@ export default function QuanLyPage() {
         </span>
         <span className="text-[11px] font-bold flex items-center gap-1.5">
           <span className="text-amber-300 uppercase">{totalLabel}:</span>
-          <span className="text-white font-black">{formatCurrency(totalValue)}</span>
+          <span className="text-white font-black">{formatNumber(totalValue)}</span>
         </span>
       </div>
     );

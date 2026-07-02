@@ -2553,14 +2553,21 @@ export default function KPIDashboard() {
           <header>
             <div className="main-header">
               {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
-                  Nút back (btn-back-u) chỉ hiện khi đã đăng nhập Admin — bấm để trở về trang chính ứng dụng '/'. */}
+                  Nút back (btn-back-u) chỉ hiện khi đã đăng nhập Admin — bấm để trở về trang trước.
+                  Nếu không có history (mở trực tiếp) → fallback về trang chính. */}
               {adminAuthed && (
                 <button
                   type="button"
                   className="btn-back-u"
-                  onClick={() => router.push('/')}
-                  title="Trở về trang chính ứng dụng"
-                  aria-label="Trở về trang chính ứng dụng"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
+                      router.back();
+                    } else {
+                      router.push('/');  // STANDALONE_BACK_FALLBACK
+                    }
+                  }}
+                  title="Trở về trang trước"
+                  aria-label="Trở về trang trước"
                 >
                   <ArrowLeft size={18} />
                 </button>
