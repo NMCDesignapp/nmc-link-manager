@@ -1365,30 +1365,32 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .afyp-chart-title { font-size: 1.05rem; margin-bottom: 18px; }
   .kpi-app .sum-val { font-size: 1.1rem; }
   /* Chart min-height đã bị bỏ ở base desktop — để flex co giãn tự do */
-  .kpi-app .rg-head { padding: 12px 14px; }
-  .kpi-app .rg-head-name { font-size: 12px; }
-  .kpi-app .rg-head-pct { font-size: 18px; }
-  .kpi-app .rg-afyp-row { padding: 10px 14px; }
-  .kpi-app .rg-afyp { font-size: 1.25rem; }
-  .kpi-app .rg-kh { font-size: 10px; }
-  .kpi-app .rg-prog { margin: 0 14px 10px; }
-  .kpi-app .rg-sum-cell { padding: 8px 5px; min-height: 44px; }
-  .kpi-app .rg-sum-label { font-size: 9px; }
-  .kpi-app .rg-sum-val { font-size: 15px; }
-  .kpi-app .rg-divider { margin: 0 14px; }
-  .kpi-app .rg-ad-table { width: calc(100% - 28px); margin: 0 14px; font-size: 11px; }
-  .kpi-app .rg-ad-table thead th { font-size: 10px; padding: 7px 5px; }
-  .kpi-app .rg-ad-table thead th:first-child { padding-left: 12px; }
-  .kpi-app .rg-ad-table tbody td { padding: 8px 5px; font-size: 11px; }
-  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 12px; }
-  .kpi-app .rg-ad-name { font-size: 11px; }
-  .kpi-app .rg-ad-sub { font-size: 9px; }
-  .kpi-app .rg-ad-afyp { font-size: 11px; }
-  .kpi-app .rg-ad-val { font-size: 11px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 32px; height: 32px; }
-  .kpi-app .rg-ad-circle-text { font-size: 9px; }
-  .kpi-app .rg-ad-checkmark { width: 32px; height: 32px; }
-  .kpi-app .rg-ad-checkmark svg { width: 18px; height: 18px; }
+  /* Compact rg-card typography (override ≥900px base, vẫn compact để fit card height) */
+  .kpi-app .rg-head { padding: 7px 11px; }
+  .kpi-app .rg-head-name { font-size: 11px; }
+  .kpi-app .rg-head-pct { font-size: 15px; }
+  .kpi-app .rg-afyp-row { padding: 5px 11px 6px; }
+  .kpi-app .rg-afyp { font-size: 1rem; }
+  .kpi-app .rg-kh { font-size: 9px; }
+  .kpi-app .rg-prog { margin: 0 11px 5px; }
+  .kpi-app .rg-sum-cell { padding: 4px 5px; min-height: 30px; }
+  .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-sum-val { font-size: 12px; }
+  .kpi-app .rg-divider { display: none; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
+  .kpi-app .rg-ad-table thead th { font-size: 9px; padding: 4px 4px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 9px; }
+  .kpi-app .rg-ad-table tbody td { padding: 4px 4px; font-size: 10px; line-height: 1.15; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 9px; }
+  .kpi-app .rg-ad-name { font-size: 10px; }
+  .kpi-app .rg-ad-sub { font-size: 8px; }
+  .kpi-app .rg-ad-afyp { font-size: 10px; }
+  .kpi-app .rg-ad-val { font-size: 10px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 22px; height: 22px; }
+  .kpi-app .rg-ad-circle-text { font-size: 8px; }
+  .kpi-app .rg-ad-checkmark { width: 22px; height: 22px; }
+  .kpi-app .rg-ad-checkmark svg { width: 14px; height: 14px; }
   .kpi-app .sub-title { font-size: 28px; }
   .kpi-app .top3-grid { max-width: 980px; gap: 22px; }
   .kpi-app .top3-card { padding: 22px 18px 18px; }
@@ -1419,12 +1421,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-pct { font-size: 3.4rem; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.7rem; }
   .kpi-app .afyp-chart { min-height: 360px; }
-  .kpi-app .rg-head-name { font-size: 13px; }
-  .kpi-app .rg-head-pct { font-size: 20px; }
-  .kpi-app .rg-afyp { font-size: 1.4rem; }
-  .kpi-app .rg-sum-val { font-size: 17px; }
-  .kpi-app .rg-ad-name { font-size: 12px; }
-  .kpi-app .rg-ad-afyp, .kpi-app .rg-ad-val { font-size: 12px; }
+  /* rg-card typography giữ nguyên compact từ ≥1400px (đã phù hợp) — không override nữa */
   .kpi-app .sub-title { font-size: 30px; }
   .kpi-app #view-calendar .cal-wrap { max-width: 1160px; }
 }
