@@ -253,3 +253,45 @@ Stage Summary:
   + 4 ô phòng = tổng chiều cao cột trái ✓
   + Không scroll dọc (fit 1 màn hình) ✓
 - Bỏ divider "Tiến Độ Khu Vực" trên desktop
+
+---
+Task ID: fix-kpi-desktop-dept-cards-overflow
+Agent: main
+Task: Giao diện desktop KPI bên phòng ban bị mất (user paste screenshot 1446x776)
+
+Work Log:
+- User paste screenshot → VLM phân tích: 4 ô phòng ban hiển thị nhưng ô thứ 4 (BANCA-PA) thấp hơn 3 ô kia + có khoảng trắng
+- Inspect live bằng agent-browser (viewport 1446x776) → phát hiện 2 vấn đề:
+  1. **banca-separator ăn mất 15px**: card BANCA-PA = 126px, 3 card kia = 141px (lech 15px)
+  2. **Tất cả 4 card overflow:hidden clipping content**: scrollH=148-201px vs clientH=136px
+     → AD table bị clip về 6-14px (gần như vô hình)
+- Nguyên nhân gốc (sau khi fix #1 vẫn overflow):
+  + CSS compact trong @media (min-width: 900px) bị override bởi rules LỚN HƠN trong
+    @media (min-width: 1400px) (line 1363-1386 cũ) — viewport 1446px match cả 2, rule sau thắng
+  + Tại viewport 1446px: head=42px, afypRow=43px, summary=90px (2 row × 45px) → AD wrap chỉ còn 6px
+- Fix #1 (commit 74c5007): ẩn .banca-separator trên desktop (rg-card.is-banca đã có border-top vàng)
+- Fix #2 (commit d4661a5): compact rg-card typography trong @media (min-width: 1400px) và bỏ
+  overrides trong @media (min-width: 1700px) để inherit compact từ ≥1400px
+- Fix #3 (commit a2456da): summary từ 2x2 (65px) → 1 row 4-col (32px), tiết kiệm 33px cho AD table
+
+Verify live (commit a2456da) bằng agent-browser (viewport 1446x776):
+- 4 cards đều 141px (equal) ✓
+- 4 cards đều overflow: ok (scrollH ≤ clientH) ✓
+- Summary 1 row 4-col (PTKD 1-3) / 1 row 2-col (BANCA-PA) ✓
+- AD wrap heights: PTKD 1=66px, PTKD 2=38px (có afyp row), PTKD 3=66px, BANCA=0 (no AD) ✓
+- BANCA popup click → mở OK (popupDisplay: flex, z-index 200) ✓
+- Nav buttons: "Chi tiết nhóm" → view-detail active ✓, "Kế hoạch khung" → view-calendar active ✓
+- Mobile (390x844): desktopSplit display:none, layout mobile không bị break ✓
+- VLM verify screenshot: "4 ô phòng ban, cả 3 PTKD đều có bảng AD, layout cân đối" ✓
+
+Stage Summary:
+- Đã live commit a2456da: https://nc-link.vercel.app/kpi
+- 4 ô phòng ban bằng nhau (141px), không overflow, AD table hiển thị đầy đủ
+- BANCA-PA card: 141px (bằng 3 card kia), border-top vàng phân biệt, click → popup
+- Layout desktop fit 1 màn hình (600px = calc(100vh - 230px) at viewport 776px)
+- Mobile không bị ảnh hưởng (CSS chỉ trong @media min-width 900px/1400px/1700px)
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- Khi compact CSS trong @media (min-width: 900px) mà vẫn không có hiệu lực → kiểm tra
+  xem có rules tương ứng trong @media (min-width: 1400px) và (min-width: 1700px) không
+  → phải compact ở TẤT CẢ breakpoints, không chỉ ≥900px
