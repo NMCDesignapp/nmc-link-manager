@@ -167,3 +167,36 @@ Stage Summary:
 - Card Banca click mở popup OK
 - Period dropdown OK
 - DS đối tượng detail view: nguồn từ trang Quản lý (structureTvv/Phong/Ad/BanNhom)
+
+---
+Task ID: fix-kpi-detail-tn-source
+Agent: main
+Task: Trang Chi tiết nhóm lấy TN từ DS TVV + fallback → sai (Hiệp Tiến hiện Lê Thị Uyên Ương)
+
+Work Log:
+- User phàn nàn: detail view đang lấy DS TVV (tvvStructList) rồi filter theo chucVu
+  để tìm TN → fallback tào lao. Nhóm Hiệp Tiến hiện TN sai là "Lê Thị Uyên Ương"
+- Phân tích:
+  + appData.leaders = DS TB/TN (LeaderInfo table, có maNhom, position, agentName)
+  + appData.structureTvv = DS TVV (riêng biệt, có maBanNhom, chucVu)
+  + Quản lý page line 2250 đã có pattern đúng: leaders.find(l => l.maNhom === n.maBanNhom && isTBorTNPosition(l.position))
+- Sửa:
+  + Thêm helper isTBorTNPosition (copy từ thi-dua/quan-ly) — loại TTN, chỉ nhận TB/TN
+  + detailData (line 2488): thay tvvStructList.filter + sort → rawData.leaders.find
+    với cùng pattern Quản lý. KHÔNG fallback — không có thì tnName = ''
+  + Bỏ tvvStructList khỏi deps useMemo
+- Verify live (commit 3e2d5be) bằng agent-browser:
+  + Mở /kpi desktop → click "Chi tiết nhóm"
+  + "Nhóm Hiệp Tiến - TN: Nguyễn Thị Thảo" ✓ (đúng từ DS TB/TN)
+  + Các nhóm khác: Tiên Phong → Phạm Thị Kim Chung, Sao Châu Phú → Đỗ Thị Thùy Linh, Hoa Sen → Nguyễn Thị Bé Hương, Tinh Hoa → Nguyễn Thị Diễm Kiều, An Kiên Phát → Trương Văn Đậm
+
+Stage Summary:
+- Đã live commit 3e2d5be: https://nc-link.vercel.app/kpi
+- Detail view: TN lấy từ DS TB/TN (appData.leaders), match theo maNhom = maBanNhom
+- KHÔNG fallback, KHÔNG dùng DS TVV
+- Source pattern đồng nhất với trang Quản lý (line 2250) và thi-dua-chau (subjectLists)
+
+QUY TẮC CỐ ĐỊNH MỚI (bổ sung vào worklog):
+- Trang KPI detail view: TN = rawData.leaders.find(maNhom === bn.maBanNhom && isTBorTN)
+- KHÔNG được dùng tvvStructList để tìm TN — DS TVV là DS TVV, DS TB/TN là DS TB/TN
+- Pattern thống nhất 3 trang: KPI detail, Quản lý, Thi đua → cùng dùng leaders + isTBorTNPosition
