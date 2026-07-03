@@ -536,6 +536,12 @@ export default function ThiDuaPage() {
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
+  // NGUỒN ĐÚNG cho DS đối tượng thi đua (theo yêu cầu user):
+  //   - TN  ← leaders (DS TB/TN mục Cấu trúc)
+  //   - TTN ← recruiterList (DS TTN mục Cấu trúc)
+  //   - TVV/TVVm ← tvvStructList (DS TVV mục Cấu trúc, lọc TVVm theo ngayBatDau ≤ 12 tháng)
+  const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
+  const [leadersList, setLeadersList] = useState<any[]>([]);
   // revenueData removed — all data now sourced from Contracts table only
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
@@ -568,16 +574,30 @@ export default function ThiDuaPage() {
     try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
   }, []);
 
+  // Fetch DS TVV từ Cấu trúc — nguồn ĐÚNG cho DS đối tượng TVV/TVVm
+  const fetchTvvStruct = useCallback(async () => {
+    try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch { /* silent */ }
+  }, []);
+
+  // Fetch DS TB/TN (Leaders) từ Cấu trúc — nguồn ĐÚNG cho DS đối tượng TN
+  const fetchLeaders = useCallback(async () => {
+    try { const res = await fetch('/api/leaders'); if (res.ok) { const data = await res.json(); setLeadersList(data); } } catch { /* silent */ }
+  }, []);
+
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion } = useAppData();
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
+  // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
+  // user sửa DS TVV / DS TB/TN ở trang Quản lý (Cấu trúc) → reload context → dataVersion bump.
   useEffect(() => {
     if (appData.contracts && appData.contracts.length > 0) setContracts(appData.contracts);
     if (appData.contests) setSavedContests(appData.contests);
     if (appData.staff) setStaffList(appData.staff);
     if (appData.recruiters) setRecruiterList(appData.recruiters);
-  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, dataVersion]);
+    if (appData.structureTvv) setTvvStructList(appData.structureTvv);
+    if (appData.leaders) setLeadersList(appData.leaders);
+  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, appData.structureTvv, appData.leaders, dataVersion]);
 
   // fetchRevenue removed — all data now sourced from Contracts table only
 
@@ -586,7 +606,7 @@ export default function ThiDuaPage() {
   const handleRefreshData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters()]);
+      await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchTvvStruct(), fetchLeaders()]);
       // Show success indicator
       const contractRes = await fetch('/api/contracts');
       if (contractRes.ok) {
@@ -600,7 +620,7 @@ export default function ThiDuaPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchContracts, fetchStaff, fetchRecruiters, contracts.length]);
+  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchTvvStruct, fetchLeaders, contracts.length]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
@@ -680,44 +700,58 @@ export default function ThiDuaPage() {
   }, [thiDuaSubjects]);
 
   // ===== 4 danh sách đối tượng dùng cho nút chọn nhanh =====
-  // NGUỒN DUY NHẤT: trang Quản lý (Staff table & Recruiter table).
-  // KHÔNG dùng Contracts (file doanh số) để xác định ai là TVV.
-  // KHÔNG dùng fallback — staff.startDate/position null → giữ null, KHÔNG lấy từ Contracts.
+  // NGUỒN (theo yêu cầu user — lấy từ mục Cấu trúc của trang Quản lý):
+  //   - TVVm:   DS TVV (Cấu trúc) có ngayBatDau ≤ 12 tháng, KHÔNG phải TB/TN/TTN
+  //   - TVV cũ: DS TVV (Cấu trúc) KHÔNG phải TVVm VÀ KHÔNG phải TB/TN/TTN
+  //   - TTN:    DS TTN (Cấu trúc) — recruiterList (/api/recruiters)
+  //   - TN:     DS TB/TN (Cấu trúc) — leadersList (/api/leaders), lọc isTBorTNPosition
   //
-  // TVVm:   DS TVV có staff.startDate → nay ≤ 12 tháng
-  // TVV cũ: DS TVV KHÔNG phải TVVm VÀ KHÔNG phải ban cán (position không phải TB/TN/TTN)
-  // TTN:    DS TTN từ Recruiter table (DS TTN ở Cấu trúc)
-  // TN:     DS TB/TN từ Staff table (DS TB/TN ở Cấu trúc — loại TTN)
+  // KHÔNG dùng /api/staff (chỉ 26 records TB/TN) để xác định TVV.
+  // KHÔNG dùng Contracts (file doanh số) để xác định ai là TVV.
+  // KHÔNG dùng fallback — null/empty thì giữ null/empty.
+  //
+  // Tự động cập nhật: tvvStructList/leadersList/recruiterList được sync từ AppDataContext,
+  // khi user sửa ở trang Quản lý (Cấu trúc) → context reload → dataVersion bump → sync lại.
   const subjectLists = useMemo(() => {
-    // Unique theo agentCode — staffList có thể có trùng (cùng agentCode nhiều nhóm)
-    const staffMap = new Map<string, StaffMember>();
-    for (const s of staffList) {
-      if (s.agentCode && !staffMap.has(s.agentCode)) staffMap.set(s.agentCode, s);
+    // Unique theo agentCode — tvvStructList có thể có trùng (cùng agentCode nhiều nhóm)
+    const tvvMap = new Map<string, TVVStructItem>();
+    for (const t of tvvStructList) {
+      if (t.agentCode && !tvvMap.has(t.agentCode)) tvvMap.set(t.agentCode, t);
     }
-    const staffAll = Array.from(staffMap.values());
+    const tvvAll = Array.from(tvvMap.values());
 
-    const tvvm = staffAll
-      .filter(s => isTVVm(s.startDate))
-      .map(s => s.agentCode)
+    // TVVm: DS TVV có ngayBatDau → nay ≤ 12 tháng, KHÔNG phải TB/TN/TTN
+    const tvvm = tvvAll
+      .filter(t => isTVVm(t.ngayBatDau))
+      .filter(t => !isTTNPosition(t.chucVu) && !isTBorTNPosition(t.chucVu))
+      .map(t => t.agentCode)
       .filter(Boolean);
 
-    const tvvCu = staffAll
-      .filter(s => !isTVVm(s.startDate))
-      .filter(s => !isTTNPosition(s.position) && !isTBorTNPosition(s.position))
-      .map(s => s.agentCode)
+    // TVV cũ: DS TVV KHÔNG phải TVVm VÀ KHÔNG phải TB/TN/TTN
+    const tvvCu = tvvAll
+      .filter(t => !isTVVm(t.ngayBatDau))
+      .filter(t => !isTTNPosition(t.chucVu) && !isTBorTNPosition(t.chucVu))
+      .map(t => t.agentCode)
       .filter(Boolean);
 
-    const tn = staffAll
-      .filter(s => isTBorTNPosition(s.position))
-      .map(s => s.agentCode)
+    // TN: DS TB/TN từ leadersList (/api/leaders — DS TB/TN mục Cấu trúc)
+    //    lọc isTBorTNPosition (loại TTN)
+    const tnMap = new Map<string, any>();
+    for (const l of leadersList) {
+      if (l.agentCode && !tnMap.has(l.agentCode)) tnMap.set(l.agentCode, l);
+    }
+    const tn = Array.from(tnMap.values())
+      .filter(l => isTBorTNPosition(l.position))
+      .map(l => l.agentCode)
       .filter(Boolean);
 
+    // TTN: DS TTN từ recruiterList (/api/recruiters — DS TTN mục Cấu trúc)
     const ttn = recruiterList
       .map(r => r.agentCode)
       .filter(Boolean);
 
     return { tvvm, tvvCu, tn, ttn };
-  }, [staffList, recruiterList]);
+  }, [tvvStructList, leadersList, recruiterList]);
 
   // Toggle 1 trong 4 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
   const toggleSubjectType = useCallback((type: 'tvvm' | 'tvvcu' | 'ttn' | 'tn') => {
