@@ -132,3 +132,38 @@ Stage Summary:
 - Đã live: https://nc-link.vercel.app/kpi commit 2bf01e1
 - User Ctrl+Shift+R: chỉ còn 1 block Công Ty trên desktop
 - Nếu nút vẫn không ăn → hỏi user nút cụ thể để fix tiếp
+
+---
+Task ID: fix-kpi-desktop-view-switching
+Agent: main
+Task: 2 nút Chi tiết nhóm + Kế hoạch khung trên desktop không "qua trang", detail hiện dưới cùng
+
+Work Log:
+- Dùng agent-browser test live → phát hiện: sau click nav-detail/nav-plan, #view-main vẫn display:flex
+- Nguyên nhân: rule '.kpi-app #view-main { display: flex; flex-direction: column }' (line 1115)
+  có specificity cao hơn '.view' và '.view.active' → ép #view-main luôn hiện dù không có class .active
+- Fix: thêm rule '.kpi-app #view-main:not(.active) { display: none !important }'
+- Verify live trên nc-link.vercel.app (commit 929700a) bằng agent-browser:
+  + Click "Chi tiết nhóm": main=none, detail=block ✓
+  + Click Back: main=flex, detail=none ✓
+  + Click "Kế hoạch khung": main=none, cal=block, scrollY=0 ✓
+  + Click "Thi đua" → /quan-ly ✓
+  + Click "Chính sách 2026" → /quan-ly ✓
+  + Click "CLB Sao Việt" → /quan-ly ✓
+  + Period dropdown mở OK (19 options)
+  + Click card Banca → popup mở OK
+
+Câu hỏi user "danh sách đối tượng trong trang chi tiết nhóm lấy ở đâu":
+- detailData (line 2411) build từ rawData.contracts (file doanh số) — dùng để tính AFYP/IP cho từng nhóm
+- DANH SÁCH nhóm/AD/TVV (tvvStructList, phongStructList, adStructList, banNhomStructList)
+  lấy từ appData.structureTvv / structurePhong / structureAd / structureBanNhom
+  → đây là data từ trang Quản lý (Cấu trúc), KHÔNG phải từ Contracts
+- Logic detail: duyệt struct hierarchy (Phong > AD > BanNhom) → match contracts vào
+  → đúng quy tắc "DS từ trang Quản lý, Contracts chỉ để tính doanh số"
+
+Stage Summary:
+- Đã live: https://nc-link.vercel.app/kpi commit 929700a
+- 5 nút nav trên desktop đều hoạt động: Chi tiết nhóm / Kế hoạch khung (switch view) + Thi đua / Chính sách / CLB (link /quan-ly)
+- Card Banca click mở popup OK
+- Period dropdown OK
+- DS đối tượng detail view: nguồn từ trang Quản lý (structureTvv/Phong/Ad/BanNhom)
