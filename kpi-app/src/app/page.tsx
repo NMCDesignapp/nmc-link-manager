@@ -1224,10 +1224,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
   /* --- 4 ô PHÒNG xếp DỌC, bằng nhau, fill hết chiều cao split-right --- */
   /* kpi-stack đã bị bỏ trong split-right — dept-section là direct grid item */
-  .kpi-app .dept-section { display: flex; min-width: 0; min-height: 0; }
+  .kpi-app .dept-section { display: flex; min-width: 0; min-height: 0; overflow: hidden; }
   .kpi-app .dept-section > .rg-card,
-  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; min-width: 0; min-height: 0; }
-  .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; }
+  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden; }
+  .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; min-height: 0; }
+  /* rg-card content scroll nếu overflow — không đẩy layout */
+  .kpi-app .rg-card .rg-ad-wrap { overflow-y: auto; flex: 1 1 0; min-height: 0; }
 
   /* --- Region divider: ẩn trên desktop (đã bỏ theo yêu cầu user) --- */
   .kpi-app .region-divider { display: none !important; }
