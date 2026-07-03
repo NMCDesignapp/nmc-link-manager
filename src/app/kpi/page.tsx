@@ -1691,6 +1691,17 @@ interface PhongStructure { id: string; maPhong: string; tenPhong: string; note: 
 interface BanNhomStructure { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string; note: string; }
 interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; note: string; }
 
+// Helper: kiểm tra position có phải TB/TN (Trưởng Ban / Trưởng Nhóm) — loại TTN
+// Dùng cho DS TB/TN (leaders table) — KHÔNG fallback, không lấy từ DS TVV
+function isTBorTNPosition(position: string | null | undefined): boolean {
+  const p = (position || '').toLowerCase().trim();
+  if (!p) return false;
+  if (p.includes('tiền trưởng nhóm') || p.includes('trưởng tổ nhóm') || p === 'ttn' || p.includes('ttn ') || p.includes(' ttn')) return false;
+  if (p.includes('trưởng ban') || p.includes('trưởng nhóm')) return true;
+  const tokens = p.split(/[\s,;/|\\-]+/).filter(Boolean);
+  return tokens.includes('tb') || tokens.includes('tn');
+}
+
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
 interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
@@ -2474,15 +2485,13 @@ export default function KPIDashboard() {
           // để tránh sai lệch % khi AFYP/KH nhỏ (vd 10.5M / 8.3M = 126.5% thay vì 11/8 = 137.5%).
           const pct = periodKh > 0 ? (afyp / periodKh * 100) : 0;
 
-          // Get TN (Trưởng Nhóm/Ban) only — no TVV as per user request
-          const chucVuOrder: Record<string, number> = { 'Trưởng Ban': 1, 'Trưởng nhóm': 2, 'Tiền trưởng nhóm': 3 };
-          const bnTNs = tvvStructList.filter(t =>
-            t.maBanNhom === bn.maBanNhom &&
-            (normKey(t.chucVu).includes('TRUONG') || normKey(t.chucVu).includes('TN'))
-          ).sort((a, b) => (chucVuOrder[a.chucVu] ?? 99) - (chucVuOrder[b.chucVu] ?? 99));
-
-          // Get TN name for display (first TN found)
-          const tnName = bnTNs.length > 0 ? bnTNs[0].agentName : '';
+          // Get TN (Trưởng Nhóm/Ban) từ DS TB/TN (leaders table) — KHÔNG dùng DS TVV
+          // Match theo maNhom === bn.maBanNhom (cùng pattern với trang Quản lý)
+          // KHÔNG fallback — nếu không có TN trong DS TB/TN thì để trống
+          const tnLeader = rawData.leaders.find(l =>
+            l.maNhom === bn.maBanNhom && isTBorTNPosition(l.position)
+          );
+          const tnName = tnLeader?.agentName || '';
 
           items.push({
             name: bn.tenBanNhom,
@@ -2502,7 +2511,7 @@ export default function KPIDashboard() {
 
     items.sort((a, b) => b.pct - a.pct);
     return items;
-  }, [rawData, detailMonth, CUR_YEAR, banNhomStructList, adStructList, phongStructList, tvvStructList, onlineSettings]);
+  }, [rawData, detailMonth, CUR_YEAR, banNhomStructList, adStructList, phongStructList, onlineSettings]);
 
   /* ============= AD detail popup data ============= */
   const adPopupData = useMemo(() => {
