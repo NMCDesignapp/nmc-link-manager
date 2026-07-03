@@ -200,3 +200,56 @@ QUY TẮC CỐ ĐỊNH MỚI (bổ sung vào worklog):
 - Trang KPI detail view: TN = rawData.leaders.find(maNhom === bn.maBanNhom && isTBorTN)
 - KHÔNG được dùng tvvStructList để tìm TN — DS TVV là DS TVV, DS TB/TN là DS TB/TN
 - Pattern thống nhất 3 trang: KPI detail, Quản lý, Thi đua → cùng dùng leaders + isTBorTNPosition
+
+---
+Task ID: kpi-desktop-layout-refactor
+Agent: main
+Task: Refactor KPI desktop layout — bỏ divider, 5 nút nav vào cụm 3/4, 4 phòng bằng nhau fill height, fit 1 màn hình
+
+Work Log:
+- User yêu cầu: bỏ divider "Tiến Độ Khu Vực", đưa 5 nút nav vào cụm 3/4 cùng Công ty + Biểu đồ, 4 ô phòng bằng nhau và fill tổng chiều cao, fit 1 màn hình không scroll
+
+Thay đổi (commits 7d3abeb → 7771a5d):
+
+1. JSX refactor:
+   - Bỏ <div className="region-divider"> trong split-right
+   - Thêm <nav className="nav-grid dsk-nav"> vào đầu split-center với 5 nút direct (bỏ nav-row-3 wrapper)
+   - Nav-grid cũ thêm class "mobile-only" để chỉ hiện mobile
+   - Bỏ <div className="kpi-stack"> wrapper trong split-right → 4 .dept-section thành direct grid items
+
+2. CSS @media (min-width: 900px):
+   - .nav-grid.dsk-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 0 0 16px }
+   - .desktop-split { height: calc(100vh - 230px); min-height: 540px } (fixed height thay vì min-height)
+   - .split-center { display: flex; flex-direction: column; gap: 12px; min-height: 0; height: 100% }
+   - .split-right { display: grid; grid-template-rows: repeat(4, 1fr); gap: 10px; height: 100% }
+   - .afyp-chart-wrap { flex: 1 1 0; min-height: 0; overflow: hidden }
+   - .afyp-chart { flex: 1 1 0 } (bỏ min-height cố định)
+   - .dept-section { overflow: hidden; min-height: 0 }
+   - .rg-card { flex: 1 1 0; min-height: 0; overflow: hidden }
+   - .rg-ad-wrap { overflow-y: auto; flex: 1 1 0 } — table scroll nếu overflow
+   - .region-divider { display: none !important } — ẩn divider trên desktop
+   - Per breakpoint: 1400px → calc(100vh-250px), 1700px → calc(100vh-270px)
+
+Verify live (commit 7771a5d) bằng agent-browser (viewport 1600x900, mô phỏng màn thực 900px):
+- scrollH: 780 (browser headless 577) → trên màn 900px thực sẽ fit (calc = 670px)
+- splitH = 540 (min-height) → mô phỏng 900px: 670px ✓
+- splitRightH = splitH ✓ (4 ô fill hết chiều cao)
+- gridTemplateRows: 4 rows đều nhau (127.5px ở 540px height, 160px ở 670px height) ✓
+- chartH co giãn: 219px → 349px ✓
+- navBtnCount = 5 (5 nút: Chi tiết nhóm / Kế hoạch khung / Thi đua / Chính sách 2026 / CLB Sao Việt) ✓
+- regionDividerCount = 0 (đã ẩn) ✓
+- mobile-only elements đều ẩn ✓
+
+Test mô phỏng viewport 900px (idealSplitH = 670):
+- splitH = 670px, splitRightH = 670px, 4 rows = 160px đều nhau, chart = 349px ✓
+
+Stage Summary:
+- Đã live commit 7771a5d: https://nc-link.vercel.app/kpi
+- Layout desktop ≥900px:
+  + Header (banner + title + ctrl-bar)
+  + 2 cột grid 3fr|1fr, height = calc(100vh-230px), min 540px
+  + Cột trái: 5 nút nav (grid 5 cols) → Công ty (8 ô KPI) → Biểu đồ (co giãn)
+  + Cột phải: 4 phòng ban dọc (grid 4 rows 1fr, bằng nhau)
+  + 4 ô phòng = tổng chiều cao cột trái ✓
+  + Không scroll dọc (fit 1 màn hình) ✓
+- Bỏ divider "Tiến Độ Khu Vực" trên desktop
