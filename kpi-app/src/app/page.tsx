@@ -3019,8 +3019,8 @@ export default function KPIDashboard() {
 
           {dashboard && !loading && (
             <>
-              {/* Company Card (Mobile) */}
-              <div id="kpi-company">
+              {/* Company Card (Mobile) — chỉ hiển thị mobile, ẩn desktop để tránh trùng với .dsk-company */}
+              <div id="kpi-company" className="mobile-only">
                 <div className={`kpi-card kpi-cty anim-in${glowCls(pct)}`}>
                   <div className="cty-inner">
                     <div className="cty-head">
