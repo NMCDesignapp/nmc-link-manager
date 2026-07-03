@@ -1141,16 +1141,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .nav-btn { flex: 1; padding: 11px 14px; font-size: 12px; border-radius: 7px; white-space: nowrap; }
   .kpi-app .nav-btn .nav-icon svg { width: 18px; height: 18px; }
 
-  /* --- Company strip (hero KPI panel) --- */
-  .kpi-app .kpi-cty { display: none !important; }
+  /* --- Company strip — BỎ NỀN TỔNG (các ô đã tách biệt) --- */
   .kpi-app .dsk-company {
     display: flex; flex-direction: column; gap: 0;
-    background: linear-gradient(135deg, #0d2137 0%, #153a5e 50%, #0d2137 100%);
-    border: 1px solid #2e5a8a; border-radius: 14px; overflow: hidden;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
     margin-top: 20px;
-    box-shadow: 0 10px 36px rgba(0,0,0,.45), 0 0 40px rgba(26,90,154,.12);
+    box-shadow: none;
   }
-  .kpi-app .dsk-cty-top { display: grid; grid-template-columns: 280px 1fr; gap: 6px; padding: 6px; }
+  .kpi-app .dsk-cty-top { display: grid; grid-template-columns: 280px 1fr; gap: 10px; padding: 0; }
   .kpi-app .dsk-cty-left { display: flex; flex-direction: column; border-radius: 9px; overflow: hidden; }
   .kpi-app .dsk-cty-main-head { padding: 9px 18px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 8px; }
   .kpi-app .dsk-cty-main-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .14em; color: #fff; }
@@ -1180,12 +1181,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-progress { width: 100%; height: 5px; background: #0d1e36; }
   .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px rgba(64,216,144,.32); }
 
-  /* --- Desktop split: CHART FULL-WIDTH (top) + 3-COL DEPT GRID (bottom) ---
-     User spec: 3 ô của 3 phòng bằng nhau về kích thước, nằm trên cùng 1 dòng. --- */
-  .kpi-app .desktop-split { display: flex; flex-direction: column; gap: 20px; width: 100%; align-self: center; align-items: stretch; margin-top: 24px; }
+  /* --- Desktop split: 2 CỘT — TRÁI (3/4): company + chart stacked | PHẢI (1/4): 4 phòng dọc --- */
+  .kpi-app .desktop-split { display: grid; grid-template-columns: 3fr 1fr; gap: 24px; width: 100%; align-items: stretch; margin-top: 24px; }
   .kpi-app .split-left { display: none; }
-  .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: static; align-self: stretch; width: 100%; }
-  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; width: 100%; }
+  .kpi-app .split-center { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; min-width: 0; padding-left: 4px; border-left: 1px solid rgba(255,255,255,.06); }
   .kpi-app .afyp-chart-wrap { padding: 20px 22px 22px; border-radius: 14px; }
   .kpi-app .afyp-chart-title { font-size: .95rem; font-weight: 800; margin-bottom: 16px; gap: 10px; }
   .kpi-app .afyp-chart-title svg { width: 18px; height: 18px; }
@@ -1198,49 +1198,49 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .legend-item { font-size: .78rem; }
   .kpi-app .legend-dot { width: 12px; height: 12px; }
 
-  /* --- 3-COLUMN DEPT GRID: 3 ô bằng nhau, cùng 1 dòng --- */
-  .kpi-app .kpi-stack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 0; align-items: stretch; }
+  /* --- 4 ô PHÒNG xếp DỌC ở cột phải (1/4 màn hình), cân trên-dưới --- */
+  .kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 0; justify-content: flex-start; flex: 1; }
   .kpi-app .dept-section { display: flex; min-width: 0; }
   .kpi-app .dept-section > .rg-card,
-  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 0; min-width: 0; height: 100%; }
+  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; min-width: 0; }
   .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; }
 
-  /* --- Region divider --- */
-  .kpi-app .region-divider { margin: 0 0 4px; }
-  .kpi-app .region-divider-title { font-size: 11px; letter-spacing: .22em; }
+  /* --- Region divider (đặt đầu cột phải) --- */
+  .kpi-app .region-divider { margin: 0 0 8px; }
+  .kpi-app .region-divider-title { font-size: 10px; letter-spacing: .18em; }
 
-  /* --- Department cards (rg-card) — desktop typography & spacing --- */
-  .kpi-app .rg-head { padding: 12px 14px; }
-  .kpi-app .rg-head-left { gap: 8px; }
-  .kpi-app .rg-head-name { font-size: 13px; letter-spacing: .04em; }
-  .kpi-app .rg-head-pct { font-size: 20px; }
-  .kpi-app .rg-afyp-row { padding: 12px 14px; }
-  .kpi-app .rg-afyp { font-size: 1.45rem; }
+  /* --- Department cards (rg-card) — typography cho cột hẹp --- */
+  .kpi-app .rg-head { padding: 10px 12px; }
+  .kpi-app .rg-head-left { gap: 6px; }
+  .kpi-app .rg-head-name { font-size: 11px; letter-spacing: .03em; line-height: 1.2; }
+  .kpi-app .rg-head-pct { font-size: 16px; }
+  .kpi-app .rg-afyp-row { padding: 8px 12px; }
+  .kpi-app .rg-afyp { font-size: 1.05rem; }
   .kpi-app .rg-afyp-unit { font-size: .55em; }
-  .kpi-app .rg-kh { font-size: 11px; }
-  .kpi-app .rg-prog { height: 8px; margin: 0 14px 10px; border-radius: 99px; }
-  .kpi-app .rg-summary { grid-template-columns: repeat(2, 1fr); }
-  .kpi-app .rg-sum-cell { padding: 9px 6px; min-height: 50px; }
-  .kpi-app .rg-sum-label { font-size: 9px; margin-bottom: 3px; }
-  .kpi-app .rg-sum-val { font-size: 17px; }
+  .kpi-app .rg-kh { font-size: 9px; }
+  .kpi-app .rg-prog { height: 6px; margin: 0 12px 8px; border-radius: 99px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(2, 1fr); gap: 1px; }
+  .kpi-app .rg-sum-cell { padding: 6px 4px; min-height: 38px; }
+  .kpi-app .rg-sum-label { font-size: 8px; margin-bottom: 2px; }
+  .kpi-app .rg-sum-val { font-size: 13px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr); }
-  .kpi-app .rg-divider { margin: 0 14px; }
-  .kpi-app .rg-ad-wrap { padding: 8px 0 10px; }
-  .kpi-app .rg-ad-table { width: calc(100% - 28px); margin: 0 14px; font-size: 12px; border-radius: 5px; }
-  .kpi-app .rg-ad-table thead th { font-size: 10px; padding: 8px 6px; }
-  .kpi-app .rg-ad-table thead th:first-child { padding-left: 12px; }
-  .kpi-app .rg-ad-table tbody td { padding: 9px 6px; font-size: 12px; }
-  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 12px; }
-  .kpi-app .rg-ad-name { font-size: 12px; }
-  .kpi-app .rg-ad-sub { font-size: 10px; }
-  .kpi-app .rg-ad-afyp { font-size: 12px; }
+  .kpi-app .rg-divider { margin: 0 12px; }
+  .kpi-app .rg-ad-wrap { padding: 6px 0 8px; max-height: 180px; overflow-y: auto; }
+  .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; font-size: 10px; border-radius: 4px; }
+  .kpi-app .rg-ad-table thead th { font-size: 9px; padding: 6px 4px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 10px; }
+  .kpi-app .rg-ad-table tbody td { padding: 6px 4px; font-size: 10px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 10px; }
+  .kpi-app .rg-ad-name { font-size: 10px; }
+  .kpi-app .rg-ad-sub { font-size: 9px; }
+  .kpi-app .rg-ad-afyp { font-size: 10px; }
   .kpi-app .rg-ad-afyp-unit { font-size: .6em; }
-  .kpi-app .rg-ad-val { font-size: 12px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 34px; height: 34px; }
-  .kpi-app .rg-ad-circle-text { font-size: 9px; }
-  .kpi-app .rg-ad-checkmark { width: 34px; height: 34px; }
-  .kpi-app .rg-ad-checkmark svg { width: 20px; height: 20px; }
-  .kpi-app .rg-banca-tvv-count { font-size: 11px; padding: 5px 10px; }
+  .kpi-app .rg-ad-val { font-size: 10px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 26px; height: 26px; }
+  .kpi-app .rg-ad-circle-text { font-size: 8px; }
+  .kpi-app .rg-ad-checkmark { width: 26px; height: 26px; }
+  .kpi-app .rg-ad-checkmark svg { width: 16px; height: 16px; }
+  .kpi-app .rg-banca-tvv-count { font-size: 10px; padding: 4px 8px; }
 
   /* --- Hidden legacy desktop blocks --- */
   .kpi-app .kpi-phong { display: none !important; }
@@ -1314,7 +1314,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .kpi-notice-banner { height: 44px; }
   .kpi-app .kpi-notice-marquee { font-size: 14px; }
   .kpi-app .dsk-company { margin-top: 24px; }
-  .kpi-app .dsk-cty-top { grid-template-columns: 320px 1fr; gap: 12px; padding: 8px; }
+  .kpi-app .dsk-cty-top { grid-template-columns: 320px 1fr; gap: 14px; }
   .kpi-app .dsk-cty-tier { gap: 14px; }
   .kpi-app .dsk-cty-main-head { padding: 11px 22px; }
   .kpi-app .dsk-cty-main-label { font-size: 12px; }
@@ -1327,37 +1327,38 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi-label { font-size: 11px; }
   .kpi-app .dsk-cty-kpi-body { padding: 18px 10px; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.55rem; }
-  /* Desktop split giữ column layout; chỉ nới gap và font cho màn lớn */
-  .kpi-app .desktop-split { gap: 24px; margin-top: 28px; }
-  .kpi-app .kpi-stack { gap: 18px; }
+  /* Desktop split: 2 cột (3/4 + 1/4) — nới gap cho màn lớn */
+  .kpi-app .desktop-split { gap: 32px; margin-top: 28px; }
+  .kpi-app .split-center { gap: 24px; }
+  .kpi-app .kpi-stack { gap: 16px; }
   .kpi-app .afyp-chart-wrap { padding: 24px 26px 26px; }
   .kpi-app .afyp-chart-title { font-size: 1.05rem; margin-bottom: 18px; }
   .kpi-app .sum-val { font-size: 1.1rem; }
   .kpi-app .afyp-chart { min-height: 320px; }
-  .kpi-app .rg-head { padding: 14px 16px; }
-  .kpi-app .rg-head-name { font-size: 14px; }
-  .kpi-app .rg-head-pct { font-size: 22px; }
-  .kpi-app .rg-afyp-row { padding: 14px 16px; }
-  .kpi-app .rg-afyp { font-size: 1.6rem; }
-  .kpi-app .rg-kh { font-size: 12px; }
-  .kpi-app .rg-prog { margin: 0 16px 12px; }
-  .kpi-app .rg-sum-cell { padding: 11px 7px; min-height: 56px; }
-  .kpi-app .rg-sum-label { font-size: 10px; }
-  .kpi-app .rg-sum-val { font-size: 19px; }
-  .kpi-app .rg-divider { margin: 0 16px; }
-  .kpi-app .rg-ad-table { width: calc(100% - 32px); margin: 0 16px; font-size: 13px; }
-  .kpi-app .rg-ad-table thead th { font-size: 11px; padding: 10px 8px; }
-  .kpi-app .rg-ad-table thead th:first-child { padding-left: 14px; }
-  .kpi-app .rg-ad-table tbody td { padding: 11px 8px; font-size: 13px; }
-  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 14px; }
-  .kpi-app .rg-ad-name { font-size: 13px; }
-  .kpi-app .rg-ad-sub { font-size: 11px; }
-  .kpi-app .rg-ad-afyp { font-size: 13px; }
-  .kpi-app .rg-ad-val { font-size: 13px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 38px; height: 38px; }
-  .kpi-app .rg-ad-circle-text { font-size: 10px; }
-  .kpi-app .rg-ad-checkmark { width: 38px; height: 38px; }
-  .kpi-app .rg-ad-checkmark svg { width: 22px; height: 22px; }
+  .kpi-app .rg-head { padding: 12px 14px; }
+  .kpi-app .rg-head-name { font-size: 12px; }
+  .kpi-app .rg-head-pct { font-size: 18px; }
+  .kpi-app .rg-afyp-row { padding: 10px 14px; }
+  .kpi-app .rg-afyp { font-size: 1.25rem; }
+  .kpi-app .rg-kh { font-size: 10px; }
+  .kpi-app .rg-prog { margin: 0 14px 10px; }
+  .kpi-app .rg-sum-cell { padding: 8px 5px; min-height: 44px; }
+  .kpi-app .rg-sum-label { font-size: 9px; }
+  .kpi-app .rg-sum-val { font-size: 15px; }
+  .kpi-app .rg-divider { margin: 0 14px; }
+  .kpi-app .rg-ad-table { width: calc(100% - 28px); margin: 0 14px; font-size: 11px; }
+  .kpi-app .rg-ad-table thead th { font-size: 10px; padding: 7px 5px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 12px; }
+  .kpi-app .rg-ad-table tbody td { padding: 8px 5px; font-size: 11px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 12px; }
+  .kpi-app .rg-ad-name { font-size: 11px; }
+  .kpi-app .rg-ad-sub { font-size: 9px; }
+  .kpi-app .rg-ad-afyp { font-size: 11px; }
+  .kpi-app .rg-ad-val { font-size: 11px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 32px; height: 32px; }
+  .kpi-app .rg-ad-circle-text { font-size: 9px; }
+  .kpi-app .rg-ad-checkmark { width: 32px; height: 32px; }
+  .kpi-app .rg-ad-checkmark svg { width: 18px; height: 18px; }
   .kpi-app .sub-title { font-size: 28px; }
   .kpi-app .top3-grid { max-width: 980px; gap: 22px; }
   .kpi-app .top3-card { padding: 22px 18px 18px; }
@@ -1379,19 +1380,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 1700px) {
   .kpi-app .app-wrap { max-width: 1560px; padding: 44px 48px 64px; }
   .kpi-app .hero-title { font-size: 2.6rem !important; }
-  .kpi-app .desktop-split { gap: 28px; }
-  .kpi-app .kpi-stack { gap: 20px; }
+  .kpi-app .desktop-split { gap: 40px; }
+  .kpi-app .split-center { gap: 28px; }
+  .kpi-app .kpi-stack { gap: 18px; }
   .kpi-app .dsk-cty-top { grid-template-columns: 360px 1fr; }
   .kpi-app .dsk-cty-tier { gap: 16px; }
   .kpi-app .dsk-cty-pct { font-size: 3.4rem; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.7rem; }
   .kpi-app .afyp-chart { min-height: 360px; }
-  .kpi-app .rg-head-name { font-size: 15px; }
-  .kpi-app .rg-head-pct { font-size: 24px; }
-  .kpi-app .rg-afyp { font-size: 1.8rem; }
-  .kpi-app .rg-sum-val { font-size: 21px; }
-  .kpi-app .rg-ad-name { font-size: 14px; }
-  .kpi-app .rg-ad-afyp, .kpi-app .rg-ad-val { font-size: 14px; }
+  .kpi-app .rg-head-name { font-size: 13px; }
+  .kpi-app .rg-head-pct { font-size: 20px; }
+  .kpi-app .rg-afyp { font-size: 1.4rem; }
+  .kpi-app .rg-sum-val { font-size: 17px; }
+  .kpi-app .rg-ad-name { font-size: 12px; }
+  .kpi-app .rg-ad-afyp, .kpi-app .rg-ad-val { font-size: 12px; }
   .kpi-app .sub-title { font-size: 30px; }
   .kpi-app #view-calendar .cal-wrap { max-width: 1160px; }
 }
@@ -3041,35 +3043,7 @@ export default function KPIDashboard() {
                   </div>
                 </div>
 
-                {/* Desktop Company Strip */}
-                <div className="dsk-company">
-                  <div className="dsk-cty-top">
-                    <div className="dsk-cty-left">
-                      <div className="dsk-cty-main-head"><Trophy size={13} style={{ color: '#fff' }} /><span className="dsk-cty-main-label">Công Ty</span></div>
-                      <div className="dsk-cty-main-body">
-                        <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
-                        {dashboard.total.kh > 0 && <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>}
-                        <div className="dsk-cty-afyp">{fmt(dashboard.total.afyp)}<span style={{ fontSize: '0.4em', fontWeight: 600, color: '#8ab8e0', marginLeft: 3 }}>đ</span></div>
-                        {dashboard.total.kh > 0 && <div className="dsk-cty-kh">/ KH: {fmt(Math.round(dashboard.total.kh))}đ</div>}
-                      </div>
-                    </div>
-                    <div className="dsk-cty-right">
-                      <div className="dsk-cty-tier">
-                        <div className="dsk-cty-kpi hd"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.lhd} /></div></div></div>
-                        <div className="dsk-cty-kpi td"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TUYỂN DỤNG</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.td} /></div></div></div>
-                        <div className="dsk-cty-kpi chuan"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ CHUẨN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.hdChuan} /></div></div></div>
-                        <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.tyTrong)}</div></div></div>
-                      </div>
-                      <div className="dsk-cty-tier">
-                        <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></div>
-                        <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ <span className="dsk-cty-kpi-sub">(TRĐ)</span></span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div></div>
-                        <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
-                        <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
-                      </div>
-                    </div>
-                  </div>
-                  {dashboard.total.kh > 0 && <div className="dsk-cty-progress"><div className="dsk-cty-progress-fill" style={{ width: `${cp}%` }} /></div>}
-                </div>
+                {/* Desktop Company Strip đã được chuyển vào trong .split-center (cột trái của desktop-split) */}
               </div>
 
               {/* Navigation Grid */}
@@ -3245,10 +3219,40 @@ export default function KPIDashboard() {
                 })}
               </div>
 
-              {/* Desktop Split Layout */}
+              {/* Desktop Split Layout: 2 cột — TRÁI (3/4): công ty + biểu đồ | PHẢI (1/4): 4 phòng dọc */}
               <div className="desktop-split">
                 <div className="split-left" id="split-company" />
                 <div className="split-center" id="split-chart">
+                  {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
+                  <div className="dsk-company">
+                    <div className="dsk-cty-top">
+                      <div className="dsk-cty-left">
+                        <div className="dsk-cty-main-head"><Trophy size={13} style={{ color: '#fff' }} /><span className="dsk-cty-main-label">Công Ty</span></div>
+                        <div className="dsk-cty-main-body">
+                          <div className="dsk-cty-pct"><AnimPct value={pct} /></div>
+                          {dashboard.total.kh > 0 && <div className="dsk-cty-prog-wrap"><div className="dsk-cty-prog"><div className="dsk-cty-prog-fill" style={{ width: `${cp}%` }} /></div></div>}
+                          <div className="dsk-cty-afyp">{fmt(dashboard.total.afyp)}<span style={{ fontSize: '0.4em', fontWeight: 600, color: '#8ab8e0', marginLeft: 3 }}>đ</span></div>
+                          {dashboard.total.kh > 0 && <div className="dsk-cty-kh">/ KH: {fmt(Math.round(dashboard.total.kh))}đ</div>}
+                        </div>
+                      </div>
+                      <div className="dsk-cty-right">
+                        <div className="dsk-cty-tier">
+                          <div className="dsk-cty-kpi hd"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.lhd} /></div></div></div>
+                          <div className="dsk-cty-kpi td"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TUYỂN DỤNG</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.td} /></div></div></div>
+                          <div className="dsk-cty-kpi chuan"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">LƯỢT HĐ CHUẨN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.hdChuan} /></div></div></div>
+                          <div className="dsk-cty-kpi ip"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">TỶ TRỌNG IP</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{Math.round(dashboard.total.tyTrong)}</div></div></div>
+                        </div>
+                        <div className="dsk-cty-tier">
+                          <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></div>
+                          <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ <span className="dsk-cty-kpi-sub">(TRĐ)</span></span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div></div>
+                          <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
+                          <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Biểu đồ AFYP — nằm dưới company strip ở cột trái */}
                   <div className="afyp-chart-wrap">
                     <div className="afyp-chart-title"><BarChart3 size={14} style={{ color: '#38bdf8' }} /> Biến động AFYP theo tháng</div>
                     <div className="afyp-chart-summary">
