@@ -58,3 +58,34 @@ Stage Summary — CÁC QUY TẮC CỐ ĐỊNH (đọc kỹ mỗi lần làm vi�
 6. Đợi 90s, verify trên nc-link.vercel.app
 7. Báo user: đã live + cách verify
 8. Append work log vào worklog.md
+
+---
+Task ID: fix-thi-dua-subject-lists
+Agent: main
+Task: Sửa cách lấy đối tượng TVVm/TVV cũ trên trang thi đua — TVVm chỉ 103, TVV cũ chỉ 109
+
+Work Log:
+- Đọc worklog.md để nắm context quy tắc cố định (deploy Vercel, verify, vv)
+- Phân tích src/app/thi-dua-chau/page.tsx, phần subjectLists useMemo (line ~673)
+- Phát hiện bug: tvvAll được build từ `contracts` thay vì `staffList`
+  → Chỉ đếm TVV đã có HĐ trong data → TVV chưa có doanh số bị bỏ sót
+  → TVVm 103, TVV cũ 109 (số thực tế phải cao hơn)
+- Sửa logic:
+  + tvvAll giờ build từ staffList (DS TVV đầy đủ từ Cấu trúc)
+  + resolveStartDate: ưu tiên staff.startDate, fallback contract.ngayBatDauLamViec → contract.startDate
+  + resolvePosition: ưu tiên staff.position, fallback contract.position
+  + Unique agentCode ở cả staffList (tránh trùng khi 1 agent ở nhiều nhóm)
+  + Áp dụng cùng resolveStartDate/resolvePosition cho TN list để đồng bộ
+- tsc --noEmit: không có lỗi mới trong file đã sửa
+- git pull --rebase + git push origin main → commit e6198b0
+- Verify: curl https://nc-link.vercel.app/thi-dua-chau → HTTP 200
+
+Stage Summary:
+- Đã live trên Vercel: trang /thi-dua-chau
+- Sau khi user reload (Ctrl+Shift+R), 4 nút chọn nhanh đối tượng sẽ hiển thị:
+  + TVVm: số lượng tăng (bao gồm cả TVV chưa có HĐ)
+  + TVV cũ: số lượng tăng tương ứng
+  + TN: dùng cùng nguồn staffList, position resolve fallback contract
+  + TTN: không đổi (vẫn từ recruiterList)
+- Logic resolve startDate/position thống nhất với phần TVV total mode (line 1256, 1292)
+  vốn đã ưu tiên staff.startDate trước → không còn mismatch.
