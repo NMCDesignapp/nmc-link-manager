@@ -77,6 +77,20 @@ interface RecruiterMember {
   position: string; startDate: string | null;
 }
 
+// TVV structure item — DS TVV đầy đủ từ /api/structure/tvv (gồm TẤT CẢ TVV, TTN, TB, TN)
+// QUAN TRỌNG: nguồn này để xác định DS đối tượng thi đua (TVVm / TVV cũ / TN), KHÔNG dùng /api/staff
+// vì /api/staff chỉ có 26 records (DS TB/TN leaders), không có TVV thường.
+interface TVVStructItem {
+  id: string;
+  agentCode: string;
+  agentName: string;
+  maBanNhom: string;
+  chucVu: string;        // "Tư vấn tài chính" | "Tiền trưởng nhóm" | "Trưởng nhóm" | "Trưởng ban" | ...
+  ngayBatDau: string | null;  // startDate — ISO date string
+  maTVVTuyendung?: string;
+  note?: string;
+}
+
 // MonthlyRevenueRow removed — all data now sourced from Contracts table only
 
 interface SavedContest {
