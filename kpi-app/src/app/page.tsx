@@ -1243,16 +1243,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-head-left { gap: 5px; }
   .kpi-app .rg-head-name { font-size: 10px; letter-spacing: .03em; line-height: 1.15; }
   .kpi-app .rg-head-pct { font-size: 14px; }
-  .kpi-app .rg-afyp-row { padding: 4px 10px 5px; }
-  .kpi-app .rg-afyp { font-size: .92rem; }
+  .kpi-app .rg-afyp-row { padding: 3px 10px 4px; }
+  .kpi-app .rg-afyp { font-size: .85rem; }
   .kpi-app .rg-afyp-unit { font-size: .55em; }
   .kpi-app .rg-kh { font-size: 8px; }
   .kpi-app .rg-prog { height: 4px; margin: 0 10px 4px; border-radius: 99px; }
-  .kpi-app .rg-summary { grid-template-columns: repeat(2, 1fr); gap: 1px; }
-  .kpi-app .rg-sum-cell { padding: 3px 4px; min-height: 26px; }
+  /* Summary: 1 row 4-col trên desktop để tiết kiệm chiều dọc cho AD table */
+  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; gap: 1px; }
+  .kpi-app .rg-sum-cell { padding: 3px 2px; min-height: 26px; }
   .kpi-app .rg-sum-label { font-size: 7.5px; margin-bottom: 1px; }
   .kpi-app .rg-sum-val { font-size: 11px; }
-  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr); }
+  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
@@ -1369,13 +1370,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-head { padding: 7px 11px; }
   .kpi-app .rg-head-name { font-size: 11px; }
   .kpi-app .rg-head-pct { font-size: 15px; }
-  .kpi-app .rg-afyp-row { padding: 5px 11px 6px; }
-  .kpi-app .rg-afyp { font-size: 1rem; }
+  .kpi-app .rg-afyp-row { padding: 4px 11px 5px; }
+  .kpi-app .rg-afyp { font-size: .95rem; }
   .kpi-app .rg-kh { font-size: 9px; }
   .kpi-app .rg-prog { margin: 0 11px 5px; }
-  .kpi-app .rg-sum-cell { padding: 4px 5px; min-height: 30px; }
+  /* Summary: 1 row 4-col trên desktop lớn */
+  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-sum-cell { padding: 4px 3px; min-height: 30px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
   .kpi-app .rg-sum-val { font-size: 12px; }
+  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
