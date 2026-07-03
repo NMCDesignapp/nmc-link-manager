@@ -1113,6 +1113,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .afyp-chart-wrap { display: block; }
   .kpi-app .app-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; }
   .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 0; max-width: 100%; margin: 0; }
+  /* Khi #view-main không active (đang ở detail/calendar) → phải ẩn.
+     Rule #view-main { display:flex } specificity cao hơn .view/.view.active,
+     cần rule tường minh để đè lại khi không có class .active. */
+  .kpi-app #view-main:not(.active) { display: none !important; }
   .kpi-app #view-main header { width: 100%; margin-bottom: 0; }
 
   /* --- Main header --- */
