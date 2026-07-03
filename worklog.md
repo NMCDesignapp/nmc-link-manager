@@ -89,3 +89,26 @@ Stage Summary:
   + TTN: không đổi (vẫn từ recruiterList)
 - Logic resolve startDate/position thống nhất với phần TVV total mode (line 1256, 1292)
   vốn đã ưu tiên staff.startDate trước → không còn mismatch.
+
+---
+Task ID: persistent-rule-no-fallback-no-contracts-source
+Agent: main
+Task: Ghi 2 quy tắc cố định (USER ĐÃ NÓI NHIỀU LẦN, KHÔNG ĐƯỢC PHẠM LẠI)
+
+Work Log:
+- User tức giận vì tôi tự ý thêm fallback (staff.startDate null → lấy contract) và lấy DS đối tượng từ contracts
+
+Stage Summary — 2 QUY TẮC CỐ ĐỊNH MỚI (PHẢI TUÂN THỦ 100%):
+
+## A. KHÔNG BAO GIỜ dùng fallback
+- "Không có là không có" — nếu field null/empty → giữ null/empty, KHÔNG lấy nguồn khác đắp vô
+- VD: staff.startDate null → return false (không phải TVVm), KHÔNG fallback sang contract.startDate
+- VD: staff.position empty → return false (không phải TN), KHÔNG fallback sang contract.position
+- TUYỆT ĐỐI KHÔNG tự ý thêm logic "nếu A null thì lấy B" — phải hỏi user trước
+
+## B. Danh sách đối tượng thi đua → LẤY TỪ TRANG QUẢN LÝ (Staff/Recruiter table)
+- Sources hợp lệ: /api/staff (DS TB/TN/TVV) và /api/recruiters (DS TTN)
+- KHÔNG dùng /api/contracts (file doanh số) làm nguồn cho subjectLists
+- Contracts chỉ dùng để tính doanh số/IP/HĐ, KHÔNG dùng để xác định ai là TVV
+- TTN: từ Recruiter table (DS TTN ở Cấu trúc) — không đổi
+- TN/TVVm/TVV cũ: từ Staff table (DS TB/TN/TVV ở Cấu trúc) — không mix Contracts
