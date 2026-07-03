@@ -1139,8 +1139,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .kpi-notice-banner { height: 40px; }
   .kpi-app .kpi-notice-marquee { font-size: 13px; padding: 0 32px; }
 
-  /* --- Nav grid: balanced row of cards --- */
-  .kpi-app .nav-grid { width: 100%; display: flex; gap: 12px; margin: 18px 0 0; flex-wrap: nowrap; }
+  /* --- Nav grid: ẩn trên desktop (đã move vào split-center) --- */
+  .kpi-app .nav-grid.mobile-only { display: none !important; }
+  /* --- Nav grid desktop (bên trong split-center): 5 nút đều nhau --- */
+  .kpi-app .nav-grid.dsk-nav { display: grid !important; grid-template-columns: repeat(5, 1fr); gap: 12px; width: 100%; margin: 0 0 16px; flex-wrap: nowrap; }
+  .kpi-app .nav-grid.dsk-nav .nav-row-3 { display: contents; }
+  .kpi-app .nav-grid.dsk-nav .nav-btn { padding: 12px 8px; font-size: 11px; min-height: 56px; }
   .kpi-app .nav-row-3 { display: contents; }
   .kpi-app .nav-btn { flex: 1; padding: 11px 14px; font-size: 12px; border-radius: 7px; white-space: nowrap; }
   .kpi-app .nav-btn .nav-icon svg { width: 18px; height: 18px; }
@@ -1185,11 +1189,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-progress { width: 100%; height: 5px; background: #0d1e36; }
   .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px rgba(64,216,144,.32); }
 
-  /* --- Desktop split: 2 CỘT — TRÁI (3/4): company + chart stacked | PHẢI (1/4): 4 phòng dọc --- */
-  .kpi-app .desktop-split { display: grid; grid-template-columns: 3fr 1fr; gap: 24px; width: 100%; align-items: stretch; margin-top: 24px; }
+  /* --- Desktop split: 2 cột fit 1 màn hình (không scroll)
+     TRÁI (3fr): 5 nút nav + Công ty + Biểu đồ
+     PHẢI (1fr): 4 phòng dọc (bằng nhau, fill hết chiều cao cột trái) --- */
+  .kpi-app .desktop-split {
+    display: grid; grid-template-columns: 3fr 1fr; gap: 20px;
+    width: 100%; align-items: stretch; margin-top: 16px;
+    /* Fit 1 màn hình: chiều cao = viewport - header(60) - titlebar(60) - padding(28*2) - margin */
+    min-height: calc(100vh - 200px);
+  }
   .kpi-app .split-left { display: none; }
-  .kpi-app .split-center { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; min-width: 0; padding-left: 4px; border-left: 1px solid rgba(255,255,255,.06); }
+  .kpi-app .split-center { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .kpi-app .split-right { display: grid; grid-template-rows: repeat(4, 1fr); gap: 10px; min-width: 0; padding-left: 4px; border-left: 1px solid rgba(255,255,255,.06); }
   .kpi-app .afyp-chart-wrap { padding: 20px 22px 22px; border-radius: 14px; }
   .kpi-app .afyp-chart-title { font-size: .95rem; font-weight: 800; margin-bottom: 16px; gap: 10px; }
   .kpi-app .afyp-chart-title svg { width: 18px; height: 18px; }
@@ -1202,16 +1213,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .legend-item { font-size: .78rem; }
   .kpi-app .legend-dot { width: 12px; height: 12px; }
 
-  /* --- 4 ô PHÒNG xếp DỌC ở cột phải (1/4 màn hình), cân trên-dưới --- */
-  .kpi-app .kpi-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 0; justify-content: flex-start; flex: 1; }
-  .kpi-app .dept-section { display: flex; min-width: 0; }
+  /* --- 4 ô PHÒNG xếp DỌC, bằng nhau, fill hết chiều cao split-right --- */
+  .kpi-app .kpi-stack { display: contents; }
+  .kpi-app .dept-section { display: flex; min-width: 0; min-height: 0; }
   .kpi-app .dept-section > .rg-card,
-  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; min-width: 0; }
+  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; min-width: 0; min-height: 0; }
   .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; }
 
-  /* --- Region divider (đặt đầu cột phải) --- */
-  .kpi-app .region-divider { margin: 0 0 8px; }
-  .kpi-app .region-divider-title { font-size: 10px; letter-spacing: .18em; }
+  /* --- Region divider: ẩn trên desktop (đã bỏ theo yêu cầu user) --- */
+  .kpi-app .region-divider { display: none !important; }
 
   /* --- Department cards (rg-card) — typography cho cột hẹp --- */
   .kpi-app .rg-head { padding: 10px 12px; }
@@ -1332,9 +1342,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi-body { padding: 18px 10px; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.55rem; }
   /* Desktop split: 2 cột (3/4 + 1/4) — nới gap cho màn lớn */
-  .kpi-app .desktop-split { gap: 32px; margin-top: 28px; }
-  .kpi-app .split-center { gap: 24px; }
-  .kpi-app .kpi-stack { gap: 16px; }
+  .kpi-app .desktop-split { gap: 24px; margin-top: 20px; min-height: calc(100vh - 220px); }
+  .kpi-app .split-center { gap: 20px; }
+  .kpi-app .split-right { gap: 12px; }
+  .kpi-app .nav-grid.dsk-nav { gap: 14px; }
   .kpi-app .afyp-chart-wrap { padding: 24px 26px 26px; }
   .kpi-app .afyp-chart-title { font-size: 1.05rem; margin-bottom: 18px; }
   .kpi-app .sum-val { font-size: 1.1rem; }
@@ -1384,9 +1395,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 1700px) {
   .kpi-app .app-wrap { max-width: 1560px; padding: 44px 48px 64px; }
   .kpi-app .hero-title { font-size: 2.6rem !important; }
-  .kpi-app .desktop-split { gap: 40px; }
-  .kpi-app .split-center { gap: 28px; }
-  .kpi-app .kpi-stack { gap: 18px; }
+  .kpi-app .desktop-split { gap: 28px; min-height: calc(100vh - 240px); }
+  .kpi-app .split-center { gap: 22px; }
+  .kpi-app .split-right { gap: 14px; }
+  .kpi-app .nav-grid.dsk-nav { gap: 16px; }
   .kpi-app .dsk-cty-top { grid-template-columns: 360px 1fr; }
   .kpi-app .dsk-cty-tier { gap: 16px; }
   .kpi-app .dsk-cty-pct { font-size: 3.4rem; }
@@ -3059,8 +3071,8 @@ export default function KPIDashboard() {
                 {/* Desktop Company Strip đã được chuyển vào trong .split-center (cột trái của desktop-split) */}
               </div>
 
-              {/* Navigation Grid */}
-              <nav className="nav-grid" aria-label="Điều hướng">
+              {/* Navigation Grid — di chuyển vào desktop-split bên dưới, ẩn ở đây trên desktop */}
+              <nav className="nav-grid mobile-only" aria-label="Điều hướng">
                 <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
                 </button>
@@ -3232,10 +3244,28 @@ export default function KPIDashboard() {
                 })}
               </div>
 
-              {/* Desktop Split Layout: 2 cột — TRÁI (3/4): công ty + biểu đồ | PHẢI (1/4): 4 phòng dọc */}
+              {/* Desktop Split Layout: 2 cột — TRÁI (3fr): 5 nút nav + công ty + biểu đồ | PHẢI (1fr): 4 phòng dọc (bằng nhau, fill height) */}
               <div className="desktop-split">
                 <div className="split-left" id="split-company" />
                 <div className="split-center" id="split-chart">
+                  {/* Navigation Grid — 5 nút đều nhau trên desktop */}
+                  <nav className="nav-grid dsk-nav" aria-label="Điều hướng">
+                    <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                      <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
+                    </button>
+                    <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                      <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
+                    </button>
+                    <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                    </a>
+                    <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
+                      <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
+                    </a>
+                    <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
+                      <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+                    </a>
+                  </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
                   <div className="dsk-company">
                     <div className="dsk-cty-top">
@@ -3283,7 +3313,6 @@ export default function KPIDashboard() {
                   </div>
                 </div>
                 <div className="split-right" id="split-depts">
-                  <div className="region-divider" style={{ display: "flex" }}><span className="region-divider-title">Tiến Độ Khu Vực</span></div>
                   <div className="kpi-stack">
                     {dashboard.phongs.map((phong, pi) => {
                       const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
