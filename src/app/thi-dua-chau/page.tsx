@@ -666,32 +666,15 @@ export default function ThiDuaPage() {
   }, [thiDuaSubjects]);
 
   // ===== 4 danh sách đối tượng dùng cho nút chọn nhanh =====
-  // TVVm:   DS TVV có startDate → nay ≤ 12 tháng (lấy từ Staff table, unique theo agentCode)
+  // NGUỒN DUY NHẤT: trang Quản lý (Staff table & Recruiter table).
+  // KHÔNG dùng Contracts (file doanh số) để xác định ai là TVV.
+  // KHÔNG dùng fallback — staff.startDate/position null → giữ null, KHÔNG lấy từ Contracts.
+  //
+  // TVVm:   DS TVV có staff.startDate → nay ≤ 12 tháng
   // TVV cũ: DS TVV KHÔNG phải TVVm VÀ KHÔNG phải ban cán (position không phải TB/TN/TTN)
   // TTN:    DS TTN từ Recruiter table (DS TTN ở Cấu trúc)
   // TN:     DS TB/TN từ Staff table (DS TB/TN ở Cấu trúc — loại TTN)
-  // QUAN TRỌNG: Dùng Staff table làm nguồn chính (DS TVV đầy đủ), KHÔNG dùng Contracts
-  // vì Contracts chỉ chứa TVV đã có doanh số → sẽ thiếu TVV chưa có HĐ
   const subjectLists = useMemo(() => {
-    // Map agentCode → contract đầu tiên để fallback startDate/position
-    const contractByCode = new Map<string, Contract>();
-    for (const c of contracts) {
-      if (c.agentCode && !contractByCode.has(c.agentCode)) contractByCode.set(c.agentCode, c);
-    }
-
-    // Ưu tiên staff.startDate → contract.ngayBatDauLamViec → contract.startDate
-    const resolveStartDate = (staff: StaffMember): string | null => {
-      if (staff.startDate) return staff.startDate;
-      const c = contractByCode.get(staff.agentCode);
-      return c?.ngayBatDauLamViec || c?.startDate || null;
-    };
-    // Ưu tiên staff.position → contract.position
-    const resolvePosition = (staff: StaffMember): string => {
-      if (staff.position && staff.position.trim()) return staff.position;
-      const c = contractByCode.get(staff.agentCode);
-      return c?.position || '';
-    };
-
     // Unique theo agentCode — staffList có thể có trùng (cùng agentCode nhiều nhóm)
     const staffMap = new Map<string, StaffMember>();
     for (const s of staffList) {
@@ -700,21 +683,18 @@ export default function ThiDuaPage() {
     const staffAll = Array.from(staffMap.values());
 
     const tvvm = staffAll
-      .filter(s => isTVVm(resolveStartDate(s)))
+      .filter(s => isTVVm(s.startDate))
       .map(s => s.agentCode)
       .filter(Boolean);
 
     const tvvCu = staffAll
-      .filter(s => !isTVVm(resolveStartDate(s)))
-      .filter(s => {
-        const pos = resolvePosition(s);
-        return !isTTNPosition(pos) && !isTBorTNPosition(pos);
-      })
+      .filter(s => !isTVVm(s.startDate))
+      .filter(s => !isTTNPosition(s.position) && !isTBorTNPosition(s.position))
       .map(s => s.agentCode)
       .filter(Boolean);
 
     const tn = staffAll
-      .filter(s => isTBorTNPosition(resolvePosition(s)))
+      .filter(s => isTBorTNPosition(s.position))
       .map(s => s.agentCode)
       .filter(Boolean);
 
@@ -723,7 +703,7 @@ export default function ThiDuaPage() {
       .filter(Boolean);
 
     return { tvvm, tvvCu, tn, ttn };
-  }, [contracts, staffList, recruiterList]);
+  }, [staffList, recruiterList]);
 
   // Toggle 1 trong 4 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
   const toggleSubjectType = useCallback((type: 'tvvm' | 'tvvcu' | 'ttn' | 'tn') => {
@@ -1277,7 +1257,7 @@ export default function ThiDuaPage() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (!staff || !staff.startDate) return false; return isTVVm(staff.startDate); })); }
           if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
@@ -1313,7 +1293,7 @@ export default function ThiDuaPage() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (staff?.startDate) return isTVVm(staff.startDate); const contract = recruited.find(c => c.agentCode === agentCode); if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate); return false; })); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (!staff || !staff.startDate) return false; return isTVVm(staff.startDate); })); }
           if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
