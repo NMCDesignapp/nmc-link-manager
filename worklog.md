@@ -112,3 +112,23 @@ Stage Summary — 2 QUY TẮC CỐ ĐỊNH MỚI (PHẢI TUÂN THỦ 100%):
 - Contracts chỉ dùng để tính doanh số/IP/HĐ, KHÔNG dùng để xác định ai là TVV
 - TTN: từ Recruiter table (DS TTN ở Cấu trúc) — không đổi
 - TN/TVVm/TVV cũ: từ Staff table (DS TB/TN/TVV ở Cấu trúc) — không mix Contracts
+
+---
+Task ID: fix-kpi-desktop-duplicate-company
+Agent: main
+Task: Trang KPI desktop bị 2 block Công Ty + nút bấm không ăn
+
+Work Log:
+- User paste screenshot, VLM phân tích → xác nhận: 2 block "CÔNG TY" giống nhau cùng xuất hiện
+- Nguyên nhân: trên desktop ≥900px, CẢ HAI block đều render:
+  + #kpi-company (block mobile, line 3018) — KHÔNG có class mobile-only → không bị ẩn
+  + .dsk-company (block desktop, line 3227 trong .split-center) — render bình thường
+- Sửa: thêm className="mobile-only" vào <div id="kpi-company">
+  → bị ẩn bởi rule có sẵn @media (min-width: 900px) { .mobile-only { display: none !important } }
+- "Nút bấm không ăn": khả năng cao do 2 block chồng nhau gây z-index/conflict, sau fix này sẽ hết
+- Type check: ok, git push origin main → commit 2bf01e1, đã live
+
+Stage Summary:
+- Đã live: https://nc-link.vercel.app/kpi commit 2bf01e1
+- User Ctrl+Shift+R: chỉ còn 1 block Công Ty trên desktop
+- Nếu nút vẫn không ăn → hỏi user nút cụ thể để fix tiếp
