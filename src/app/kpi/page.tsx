@@ -1229,38 +1229,42 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   /* --- Region divider: ẩn trên desktop (đã bỏ theo yêu cầu user) --- */
   .kpi-app .region-divider { display: none !important; }
 
-  /* --- Department cards (rg-card) — typography cho cột hẹp --- */
-  .kpi-app .rg-head { padding: 10px 12px; }
-  .kpi-app .rg-head-left { gap: 6px; }
-  .kpi-app .rg-head-name { font-size: 11px; letter-spacing: .03em; line-height: 1.2; }
-  .kpi-app .rg-head-pct { font-size: 16px; }
-  .kpi-app .rg-afyp-row { padding: 8px 12px; }
-  .kpi-app .rg-afyp { font-size: 1.05rem; }
+  /* --- Banca separator: ẩn trên desktop (rg-card.is-banca đã có border-top vàng).
+     Nếu giữ separator sẽ ăn mất 15px height trong flex → card BANCA bị thấp hơn 3 card kia. --- */
+  .kpi-app .split-right .banca-separator { display: none !important; }
+
+  /* --- Department cards (rg-card) — typography cho cột hẹp, COMPACT để fit 141px height --- */
+  .kpi-app .rg-head { padding: 6px 10px; }
+  .kpi-app .rg-head-left { gap: 5px; }
+  .kpi-app .rg-head-name { font-size: 10px; letter-spacing: .03em; line-height: 1.15; }
+  .kpi-app .rg-head-pct { font-size: 14px; }
+  .kpi-app .rg-afyp-row { padding: 4px 10px 5px; }
+  .kpi-app .rg-afyp { font-size: .92rem; }
   .kpi-app .rg-afyp-unit { font-size: .55em; }
-  .kpi-app .rg-kh { font-size: 9px; }
-  .kpi-app .rg-prog { height: 6px; margin: 0 12px 8px; border-radius: 99px; }
+  .kpi-app .rg-kh { font-size: 8px; }
+  .kpi-app .rg-prog { height: 4px; margin: 0 10px 4px; border-radius: 99px; }
   .kpi-app .rg-summary { grid-template-columns: repeat(2, 1fr); gap: 1px; }
-  .kpi-app .rg-sum-cell { padding: 6px 4px; min-height: 38px; }
-  .kpi-app .rg-sum-label { font-size: 8px; margin-bottom: 2px; }
-  .kpi-app .rg-sum-val { font-size: 13px; }
+  .kpi-app .rg-sum-cell { padding: 3px 4px; min-height: 26px; }
+  .kpi-app .rg-sum-label { font-size: 7.5px; margin-bottom: 1px; }
+  .kpi-app .rg-sum-val { font-size: 11px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr); }
-  .kpi-app .rg-divider { margin: 0 12px; }
-  .kpi-app .rg-ad-wrap { padding: 6px 0 8px; max-height: 180px; overflow-y: auto; }
-  .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; font-size: 10px; border-radius: 4px; }
-  .kpi-app .rg-ad-table thead th { font-size: 9px; padding: 6px 4px; }
-  .kpi-app .rg-ad-table thead th:first-child { padding-left: 10px; }
-  .kpi-app .rg-ad-table tbody td { padding: 6px 4px; font-size: 10px; }
-  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 10px; }
-  .kpi-app .rg-ad-name { font-size: 10px; }
-  .kpi-app .rg-ad-sub { font-size: 9px; }
-  .kpi-app .rg-ad-afyp { font-size: 10px; }
+  .kpi-app .rg-divider { display: none; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
+  .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 3px 3px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 8px; }
+  .kpi-app .rg-ad-table tbody td { padding: 3px 3px; font-size: 9px; line-height: 1.1; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 8px; }
+  .kpi-app .rg-ad-name { font-size: 9px; }
+  .kpi-app .rg-ad-sub { font-size: 8px; }
+  .kpi-app .rg-ad-afyp { font-size: 9px; }
   .kpi-app .rg-ad-afyp-unit { font-size: .6em; }
-  .kpi-app .rg-ad-val { font-size: 10px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 26px; height: 26px; }
-  .kpi-app .rg-ad-circle-text { font-size: 8px; }
-  .kpi-app .rg-ad-checkmark { width: 26px; height: 26px; }
-  .kpi-app .rg-ad-checkmark svg { width: 16px; height: 16px; }
-  .kpi-app .rg-banca-tvv-count { font-size: 10px; padding: 4px 8px; }
+  .kpi-app .rg-ad-val { font-size: 9px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 20px; height: 20px; }
+  .kpi-app .rg-ad-circle-text { font-size: 7px; }
+  .kpi-app .rg-ad-checkmark { width: 20px; height: 20px; }
+  .kpi-app .rg-ad-checkmark svg { width: 12px; height: 12px; }
+  .kpi-app .rg-banca-tvv-count { font-size: 9px; padding: 3px 6px; }
 
   /* --- Hidden legacy desktop blocks --- */
   .kpi-app .kpi-phong { display: none !important; }
