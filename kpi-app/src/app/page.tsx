@@ -1101,47 +1101,79 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .legend-item { display: flex; align-items: center; gap: 6px; font-size: .7rem; color: #7aa0be; }
 .kpi-app .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
-@media (min-width: 900px) {
-  .kpi-app .mob-region-wrap { display: none; }
-  .kpi-app .region-divider { display: flex !important; margin: 24px 0 14px; }
-  .kpi-app .afyp-chart-wrap { display: block; }
-  .kpi-app .app-wrap { max-width: none; }
-  .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 16px 24px 24px; max-width: none; margin: 0 auto; }
-  .kpi-app #view-main header { max-width: 1800px; width: 100%; margin-bottom: 0; }
-  /* Desktop: constrain popup width, right-align with ctrl-bar (dashboard content right edge) */
-  .kpi-app .ctrl-select-wrap { position: static; }
-  .kpi-app .ctrl-select-popup { left: auto; right: 0; width: 360px; max-width: calc(100vw - 48px); grid-template-columns: repeat(4, minmax(0,1fr)); }
-  .kpi-app .main-header { display: flex; align-items: center; gap: 10px; }
-  .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
-  .kpi-app .main-header .btn-back-u { width: 32px; height: 32px; border-radius: 8px; }
-  .kpi-app .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem) !important; margin: 0 !important; }
-  .kpi-app .hero-sub { display: none; }
-  .kpi-app .ctrl-bar { margin-top: 0 !important; }
-  .kpi-app .nav-grid { max-width: 1800px; width: 100%; display: flex; gap: 10px; margin: 12px 0 0; flex-wrap: nowrap; }
-  .kpi-app .nav-row-3 { display: contents; }
-  .kpi-app .nav-btn { flex: 1; padding: 7px 8px; font-size: 9.5px; border-radius: 5px; white-space: nowrap; }
+/* ============================================================
+   DESKTOP LAYOUT — Redesigned for balanced, proportional UI
+   Breakpoints:
+   - @media (min-width: 900px)  → base desktop (laptop 1024–1399)
+   - @media (min-width: 1400px) → large desktop (1440–1699)
+   - @media (min-width: 1700px) → XL desktop (≥1700)
+   Container max-width: 1280 / 1440 / 1560 — centered, never stretched
+   ============================================================ */
 
+/* === Base desktop (≥900px) === */
+@media (min-width: 900px) {
+  /* --- Layout shell --- */
+  .kpi-app .mob-region-wrap { display: none; }
+  .kpi-app .region-divider { display: flex !important; margin: 28px 0 16px; }
+  .kpi-app .afyp-chart-wrap { display: block; }
+  .kpi-app .app-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; }
+  .kpi-app #view-main { display: flex; flex-direction: column; gap: 0; padding: 0; max-width: 100%; margin: 0; }
+  .kpi-app #view-main header { width: 100%; margin-bottom: 0; }
+
+  /* --- Main header --- */
+  .kpi-app .ctrl-select-wrap { position: static; }
+  .kpi-app .ctrl-select-popup { left: auto; right: 0; width: 380px; max-width: calc(100vw - 64px); grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .kpi-app .main-header { display: flex; align-items: center; gap: 14px; }
+  .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
+  .kpi-app .main-header .btn-back-u { width: 36px; height: 36px; border-radius: 9px; }
+  .kpi-app .hero-title { font-size: clamp(1.8rem, 2.4vw, 2.2rem) !important; margin: 0 !important; }
+  .kpi-app .hero-sub { display: block; font-size: 11px !important; }
+  .kpi-app .ctrl-bar { margin-top: 12px !important; gap: 14px; }
+  .kpi-app .ctrl-hint { font-size: 11px; }
+  .kpi-app .ctrl-select { height: 40px; padding: 0 16px; font-size: 12px; }
+  .kpi-app .ctrl-select-period { padding: 0 18px; }
+  .kpi-app .ctrl-select-period .ctrl-period-label { font-size: 15px; }
+  .kpi-app .ctrl-select-opt { min-height: 38px; font-size: 12px; }
+  .kpi-app .sync-status { width: 40px; height: 40px; }
+
+  /* --- Notification banner: bigger, more readable --- */
+  .kpi-app .kpi-notice-banner { height: 40px; }
+  .kpi-app .kpi-notice-marquee { font-size: 13px; padding: 0 32px; }
+
+  /* --- Nav grid: balanced row of cards --- */
+  .kpi-app .nav-grid { width: 100%; display: flex; gap: 12px; margin: 18px 0 0; flex-wrap: nowrap; }
+  .kpi-app .nav-row-3 { display: contents; }
+  .kpi-app .nav-btn { flex: 1; padding: 11px 14px; font-size: 12px; border-radius: 7px; white-space: nowrap; }
+  .kpi-app .nav-btn .nav-icon svg { width: 18px; height: 18px; }
+
+  /* --- Company strip (hero KPI panel) --- */
   .kpi-app .kpi-cty { display: none !important; }
-  .kpi-app .dsk-company { display: flex; flex-direction: column; gap: 0; background: linear-gradient(135deg, #0d2137, #153a5e, #0d2137); border: 1px solid #2e5a8a; border-radius: 16px; overflow: hidden; margin-top: 16px; box-shadow: 0 8px 32px #0008, 0 0 40px #1a5a9a18; }
-  .kpi-app .dsk-cty-top { display: flex; align-items: stretch; gap: 4px; padding: 3px; }
-  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; min-width: 220px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
-  .kpi-app .dsk-cty-main-head { padding: 5px 14px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 6px; }
-  .kpi-app .dsk-cty-main-label { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; color: #fff; }
-  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px 16px 10px; background: #132a4a; }
-  .kpi-app .dsk-cty-pct { font-size: 2.2rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 20px #f2b24d44; }
-  .kpi-app .dsk-cty-prog-wrap { margin-top: 10px; }
-  .kpi-app .dsk-cty-prog { width: 100%; height: 8px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px #00000044; }
-  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 10px #40d89044; }
-  .kpi-app .dsk-cty-afyp { margin-top: 10px; font-size: 1.2rem; font-weight: 900; color: #fff; }
-  .kpi-app .dsk-cty-kh { font-size: .72rem; font-weight: 700; color: #6ab0e8; }
-  .kpi-app .dsk-cty-right { display: flex; flex-direction: column; flex: 1; gap: 4px; }
-  .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; flex: 1; }
-  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 6px; display: flex; flex-direction: column; }
-  .kpi-app .dsk-cty-kpi-head { padding: 4px 6px; display: flex; align-items: center; justify-content: center; gap: 3px; }
-  .kpi-app .dsk-cty-kpi-label { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #fff; line-height: 1.15; white-space: nowrap; text-align: center; }
-  .kpi-app .dsk-cty-kpi-sub { font-size: 0.55em; font-weight: 700; opacity: .75; margin-left: 1px; }
-  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 6px; text-align: center; }
-  .kpi-app .dsk-cty-kpi-val { font-size: 1rem; font-weight: 800; line-height: 1; text-shadow: 0 0 8px currentColor; }
+  .kpi-app .dsk-company {
+    display: flex; flex-direction: column; gap: 0;
+    background: linear-gradient(135deg, #0d2137 0%, #153a5e 50%, #0d2137 100%);
+    border: 1px solid #2e5a8a; border-radius: 14px; overflow: hidden;
+    margin-top: 20px;
+    box-shadow: 0 10px 36px rgba(0,0,0,.45), 0 0 40px rgba(26,90,154,.12);
+  }
+  .kpi-app .dsk-cty-top { display: grid; grid-template-columns: 280px 1fr; gap: 6px; padding: 6px; }
+  .kpi-app .dsk-cty-left { display: flex; flex-direction: column; border-radius: 9px; overflow: hidden; }
+  .kpi-app .dsk-cty-main-head { padding: 9px 18px; background: linear-gradient(135deg, #f2b24d, #d4a030); display: flex; align-items: center; gap: 8px; }
+  .kpi-app .dsk-cty-main-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .14em; color: #fff; }
+  .kpi-app .dsk-cty-main-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 18px 22px; background: #132a4a; gap: 8px; }
+  .kpi-app .dsk-cty-pct { font-size: 2.8rem; font-weight: 900; line-height: 1; color: #ffe0a0; text-shadow: 0 0 24px rgba(242,178,77,.32); }
+  .kpi-app .dsk-cty-prog-wrap { margin-top: 4px; }
+  .kpi-app .dsk-cty-prog { width: 100%; height: 10px; border-radius: 99px; background: #0d1e36; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.4); }
+  .kpi-app .dsk-cty-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #40d890, #70f0b8); transition: width 1s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 12px rgba(64,216,144,.4); }
+  .kpi-app .dsk-cty-afyp { margin-top: 6px; font-size: 1.5rem; font-weight: 900; color: #fff; line-height: 1.1; }
+  .kpi-app .dsk-cty-kh { font-size: .8rem; font-weight: 700; color: #6ab0e8; }
+  .kpi-app .dsk-cty-right { display: flex; flex-direction: column; gap: 6px; }
+  .kpi-app .dsk-cty-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 1; }
+  .kpi-app .dsk-cty-kpi { overflow: hidden; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .kpi-app .dsk-cty-kpi-head { padding: 8px 10px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #fff; line-height: 1.2; white-space: nowrap; text-align: center; }
+  .kpi-app .dsk-cty-kpi-sub { font-size: 0.7em; font-weight: 700; opacity: .75; margin-left: 2px; }
+  .kpi-app .dsk-cty-kpi-body { background: #132a4a; flex: 1; display: flex; align-items: center; justify-content: center; padding: 14px 8px; text-align: center; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1; text-shadow: 0 0 10px currentColor; }
   .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-head { background: #3a7cc8; } .kpi-app .dsk-cty-kpi.hd .dsk-cty-kpi-val { color: #7ab8f0; }
   .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-head { background: #8a7ab8; } .kpi-app .dsk-cty-kpi.td .dsk-cty-kpi-val { color: #b8a8e0; }
   .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-head { background: #2a9aaa; } .kpi-app .dsk-cty-kpi.chuan .dsk-cty-kpi-val { color: #60d0d8; }
@@ -1150,39 +1182,223 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-head { background: #a08050; } .kpi-app .dsk-cty-kpi.dl .dsk-cty-kpi-val { color: #e0b870; }
   .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-head { background: #6a88a8; } .kpi-app .dsk-cty-kpi.sl .dsk-cty-kpi-val { color: #a0c0e0; }
   .kpi-app .dsk-cty-kpi.tbtn .dsk-cty-kpi-head { background: #7C3AED; } .kpi-app .dsk-cty-kpi.tbtn .dsk-cty-kpi-val { color: #c4b5fd; }
-  .kpi-app .dsk-cty-progress { width: 100%; height: 4px; background: #0d1e36; }
-  .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px #40d89033; }
-  .kpi-app .desktop-split { display: grid; grid-template-columns: 38% 62%; gap: 20px; width: 100%; max-width: 1800px; align-self: center; align-items: start; margin-top: 20px; }
+  .kpi-app .dsk-cty-progress { width: 100%; height: 5px; background: #0d1e36; }
+  .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px rgba(64,216,144,.32); }
+
+  /* --- Desktop split: CHART FULL-WIDTH (top) + 3-COL DEPT GRID (bottom) ---
+     User spec: 3 ô của 3 phòng bằng nhau về kích thước, nằm trên cùng 1 dòng. --- */
+  .kpi-app .desktop-split { display: flex; flex-direction: column; gap: 20px; width: 100%; align-self: center; align-items: stretch; margin-top: 24px; }
   .kpi-app .split-left { display: none; }
-  .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: sticky; top: 16px; align-self: start; }
-  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; }
-  .kpi-app .afyp-chart { min-height: 320px; }
-  .kpi-app .region-divider { display: flex !important; margin: 24px 0 14px; }
+  .kpi-app .split-center { display: flex; flex-direction: column; gap: 0; position: static; align-self: stretch; width: 100%; }
+  .kpi-app .split-right { display: flex; flex-direction: column; gap: 0; width: 100%; }
+  .kpi-app .afyp-chart-wrap { padding: 20px 22px 22px; border-radius: 14px; }
+  .kpi-app .afyp-chart-title { font-size: .95rem; font-weight: 800; margin-bottom: 16px; gap: 10px; }
+  .kpi-app .afyp-chart-title svg { width: 18px; height: 18px; }
+  .kpi-app .afyp-chart-summary { gap: 10px; margin-bottom: 18px; }
+  .kpi-app .sum-item { padding: 12px 12px; border-radius: 10px; }
+  .kpi-app .sum-label { font-size: .65rem; margin-bottom: 5px; }
+  .kpi-app .sum-val { font-size: 1rem; }
+  .kpi-app .afyp-chart { min-height: 260px; }
+  .kpi-app .chart-legend { gap: 16px; margin-top: 18px; }
+  .kpi-app .legend-item { font-size: .78rem; }
+  .kpi-app .legend-dot { width: 12px; height: 12px; }
+
+  /* --- 3-COLUMN DEPT GRID: 3 ô bằng nhau, cùng 1 dòng --- */
+  .kpi-app .kpi-stack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 0; align-items: stretch; }
+  .kpi-app .dept-section { display: flex; min-width: 0; }
+  .kpi-app .dept-section > .rg-card,
+  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 0; min-width: 0; height: 100%; }
+  .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; }
+
+  /* --- Region divider --- */
+  .kpi-app .region-divider { margin: 0 0 4px; }
+  .kpi-app .region-divider-title { font-size: 11px; letter-spacing: .22em; }
+
+  /* --- Department cards (rg-card) — desktop typography & spacing --- */
+  .kpi-app .rg-head { padding: 12px 14px; }
+  .kpi-app .rg-head-left { gap: 8px; }
+  .kpi-app .rg-head-name { font-size: 13px; letter-spacing: .04em; }
+  .kpi-app .rg-head-pct { font-size: 20px; }
+  .kpi-app .rg-afyp-row { padding: 12px 14px; }
+  .kpi-app .rg-afyp { font-size: 1.45rem; }
+  .kpi-app .rg-afyp-unit { font-size: .55em; }
+  .kpi-app .rg-kh { font-size: 11px; }
+  .kpi-app .rg-prog { height: 8px; margin: 0 14px 10px; border-radius: 99px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(2, 1fr); }
+  .kpi-app .rg-sum-cell { padding: 9px 6px; min-height: 50px; }
+  .kpi-app .rg-sum-label { font-size: 9px; margin-bottom: 3px; }
+  .kpi-app .rg-sum-val { font-size: 17px; }
+  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr); }
+  .kpi-app .rg-divider { margin: 0 14px; }
+  .kpi-app .rg-ad-wrap { padding: 8px 0 10px; }
+  .kpi-app .rg-ad-table { width: calc(100% - 28px); margin: 0 14px; font-size: 12px; border-radius: 5px; }
+  .kpi-app .rg-ad-table thead th { font-size: 10px; padding: 8px 6px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 12px; }
+  .kpi-app .rg-ad-table tbody td { padding: 9px 6px; font-size: 12px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 12px; }
+  .kpi-app .rg-ad-name { font-size: 12px; }
+  .kpi-app .rg-ad-sub { font-size: 10px; }
+  .kpi-app .rg-ad-afyp { font-size: 12px; }
+  .kpi-app .rg-ad-afyp-unit { font-size: .6em; }
+  .kpi-app .rg-ad-val { font-size: 12px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 34px; height: 34px; }
+  .kpi-app .rg-ad-circle-text { font-size: 9px; }
+  .kpi-app .rg-ad-checkmark { width: 34px; height: 34px; }
+  .kpi-app .rg-ad-checkmark svg { width: 20px; height: 20px; }
+  .kpi-app .rg-banca-tvv-count { font-size: 11px; padding: 5px 10px; }
+
+  /* --- Hidden legacy desktop blocks --- */
   .kpi-app .kpi-phong { display: none !important; }
-  .kpi-app .kpi-ad.is-phong { display: block; background: linear-gradient(180deg, #e8f0fa, #d4e2f4); border: 1px solid #7aacdc88; border-top: 3px solid #3a8ad4; border-radius: 14px; padding: 16px 18px 18px; }
-  .kpi-app .kpi-ad.is-phong .ad-name { color: #1a4a7a; }
-  .kpi-app .kpi-ad.is-phong .ad-pct { color: #1a6ab4; }
+  .kpi-app .kpi-ad.is-phong { display: none !important; }
   .kpi-app .ad-grid { display: none !important; }
-  .kpi-app .dsk-ad-wrap { display: block; margin-top: 8px; }
-  .kpi-app .dsk-ad-table { display: table; width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; background: #0a1525; border-radius: 8px; overflow: hidden; border: 1px solid #1a2a44; }
-  .kpi-app .dsk-ad-table thead th { padding: 6px 6px 5px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a8aaa; background: #0d1a2e; border-bottom: 1px solid #1a2a44; text-align: center; white-space: nowrap; }
-  .kpi-app .dsk-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
-  .kpi-app .dsk-ad-table tbody tr { cursor: pointer; transition: background .15s; }
-  .kpi-app .dsk-ad-table tbody tr:hover { background: #142440; }
-  .kpi-app .dsk-ad-table tbody td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #0f1e34; font-weight: 700; white-space: nowrap; color: #c8d8ea; }
-  .kpi-app .dsk-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
-  .kpi-app .dsk-ad-name { font-weight: 900; color: #e0f0ff; }
-  .kpi-app .dsk-ad-pct { font-weight: 900; }
-  .kpi-app .dsk-ad-pct.green { color: #4ade80; } .kpi-app .dsk-ad-pct.gold { color: #fbbf24; } .kpi-app .dsk-ad-pct.red { color: #f87171; }
-  .kpi-app .dsk-ad-mini-prog { width: 40px; height: 4px; border-radius: 99px; background: #1a2a44; display: inline-block; vertical-align: middle; overflow: hidden; }
-  .kpi-app .dsk-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
-  /* Desktop detail */
-  .kpi-app #view-detail .detail-shell { max-width: 1200px; width: 100%; margin: 0 auto; padding: 16px 24px; }
-  .kpi-app #view-detail .detail-list-wrap { display: flex; flex-direction: column; gap: 0; max-width: 1200px; width: 100%; margin: 0 auto; }
-  .kpi-app #view-detail .dt-phong { max-width: 800px; width: 100%; margin-left: auto; margin-right: auto; }
-  /* Desktop calendar */
-  .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin-left: auto; margin-right: auto; }
-  .kpi-app #view-calendar .cal-filter { max-width: 920px; margin-left: auto; margin-right: auto; }
+  .kpi-app .dsk-ad-wrap { display: none !important; }
+
+  /* --- Detail view --- */
+  .kpi-app #view-detail { padding: 0; }
+  .kpi-app #view-detail .detail-shell { max-width: 100%; width: 100%; margin: 0 auto; padding: 0; }
+  .kpi-app .sub-header { padding: 0 0 10px; }
+  .kpi-app .sub-title { font-size: 24px; }
+  .kpi-app .detail-meta { font-size: 14px; margin-top: 8px; }
+  .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 16px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .kpi-app .month-cell { padding: 10px 4px; }
+  .kpi-app .mc-label { font-size: 12px; }
+  .kpi-app .top3-section { margin-top: 28px; }
+  .kpi-app .top3-grid { max-width: 880px; gap: 18px; }
+  .kpi-app .top3-card { padding: 18px 14px 14px; border-radius: 14px; }
+  .kpi-app .top3-rank { font-size: 15px; margin-bottom: 8px; }
+  .kpi-app .top3-rank-num { width: 24px; height: 24px; font-size: 12px; }
+  .kpi-app .top3-name { font-size: 13px; margin-bottom: 7px; }
+  .kpi-app .top3-val { font-size: 14px; margin-bottom: 5px; }
+  .kpi-app .top3-pct { font-size: 12px; }
+  .kpi-app .top3-first { padding-top: 22px; padding-bottom: 18px; }
+  .kpi-app .top3-first .top3-name { font-size: 14px; }
+  .kpi-app .top3-first .top3-val { font-size: 16px; }
+  .kpi-app .detail-divider { margin: 28px 0 18px; }
+  .kpi-app .detail-ad-filter-wrap { margin: 0 0 18px; }
+  .kpi-app .detail-ad-filter-btn { padding: 10px 18px; font-size: 12px; border-radius: 99px; }
+  .kpi-app .detail-ad-filter-label { font-size: 13px; }
+  .kpi-app .detail-ad-filter-caret { font-size: 11px; }
+  .kpi-app .detail-ad-filter-popup { width: 320px; padding: 10px; gap: 5px; }
+  .kpi-app .detail-ad-filter-opt { min-height: 40px; font-size: 13px; border-radius: 7px; }
+  .kpi-app #view-detail .detail-list-wrap { display: flex; flex-direction: column; gap: 8px; max-width: 100%; width: 100%; margin: 0 auto; }
+  .kpi-app .grp-item { padding: 12px 16px 11px; border-radius: 12px; }
+  .kpi-app .grp-head-line { gap: 8px; }
+  .kpi-app .grp-head-line .grp-name { font-size: 14px; }
+  .kpi-app .grp-tn-inline { font-size: 12px; }
+  .kpi-app .grp-head-line .grp-pct { font-size: 16px; }
+  .kpi-app .grp-stats-inline { gap: 6px; font-size: 13px; }
+  .kpi-app .grp-prog { height: 8px; border-radius: 99px; }
+  .kpi-app #view-detail .dt-phong { max-width: 100%; margin-left: 0; margin-right: 0; }
+
+  /* --- Calendar view --- */
+  .kpi-app #view-calendar { padding: 0; }
+  .kpi-app #view-calendar .cal-filter { max-width: 720px; margin: 18px auto 0; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .kpi-app .cal-fbtn { padding: 10px 4px; font-size: 12px; border-radius: 7px; }
+  .kpi-app #view-calendar .cal-wrap { max-width: 920px; margin: 18px auto 0; border-radius: 12px; }
+  .kpi-app .cal-head { font-size: 11px; padding: 10px 0; grid-template-columns: 64px minmax(0,1fr) 90px; }
+  .kpi-app .cal-head span { padding: 0 10px; }
+  .kpi-app .cal-row { grid-template-columns: 64px minmax(0,1fr) 90px; }
+  .kpi-app .cal-day { padding: 10px 6px; font-size: 14px; gap: 2px; }
+  .kpi-app .cal-day-num { font-size: 15px; }
+  .kpi-app .cal-day-week { font-size: 9px; }
+  .kpi-app .cal-text { padding: 8px 12px; }
+  .kpi-app .cal-line { font-size: 13px; padding: 5px 11px; border-radius: 6px; margin-bottom: 4px; }
+  .kpi-app .cal-owner { padding: 8px 8px; display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
+  .kpi-app .cal-owner-tag { font-size: 11px; padding: 3px 8px; border-radius: 99px; }
+}
+
+/* === Large desktop (≥1400px) — wider container, more breathing room === */
+@media (min-width: 1400px) {
+  .kpi-app .app-wrap { max-width: 1440px; padding: 36px 40px 56px; }
+  .kpi-app .hero-title { font-size: 2.4rem !important; }
+  .kpi-app .hero-sub { font-size: 12px !important; }
+  .kpi-app .ctrl-bar { margin-top: 14px !important; }
+  .kpi-app .ctrl-select { height: 42px; font-size: 13px; }
+  .kpi-app .ctrl-select-period .ctrl-period-label { font-size: 16px; }
+  .kpi-app .nav-btn { padding: 13px 18px; font-size: 13px; }
+  .kpi-app .kpi-notice-banner { height: 44px; }
+  .kpi-app .kpi-notice-marquee { font-size: 14px; }
+  .kpi-app .dsk-company { margin-top: 24px; }
+  .kpi-app .dsk-cty-top { grid-template-columns: 320px 1fr; gap: 12px; padding: 8px; }
+  .kpi-app .dsk-cty-tier { gap: 14px; }
+  .kpi-app .dsk-cty-main-head { padding: 11px 22px; }
+  .kpi-app .dsk-cty-main-label { font-size: 12px; }
+  .kpi-app .dsk-cty-main-body { padding: 22px 26px; gap: 10px; }
+  .kpi-app .dsk-cty-pct { font-size: 3.2rem; }
+  .kpi-app .dsk-cty-prog { height: 12px; }
+  .kpi-app .dsk-cty-afyp { font-size: 1.7rem; }
+  .kpi-app .dsk-cty-kh { font-size: .85rem; }
+  .kpi-app .dsk-cty-kpi-head { padding: 10px 12px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 11px; }
+  .kpi-app .dsk-cty-kpi-body { padding: 18px 10px; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1.55rem; }
+  /* Desktop split giữ column layout; chỉ nới gap và font cho màn lớn */
+  .kpi-app .desktop-split { gap: 24px; margin-top: 28px; }
+  .kpi-app .kpi-stack { gap: 18px; }
+  .kpi-app .afyp-chart-wrap { padding: 24px 26px 26px; }
+  .kpi-app .afyp-chart-title { font-size: 1.05rem; margin-bottom: 18px; }
+  .kpi-app .sum-val { font-size: 1.1rem; }
+  .kpi-app .afyp-chart { min-height: 320px; }
+  .kpi-app .rg-head { padding: 14px 16px; }
+  .kpi-app .rg-head-name { font-size: 14px; }
+  .kpi-app .rg-head-pct { font-size: 22px; }
+  .kpi-app .rg-afyp-row { padding: 14px 16px; }
+  .kpi-app .rg-afyp { font-size: 1.6rem; }
+  .kpi-app .rg-kh { font-size: 12px; }
+  .kpi-app .rg-prog { margin: 0 16px 12px; }
+  .kpi-app .rg-sum-cell { padding: 11px 7px; min-height: 56px; }
+  .kpi-app .rg-sum-label { font-size: 10px; }
+  .kpi-app .rg-sum-val { font-size: 19px; }
+  .kpi-app .rg-divider { margin: 0 16px; }
+  .kpi-app .rg-ad-table { width: calc(100% - 32px); margin: 0 16px; font-size: 13px; }
+  .kpi-app .rg-ad-table thead th { font-size: 11px; padding: 10px 8px; }
+  .kpi-app .rg-ad-table thead th:first-child { padding-left: 14px; }
+  .kpi-app .rg-ad-table tbody td { padding: 11px 8px; font-size: 13px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 14px; }
+  .kpi-app .rg-ad-name { font-size: 13px; }
+  .kpi-app .rg-ad-sub { font-size: 11px; }
+  .kpi-app .rg-ad-afyp { font-size: 13px; }
+  .kpi-app .rg-ad-val { font-size: 13px; }
+  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 38px; height: 38px; }
+  .kpi-app .rg-ad-circle-text { font-size: 10px; }
+  .kpi-app .rg-ad-checkmark { width: 38px; height: 38px; }
+  .kpi-app .rg-ad-checkmark svg { width: 22px; height: 22px; }
+  .kpi-app .sub-title { font-size: 28px; }
+  .kpi-app .top3-grid { max-width: 980px; gap: 22px; }
+  .kpi-app .top3-card { padding: 22px 18px 18px; }
+  .kpi-app .top3-name { font-size: 15px; }
+  .kpi-app .top3-val { font-size: 16px; }
+  .kpi-app .top3-first .top3-name { font-size: 16px; }
+  .kpi-app .top3-first .top3-val { font-size: 18px; }
+  .kpi-app #view-calendar .cal-wrap { max-width: 1040px; }
+  .kpi-app #view-calendar .cal-filter { max-width: 820px; }
+  .kpi-app .cal-head { font-size: 12px; padding: 12px 0; grid-template-columns: 72px minmax(0,1fr) 100px; }
+  .kpi-app .cal-row { grid-template-columns: 72px minmax(0,1fr) 100px; }
+  .kpi-app .cal-day-num { font-size: 17px; }
+  .kpi-app .cal-day-week { font-size: 10px; }
+  .kpi-app .cal-line { font-size: 14px; padding: 6px 12px; }
+  .kpi-app .cal-owner-tag { font-size: 12px; padding: 4px 10px; }
+}
+
+/* === XL desktop (≥1700px) — cap container to avoid over-stretching === */
+@media (min-width: 1700px) {
+  .kpi-app .app-wrap { max-width: 1560px; padding: 44px 48px 64px; }
+  .kpi-app .hero-title { font-size: 2.6rem !important; }
+  .kpi-app .desktop-split { gap: 28px; }
+  .kpi-app .kpi-stack { gap: 20px; }
+  .kpi-app .dsk-cty-top { grid-template-columns: 360px 1fr; }
+  .kpi-app .dsk-cty-tier { gap: 16px; }
+  .kpi-app .dsk-cty-pct { font-size: 3.4rem; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1.7rem; }
+  .kpi-app .afyp-chart { min-height: 360px; }
+  .kpi-app .rg-head-name { font-size: 15px; }
+  .kpi-app .rg-head-pct { font-size: 24px; }
+  .kpi-app .rg-afyp { font-size: 1.8rem; }
+  .kpi-app .rg-sum-val { font-size: 21px; }
+  .kpi-app .rg-ad-name { font-size: 14px; }
+  .kpi-app .rg-ad-afyp, .kpi-app .rg-ad-val { font-size: 14px; }
+  .kpi-app .sub-title { font-size: 30px; }
+  .kpi-app #view-calendar .cal-wrap { max-width: 1160px; }
 }
 /* Responsive mobile */
 @media (max-width: 640px) {
@@ -1333,6 +1549,126 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 720px) {
   .kpi-app .kpi-notice-banner { height: 30px; }
   .kpi-app .kpi-notice-marquee { font-size: 12px; padding-left: 30px; }
+}
+
+/* ===== Popup Loading =====
+   Popup nhỏ ở giữa màn hình khi vừa mở trang KPI.
+   Tự động biến mất (fade + scale out) khi app đã load xong dữ liệu. */
+.kpi-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(4, 18, 32, .62);
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 1;
+  transition: opacity .4s cubic-bezier(.22,1,.36,1);
+}
+.kpi-splash.exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+.kpi-splash.exiting .kpi-splash-card {
+  transform: translateY(8px) scale(.96);
+  opacity: 0;
+}
+.kpi-splash-card {
+  position: relative;
+  width: min(340px, 88vw);
+  padding: 28px 24px 22px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(20, 40, 64, .96) 0%, rgba(10, 28, 48, .96) 100%);
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, .55),
+    0 0 0 1px rgba(94, 232, 156, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: transform .45s cubic-bezier(.22,1,.36,1), opacity .45s cubic-bezier(.22,1,.36,1);
+  overflow: hidden;
+}
+.kpi-splash-card::before {
+  content: '';
+  position: absolute;
+  top: -40%; left: 50%;
+  transform: translateX(-50%);
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94, 232, 156, .14) 0%, transparent 60%);
+  pointer-events: none;
+}
+.kpi-splash-logo {
+  position: relative;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffd66a 0%, #f2b24d 55%, #b07820 100%);
+  box-shadow: 0 6px 20px rgba(242, 178, 77, .35), inset 0 2px 4px rgba(255, 255, 255, .4);
+  animation: splashPulse 1.6s ease-in-out infinite;
+}
+.kpi-splash-logo svg {
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
+}
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.kpi-splash-text { position: relative; z-index: 1; }
+.kpi-splash-title {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #f0f4f8;
+  letter-spacing: .01em;
+}
+.kpi-splash-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: #e0c060;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  margin-top: 4px;
+}
+.kpi-splash-spinner {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+}
+.kpi-splash-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid rgba(94, 232, 156, .18);
+  border-top-color: #5ee89c;
+  animation: splashSpin .85s linear infinite;
+}
+@keyframes splashSpin {
+  to { transform: rotate(360deg); }
+}
+.kpi-splash-hint {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  color: #8a9ab0;
+  font-style: italic;
 }
 `;
 
@@ -1532,6 +1868,9 @@ export default function KPIDashboard() {
     leaders: LeaderInfo[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  // Splash screen overlay — chỉ hiện lần đầu khi app vừa mở, tự fade-out khi data sẵn sàng.
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashExiting, setSplashExiting] = useState(false);
   const [error, setError] = useState(false);
   const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
   const [selectedKy, setSelectedKy] = useState('');
@@ -2054,6 +2393,19 @@ export default function KPIDashboard() {
     return { total, phongs, periodContracts };
   }, [rawData, overviewPeriod, onlineSettings, adStructList, phongStructList, banNhomStructList, tvvStructList]);
 
+  /* Splash exit — khi data đã load xong (loading=false) VÀ dashboard đã sẵn sàng,
+     đợi 1 nhịp rồi fade-out splash (~550ms) rồi unmount. */
+  useEffect(() => {
+    if (!splashVisible) return;
+    if (loading || !dashboard) return;
+    const t1 = setTimeout(() => setSplashExiting(true), 250);
+    const t2 = setTimeout(() => {
+      setSplashVisible(false);
+      setSplashExiting(false);
+    }, 250 + 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [loading, dashboard, splashVisible]);
+
   /* Compute detail data */
   const detailData = useMemo(() => {
     if (!rawData) return [];
@@ -2542,6 +2894,25 @@ export default function KPIDashboard() {
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
+
+      {/* ===== POPUP LOADING =====
+          Popup nhỏ ở giữa màn hình khi vừa mở trang KPI (đang preload data).
+          Tự động fade-out mượt mà khi dashboard sẵn sàng — xem useEffect [loading, dashboard, splashVisible] ở trên. */}
+      {splashVisible && (
+        <div className={`kpi-splash${splashExiting ? ' exiting' : ''}`} aria-hidden={splashExiting}>
+          <div className="kpi-splash-card">
+            <div className="kpi-splash-logo" aria-hidden="true">
+              <Trophy size={32} />
+            </div>
+            <div className="kpi-splash-text">
+              <div className="kpi-splash-title">Tiến Độ Kinh Doanh</div>
+              <div className="kpi-splash-sub">Bảo Việt Nhân Thọ An Giang</div>
+            </div>
+            <div className="kpi-splash-spinner" aria-hidden="true" />
+            <div className="kpi-splash-hint">Đang tải dữ liệu…</div>
+          </div>
+        </div>
+      )}
 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
