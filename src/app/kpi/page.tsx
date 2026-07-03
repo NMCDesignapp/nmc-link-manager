@@ -1218,7 +1218,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .legend-dot { width: 12px; height: 12px; }
 
   /* --- 4 ô PHÒNG xếp DỌC, bằng nhau, fill hết chiều cao split-right --- */
-  .kpi-app .kpi-stack { display: contents; }
+  /* kpi-stack đã bị bỏ trong split-right — dept-section là direct grid item */
   .kpi-app .dept-section { display: flex; min-width: 0; min-height: 0; }
   .kpi-app .dept-section > .rg-card,
   .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; min-width: 0; min-height: 0; }
@@ -3317,7 +3317,6 @@ export default function KPIDashboard() {
                   </div>
                 </div>
                 <div className="split-right" id="split-depts">
-                  <div className="kpi-stack">
                     {dashboard.phongs.map((phong, pi) => {
                       const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
                       const pCp = Math.min(pPct, 100);
@@ -3556,7 +3555,6 @@ export default function KPIDashboard() {
                         </div>
                       );
                     })}
-                  </div>
                 </div>
               </div>
             </>
