@@ -355,3 +355,34 @@ QUY TẮC CỐ ĐỊNH RÚT RA (bổ sung):
 - DS TB/TN đầy đủ (29) chỉ có ở /api/leaders
 - Khi user nói "DS XX mục Cấu trúc" → dùng endpoint /api/structure/XX hoặc /api/leaders (TB/TN)
   /api/recruiters (TTN), KHÔNG dùng /api/staff
+
+---
+Task ID: fix-kpi-desktop-4-o-bang-nhau-v2
+Agent: main
+Task: User phàn nàn 4 ô phòng ban KHÔNG bằng nhau (lần fix trước không có hiệu lực)
+
+Work Log:
+- User: "ủa nhìn tắm hình như vậy mà nói 4 ô phòng bằng nhau hả" + "tao đang nói giao diện destop trang kpi"
+- Verify VLM screenshot 1440x900: PTKD 1=180px, PTKD 2=220px (cao hơn), PTKD 3=180px, BANCA=120px → KHÔNG bằng nhau
+- Root cause: `grid-template-rows: repeat(4, 1fr)` bị override bởi content size
+  → 1fr mặc định = minmax(auto, 1fr) → row KHÔNG shrink dưới content
+  → row có nhiều AD rows (PTKD 2) grow cao hơn row ít content (BANCA)
+- Fix (commit 39f0971):
+  + `split-right`: đổi `repeat(4, 1fr)` → `repeat(4, minmax(0, 1fr))` → row shrink được
+  + `dept-section`: thêm `height: 100%` (chain từ grid row)
+  + `rg-card`: thêm `height: 100%; overflow: hidden` (fill dept-section, không grow)
+  + `rg-ad-wrap`: `flex: 1 1 0; min-height: 0; overflow-y: auto` (scroll khi nhiều AD)
+  + `rg-head/afyp/prog/summary/divider`: `flex: 0 0 auto` (fixed, không shrink)
+
+Verify VLM sau deploy (commit 39f0971, screenshot kpi-after-equal.png):
+- Q: "viền dưới 4 ô cách đều nhau không?" → A: "CÓ, cách đều nhau"
+- Q: "ô BANCA-PA có viền dưới chạm mép dưới cột không?" → A: "CÓ"
+- Q: "chiều cao 4 ô có BẰNG NHAU không?" → A: "CÓ, ~180px"
+
+Stage Summary:
+- Đã live commit 39f0971: https://nc-link.vercel.app/kpi
+- 4 ô phòng ban BẰNG NHAU chiều cao ~180px (1/4 split-right mỗi ô)
+- BANCA-PA có ít content (chỉ header + afyp + 2-cell summary) nhưng card vẫn fill 100%
+  nhờ height: 100% + display:flex column (empty space ở dưới, không ảnh hưởng layout)
+- AD table scroll bên trong rg-ad-wrap khi có nhiều AD rows
+- minmax(0, 1fr) là KEY: cho phép grid row shrink dưới content size
