@@ -295,3 +295,63 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
 - Khi compact CSS trong @media (min-width: 900px) mà vẫn không có hiệu lực → kiểm tra
   xem có rules tương ứng trong @media (min-width: 1400px) và (min-width: 1700px) không
   → phải compact ở TẤT CẢ breakpoints, không chỉ ≥900px
+
+---
+Task ID: fix-thi-dua-subject-source-correct
+Agent: main
+Task: Sửa nguồn DS 4 nút đối tượng thi đua — TVVm chỉ 4, DS TB/TN sai
+
+Work Log:
+- User phàn nàn: TVVm chỉ 4 người, DS TB/TN chưa đúng, yêu cầu DS tự cập nhật khi sửa Cấu trúc
+- Nguyên nhân gốc: subjectLists đang dùng /api/staff (26 records — chỉ DS TB/TN leaders) làm nguồn cho TVVm/TVV cũ
+  → /api/staff KHÔNG phải DS TVV đầy đủ → TVVm chỉ đếm được 3-4 người có startDate ≤ 12 tháng trong 26 TB/TN
+  → "TVV cũ" = 0 vì cả 26 đều có position TB/TN
+
+- User nói rõ nguồn ĐÚNG (lấy từ mục Cấu trúc trang Quản lý):
+  + TVVm + TVV cũ: /api/structure/tvv (DS TVV Cấu trúc, 2032 records) — lọc TVVm theo ngayBatDau ≤ 12 tháng
+  + TN: /api/leaders (DS TB/TN Cấu trúc, 29 records) — lọc isTBorTNPosition
+  + TTN: /api/recruiters (DS TTN Cấu trúc, 68 records) — không đổi
+
+- Fix (commit 24d9162):
+  + Thêm interface TVVStructItem (agentCode, agentName, maBanNhom, chucVu, ngayBatDau)
+  + Thêm state tvvStructList + leadersList
+  + Thêm fetchTvvStruct() + fetchLeaders()
+  + Sync từ appData.structureTvv + appData.leaders trong useEffect
+  + handleRefreshData cũng fetch tvvStruct + leaders
+  + Sửa subjectLists useMemo:
+    * TVVm: tvvStructList filter isTVVm(ngayBatDau) AND !isTTN AND !isTBorTN
+    * TVV cũ: tvvStructList filter !isTVVm AND !isTTN AND !isTBorTN
+    * TN: leadersList unique agentCode filter isTBorTNPosition
+    * TTN: recruiterList (không đổi)
+    * deps: [tvvStructList, leadersList, recruiterList]
+
+- Auto-update: tvvStructList/leadersList/recruiterList sync từ AppDataContext.
+  Khi user sửa DS TVV/DS TB/TN ở trang Quản lý → context reload → dataVersion bump
+  → useEffect sync lại → subjectLists re-compute → 4 nút tự hiển thị số mới.
+
+Verify live (commit 24d9162) bằng agent-browser:
+- Click "DS đối tượng" mở dialog → 4 nút hiển thị:
+  + TVVm: 225 (trước 4) ✓
+  + TVV cũ: 1709 (trước 0) ✓
+  + TTN: 68 (không đổi) ✓
+  + TN: 29 (trước 26) ✓
+- Match với tính toán độc lập từ API: tvvm=225, tvvCu=1709, tn=29, ttn=68 ✓
+
+KPI desktop đánh giá (user paste screenshot 1909x1029):
+- VLM phân tích: cột phải 4 ô bằng nhau 179px, không overflow ✓
+- Nhưng BANCA-PA card content ít (chỉ afyp + 2 cells: Lượt, HĐ chuẩn) — vì là phòng Banca không có AD
+- Layout đã cân đối, BANCA card nhỏ hơn về content là do tính chất phòng (không có AD table)
+
+Stage Summary:
+- Đã live commit 24d9162: https://nc-link.vercel.app/thi-dua-chau
+- 4 nút đối tượng thi đua hiển thị số ĐÚNG từ nguồn Cấu trúc:
+  + TVVm 225 / TVV cũ 1709 / TTN 68 / TN 29
+- Tự động cập nhật khi user sửa Cấu trúc (qua AppDataContext + dataVersion)
+- KHÔNG fallback, KHÔNG dùng /api/staff cho TVV, KHÔNG dùng Contracts
+
+QUY TẮC CỐ ĐỊNH RÚT RA (bổ sung):
+- /api/staff chỉ chứa 26 records DS TB/TN leaders → KHÔNG dùng làm nguồn DS TVV
+- DS TVV đầy đủ (2000+) chỉ có ở /api/structure/tvv
+- DS TB/TN đầy đủ (29) chỉ có ở /api/leaders
+- Khi user nói "DS XX mục Cấu trúc" → dùng endpoint /api/structure/XX hoặc /api/leaders (TB/TN)
+  /api/recruiters (TTN), KHÔNG dùng /api/staff
