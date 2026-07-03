@@ -666,31 +666,55 @@ export default function ThiDuaPage() {
   }, [thiDuaSubjects]);
 
   // ===== 4 danh sách đối tượng dùng cho nút chọn nhanh =====
-  // TVVm:   DS TVV có startDate → nay ≤ 12 tháng (lấy từ Contracts, unique theo agentCode)
+  // TVVm:   DS TVV có startDate → nay ≤ 12 tháng (lấy từ Staff table, unique theo agentCode)
   // TVV cũ: DS TVV KHÔNG phải TVVm VÀ KHÔNG phải ban cán (position không phải TB/TN/TTN)
   // TTN:    DS TTN từ Recruiter table (DS TTN ở Cấu trúc)
   // TN:     DS TB/TN từ Staff table (DS TB/TN ở Cấu trúc — loại TTN)
+  // QUAN TRỌNG: Dùng Staff table làm nguồn chính (DS TVV đầy đủ), KHÔNG dùng Contracts
+  // vì Contracts chỉ chứa TVV đã có doanh số → sẽ thiếu TVV chưa có HĐ
   const subjectLists = useMemo(() => {
-    // Unique TVV theo agentCode — lấy record đầu tiên để dùng position/startDate
-    const tvvMap = new Map<string, Contract>();
+    // Map agentCode → contract đầu tiên để fallback startDate/position
+    const contractByCode = new Map<string, Contract>();
     for (const c of contracts) {
-      if (!tvvMap.has(c.agentCode)) tvvMap.set(c.agentCode, c);
+      if (c.agentCode && !contractByCode.has(c.agentCode)) contractByCode.set(c.agentCode, c);
     }
-    const tvvAll = Array.from(tvvMap.values());
 
-    const tvvm = tvvAll
-      .filter(c => isTVVm(c.ngayBatDauLamViec || c.startDate))
-      .map(c => c.agentCode)
+    // Ưu tiên staff.startDate → contract.ngayBatDauLamViec → contract.startDate
+    const resolveStartDate = (staff: StaffMember): string | null => {
+      if (staff.startDate) return staff.startDate;
+      const c = contractByCode.get(staff.agentCode);
+      return c?.ngayBatDauLamViec || c?.startDate || null;
+    };
+    // Ưu tiên staff.position → contract.position
+    const resolvePosition = (staff: StaffMember): string => {
+      if (staff.position && staff.position.trim()) return staff.position;
+      const c = contractByCode.get(staff.agentCode);
+      return c?.position || '';
+    };
+
+    // Unique theo agentCode — staffList có thể có trùng (cùng agentCode nhiều nhóm)
+    const staffMap = new Map<string, StaffMember>();
+    for (const s of staffList) {
+      if (s.agentCode && !staffMap.has(s.agentCode)) staffMap.set(s.agentCode, s);
+    }
+    const staffAll = Array.from(staffMap.values());
+
+    const tvvm = staffAll
+      .filter(s => isTVVm(resolveStartDate(s)))
+      .map(s => s.agentCode)
       .filter(Boolean);
 
-    const tvvCu = tvvAll
-      .filter(c => !isTVVm(c.ngayBatDauLamViec || c.startDate))
-      .filter(c => !isTTNPosition(c.position) && !isTBorTNPosition(c.position))
-      .map(c => c.agentCode)
+    const tvvCu = staffAll
+      .filter(s => !isTVVm(resolveStartDate(s)))
+      .filter(s => {
+        const pos = resolvePosition(s);
+        return !isTTNPosition(pos) && !isTBorTNPosition(pos);
+      })
+      .map(s => s.agentCode)
       .filter(Boolean);
 
-    const tn = staffList
-      .filter(s => isTBorTNPosition(s.position))
+    const tn = staffAll
+      .filter(s => isTBorTNPosition(resolvePosition(s)))
       .map(s => s.agentCode)
       .filter(Boolean);
 
