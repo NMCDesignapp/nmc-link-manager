@@ -2309,16 +2309,24 @@ export default function KPIDashboard() {
     };
     const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
 
-    // ========== Count TVV in PA only (for Banca-PA card display) ==========
-    // User requirement: count TVV whose AD belongs to PHÒNG PA (not Banca)
+    // ========== Count TVV in PA + Banca (for Banca-PA card display) ==========
+    // User requirement: count TOTAL TVV currently in PHÒNG PA / NHÓM PA / PHÒNG BANCA.
+    // Source: DS TVV of structure (/api/structure/tvv).
+    // Match by maBanNhom directly (NOT via bnToAdMap — because ban-nhom "U104101014"
+    // has empty maAD in DB, so bnToAdMap doesn't have entry → TVV not counted).
+    // PA group codes: PA, U104101014  (Nhóm PA có 1062 TVV)
+    // Banca group codes: BANCA, A473DSO000, DSO  (Banca có 1 TVV)
+    const PA_BANNHOM_CODES = new Set(['PA', 'U104101014']);
+    const BANCA_BANNHOM_CODES = new Set(['BANCA', 'A473DSO000', 'DSO']);
     let paTvvCount = 0;
+    let bancaTvvCount = 0;
     tvvStructList.forEach(t => {
-      const adInfo = bnToAdMap.get(t.maBanNhom);
-      if (!adInfo) return;
-      if (isPaCode(adInfo.maPhong) || isPaCode(adInfo.tenPhong)) {
-        paTvvCount++;
-      }
+      const code = String(t.maBanNhom || '').trim().toUpperCase();
+      if (PA_BANNHOM_CODES.has(code)) paTvvCount++;
+      else if (BANCA_BANNHOM_CODES.has(code)) bancaTvvCount++;
     });
+    // Total TVV in Banca-PA card = PA + Banca
+    const bancaPaTvvTotal = paTvvCount + bancaTvvCount;
 
     // ========== Per-Phong and per-AD data ==========
     const phongs: PhongData[] = [];
@@ -2332,7 +2340,7 @@ export default function KPIDashboard() {
       // PA or Banca → merge into Banca - PA
       if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
         if (!bancaPaPhong) {
-          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: paTvvCount };
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         const paContracts = periodContracts.filter(c => {
@@ -3156,7 +3164,7 @@ export default function KPIDashboard() {
                         <div className="rg-afyp-row">
                           <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
                           {phong.noAds ? (
-                            <span className="rg-banca-tvv-count">SL TVV PA: {phong.tvvCount ?? 0}</span>
+                            <span className="rg-banca-tvv-count">SL TVV: {phong.tvvCount ?? 0}</span>
                           ) : (
                             pKhTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
                           )}
@@ -3399,7 +3407,7 @@ export default function KPIDashboard() {
                               <div className="rg-afyp-row">
                                 <span className="rg-afyp"><AnimNum value={phong.afyp} /><span className="rg-afyp-unit">đ</span></span>
                                 {phong.noAds ? (
-                                  <span className="rg-banca-tvv-count">SL TVV PA: {phong.tvvCount ?? 0}</span>
+                                  <span className="rg-banca-tvv-count">SL TVV: {phong.tvvCount ?? 0}</span>
                                 ) : (
                                   khTrd > 0 && <span className="rg-kh">KH: {fmt(phong.kh)} đ</span>
                                 )}
