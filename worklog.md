@@ -497,3 +497,45 @@ Stage Summary:
 - KH tháng 7 = 2.870.000.000 đ (2 tỷ 870 triệu)
 - KH năm công ty = 35.700.000.000 đ (35 tỷ 700 triệu)
 - PA + Banca chưa set KH tháng → hiển thị "—" (cần user set nếu muốn)
+
+---
+Task ID: fix-kpi-calendar-date-picker
+Agent: main
+Task: Sửa lỗi input[type=date] native ở form "Nhập kế hoạch khung" (trang KPI) — chọn ngày nào cũng tự nhảy về tháng 01
+
+Work Log:
+- User báo: ở form "Nhập kế hoạch" trang KPI, khi bấm vào ô ngày → picker native hiện ra → chọn ngày nào cũng tự nhảy về tháng 01
+- Root cause: <input type="date"> native của trình duyệt. Trên iOS Safari / một số Android, khi chọn ngày từ picker native, value truyền về bị parse sai → auto về tháng 01
+- Code gốc (line ~3838-3843 trong src/app/kpi/page.tsx):
+    <input type="date" value={calEditForm.date} onChange={e => setCalEditForm(s => ({...s, date: e.target.value}))} />
+
+Fix (commit 446cd6a):
+- Tạo component CalDatePicker riêng (light theme, trắng/teal #008080 — match với .cal-field-input):
+  + Trigger button hiển thị ngày dạng DD/MM/YYYY (vi-VN)
+  + Popup render qua createPortal → document.body (tránh overflow/transform issue)
+  + Lưới 7 cột (CN-T7), navigate tháng (‹ / ›), highlight today (rgba teal) + selected (solid teal)
+  + Quick actions: "Hôm nay" (chọn ngày hiện tại) + "Xóa ngày" (clear value)
+  + Đóng popup khi click ngoài hoặc click backdrop
+- Thay <input type="date"> bằng <CalDatePicker value={calEditForm.date} onChange={...} />
+- Thêm import { createPortal } from 'react-dom' (lúc đầu thiếu)
+- Fix stale closure bug ở nút "Hôm nay": setViewMonth là async, handleDaySelect dùng viewMonth từ closure (stale) → sai tháng. Fix bằng cách thêm yOverride/mOverride params cho handleDaySelect, truyền today.getFullYear()/getMonth() trực tiếp
+
+Verify local (commit 446cd6a):
+- agent-browser eval: không còn input[type=date], có button "01/07/2026" ✓
+- Mở popup → hiển thị "Tháng 7 2026", 31 ngày ✓
+- Click day 15 → button hiện "15/07/2026", popup đóng ✓
+- Navigate sang T8 → "Tháng 8 2026", click day 20 → "20/08/2026" ✓
+- Click "Hôm nay" → "06/07/2026" (đúng, không bị stale closure) ✓
+- Click "Xóa ngày" → "Chọn ngày..." (empty) ✓
+
+Verify production (commit 446cd6a, sau Vercel auto-deploy ~95s):
+- Mở form "Nhập kế hoạch" trên https://nc-link.vercel.app/kpi
+- hasNativeDateInput: false, hasCustomPicker: true, customPickerText: "01/07/2026" ✓
+- Navigate T7→T8, click day 20 → "20/08/2026" ✓ (không bị nhảy về tháng 01 nữa)
+
+Stage Summary:
+- Bug native <input type="date"> → auto về tháng 01: FIXED
+- Custom CalDatePicker kiểm soát hoàn toàn giá trị YYYY-MM-DD, không phụ thuộc trình duyệt
+- Style match với form trắng/teal hiện có
+- Hỗ trợ: navigate tháng, "Hôm nay", "Xóa ngày", click ngoài để đóng
+- Đã live trên production: https://nc-link.vercel.app/kpi
