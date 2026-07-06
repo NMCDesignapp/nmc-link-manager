@@ -569,7 +569,8 @@ function resolveNguoiTD(
 }
 
 function formatCurrency(n: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
+  // Hiển thị đầy đủ đơn vị "đ" (không dùng "₫") — theo yêu cầu user
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' đ';
 }
 function formatNumber(n: number): string {
   // Luôn làm tròn thành số nguyên (theo yêu cầu: bảng chính sách không hiển thị thập phân)
@@ -623,15 +624,10 @@ export function renderThuongCellContent(amount: number, fontSize: string = '13px
   );
 }
 
-// Smart currency formatting: mobile shows trđ/tỷ, desktop shows full đ
+// Smart currency formatting — LUÔN hiển thị đầy đủ đơn vị đ (đồng) trên mọi viewport
+// Theo yêu cầu user: hiển thị rút gọn "X tỷ" khó đọc, không thấy giá trị chính xác.
 function formatSmartCurrency(amount: number): string {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  if (isMobile) {
-    if (amount >= 1_000_000_000) return `${Math.round(amount / 1_000_000_000)} tỷ`;
-    if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)} trđ`;
-    if (amount >= 1_000) return `${Math.round(amount / 1_000)} ngàn`;
-    return `${amount} đ`;
-  }
+  if (amount === 0) return '0 đ';
   return formatCurrency(amount);
 }
 
@@ -4245,12 +4241,10 @@ export default function QuanLyPage() {
       saveSetting(`nmc-kh-nhom-${maBanNhom}`, String(val));
     };
 
-    // Helper: format plan value for minimap display
+    // Helper: format plan value — hiển thị đầy đủ đơn vị đ (theo yêu cầu user)
     const fmtPlan = (val: number) => {
       if (val <= 0) return '—';
-      if (val >= 1_000_000_000) return `${Math.round(val / 1_000_000_000)} tỷ`;
-      if (val >= 1_000_000) return `${Math.round(val / 1_000_000)} trđ`;
-      return formatNumber(Math.round(val));
+      return formatCurrency(val);
     };
 
     return (
