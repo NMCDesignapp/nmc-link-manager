@@ -386,3 +386,72 @@ Stage Summary:
   nhờ height: 100% + display:flex column (empty space ở dưới, không ảnh hưởng layout)
 - AD table scroll bên trong rg-ad-wrap khi có nhiều AD rows
 - minmax(0, 1fr) là KEY: cho phép grid row shrink dưới content size
+
+---
+Task ID: fix-sl-tvv-banca-pa + review-afyp-kh
+Agent: main
+Task: 1) Fix SL TVV phòng Banca-PA = 0; 2) Review cách tính AFYP + KH hàng tháng
+
+Work Log - Task 1 (SL TVV):
+- User: SL TVV phòng Banca-PA vẫn đang là 0, đếm tổng TVV phòng/nhóm PA + Banca từ DS TVV cấu trúc
+- Root cause: paTvvCount dùng bnToAdMap.get(t.maBanNhom) nhưng:
+  + maBanNhom = 'U104101014' (PA group, 1062 TVV) có maAD='' trống trong DB
+  + bnToAdMap không có entry cho 'U104101014' → 1062 TVV PA không được đếm
+  + Chỉ có maBanNhom='PA' mới map được (nhưng không có TVV nào dùng code này)
+- Fix (commit 19828e2):
+  + Bỏ qua bnToAdMap, đếm trực tiếp TVV theo maBanNhom trong tập
+    {PA, U104101014, BANCA, A473DSO000, DSO}
+  + paTvvCount = 1062 (PA), bancaTvvCount = 1 (Banca)
+  + bancaPaTvvTotal = 1063 (hiển thị trên card Banca-PA)
+  + Label đổi từ 'SL TVV PA:' → 'SL TVV:' (card là Banca-PA merged)
+- Verify live (commit 19828e2):
+  + agent-browser eval: BANCA-PA card innerText = "Banca - PA...SL TVV: 1063..."
+  + Khớp với tính toán độc lập từ API: 1062 PA + 1 Banca = 1063 ✓
+
+Work Log - Task 2 (Review AFYP + KH):
+- Phân tích code KPI page (line 2207-2445) và quan-ly page (line 3468-3537):
+
+  A. AFYP calculation:
+  - periodContracts = yearContracts (getDoanhSoMonth = issueDate, fallback effectiveDate)
+    ∩ periodMonths (theo overviewPeriod: month/q/h/y)
+  - afyp = Σ c.afyp cho contracts match AD (theo tenAD normalized)
+  - Logic KHỚP với quan-ly: same getDoanhSoMonth, same periodMonths, same afyp field
+
+  B. Độ lớn HĐ (doLonHD):
+  - doLonHD = totalAFYP / totalLhd
+  - totalAFYP = Σ afyp từ contracts match AD (per Phong)
+  - totalLhd = count contracts có tinhLuot3tr >= 3,000,000 (per Phong)
+  - Logic KHỚP với quan-ly (line 3508): totalRevenueAFYP / luotHoatDong
+
+  C. KH hàng tháng:
+  - AD: readAdMonthlyPlan(maAD, m) = onlineSettings[`nmc-kh-ad-${maAD}-t${mm}`]
+  - Period KH cho AD = Σ monthly values cho các tháng trong period (KHÔNG dùng ratio)
+  - Period KH cho Nhóm (popup) = annual × ratio (nmc-kh-ratio-${mm})
+  - Logic KHỚP với quan-ly (line 3531-3537)
+
+  D. VẤN ĐỀ PHÁT HIỆN (cần user quyết):
+  1. KH stored annual ≠ Σ 12 monthly values (cho 6 AD PTKD):
+     - AD Trí: annual=1.6B, monthly_sum=1.503B (diff -97M)
+     - AD Long: annual=5.1B, monthly_sum=4.791B (diff -309M)
+     - AD Có: annual=7.2B, monthly_sum=6.764B (diff -436M)
+     - AD Trang: annual=5.8B, monthly_sum=5.449B (diff -351M)
+     - AD Uy: annual=12.3B, monthly_sum=11.557B (diff -743M)
+     - AD Danh: annual=6.0B, monthly_sum=5.636B (diff -364M)
+     → Tổng chênh: ~2.3 tỷ VND (annual cao hơn monthly_sum)
+     → KPI page hiển thị monthly_sum (thấp hơn)
+     → Nguyên nhân có thể: user set annual trước, sau đó chỉnh monthly nhưng chưa sync
+     → Tương tự cho Nhóm: annual stored vs (Σ ratio × annual)
+
+  2. PA + Banca: KH = 0 (không có monthly values trong settings)
+     → Card Banca-PA không hiển thị %KH, không có progress bar
+     → Có thể user chưa set KH cho PA/Banca (vì là phòng đặc biệt)
+
+  3. Ratio values có leading zeros: '08.50', '09.00', '010.50'
+     → parseFloat xử lý OK (08.5=8.5, 010.5=10.5)
+     → Nhưng format không chuẩn, nên clean về '8.5', '9', '10.5'
+
+Stage Summary:
+- SL TVV Banca-PA: 0 → 1063 (commit 19828e2, đã live)
+- AFYP + KH calculation logic KHỚP với quan-ly (cùng nguồn data, cùng formulas)
+- Phát hiện 3 vấn đề data (KH annual ≠ monthly_sum, PA/Banca chưa có KH, ratio leading zeros)
+  → KHÔNG fix code mà báo user quyết (vì có thể là data issue, không phải code issue)
