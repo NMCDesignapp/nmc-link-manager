@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
@@ -1747,6 +1748,219 @@ interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: st
 /* ================= CONSTANTS ================= */
 const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const WEEKDAY_NAMES = ['CN','T2','T3','T4','T5','T6','T7'];
+
+/* ================= CUSTOM DATE PICKER (light theme, matches cal-field-input) ================= */
+/* Dùng thay cho <input type="date"> native vì native picker trên iOS Safari / một số Android
+ * có bug: khi chọn ngày từ picker, value truyền về bị parse sai → auto nhảy về tháng 01.
+ * Custom picker này kiểm soát hoàn toàn giá trị YYYY-MM-DD, không phụ thuộc trình duyệt. */
+const CAL_PICKER_WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const CAL_PICKER_MONTH_NAMES = [
+  'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4',
+  'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8',
+  'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12',
+];
+
+function CalDatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  // View state: năm/tháng đang xem trong popup (không phụ thuộc value)
+  const [viewYear, setViewYear] = useState(() => {
+    if (value) { const d = new Date(value); if (!isNaN(d.getTime())) return d.getFullYear(); }
+    return new Date().getFullYear();
+  });
+  const [viewMonth, setViewMonth] = useState(() => {
+    if (value) { const d = new Date(value); if (!isNaN(d.getTime())) return d.getMonth(); }
+    return new Date().getMonth();
+  });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Khi value thay đổi (form mở mới / sửa entry khác) và popup đang đóng → sync view về tháng của value
+  useEffect(() => {
+    if (!open && value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setViewYear(d.getFullYear());
+        setViewMonth(d.getMonth());
+      }
+    }
+  }, [value, open]);
+
+  // Đóng popup khi click ngoài
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        !(e.target as Element).closest('[data-cal-picker-popup]')
+      ) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const handleOpen = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - r.bottom;
+      const showAbove = spaceBelow < 320 && r.top > spaceBelow;
+      setPopupPos({
+        left: r.left,
+        width: r.width,
+        top: showAbove ? r.top - 310 : r.bottom + 4,
+      });
+    }
+    setOpen(o => !o);
+  };
+
+  const handleDaySelect = (day: number, yOverride?: number, mOverride?: number) => {
+    const yy = yOverride ?? viewYear;
+    const mm = mOverride ?? viewMonth;
+    const ds = `${yy}-${String(mm + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    onChange(ds);
+    setOpen(false);
+  };
+
+  // Display: DD/MM/YYYY (vi-VN) nếu có value, ngược lại placeholder
+  const displayValue = (() => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return '';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  })();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div ref={containerRef} className="relative" style={{ position: 'relative' }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={handleOpen}
+        className="cal-field-input"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          textAlign: 'left', cursor: 'pointer', background: '#fff',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span style={{ color: value ? '#1a2e1a' : '#94a3b8', fontSize: 12 }}>
+          {displayValue || 'Chọn ngày...'}
+        </span>
+        <CalendarDays size={14} style={{ color: '#008080' }} />
+      </button>
+      {open && popupPos && createPortal(
+        <div
+          data-cal-picker-popup
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.25)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              left: Math.max(8, popupPos.left - 20),
+              top: popupPos.top,
+              width: Math.max(popupPos.width + 40, 280),
+              maxWidth: 'calc(100vw - 16px)',
+              background: '#fff',
+              border: '1.5px solid #008080',
+              borderRadius: 10,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.25), 0 0 16px rgba(0,128,128,0.12)',
+              padding: 12,
+            }}
+          >
+            {/* Header: prev / month-year / next */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <button type="button" onClick={prevMonth} style={pickerNavBtnStyle}>‹</button>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#0d4d4d' }}>
+                {CAL_PICKER_MONTH_NAMES[viewMonth]} {viewYear}
+              </span>
+              <button type="button" onClick={nextMonth} style={pickerNavBtnStyle}>›</button>
+            </div>
+            <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, #00808080, transparent)', marginBottom: 8 }} />
+            {/* Weekday header */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+              {CAL_PICKER_WEEKDAYS.map((w, i) => (
+                <div key={i} style={{
+                  textAlign: 'center', fontSize: 10, fontWeight: 800,
+                  color: i === 0 ? '#dc2626' : '#475569', padding: '2px 0',
+                }}>{w}</div>
+              ))}
+            </div>
+            {/* Day grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+              {cells.map((day, i) => {
+                if (day === null) return <div key={`e-${i}`} style={{ aspectRatio: '1.1' }} />;
+                const ds = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = ds === todayStr;
+                const isSelected = ds === value;
+                const dow = (firstDay + day - 1) % 7;
+                const isSunday = dow === 0;
+                return (
+                  <button
+                    key={ds}
+                    type="button"
+                    onClick={() => handleDaySelect(day)}
+                    style={{
+                      aspectRatio: '1.1', borderRadius: 6, border: isSelected ? '2px solid #008080' : '1px solid #c8d8ea',
+                      background: isSelected ? '#008080' : isToday ? '#00808015' : '#fff',
+                      color: isSelected ? '#fff' : isSunday ? '#dc2626' : '#1a2e1a',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0,
+                      boxShadow: isSelected ? '0 0 8px #00808040' : 'none',
+                    }}
+                  >{day}</button>
+                );
+              })}
+            </div>
+            {/* Quick actions */}
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button type="button" onClick={() => {
+                setViewYear(today.getFullYear()); setViewMonth(today.getMonth());
+                handleDaySelect(today.getDate(), today.getFullYear(), today.getMonth());
+              }} style={{
+                fontSize: 10, fontWeight: 700, color: '#fff', background: '#008080',
+                border: 'none', borderRadius: 5, padding: '5px 8px', cursor: 'pointer',
+              }}>Hôm nay</button>
+              {value && (
+                <button type="button" onClick={() => { onChange(''); setOpen(false); }} style={{
+                  fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'transparent',
+                  border: '1px solid #dc262640', borderRadius: 5, padding: '5px 8px', cursor: 'pointer',
+                }}>Xóa ngày</button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+const pickerNavBtnStyle: React.CSSProperties = {
+  width: 26, height: 26, borderRadius: 5, border: '1px solid #c8d8ea',
+  background: '#f0fdfa', color: '#0d4d4d', fontSize: 16, fontWeight: 800,
+  cursor: 'pointer', padding: 0, lineHeight: 1, display: 'flex',
+  alignItems: 'center', justifyContent: 'center',
+};
 
 // AD short-name → full name mapping (DB stores short names, display full names)
 const AD_FULL_NAME_MAP: Record<string, string> = {
@@ -3840,11 +4054,9 @@ export default function KPIDashboard() {
               <div className="cal-modal-body">
                 <label className="cal-field">
                   <span className="cal-field-label">Ngày tháng năm</span>
-                  <input
-                    type="date"
-                    className="cal-field-input"
+                  <CalDatePicker
                     value={calEditForm.date}
-                    onChange={e => setCalEditForm(s => ({ ...s, date: e.target.value }))}
+                    onChange={(v) => setCalEditForm(s => ({ ...s, date: v }))}
                   />
                 </label>
                 <label className="cal-field">
