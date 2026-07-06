@@ -2119,7 +2119,7 @@ export default function QuanLyPage() {
   //   - Top 5 TVVm: nếu TVVm đã lọt Top 5 TVV chung (mục 1) thì KHÔNG hiển thị lại ở mục 2
   //     (chỉ hiển thị 1 chỗ, lấy hạng cao hơn)
   //   - "Hoàn thành KH 6 tháng" = nhóm có AFYP H1 >= KH năm × (tổng ratio tháng 1-6 / 100)
-  //     Nếu không có ratio tháng 1-6 trong settings thì fallback 50% (chia đều cả năm)
+  //     KHÔNG fallback — nếu ratio = 0 thì KH H1 = 0
   const VINH_DANH_H1_MONTHS = ['01', '02', '03', '04', '05', '06'];
 
   const vinhDanhData = useMemo(() => {
@@ -2256,7 +2256,7 @@ export default function QuanLyPage() {
 
     // ===== 4. AFYP per Nhóm + KH H1 =====
     // KH H1 = (KH năm của nhóm) × (tổng ratio tháng 1-6 / 100)
-    // Nếu ratio tháng 1-6 = 0 thì fallback 50% KH năm
+    // KHÔNG fallback — nếu ratio = 0 thì KH H1 = 0 (user chưa set ratio → 0)
     const afypByNhom = new Map<string, number>();
     h1Contracts.forEach(c => {
       if (isContractExcluded(c)) return;
@@ -2266,7 +2266,7 @@ export default function QuanLyPage() {
     });
     // Total ratio tháng 1-6 từ settings
     const h1Ratio = VINH_DANH_H1_MONTHS.reduce((s, m) => s + (parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0), 0);
-    const h1RatioPct = h1Ratio > 0 ? h1Ratio / 100 : 0.5; // fallback 50%
+    const h1RatioPct = h1Ratio > 0 ? h1Ratio / 100 : 0; // KHÔNG fallback 50%
 
     const nhomHoanThanhKH = banNhomList
       .map(bn => {
