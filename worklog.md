@@ -455,3 +455,45 @@ Stage Summary:
 - AFYP + KH calculation logic KHỚP với quan-ly (cùng nguồn data, cùng formulas)
 - Phát hiện 3 vấn đề data (KH annual ≠ monthly_sum, PA/Banca chưa có KH, ratio leading zeros)
   → KHÔNG fix code mà báo user quyết (vì có thể là data issue, không phải code issue)
+
+---
+Task ID: fix-quan-ly-ke-hoach-don-vi-d
+Agent: main
+Task: Hiển thị trang Kế hoạch (quan-ly) ra đơn vị đ, xem KH tháng 7
+
+Work Log:
+- User paste screenshot trang Kế hoạch trên mobile, phàn nàn hiển thị "X tỷ" khó đọc
+- VLM phân tích screenshot: giá trị hiển thị ở đơn vị "tỷ" (36 tỷ, 2 tỷ, 12 tỷ...) — không thấy giá trị chính xác
+- Root cause: `formatSmartCurrency` rút gọn mobile (window.innerWidth < 768) → "X tỷ" / "Y trđ"
+  + `fmtPlan` (KH tháng minimap) cũng rút gọn tương tự
+  + `formatCurrency` dùng Intl.NumberFormat với currency VND → hiện ký hiệu "₫" (không phải "đ")
+
+- Fix (commit 372cda0):
+  + `formatCurrency`: bỏ Intl currency format, tự ghép " đ" vào cuối số
+    → "36.000.000.000 đ" thay vì "36.000.000.000 ₫"
+  + `formatSmartCurrency`: bỏ rút gọn mobile, luôn trả về `formatCurrency(amount)`
+    → hiển thị đầy đủ đ trên mọi viewport
+  + `fmtPlan`: bỏ rút gọn (X tỷ/Y trđ), luôn trả về `formatCurrency(val)`
+
+- Verify KH tháng 7 từ API settings (live data):
+  + AD Trí (L1006290346): 121.000.000 đ
+  + AD Long (L1404181481): 544.000.000 đ
+  + AD Có (L1404181482): 385.000.000 đ
+  + AD Trang (L1905096997): 438.000.000 đ
+  + AD Uy (L2404058202): 929.000.000 đ
+  + AD Danh (L2503288327): 453.000.000 đ
+  + PA + Banca: chưa set (0 đ)
+  + TOTAL KH tháng 7 = 2.870.000.000 đ (2 tỷ 870 triệu) — = 8.5% × 33.8B (6 AD annual)
+
+- Verify live sau deploy (commit 372cda0):
+  + agent-browser eval: T7 context = "3.420.000.000 đ | T7 | 8.5% | 2.870.000.000 đ | T8..."
+    → KH tháng 7 hiển thị "2.870.000.000 đ" ✓
+  + Tổng KH công ty năm = 35.700.000.000 đ (7 số 0, hiển thị đầy đủ) ✓
+  + Đơn vị: " đ" (chữ đ) thay vì "₫" ✓
+  + Không còn rút gọn "X tỷ" trên mobile ✓
+
+Stage Summary:
+- Trang Kế hoạch (quan-ly) đã hiển thị đầy đủ đơn vị "đ" trên mọi viewport
+- KH tháng 7 = 2.870.000.000 đ (2 tỷ 870 triệu)
+- KH năm công ty = 35.700.000.000 đ (35 tỷ 700 triệu)
+- PA + Banca chưa set KH tháng → hiển thị "—" (cần user set nếu muốn)
