@@ -2552,18 +2552,22 @@ export default function KPIDashboard() {
           bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
+        // NOTE: normKey() lowercases + strips accents/punctuation, so the substring
+        // checks below MUST use lowercase literals ('banca', 'dso', 'pgb', 'bancapa').
+        // Earlier code used UPPERCASE literals which never matched → Banca-PA contracts
+        // were dropped from the KPI total, making it ~151M VND lower than quan-ly.
         const paContracts = periodContracts.filter(c => {
           if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
           // Match contracts with ad = 'Banca - PA' or contains 'Banca'
           const adNorm = normKey(c.ad || '');
-          if (adNorm.includes('BANCAPA') || adNorm.includes('BANCA')) return true;
+          if (adNorm.includes('bancapa') || adNorm.includes('banca')) return true;
           // Match contracts with ban field containing PGB (PGB = Phát hành Banca)
           const banNorm = normKey(c.ban || '');
-          if (banNorm.includes('PGB')) return true;
+          if (banNorm.includes('pgb')) return true;
           const nhomNorm = normKey(c.nhom || '');
-          if (nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')) return true;
+          if (nhomNorm.includes('banca') || nhomNorm.includes('dso')) return true;
           const maNhomNorm = normKey(c.maNhom || '');
-          if (maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO')) return true;
+          if (maNhomNorm.includes('banca') || maNhomNorm.includes('dso')) return true;
           return false;
         });
 
@@ -2982,8 +2986,6 @@ export default function KPIDashboard() {
   const chartData = useMemo(() => {
     if (!rawData) return [];
     const months: { month: number; label: string; afyp: number; kh: number }[] = [];
-    // Use adStructList for AD names (from DB) instead of CO_CAU
-    const adKeys = adStructList.map(a => a.tenAD);
     const currentYear = new Date().getFullYear();
 
     // Use adStructList for KH calculation (same as quan-ly)
@@ -3004,19 +3006,16 @@ export default function KPIDashboard() {
     const chartTargetTong = adStructList.reduce((s, ad) => s + (chartAdPlans.get(ad.maAD) || 0), 0);
 
     for (let m = 1; m <= 12; m++) {
-      const mk = `${currentYear}-${String(m).padStart(2, '0')}`;
       const mContracts = rawData.contracts.filter(c => {
         const d = getDoanhSoMonth(c);
         return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() + 1 === m;
       });
 
-      let afyp = 0;
-      adKeys.forEach(adKey => {
-        mContracts.filter(c => {
-          const adNorm = normKey(c.ad || '');
-          return adNorm && (adNorm === normKey(adKey) || adNorm.includes(normKey(adKey)) || normKey(adKey).includes(adNorm));
-        }).forEach(c => { afyp += num(c.afyp); });
-      });
+      // Chart afyp = Σ afyp of ALL contracts in this month (same as quan-ly chart, line 4036)
+      // Do NOT iterate adKeys and sum per-AD — that approach double-counts "Banca - PA"
+      // contracts (matched by both "Banca" and "PA" adKeys via normKey().includes()).
+      // Use the simple sum to match quan-ly exactly.
+      const afyp = mContracts.reduce((s, c) => s + num(c.afyp), 0);
 
       // KH for this month = Σ all ADs' monthly value for this month (AD uses 12 monthly inputs directly)
       const kh = adStructList.reduce((s, ad) => s + chartReadAdMonthlyPlan(ad.maAD, m), 0);

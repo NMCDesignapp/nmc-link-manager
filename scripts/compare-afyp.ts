@@ -54,10 +54,20 @@ async function getJSON(path: string): Promise<any> {
   };
   const resolveAdName = (adKey: string): string => AD_FULL_NAME_MAP[adKey] || adKey;
 
+  // PA/Banca detection helpers (defined BEFORE use — same as kpi page line 2509-2519)
+  const isPaCode = (code: string): boolean => {
+    const c = String(code || '').trim();
+    return c === 'PA' || c === 'U104101014' || c.toLowerCase() === 'pa';
+  };
+  const isBancaCode = (code: string): boolean => {
+    const c = String(code || '').trim();
+    return c === 'Banca' || c === 'A473DSO000' || c === 'DSO' || c.toLowerCase() === 'banca' || c.toLowerCase() === 'dso';
+  };
+  const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
+
   // For each AD, find matching contracts (same logic as kpi page line 2603-2608)
   // BUT: skip ADs whose maPhong is PA/Banca (those are handled via Banca-PA phong path)
   let kpiTotalAFYP = 0;
-  let kpiTotalBancaPa = 0;
   const adAfyp = new Map<string, { name: string; afyp: number; count: number }>();
 
   // Detect PA/Banca phongs (same as kpi page line 2550)
@@ -86,18 +96,6 @@ async function getJSON(path: string): Promise<any> {
     kpiTotalAFYP += afyp;
     adAfyp.set(ad.maAD, { name: adKey, afyp, count: adContracts.length });
   });
-
-  // KPI also handles PA/Banca via isPaOrBanca + ad.includes('BANCA')
-  // For simplicity, also count PA/Banca contracts
-  const isPaCode = (code: string): boolean => {
-    const c = String(code || '').trim();
-    return c === 'PA' || c === 'U104101014' || c.toLowerCase() === 'pa';
-  };
-  const isBancaCode = (code: string): boolean => {
-    const c = String(code || '').trim();
-    return c === 'Banca' || c === 'A473DSO000' || c === 'DSO' || c.toLowerCase() === 'banca' || c.toLowerCase() === 'dso';
-  };
-  const isPaOrBanca = (code: string): boolean => isPaCode(code) || isBancaCode(code);
 
   let bancaPaAfyp = 0;
   let bancaPaCount = 0;
