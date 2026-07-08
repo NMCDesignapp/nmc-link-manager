@@ -100,18 +100,19 @@ async function getJSON(path: string): Promise<any> {
   let bancaPaAfyp = 0;
   let bancaPaCount = 0;
   const bancaPaContractIds = new Set<string>();
+  const bancaPaMatchedAdValues: Record<string, { count: number; afyp: number }> = {};
   phongStruct.forEach(p => {
     if (isPaOrBanca(p.maPhong) || isPaOrBanca(p.tenPhong)) {
       const paContracts = yearContracts.filter(c => {
         if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
         const adNorm = normKey(c.ad || '');
-        if (adNorm.includes('BANCAPA') || adNorm.includes('BANCA')) return true;
+        if (adNorm.includes('bancapa') || adNorm.includes('banca')) return true;
         const banNorm = normKey(c.ban || '');
-        if (banNorm.includes('PGB')) return true;
+        if (banNorm.includes('pgb')) return true;
         const nhomNorm = normKey(c.nhom || '');
-        if (nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')) return true;
+        if (nhomNorm.includes('banca') || nhomNorm.includes('dso')) return true;
         const maNhomNorm = normKey(c.maNhom || '');
-        if (maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO')) return true;
+        if (maNhomNorm.includes('banca') || maNhomNorm.includes('dso')) return true;
         return false;
       });
       paContracts.forEach(c => {
@@ -119,10 +120,22 @@ async function getJSON(path: string): Promise<any> {
           bancaPaContractIds.add(c.id);
           bancaPaAfyp += (c.afyp || 0);
           bancaPaCount++;
+          const adKey = (c.ad || '(empty)') as string;
+          if (!bancaPaMatchedAdValues[adKey]) bancaPaMatchedAdValues[adKey] = { count: 0, afyp: 0 };
+          bancaPaMatchedAdValues[adKey].count++;
+          bancaPaMatchedAdValues[adKey].afyp += (c.afyp || 0);
         }
       });
     }
   });
+
+  console.log('\n========== BANCA-PA MATCHED CONTRACTS (BY c.ad) ==========');
+  Object.entries(bancaPaMatchedAdValues)
+    .sort((a, b) => b[1].afyp - a[1].afyp)
+    .forEach(([ad, info]) => {
+      console.log(`  "${ad}" → ${info.count} HĐ, ${info.afyp.toLocaleString('vi-VN')} đ`);
+    });
+  console.log(`TOTAL Banca-PA: ${bancaPaCount} HĐ, ${bancaPaAfyp.toLocaleString('vi-VN')} đ`);
 
   const kpiTotalWithBancaPa = kpiTotalAFYP + bancaPaAfyp;
 
