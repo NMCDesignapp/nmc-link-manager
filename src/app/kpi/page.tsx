@@ -2575,6 +2575,16 @@ export default function KPIDashboard() {
         const newContracts = paContracts.filter(c => !bancaPaContractIds.has(c.id));
         newContracts.forEach(c => bancaPaContractIds.add(c.id));
 
+        // DEBUG: log Banca-PA matching
+        console.log('[DEBUG Banca-PA]', {
+          phong: phongStruct.maPhong + '/' + phongStruct.tenPhong,
+          periodContractsCount: periodContracts.length,
+          paContractsCount: paContracts.length,
+          newContractsCount: newContracts.length,
+          newContractsAfyp: newContracts.reduce((s, c) => s + num(c.afyp), 0),
+          sampleAdValues: paContracts.slice(0, 3).map(c => c.ad),
+        });
+
         if (bancaPaPhong) {
           bancaPaPhong.afyp += newContracts.reduce((s, c) => s + num(c.afyp), 0);
           bancaPaIpSum += newContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
