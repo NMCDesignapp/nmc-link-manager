@@ -1686,14 +1686,11 @@ export default function QuanLyPage() {
   // Lúc này ẩn sidebar + Cài đặt để user chỉ xem được đúng sheet đó, không click sang mục khác.
   // Flag được persist vào sessionStorage('kpi_embed') để giữ trạng thái khi refresh / sub-nav.
   // Flag được clear bởi KPI page khi user quay về /kpi.
-  const [isEmbedded, setIsEmbedded] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('from') === 'kpi') return true;
-      return sessionStorage.getItem('kpi_embed') === '1';
-    } catch { return false; }
-  });
+  //
+  // QUAN TRỌNG: KHÔNG đọc window/sessionStorage trong useState initializer — sẽ gây hydration mismatch
+  // (SSR returns false, client returns true → React throw error, có thể gây trang trắng trên mobile Safari).
+  // Thay vào đó: SSR default false, useEffect set true sau khi mount.
+  const [isEmbedded, setIsEmbedded] = useState(false);
   // ===== MOUNTED GUARD =====
   // Tránh flash bug: SSR render 'overview' trước rồi client hydrate mới switch sang sheet từ URL.
   // Khi chưa mounted → render skeleton loading, sau khi mounted mới render nội dung đúng.
@@ -1737,6 +1734,14 @@ export default function QuanLyPage() {
           const urlClean = new URL(window.location.href);
           urlClean.searchParams.delete('from');
           window.history.replaceState({}, '', urlClean.toString());
+        } else {
+          // Reload/refresh: `from` đã bị clear khỏi URL, nhưng sessionStorage vẫn còn
+          // → giữ trạng thái embed để user không thấy sidebar sau khi refresh
+          try {
+            if (sessionStorage.getItem('kpi_embed') === '1') {
+              setIsEmbedded(true);
+            }
+          } catch {}
         }
         const sheetParam = params.get('sheet');
         const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
@@ -11394,6 +11399,17 @@ export default function QuanLyPage() {
       }
     }
   };
+
+  if (!mounted) {
+    // SSR + first client render: chỉ loading spinner, không render header/sidebar/content
+    // để tránh hydration mismatch (SSR không biết sheet/isEmbedded → render khác client).
+    return (
+      <div className="h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+        <span className="ml-3 text-emerald-300 text-sm mt-3">Đang tải...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
