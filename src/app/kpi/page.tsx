@@ -2150,10 +2150,15 @@ export default function KPIDashboard() {
   const [adminAuthed, setAdminAuthed] = useState(false);
 
   // On mount: check sessionStorage for existing admin auth
+  // Đồng thời clear flag `kpi_embed` — cờ này chỉ được set khi user bấm link
+  // từ KPI sang /quan-ly. Khi user đang ở KPI → không còn trong chế độ embed.
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_admin_authed') === '1') {
-        setAdminAuthed(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('kpi_embed');
+        if (sessionStorage.getItem('kpi_admin_authed') === '1') {
+          setAdminAuthed(true);
+        }
       }
     } catch {}
   }, []);
@@ -3321,13 +3326,13 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
-                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
+                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report&from=kpi">
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                   </a>
-                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
+                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet&from=kpi">
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                   </a>
                 </div>
@@ -3497,13 +3502,13 @@ export default function KPIDashboard() {
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+                    <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
                       <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </a>
-                    <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
+                    <a className="nav-btn nav-policy" href="/quan-ly?sheet=report&from=kpi">
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                     </a>
-                    <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
+                    <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet&from=kpi">
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </a>
                   </nav>

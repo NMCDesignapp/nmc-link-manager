@@ -1681,6 +1681,19 @@ export default function QuanLyPage() {
   const [mobilePolicyPopupOpen, setMobilePolicyPopupOpen] = useState(false); // mobile: policy sub-item popup
   const [mobileRevenuePopupOpen, setMobileRevenuePopupOpen] = useState(false); // mobile: revenue month popup
   const [overviewPeriod, setOverviewPeriod] = useState<string>('year');
+  // ===== EMBEDDED MODE =====
+  // Khi user bấm từ KPI vào 1 trong 3 trang (thi đua / chính sách / CLB) → /quan-ly?sheet=xxx&from=kpi
+  // Lúc này ẩn sidebar + Cài đặt để user chỉ xem được đúng sheet đó, không click sang mục khác.
+  // Flag được persist vào sessionStorage('kpi_embed') để giữ trạng thái khi refresh / sub-nav.
+  // Flag được clear bởi KPI page khi user quay về /kpi.
+  const [isEmbedded, setIsEmbedded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') === 'kpi') return true;
+      return sessionStorage.getItem('kpi_embed') === '1';
+    } catch { return false; }
+  });
   // ===== MOUNTED GUARD =====
   // Tránh flash bug: SSR render 'overview' trước rồi client hydrate mới switch sang sheet từ URL.
   // Khi chưa mounted → render skeleton loading, sau khi mounted mới render nội dung đúng.
@@ -1716,6 +1729,15 @@ export default function QuanLyPage() {
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
+        // Persist `from=kpi` vào sessionStorage để giữ trạng thái embed qua các lần refresh/sub-nav
+        if (params.get('from') === 'kpi') {
+          try { sessionStorage.setItem('kpi_embed', '1'); } catch {}
+          setIsEmbedded(true);
+          // Clear `from` khỏi URL để internal nav không giữ lại
+          const urlClean = new URL(window.location.href);
+          urlClean.searchParams.delete('from');
+          window.history.replaceState({}, '', urlClean.toString());
+        }
         const sheetParam = params.get('sheet');
         const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
         if (sheetParam && validSheets.includes(sheetParam as SheetKey) && sheetParam !== activeSheet) {
@@ -11415,8 +11437,8 @@ export default function QuanLyPage() {
           {activeSheet === 'vinh-danh' && (
             <Button variant="ghost" onClick={handleDownloadVinhDanhExcel} className="text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 h-8 w-8 p-0" title="Tải file Excel Tôn vinh"><FileDown className="w-4 h-4" /></Button>
           )}
-          {/* Desktop: nút Cài đặt — chỉ hiện khi đã là admin (đăng nhập từ KPI page). Khi chưa admin, ẩn đi. */}
-          {isAdmin && (
+          {/* Desktop: nút Cài đặt — chỉ hiện khi đã là admin (đăng nhập từ KPI page) VÀ KHÔNG ở chế độ embedded (đến từ KPI). Khi chưa admin hoặc đang embed, ẩn đi. */}
+          {isAdmin && !isEmbedded && (
             <Button variant="ghost" onClick={() => setSettingsDialogOpen(true)} className="hidden md:inline-flex text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Cài đặt"><Settings className="w-4 h-4" /></Button>
           )}
         </div>
@@ -11424,9 +11446,10 @@ export default function QuanLyPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* Mobile overlay */}
-        {sidebarOpen && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
-        {/* Sidebar */}
-        <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: 'rgba(26, 35, 50, 0.9)' }}>
+        {sidebarOpen && !isEmbedded && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
+        {/* Sidebar — ẩn hoàn toàn khi ở chế độ embedded (đến từ KPI) để user không thấy/click được các menu khác */}
+        {!isEmbedded && (
+          <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: 'rgba(26, 35, 50, 0.9)' }}>
           {/* Mobile close button */}
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20 md:hidden">
             <span className="text-xs font-bold text-emerald-300">Menu</span>
@@ -11618,6 +11641,7 @@ export default function QuanLyPage() {
           </div>
 
         </nav>
+        )}
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 relative">
