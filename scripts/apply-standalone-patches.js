@@ -72,11 +72,13 @@ if (c.includes('<BackButton href={MAIN_APP_URL}')) {
 }
 
 // Patch 3: 3 nút nav → mở sang MAIN_APP_URL (target=_blank)
-// Main app code:
+// Main app code (XUẤT HIỆN 2 LẦN: mobile nav-grid + desktop dsk-nav):
 //   <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
 //   <a className="nav-btn nav-policy" href="/quan-ly?sheet=report">
 //   <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet">
 // Standalone: href={buildMainUrl('/quan-ly?sheet=...')} target="_blank" rel="noopener noreferrer"
+// QUAN TRỌNG: phải thay ALL occurrences (có 2 bộ: mobile + desktop) — dùng /g flag.
+// Trước đây chỉ thay occurrence đầu → desktop nav vẫn dùng relative URL → trang trắng khi click.
 const navReplacements = [
   ['nav-race', '/quan-ly?sheet=saoviet'],
   ['nav-policy', '/quan-ly?sheet=report'],
@@ -85,18 +87,21 @@ const navReplacements = [
 let navPatched = 0;
 for (const [cls, path] of navReplacements) {
   const pathEsc = path.replace(/\?/g, '\\?');
-  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + pathEsc + '"');
+  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + pathEsc + '"', 'g');
   const newStr = '<a className="nav-btn ' + cls + '" href={buildMainUrl(\'' + path + '\')} target="_blank" rel="noopener noreferrer"';
-  if (oldPattern.test(c)) {
-    c = c.replace(oldPattern, newStr);
-    navPatched++;
-  } else if (c.includes("buildMainUrl('" + path + "')")) {
-    // already patched — OK
+  const beforeLen = c.length;
+  c = c.replace(oldPattern, newStr);
+  const matches = beforeLen !== c.length ? 1 : 0; // simple check — real count via match
+  const matchCount = (c.match(new RegExp('buildMainUrl\\(\'' + pathEsc + '\'\\)', 'g')) || []).length;
+  if (matchCount >= 2) {
+    navPatched += matchCount;
+  } else if (matchCount === 1) {
+    navPatched += 1;
   } else {
     changed.push(cls + ' nav pattern not found (OK if main page changed)');
   }
 }
-if (navPatched > 0) changed.push('patched ' + navPatched + ' nav hrefs → MAIN_APP_URL target=_blank');
+if (navPatched > 0) changed.push('patched ' + navPatched + ' nav hrefs → MAIN_APP_URL target=_blank (mobile + desktop)');
 
 // Patch 4 (REMOVED): floating '← App' button — user yêu cầu bỏ.
 // Không inject thêm nút floating hay CSS đi kèm.
