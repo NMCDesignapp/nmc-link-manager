@@ -10442,16 +10442,34 @@ export default function QuanLyPage() {
     kimcuong:  { label: 'HẠNG KIM CƯƠNG', sub: 'FYP >=', values: [2850, 3350, 3850, 4350, 4850, 5350, 5850],   bg: '#00BFFF', fg: CLBSV_RANK_FG, bodyBg: '#E0FFFF' },
   };
 
-  // Lấy index tháng hiện tại (0=June ... 6=Dec). Nếu ngoài khoảng → clamping.
-  // Quy ước: tháng 1-5 → June value; tháng 13+ → Dec value.
-  const clbsvCurrentMonthIdx = (() => {
+  // === CLBSV month indexing ===
+  // Quy ước (theo yêu cầu user 2026-07-08):
+  //   • FYP Tháng (actual) = tháng HIỆN TẠI (contracts của tháng này)
+  //   • CHỈ TIÊU threshold = tháng HIỆN TẠI + 1 (tháng tới — cho TVV chuẩn bị)
+  //     Vd: hiện tại T7 → chỉ tiêu T8; hiện tại T11 → chỉ tiêu T12; hiện tại T12 → clamp T12.
+  //     Trước T6 (Jan-May) → clamp T6 (vì slide CTTV 2026 chỉ có dữ liệu từ T6).
+  const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+
+  // FYP Tháng actual — tháng hiện tại
+  const clbsvFypMonthIdx = (() => {
     const m = new Date().getMonth() + 1; // 1-12
-    if (m <= 6) return 0;  // Jan-Jun → June threshold (clamping early months)
-    if (m >= 12) return 6; // Dec → Dec threshold
+    if (m <= 6) return 0;  // Jan-Jun → June (clamping early months)
+    if (m >= 12) return 6; // Dec → Dec
     return m - 6;          // Jul=1, Aug=2, ..., Nov=5
   })();
-  const CLBSV_MONTH_LABELS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
-  const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx];
+
+  // CHỈ TIÊU threshold — tháng hiện tại + 1 (theo yêu cầu user)
+  const clbsvCurrentMonthIdx = (() => {
+    const m = new Date().getMonth() + 1; // 1-12
+    const target = m + 1;                // tháng tới
+    if (target <= 6) return 0;           // trước tháng 6 → clamp June
+    if (target >= 12) return 6;          // Dec trở đi → clamp Dec
+    return target - 6;                   // Jul=1, Aug=2, ..., Nov=5
+  })();
+
+  // Labels
+  const clbsvCurrentMonthLabel = CLBSV_MONTH_LABELS[clbsvFypMonthIdx];     // FYP Tháng (actual)
+  const clbsvThresholdMonthLabel = CLBSV_MONTH_LABELS[clbsvCurrentMonthIdx]; // Chỉ tiêu (tháng tới)
 
   // ========== CLB SAO VIỆT: Lookup maps từ các section Sao Việt Toàn Chặng ==========
   // User yêu cầu (2026-07-01):
@@ -10689,6 +10707,10 @@ export default function QuanLyPage() {
             {/* Compact filter row — 2 cols, mỏng, không label */}
             <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#BFDBFE', borderColor: '#1E40AF' }}>
               {filterRowJsx}
+              <div className="flex items-center gap-1 px-2 py-1 text-[9px] font-bold whitespace-nowrap" style={{ backgroundColor: '#1E3A8A', color: '#FFFFFF' }}>
+                <Calendar className="w-3 h-3 flex-shrink-0" />
+                <span>Chỉ tiêu {clbsvThresholdMonthLabel}</span>
+              </div>
             </div>
 
             {/* Table */}
@@ -10707,7 +10729,7 @@ export default function QuanLyPage() {
               </div>
               <div className="flex items-center gap-2 text-white text-[11px]">
                 <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="font-bold">Chỉ tiêu tháng hiện tại</span>
+                <span className="font-bold">Chỉ tiêu {clbsvThresholdMonthLabel}</span>
               </div>
             </div>
 
