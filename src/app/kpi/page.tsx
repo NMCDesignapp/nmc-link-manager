@@ -2575,30 +2575,6 @@ export default function KPIDashboard() {
         const newContracts = paContracts.filter(c => !bancaPaContractIds.has(c.id));
         newContracts.forEach(c => bancaPaContractIds.add(c.id));
 
-        // DEBUG: log Banca-PA matching
-        console.log('[DEBUG Banca-PA]', {
-          phong: phongStruct.maPhong + '/' + phongStruct.tenPhong,
-          periodContractsCount: periodContracts.length,
-          paContractsCount: paContracts.length,
-          newContractsCount: newContracts.length,
-          newContractsAfyp: newContracts.reduce((s, c) => s + num(c.afyp), 0),
-          sampleAdValues: paContracts.slice(0, 3).map(c => c.ad),
-          // Check if any contracts have ad containing "Banca"
-          contractsWithBancaAd: periodContracts.filter(c => {
-            const ad = String(c.ad || '').toLowerCase();
-            return ad.includes('banca');
-          }).length,
-          // Sample first 5 contracts' ad values
-          first5AdValues: periodContracts.slice(0, 5).map(c => c.ad),
-          // Test normKey on a known "Banca - PA" contract
-          testNormKey: (() => {
-            const test = periodContracts.find(c => String(c.ad || '').includes('Banca'));
-            if (!test) return 'no contract with Banca ad found';
-            const norm = normKey(test.ad || '');
-            return { original: test.ad, normalized: norm, includesBancaPa: norm.includes('bancapa'), includesBanca: norm.includes('banca') };
-          })(),
-        });
-
         if (bancaPaPhong) {
           bancaPaPhong.afyp += newContracts.reduce((s, c) => s + num(c.afyp), 0);
           bancaPaIpSum += newContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
