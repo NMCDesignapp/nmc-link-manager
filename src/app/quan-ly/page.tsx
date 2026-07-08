@@ -4071,13 +4071,13 @@ export default function QuanLyPage() {
               <div key={i} className={`grid grid-cols-[28px_1fr_1fr_auto] gap-1 items-center px-1 py-0.5 ${isInPeriod && overviewPeriod !== 'year' ? 'ring-1 ring-amber-400/60' : ''}`} style={{ backgroundColor: isCurrent ? '#0F766E' : isInPeriod && overviewPeriod !== 'year' ? '#1a2744' : '#0F172A', boxShadow: isCurrent ? '0 0 6px rgba(15,118,110,0.4)' : 'inset 0 -1px 0 rgba(255,255,255,0.04)' }}>
                 {/* T1-T12 — cột trái, cố định 28px */}
                 <span className={`text-[11px] sm:text-sm font-black text-center ${isCurrent ? 'text-white' : isInPeriod && overviewPeriod !== 'year' ? 'text-amber-300' : 'text-gray-400'}`}>T{i + 1}</span>
-                {/* Kế hoạch — màu AMBER (#F59E0B) */}
-                <span className="text-[11px] sm:text-sm font-black text-amber-400 text-right pr-1">
-                  {monthlyPlan > 0 ? (monthlyPlan >= 1_000_000 ? `${Math.round(monthlyPlan / 1_000_000)}tr` : formatNumber(Math.round(monthlyPlan))) : '—'}
+                {/* Kế hoạch — màu AMBER (#F59E0B) — full VND "đ" theo yêu cầu user */}
+                <span className="text-[10px] sm:text-xs font-black text-amber-400 text-right pr-1 whitespace-nowrap">
+                  {monthlyPlan > 0 ? formatSmartCurrency(monthlyPlan) : '—'}
                 </span>
-                {/* Thực hiện — màu SKY (#0EA5E9) */}
-                <span className={`text-[11px] sm:text-sm font-black text-right pr-1 ${actualAFYP === 0 ? 'text-gray-600' : pct >= 100 ? 'text-sky-300' : 'text-sky-400'}`}>
-                  {actualAFYP > 0 ? (actualAFYP >= 1_000_000 ? `${Math.round(actualAFYP / 1_000_000)}tr` : formatNumber(Math.round(actualAFYP))) : '—'}
+                {/* Thực hiện — màu SKY (#0EA5E9) — full VND "đ" theo yêu cầu user */}
+                <span className={`text-[10px] sm:text-xs font-black text-right pr-1 whitespace-nowrap ${actualAFYP === 0 ? 'text-gray-600' : pct >= 100 ? 'text-sky-300' : 'text-sky-400'}`}>
+                  {actualAFYP > 0 ? formatSmartCurrency(actualAFYP) : '—'}
                 </span>
                 {/* % đạt — cột phải */}
                 <span className={`text-[9px] sm:text-[10px] font-black text-right w-9 ${monthlyPlan > 0 ? (pct >= 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-rose-400') : 'text-gray-600'}`}>
