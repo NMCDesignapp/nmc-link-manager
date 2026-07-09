@@ -1190,20 +1190,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-progress { width: 100%; height: 5px; background: #0d1e36; }
   .kpi-app .dsk-cty-progress-fill { height: 100%; transition: width 1s cubic-bezier(.22,1,.36,1); background: linear-gradient(90deg, #40d890, #70f0b8); box-shadow: 0 0 8px rgba(64,216,144,.32); }
 
-  /* --- Desktop split: 2 cột fit 1 màn hình (không scroll)
-     TRÁI (3fr): 5 nút nav + Công ty + Biểu đồ
-     PHẢI (1fr): 4 phòng dọc (bằng nhau, fill hết chiều cao cột trái) --- */
+  /* --- Desktop split: 2 cột, cột PHẢI co giãn theo nội dung (không cắt AD)
+     TRÁI (3fr): 5 nút nav + Công ty + Biểu đồ (chart fill phần còn lại)
+     PHẢI (1fr): 4 phòng dọc — mỗi card cao theo nội dung AD, không bị ẩn --- */
   .kpi-app .desktop-split {
     display: grid; grid-template-columns: 3fr 1fr; gap: 20px;
     width: 100%; align-items: stretch; margin-top: 14px;
-    /* Fit 1 màn hình: chiều cao cố định theo viewport */
-    height: calc(100vh - 230px);
-    min-height: 540px;
+    /* min-height theo viewport, nhưng CHO PHÉP grow khi nội dung Phòng dài */
+    min-height: calc(100vh - 230px);
+    height: auto;
   }
   .kpi-app .split-left { display: none; }
   .kpi-app .split-center { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; height: 100%; }
-  /* minmax(0,1fr) thay vì 1fr: CHO PHÉP row shrink dưới content size → 4 row LUÔN bằng nhau */
-  .kpi-app .split-right { display: grid; grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 10px; min-width: 0; height: 100%; padding-left: 4px; border-left: 1px solid rgba(255,255,255,.06); }
+  /* minmax(140px, auto): row tối thiểu 140px, nhưng grow theo content AD → không cắt info */
+  .kpi-app .split-right { display: grid; grid-template-rows: repeat(4, minmax(140px, auto)); gap: 10px; min-width: 0; padding-left: 4px; border-left: 1px solid rgba(255,255,255,.06); }
   /* Chart fill phần còn lại của split-center, co giãn được */
   .kpi-app .split-center .afyp-chart-wrap { flex: 1 1 0; min-height: 0; overflow: hidden; }
   .kpi-app .afyp-chart { min-height: 0 !important; flex: 1 1 0; }
@@ -1219,16 +1219,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .legend-item { font-size: .78rem; }
   .kpi-app .legend-dot { width: 12px; height: 12px; }
 
-  /* --- 4 ô PHÒNG xếp DỌC, BẰNG NHAU chiều cao (1fr mỗi row), content scroll nếu overflow --- */
-  /* dept-section là grid item trong split-right (grid-template-rows: repeat(4,1fr))
-     → height phải = 100% row, không được grow theo content. */
-  .kpi-app .dept-section { display: flex; min-width: 0; height: 100%; min-height: 0; overflow: hidden; }
-  /* rg-card fill 100% dept-section (height + width), overflow hidden để không grow theo content */
+  /* --- 4 ô PHÒNG xếp DỌC — mỗi card CAO THEO NỘI DUNG AD (không cắt, không scroll nội bộ) --- */
+  /* dept-section grow theo content rg-card bên trong — bỏ overflow:hidden để hiển thị đầy đủ */
+  .kpi-app .dept-section { display: flex; min-width: 0; min-height: 0; overflow: visible; }
+  /* rg-card fill 100% width, grow theo content — bỏ height:100% và overflow:hidden */
   .kpi-app .dept-section > .rg-card,
-  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 0; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-  .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; min-height: 0; height: 100%; }
-  /* rg-ad-wrap là vùng duy nhất co giãn + scroll — KHÔNG cho grow theo content */
-  .kpi-app .rg-card .rg-ad-wrap { overflow-y: auto; flex: 1 1 0; min-height: 0; }
+  .kpi-app .dept-section > .banca-separator + .rg-card { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; overflow: visible; }
+  .kpi-app .rg-card { border-radius: 8px; display: flex; flex-direction: column; min-height: 0; }
+  /* rg-ad-wrap hiển thị ĐẦY ĐỦ content (bỏ overflow scroll nội bộ) */
+  .kpi-app .rg-card .rg-ad-wrap { overflow: visible; flex: 1 1 auto; min-height: 0; }
   /* Các block fixed phía trên không co giãn, không shrink */
   .kpi-app .rg-card > .rg-head,
   .kpi-app .rg-card > .rg-afyp-row,
@@ -1260,7 +1259,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-sum-val { font-size: 11px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
-  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow: visible; }
   .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 3px 3px; }
   .kpi-app .rg-ad-table thead th:first-child { padding-left: 8px; }
@@ -1362,8 +1361,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dsk-cty-kpi-label { font-size: 11px; }
   .kpi-app .dsk-cty-kpi-body { padding: 18px 10px; }
   .kpi-app .dsk-cty-kpi-val { font-size: 1.55rem; }
-  /* Desktop split: 2 cột (3/4 + 1/4) — nới gap cho màn lớn */
-  .kpi-app .desktop-split { gap: 24px; height: calc(100vh - 250px); min-height: 600px; }
+  /* Desktop split: 2 cột (3/4 + 1/4) — nới gap cho màn lớn, min-height (cho grow) */
+  .kpi-app .desktop-split { gap: 24px; min-height: calc(100vh - 250px); height: auto; }
   .kpi-app .split-center { gap: 14px; }
   .kpi-app .split-right { gap: 12px; }
   .kpi-app .nav-grid.dsk-nav { gap: 14px; }
@@ -1386,7 +1385,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-sum-val { font-size: 12px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
-  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow: visible; }
   .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
   .kpi-app .rg-ad-table thead th { font-size: 9px; padding: 4px 4px; }
   .kpi-app .rg-ad-table thead th:first-child { padding-left: 9px; }
@@ -1421,7 +1420,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 1700px) {
   .kpi-app .app-wrap { max-width: 1560px; padding: 44px 48px 64px; }
   .kpi-app .hero-title { font-size: 2.6rem !important; }
-  .kpi-app .desktop-split { gap: 28px; height: calc(100vh - 270px); min-height: 660px; }
+  .kpi-app .desktop-split { gap: 28px; min-height: calc(100vh - 270px); height: auto; }
   .kpi-app .split-center { gap: 16px; }
   .kpi-app .split-right { gap: 14px; }
   .kpi-app .nav-grid.dsk-nav { gap: 16px; }
