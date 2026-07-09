@@ -531,3 +531,19 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* =====================================================================
+   KPI EMBED MODE — ẩn sidebar ngay từ initial render
+   =====================================================================
+   Khi trang /quan-ly được load trong iframe từ KPI app (URL có ?from=kpi),
+   inline script trong layout.tsx sẽ set data-kpi-embed="1" trên <html> NGAY
+   khi HTML parse (trước khi React hydrate).
+   CSS này ẩn sidebar nav + overlay mobile ngay từ đầu, tránh flash khi
+   React state isEmbedded chưa kịp set true.
+   Chỉ áp dụng cho /quan-ly — KPI dashboard (/kpi, /kpi-standalone) không có
+   sidebar nav nên không bị ảnh hưởng. */
+html[data-kpi-embed="1"] nav.w-\[220px\],
+html[data-kpi-embed="1"] nav[class*="w-[220px]"],
+html[data-kpi-embed="1"] nav[class*="border-emerald-500/30"] {
+  display: none !important;
+}

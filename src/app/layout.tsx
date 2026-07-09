@@ -50,6 +50,29 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/*
+          Early inline script — chạy NGAY khi HTML parse, trước khi React hydrate.
+          Nếu URL có ?from=kpi (iframe từ KPI app) hoặc sessionStorage có kpi_embed=1
+          → set data-kpi-embed="1" trên <html>.
+          CSS (xem globals.css) sẽ ẩn sidebar nav ngay từ initial render,
+          tránh flash/sidebar hiện thoáng qua trước khi useEffect chạy.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var p = new URLSearchParams(window.location.search);
+                  if (p.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1') {
+                    document.documentElement.setAttribute('data-kpi-embed', '1');
+                  } else {
+                    document.documentElement.removeAttribute('data-kpi-embed');
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
         <SpaceBackground />
