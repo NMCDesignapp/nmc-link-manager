@@ -125,6 +125,40 @@ if (c.includes('kpi-standalone-back-btn')) {
   changed.push('stripped legacy floating back button + CSS');
 }
 
+// Patch 5: Default export → KPIDashboard standalone (KHÔNG phải standalone={false})
+// Standalone kpi-app là KPI tách (end-user) → standalone=true:
+//   - Ẩn nút back về main app (user không được về)
+//   - Ẩn admin features (sync, admin auth)
+//   - 3 nút THI ĐUA / CHÍNH SÁCH / CLB mở sang MAIN_APP_URL (đã patch ở Patch 3)
+// Main app default export: `export default function KPIPage() { return <KPIDashboard standalone={false} />; }`
+// Standalone: `export default function KPIPage() { return <KPIDashboard standalone />; }`
+// Phải match cả pattern cũ (standalone={false}) và pattern mới (standalone) để idempotent.
+if (c.match(/export default function KPIPage\(\)\s*\{\s*return <KPIDashboard\s+standalone(?:=\{false\})?\s*\/?>\s*;\s*\}/)) {
+  c = c.replace(
+    /export default function KPIPage\(\)\s*\{\s*return <KPIDashboard\s+standalone(?:=\{false\})?\s*\/?>\s*;\s*\}/,
+    'export default function KPIPage() {\n  return <KPIDashboard standalone />;\n}'
+  );
+  changed.push('patched default export → KPIDashboard standalone (true)');
+} else if (c.match(/export default function KPIPage\(\)\s*\{\s*return <KPIDashboard\s+standalone\s*\/?>\s*;\s*\}/)) {
+  changed.push('default export already patched → KPIDashboard standalone');
+} else {
+  changed.push('default export pattern not found (OK if main page changed)');
+}
+
+// Patch 6: MAIN_APP_URL fallback — đảm bảo luôn có URL tuyệt đối (không phải '/')
+// Main app env có thể không set NEXT_PUBLIC_MAIN_APP_URL → fallback '/' sẽ break
+// standalone (vì standalone không có route /quan-ly).
+// Hardcode fallback production URL để 3 nút luôn hoạt động.
+if (c.includes("|| '/';")) {
+  c = c.replace(
+    /const MAIN_APP_URL = \(typeof process !== 'undefined' && process\.env\.NEXT_PUBLIC_MAIN_APP_URL\) \|\| '\/';/,
+    "const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || 'https://nc-link.vercel.app';"
+  );
+  changed.push('patched MAIN_APP_URL fallback → https://nc-link.vercel.app');
+} else if (c.includes("|| 'https://nc-link.vercel.app';")) {
+  changed.push('MAIN_APP_URL fallback already patched');
+}
+
 if (!checkOnly) {
   fs.writeFileSync(targetFile, c);
 }
