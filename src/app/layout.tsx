@@ -92,11 +92,33 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
                       console.log('ServiceWorker registration successful');
+                      // Nếu có SW mới đang chờ activate → force skipWaiting + reload
+                      if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                      }
+                      // Lắng nghe SW mới install → reload 1 lần để dùng bản mới
+                      registration.addEventListener('updatefound', function() {
+                        var newWorker = registration.installing;
+                        if (!newWorker) return;
+                        newWorker.addEventListener('statechange', function() {
+                          // 'installed' + controller tồn tại = có bản mới → reload
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            window.location.reload();
+                          }
+                        });
+                      });
                     },
                     function(err) {
                       console.log('ServiceWorker registration failed: ', err);
                     }
                   );
+                  // Khi controller đổi (SW mới đã take over) → reload 1 lần
+                  var refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                  });
                 });
               }
             `,

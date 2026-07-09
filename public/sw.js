@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmc-links-v5';
+const CACHE_NAME = 'nmc-links-v6';
 const POSTER_CACHE = 'nmc-posters-v1';
 
 // Pre-cache app shell
@@ -20,6 +20,13 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll(urlsToCache))
   );
   self.skipWaiting();
+});
+
+// Listen for messages from page (e.g. SKIP_WAITING to force activate)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate service worker
