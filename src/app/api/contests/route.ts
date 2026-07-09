@@ -16,8 +16,17 @@ export async function GET() {
 
 // POST /api/contests - Save a new contest
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const body = await request.json();
+    const bodySize = JSON.stringify(body).length;
+    console.log('[POST /api/contests] Start', {
+      title: body.title,
+      bodySize,
+      hasParticipants: !!body.participants,
+      participantsLength: body.participants?.length || 0,
+    });
+
     const {
       title, startDate, endDate, issueDate, conditionType, targetType,
       bonusTiers, posterUrl, participants,
@@ -67,13 +76,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
+    // Validate dates - Prisma will throw if invalid, but we want a clearer message
+    const parsedStart = new Date(startDate);
+    const parsedEnd = new Date(endDate);
+    if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+      return NextResponse.json({ error: 'Ngày bắt đầu/kết thúc không hợp lệ', details: `startDate=${startDate}, endDate=${endDate}` }, { status: 400 });
+    }
+
     // Check if contest with same title exists, update it
+    console.log('[POST /api/contests] Checking existing contest with title:', title);
     const existing = await db.contest.findFirst({ where: { title } });
+    console.log('[POST /api/contests] Existing contest found:', !!existing, `(${Date.now() - startTime}ms)`);
 
     const data = {
       title,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: parsedStart,
+      endDate: parsedEnd,
       issueDate: issueDate ? new Date(issueDate) : null,
       conditionType,
       targetType: targetType || 'tvv',
@@ -109,14 +127,16 @@ export async function POST(request: NextRequest) {
         where: { id: existing.id },
         data,
       });
+      console.log('[POST /api/contests] Updated contest', existing.id, `(${Date.now() - startTime}ms total)`);
       return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: updated });
     }
 
     const contest = await db.contest.create({ data });
+    console.log('[POST /api/contests] Created contest', contest.id, `(${Date.now() - startTime}ms total)`);
 
     return NextResponse.json({ message: 'Đã lưu chương trình thi đua', contest });
   } catch (error: any) {
-    console.error('Error saving contest:', error);
+    console.error('[POST /api/contests] Error after', Date.now() - startTime, 'ms:', error);
     // Trả về chi tiết lỗi Prisma để client hiển thị được lỗi cụ thể
     // (giúp diagnose: thiếu column, NULL constraint, connection, v.v.)
     const details = error?.message || String(error);

@@ -1609,7 +1609,20 @@ export default function ThiDuaPage() {
         }
         toast({ title: 'Lỗi lưu', description: errMsg, variant: 'destructive' });
       }
-    } catch (err) { toast({ title: 'Lỗi lưu', description: String(err), variant: 'destructive' }); }
+    } catch (err: any) {
+      // "TypeError: Failed to fetch" xảy ra khi request không đến được server:
+      //   - Mất mạng / server unreachable
+      //   - Vercel function timeout (>60s) → connection bị đóng
+      //   - Function crash during cold start
+      // Phân biệt rõ để user biết phải làm gì.
+      const errStr = String(err?.message || err);
+      const isNetworkError = errStr.includes('Failed to fetch') || errStr.includes('NetworkError') || errStr.includes('network');
+      const desc = isNetworkError
+        ? 'Không kết nối được đến server. Nguyên nhân: mất mạng, server quá tải, hoặc Vercel function timeout (>60s). Vui lòng thử lại sau 1 phút.'
+        : errStr;
+      toast({ title: 'Lỗi lưu', description: desc, variant: 'destructive' });
+      console.error('[Contest save] Network/client error:', err);
+    }
     finally { setIsSaving(false); }
   };
 
