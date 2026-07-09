@@ -646,3 +646,65 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
 - scripts/apply-standalone-patches.js Patch 5 + Patch 6 đảm bảo auto-sync KHÔNG revert fix
 - Custom domain angiang2026-nhom.vercel.app là URL chính thức của standalone kpi-app
   (URL default kpi-nc-link.vercel.app KHÔNG tồn tại — có thể user chưa set hoặc đã unbind)
+
+---
+Task ID: fix-kpi-app-sidebar-from-kpi-param
+Agent: main
+Task: Sửa lỗi sidebar (menu trái) vẫn hiện trên main app's /quan-ly khi bấm 3 nút từ angiang2026-nhom.vercel.app
+
+Work Log:
+- User paste screenshot URL `https://nc-link.vercel.app/quan-ly?sheet=clb-saoviet` (đọc từ address bar) — có sidebar trái với các mục: Tổng quan, Doanh thu, Kế hoạch, Chính sách đại lý, Cấu trúc, SV Toàn Chặng, CLB Sao Việt, Tôn vinh
+- User phàn nàn: "sao trang angiang2026-nhom.vercel.app vẫn còn cái menu bên trái, trong khi trang trên main app thì bị ẩn"
+- Phân tích code main app src/app/quan-ly/page.tsx:
+  + Line 1730: `if (params.get('from') === 'kpi')` → set sessionStorage `kpi_embed=1` + setIsEmbedded(true)
+  + Line 11478-11479: `{!isEmbedded && (<sidebar>)}` — sidebar chỉ hiện khi NOT embedded
+  + → Sidebar chỉ ẩn khi URL có `from=kpi` param
+- Phân tích 3 nút trên standalone kpi-app (kpi-app/src/app/page.tsx):
+  + Mobile: line 3519, 3528, 3537 — `buildMainUrl('/quan-ly?sheet=xxx')` (KHÔNG CÓ &from=kpi)
+  + Desktop: line 3713, 3722, 3731 — `buildMainUrl('/quan-ly?sheet=xxx')` (KHÔNG CÓ &from=kpi)
+  + So sánh main app src/app/kpi/page.tsx: 6 nút đều có `&from=kpi` → main app OK, kpi-app sai
+- Root cause: scripts/apply-standalone-patches.js Patch 3 có comment SAI:
+  "Standalone KHÔNG cần &from=kpi (vì standalone không có sidebar để ẩn)"
+  → Sai logic! Standalone mở sang MAIN APP's /quan-ly (tab mới), main app CÓ sidebar
+  → Phải có &from=kpi để main app biết ẩn sidebar
+
+Fix (commit 7ae2647):
+- scripts/apply-standalone-patches.js: navReplacements tách thành [cls, srcPath, destPath]
+  + srcPath = path không &from=kpi (match main app code, có hoặc không có suffix)
+  + destPath = path có &from=kpi (buildMainUrl generate URL đầy đủ cho standalone)
+  + Regex match srcPath + optional `(&from=kpi)?` suffix
+  + Replace với buildMainUrl(destPath) target=_blank
+- Chạy sync-kpi-app.sh → 6 buildMainUrl calls trong kpi-app/src/app/page.tsx giờ có &from=kpi:
+  + Mobile: line 3519, 3528, 3537
+  + Desktop: line 3713, 3722, 3731
+- Commit 7ae2647 push origin main → Vercel auto-deploy
+
+Verify live (commit 7ae2647, sau ~90s Vercel build):
+- angiang2026-nhom.vercel.app — 3 nút visible:
+  + Thi đua → href="https://nc-link.vercel.app/quan-ly?sheet=saoviet&from=kpi" ✓
+  + Chính sách 2026 → href="https://nc-link.vercel.app/quan-ly?sheet=report&from=kpi" ✓
+  + CLB Sao Việt → href="https://nc-link.vercel.app/quan-ly?sheet=clb-saoviet&from=kpi" ✓
+- Mở https://nc-link.vercel.app/quan-ly?sheet=clb-saoviet&from=kpi (sessionStorage cleared):
+  + sessionStorage `kpi_embed` = "1" ✓ (set thành công)
+  + body.innerText NOT includes "Tổng quan" ✓ (sidebar ẩn)
+  + body.innerText NOT includes "Doanh thu" ✓ (sidebar ẩn)
+  + body.innerText NOT includes "Kế hoạch" ✓ (sidebar ẩn)
+  + VLM verify screenshot: "Không có menu/sidebar bên trái" ✓
+
+Stage Summary:
+- Đã live commit 7ae2647: https://angiang2026-nhom.vercel.app
+- 3 nút THI ĐUA / CHÍNH SÁCH / CLB giờ generate URL có &from=kpi
+- Khi user bấm → main app's /quan-ly detect from=kpi → set kpi_embed=1 → ẩn sidebar
+- sessionStorage persist qua refresh/sub-nav (user không thấy sidebar dù reload)
+- Vercel auto-deploy cả 2 projects (nc-link + kpi-nc-link) qua cùng 1 git push
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- Standalone kpi-app (angiang2026-nhom.vercel.app) mở 3 nút sang MAIN APP's /quan-ly
+  → BẮT BUỘC phải có &from=kpi trong URL để main app biết ẩn sidebar admin
+- scripts/apply-standalone-patches.js Patch 3: navReplacements structure = [cls, srcPath, destPath]
+  + srcPath = path không &from=kpi (match main app code)
+  + destPath = path có &from=kpi (generate URL cho standalone)
+- Khi sửa logic ẩn/hiện sidebar trên main app's /quan-ly, phải sync sang kpi-app thông qua
+  buildMainUrl helper — không sửa trực tiếp kpi-app/src/app/page.tsx (sẽ bị overwrite bởi sync)
+- /quan-ly page dùng sessionStorage `kpi_embed=1` để persist trạng thái embedded qua reload
+- KHÔNG dựa vào URL alone để detect embedded mode — vì URL bị clean sau khi set sessionStorage
