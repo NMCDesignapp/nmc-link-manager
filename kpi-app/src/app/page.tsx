@@ -1709,6 +1709,114 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   color: #8a9ab0;
   font-style: italic;
 }
+
+/* ================= KPI EMBED OVERLAY =================
+   Overlay full-screen hiển thị iframe /quan-ly?sheet=xxx&from=kpi
+   khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB).
+   - Header cố định trên top có nút Back + title + nút mở tab mới
+   - Body chứa iframe full-width, full-height (calc 100vh - header height)
+   - Z-index cao hơn splash để đè lên dashboard. */
+.kpi-embed-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a1424;
+  display: flex;
+  flex-direction: column;
+  animation: kpiEmbedIn .22s ease-out;
+}
+@keyframes kpiEmbedIn { from { opacity: 0; } to { opacity: 1; } }
+.kpi-embed-header {
+  flex-shrink: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: linear-gradient(135deg, #0f2040, #15264a);
+  border-bottom: 1px solid #2a5a8a;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.kpi-embed-back {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px 0 8px;
+  border-radius: 8px;
+  border: 1px solid #2a5a8a;
+  background: rgba(108,199,138,.08);
+  color: #6cc78a;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.kpi-embed-back:hover {
+  background: rgba(108,199,138,.18);
+  border-color: #6cc78a;
+  color: #8ee0a8;
+}
+.kpi-embed-back:active { transform: scale(.96); }
+.kpi-embed-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #e0f4ff;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kpi-embed-title svg { color: #ffd76b; flex-shrink: 0; }
+.kpi-embed-open {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #2a5a8a;
+  background: rgba(108,168,232,.08);
+  color: #6ca8e8;
+  cursor: pointer;
+  transition: all .15s;
+}
+.kpi-embed-open:hover {
+  background: rgba(108,168,232,.18);
+  border-color: #6ca8e8;
+  color: #8ec0f0;
+}
+.kpi-embed-open:active { transform: scale(.96); }
+.kpi-embed-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #0a1424;
+}
+.kpi-embed-iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0a1424;
+}
+@media (max-width: 480px) {
+  .kpi-embed-header { height: 44px; padding: 0 8px; gap: 6px; }
+  .kpi-embed-back { height: 30px; padding: 0 10px 0 6px; font-size: 11px; }
+  .kpi-embed-back span { display: none; }
+  .kpi-embed-back::after { content: 'Quay lại'; font-size: 11px; font-weight: 800; }
+  .kpi-embed-title { font-size: 12px; gap: 4px; }
+  .kpi-embed-open { width: 30px; height: 30px; }
+}
 `;
 
 
@@ -2136,6 +2244,12 @@ export default function KPIDashboard() {
   const [splashExiting, setSplashExiting] = useState(false);
   const [error, setError] = useState(false);
   const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
+  // ===== KPI EMBEDDED SHEET =====
+  // Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt) — nội dung
+  // sẽ được mở NGAY TRONG KPI app bằng iframe overlay đến /quan-ly?sheet=xxx&from=kpi.
+  // /quan-ly đã có logic ẩn sidebar + nút Cài đặt khi from=kpi → user chỉ xem đúng sheet đó.
+  // State default 'home' để tránh hydration mismatch (SSR cũng render 'home').
+  const [kpiSheet, setKpiSheet] = useState<'home' | 'saoviet' | 'report' | 'clb-saoviet'>('home');
   const [selectedKy, setSelectedKy] = useState('');
   const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
@@ -3187,6 +3301,55 @@ export default function KPIDashboard() {
         </div>
       )}
 
+      {/* ===== KPI EMBEDDED SHEET OVERLAY =====
+          Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt),
+          nội dung sẽ được mở NGAY TRONG KPI app bằng iframe đến /quan-ly?sheet=xxx&from=kpi.
+          - /quan-ly đã có logic ẩn sidebar + Cài đặt khi from=kpi → user chỉ xem đúng sheet đó.
+          - Nếu đang ở standalone domain (không phải /kpi path), fallback mở tab mới.
+          - Có nút Back để quay về dashboard KPI. */}
+      {kpiSheet !== 'home' && (
+        <div className="kpi-embed-overlay" role="dialog" aria-modal="true">
+          <div className="kpi-embed-header">
+            <button
+              type="button"
+              className="kpi-embed-back"
+              onClick={() => { setKpiSheet('home'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+              aria-label="Quay lại KPI"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              <span>Quay lại</span>
+            </button>
+            <div className="kpi-embed-title">
+              {kpiSheet === 'saoviet' && (<><Flag size={16} /> <span>Thi Đua Sao Việt</span></>)}
+              {kpiSheet === 'report' && (<><BookOpen size={16} /> <span>Chính Sách 2026</span></>)}
+              {kpiSheet === 'clb-saoviet' && (<><Star size={16} /> <span>CLB Sao Việt</span></>)}
+            </div>
+            <button
+              type="button"
+              className="kpi-embed-open"
+              onClick={() => {
+                const url = `/quan-ly?sheet=${kpiSheet}&from=kpi`;
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+              aria-label="Mở trong tab mới"
+              title="Mở trong tab mới"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+            </button>
+          </div>
+          <div className="kpi-embed-body">
+            <iframe
+              key={kpiSheet}
+              src={`/quan-ly?sheet=${kpiSheet}&from=kpi`}
+              title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
+              className="kpi-embed-iframe"
+              loading="eager"
+              allow="fullscreen"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
@@ -3331,15 +3494,15 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
+                  <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                  </a>
-                  <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
+                  </button>
+                  <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                  </a>
-                  <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
+                  </button>
+                  <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                  </a>
+                  </button>
                 </div>
               </nav>
 
@@ -3507,15 +3670,15 @@ export default function KPIDashboard() {
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
+                    <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                    </a>
-                    <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
+                    </button>
+                    <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                    </a>
-                    <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
+                    </button>
+                    <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                    </a>
+                    </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
                   <div className="dsk-company">
