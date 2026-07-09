@@ -539,3 +539,52 @@ Stage Summary:
 - Style match với form trắng/teal hiện có
 - Hỗ trợ: navigate tháng, "Hôm nay", "Xóa ngày", click ngoài để đóng
 - Đã live trên production: https://nc-link.vercel.app/kpi
+
+---
+Task ID: fix-kpi-standalone-dept-equal-height-v3
+Agent: main
+Task: Sửa giao diện desktop KPI tách — 4 ô Phòng ban bị lệch chiều cao (BANCA-PA 140px, 3 PTKD 194px)
+
+Work Log:
+- User paste screenshot desktop 1440x900 + phàn nàn "giao diện destop nó dạng lỗi ở phòng ban"
+- Dùng agent-browser verify live: grid-template-rows = "194.375px 194.375px 194.375px 140px" → KHÔNG bằng nhau
+- Root cause: commit 54e9c1e đã revert fix 39f0971 — đổi grid-template-rows từ minmax(0, 1fr) → minmax(140px, auto)
+  + minmax(140px, auto) = row tối thiểu 140px, grow theo content
+  + PTKD 1/2/3 có AD table → grow 194px
+  + BANCA-PA không có AD table → stay 140px minimum
+  + Kết quả: 4 ô KHÔNG bằng nhau → trông "lỗi"
+- Fix (commit 0e2d676):
+  + split-right: grid-template-rows repeat(4, minmax(0, 1fr)) — 4 row BẰNG NHAU
+  + desktop-split: height calc(100vh - 230px) (fixed, không auto) — cho 1fr có meaning
+  + split-right: height 100% (chain từ desktop-split)
+  + dept-section: height 100% + overflow hidden — fill grid row, không grow
+  + rg-card: height 100% + overflow hidden — clipped bởi grid row
+  + rg-ad-wrap: overflow-y auto — AD table scroll nội bộ, KHÔNG cắt info
+  + Áp dụng cho 3 breakpoints: ≥900px (height calc(100vh-230px)), ≥1400px (calc(100vh-250px)), ≥1700px (calc(100vh-270px))
+
+Verify live (commit 0e2d676) bằng agent-browser (viewport 1440x900):
+- gridTemplateRows: "153.5px 153.5px 153.5px 153.5px" ✓ (4 row BẰNG NHAU)
+- 4 deptCards: h=154, 154, 154, 154 ✓
+- VLM verify screenshot: "all 4 boxes are equal height, and no content is cut off or hidden" ✓
+
+Verify 3 nút liên kết (THI ĐUA / CHÍNH SÁCH 2026 / CLB SAO VIỆT) đều hoạt động:
+- THI ĐUA → /quan-ly?sheet=saoviet → "SAO VIỆT TOÀN CHẶNG" + 3 items (Cá Nhân, TN KTM, TN TD) ✓
+- CHÍNH SÁCH 2026 → /quan-ly?sheet=report → "CHÍNH SÁCH ĐẠI LÝ" + 8 chính sách ✓
+- CLB SAO VIỆT → /quan-ly?sheet=clb-saoviet → "CLB SAO VIỆT" + danh hiệu items ✓
+- Không có back button visible trên /kpi-standalone ✓
+
+Stage Summary:
+- Đã live commit 0e2d676: https://nc-link.vercel.app/kpi-standalone
+- 4 ô Phòng desktop BẰNG NHAU (154px mỗi ô ở viewport 1440x900)
+- AD table scroll nội bộ khi content dài — KHÔNG cắt info
+- 3 nút liên kết (Thi đua / Chính sách / CLB) đều hoạt động bình thường
+- Không có back button trên /kpi-standalone (đã verify)
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- Khi user nói "giao diện lỗi ở phòng ban" trên desktop KPI tách → kiểm tra grid-template-rows
+  của .split-right. Phải là repeat(4, minmax(0, 1fr)) + height: 100% chain từ desktop-split
+  (fixed height calc(100vh-...)). KHÔNG dùng minmax(140px, auto) vì sẽ làm row grow không đều.
+- desktop-split PHẢI có height fixed (calc(100vh-...)), KHÔNG height: auto — nếu auto thì
+  minmax(0, 1fr) không có meaning (không có available space để chia).
+- rg-ad-wrap PHẢI overflow-y: auto để AD table scroll nội bộ — nếu overflow: visible thì
+  content sẽ vượt grid row boundary và làm card grow (phá equal height).
