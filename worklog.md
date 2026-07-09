@@ -708,3 +708,107 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
   buildMainUrl helper — không sửa trực tiếp kpi-app/src/app/page.tsx (sẽ bị overwrite bởi sync)
 - /quan-ly page dùng sessionStorage `kpi_embed=1` để persist trạng thái embedded qua reload
 - KHÔNG dựa vào URL alone để detect embedded mode — vì URL bị clean sau khi set sessionStorage
+
+---
+Task ID: fix-quan-ly-admin-vs-enduser-mode
+Agent: main
+Task: Sửa logic ẩn/hiện sidebar /quan-ly bị NGƯỢC + sửa nút Trở về từ KPI tách
+
+Work Log:
+- User phàn nàn 2 vấn đề ngược nhau + 1 vấn đề nút Trở về:
+  1. KPI tách (angiang2026-nhom.vercel.app): bấm 3 nút → mở tab mới main app's /quan-ly
+     → sidebar admin vẫn hiện (SAI - end-user không được xem menu admin)
+  2. KPI main app (nc-link.vercel.app/kpi): bấm 3 nút → iframe overlay /quan-ly
+     → sidebar bị ẩn (SAI - admin cần menu để navigate)
+  3. Nút 'Trở về' trên /quan-ly khi mở từ KPI tách: về main app's /kpi
+     (SAI - phải close tab hoặc về angiang2026-nhom.vercel.app)
+
+Root cause:
+- Cả 2 trường hợp (main app iframe + standalone tab mới) đều dùng cùng URL param '&from=kpi'
+- /quan-ly chỉ check 'from=kpi' → set kpi_embed=1 → ẩn sidebar
+- Không phân biệt được admin (main app, cần sidebar) vs end-user (KPI tách, ẩn sidebar)
+- Nút 'Trở về' (nonAdminBack) chỉ check kpi_standalone sessionStorage:
+  + kpi_standalone=1 → router.push('/kpi-standalone') (route trên main app)
+  + Else → router.push('/kpi') (route trên main app)
+  + KHÔNG xử lý trường hợp mở từ KPI tách (tab mới, sessionStorage khác origin)
+
+Fix (commit 32ceb53):
+1. src/app/kpi/page.tsx (main app /kpi admin):
+   - iframe overlay src (line 3361): '/quan-ly?sheet=xxx&admin=1&_t=...' (bỏ &from=kpi)
+   - nút 'Mở trong tab mới' (line 3348): URL '/quan-ly?sheet=xxx&admin=1'
+   → admin mode: force hiện sidebar
+
+2. src/app/quan-ly/page.tsx:
+   - Detect 'from=kpi' → end-user mode (KPI tách):
+     + set kpi_embed=1 (ẩn sidebar)
+     + set kpi_from_tach=1 (flag mới, để nút 'Trở về' biết close tab)
+     + remove kpi_standalone
+   - Detect 'admin=1' → admin mode (main app's /kpi):
+     + clear kpi_embed, kpi_from_tach, kpi_standalone
+     + setIsEmbedded(false) → hiện sidebar
+   - Không có param → default: đọc sessionStorage kpi_embed (giữ trạng thái qua refresh)
+
+3. Nút 'Trở về' (nonAdminBack):
+   - Ưu tiên 1: kpi_from_tach=1 (mở từ KPI tách tab mới)
+     → window.close() + fallback setTimeout redirect về https://angiang2026-nhom.vercel.app/
+   - Ưu tiên 2: kpi_standalone=1 (mở từ /kpi-standalone route trên main app)
+     → router.push('/kpi-standalone')
+   - Mặc định: router.push('/kpi') (admin từ main app's /kpi)
+
+4. kpi-app/src/app/page.tsx: sync từ main app
+   - 3 nút standalone (mobile + desktop): giữ buildMainUrl('/quan-ly?sheet=xxx&from=kpi')
+     (end-user mode, ẩn sidebar)
+
+Verify live (commit 32ceb53, sau ~180s Vercel build cả 2 projects):
+
+Test 1: KPI main app (admin mode) - https://nc-link.vercel.app/kpi
+- sessionStorage cleared → load /kpi
+- Click 'CLB SAO VIỆT' button → iframe overlay hiện
+- iframe src = 'https://nc-link.vercel.app/quan-ly?sheet=clb-saoviet&admin=1&_t=...' ✓
+- iframe content (via contentDocument): hasTongQuan=true, hasDoanhThu=true, hasKeHoach=true,
+  hasChinhSachDL=true, hasCauTruc=true, hasSVToanChang=true ✓ (sidebar HIỆN)
+- VLM verify screenshot: "Có sidebar bên trái. Các mục menu: Tổng quan, Doanh thu, Kế hoạch,
+  Chính sách đại lý, Cấu trúc, SV Toàn Chặng, CLB Sao Việt, Tôn vinh" ✓
+
+Test 2: KPI tách (end-user mode) - https://angiang2026-nhom.vercel.app
+- sessionStorage cleared → load KPI tách
+- 'CLB Sao Việt' link href = 'https://nc-link.vercel.app/quan-ly?sheet=clb-saoviet&from=kpi' ✓
+- Mở URL trên (sessionStorage cleared):
+  + sessionStorage: kpi_embed=1, kpi_from_tach=1, kpi_standalone=null ✓
+  + body text: hasTongQuan=false, hasDoanhThu=false, hasKeHoach=false,
+    hasChinhSachDL=false, hasCauTruc=false, hasSVToanChang=false ✓ (sidebar ẨN)
+  + hasCLBSaoViet=true, hasXetDanhHieu=true ✓ (nội dung sheet vẫn hiện)
+
+Test 3: Nút 'Trở về' trên /quan-ly
+- End-user mode (kpi_from_tach=1): click 'Trở về' → window.close() fails (browser chặn)
+  → fallback setTimeout redirect → URL = https://angiang2026-nhom.vercel.app/ ✓
+  → title = 'KPI - N.M.C' ✓ (đã về KPI tách)
+- Admin mode (admin=1): click 'Trở về' → router.push('/kpi')
+  → URL = https://nc-link.vercel.app/kpi ✓ (về KPI main app)
+
+Stage Summary:
+- Đã live commit 32ceb53: cả 2 projects (nc-link + kpi-nc-link) đều deployed
+- Logic ẩn/hiện sidebar /quan-ly giờ PHÂN BIỆT admin vs end-user:
+  + admin=1 (main app's /kpi) → sidebar HIỆN (admin cần menu)
+  + from=kpi (KPI tách) → sidebar ẨN (end-user không được xem menu admin)
+- Nút 'Trở về' phân biệt 3 trường hợp:
+  + kpi_from_tach=1 → window.close() + fallback redirect angiang2026-nhom.vercel.app
+  + kpi_standalone=1 → router.push('/kpi-standalone')
+  + default → router.push('/kpi')
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- /quan-ly detect 3 URL params:
+  + 'from=kpi' → end-user mode (KPI tách tab mới): ẩn sidebar + set kpi_from_tach=1
+  + 'admin=1' → admin mode (main app's /kpi iframe/tab mới): hiện sidebar, clear embed flags
+  + không có param → default admin mode (truy cập trực tiếp)
+- sessionStorage flags:
+  + 'kpi_embed=1' → isEmbedded=true → ẩn sidebar (set bởi from=kpi)
+  + 'kpi_from_tach=1' → user đến từ KPI tách (mở tab mới) → nút 'Trở về' sẽ close tab
+  + 'kpi_standalone=1' → user đến từ /kpi-standalone route trên main app → nút 'Trở về'
+    sẽ router.push('/kpi-standalone')
+  + 'kpi_admin_authed=1' → admin đã login → hiện nút BackButton admin
+- Main app's /kpi (standalone=false): iframe overlay src phải dùng '&admin=1' (KHÔNG dùng
+  '&from=kpi') để /quan-ly hiện sidebar cho admin
+- Standalone kpi-app (standalone=true): 3 nút href phải dùng '&from=kpi' (KHÔNG dùng
+  '&admin=1') để /quan-ly ẩn sidebar cho end-user
+- Nút 'Trở về' nonAdminBack ưu tiên: kpi_from_tach > kpi_standalone > default
