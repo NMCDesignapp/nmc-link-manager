@@ -12,7 +12,8 @@ import { useAppData } from '@/lib/app-data-context';
 
 
 // === KPI standalone app: link back to main nc-link app ===
-const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || '/';
+// Fallback to known production URL if env not set (so 3 nav buttons always work)
+const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || 'https://nc-link.vercel.app';
 const buildMainUrl = (path) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
 /* ================= CSS ================= */
@@ -4588,9 +4589,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   );
 }
 
-/* ================= ROUTE /kpi (KPI0 — admin version) =================
-   Đây là default export cho route /kpi. KPI0 dành cho admin, có đầy đủ
-   nút back về main app và admin features. */
+/* ================= STANDALONE KPI APP — END-USER VERSION =================
+   Đây là standalone kpi-app (deploy trên Vercel project riêng: angiang2026-nhom.vercel.app).
+   Toàn bộ app này là KPI tách → standalone={true}:
+   - KHÔNG có nút back về main app (user không được về main app)
+   - KHÔNG có admin features
+   - 3 nút THI ĐUA / CHÍNH SÁCH / CLB mở sang main app (buildMainUrl) vì kpi-app
+     không có route /quan-ly */
 export default function KPIPage() {
-  return <KPIDashboard standalone={false} />;
+  return <KPIDashboard standalone />;
 }
