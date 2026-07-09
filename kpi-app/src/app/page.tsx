@@ -3350,7 +3350,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 type="button"
                 className="kpi-embed-open"
                 onClick={() => {
-                  const url = `/quan-ly?sheet=${kpiSheet}&from=kpi`;
+                  const url = `/quan-ly?sheet=${kpiSheet}&admin=1`;
                   window.open(url, '_blank', 'noopener,noreferrer');
                 }}
                 aria-label="Mở trong tab mới"
@@ -3363,7 +3363,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="kpi-embed-body">
             <iframe
               key={`${kpiSheet}-${kpiSheetT}`}
-              src={`/quan-ly?sheet=${kpiSheet}&from=kpi&_t=${kpiSheetT}`}
+              src={`/quan-ly?sheet=${kpiSheet}&admin=1&_t=${kpiSheetT}`}
               title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"

@@ -1726,17 +1726,41 @@ export default function QuanLyPage() {
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        // Persist `from=kpi` vào sessionStorage để giữ trạng thái embed qua các lần refresh/sub-nav
+        // ===== EMBED MODE LOGIC =====
+        // 3 trường hợp truy cập /quan-ly:
+        // 1. End-user từ KPI tách (angiang2026-nhom.vercel.app): URL có `from=kpi`
+        //    → ẩn sidebar (end-user không được xem admin menu)
+        //    → set flag `kpi_from_tach=1` để nút "Trở về" biết close tab
+        // 2. Admin từ main app's /kpi (iframe overlay hoặc tab mới): URL có `admin=1`
+        //    → hiện sidebar (admin cần menu để navigate)
+        //    → clear kpi_embed/kpi_from_tach để force admin mode
+        // 3. Admin truy cập trực tiếp /quan-ly: không có param → hiện sidebar (admin mode mặc định)
         if (params.get('from') === 'kpi') {
-          try { sessionStorage.setItem('kpi_embed', '1'); } catch {}
+          try {
+            sessionStorage.setItem('kpi_embed', '1');
+            sessionStorage.setItem('kpi_from_tach', '1');
+            sessionStorage.removeItem('kpi_standalone');
+          } catch {}
           setIsEmbedded(true);
           // Clear `from` khỏi URL để internal nav không giữ lại
           const urlClean = new URL(window.location.href);
           urlClean.searchParams.delete('from');
           window.history.replaceState({}, '', urlClean.toString());
+        } else if (params.get('admin') === '1') {
+          // Admin mode (từ main app's /kpi) → force hiện sidebar
+          try {
+            sessionStorage.removeItem('kpi_embed');
+            sessionStorage.removeItem('kpi_from_tach');
+            sessionStorage.removeItem('kpi_standalone');
+          } catch {}
+          setIsEmbedded(false);
+          // Clear `admin` khỏi URL
+          const urlClean = new URL(window.location.href);
+          urlClean.searchParams.delete('admin');
+          window.history.replaceState({}, '', urlClean.toString());
         } else {
-          // Reload/refresh: `from` đã bị clear khỏi URL, nhưng sessionStorage vẫn còn
-          // → giữ trạng thái embed để user không thấy sidebar sau khi refresh
+          // Reload/refresh: param đã bị clear khỏi URL, nhưng sessionStorage vẫn còn
+          // → giữ trạng thái embed để user không thấy sidebar sau khi refresh (chỉ với end-user)
           try {
             if (sessionStorage.getItem('kpi_embed') === '1') {
               setIsEmbedded(true);
@@ -1789,6 +1813,9 @@ export default function QuanLyPage() {
   //    structure, kehoach, vinh-danh) → trở về trang chính ứng dụng '/' (admin-only pages).
   //  - Nếu sessionStorage có `kpi_standalone=1` (user đến từ /kpi-standalone) → về /kpi-standalone
   //    thay vì /kpi (KPI0 admin).
+  //  - Nếu sessionStorage có `kpi_from_tach=1` (user đến từ KPI tách angiang2026-nhom.vercel.app,
+  //    mở tab mới) → close tab + fallback redirect về angiang2026-nhom.vercel.app.
+  const KPI_TACH_URL = 'https://angiang2026-nhom.vercel.app/';
   const nonAdminBack = useCallback(() => {
     // Sub-page đang mở → reset sub về null (giữ nguyên sheet)
     if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
@@ -1799,14 +1826,28 @@ export default function QuanLyPage() {
     // 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT ở mức tổng quan → về /kpi hoặc /kpi-standalone
     if (activeSheet === 'report' || activeSheet === 'saoviet' || activeSheet === 'clb-saoviet') {
       try {
-        if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_standalone') === '1') {
-          router.push('/kpi-standalone');
-        } else {
-          router.push('/kpi');
+        if (typeof window !== 'undefined') {
+          // Ưu tiên 1: User đến từ KPI tách (angiang2026-nhom.vercel.app, mở tab mới)
+          // → close tab để user tự quay về KPI tách. window.close() chỉ hoạt động nếu tab
+          // được mở bằng window.open() hoặc target=_blank + không có rel=noopener.
+          // Fallback: redirect về URL KPI tách.
+          if (sessionStorage.getItem('kpi_from_tach') === '1') {
+            sessionStorage.removeItem('kpi_from_tach');
+            sessionStorage.removeItem('kpi_embed');
+            window.close();
+            // Fallback nếu window.close() không hoạt động (browser chặn)
+            setTimeout(() => { window.location.href = KPI_TACH_URL; }, 150);
+            return;
+          }
+          // Ưu tiên 2: User đến từ /kpi-standalone (route trên main app)
+          if (sessionStorage.getItem('kpi_standalone') === '1') {
+            router.push('/kpi-standalone');
+            return;
+          }
         }
-      } catch {
-        router.push('/kpi');
-      }
+      } catch {}
+      // Mặc định: User đến từ main app's /kpi (admin)
+      router.push('/kpi');
       return;
     }
     // Tất cả sheet còn lại (overview + các sheet admin-only khác) → về trang chính ứng dụng
