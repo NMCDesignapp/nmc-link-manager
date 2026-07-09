@@ -1787,6 +1787,8 @@ export default function QuanLyPage() {
   //    (vì 3 trang này + KPI sẽ được deploy riêng sang địa chỉ khác, public cho TVV).
   //  - Đang ở overview / sheets khác (overview, leaders, recruiters, tuyen-ngang, revenue,
   //    structure, kehoach, vinh-danh) → trở về trang chính ứng dụng '/' (admin-only pages).
+  //  - Nếu sessionStorage có `kpi_standalone=1` (user đến từ /kpi-standalone) → về /kpi-standalone
+  //    thay vì /kpi (KPI0 admin).
   const nonAdminBack = useCallback(() => {
     // Sub-page đang mở → reset sub về null (giữ nguyên sheet)
     if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
@@ -1794,9 +1796,17 @@ export default function QuanLyPage() {
     if (activeSheet === 'clb-saoviet' && clbsvOpen) { setClbsvOpen(null); return; }
     if (activeSheet === 'structure' && structureSub !== 'leaders') { setStructureSub('leaders'); return; }
     if (activeSheet === 'revenue' && revenueSub !== 'all') { setRevenueSub('all'); return; }
-    // 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT ở mức tổng quan → về /kpi
+    // 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT ở mức tổng quan → về /kpi hoặc /kpi-standalone
     if (activeSheet === 'report' || activeSheet === 'saoviet' || activeSheet === 'clb-saoviet') {
-      router.push('/kpi');
+      try {
+        if (typeof window !== 'undefined' && sessionStorage.getItem('kpi_standalone') === '1') {
+          router.push('/kpi-standalone');
+        } else {
+          router.push('/kpi');
+        }
+      } catch {
+        router.push('/kpi');
+      }
       return;
     }
     // Tất cả sheet còn lại (overview + các sheet admin-only khác) → về trang chính ứng dụng
