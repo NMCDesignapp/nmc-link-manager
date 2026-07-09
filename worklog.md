@@ -588,3 +588,61 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
   minmax(0, 1fr) không có meaning (không có available space để chia).
 - rg-ad-wrap PHẢI overflow-y: auto để AD table scroll nội bộ — nếu overflow: visible thì
   content sẽ vượt grid row boundary và làm card grow (phá equal height).
+
+---
+Task ID: fix-kpi-app-standalone-true
+Agent: main
+Task: Sửa standalone kpi-app (angiang2026-nhom.vercel.app) — 3 nút THI ĐUA/CHÍNH SÁCH/CLB không hoạt động + có nút back
+
+Work Log:
+- User paste screenshot Vercel dashboard → phát hiện standalone kpi-app project VẪN TỒN TẠI
+  với tên "kpi-nc-link", custom domain: angiang2026-nhom.vercel.app
+- Tôi trước đây đã sai khi nói "project đã bị xóa" — thực ra chỉ là URL default
+  (kpi-nc-link.vercel.app) không tồn tại, nhưng custom domain angiang2026-nhom.vercel.app OK
+- Dùng agent-browser test angiang2026-nhom.vercel.app:
+  + Có nút "Trở về trang chính" (btn-back-u) visible → SAI (kpi-app phải là end-user, không có back)
+  + 3 nút THI ĐUA/CHÍNH SÁCH/CLB dùng iframe overlay đến /quan-ly?sheet=xxx&from=kpi
+  + NHƯNG kpi-app KHÔNG có route /quan-ly → iframe 404 blank!
+- Root cause: kpi-app/src/app/page.tsx default export là `<KPIDashboard standalone={false} />`
+  → standalone=false → dùng iframe overlay (route nội bộ) thay vì <a href={buildMainUrl(...)}>
+- Fix scripts/apply-standalone-patches.js (thêm 2 patches mới, idempotent):
+  + Patch 5: Default export → `<KPIDashboard standalone />` (true)
+    - Match cả pattern cũ (standalone={false}) và mới (standalone) để idempotent
+    - Auto-sync GitHub Action sẽ không revert fix này nữa
+  + Patch 6: MAIN_APP_URL fallback '/' → 'https://nc-link.vercel.app'
+    - Đảm bảo 3 nút luôn hoạt động dù env NEXT_PUBLIC_MAIN_APP_URL chưa set
+- Chạy sync-kpi-app.sh để apply patches cho kpi-app/src/app/page.tsx
+- Commit bfc6b11, push origin main
+
+Verify live (commit bfc6b11, sau Vercel build ~120s):
+- angiang2026-nhom.vercel.app — title "KPI - N.M.C" ✓
+- Không có nút back visible ✓ (backBtnVisible: false)
+- 3 nút THI ĐUA / CHÍNH SÁCH 2026 / CLB SAO VIỆT:
+  + Mobile + desktop đều là <a href="https://nc-link.vercel.app/quan-ly?sheet=xxx" target="_blank"> ✓
+  + Click → mở tab mới → nc-link.vercel.app/quan-ly?sheet=report → "CHÍNH SÁCH ĐẠI LÝ" + 8 chính sách ✓
+- Desktop layout (1440x900):
+  + 4 ô Phòng: 154px / 154px / 154px / 154px (BẰNG NHAU) ✓
+  + grid-template-rows: 153.5px 153.5px 153.5px 153.5px ✓
+
+Stage Summary:
+- Đã live commit bfc6b11: https://angiang2026-nhom.vercel.app
+- Standalone kpi-app giờ là KPI tách (end-user) thực sự:
+  + Không có nút back về main app
+  + Không có admin features
+  + 3 nút THI ĐUA / CHÍNH SÁCH / CLB mở sang main app (nc-link.vercel.app/quan-ly) trong tab mới
+- 4 ô Phòng desktop BẰNG NHAU (154px mỗi ô)
+- Sync script idempotent → auto-sync sẽ không revert fix
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- Có 2 Vercel projects DEPLOYED:
+  1. nc-link (main app) → https://nc-link.vercel.app — có /kpi, /kpi-standalone, /quan-ly, v.v.
+  2. kpi-nc-link (standalone kpi-app) → https://angiang2026-nhom.vercel.app — chỉ có KPI dashboard
+- Standalone kpi-app KHÔNG có route /quan-ly → 3 nút phải dùng <a href={buildMainUrl(...)} target=_blank>
+  mở sang main app, KHÔNG dùng iframe overlay (sẽ 404)
+- Standalone kpi-app phải chạy với `standalone={true}` để:
+  + Ẩn nút back (user không được về main app)
+  + Ẩn admin features
+  + 3 nút dùng buildMainUrl thay vì iframe overlay
+- scripts/apply-standalone-patches.js Patch 5 + Patch 6 đảm bảo auto-sync KHÔNG revert fix
+- Custom domain angiang2026-nhom.vercel.app là URL chính thức của standalone kpi-app
+  (URL default kpi-nc-link.vercel.app KHÔNG tồn tại — có thể user chưa set hoặc đã unbind)
