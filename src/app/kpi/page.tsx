@@ -2226,8 +2226,17 @@ function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; c
   return <span ref={ref} className={className}>0%</span>;
 }
 
-/* ================= MAIN COMPONENT ================= */
-export default function KPIDashboard() {
+/* ================= MAIN COMPONENT =================
+   `standalone` = true  → KPI tách (route /kpi-standalone): dành cho END-USER
+     - Không có nút back về main app
+     - Không có admin features (sync button, admin auth)
+     - Iframe overlay không có "Mở tab mới" (user không được mở /quan-ly trực tiếp)
+   `standalone` = false (default) → KPI0 (route /kpi): dành cho ADMIN
+     - Có nút back về main app (`/`) LUÔN hiển thị
+     - Có admin features khi đã login
+     - Iframe overlay có "Mở tab mới"
+*/
+export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
   const router = useRouter();
   const [rawData, setRawData] = useState<{
     contracts: Contract[]; staff: Staff[]; revenue: Revenue[];
@@ -3319,18 +3328,22 @@ export default function KPIDashboard() {
               {kpiSheet === 'report' && (<><BookOpen size={16} /> <span>Chính Sách 2026</span></>)}
               {kpiSheet === 'clb-saoviet' && (<><Star size={16} /> <span>CLB Sao Việt</span></>)}
             </div>
-            <button
-              type="button"
-              className="kpi-embed-open"
-              onClick={() => {
-                const url = `/quan-ly?sheet=${kpiSheet}&from=kpi`;
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }}
-              aria-label="Mở trong tab mới"
-              title="Mở trong tab mới"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-            </button>
+            {/* Nút "Mở trong tab mới": chỉ hiện ở KPI0 (admin).
+                KPI tách (standalone) ẩn vì user không được mở /quan-ly trực tiếp. */}
+            {!standalone && (
+              <button
+                type="button"
+                className="kpi-embed-open"
+                onClick={() => {
+                  const url = `/quan-ly?sheet=${kpiSheet}&from=kpi`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+                aria-label="Mở trong tab mới"
+                title="Mở trong tab mới"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+              </button>
+            )}
           </div>
           <div className="kpi-embed-body">
             <iframe
@@ -3359,22 +3372,20 @@ export default function KPIDashboard() {
           )}
           <header>
             <div className="main-header">
-              {/* Admin button đã được chuyển sang giao diện chính ứng dụng (dưới logo N.M.C).
-                  Nút back (btn-back-u) chỉ hiện khi đã đăng nhập Admin — bấm để trở về trang trước.
-                  Nếu không có history (mở trực tiếp) → fallback về trang chính. */}
-              {adminAuthed && (
+              {/* Nút back:
+                  - KPI0 (standalone=false): LUÔN hiển thị, bấm về `/` (main app)
+                    (trước đây chỉ hiện khi adminAuthed → sai, vì admin vào từ main app
+                     nhưng chưa login admin trên /kpi sẽ mất nút back)
+                  - KPI tách (standalone=true): KHÔNG hiển thị (user không được về main app) */}
+              {!standalone && (
                 <button
                   type="button"
                   className="btn-back-u"
                   onClick={() => {
-                    if (typeof window !== 'undefined' && window.history.length > 1) {
-                      router.back();
-                    } else {
-                      router.push('/');  // STANDALONE_BACK_FALLBACK
-                    }
+                    router.push('/');
                   }}
-                  title="Trở về trang trước"
-                  aria-label="Trở về trang trước"
+                  title="Trở về trang chính"
+                  aria-label="Trở về trang chính"
                 >
                   <ArrowLeft size={18} />
                 </button>
@@ -3420,7 +3431,7 @@ export default function KPIDashboard() {
                     onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
-              {adminAuthed ? (
+              {!standalone && adminAuthed ? (
                 <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
                   <span className="sync-check"><Check size={16} /></span>
                   <span className="sync-spinner"><RotateCw size={14} /></span>
@@ -4524,4 +4535,11 @@ export default function KPIDashboard() {
       {/* ===== ADMIN LOGIN POPUP — đã chuyển sang giao diện chính ứng dụng (/src/app/page.tsx) ===== */}
     </div>
   );
+}
+
+/* ================= ROUTE /kpi (KPI0 — admin version) =================
+   Đây là default export cho route /kpi. KPI0 dành cho admin, có đầy đủ
+   nút back về main app và admin features. */
+export default function KPIPage() {
+  return <KPIDashboard standalone={false} />;
 }
