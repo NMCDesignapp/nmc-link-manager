@@ -3743,8 +3743,9 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="space-y-3 relative min-h-full">
-      {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 ===== */}
-      <div className="md:hidden">
+      {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 =====
+          ẨN hoàn toàn khi isEmbedded (user đến từ /kpi-standalone) — không cho xem/click các sheet admin */}
+      <div className={`md:hidden ${isEmbedded ? 'hidden' : ''}`}>
         <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
           <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider">Menu</p>
           <div className="grid grid-cols-4 gap-1.5">
@@ -11454,13 +11455,16 @@ export default function QuanLyPage() {
         <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
-          <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
-          {/* Tải Excel — chỉ hiện khi đang xem chính sách (activeSheet='report' && policyOpen) */}
-          {activeSheet === 'report' && policyOpen && (
+          {/* Ẩn nút Tải lại khi isEmbedded (user đến từ /kpi-standalone — không cần refresh) */}
+          {!isEmbedded && (
+            <Button variant="ghost" onClick={() => loadSheet(activeSheet, true)} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải lại dữ liệu"><RefreshCw className="w-3.5 h-3.5" /></Button>
+          )}
+          {/* Tải Excel — chỉ hiện khi đang xem chính sách (activeSheet='report' && policyOpen) VÀ KHÔNG embedded */}
+          {activeSheet === 'report' && policyOpen && !isEmbedded && (
             <Button variant="ghost" onClick={handleDownloadPolicyExcel} className="text-emerald-400/70 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0" title="Tải file Excel chính sách"><FileDown className="w-4 h-4" /></Button>
           )}
-          {/* Tải Excel — Tôn vinh: tải toàn bộ 4 bảng Top 5 (H1) về 1 file Excel */}
-          {activeSheet === 'vinh-danh' && (
+          {/* Tải Excel — Tôn vinh: tải toàn bộ 4 bảng Top 5 (H1) về 1 file Excel — Ẩn khi embedded */}
+          {activeSheet === 'vinh-danh' && !isEmbedded && (
             <Button variant="ghost" onClick={handleDownloadVinhDanhExcel} className="text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 h-8 w-8 p-0" title="Tải file Excel Tôn vinh"><FileDown className="w-4 h-4" /></Button>
           )}
           {/* Desktop: nút Cài đặt — chỉ hiện khi đã là admin (đăng nhập từ KPI page) VÀ KHÔNG ở chế độ embedded (đến từ KPI). Khi chưa admin hoặc đang embed, ẩn đi. */}
