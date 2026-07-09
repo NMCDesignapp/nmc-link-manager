@@ -79,6 +79,12 @@ if (c.includes('<BackButton href={MAIN_APP_URL}')) {
 // Standalone: href={buildMainUrl('/quan-ly?sheet=...')} target="_blank" rel="noopener noreferrer"
 // QUAN TRỌNG: phải thay ALL occurrences (có 2 bộ: mobile + desktop) — dùng /g flag.
 // Trước đây chỉ thay occurrence đầu → desktop nav vẫn dùng relative URL → trang trắng khi click.
+//
+// QUAN TRỌNG (2026-07): Main app đã thêm `&from=kpi` vào URL để đánh dấu embed mode.
+// Standalone KHÔNG cần `&from=kpi` (vì standalone không có sidebar để ẩn).
+// → path trong navReplacements KHÔNG có `&from=kpi`, nhưng phải khớp với cả
+//   pattern cũ (không có &from=kpi) và pattern mới (có &from=kpi) trên main app.
+// → Dùng regex có `(&from=kpi)?` optional.
 const navReplacements = [
   ['nav-race', '/quan-ly?sheet=saoviet'],
   ['nav-policy', '/quan-ly?sheet=report'],
@@ -86,8 +92,11 @@ const navReplacements = [
 ];
 let navPatched = 0;
 for (const [cls, path] of navReplacements) {
-  const pathEsc = path.replace(/\?/g, '\\?');
-  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + pathEsc + '"', 'g');
+  // Match cả pattern cũ (không &from=kpi) và pattern mới (có &from=kpi)
+  // Ví dụ: <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
+  //      hoặc: <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
+  const pathEsc = path.replace(/\?/g, '\\?').replace(/\//g, '\\/');
+  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + pathEsc + '(&from=kpi)?"', 'g');
   const newStr = '<a className="nav-btn ' + cls + '" href={buildMainUrl(\'' + path + '\')} target="_blank" rel="noopener noreferrer"';
   const beforeLen = c.length;
   c = c.replace(oldPattern, newStr);

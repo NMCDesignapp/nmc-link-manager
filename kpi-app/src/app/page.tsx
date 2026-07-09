@@ -3331,13 +3331,13 @@ export default function KPIDashboard() {
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
+                  <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><Flag size={14} /></span> Thi đua
                   </a>
-                  <a className="nav-btn nav-policy" href="/quan-ly?sheet=report&from=kpi">
+                  <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                   </a>
-                  <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet&from=kpi">
+                  <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                   </a>
                 </div>
@@ -3507,13 +3507,13 @@ export default function KPIDashboard() {
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
+                    <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </a>
-                    <a className="nav-btn nav-policy" href="/quan-ly?sheet=report&from=kpi">
+                    <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                     </a>
-                    <a className="nav-btn nav-clb" href="/quan-ly?sheet=clb-saoviet&from=kpi">
+                    <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </a>
                   </nav>
