@@ -10,10 +10,12 @@ import {
 import { BackButton } from '@/components/back-button';
 import { useAppData } from '@/lib/app-data-context';
 
-
 // === KPI standalone app: link back to main nc-link app ===
+// Used by standalone kpi-app (angiang2026-nhom.vercel.app) to open /quan-ly sheets
+// in an iframe overlay (cross-origin to nc-link.vercel.app).
+// In main app (standalone=false), unused — iframe src uses relative '/quan-ly?sheet=xxx&admin=1'.
 const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || 'https://nc-link.vercel.app';
-const buildMainUrl = (path) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
+const buildMainUrl = (path: string) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
 /* ================= CSS ================= */
 const CSS = `
@@ -3363,7 +3365,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="kpi-embed-body">
             <iframe
               key={`${kpiSheet}-${kpiSheetT}`}
-              src={`/quan-ly?sheet=${kpiSheet}&admin=1&_t=${kpiSheetT}`}
+              src={standalone
+                ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi&_t=' + kpiSheetT)}`
+                : `/quan-ly?sheet=${kpiSheet}&admin=1&_t=${kpiSheetT}`}
               title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
@@ -3515,33 +3519,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                 </button>
                 <div className="nav-row-3">
-                  {standalone ? (
-                    <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
-                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                    </a>
-                  ) : (
-                    <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                    </button>
-                  )}
-                  {standalone ? (
-                    <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report&from=kpi')} target="_blank" rel="noopener noreferrer">
-                      <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                    </a>
-                  ) : (
-                    <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                      <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                    </button>
-                  )}
-                  {standalone ? (
-                    <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
-                      <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                    </a>
-                  ) : (
-                    <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                      <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                    </button>
-                  )}
+                  <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                  </button>
+                  <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
+                  </button>
+                  <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+                  </button>
                 </div>
               </nav>
 
@@ -3709,33 +3695,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    {standalone ? (
-                      <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
-                        <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                      </a>
-                    ) : (
-                      <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                        <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                      </button>
-                    )}
-                    {standalone ? (
-                      <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report&from=kpi')} target="_blank" rel="noopener noreferrer">
-                        <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                      </a>
-                    ) : (
-                      <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                        <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                      </button>
-                    )}
-                    {standalone ? (
-                      <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
-                        <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                      </a>
-                    ) : (
-                      <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                        <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                      </button>
-                    )}
+                    <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                    </button>
+                    <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                      <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
+                    </button>
+                    <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                      <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+                    </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
                   <div className="dsk-company">

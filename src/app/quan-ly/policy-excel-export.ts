@@ -417,7 +417,70 @@ export function downloadPolicyExcel(
   const now = new Date();
   const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   const monthStr = meta?.monthLabel ? `_${meta.monthLabel.replace(/[\/\s]/g, '-')}` : '';
+
   const fileName = `${policyLabel}${monthStr}_${yyyymmdd}.xlsx`;
+
+  // Generate and download
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ============================================================================
+// GENERIC TABLE EXCEL EXPORT — for saoviet / clb-saoviet / any DOM table
+// ============================================================================
+// Scrape any <table> from DOM → download as styled Excel (single sheet).
+// Used for: Thi đua Sao Việt sub-pages, CLB Sao Việt sub-pages.
+// Reuses scrapePolicyTable() since it's already generic (handles merges, styles).
+// ============================================================================
+
+export function downloadTableExcel(
+  tableLabel: string,
+  tableEl: HTMLTableElement,
+  meta?: { monthLabel?: string; sheetKey?: string },
+) {
+  // Scrape DOM table (preserves styles, merges, col widths)
+  const scrape = scrapePolicyTable(tableEl);
+
+  const wb = XLSX.utils.book_new();
+  const aoa = scrape.cells.map(row => row.map(cell => cell.v));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Apply styles cell-by-cell
+  for (let r = 0; r < scrape.cells.length; r++) {
+    for (let c = 0; c < scrape.cells[r].length; c++) {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (ws[ref] && scrape.cells[r][c].s) {
+        ws[ref].s = scrape.cells[r][c].s;
+      }
+    }
+  }
+
+  // Apply merges
+  if (scrape.merges.length > 0) {
+    ws['!merges'] = scrape.merges;
+  }
+
+  // Apply column widths
+  ws['!cols'] = scrape.colWidths.map(w => ({ wch: Math.ceil(w) }));
+
+  // Sheet name (max 31 chars per Excel spec)
+  const sheetName = (tableLabel || 'Sheet').slice(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  // Generate file name
+  const now = new Date();
+  const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const monthStr = meta?.monthLabel ? `_${meta.monthLabel.replace(/[\/\s]/g, '-')}` : '';
+
+  const fileName = `${tableLabel}${monthStr}_${yyyymmdd}.xlsx`;
 
   // Generate and download
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });

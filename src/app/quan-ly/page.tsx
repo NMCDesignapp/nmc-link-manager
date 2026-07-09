@@ -22,7 +22,7 @@ import {
   Crown, Medal,
   FileDown, Star, Image as ImageIcon,
 } from 'lucide-react';
-import { scrapePolicyTable, downloadPolicyExcel, type ContractDetailRow } from './policy-excel-export';
+import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type ContractDetailRow } from './policy-excel-export';
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 import { useAppData } from '@/lib/app-data-context';
 
@@ -1691,6 +1691,19 @@ export default function QuanLyPage() {
   // (SSR returns false, client returns true → React throw error, có thể gây trang trắng trên mobile Safari).
   // Thay vào đó: SSR default false, useEffect set true sau khi mount.
   const [isEmbedded, setIsEmbedded] = useState(false);
+  // ===== IFRAME DETECTION =====
+  // True khi /quan-ly đang được embed trong iframe (vd: KPI page mở iframe overlay).
+  // Khi trong iframe: ẩn nút "Trở về" nội bộ vì parent (KPI page) có overlay back button riêng.
+  // Nếu để hiện 2 nút back (1 của overlay, 1 của /quan-ly) → user bấm nhầm → redirect trong iframe → bug.
+  const [isInIframe, setIsInIframe] = useState(false);
+  useEffect(() => {
+    try {
+      setIsInIframe(typeof window !== 'undefined' && window.top !== window.self);
+    } catch {
+      // Cross-origin access to window.top có thể throw → default true (safe)
+      setIsInIframe(true);
+    }
+  }, []);
   // ===== MOUNTED GUARD =====
   // Tránh flash bug: SSR render 'overview' trước rồi client hydrate mới switch sang sheet từ URL.
   // Khi chưa mounted → render skeleton loading, sau khi mounted mới render nội dung đúng.
@@ -6084,6 +6097,31 @@ export default function QuanLyPage() {
     }
   }, [vinhDanhData]);
 
+  // ===== Generic Excel export cho saoviet / clb-saoviet sub-pages =====
+  // Scrape DOM table trong sub-page container → download as styled Excel (single sheet).
+  // Triggered by nút FileDown bên cạnh poster.
+  // sheetType: 'saoviet' | 'clb-saoviet' — quy định container selector + filename prefix.
+  // programKey: sub-page key (vd: 'ca-nhan', 'tn-td', 'tn-ktm' cho saoviet)
+  const handleDownloadSubPageExcel = useCallback((sheetType: 'saoviet' | 'clb-saoviet', programKey: string, programLabel: string) => {
+    try {
+      // Tìm container theo data attribute
+      const containerSelector = `[data-${sheetType}-table="${programKey}"]`;
+      const container = document.querySelector(containerSelector);
+      const tableEl = container?.querySelector('table') as HTMLTableElement | null;
+      if (!tableEl) {
+        toast({ title: 'Không tìm thấy bảng', description: 'Bảng dữ liệu chưa được render', variant: 'destructive' });
+        return;
+      }
+      const now = new Date();
+      const monthLabel = `T${now.getMonth() + 1}-${now.getFullYear()}`;
+      downloadTableExcel(programLabel, tableEl, { monthLabel, sheetKey: programKey });
+      toast({ title: 'Đã tải file Excel', description: programLabel });
+    } catch (err) {
+      console.error('[SubPage Excel Export] Error:', err);
+      toast({ title: 'Lỗi tạo file Excel', description: String(err), variant: 'destructive' });
+    }
+  }, []);
+
   // Save policy image link to Settings API (uses PUT method to match /api/settings route)
   const savePolicyImage = useCallback(async (policyKey: string, link: string) => {
     try {
@@ -8523,7 +8561,7 @@ export default function QuanLyPage() {
       <div className="flex flex-col h-full p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
         {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
         <div className="md:hidden flex flex-col flex-1 min-h-0 relative" style={{ backgroundColor: '#0F172A' }}>
-          {/* Poster — full width 16:9 + program name overlay */}
+          {/* Poster — full width 16:9 + program name overlay + Excel download button */}
           <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
             {imageLink ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -8535,6 +8573,16 @@ export default function QuanLyPage() {
                 <span className="text-[8px] text-gray-500">Quản lý trong Cài đặt</span>
               </div>
             )}
+            {/* Excel download button — top-right of poster */}
+            <button
+              type="button"
+              onClick={handleDownloadPolicyExcel}
+              title={`Tải Excel ${item.label}`}
+              aria-label={`Tải Excel ${item.label}`}
+              className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+            >
+              <FileDown className="w-4 h-4 text-white" />
+            </button>
             {/* Bottom gradient + program name overlay */}
             <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
               <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
@@ -8657,8 +8705,8 @@ export default function QuanLyPage() {
         <div className="hidden md:flex flex-col h-full" style={{ backgroundColor: '#0F172A' }}>
           {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
           <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-            {/* Left: Image */}
-            <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+            {/* Left: Image + Excel button overlay */}
+            <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
               {imageLink ? (
                 <img src={imageLink} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
               ) : (
@@ -8667,6 +8715,16 @@ export default function QuanLyPage() {
                   <span>Chưa có ảnh</span>
                 </div>
               )}
+              {/* Excel download button — top-right of poster */}
+              <button
+                type="button"
+                onClick={handleDownloadPolicyExcel}
+                title={`Tải Excel ${item.label}`}
+                aria-label={`Tải Excel ${item.label}`}
+                className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+              >
+                <FileDown className="w-4 h-4 text-white" />
+              </button>
             </div>
             {/* Right: nền BẠC ĐẶC + ô bọc đổ bóng + viền */}
             <div className="w-1/2 flex flex-col gap-1 p-1.5 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
@@ -10109,11 +10167,11 @@ export default function QuanLyPage() {
     );
 
     return (
-      <div className="flex flex-col h-full gap-2">
+      <div className="flex flex-col h-full gap-2" data-saoviet-table={program}>
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
           <div className="md:hidden flex flex-col flex-1 min-h-0">
-            {/* Poster — full width 16:9 + program name overlay */}
+            {/* Poster — full width 16:9 + program name overlay + Excel download button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -10125,6 +10183,16 @@ export default function QuanLyPage() {
                   <span className="text-[8px] text-gray-500">Quản lý trong Cài đặt</span>
                 </div>
               )}
+              {/* Excel download button — top-right of poster */}
+              <button
+                type="button"
+                onClick={() => handleDownloadSubPageExcel('saoviet', program, item.label)}
+                title={`Tải Excel ${item.label}`}
+                aria-label={`Tải Excel ${item.label}`}
+                className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+              >
+                <FileDown className="w-4 h-4 text-white" />
+              </button>
               {/* Bottom gradient + program name overlay */}
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
                 <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
@@ -10145,8 +10213,8 @@ export default function QuanLyPage() {
           {/* ====== DESKTOP LAYOUT: 160px banner (poster trái + filter phải) -> table -> footer ====== */}
           <div className="hidden md:flex flex-col flex-1 min-h-0">
             <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
-              {/* Left: poster */}
-              <div className="w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+              {/* Left: poster + Excel button overlay */}
+              <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
                 {posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
@@ -10156,6 +10224,16 @@ export default function QuanLyPage() {
                     <span>Chưa có ảnh</span>
                   </div>
                 )}
+                {/* Excel download button — top-right of poster */}
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSubPageExcel('saoviet', program, item.label)}
+                  title={`Tải Excel ${item.label}`}
+                  aria-label={`Tải Excel ${item.label}`}
+                  className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+                >
+                  <FileDown className="w-4 h-4 text-white" />
+                </button>
               </div>
               {/* Right: filter nhóm + search tên TVV */}
               <div className="w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}>
@@ -10761,11 +10839,11 @@ export default function QuanLyPage() {
     );
 
     return (
-      <div className="flex flex-col h-full gap-2">
+      <div className="flex flex-col h-full gap-2" data-clb-saoviet-table={program}>
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
           <div className="md:hidden flex flex-col flex-1 min-h-0">
-            {/* Poster — full width 16:9, chỉ hiển thị (quản lý trong Cài đặt) */}
+            {/* Poster — full width 16:9, chỉ hiển thị (quản lý trong Cài đặt) + Excel button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -10777,6 +10855,16 @@ export default function QuanLyPage() {
                   <span className="text-[8px] text-white/40">Quản lý trong Cài đặt</span>
                 </div>
               )}
+              {/* Excel download button — top-right of poster */}
+              <button
+                type="button"
+                onClick={() => handleDownloadSubPageExcel('clb-saoviet', program, item.label)}
+                title={`Tải Excel ${item.label}`}
+                aria-label={`Tải Excel ${item.label}`}
+                className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+              >
+                <FileDown className="w-4 h-4 text-white" />
+              </button>
               {/* Bottom gradient + program name overlay */}
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end px-2 pb-1">
                 <span className="text-white text-[10px] font-black uppercase tracking-wider truncate">{item.label}</span>
@@ -10800,7 +10888,7 @@ export default function QuanLyPage() {
 
           {/* ====== DESKTOP LAYOUT: title bar -> 2-col filter bar -> table -> footer ====== */}
           <div className="hidden md:flex flex-col flex-1 min-h-0">
-            {/* Top bar: title + "Chỉ tiêu tháng hiện tại" badge */}
+            {/* Top bar: title + "Chỉ tiêu tháng hiện tại" badge + Excel download */}
             <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#1E3A8A', borderColor: '#1E40AF' }}>
               <div className="flex items-center gap-2 text-white">
                 <Award className="w-4 h-4 flex-shrink-0" />
@@ -10809,6 +10897,16 @@ export default function QuanLyPage() {
               <div className="flex items-center gap-2 text-white text-[11px]">
                 <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="font-bold">Chỉ tiêu {clbsvThresholdMonthLabel}</span>
+                {/* Excel download button — bên cạnh badge chỉ tiêu */}
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSubPageExcel('clb-saoviet', program, item.label)}
+                  title={`Tải Excel ${item.label}`}
+                  aria-label={`Tải Excel ${item.label}`}
+                  className="ml-1 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+                >
+                  <FileDown className="w-4 h-4 text-white" />
+                </button>
               </div>
             </div>
 
@@ -11479,8 +11577,9 @@ export default function QuanLyPage() {
               • Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → bấm "Trở về" để về TỔNG QUAN của cùng section.
               • Đang ở overview của 3 trang CHÍNH SÁCH / SAO VIỆT / CLB SAO VIỆT → bấm "Trở về" để về trang KPI.
               • Đang ở overview / sheets khác → bấm "Trở về" để về trang chính ứng dụng.
+              • NẾU đang trong iframe (KPI page overlay) → ẩn nút này, parent có overlay back button riêng.
             - Khi đã là admin (đăng nhập từ KPI page): hiện BackButton (handleAppBack) như cũ. */}
-        {!isAdmin ? (
+        {!isAdmin && !isInIframe ? (
           <Button
             variant="ghost"
             onClick={nonAdminBack}
@@ -11490,6 +11589,9 @@ export default function QuanLyPage() {
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Trở về</span>
           </Button>
+        ) : !isAdmin && isInIframe ? (
+          /* Trong iframe + end-user: parent (KPI overlay) có nút Quay lại riêng → ẩn nút nội bộ */
+          <div className="w-8 h-8 flex-shrink-0" aria-hidden="true" />
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
