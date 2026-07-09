@@ -81,27 +81,32 @@ if (c.includes('<BackButton href={MAIN_APP_URL}')) {
 // Trước đây chỉ thay occurrence đầu → desktop nav vẫn dùng relative URL → trang trắng khi click.
 //
 // QUAN TRỌNG (2026-07): Main app đã thêm `&from=kpi` vào URL để đánh dấu embed mode.
-// Standalone KHÔNG cần `&from=kpi` (vì standalone không có sidebar để ẩn).
-// → path trong navReplacements KHÔNG có `&from=kpi`, nhưng phải khớp với cả
-//   pattern cũ (không có &from=kpi) và pattern mới (có &from=kpi) trên main app.
-// → Dùng regex có `(&from=kpi)?` optional.
+// Standalone CŨNG CẦN `&from=kpi` vì 3 nút mở sang MAIN APP's /quan-ly (tab mới),
+// và main app's /quan-ly chỉ ẩn sidebar khi URL có `from=kpi`.
+// Nếu standalone KHÔNG thêm `&from=kpi` → sidebar vẫn hiện → user thấy menu admin.
+//
+// Cấu trúc navReplacements: [cssClass, srcPath, destPath]
+//   srcPath  = path KHÔNG có &from=kpi (để match main app code, có thể có hoặc không có suffix)
+//   destPath = path CÓ &from=kpi (để buildMainUrl generate URL đầy đủ cho standalone)
 const navReplacements = [
-  ['nav-race', '/quan-ly?sheet=saoviet'],
-  ['nav-policy', '/quan-ly?sheet=report'],
-  ['nav-clb', '/quan-ly?sheet=clb-saoviet'],
+  ['nav-race', '/quan-ly?sheet=saoviet', '/quan-ly?sheet=saoviet&from=kpi'],
+  ['nav-policy', '/quan-ly?sheet=report', '/quan-ly?sheet=report&from=kpi'],
+  ['nav-clb', '/quan-ly?sheet=clb-saoviet', '/quan-ly?sheet=clb-saoviet&from=kpi'],
 ];
 let navPatched = 0;
-for (const [cls, path] of navReplacements) {
-  // Match cả pattern cũ (không &from=kpi) và pattern mới (có &from=kpi)
+for (const [cls, srcPath, destPath] of navReplacements) {
+  // Match cả pattern cũ (không &from=kpi) và pattern mới (có &from=kpi) trên main app
   // Ví dụ: <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet&from=kpi">
   //      hoặc: <a className="nav-btn nav-race" href="/quan-ly?sheet=saoviet">
-  const pathEsc = path.replace(/\?/g, '\\?').replace(/\//g, '\\/');
-  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + pathEsc + '(&from=kpi)?"', 'g');
-  const newStr = '<a className="nav-btn ' + cls + '" href={buildMainUrl(\'' + path + '\')} target="_blank" rel="noopener noreferrer"';
+  const srcEsc = srcPath.replace(/\?/g, '\\?').replace(/\//g, '\\/');
+  const oldPattern = new RegExp('<a\\s+className="nav-btn ' + cls + '"\\s+href="' + srcEsc + '(&from=kpi)?"', 'g');
+  const newStr = '<a className="nav-btn ' + cls + '" href={buildMainUrl(\'' + destPath + '\')} target="_blank" rel="noopener noreferrer"';
   const beforeLen = c.length;
   c = c.replace(oldPattern, newStr);
   const matches = beforeLen !== c.length ? 1 : 0; // simple check — real count via match
-  const matchCount = (c.match(new RegExp('buildMainUrl\\(\'' + pathEsc + '\'\\)', 'g')) || []).length;
+  // Match destPath (có &from=kpi) để verify patch đã apply
+  const destEsc = destPath.replace(/\?/g, '\\?').replace(/\//g, '\\/').replace(/&/g, '\\&');
+  const matchCount = (c.match(new RegExp('buildMainUrl\\(\'' + destEsc + '\'\\)', 'g')) || []).length;
   if (matchCount >= 2) {
     navPatched += matchCount;
   } else if (matchCount === 1) {
@@ -110,7 +115,7 @@ for (const [cls, path] of navReplacements) {
     changed.push(cls + ' nav pattern not found (OK if main page changed)');
   }
 }
-if (navPatched > 0) changed.push('patched ' + navPatched + ' nav hrefs → MAIN_APP_URL target=_blank (mobile + desktop)');
+if (navPatched > 0) changed.push('patched ' + navPatched + ' nav hrefs → MAIN_APP_URL target=_blank with &from=kpi (mobile + desktop)');
 
 // Patch 4 (REMOVED): floating '← App' button — user yêu cầu bỏ.
 // Không inject thêm nút floating hay CSS đi kèm.

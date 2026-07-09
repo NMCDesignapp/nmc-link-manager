@@ -3516,7 +3516,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </button>
                 <div className="nav-row-3">
                   {standalone ? (
-                    <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
+                    <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </a>
                   ) : (
@@ -3525,7 +3525,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </button>
                   )}
                   {standalone ? (
-                    <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
+                    <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report&from=kpi')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                     </a>
                   ) : (
@@ -3534,7 +3534,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </button>
                   )}
                   {standalone ? (
-                    <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
+                    <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </a>
                   ) : (
@@ -3710,7 +3710,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
                     {standalone ? (
-                      <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet')} target="_blank" rel="noopener noreferrer">
+                      <a className="nav-btn nav-race" href={buildMainUrl('/quan-ly?sheet=saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
                         <span className="nav-icon"><Flag size={14} /></span> Thi đua
                       </a>
                     ) : (
@@ -3719,7 +3719,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       </button>
                     )}
                     {standalone ? (
-                      <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report')} target="_blank" rel="noopener noreferrer">
+                      <a className="nav-btn nav-policy" href={buildMainUrl('/quan-ly?sheet=report&from=kpi')} target="_blank" rel="noopener noreferrer">
                         <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                       </a>
                     ) : (
@@ -3728,7 +3728,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       </button>
                     )}
                     {standalone ? (
-                      <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet')} target="_blank" rel="noopener noreferrer">
+                      <a className="nav-btn nav-clb" href={buildMainUrl('/quan-ly?sheet=clb-saoviet&from=kpi')} target="_blank" rel="noopener noreferrer">
                         <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                       </a>
                     ) : (
