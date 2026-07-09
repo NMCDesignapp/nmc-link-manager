@@ -117,8 +117,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Đã lưu chương trình thi đua', contest });
   } catch (error: any) {
     console.error('Error saving contest:', error);
+    // Trả về chi tiết lỗi Prisma để client hiển thị được lỗi cụ thể
+    // (giúp diagnose: thiếu column, NULL constraint, connection, v.v.)
     const details = error?.message || String(error);
-    return NextResponse.json({ error: 'Không thể lưu chương trình thi đua', details }, { status: 500 });
+    const errorCode = error?.code || undefined;
+    return NextResponse.json(
+      { error: 'Không thể lưu chương trình thi đua', details, code: errorCode },
+      { status: 500 }
+    );
   }
 }
 

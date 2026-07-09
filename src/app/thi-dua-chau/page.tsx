@@ -1594,7 +1594,19 @@ export default function ThiDuaPage() {
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
       else {
         let errMsg = 'Không thể lưu';
-        try { const errData = await res.json(); errMsg = errData.error || errData.details || errMsg; } catch {}
+        try {
+          const errData = await res.json();
+          // Ưu tiên hiển thị `details` (lỗi Prisma cụ thể) trước, sau đó mới đến `error` (message chung)
+          const detail = errData.details || errData.error || '';
+          const code = errData.code ? `[${errData.code}] ` : '';
+          errMsg = detail ? `${code}${detail}` : errMsg;
+          console.error('[Contest save] Server error:', { status: res.status, body: errData });
+        } catch (parseErr) {
+          // Response không phải JSON (có thể là HTML error page từ Vercel)
+          const txt = await res.text().catch(() => '');
+          errMsg = `Lỗi ${res.status}: ${txt.slice(0, 200) || 'phản hồi không hợp lệ'}`;
+          console.error('[Contest save] Non-JSON error:', { status: res.status, body: txt.slice(0, 500) });
+        }
         toast({ title: 'Lỗi lưu', description: errMsg, variant: 'destructive' });
       }
     } catch (err) { toast({ title: 'Lỗi lưu', description: String(err), variant: 'destructive' }); }
