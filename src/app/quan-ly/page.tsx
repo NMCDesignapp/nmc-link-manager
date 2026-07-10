@@ -11729,6 +11729,23 @@ export default function QuanLyPage() {
       )}
       {/* Header */}
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
+        {/* Mobile hamburger — mở sidebar (chỉ hiện trên mobile, KHÔNG embedded, và CHỈ khi đã là admin).
+            - End-user trên angiang2026-nhom.vercel.app (đến từ /kpi-standalone iframe hoặc truy cập trực tiếp
+              nhưng chưa đăng nhập admin) sẽ không thấy nút này → giữ nguyên UX hiện tại.
+            - Chỉ admin (đăng nhập từ KPI page) mới thấy nút để mở sidebar khi đang ở sub-page
+              (saoviet/report/vinh-danh...) — trước đây sidebar không có cách mở trên mobile khi
+              đang ở sub-page vì menu 4×2 chỉ nằm trong renderOverview. */}
+        {!isEmbedded && isAdmin && (
+          <Button
+            variant="ghost"
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 w-8 p-0 flex-shrink-0"
+            title="Mở menu"
+            aria-label="Mở menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
         {/* Conditional back-button rendering:
             - Khi CHƯA phải admin: ẩn BackButton + Cài đặt.
               • Đang ở sub-page (policyOpen / saovietOpen / clbsvOpen đang mở) → bấm "Trở về" để về TỔNG QUAN của cùng section.
