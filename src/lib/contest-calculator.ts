@@ -1,0 +1,1072 @@
+/**
+ * contest-calculator.ts — Shared logic for contest (thi đua) result calculation.
+ *
+ * Extracted from src/app/thi-dua-chau/page.tsx to avoid duplication.
+ * Both the Thi Đua page and the SavedContestInline component in Quản Lý use these
+ * pure helpers + types so they always agree on how results are computed.
+ */
+
+// ===== Types =====
+export interface Contract {
+  id: string;
+  contractNumber: string;
+  agentCode: string;
+  agentName: string;
+  position: string;
+  ban: string;
+  nhom: string;
+  maNhom: string;
+  leaderAgentCode: string;
+  recruiterCode: string;
+  startDate: string | null;
+  effectiveDate: string;
+  issueDate: string;
+  fyp: number;
+  afyp: number;
+  pdt10DT: number;
+  tinhLuot3tr: number;
+  maDaiLyTD: string;
+  ngayBatDauLamViec: string | null;
+  ad?: string;
+}
+
+export interface BonusTier {
+  id: string;
+  minFYP: number;
+  maxFYP: number | null;
+  bonusAmount: number;
+  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc';
+  bonusText: string;
+  bonusPercent: number;
+}
+
+export interface GroupLeader {
+  agentCode: string;
+  agentName: string;
+  position: string;
+}
+
+export interface GroupData {
+  maNhom: string;
+  nhom: string;
+  leader: GroupLeader | null;
+  totalFYP: number;
+  totalAFYP: number;
+  contractCount: number;
+  activityRounds: number;
+  contracts: Contract[];
+  memberCount: number;
+}
+
+export interface NYDData {
+  nydCode: string;
+  nydName: string;
+  nhom: string;
+  position: string;
+  startDate: string | null;
+  recruitCount: number;
+  recruitFYP: number;
+  ownFYP: number;
+  contracts: Contract[];
+}
+
+export interface StaffMember {
+  id: string;
+  nhom: string;
+  maNhom: string;
+  agentCode: string;
+  agentName: string;
+  position: string;
+  startDate: string | null;
+}
+
+export interface RecruiterMember {
+  id: string;
+  nhom: string;
+  agentCode: string;
+  agentName: string;
+  position: string;
+  startDate: string | null;
+}
+
+export type ConditionType =
+  | 'per_contract_ip'
+  | 'per_contract_afyp'
+  | 'total_ip'
+  | 'total_afyp'
+  | 'activity_round'
+  | 'activity_round_tvvm'
+  | 'activity_round_standard'
+  | 'activity_round_standard_tvvm'
+  | 'activity_round_tvv90'
+  | 'tvv_pass_count';
+
+export type TargetType = 'tvv' | 'nhom' | 'nyd';
+
+/** Config snapshot extracted from a saved Contest row. */
+export interface ContestConfig {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  issueDate?: string | null;
+  conditionType: ConditionType;
+  targetType: TargetType;
+  bonusTiers: BonusTier[];
+  posterUrl?: string;
+  participants: string[]; // parsed from `participants` JSON
+  usePhase2?: boolean;
+  phase2StartDate?: string | null;
+  phase2EndDate?: string | null;
+  bonusTiers2: BonusTier[];
+  useSecondaryCondition?: boolean;
+  secondaryAFYPMin?: number;
+  secondaryIPMin?: number;
+  secondaryLuotHDMin?: number;
+  secondaryLuotHDCMin?: number;
+  secondaryLuotHDFilter?: string;
+  secondaryLuotHDCFilter?: string;
+  secondaryTotalAFYPMin?: number;
+  secondaryTotalIPMin?: number;
+  hideNotAchieved?: boolean;
+  includeIndividualNTD?: boolean;
+  includeIndividualTN?: boolean;
+  luotHDThreshold: number;
+  luotHDCTThreshold: number;
+  tvv90MaxMonths: number;
+  tvv90MinIP: number;
+  referenceContestId?: string;
+  includeTNInPassCount?: boolean;
+}
+
+// ===== Helpers — mode detection =====
+export function isActivityRoundMode(ct: ConditionType): boolean {
+  return (
+    ct === 'activity_round' ||
+    ct === 'activity_round_tvvm' ||
+    ct === 'activity_round_standard' ||
+    ct === 'activity_round_standard_tvvm' ||
+    ct === 'activity_round_tvv90'
+  );
+}
+export function isTVVPassCountMode(ct: ConditionType): boolean {
+  return ct === 'tvv_pass_count';
+}
+export function isPerContractMode(ct: ConditionType): boolean {
+  return ct === 'per_contract_ip' || ct === 'per_contract_afyp';
+}
+export function isTotalMode(ct: ConditionType): boolean {
+  return ct === 'total_ip' || ct === 'total_afyp';
+}
+export function isTVVmMode(ct: ConditionType): boolean {
+  return ct === 'activity_round_tvvm' || ct === 'activity_round_standard_tvvm';
+}
+export function isStandardMode(ct: ConditionType): boolean {
+  return ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm';
+}
+
+// ===== Helpers — entity eligibility =====
+export function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
+  if (!startDate) return false;
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMonths =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+  return diffMonths <= maxMonths;
+}
+
+export function isTVV90Agent(
+  contracts: Contract[],
+  agentCode: string,
+  maxMonths: number = 3,
+  _minIP?: number
+): boolean {
+  const agentContract = contracts.find((c) => c.agentCode === agentCode);
+  if (!agentContract) return false;
+  const startDate = agentContract.ngayBatDauLamViec || agentContract.startDate;
+  if (!startDate) return false;
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMonths =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+  return diffMonths <= maxMonths;
+}
+
+/** Count rows with tinhLuot3tr >= threshold. Applies TVVm/TVV90 filters per row. */
+export function calculateLuot(
+  contracts: Contract[],
+  luotThreshold: number,
+  conditionType: ConditionType,
+  tvv90MaxMonths?: number,
+  tvv90MinIP?: number
+): number {
+  let count = 0;
+  for (const c of contracts) {
+    if (isTVVmMode(conditionType)) {
+      if (!isTVVm(c.ngayBatDauLamViec || c.startDate)) continue;
+    }
+    if (conditionType === 'activity_round_tvv90') {
+      if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
+    }
+    if (c.tinhLuot3tr >= luotThreshold) count++;
+  }
+  return count;
+}
+
+// ===== Unicode normalize (NFC vs NFD Vietnamese) =====
+export function norm(s: string): string {
+  return s.normalize('NFC');
+}
+
+// ===== Bonus computation =====
+export function computeBonusFromTier(
+  tier: BonusTier,
+  fyp: number,
+  rounds?: number
+): number {
+  if (tier.bonusType === 'percent') return (tier.bonusPercent / 100) * fyp;
+  if (tier.bonusType === 'percent_fyc')
+    return (tier.bonusPercent / 100) * (fyp * 0.25);
+  if (tier.bonusType === 'money_per_round')
+    return tier.bonusAmount * (rounds || 0);
+  if (tier.bonusType === 'money_per_tvv')
+    return tier.bonusAmount * (rounds || 0);
+  return tier.bonusAmount;
+}
+
+export function calculateBonusWithTiers(
+  fyp: number,
+  tiers: BonusTier[]
+): { tier: BonusTier | null; tierIndex: number } {
+  const sorted = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const tier = sorted[i];
+    if (fyp >= tier.minFYP) return { tier, tierIndex: i };
+  }
+  return { tier: null, tierIndex: -1 };
+}
+
+export function getBonusAmountWithTiers(
+  fyp: number,
+  tiers: BonusTier[],
+  rounds?: number
+): number {
+  const { tier } = calculateBonusWithTiers(fyp, tiers);
+  if (!tier) return 0;
+  return computeBonusFromTier(tier, fyp, rounds);
+}
+
+export function getRemainingToNextTier(
+  fyp: number,
+  tiers: BonusTier[]
+): number | null {
+  const sorted = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+  for (const tier of sorted) {
+    if (tier.minFYP > fyp) return tier.minFYP - fyp;
+  }
+  return null;
+}
+
+export function calculateActivityRoundBonusWithTiers(
+  activityRounds: number,
+  tiers: BonusTier[]
+): { tier: BonusTier | null; tierIndex: number } {
+  const sorted = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const tier = sorted[i];
+    if (activityRounds >= tier.minFYP) return { tier, tierIndex: i };
+  }
+  return { tier: null, tierIndex: -1 };
+}
+
+export function hasPercentBonus(tiers: BonusTier[]): boolean {
+  return tiers.some(
+    (t) => t.bonusType === 'percent' || t.bonusType === 'percent_fyc'
+  );
+}
+
+// ===== Formatters =====
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export function formatNumber(amount: number): string {
+  return new Intl.NumberFormat('vi-VN').format(amount);
+}
+
+export function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('vi-VN');
+}
+
+export function formatBonusAmount(
+  tier: BonusTier,
+  fyp?: number,
+  rounds?: number
+): string {
+  if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
+  const amount = computeBonusFromTier(tier, fyp || 0, rounds);
+  return formatCurrency(amount);
+}
+
+export function formatRate(tier: BonusTier): string {
+  if (tier.bonusType === 'percent') return `${tier.bonusPercent}%`;
+  if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}%`;
+  return '';
+}
+
+// ===== Labels =====
+export function getConditionLabel(ct: ConditionType): string {
+  switch (ct) {
+    case 'per_contract_ip': return 'IP/HĐ';
+    case 'per_contract_afyp': return 'AFYP/HĐ';
+    case 'total_ip': return 'Tổng IP';
+    case 'total_afyp': return 'Tổng AFYP';
+    case 'activity_round': return 'Lượt HĐ';
+    case 'activity_round_tvvm': return 'Lượt TVVm HĐ';
+    case 'activity_round_standard': return 'Lượt HĐ Chuẩn';
+    case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
+    case 'activity_round_tvv90': return 'Lượt TVV90';
+    case 'tvv_pass_count': return 'TVV đạt CTĐK';
+  }
+}
+
+export function getTargetLabel(tt: TargetType): string {
+  switch (tt) {
+    case 'tvv': return 'TVV';
+    case 'nhom': return 'Nhóm';
+    case 'nyd': return 'NTD';
+  }
+}
+
+// ===== Config parsing =====
+/** Parse a raw SavedContest row (from /api/contests) into a ContestConfig object. */
+export function parseContestConfig(raw: any): ContestConfig {
+  let bonusTiers: BonusTier[] = [];
+  try {
+    const parsed = JSON.parse(raw.bonusTiers || '[]');
+    if (Array.isArray(parsed)) bonusTiers = parsed;
+  } catch { /* ignore */ }
+
+  let bonusTiers2: BonusTier[] = [];
+  try {
+    const parsed = JSON.parse(raw.bonusTiers2 || '[]');
+    if (Array.isArray(parsed)) bonusTiers2 = parsed;
+  } catch { /* ignore */ }
+
+  let participants: string[] = [];
+  try {
+    const parsed = JSON.parse(raw.participants || '[]');
+    if (Array.isArray(parsed)) participants = parsed;
+  } catch { /* ignore */ }
+
+  return {
+    id: raw.id,
+    title: raw.title || 'Chương trình thi đua',
+    startDate: raw.startDate,
+    endDate: raw.endDate,
+    issueDate: raw.issueDate,
+    conditionType: (raw.conditionType || 'per_contract_ip') as ConditionType,
+    targetType: (raw.targetType || 'tvv') as TargetType,
+    bonusTiers,
+    posterUrl: raw.posterUrl || '',
+    participants,
+    usePhase2: raw.usePhase2 ?? false,
+    phase2StartDate: raw.phase2StartDate ?? null,
+    phase2EndDate: raw.phase2EndDate ?? null,
+    bonusTiers2,
+    useSecondaryCondition: raw.useSecondaryCondition ?? false,
+    secondaryAFYPMin: raw.secondaryAFYPMin ?? 0,
+    secondaryIPMin: raw.secondaryIPMin ?? 0,
+    secondaryLuotHDMin: raw.secondaryLuotHDMin ?? 0,
+    secondaryLuotHDCMin: raw.secondaryLuotHDCMin ?? 0,
+    secondaryLuotHDFilter: raw.secondaryLuotHDFilter ?? 'all',
+    secondaryLuotHDCFilter: raw.secondaryLuotHDCFilter ?? 'all',
+    secondaryTotalAFYPMin: raw.secondaryTotalAFYPMin ?? 0,
+    secondaryTotalIPMin: raw.secondaryTotalIPMin ?? 0,
+    hideNotAchieved: raw.hideNotAchieved ?? false,
+    includeIndividualNTD: raw.includeIndividualNTD ?? false,
+    includeIndividualTN: raw.includeIndividualTN ?? false,
+    luotHDThreshold: raw.luotHDThreshold ?? 3_000_000,
+    luotHDCTThreshold: raw.luotHDCTThreshold ?? 12_000_000,
+    tvv90MaxMonths: raw.tvv90MaxMonths ?? 3,
+    tvv90MinIP: raw.tvv90MinIP ?? 12_000_000,
+    referenceContestId: raw.referenceContestId || '',
+    includeTNInPassCount: raw.includeTNInPassCount ?? false,
+  };
+}
+
+// ===== Phase 1: filter contracts by dates + secondary per-contract condition =====
+export function filterContractsByContest(
+  contracts: Contract[],
+  config: ContestConfig
+): Contract[] {
+  let results = [...contracts];
+  if (config.startDate) {
+    const start = new Date(config.startDate);
+    results = results.filter((c) => new Date(c.effectiveDate) >= start);
+  }
+  if (config.endDate) {
+    const end = new Date(config.endDate);
+    end.setHours(23, 59, 59, 999);
+    results = results.filter((c) => new Date(c.effectiveDate) <= end);
+  }
+  if (config.issueDate) {
+    const issueStart = new Date(config.issueDate);
+    results = results.filter((c) => new Date(c.issueDate) >= issueStart);
+  }
+  if (config.useSecondaryCondition) {
+    if ((config.secondaryAFYPMin ?? 0) > 0)
+      results = results.filter((c) => c.afyp >= (config.secondaryAFYPMin ?? 0));
+    if ((config.secondaryIPMin ?? 0) > 0)
+      results = results.filter((c) => c.pdt10DT >= (config.secondaryIPMin ?? 0));
+  }
+  results.sort(
+    (a, b) =>
+      new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
+  );
+  return results;
+}
+
+// ===== Phase 2: filter by target (TVV / Nhóm / NTD) + DSO exclusion =====
+export function filterDisplayContracts(
+  filteredContracts: Contract[],
+  config: ContestConfig,
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[]
+): Contract[] {
+  const subjectCodes = config.participants;
+  const targetType = config.targetType;
+  const contractsNoDSO = filteredContracts.filter(
+    (c) =>
+      !norm(c.nhom || '').toLowerCase().includes('dso') &&
+      !norm(c.maNhom || '').toLowerCase().includes('dso')
+  );
+  if (targetType === 'tvv') {
+    if (subjectCodes.length === 0) return contractsNoDSO;
+    return contractsNoDSO.filter(
+      (c) =>
+        subjectCodes.includes(c.agentCode) ||
+        subjectCodes.includes(c.agentName)
+    );
+  }
+  if (targetType === 'nhom') {
+    const allowedMaNhom = new Set<string>();
+    if (subjectCodes.length > 0) {
+      for (const code of subjectCodes) {
+        const codeLower = norm(code).toLowerCase();
+        if (codeLower.includes('dso')) continue;
+        const staff = staffList.find(
+          (s) => norm(s.nhom || '').toLowerCase() === codeLower
+        );
+        if (staff?.maNhom) allowedMaNhom.add(staff.maNhom);
+        else allowedMaNhom.add(code);
+      }
+    } else {
+      for (const s of staffList) {
+        const nhomLower = norm(s.nhom || '').toLowerCase();
+        if (
+          s.maNhom &&
+          !nhomLower.includes('dso') &&
+          !s.maNhom.toLowerCase().includes('dso')
+        ) {
+          allowedMaNhom.add(s.maNhom);
+        }
+      }
+    }
+    return contractsNoDSO.filter(
+      (c) =>
+        allowedMaNhom.has(c.maNhom) &&
+        !norm(c.nhom || '').toLowerCase().includes('dso')
+    );
+  }
+  if (targetType === 'nyd') {
+    const ntdNoDSO = recruiterList.filter(
+      (r) => !norm(r.nhom || '').toLowerCase().includes('dso')
+    );
+    if (subjectCodes.length > 0) {
+      return contractsNoDSO.filter(
+        (c) =>
+          subjectCodes.includes(c.agentCode) ||
+          subjectCodes.includes(c.agentName) ||
+          (c.maDaiLyTD && subjectCodes.includes(c.maDaiLyTD))
+      );
+    }
+    const ntdCodes = new Set(ntdNoDSO.map((r) => r.agentCode));
+    return contractsNoDSO.filter(
+      (c) => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD)
+    );
+  }
+  return contractsNoDSO;
+}
+
+// ===== Grouped data (for targetType = nhom) =====
+export function computeGroupedData(
+  displayContracts: Contract[],
+  config: ContestConfig,
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[]
+): GroupData[] {
+  if (config.targetType !== 'nhom') return [];
+  const subjectCodes = config.participants;
+  const conditionType = config.conditionType;
+  const map = new Map<string, GroupData>();
+
+  const allowedMaNhom = new Set<string>();
+  if (subjectCodes.length > 0) {
+    for (const code of subjectCodes) {
+      const codeLower = norm(code).toLowerCase();
+      if (codeLower.includes('dso')) continue;
+      const staff = staffList.find(
+        (s) => norm(s.nhom || '').toLowerCase() === codeLower
+      );
+      if (staff?.maNhom) allowedMaNhom.add(staff.maNhom);
+      else allowedMaNhom.add(code);
+    }
+  } else {
+    for (const s of staffList) {
+      const nhomLower = norm(s.nhom || '').toLowerCase();
+      const maNhomLower = (s.maNhom || '').toLowerCase();
+      if (s.maNhom && !nhomLower.includes('dso') && !maNhomLower.includes('dso')) {
+        allowedMaNhom.add(s.maNhom);
+      }
+    }
+  }
+
+  // Step 1: build groups from Staff
+  for (const s of staffList) {
+    if (!s.maNhom) continue;
+    if (map.has(s.maNhom)) continue;
+    const nhomLower = norm(s.nhom || '').toLowerCase();
+    const maNhomLower = (s.maNhom || '').toLowerCase();
+    if (nhomLower.includes('dso') || maNhomLower.includes('dso')) continue;
+    if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
+    map.set(s.maNhom, {
+      maNhom: s.maNhom,
+      nhom: s.nhom,
+      leader: null,
+      totalFYP: 0,
+      totalAFYP: 0,
+      contractCount: 0,
+      activityRounds: 0,
+      contracts: [],
+      memberCount: 0,
+    });
+  }
+  // Add subjectCodes not in staffList
+  if (subjectCodes.length > 0) {
+    for (const maNhom of allowedMaNhom) {
+      if (!map.has(maNhom)) {
+        const staff = staffList.find((s) => s.maNhom === maNhom);
+        const nhomName = staff?.nhom || maNhom;
+        map.set(maNhom, {
+          maNhom,
+          nhom: nhomName,
+          leader: null,
+          totalFYP: 0,
+          totalAFYP: 0,
+          contractCount: 0,
+          activityRounds: 0,
+          contracts: [],
+          memberCount: 0,
+        });
+      }
+    }
+  }
+
+  // Find leader
+  for (const [maNhom, g] of map) {
+    const groupStaff = staffList.filter((s) => s.maNhom === maNhom);
+    const truongBan = groupStaff.find(
+      (s) => norm(s.position || '').toLowerCase().trim() === 'trưởng ban'
+    );
+    if (truongBan) {
+      g.leader = {
+        agentCode: truongBan.agentCode,
+        agentName: truongBan.agentName,
+        position: truongBan.position,
+      };
+      continue;
+    }
+    const truongNhom = groupStaff.find(
+      (s) => norm(s.position || '').toLowerCase().trim() === 'trưởng nhóm'
+    );
+    if (truongNhom) {
+      g.leader = {
+        agentCode: truongNhom.agentCode,
+        agentName: truongNhom.agentName,
+        position: truongNhom.position,
+      };
+      continue;
+    }
+    const groupRecruiters = recruiterList.filter(
+      (r) => r.nhom === g.nhom || r.nhom === g.maNhom
+    );
+    const rBan = groupRecruiters.find(
+      (r) => norm(r.position || '').toLowerCase().trim() === 'trưởng ban'
+    );
+    if (rBan) {
+      g.leader = {
+        agentCode: rBan.agentCode,
+        agentName: rBan.agentName,
+        position: rBan.position,
+      };
+      continue;
+    }
+    const rNhom = groupRecruiters.find(
+      (r) => norm(r.position || '').toLowerCase().trim() === 'trưởng nhóm'
+    );
+    if (rNhom) {
+      g.leader = {
+        agentCode: rNhom.agentCode,
+        agentName: rNhom.agentName,
+        position: rNhom.position,
+      };
+    }
+  }
+
+  // Map revenue into groups
+  const mapKeyIndex = new Map<string, string>();
+  for (const key of map.keys()) mapKeyIndex.set(key.toLowerCase(), key);
+
+  const luotThreshold = isStandardMode(conditionType)
+    ? config.luotHDCTThreshold
+    : config.luotHDThreshold;
+  const contractByNhom = new Map<
+    string,
+    { totalFYP: number; totalAFYP: number; contractCount: number }
+  >();
+  for (const c of displayContracts) {
+    if (!c.maNhom) continue;
+    const existing = contractByNhom.get(c.maNhom);
+    if (existing) {
+      existing.totalFYP += c.pdt10DT;
+      existing.totalAFYP += c.afyp;
+      existing.contractCount += 1;
+    } else {
+      contractByNhom.set(c.maNhom, {
+        totalFYP: c.pdt10DT,
+        totalAFYP: c.afyp,
+        contractCount: 1,
+      });
+    }
+  }
+  for (const [cNhom, cData] of contractByNhom) {
+    const actualKey = map.get(cNhom)
+      ? cNhom
+      : mapKeyIndex.get(cNhom.toLowerCase());
+    const g = actualKey ? map.get(actualKey) : null;
+    if (g) {
+      g.totalFYP += cData.totalFYP;
+      g.totalAFYP += cData.totalAFYP;
+      g.contractCount += cData.contractCount;
+    }
+  }
+  for (const [maNhom, g] of map) {
+    const groupContracts = displayContracts.filter(
+      (c) =>
+        c.maNhom === maNhom ||
+        (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase())
+    );
+    g.contracts = groupContracts;
+    g.activityRounds = calculateLuot(
+      groupContracts,
+      luotThreshold,
+      conditionType,
+      config.tvv90MaxMonths,
+      config.tvv90MinIP
+    );
+  }
+  for (const g of Array.from(map.values())) {
+    g.memberCount = staffList.filter((s) => s.maNhom === g.maNhom).length;
+  }
+  return Array.from(map.values());
+}
+
+// ===== TVV total rows (for targetType = tvv + total/per-contract modes) =====
+export interface TVVTotalRow {
+  agent: {
+    agentCode: string;
+    agentName: string;
+    nhom: string;
+    maNhom: string;
+  };
+  value: number;
+  tier: BonusTier | null;
+  remaining: number | null;
+  phaseInfo: {
+    phase1Bonus: number;
+    phase2Bonus: number;
+    phase1Tier: BonusTier | null;
+    phase2Tier: BonusTier | null;
+  };
+}
+
+export function computeTVVTotalRows(
+  displayContracts: Contract[],
+  config: ContestConfig,
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[]
+): TVVTotalRow[] {
+  if (config.targetType !== 'tvv' || isPerContractMode(config.conditionType)) {
+    return [];
+  }
+  const subjectCodes = config.participants;
+  const conditionType = config.conditionType;
+  const bonusTiers = config.bonusTiers;
+  const bonusTiers2 = config.bonusTiers2;
+  const isAFYP = conditionType === 'total_afyp';
+  const isActivityMode = isActivityRoundMode(conditionType);
+  const luotThreshold = isStandardMode(conditionType)
+    ? config.luotHDCTThreshold
+    : config.luotHDThreshold;
+
+  const agentMap = new Map<
+    string,
+    {
+      agentCode: string;
+      agentName: string;
+      nhom: string;
+      maNhom: string;
+      totalFYP: number;
+      totalAFYP: number;
+      contractCount: number;
+      activityRounds: number;
+    }
+  >();
+  for (const c of displayContracts) {
+    const key = c.agentCode;
+    if (!key) continue;
+    const existing = agentMap.get(key);
+    if (existing) {
+      existing.totalFYP += c.pdt10DT;
+      existing.totalAFYP += c.afyp;
+      existing.contractCount += 1;
+    } else {
+      agentMap.set(key, {
+        agentCode: c.agentCode,
+        agentName: c.agentName,
+        nhom: c.nhom || c.maNhom || '',
+        maNhom: c.maNhom || '',
+        totalFYP: c.pdt10DT,
+        totalAFYP: c.afyp,
+        contractCount: 1,
+        activityRounds: 0,
+      });
+    }
+  }
+  for (const [key, agent] of agentMap) {
+    const agentContracts = displayContracts.filter(
+      (c) => c.agentCode === key
+    );
+    agent.activityRounds = calculateLuot(
+      agentContracts,
+      luotThreshold,
+      conditionType,
+      config.tvv90MaxMonths,
+      config.tvv90MinIP
+    );
+  }
+  // Add TVV from subjectCodes that have no contracts (value 0)
+  if (subjectCodes.length > 0) {
+    for (const code of subjectCodes) {
+      const codeLower = norm(code).toLowerCase();
+      const found = Array.from(agentMap.keys()).some(
+        (k) => norm(k).toLowerCase() === codeLower
+      );
+      if (!found) {
+        const staff = staffList.find(
+          (s) =>
+            s.agentCode.toLowerCase() === codeLower ||
+            norm(s.agentName || '').toLowerCase() === codeLower
+        );
+        const recruiter = !staff
+          ? recruiterList.find(
+              (r) =>
+                r.agentCode.toLowerCase() === codeLower ||
+                norm(r.agentName || '').toLowerCase() === codeLower
+            )
+          : null;
+        const info = staff || recruiter;
+        agentMap.set(code, {
+          agentCode: info?.agentCode || code,
+          agentName: info?.agentName || code,
+          nhom: info?.nhom || '',
+          maNhom: (info as StaffMember)?.maNhom || '',
+          totalFYP: 0,
+          totalAFYP: 0,
+          contractCount: 0,
+          activityRounds: 0,
+        });
+      }
+    }
+  }
+  return Array.from(agentMap.values())
+    .map((agent) => {
+      const value = isAFYP
+        ? agent.totalAFYP
+        : isActivityMode
+        ? agent.activityRounds
+        : agent.totalFYP;
+      const { tier } = calculateBonusWithTiers(value, bonusTiers);
+      const remaining = getRemainingToNextTier(value, bonusTiers);
+      let phaseInfo = {
+        phase1Bonus: 0,
+        phase2Bonus: 0,
+        phase1Tier: null as BonusTier | null,
+        phase2Tier: null as BonusTier | null,
+      };
+      if (config.usePhase2 && config.phase2StartDate) {
+        const p2Start = new Date(config.phase2StartDate);
+        const agentContracts = displayContracts.filter(
+          (c) => c.agentCode === agent.agentCode
+        );
+        const p1Contracts = agentContracts.filter(
+          (c) => new Date(c.effectiveDate) < p2Start
+        );
+        const p2Contracts = agentContracts.filter(
+          (c) => new Date(c.effectiveDate) >= p2Start
+        );
+        const p1Value = isAFYP
+          ? p1Contracts.reduce((s, c) => s + c.afyp, 0)
+          : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+        const p2Value = isAFYP
+          ? p2Contracts.reduce((s, c) => s + c.afyp, 0)
+          : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+        const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
+        const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
+        phaseInfo = {
+          phase1Bonus: p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0,
+          phase2Bonus: p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0,
+          phase1Tier: p1Res.tier,
+          phase2Tier: p2Res.tier,
+        };
+      }
+      return { agent, value, tier, remaining, phaseInfo };
+    })
+    .sort((a, b) => b.value - a.value);
+}
+
+// ===== Per-contract TVV rows (for isPerContractMode + targetType=tvv) =====
+export interface TVVPerContractRow {
+  contract: Contract;
+  cValue: number;
+  tier: BonusTier | null;
+  remaining: number | null;
+  phaseInfo: {
+    phase1Bonus: number;
+    phase2Bonus: number;
+    phase1Tier: BonusTier | null;
+    phase2Tier: BonusTier | null;
+  };
+  secondaryCheck: { passed: boolean; totalAFYP: number; totalIP: number };
+  secondaryPassed: boolean;
+  effectiveTier: BonusTier | null;
+}
+
+export function computeTVVPerContractRows(
+  displayContracts: Contract[],
+  config: ContestConfig
+): TVVPerContractRow[] {
+  if (config.targetType !== 'tvv' || !isPerContractMode(config.conditionType)) {
+    return [];
+  }
+  const conditionType = config.conditionType;
+  const bonusTiers = config.bonusTiers;
+  const bonusTiers2 = config.bonusTiers2;
+  const usePhase2 = config.usePhase2 ?? false;
+  const phase2StartDate = config.phase2StartDate;
+  const useSecondaryCondition = config.useSecondaryCondition ?? false;
+  const secondaryTotalAFYPMin = config.secondaryTotalAFYPMin ?? 0;
+  const secondaryTotalIPMin = config.secondaryTotalIPMin ?? 0;
+
+  const getContractValue = (c: Contract): number =>
+    conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
+
+  const checkSecondaryTotalCondition = (contracts: Contract[]) => {
+    const totalAFYP = contracts.reduce((sum, c) => sum + c.afyp, 0);
+    const totalIP = contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
+    if (!useSecondaryCondition) return { passed: true, totalAFYP, totalIP };
+    let passed = true;
+    if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) passed = false;
+    if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) passed = false;
+    return { passed, totalAFYP, totalIP };
+  };
+
+  return [...displayContracts]
+    .map((c) => {
+      const cValue = getContractValue(c);
+      const { tier } = calculateBonusWithTiers(cValue, bonusTiers);
+      const remaining = getRemainingToNextTier(cValue, bonusTiers);
+      // Phase info
+      let phaseInfo = {
+        phase1Bonus: 0,
+        phase2Bonus: 0,
+        phase1Tier: null as BonusTier | null,
+        phase2Tier: null as BonusTier | null,
+      };
+      if (usePhase2 && phase2StartDate) {
+        const p2Start = new Date(phase2StartDate);
+        const isPhase1 = new Date(c.effectiveDate) < p2Start;
+        if (isPhase1) {
+          const p1Res = calculateBonusWithTiers(cValue, bonusTiers);
+          phaseInfo.phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, cValue) : 0;
+          phaseInfo.phase1Tier = p1Res.tier;
+        } else {
+          const p2Res = calculateBonusWithTiers(cValue, bonusTiers2);
+          phaseInfo.phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, cValue) : 0;
+          phaseInfo.phase2Tier = p2Res.tier;
+        }
+      }
+      const agentContracts = displayContracts.filter(
+        (ac) => ac.agentCode === c.agentCode
+      );
+      const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
+      const secondaryPassed = secondaryCheck.passed;
+      const effectiveTier = secondaryPassed
+        ? tier
+        : secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0
+        ? null
+        : tier;
+      return {
+        contract: c,
+        cValue,
+        tier,
+        remaining,
+        phaseInfo,
+        secondaryCheck,
+        secondaryPassed,
+        effectiveTier,
+      };
+    })
+    .sort((a, b) => b.cValue - a.cValue);
+}
+
+// ===== Stats summary =====
+export interface ContestStats {
+  totalFYP: number;
+  totalBonus: number;
+  achievedCount: number;
+  notAchievedCount: number;
+  filteredCount: number; // number of rows displayed
+}
+
+export function computeContestStats(
+  displayContracts: Contract[],
+  groupedData: GroupData[],
+  tvvTotalRows: TVVTotalRow[],
+  tvvPerContractRows: TVVPerContractRow[],
+  config: ContestConfig
+): ContestStats {
+  const conditionType = config.conditionType;
+  const targetType = config.targetType;
+  const hideNotAchieved = config.hideNotAchieved ?? false;
+  const usePhase2 = config.usePhase2 ?? false;
+  const useSecondaryCondition = config.useSecondaryCondition ?? false;
+  const secondaryTotalAFYPMin = config.secondaryTotalAFYPMin ?? 0;
+  const secondaryTotalIPMin = config.secondaryTotalIPMin ?? 0;
+
+  const totalFYP = displayContracts.reduce((s, c) => s + c.pdt10DT, 0);
+  let achievedCount = 0;
+  let notAchievedCount = 0;
+  let totalBonus = 0;
+  let filteredCount = 0;
+
+  if (targetType === 'nhom') {
+    const groups = [...groupedData];
+    for (const g of groups) {
+      let value: number;
+      if (isActivityRoundMode(conditionType)) value = g.activityRounds;
+      else if (conditionType === 'total_afyp') value = g.totalAFYP;
+      else value = g.totalFYP;
+      const { tier } = isActivityRoundMode(conditionType)
+        ? calculateActivityRoundBonusWithTiers(value, config.bonusTiers)
+        : calculateBonusWithTiers(value, config.bonusTiers);
+      // Secondary check
+      const totalAFYP = g.contracts.reduce((s, c) => s + c.afyp, 0);
+      const totalIP = g.contracts.reduce((s, c) => s + c.pdt10DT, 0);
+      let secondaryPassed = true;
+      if (useSecondaryCondition) {
+        if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) secondaryPassed = false;
+        if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) secondaryPassed = false;
+      }
+      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+      if (hideNotAchieved && !effectiveTier) continue;
+      filteredCount++;
+      if (effectiveTier) {
+        achievedCount++;
+        if (usePhase2) {
+          // Phase 2 bonus
+          const p2Start = config.phase2StartDate ? new Date(config.phase2StartDate) : null;
+          if (p2Start) {
+            const p1Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) < p2Start);
+            const p2Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) >= p2Start);
+            const isAFYP = conditionType === 'total_afyp';
+            const p1Value = isAFYP ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+            const p2Value = isAFYP ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+            const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
+            const p2Res = calculateBonusWithTiers(p2Value, config.bonusTiers2);
+            totalBonus += (p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0) + (p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0);
+          }
+        } else {
+          totalBonus += computeBonusFromTier(
+            effectiveTier,
+            value,
+            isActivityRoundMode(conditionType) ? value : undefined
+          );
+        }
+      } else {
+        notAchievedCount++;
+      }
+    }
+  } else if (isPerContractMode(conditionType) && targetType === 'tvv') {
+    for (const row of tvvPerContractRows) {
+      if (hideNotAchieved && !row.tier) continue;
+      if (!row.contract.nhom && !row.contract.maNhom) continue;
+      filteredCount++;
+      if (row.effectiveTier) {
+        achievedCount++;
+        if (usePhase2) {
+          totalBonus += row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus;
+        } else {
+          totalBonus += computeBonusFromTier(row.effectiveTier, row.cValue);
+        }
+      } else {
+        notAchievedCount++;
+      }
+    }
+  } else if (targetType === 'tvv') {
+    // total mode
+    for (const row of tvvTotalRows) {
+      if (hideNotAchieved && !row.tier) continue;
+      if (!row.agent.nhom && !row.agent.maNhom) continue;
+      filteredCount++;
+      const agentContracts = displayContracts.filter((c) => c.agentCode === row.agent.agentCode);
+      const totalAFYP = agentContracts.reduce((s, c) => s + c.afyp, 0);
+      const totalIP = agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
+      let secondaryPassed = true;
+      if (useSecondaryCondition) {
+        if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) secondaryPassed = false;
+        if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) secondaryPassed = false;
+      }
+      const effectiveTier = secondaryPassed ? row.tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : row.tier);
+      if (effectiveTier) {
+        achievedCount++;
+        if (usePhase2) {
+          totalBonus += row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus;
+        } else {
+          totalBonus += computeBonusFromTier(effectiveTier, row.value);
+        }
+      } else {
+        notAchievedCount++;
+      }
+    }
+  }
+
+  return { totalFYP, totalBonus, achievedCount, notAchievedCount, filteredCount };
+}

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
+import { SavedContestInline } from '@/components/saved-contest-inline';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10630,24 +10631,22 @@ export default function QuanLyPage() {
   };
 
   // ---------- SAVED CONTEST sub-page: hiển thị kết quả 1 chương trình đã lưu ----------
-  // Render iframe tới /thi-dua-chau ở embed mode (chỉ hiện bảng kết quả, không có form).
-  // Iframe tự load contest theo id và tự calculate → user chỉ xem được, không sửa.
+  // Render INLINE — dùng component SavedContestInline (src/components/saved-contest-inline.tsx)
+  // tính kết quả trực tiếp từ contracts/staff/recruiters (cùng logic với Trang Thi Đua),
+  // hiển thị bảng chi tiết như 3 chương trình ca-nhan / tn-ktm / tn-td — KHÔNG dùng iframe.
+  // Người dùng chỉ xem được, không có quyền sửa/xóa (việc đó thực hiện ở Trang Thi Đua).
   const renderSavedContest = (contestId: string) => {
     const contest = savedContestsList.find(c => c.id === contestId);
-    const contestTitle = contest?.title || 'Chương trình thi đua';
-    // Render iframe Trang Thi Đua ở chế độ embed full-page (có sẵn header + poster + bảng + footer).
-    // KHÔNG có nút "Mở trang Thi Đua", KHÔNG có thanh tiêu đề xanh — để iframe hiển thị như một
-    // sub-page inline bình thường, đồng nhất với 3 chương trình ca-nhan / tn-ktm / tn-td.
-    return (
-      <div className="h-full flex flex-col">
-        <iframe
-          src={`/thi-dua-chau?embed=1&contest=${contestId}&autocalc=1`}
-          className="w-full flex-1 border-0 bg-white"
-          title={contestTitle}
-          loading="lazy"
-        />
-      </div>
-    );
+    if (!contest) {
+      return (
+        <div className="p-6 text-center text-gray-400 italic text-sm">
+          Không tìm thấy chương trình thi đua (có thể đã bị xóa).
+        </div>
+      );
+    }
+    // Render INLINE — tính kết quả trực tiếp trong Quản Lý page (cùng logic với Trang Thi Đua),
+    // hiển thị bảng chi tiết như 3 chương trình ca-nhan / tn-ktm / tn-td — KHÔNG dùng iframe.
+    return <SavedContestInline contest={contest} />;
   };
 
   const renderSaoViet = () => {
