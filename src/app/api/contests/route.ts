@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
+      topN, topNMinIP,
     } = body as {
       title: string;
       startDate: string;
@@ -70,6 +71,8 @@ export async function POST(request: NextRequest) {
       tvv90MinIP?: number;
       referenceContestId?: string;
       includeTNInPassCount?: boolean;
+      topN?: number;
+      topNMinIP?: number;
     };
 
     if (!title || !startDate || !endDate) {
@@ -120,6 +123,8 @@ export async function POST(request: NextRequest) {
       tvv90MinIP: tvv90MinIP ?? 12_000_000,
       referenceContestId: referenceContestId || '',
       includeTNInPassCount: includeTNInPassCount ?? false,
+      topN: topN ?? 3,
+      topNMinIP: topNMinIP ?? 50_000_000,
     };
 
     if (existing) {

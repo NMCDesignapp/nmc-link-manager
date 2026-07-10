@@ -52,6 +52,7 @@ import {
   isTVVPassCountMode,
   isStandardMode,
   isTVVmMode,
+  isTopNMode,
   hasPercentBonus,
   formatCurrency,
   formatNumber,
@@ -297,26 +298,26 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          <TableRow className="border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>NHÓM KD</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>MÃ SỐ ĐẠI LÝ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>NGÀY HL</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>{isAFYP ? 'AFYP/HĐ' : 'IP/HĐ'}</TableHead>
+          <TableRow className="border-b" style={{ backgroundColor: '#065F46', borderColor: '#047857' }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NGÀY HL</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{isAFYP ? 'AFYP/HĐ' : 'IP/HĐ'}</TableHead>
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
             {usePhase2 ? (
               <>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng Thưởng</TableHead>
               </>
             ) : (
-              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng</TableHead>
             )}
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>Ghi chú</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>Ghi chú</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -333,7 +334,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.contract.agentCode}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.contract.agentName}</TableCell>
               <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(row.contract.effectiveDate)}</TableCell>
-              <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.cValue)}</TableCell>
+              <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.cValue)}</TableCell>
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -341,14 +342,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               )}
               {usePhase2 ? (
                 <>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phaseInfo.phase1Bonus > 0 ? formatCurrency(row.phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phaseInfo.phase2Bonus > 0 ? formatCurrency(row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.effectiveTier ? formatCurrency(row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phaseInfo.phase1Bonus > 0 ? formatCurrency(row.phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phaseInfo.phase2Bonus > 0 ? formatCurrency(row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.effectiveTier ? formatCurrency(row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                 </>
               ) : (
-                <TableCell className="text-right bg-emerald-50 whitespace-nowrap">
+                <TableCell className="text-center bg-emerald-50 whitespace-nowrap">
                   {row.effectiveTier ? (
-                    <span className="flex items-center justify-end gap-1">
+                    <span className="inline-flex items-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
                       <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.cValue)}</span>
                     </span>
@@ -379,30 +380,31 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       return true;
     });
     const isActivity = isActivityRoundMode(config.conditionType);
+    const isTopN = isTopNMode(config.conditionType);
     const valueLabel = isActivity ? 'LƯỢT HĐ' : isAFYP ? 'TỔNG AFYP' : 'TỔNG IP';
 
     return (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          <TableRow className="border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>NHÓM KD</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>MÃ SỐ ĐẠI LÝ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>{valueLabel}</TableHead>
+          <TableRow className="border-b" style={{ backgroundColor: '#065F46', borderColor: '#047857' }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{isTopN ? 'HẠNG' : 'STT'}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NHÓM KD</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{valueLabel}</TableHead>
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
             {usePhase2 ? (
               <>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng Thưởng</TableHead>
               </>
             ) : (
-              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng</TableHead>
             )}
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>Ghi chú</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>Ghi chú</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -429,7 +431,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || row.agent.maNhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>
-                <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+                <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
                 {showRateColumn && (
                   <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                     {effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -437,14 +439,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 )}
                 {usePhase2 ? (
                   <>
-                    <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && row.phaseInfo.phase1Bonus > 0 ? formatCurrency(row.phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                    <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && row.phaseInfo.phase2Bonus > 0 ? formatCurrency(row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                    <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                    <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && row.phaseInfo.phase1Bonus > 0 ? formatCurrency(row.phaseInfo.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                    <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{effectiveTier && row.phaseInfo.phase2Bonus > 0 ? formatCurrency(row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                    <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                   </>
                 ) : (
-                  <TableCell className="text-right bg-emerald-50 whitespace-nowrap">
+                  <TableCell className="text-center bg-emerald-50 whitespace-nowrap">
                     {effectiveTier ? (
-                      <span className="flex items-center justify-end gap-1">
+                      <span className="inline-flex items-center gap-1">
                         {effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
                         <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, row.value, isActivity ? row.value : undefined)}</span>
                       </span>
@@ -530,26 +532,26 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return (
       <Table>
         <TableHeader className="sticky top-0 z-10">
-          <TableRow className="border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>STT</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>NHÓM</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>MÃ TN</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>TÊN TRƯỞNG NHÓM</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>CHỨC VỤ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>{valueLabel}</TableHead>
+          <TableRow className="border-b" style={{ backgroundColor: '#065F46', borderColor: '#047857' }}>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>STT</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ TN</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>TÊN TRƯỞNG NHÓM</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>CHỨC VỤ</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{valueLabel}</TableHead>
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
             {usePhase2 ? (
               <>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD1</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng GD2</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng Thưởng</TableHead>
               </>
             ) : (
-              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#047857', color: '#FEF3C7' }}>Thưởng</TableHead>
             )}
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>Ghi chú</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>Ghi chú</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -566,7 +568,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.g.leader?.agentCode || '—'}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.g.leader?.agentName || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.g.leader?.position || '—'}</TableCell>
-              <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+              <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -574,14 +576,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               )}
               {usePhase2 ? (
                 <>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phase1Bonus > 0 ? formatCurrency(row.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phase2Bonus > 0 ? formatCurrency(row.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.effectiveTier ? formatCurrency(row.phase1Bonus + row.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phase1Bonus > 0 ? formatCurrency(row.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.effectiveTier && row.phase2Bonus > 0 ? formatCurrency(row.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.effectiveTier ? formatCurrency(row.phase1Bonus + row.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                 </>
               ) : (
-                <TableCell className="text-right bg-emerald-50 whitespace-nowrap">
+                <TableCell className="text-center bg-emerald-50 whitespace-nowrap">
                   {row.effectiveTier ? (
-                    <span className="flex items-center justify-end gap-1">
+                    <span className="inline-flex items-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
                       <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.value, isActivity ? row.value : undefined)}</span>
                     </span>

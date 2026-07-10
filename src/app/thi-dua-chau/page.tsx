@@ -107,11 +107,13 @@ interface SavedContest {
   tvv90MaxMonths?: number; tvv90MinIP?: number;
   referenceContestId?: string;
   includeTNInPassCount?: boolean;
+  topN?: number;
+  topNMinIP?: number;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
 
-type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count';
+type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip';
 type TargetType = 'tvv' | 'nhom' | 'nyd';
 
 function isActivityRoundMode(ct: ConditionType): boolean {
@@ -131,6 +133,9 @@ function isTVVmMode(ct: ConditionType): boolean {
 }
 function isStandardMode(ct: ConditionType): boolean {
   return ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm';
+}
+function isTopNMode(ct: ConditionType): boolean {
+  return ct === 'top_n_ip';
 }
 
 function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
@@ -280,6 +285,7 @@ function getConditionLabel(ct: ConditionType): string {
     case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
     case 'activity_round_tvv90': return 'Lượt TVV90';
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
+    case 'top_n_ip': return 'Xét Top N IP';
   }
 }
 
@@ -416,6 +422,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
 }) {
   const isAR = isActivityRoundMode(conditionType);
   const isPassCount = isTVVPassCountMode(conditionType);
+  const isTopN = isTopNMode(conditionType);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
   const unitLabel = isPassCount ? 'TVV đạt' : isAFYP ? 'AFYP' : 'IP';
   const cls = accentColor === 'sky' ? {
@@ -436,7 +443,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
         {tiers.map((tier, index) => (
           <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>Mức {index + 1}</span>
+              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>{isTopN ? `Hạng ${index + 1}` : `Mức ${index + 1}`}</span>
               <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
                 {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
                   <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
@@ -444,8 +451,19 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
               </div>
               <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-2.5 h-2.5" /></Button>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {isAR || isPassCount ? (
+            <div className={`grid ${isTopN ? 'grid-cols-1' : 'grid-cols-3'} gap-1.5`}>
+              {isTopN ? (
+                <div>
+                  <Label className="text-[9px] text-emerald-300/70">
+                    {tier.bonusType === 'money' ? `Thưởng Hạng ${index + 1} (nđ)` : tier.bonusType === 'gift' ? 'Quà tặng' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Thưởng'}
+                  </Label>
+                  {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
+                    ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+                      ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+                      : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
+                </div>
+              ) : isAR || isPassCount ? (
                 <>
                   <div><Label className="text-[9px] text-emerald-300/70">{isPassCount ? 'TVV đạt từ' : 'Lượt từ'}</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
                   <div><Label className="text-[9px] text-emerald-300/70">{isPassCount ? 'TVV đạt đến' : 'Lượt đến'}</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
@@ -456,16 +474,18 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
                   <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
                 </>
               )}
-              <div>
-                <Label className="text-[9px] text-emerald-300/70">
-                  {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
-                </Label>
-                {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
-                  ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                  : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
-                    ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                    : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
-              </div>
+              {!isTopN && (
+                <div>
+                  <Label className="text-[9px] text-emerald-300/70">
+                    {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+                  </Label>
+                  {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
+                    ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+                      ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
+                      : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -521,6 +541,9 @@ function ThiDuaPageInner() {
   // Reference contest for tvv_pass_count mode
   const [referenceContestId, setReferenceContestId] = useState<string>('');
   const [includeTNInPassCount, setIncludeTNInPassCount] = useState(false);
+  // Top N mode config (top_n_ip)
+  const [topN, setTopN] = useState(3);
+  const [topNMinIP, setTopNMinIP] = useState(50_000_000);
 
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -993,6 +1016,7 @@ function ThiDuaPageInner() {
     if (targetType !== 'tvv' || isPerContractMode(conditionType)) return [];
     const isAFYP = conditionType === 'total_afyp';
     const isActivityMode = isActivityRoundMode(conditionType);
+    const isTopN = isTopNMode(conditionType);
     const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
     const agentMap = new Map<string, {
       agentCode: string; agentName: string; nhom: string; maNhom: string;
@@ -1041,10 +1065,18 @@ function ThiDuaPageInner() {
         }
       }
     }
-    return Array.from(agentMap.values()).map(agent => {
+    const allRows = Array.from(agentMap.values()).map(agent => {
       const value = isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP);
-      const { tier } = calculateBonus(value);
-      const remaining = getRemainingToNextTier(value);
+      let tier: BonusTier | null = null;
+      let remaining: number | null = null;
+      if (isTopN) {
+        // Tier will be assigned by rank after sort; placeholder null here
+        remaining = value < topNMinIP ? topNMinIP - value : null;
+      } else {
+        const res = calculateBonus(value);
+        tier = res.tier;
+        remaining = getRemainingToNextTier(value);
+      }
       // Phase 2 - split by date using contracts
       let phaseInfo = { phase1Bonus: 0, phase2Bonus: 0, phase1Tier: null as BonusTier | null, phase2Tier: null as BonusTier | null };
       if (usePhase2 && phase2StartDate) {
@@ -1068,7 +1100,23 @@ function ThiDuaPageInner() {
       }
       return { agent, value, tier, remaining, phaseInfo };
     }).sort((a, b) => b.value - a.value);
-  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+
+    // For top_n_ip mode: assign tier by rank (only top N with value >= topNMinIP get reward)
+    if (isTopN) {
+      const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+      return allRows.map((row, idx) => {
+        const rank = idx + 1;
+        const qualified = row.value >= topNMinIP && rank <= topN;
+        const tierByRank = qualified && rank <= sortedTiers.length ? sortedTiers[rank - 1] : null;
+        return {
+          ...row,
+          tier: tierByRank,
+          remaining: row.value < topNMinIP ? topNMinIP - row.value : null,
+        };
+      });
+    }
+    return allRows;
+  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
@@ -1598,6 +1646,7 @@ function ThiDuaPageInner() {
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
         referenceContestId: referenceContestId || undefined,
         includeTNInPassCount,
+        topN, topNMinIP,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
       else {
@@ -1673,6 +1722,9 @@ function ThiDuaPageInner() {
     // Reference contest for tvv_pass_count
     setReferenceContestId(contest.referenceContestId || '');
     setIncludeTNInPassCount(contest.includeTNInPassCount ?? false);
+    // Top N mode
+    setTopN(contest.topN ?? 3);
+    setTopNMinIP(contest.topNMinIP ?? 50_000_000);
     setTimeout(() => handleSearchRef.current(), 100);
   };
 
@@ -2055,10 +2107,12 @@ function ThiDuaPageInner() {
           });
         }
       } else {
-        // total_ip / total_afyp: thêm cột Tổng (gộp ô tất cả dòng)
+        // total_ip / total_afyp / top_n_ip: thêm cột Tổng (gộp ô tất cả dòng)
         const isAFYP = conditionType === 'total_afyp';
+        const isTopNExp = isTopNMode(conditionType);
+        const sttLabel = isTopNExp ? 'Hạng' : 'STT';
         if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          headers = [sttLabel, 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
           const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
           const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
           rows = tvvTotalRows.map(({ agent, value, tier, phaseInfo }, idx) => {
@@ -2077,7 +2131,7 @@ function ThiDuaPageInner() {
             merges.push({ s: { r: 1, c: 5 + secOffset }, e: { r: tvvTotalRows.length, c: 5 + secOffset } });
           }
         } else {
-          headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+          headers = [sttLabel, 'Nhóm', 'Mã ĐL', 'Họ tên', isAFYP ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP && !isAFYP ? ['Tổng AFYP'] : []), ...(expSecIP && conditionType !== 'total_ip' ? ['Tổng IP'] : []), 'Tổng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
           const grandTotal = tvvTotalRows.reduce((sum, r) => sum + r.value, 0);
           const secOffset = (expSecAFYP && !isAFYP ? 1 : 0) + (expSecIP && conditionType !== 'total_ip' ? 1 : 0);
           rows = tvvTotalRows.map(({ agent, value, tier }, idx) => {
@@ -3002,6 +3056,29 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                 </div>
+                {/* Xét Top N IP cao nhất - ranking-based reward */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Xếp hạng</p>
+                  <button type="button" onClick={() => { setConditionType('top_n_ip'); setTargetType('tvv'); }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'top_n_ip' ? 'bg-rose-700 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-rose-700/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+                  ><Trophy className="w-3 h-3 shrink-0" /><span>Xét Top N IP</span><span className="text-[9px] opacity-60">(Top {topN} · IP≥{vndToNgan(topNMinIP)}kđ)</span></button>
+                  {conditionType === 'top_n_ip' && (
+                    <div className="space-y-1.5 pl-3 border-l-2 border-rose-500/30">
+                      <p className="text-[9px] text-rose-300/80 italic">Xếp Top N TVV có tổng IP cao nhất. TVV phải đạt IP tối thiểu mới được xét thưởng. Mức thưởng áp dụng theo thứ tự hạng (Mức 1 = Hạng 1, Mức 2 = Hạng 2, ...).</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="space-y-0.5">
+                          <Label className="text-[9px] text-rose-400/70">Top N (số hạng được thưởng)</Label>
+                          <Input type="number" inputMode="numeric" placeholder="3" value={topN || ''} onChange={(e) => setTopN(parseInt(e.target.value) || 3)} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[9px] text-rose-400/70">IP tối thiểu (nđ)</Label>
+                          <Input type="number" inputMode="decimal" placeholder="50000" value={vndToNgan(topNMinIP) || ''} onChange={(e) => setTopNMinIP(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-amber-400/70 italic">Ví dụ: Top 3 TVV có tổng IP cao nhất, IP tối thiểu 50 triệu → Hạng 1 thưởng 2tr, Hạng 2-3 thưởng 1tr/TDV. Cài đặt thưởng trong "Bảng mức thưởng" bên dưới (Mức 1 = Hạng 1, Mức 2 = Hạng 2, Mức 3 = Hạng 3).</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <Separator className="bg-emerald-500/20" />
@@ -3250,7 +3327,7 @@ function ThiDuaPageInner() {
                 <Table className="text-sm">
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
-                      <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
+                      <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">{isTopNMode(conditionType) ? 'HẠNG' : 'STT'}</TableHead>
                       {targetType === 'nyd' ? (
                         <>
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center whitespace-nowrap">NHÓM</TableHead>

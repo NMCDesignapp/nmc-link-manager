@@ -812,3 +812,65 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
 - Standalone kpi-app (standalone=true): 3 nút href phải dùng '&from=kpi' (KHÔNG dùng
   '&admin=1') để /quan-ly ẩn sidebar cho end-user
 - Nút 'Trở về' nonAdminBack ưu tiên: kpi_from_tach > kpi_standalone > default
+
+---
+Task ID: top-n-ip-mode-and-style-tweaks
+Agent: main
+Task: (1) Đậm màu xanh header bảng saved-contest-inline.tsx giống popup tính kết quả thi đua.
+      (2) Căn giữa cột số (IP/AFYP/Thưởng) trong saved-contest-inline.tsx.
+      (3) Thêm loại hình thi đua mới "Xét Top N IP cao nhất" — ví dụ Top 3 TVV có tổng IP cao nhất,
+          IP tối thiểu 50 triệu, Hạng 1 thưởng 2tr, Hạng 2-3 thưởng 1tr/TDV.
+
+Work Log:
+- saved-contest-inline.tsx: Đổi background header từ #D1FAE5 (emerald-100) → #065F46 (emerald-800),
+  text color từ #065F46 → #FEF3C7 (amber-100) — đồng bộ với popup kết quả thi đua.
+  Cột "Thưởng" giữ #047857 (emerald-700) — cùng tông với popup.
+- saved-contest-inline.tsx: Đổi text-right → text-center cho tất cả cột số (IP, AFYP, Thưởng GD1/GD2,
+  Tổng Thưởng, Tổng IP). Bonus cell đổi flex justify-end → inline-flex.
+- prisma/migrations/20260710030000_add_top_n_fields/migration.sql: ADD COLUMN topN (Int, default 3)
+  + topNMinIP (Float, default 50_000_000).
+- prisma/schema.prisma: Thêm topN Int @default(3) + topNMinIP Float @default(50000000) vào Contest.
+- src/app/api/contests/route.ts: Nhận topN, topNMinIP từ body, persist vào DB.
+- src/lib/contest-calculator.ts:
+  + Thêm 'top_n_ip' vào ConditionType union.
+  + Thêm isTopNMode(ct) helper.
+  + getConditionLabel: 'top_n_ip' → 'Xét Top N IP'.
+  + ContestConfig interface: thêm topN?, topNMinIP?.
+  + parseContestConfig: parse topN (default 3), topNMinIP (default 50M).
+  + computeTVVTotalRows: handle top_n_ip — sau khi sort desc, assign tier theo rank index
+    (sortedTiers[rank-1]). TVV phải đạt value >= topNMinIP VÀ rank <= topN mới có tier.
+- src/app/thi-dua-chau/page.tsx:
+  + Thêm 'top_n_ip' vào ConditionType.
+  + Thêm isTopNMode helper.
+  + SavedContest interface: thêm topN?, topNMinIP?.
+  + State: topN (default 3), topNMinIP (default 50M).
+  + tvvTotalRows useMemo: handle top_n_ip — assign tier by rank sau sort desc.
+  + BonusTierEditor: isTopN mode → ẩn minFYP/maxFYP inputs, chỉ hiện bonusAmount.
+    Label "Mức N" → "Hạng N".
+  + UI conditions section: thêm button "Xét Top N IP" + sub-config (Top N + IP tối thiểu inputs).
+  + handleSaveContest: gửi topN, topNMinIP.
+  + handleLoadContest: load topN, topNMinIP.
+  + Result table header: STT → HẠNG khi isTopNMode(conditionType).
+  + Export XLSX: STT → Hạng khi isTopNMode.
+- src/components/saved-contest-inline.tsx:
+  + Import isTopNMode từ contest-calculator.
+  + renderTVVTotalTable: isTopN flag, header STT → HẠNG khi isTopN.
+  + renderTable: top_n_ip fall through → renderTVVTotalTable (đã handle đúng).
+
+Stage Summary:
+- 3 tasks hoàn tất:
+  1. Header bảng saved-contest_inline đậm xanh emerald-800 (#065F46) + text vàng nhạt (#FEF3C7)
+     — khớp với popup tính kết quả thi đua.
+  2. Cột số căn giữa (text-center) thay vì phải (text-right) — IPs, AFYP, Thưởng đều căn giữa.
+  3. Loại hình thi đua mới "Xét Top N IP" — admin chọn Top N + IP tối thiểu + thưởng theo hạng.
+     Calc logic: sort TVV desc theo tổng IP → top N có IP >= topNMinIP → assign tier theo rank.
+     BonusTierEditor tự simpler khi ở top_n_ip mode (chỉ nhập thưởng, không cần minFYP/maxFYP).
+- TypeScript clean (no errors in modified files). Next.js build success.
+- Sẵn sàng commit + push. Migration sẽ tự apply trên Vercel deploy (Neon integration).
+
+QUY TẮC CỐ ĐỊNH RÚT RA:
+- ConditionType 'top_n_ip': targetType = 'tvv', tính tổng IP/TDV → sort desc → top N (có IP >= topNMinIP) → tier theo rank.
+- bonusTiers[i] = reward cho hạng i+1 (sau sort). minFYP/maxFYP trong bonusTiers KHÔNG dùng cho top_n_ip.
+- topN (Int, default 3) + topNMinIP (Float, default 50M) lưu trong Contest table.
+- isTopNMode(ct) helper available ở cả contest-calculator.ts và thi-dua-chau/page.tsx.
+- saved-contest-inline.tsx render top_n_ip qua renderTVVTotalTable (header STT→HẠNG).

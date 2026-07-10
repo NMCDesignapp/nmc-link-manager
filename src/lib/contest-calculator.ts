@@ -99,7 +99,8 @@ export type ConditionType =
   | 'activity_round_standard'
   | 'activity_round_standard_tvvm'
   | 'activity_round_tvv90'
-  | 'tvv_pass_count';
+  | 'tvv_pass_count'
+  | 'top_n_ip';
 
 export type TargetType = 'tvv' | 'nhom' | 'nyd';
 
@@ -137,6 +138,8 @@ export interface ContestConfig {
   tvv90MinIP: number;
   referenceContestId?: string;
   includeTNInPassCount?: boolean;
+  topN?: number;
+  topNMinIP?: number;
 }
 
 // ===== Helpers — mode detection =====
@@ -163,6 +166,9 @@ export function isTVVmMode(ct: ConditionType): boolean {
 }
 export function isStandardMode(ct: ConditionType): boolean {
   return ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm';
+}
+export function isTopNMode(ct: ConditionType): boolean {
+  return ct === 'top_n_ip';
 }
 
 // ===== Helpers — entity eligibility =====
@@ -333,6 +339,7 @@ export function getConditionLabel(ct: ConditionType): string {
     case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
     case 'activity_round_tvv90': return 'Lượt TVV90';
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
+    case 'top_n_ip': return 'Xét Top N IP';
   }
 }
 
@@ -398,6 +405,8 @@ export function parseContestConfig(raw: any): ContestConfig {
     tvv90MinIP: raw.tvv90MinIP ?? 12_000_000,
     referenceContestId: raw.referenceContestId || '',
     includeTNInPassCount: raw.includeTNInPassCount ?? false,
+    topN: raw.topN ?? 3,
+    topNMinIP: raw.topNMinIP ?? 50_000_000,
   };
 }
 
@@ -722,6 +731,9 @@ export function computeTVVTotalRows(
   const bonusTiers2 = config.bonusTiers2;
   const isAFYP = conditionType === 'total_afyp';
   const isActivityMode = isActivityRoundMode(conditionType);
+  const isTopN = isTopNMode(conditionType);
+  const topN = config.topN ?? 3;
+  const topNMinIP = config.topNMinIP ?? 50_000_000;
   const luotThreshold = isStandardMode(conditionType)
     ? config.luotHDCTThreshold
     : config.luotHDThreshold;
@@ -806,15 +818,26 @@ export function computeTVVTotalRows(
       }
     }
   }
-  return Array.from(agentMap.values())
+  // For top_n_ip mode: sort desc by IP, then assign tier by rank index
+  // For other modes: use the standard calculateBonusWithTiers
+  const allRows = Array.from(agentMap.values())
     .map((agent) => {
       const value = isAFYP
         ? agent.totalAFYP
         : isActivityMode
         ? agent.activityRounds
         : agent.totalFYP;
-      const { tier } = calculateBonusWithTiers(value, bonusTiers);
-      const remaining = getRemainingToNextTier(value, bonusTiers);
+      let tier: BonusTier | null = null;
+      let remaining: number | null = null;
+      if (isTopN) {
+        // Tier will be assigned after sort by rank — placeholder null here
+        // remaining = topNMinIP - value (how much more IP needed to qualify)
+        remaining = value < topNMinIP ? topNMinIP - value : null;
+      } else {
+        const res = calculateBonusWithTiers(value, bonusTiers);
+        tier = res.tier;
+        remaining = getRemainingToNextTier(value, bonusTiers);
+      }
       let phaseInfo = {
         phase1Bonus: 0,
         phase2Bonus: 0,
@@ -850,6 +873,23 @@ export function computeTVVTotalRows(
       return { agent, value, tier, remaining, phaseInfo };
     })
     .sort((a, b) => b.value - a.value);
+
+  // For top_n_ip mode: assign tier by rank (only top N with IP >= topNMinIP get reward)
+  if (isTopN) {
+    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+    return allRows.map((row, idx) => {
+      const rank = idx + 1;
+      const qualified = row.value >= topNMinIP && rank <= topN;
+      const tierByRank = qualified && rank <= sortedTiers.length ? sortedTiers[rank - 1] : null;
+      return {
+        ...row,
+        tier: tierByRank,
+        remaining: row.value < topNMinIP ? topNMinIP - row.value : null,
+      };
+    });
+  }
+
+  return allRows;
 }
 
 // ===== Per-contract TVV rows (for isPerContractMode + targetType=tvv) =====
