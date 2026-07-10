@@ -155,6 +155,7 @@ model Contest {
   includeTNInPassCount Boolean @default(false)
   topN             Int     @default(3)
   topNMinIP        Float   @default(50000000)
+  topNValueType    String  @default("ip")     // Loại chỉ tiêu xét Top N: 'ip' | 'afyp'
   filterByEffectiveDate Boolean @default(false) // Chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")

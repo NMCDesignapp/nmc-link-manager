@@ -25,13 +25,14 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown } from 'lucide-react';
+import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal } from 'lucide-react';
 import { useAppData } from '@/lib/app-data-context';
 import {
   ContestConfig,
   Contract,
   StaffMember,
   RecruiterMember,
+  TVVStructMember,
   BonusTier,
   GroupData,
   parseContestConfig,
@@ -95,7 +96,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const staffList = (appData.staff || []) as StaffMember[];
   const recruiterList = (appData.recruiters || []) as RecruiterMember[];
   // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode
-  const tvvStructList = (appData.structureTvv || []) as { agentCode: string; ngayBatDau: string | null }[];
+  const tvvStructList = (appData.structureTvv || []) as TVVStructMember[];
 
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
@@ -115,8 +116,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     [displayContracts, config, staffList, recruiterList]
   );
   const tvvTotalRows = useMemo(
-    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList),
-    [displayContracts, config, staffList, recruiterList]
+    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList),
+    [displayContracts, config, staffList, recruiterList, tvvStructList]
   );
   const tvvPerContractRows = useMemo(
     () => computeTVVPerContractRows(displayContracts, config),
@@ -383,7 +384,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     });
     const isActivity = isActivityRoundMode(config.conditionType);
     const isTopN = isTopNMode(config.conditionType);
-    const valueLabel = isActivity ? 'LƯỢT HĐ' : isAFYP ? 'TỔNG AFYP' : 'TỔNG IP';
+    const topNValueType = config.topNValueType === 'afyp' ? 'afyp' : 'ip';
+    const valueLabel = isActivity ? 'LƯỢT HĐ' : (isTopN ? (topNValueType === 'afyp' ? 'TỔNG AFYP' : 'TỔNG IP') : (isAFYP ? 'TỔNG AFYP' : 'TỔNG IP'));
 
     return (
       <Table>
@@ -427,9 +429,28 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               if ((config.secondaryTotalIPMin ?? 0) > 0 && totalIP < (config.secondaryTotalIPMin ?? 0)) secondaryPassed = false;
             }
             const effectiveTier = secondaryPassed ? row.tier : ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0 ? null : row.tier);
+            // Top N mode: tính qualifier rank (thứ hạng trong số những TVV đạt) để gán label Quán quân/Á quân
+            let rankLabel: React.ReactNode = idx + 1;
+            if (isTopN) {
+              if (effectiveTier) {
+                // qualifiedRowIdx đã được tính từ trước (xem dưới) — fallback: đếm TVV đạt trước idx này
+                const qualifierRank = filteredRows
+                  .slice(0, idx)
+                  .filter(r => r.tier).length;
+                if (qualifierRank === 0) {
+                  rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold"><Crown className="w-3 h-3" />Quán quân</span>;
+                } else if (qualifierRank === 1) {
+                  rankLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold"><Medal className="w-3 h-3" />Á quân</span>;
+                } else {
+                  rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                }
+              } else {
+                rankLabel = <span className="text-gray-400">{idx + 1}</span>;
+              }
+            }
             return (
               <TableRow key={row.agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                <TableCell className="text-center text-xs whitespace-nowrap">{rankLabel}</TableCell>
                 <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || row.agent.maNhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>

@@ -25,6 +25,15 @@ async function ensureFilterByEffectiveDateColumn(): Promise<void> {
   }
 }
 
+// Self-heal cho topNValueType (text column mới — 'ip' | 'afyp')
+async function ensureTopNValueTypeColumn(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topNValueType" TEXT NOT NULL DEFAULT \'ip\'');
+  } catch (e) {
+    console.warn('[ensureTopNValueTypeColumn] Skipped:', (e as Error)?.message);
+  }
+}
+
 // GET /api/contests - List all saved contests
 export async function GET() {
   try {
@@ -35,7 +44,7 @@ export async function GET() {
   } catch (error) {
     // Có thể do thiếu column topN/topNMinIP/filterByEffectiveDate (DB chưa migrate) — thử self-heal rồi retry 1 lần
     console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
     try {
       const contests = await db.contest.findMany({
         orderBy: { createdAt: 'desc' },
@@ -72,7 +81,7 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
-      topN, topNMinIP, filterByEffectiveDate,
+      topN, topNMinIP, topNValueType, filterByEffectiveDate,
     } = body as {
       title: string;
       startDate: string;
@@ -107,6 +116,7 @@ export async function POST(request: NextRequest) {
       includeTNInPassCount?: boolean;
       topN?: number;
       topNMinIP?: number;
+      topNValueType?: string;
       filterByEffectiveDate?: boolean;
     };
 
@@ -115,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Đảm bảo DB có các cột mới trước khi query/create (self-heal)
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
 
     // Validate dates - Prisma will throw if invalid, but we want a clearer message
     const parsedStart = new Date(startDate);
@@ -163,6 +173,7 @@ export async function POST(request: NextRequest) {
       includeTNInPassCount: includeTNInPassCount ?? false,
       topN: topN ?? 3,
       topNMinIP: topNMinIP ?? 50_000_000,
+      topNValueType: topNValueType === 'afyp' ? 'afyp' : 'ip',
       filterByEffectiveDate: filterByEffectiveDate ?? false,
     };
 

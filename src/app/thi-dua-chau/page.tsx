@@ -23,7 +23,7 @@ import {
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
-  RefreshCw, CheckCircle2, CalendarClock,
+  RefreshCw, CheckCircle2, CalendarClock, Crown, Medal,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 
@@ -110,6 +110,7 @@ interface SavedContest {
   includeTNInPassCount?: boolean;
   topN?: number;
   topNMinIP?: number;
+  topNValueType?: 'ip' | 'afyp';
   filterByEffectiveDate?: boolean;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
@@ -546,6 +547,8 @@ function ThiDuaPageInner() {
   // Top N mode config (top_n_ip)
   const [topN, setTopN] = useState(3);
   const [topNMinIP, setTopNMinIP] = useState(50_000_000);
+  // Top N value type: 'ip' (default) hoặc 'afyp' — cho phép user chọn chỉ tiêu xét Top N
+  const [topNValueType, setTopNValueType] = useState<'ip' | 'afyp'>('ip');
   // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
   const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
 
@@ -1046,6 +1049,7 @@ function ThiDuaPageInner() {
 
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
+  // Top N mode: nếu KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) để hiển thị hết danh sách
   const tvvTotalRows = useMemo(() => {
     if (targetType !== 'tvv' || isPerContractMode(conditionType)) return [];
     const isAFYP = conditionType === 'total_afyp';
@@ -1098,9 +1102,30 @@ function ThiDuaPageInner() {
           });
         }
       }
+    } else if (isTopN && tvvStructList && tvvStructList.length > 0) {
+      // Top N mode + KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) để hiển thị hết
+      // Yêu cầu user: bảng kết quả phải hiển thị hết danh sách đối tượng tham gia thi đua,
+      // không chỉ những người có doanh số. User dùng "Ẩn chưa đạt mức" để ẩn người k có doanh số.
+      for (const t of tvvStructList) {
+        if (!t.agentCode) continue;
+        const codeLower = t.agentCode.toLowerCase();
+        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+        if (!found) {
+          agentMap.set(t.agentCode, {
+            agentCode: t.agentCode,
+            agentName: t.agentName || t.agentCode,
+            nhom: '',
+            maNhom: t.maBanNhom || '',
+            totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
+          });
+        }
+      }
     }
     const allRows = Array.from(agentMap.values()).map(agent => {
-      const value = isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP);
+      // Top N mode: chọn giá trị theo topNValueType ('ip' hoặc 'afyp')
+      const value = isTopN
+        ? (topNValueType === 'afyp' ? agent.totalAFYP : agent.totalFYP)
+        : (isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP));
       let tier: BonusTier | null = null;
       let remaining: number | null = null;
       if (isTopN) {
@@ -1150,7 +1175,7 @@ function ThiDuaPageInner() {
       });
     }
     return allRows;
-  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP]);
+  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
@@ -1680,7 +1705,7 @@ function ThiDuaPageInner() {
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
         referenceContestId: referenceContestId || undefined,
         includeTNInPassCount,
-        topN, topNMinIP,
+        topN, topNMinIP, topNValueType,
         filterByEffectiveDate,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
@@ -1760,6 +1785,7 @@ function ThiDuaPageInner() {
     // Top N mode
     setTopN(contest.topN ?? 3);
     setTopNMinIP(contest.topNMinIP ?? 50_000_000);
+    setTopNValueType(contest.topNValueType === 'afyp' ? 'afyp' : 'ip');
     // Filter by effective date
     setFilterByEffectiveDate(contest.filterByEffectiveDate ?? false);
     setTimeout(() => handleSearchRef.current(), 100);
@@ -3101,18 +3127,29 @@ function ThiDuaPageInner() {
                   ><Trophy className="w-3 h-3 shrink-0" /><span>Xét Top N IP</span><span className="text-[9px] opacity-60">(Top {topN} · IP≥{vndToNgan(topNMinIP)}kđ)</span></button>
                   {conditionType === 'top_n_ip' && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-rose-500/30">
-                      <p className="text-[9px] text-rose-300/80 italic">Xếp Top N TVV có tổng IP cao nhất. TVV phải đạt IP tối thiểu mới được xét thưởng. Mức thưởng áp dụng theo thứ tự hạng (Mức 1 = Hạng 1, Mức 2 = Hạng 2, ...).</p>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <p className="text-[9px] text-rose-300/80 italic">Xếp Top N TVV có tổng IP/AFYP cao nhất. TVV phải đạt chỉ tiêu tối thiểu mới được xét thưởng. Mức thưởng áp dụng theo thứ tự hạng (Mức 1 = Hạng 1, Mức 2 = Hạng 2, ...). Hạng 1 = Quán quân, Hạng 2 = Á quân.</p>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <div className="space-y-0.5">
+                          <Label className="text-[9px] text-rose-400/70">Chỉ tiêu xét</Label>
+                          <select
+                            value={topNValueType}
+                            onChange={(e) => setTopNValueType(e.target.value as 'ip' | 'afyp')}
+                            className="h-6 w-full text-xs border border-rose-500/30 bg-gray-800 text-white rounded px-1"
+                          >
+                            <option value="ip">IP (PĐT + 10% ĐT)</option>
+                            <option value="afyp">AFYP</option>
+                          </select>
+                        </div>
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-rose-400/70">Top N (số hạng được thưởng)</Label>
                           <Input type="number" inputMode="numeric" placeholder="3" value={topN || ''} onChange={(e) => setTopN(parseInt(e.target.value) || 3)} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
                         </div>
                         <div className="space-y-0.5">
-                          <Label className="text-[9px] text-rose-400/70">IP tối thiểu (nđ)</Label>
+                          <Label className="text-[9px] text-rose-400/70">{topNValueType === 'afyp' ? 'AFYP tối thiểu (nđ)' : 'IP tối thiểu (nđ)'}</Label>
                           <Input type="number" inputMode="decimal" placeholder="50000" value={vndToNgan(topNMinIP) || ''} onChange={(e) => setTopNMinIP(nganToVnd(parseFloat(e.target.value) || 0))} className="h-6 text-xs border-rose-500/30 bg-gray-800 text-white" />
                         </div>
                       </div>
-                      <p className="text-[9px] text-amber-400/70 italic">Ví dụ: Top 3 TVV có tổng IP cao nhất, IP tối thiểu 50 triệu → Hạng 1 thưởng 2tr, Hạng 2-3 thưởng 1tr/TDV. Cài đặt thưởng trong "Bảng mức thưởng" bên dưới (Mức 1 = Hạng 1, Mức 2 = Hạng 2, Mức 3 = Hạng 3).</p>
+                      <p className="text-[9px] text-amber-400/70 italic">Ví dụ: Top 3 TVV có tổng {topNValueType === 'afyp' ? 'AFYP' : 'IP'} cao nhất, {topNValueType === 'afyp' ? 'AFYP' : 'IP'} tối thiểu 50 triệu → Hạng 1 (Quán quân) thưởng 2tr, Hạng 2 (Á quân) - Hạng 3 thưởng 1tr/TDV. Nếu chỉ 1 TVV đủ điều kiện → mặc nhiên là Quán quân. Bảng kết quả hiển thị TẤT CẢ TVV tham gia (dùng "Ẩn chưa đạt mức" để ẩn người k có doanh số).</p>
                     </div>
                   )}
                 </div>
@@ -3802,7 +3839,17 @@ function ThiDuaPageInner() {
                         </TableRow>
                       );
                     }) : (() => {
-                      // total_ip / total_afyp mode for TVV: use pre-computed tvvTotalRows (includes TVV with 0 contracts)
+                      // total_ip / total_afyp / top_n_ip mode for TVV: use pre-computed tvvTotalRows (includes TVV with 0 contracts)
+                      // Top N mode: hiển thị TẤT CẢ TVV (kể cả k có doanh số), cột HẠNG hiện label Quán quân/Á quân cho TVV đạt
+                      const isTopNResult = isTopNMode(conditionType);
+                      // Đếm số TVV đạt (qualified) để gán label Quán quân/Á quân theo thứ hạng đạt (không phải absolute rank)
+                      const qualifiedRows = isTopNResult
+                        ? tvvTotalRows.map((r, i) => ({ r, i, qualified: !!r.tier }))
+                            .filter(x => x.qualified)
+                            .sort((a, b) => b.r.value - a.r.value)
+                        : [];
+                      const qualifiedIdxMap = new Map<string, number>(); // agentCode → qualifier rank (0-based)
+                      qualifiedRows.forEach((q, qi) => qualifiedIdxMap.set(q.r.agent.agentCode, qi));
                       return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
                         if (hideNotAchieved && !tier) return null;
                         if (!agent.nhom && !agent.maNhom) return null;
@@ -3812,9 +3859,24 @@ function ThiDuaPageInner() {
                         const secondaryPassed = secondaryCheck.passed;
                         // Nếu có điều kiện bổ sung mà không đạt → không được thưởng (nhưng vẫn hiển thị)
                         const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                        // Top N mode: tính label hạng theo qualifier rank
+                        let rankLabel: React.ReactNode = idx + 1;
+                        if (isTopNResult && effectiveTier) {
+                          const qualifierRank = qualifiedIdxMap.get(agent.agentCode) ?? -1;
+                          if (qualifierRank === 0) {
+                            rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold"><Crown className="w-3 h-3" />Quán quân</span>;
+                          } else if (qualifierRank === 1) {
+                            rankLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold"><Medal className="w-3 h-3" />Á quân</span>;
+                          } else {
+                            rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                          }
+                        } else if (isTopNResult && !effectiveTier) {
+                          // Top N mode + không đạt → hiển thị số thứ tự + label "chưa đạt"
+                          rankLabel = <span className="text-gray-400">{idx + 1}</span>;
+                        }
                         return (
                           <TableRow key={agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                            <TableCell className="text-center text-xs whitespace-nowrap">{rankLabel}</TableCell>
                             <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>

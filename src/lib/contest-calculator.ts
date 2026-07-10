@@ -90,6 +90,19 @@ export interface RecruiterMember {
   ngayHieuLuc?: string | null; // Ngày hiệu lực chức vụ gần nhất (mỗi lần thăng/hạ thì ghi đè)
 }
 
+// DS TVV (Cấu trúc) — dùng cho filterByEffectiveDate (lookup ngày bắt đầu LV của TVV)
+// và cho Top N mode (hiển thị TẤT CẢ TVV tham gia, kể cả k có doanh số)
+export interface TVVStructMember {
+  id: string;
+  agentCode: string;
+  agentName: string;
+  maBanNhom: string;
+  chucVu: string;
+  ngayBatDau: string | null; // Ngày bắt đầu làm việc của TVV
+  maTVVTuyendung?: string;
+  note?: string;
+}
+
 export type ConditionType =
   | 'per_contract_ip'
   | 'per_contract_afyp'
@@ -141,6 +154,7 @@ export interface ContestConfig {
   includeTNInPassCount?: boolean;
   topN?: number;
   topNMinIP?: number;
+  topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
   filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV > ngày hiệu lực chức vụ gần nhất của NTD recruiter
 }
 
@@ -409,6 +423,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     includeTNInPassCount: raw.includeTNInPassCount ?? false,
     topN: raw.topN ?? 3,
     topNMinIP: raw.topNMinIP ?? 50_000_000,
+    topNValueType: raw.topNValueType === 'afyp' ? 'afyp' : 'ip',
     filterByEffectiveDate: raw.filterByEffectiveDate ?? false,
   };
 }
@@ -784,7 +799,8 @@ export function computeTVVTotalRows(
   displayContracts: Contract[],
   config: ContestConfig,
   staffList: StaffMember[],
-  recruiterList: RecruiterMember[]
+  recruiterList: RecruiterMember[],
+  tvvStructList?: TVVStructMember[]
 ): TVVTotalRow[] {
   if (config.targetType !== 'tvv' || isPerContractMode(config.conditionType)) {
     return [];
@@ -798,6 +814,8 @@ export function computeTVVTotalRows(
   const isTopN = isTopNMode(conditionType);
   const topN = config.topN ?? 3;
   const topNMinIP = config.topNMinIP ?? 50_000_000;
+  // Top N value type: 'ip' (default) or 'afyp'
+  const topNValueType = config.topNValueType === 'afyp' ? 'afyp' : 'ip';
   const luotThreshold = isStandardMode(conditionType)
     ? config.luotHDCTThreshold
     : config.luotHDThreshold;
@@ -881,12 +899,38 @@ export function computeTVVTotalRows(
         });
       }
     }
+  } else if (isTopN && tvvStructList && tvvStructList.length > 0) {
+    // Top N mode + no DS đối tượng → add ALL TVV from DS TVV (Cấu trúc) as participants (value 0)
+    // Yêu cầu user: bảng kết quả phải hiển thị hết danh sách đối tượng tham gia thi đua,
+    // không chỉ những người có doanh số. User có thể dùng "Ẩn chưa đạt mức" để ẩn những người k có doanh số.
+    for (const t of tvvStructList) {
+      if (!t.agentCode) continue;
+      const codeLower = t.agentCode.toLowerCase();
+      const found = Array.from(agentMap.keys()).some(
+        (k) => norm(k).toLowerCase() === codeLower
+      );
+      if (!found) {
+        agentMap.set(t.agentCode, {
+          agentCode: t.agentCode,
+          agentName: t.agentName || t.agentCode,
+          nhom: '',
+          maNhom: t.maBanNhom || '',
+          totalFYP: 0,
+          totalAFYP: 0,
+          contractCount: 0,
+          activityRounds: 0,
+        });
+      }
+    }
   }
-  // For top_n_ip mode: sort desc by IP, then assign tier by rank index
+  // For top_n_ip mode: sort desc by value (IP or AFYP based on topNValueType), then assign tier by rank index
   // For other modes: use the standard calculateBonusWithTiers
   const allRows = Array.from(agentMap.values())
     .map((agent) => {
-      const value = isAFYP
+      // Top N mode: choose value source based on topNValueType ('ip' or 'afyp')
+      const value = isTopN
+        ? (topNValueType === 'afyp' ? agent.totalAFYP : agent.totalFYP)
+        : isAFYP
         ? agent.totalAFYP
         : isActivityMode
         ? agent.activityRounds
