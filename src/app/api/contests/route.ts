@@ -1,6 +1,21 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Self-healing migration helper:
+// Vercel chỉ chạy `prisma generate` (postinstall), KHÔNG tự chạy `prisma migrate deploy`.
+// Khi schema.prisma có column mới (topN, topNMinIP) nhưng production DB chưa được migrate,
+// `findMany`/`create` sẽ fail với lỗi "column does not exist".
+// Helper này chạy ALTER TABLE IF NOT EXISTS để đảm bảo schema đồng bộ.
+async function ensureTopNColumns(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topN" INTEGER NOT NULL DEFAULT 3');
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topNMinIP" DOUBLE PRECISION NOT NULL DEFAULT 50000000');
+  } catch (e) {
+    // Bỏ qua — có thể DB đã có cột rồi, hoặc DB không phải Postgres (local SQLite)
+    console.warn('[ensureTopNColumns] Skipped:', (e as Error)?.message);
+  }
+}
+
 // GET /api/contests - List all saved contests
 export async function GET() {
   try {
@@ -9,8 +24,18 @@ export async function GET() {
     });
     return NextResponse.json(contests);
   } catch (error) {
-    console.error('Error fetching contests:', error);
-    return NextResponse.json({ error: 'Không thể tải danh sách chương trình thi đua' }, { status: 500 });
+    // Có thể do thiếu column topN/topNMinIP (DB chưa migrate) — thử self-heal rồi retry 1 lần
+    console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
+    await ensureTopNColumns();
+    try {
+      const contests = await db.contest.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      return NextResponse.json(contests);
+    } catch (retryError) {
+      console.error('Error fetching contests after self-heal:', retryError);
+      return NextResponse.json({ error: 'Không thể tải danh sách chương trình thi đua', details: (retryError as Error)?.message }, { status: 500 });
+    }
   }
 }
 
@@ -78,6 +103,9 @@ export async function POST(request: NextRequest) {
     if (!title || !startDate || !endDate) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
+
+    // Đảm bảo DB có 2 cột topN/topNMinIP trước khi query/create (self-heal)
+    await ensureTopNColumns();
 
     // Validate dates - Prisma will throw if invalid, but we want a clearer message
     const parsedStart = new Date(startDate);
