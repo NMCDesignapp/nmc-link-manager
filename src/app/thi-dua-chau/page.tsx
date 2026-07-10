@@ -2566,6 +2566,14 @@ function ThiDuaPageInner() {
     setIsResultDialogOpen(true);
   };
 
+  // Ref luôn trỏ tới handleCalculate mới nhất (có state mới nhất).
+  // Cần cho embed-mode autocalc: setTimeout closure capture handleCalculate từ render cũ
+  // → khi setTimeout fire, state đã update nhưng closure vẫn dùng handleCalculate cũ với state rỗng
+  // → hiện toast "Vui lòng nhập ít nhất một khoảng thời gian" sai.
+  // Ref.current được gán lại sau mỗi render → luôn trỏ tới handleCalculate có state mới.
+  const handleCalculateRef = useRef(handleCalculate);
+  handleCalculateRef.current = handleCalculate;
+
   // Neon border style like main page
   const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)] neon-card';
 
@@ -2588,10 +2596,13 @@ function ThiDuaPageInner() {
     // Load contest state (dates, conditions, tiers, etc.)
     handleLoadContest(embedContestId);
     // Wait for state to settle (React batches setState in handleLoadContest),
-    // then trigger calculate — handleCalculate reads startDate/endDate/etc. from state
+    // then trigger calculate — handleCalculateRef.current() luôn trỏ tới bản handleCalculate
+    // có state MỚI NHẤT (sau khi handleLoadContest đã set startDate/endDate).
+    // Trước đây dùng handleCalculate() trực tiếp → closure capture bản cũ với state rỗng
+    // → toast "Vui lòng nhập ít nhất một khoảng thời gian" bị fire sai.
     setTimeout(() => {
-      handleCalculate();
-    }, 300);
+      handleCalculateRef.current();
+    }, 500);
   }, [isEmbedMode, embedContestId, isAutocalc, savedContests.length, contracts.length]);
 
   // Phase 2 per-row bonus calculation helper
