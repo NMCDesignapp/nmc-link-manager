@@ -874,3 +874,56 @@ QUY TẮC CỐ ĐỊNH RÚT RA:
 - topN (Int, default 3) + topNMinIP (Float, default 50M) lưu trong Contest table.
 - isTopNMode(ct) helper available ở cả contest-calculator.ts và thi-dua-chau/page.tsx.
 - saved-contest-inline.tsx render top_n_ip qua renderTVVTotalTable (header STT→HẠNG).
+
+---
+Task ID: fix-top-n-mode-2026-07-10
+Agent: main (Super Z)
+Task: Fix 3 vấn đề user báo với Xét Top N IP ở Trang Thi Đua
+
+Work Log:
+- Reset local về origin/main (08bb665) để lấy code top_n_ip mode hiện tại
+- Implement 3 fixes trong commit fdf7924:
+
+1. CHO PHÉP CHỌN CHỈ TIÊU XÉT (IP/AFYP)
+   - Thêm field topNValueType ('ip' | 'afyp') vào:
+     + Prisma Contest model
+     + Migration 20260710050000_add_top_n_value_type (ALTER TABLE ADD COLUMN IF NOT EXISTS)
+     + /api/contests route: POST accept + persist, ensureTopNValueTypeColumn() self-heal
+     + contest-calculator.ts: ContestConfig interface, parseContestConfig
+     + thi-dua-chau/page.tsx: SavedContest interface, state, save/load
+   - UI: thêm <select> 'Chỉ tiêu xét' (IP/AFYP) trong panel Top N config
+   - Logic: computeTVVTotalRows dùng topNValueType để chọn value source (IP=pdt10DT, AFYP=afyp)
+   - Label động: 'IP tối thiểu (nđ)' ↔ 'AFYP tối thiểu (nđ)' theo topNValueType
+
+2. TROPHY + LABELS QUÁN QUÂN/Á QUÂN TRONG BẢNG KẾT QUẢ
+   - thi-dua-chau/page.tsx: tính qualifiedIdxMap (agentCode → qualifier rank 0-based)
+     + qualifier rank 0 → Crown icon + 'Quán quân' (amber-600)
+     + qualifier rank 1 → Medal icon + 'Á quân' (slate-500)
+     + qualifier rank 2+ → Trophy icon + 'Hạng N' (amber-700)
+     + Không đạt → số thứ tự màu xám
+   - saved-contest-inline.tsx: cùng logic (dùng filteredRows.slice(0,idx).filter(r=>r.tier).length)
+   - Import Crown, Medal từ lucide-react
+   - Logic 'mặc nhiên Quán quân': nếu chỉ 1 TVV đạt → qualifier rank 0 = Quán quân
+                              2 TVV đạt → Quán quân + Á quân
+
+3. HIỂN THỊ TẤT CẢ TVV THAM GIA (không chỉ người có doanh số)
+   - tvvTotalRows useMemo (thi-dua-chau/page.tsx): thêm nhánh else if (isTopN && tvvStructList)
+     → khi Top N mode + subjectCodes rỗng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) với value 0
+   - computeTVVTotalRows (contest-calculator.ts): thêm param tvvStructList?: TVVStructMember[]
+     → cùng logic: else if (isTopN && tvvStructList) add all TVV from structure
+   - saved-contest-inline.tsx: pass tvvStructList vào computeTVVTotalRows
+   - User có thể dùng 'Ẩn chưa đạt mức' (hideNotAchieved checkbox) để ẩn người k có doanh số
+   - Thêm TVVStructMember interface vào contest-calculator.ts (export)
+
+Verify trên production (https://nc-link.vercel.app):
+- GET /api/contests → HTTP 200, 4 contests (ĐỒNG LÒNG HOẠT ĐỘNG vẫn còn) → card Sao Việt Toàn Chặng KHÔNG bị ảnh hưởng ✅
+- POST /api/contests với topNValueType=afyp → HTTP 200, saved topNValueType='afyp', topN=3, topNMinIP=50000000 ✅
+- GET /api/recruiters → HTTP 200, vẫn có ngayHieuLuc trong response ✅
+- Homepage, Thi Đua, Quản Lý pages → HTTP 200 ✅
+
+Stage Summary:
+- Commit fdf7924 pushed lên GitHub thành công (08bb665..fdf7924)
+- Vercel auto-deploy sau ~100s
+- Production verify: tất cả API + pages hoạt động bình thường
+- 3 vấn đề user báo đã fix đầy đủ
+- User cần hard refresh trình duyệt (Ctrl+Shift+R) để tải JS bundle mới

@@ -3427,8 +3427,8 @@ function ThiDuaPageInner() {
                           </TableHead>
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
-                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {includeIndividualTN && (
@@ -3487,8 +3487,8 @@ function ThiDuaPageInner() {
                             </TableHead>
                             {showSecondaryTotalColumn && (
                               <>
-                                {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
-                                {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                                {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                                {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                               </>
                             )}
                             {showRateColumn && !usePhase2 && (
@@ -3524,15 +3524,15 @@ function ThiDuaPageInner() {
                           <TableHead className="text-yellow-100 text-center w-[85px] font-bold uppercase">Ngày HL</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">{isAFYP ? 'AFYP' : 'IP'}</TableHead>
                           {useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP && (
-                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">AFYP</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center"><div>AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>
                           )}
                           {useSecondaryCondition && secondaryIPMin > 0 && isAFYP && (
-                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">IP</TableHead>
+                            <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center"><div>IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>
                           )}
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
-                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {showRateColumn && !usePhase2 && (
@@ -3570,8 +3570,8 @@ function ThiDuaPageInner() {
                           </TableHead>
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng AFYP</TableHead>}
-                              {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60">Tổng IP</TableHead>}
+                              {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {showRateColumn && !usePhase2 && (
