@@ -54,6 +54,7 @@ interface AppDataContextValue {
   data: AppData
   isLoading: boolean
   isReloading: boolean
+  loadError: string | null
   lastSync: Date | null
   reload: () => Promise<void>
   dataVersion: number
@@ -63,6 +64,7 @@ const AppDataContext = createContext<AppDataContextValue>({
   data: initialData,
   isLoading: true,
   isReloading: false,
+  loadError: null,
   lastSync: null,
   reload: async () => {},
   dataVersion: 0,
@@ -82,6 +84,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(initialData)
   const [isLoading, setIsLoading] = useState(true)
   const [isReloading, setIsReloading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<Date | null>(null)
   const [dataVersion, setDataVersion] = useState(0)
   const initialized = useRef(false)
@@ -89,52 +92,61 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadAll = useCallback(async (): Promise<void> => {
     if (inflight.current) return inflight.current
+    setLoadError(null)
 
     const p = (async () => {
       // Standalone kpi-app chỉ có một số API route (không có leaders/revenue/
       // recruiters/tuyenNgang/clbMembers/pendingMembers/contests standalone).
       // Nhưng thử fetch hết — nếu route không tồn tại sẽ trả null → mảng [].
-      const [
-        leaders, revenue, contracts, staff, recruiters, tuyenNgang,
-        structurePhong, structureAd, structureBanNhom, structureTvv,
-        clbMembers, pendingMembers, quanLyAll, settings, contests,
-      ] = await Promise.all([
-        fetchJson('/api/leaders'),
-        fetchJson('/api/revenue'),
-        fetchJson('/api/contracts'),
-        fetchJson('/api/staff'),
-        fetchJson('/api/recruiters'),
-        fetchJson('/api/tuyen-ngang'),
-        fetchJson('/api/structure/phong'),
-        fetchJson('/api/structure/ad'),
-        fetchJson('/api/structure/bannhom'),
-        fetchJson('/api/structure/tvv'),
-        fetchJson('/api/clb-members'),
-        fetchJson('/api/pending-members'),
-        fetchJson('/api/quan-ly/all'),
-        fetchJson('/api/settings'),
-        fetchJson('/api/contests'),
-      ])
+      try {
+        const [
+          leaders, revenue, contracts, staff, recruiters, tuyenNgang,
+          structurePhong, structureAd, structureBanNhom, structureTvv,
+          clbMembers, pendingMembers, quanLyAll, settings, contests,
+        ] = await Promise.all([
+          fetchJson('/api/leaders'),
+          fetchJson('/api/revenue'),
+          fetchJson('/api/contracts'),
+          fetchJson('/api/staff'),
+          fetchJson('/api/recruiters'),
+          fetchJson('/api/tuyen-ngang'),
+          fetchJson('/api/structure/phong'),
+          fetchJson('/api/structure/ad'),
+          fetchJson('/api/structure/bannhom'),
+          fetchJson('/api/structure/tvv'),
+          fetchJson('/api/clb-members'),
+          fetchJson('/api/pending-members'),
+          fetchJson('/api/quan-ly/all'),
+          fetchJson('/api/settings'),
+          fetchJson('/api/contests'),
+        ])
 
-      setData({
-        leaders: leaders || [],
-        revenue: revenue || [],
-        contracts: contracts || [],
-        staff: staff || [],
-        recruiters: recruiters || [],
-        tuyenNgang: tuyenNgang || [],
-        structurePhong: structurePhong || [],
-        structureAd: structureAd || [],
-        structureBanNhom: structureBanNhom || [],
-        structureTvv: structureTvv || [],
-        clbMembers: clbMembers || [],
-        pendingMembers: pendingMembers || [],
-        quanLyAll: quanLyAll || null,
-        settings: settings || null,
-        contests: contests || [],
-      })
-      setLastSync(new Date())
-      setDataVersion(v => v + 1)
+        setData({
+          leaders: leaders || [],
+          revenue: revenue || [],
+          contracts: contracts || [],
+          staff: staff || [],
+          recruiters: recruiters || [],
+          tuyenNgang: tuyenNgang || [],
+          structurePhong: structurePhong || [],
+          structureAd: structureAd || [],
+          structureBanNhom: structureBanNhom || [],
+          structureTvv: structureTvv || [],
+          clbMembers: clbMembers || [],
+          pendingMembers: pendingMembers || [],
+          quanLyAll: quanLyAll || null,
+          settings: settings || null,
+          contests: contests || [],
+        })
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)
+      } catch (err: any) {
+        const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
+        console.error('[AppDataProvider/standalone] loadAll error:', msg)
+        setLoadError(msg)
+        throw err
+      }
     })()
 
     inflight.current = p
@@ -157,11 +169,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       await loadAll()
     } finally {
       setIsReloading(false)
+      setIsLoading(false)
     }
   }, [loadAll])
 
   return (
-    <AppDataContext.Provider value={{ data, isLoading, isReloading, lastSync, reload, dataVersion }}>
+    <AppDataContext.Provider value={{ data, isLoading, isReloading, loadError, lastSync, reload, dataVersion }}>
       {children}
     </AppDataContext.Provider>
   )

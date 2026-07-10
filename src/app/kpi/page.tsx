@@ -8,6 +8,7 @@ import {
   ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
+import { AppLoader } from '@/components/app-loader';
 import { useAppData } from '@/lib/app-data-context';
 
 // === KPI standalone app: link back to main nc-link app ===
@@ -2356,7 +2357,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
   /* Fetch data — dùng dữ liệu đã preload từ AppDataContext (load 1 lần khi app mở).
      Trang KPI chỉ đọc context, không tự fetch lại khi mount. */
-  const { data: appData, dataVersion, reload: reloadAppData, isReloading: appDataReloading } = useAppData();
+  const { data: appData, dataVersion, reload: reloadAppData, isReloading: appDataReloading, isLoading: appDataLoading, loadError, reload } = useAppData();
 
   // Sync rawData từ context (quanLyAll ưu tiên, fallback về các mảng riêng)
   useEffect(() => {
@@ -3302,6 +3303,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     <div className="kpi-app">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {/* Bg-scene đã bỏ — dùng chung SpaceBackground (xám + vân tổ ong) từ layout.tsx */}
+
+      {/* ===== APP LOADER GATE =====
+          Fullscreen splash gate — chờ tải xong toàn bộ dữ liệu (AppDataProvider)
+          mới cho vào UI chính. Nếu load lỗi, hiện nút 'Thử lại'.
+          Áp dụng cho cả main app (/kpi, /kpi-standalone) và kpi-app standalone (angiang2026-nhom.vercel.app). */}
+      <AppLoader show={appDataLoading} error={loadError} onRetry={reload} />
 
       {/* ===== POPUP LOADING =====
           Popup nhỏ ở giữa màn hình khi vừa mở trang KPI (đang preload data).

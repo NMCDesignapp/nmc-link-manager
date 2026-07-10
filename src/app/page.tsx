@@ -263,7 +263,7 @@ export default function Home() {
   const links = useMemo(() => Array.isArray(linksData) ? linksData : [], [linksData])
   const categories = useMemo(() => Array.isArray(categoriesData) ? categoriesData : [], [categoriesData])
   const { settings } = useSettings()
-  const { reload: reloadAppData, isReloading: appDataReloading, lastSync } = useAppData()
+  const { reload: reloadAppData, isReloading: appDataReloading, lastSync, isLoading, loadError, reload } = useAppData()
 
   // Apply neon color from server settings (no localStorage)
   useEffect(() => {
@@ -468,7 +468,7 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col overflow-hidden relative z-[1]">
       {/* Branded loading screen — shows on initial app load until first data arrives */}
-      <AppLoader show={linksLoading && links.length === 0} />
+      <AppLoader show={isLoading || (linksLoading && links.length === 0)} error={loadError} onRetry={reload} />
       {/* Save Status Toast */}
       <AnimatePresence>
         {saveStatus !== 'idle' && (

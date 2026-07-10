@@ -55,6 +55,7 @@ interface AppDataContextValue {
   data: AppData
   isLoading: boolean       // true khi đang load lần đầu (app vừa mở)
   isReloading: boolean     // true khi user nhấn nút "Load dữ liệu"
+  loadError: string | null // error message nếu load thất bại (null nếu OK)
   lastSync: Date | null
   reload: () => Promise<void>
   /** Bump version mỗi lần reload thành công — các trang useEffect vào [dataVersion] để sync local state */
@@ -65,6 +66,7 @@ const AppDataContext = createContext<AppDataContextValue>({
   data: initialData,
   isLoading: true,
   isReloading: false,
+  loadError: null,
   lastSync: null,
   reload: async () => {},
   dataVersion: 0,
@@ -84,6 +86,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(initialData)
   const [isLoading, setIsLoading] = useState(true)
   const [isReloading, setIsReloading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<Date | null>(null)
   const [dataVersion, setDataVersion] = useState(0)
   const initialized = useRef(false)
@@ -91,49 +94,66 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadAll = useCallback(async (): Promise<void> => {
     if (inflight.current) return inflight.current
+    setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
-      const [
-        leaders, revenue, contracts, staff, recruiters, tuyenNgang,
-        structurePhong, structureAd, structureBanNhom, structureTvv,
-        clbMembers, pendingMembers, quanLyAll, settings, contests,
-      ] = await Promise.all([
-        fetchJson('/api/leaders'),
-        fetchJson('/api/revenue'),
-        fetchJson('/api/contracts'),
-        fetchJson('/api/staff'),
-        fetchJson('/api/recruiters'),
-        fetchJson('/api/tuyen-ngang'),
-        fetchJson('/api/structure/phong'),
-        fetchJson('/api/structure/ad'),
-        fetchJson('/api/structure/bannhom'),
-        fetchJson('/api/structure/tvv'),
-        fetchJson('/api/clb-members'),
-        fetchJson('/api/pending-members'),
-        fetchJson('/api/quan-ly/all'),
-        fetchJson('/api/settings'),
-        fetchJson('/api/contests'),
-      ])
+      // Self-heal: ensure DB schema has all required columns/tables before fetching data.
+      // Idempotent + fail-safe — if it fails, data fetch still proceeds.
+      try {
+        await fetch('/api/admin/fix-schema', { method: 'POST' }).catch(() => {});
+      } catch {
+        // ignore — schema fix is best-effort
+      }
 
-      setData({
-        leaders: leaders || [],
-        revenue: revenue || [],
-        contracts: contracts || [],
-        staff: staff || [],
-        recruiters: recruiters || [],
-        tuyenNgang: tuyenNgang || [],
-        structurePhong: structurePhong || [],
-        structureAd: structureAd || [],
-        structureBanNhom: structureBanNhom || [],
-        structureTvv: structureTvv || [],
-        clbMembers: clbMembers || [],
-        pendingMembers: pendingMembers || [],
-        quanLyAll: quanLyAll || null,
-        settings: settings || null,
-        contests: contests || [],
-      })
-      setLastSync(new Date())
-      setDataVersion(v => v + 1)
+      try {
+        const [
+          leaders, revenue, contracts, staff, recruiters, tuyenNgang,
+          structurePhong, structureAd, structureBanNhom, structureTvv,
+          clbMembers, pendingMembers, quanLyAll, settings, contests,
+        ] = await Promise.all([
+          fetchJson('/api/leaders'),
+          fetchJson('/api/revenue'),
+          fetchJson('/api/contracts'),
+          fetchJson('/api/staff'),
+          fetchJson('/api/recruiters'),
+          fetchJson('/api/tuyen-ngang'),
+          fetchJson('/api/structure/phong'),
+          fetchJson('/api/structure/ad'),
+          fetchJson('/api/structure/bannhom'),
+          fetchJson('/api/structure/tvv'),
+          fetchJson('/api/clb-members'),
+          fetchJson('/api/pending-members'),
+          fetchJson('/api/quan-ly/all'),
+          fetchJson('/api/settings'),
+          fetchJson('/api/contests'),
+        ])
+
+        setData({
+          leaders: leaders || [],
+          revenue: revenue || [],
+          contracts: contracts || [],
+          staff: staff || [],
+          recruiters: recruiters || [],
+          tuyenNgang: tuyenNgang || [],
+          structurePhong: structurePhong || [],
+          structureAd: structureAd || [],
+          structureBanNhom: structureBanNhom || [],
+          structureTvv: structureTvv || [],
+          clbMembers: clbMembers || [],
+          pendingMembers: pendingMembers || [],
+          quanLyAll: quanLyAll || null,
+          settings: settings || null,
+          contests: contests || [],
+        })
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)
+      } catch (err: any) {
+        const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
+        console.error('[AppDataProvider] loadAll error:', msg)
+        setLoadError(msg)
+        throw err
+      }
     })()
 
     inflight.current = p
@@ -157,11 +177,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       await loadAll()
     } finally {
       setIsReloading(false)
+      setIsLoading(false) // ensure isLoading=false sau retry (dù thành/bại)
     }
   }, [loadAll])
 
   return (
-    <AppDataContext.Provider value={{ data, isLoading, isReloading, lastSync, reload, dataVersion }}>
+    <AppDataContext.Provider value={{ data, isLoading, isReloading, loadError, lastSync, reload, dataVersion }}>
       {children}
     </AppDataContext.Provider>
   )
