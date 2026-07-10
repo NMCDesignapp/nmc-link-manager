@@ -2675,7 +2675,7 @@ function ThiDuaPageInner() {
   }, [nydData, conditionType, includeIndividualTN, calculateBonus]);
 
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${isEmbedMode ? 'embed-mode bg-white' : ''}`}>
 
       {/* Data loaded indicator - top right corner (hidden in embed mode) */}
       {!isEmbedMode && dataLoadedVisible && (
@@ -3197,25 +3197,31 @@ function ThiDuaPageInner() {
       )}
 
       {/* Result Dialog Popup - White theme, only poster + detail table
-          In embed mode: always open, can't be closed by user */}
+          In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
-        <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
           {/* Action bar */}
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
             <DialogTitle className="text-emerald-600 text-base font-bold flex items-center gap-2">
               <Trophy className="w-5 h-5 text-emerald-600" />
-              Kết quả chi tiết
+              {isEmbedMode ? (contestTitle || 'Kết quả chi tiết') : 'Kết quả chi tiết'}
             </DialogTitle>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
-                {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
-              </Button>
+              {!isEmbedMode && (
+                <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
+                  {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                </Button>
+              )}
+              {!isEmbedMode && (
+                <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
+                </Button>
+              )}
+              {!isEmbedMode && (
+                <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><Download className="w-3 h-3 mr-1" />XLSX</Button>
             </div>
           </div>

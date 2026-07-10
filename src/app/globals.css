@@ -547,3 +547,37 @@ html[data-kpi-embed="1"] nav[class*="w-[220px]"],
 html[data-kpi-embed="1"] nav[class*="border-emerald-500/30"] {
   display: none !important;
 }
+
+/* =====================================================================
+   THI ĐUA EMBED MODE — Dialog thành full-page (không còn là popup)
+   =====================================================================
+   Khi trang /thi-dua-chau được load trong iframe từ Quản Lý → Sao Việt
+   (URL có ?embed=1&contest=<id>&autocalc=1), root div sẽ có class "embed-mode".
+   CSS này biến Dialog (vốn là popup có overlay) thành trang full-bleed:
+   - Overlay trong suốt (không nền đen)
+   - Content full-screen (không centered, không max-width, không border/rounded)
+   - Ẩn nút Close (X) — đã ẩn bằng showCloseButton={!isEmbedMode}
+   ===================================================================== */
+.embed-mode [data-slot="dialog-overlay"] {
+  background: transparent !important;
+  pointer-events: none !important;
+}
+.embed-mode [data-slot="dialog-content"] {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  translate: none !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  max-height: none !important;
+  height: auto !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  box-shadow: none !important;
+}
+.embed-mode [data-slot="dialog-close"] {
+  display: none !important;
+}
