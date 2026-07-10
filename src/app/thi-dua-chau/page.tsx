@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 // useSettings removed — no CSV sync, data from Quản lý page
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -474,8 +474,16 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   );
 });
 
-export default function ThiDuaPage() {
+function ThiDuaPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ===== EMBED MODE: khi được nhúng trong iframe (từ trang Quản lý) =====
+  //   ?embed=1          → ẩn header + form, chỉ hiện bảng kết quả
+  //   ?contest=<id>     → tự động load contest theo id
+  //   ?autocalc=1       → tự động tính kết quả sau khi load
+  const isEmbedMode = searchParams.get('embed') === '1';
+  const embedContestId = searchParams.get('contest');
+  const isAutocalc = searchParams.get('autocalc') === '1';
   // Data sourced from Quản lý page — no CSV sync
 
   const [startDate, setStartDate] = useState(''); // Ngày hiệu lực từ
@@ -2561,6 +2569,31 @@ export default function ThiDuaPage() {
   // Neon border style like main page
   const neonBorder = 'border border-emerald-500/30 shadow-[0_0_15px_rgba(0,255,136,0.1)] neon-card';
 
+  // ===== EMBED MODE: Auto-load contest + auto-calculate =====
+  // Chạy 1 lần khi:
+  //   - Đang ở embed mode (isEmbedMode && embedContestId && isAutocalc)
+  //   - savedContests và contracts đã load xong (từ AppDataContext)
+  //   - Chưa từng trigger autocalc (dùng ref để tránh chạy 2 lần trong StrictMode)
+  const autocalcTriggered = useRef(false);
+  useEffect(() => {
+    if (!isEmbedMode || !embedContestId || !isAutocalc) return;
+    if (autocalcTriggered.current) return;
+    if (savedContests.length === 0) return; // chưa load saved contests
+    if (contracts.length === 0) return;     // chưa load contracts (cần để tính kết quả)
+    const contest = savedContests.find(c => c.id === embedContestId);
+    if (!contest) return;
+    autocalcTriggered.current = true;
+    // Force expanded view in embed mode for more space
+    setIsResultExpanded(true);
+    // Load contest state (dates, conditions, tiers, etc.)
+    handleLoadContest(embedContestId);
+    // Wait for state to settle (React batches setState in handleLoadContest),
+    // then trigger calculate — handleCalculate reads startDate/endDate/etc. from state
+    setTimeout(() => {
+      handleCalculate();
+    }, 300);
+  }, [isEmbedMode, embedContestId, isAutocalc, savedContests.length, contracts.length]);
+
   // Phase 2 per-row bonus calculation helper
   const getRowPhaseBonus = useCallback((fyp: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
     if (!usePhase2 || !phase2StartDate) {
@@ -2644,15 +2677,16 @@ export default function ThiDuaPage() {
   return (
     <div className="min-h-screen">
 
-      {/* Data loaded indicator - top right corner */}
-      {dataLoadedVisible && (
+      {/* Data loaded indicator - top right corner (hidden in embed mode) */}
+      {!isEmbedMode && dataLoadedVisible && (
         <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
           <CheckCircle2 className="w-4 h-4" />
           <span className="text-xs font-bold">{dataLoadedCount} HĐ đã tải</span>
         </div>
       )}
 
-      {/* Header */}
+      {/* Header (hidden in embed mode) */}
+      {!isEmbedMode && (
       <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
           <BackButton href="/" size={20} title="Trở về trang chủ" />
@@ -2676,7 +2710,10 @@ export default function ThiDuaPage() {
           </div>
         </div>
       </header>
+      )}
 
+      {/* Main form (hidden in embed mode) */}
+      {!isEmbedMode && (
       <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
@@ -3157,9 +3194,11 @@ export default function ThiDuaPage() {
           )}
         </Card>
       </main>
+      )}
 
-      {/* Result Dialog Popup - White theme, only poster + detail table */}
-      <Dialog open={isResultDialogOpen} onOpenChange={(open) => { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); }}>
+      {/* Result Dialog Popup - White theme, only poster + detail table
+          In embed mode: always open, can't be closed by user */}
+      <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
         <DialogContent className={`${isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
           {/* Action bar */}
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
@@ -3676,7 +3715,8 @@ export default function ThiDuaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Subject Dialog - Nhập đối tượng thi đua */}
+      {/* Subject Dialog - Nhập đối tượng thi đua (hidden in embed mode) */}
+      {!isEmbedMode && (
       <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
         <DialogContent className="sm:max-w-lg bg-[#1a1a2e] border-emerald-500/20">
           <DialogHeader><DialogTitle className="text-white flex items-center gap-2"><Users className="w-4 h-4 text-sky-400" /> Nhập đối tượng thi đua</DialogTitle><DialogDescription className="text-emerald-300/60">Khi có danh sách, kết quả chỉ tính cho các đối tượng này</DialogDescription></DialogHeader>
@@ -3758,6 +3798,16 @@ export default function ThiDuaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
+  );
+}
+
+// Wrapper với Suspense — useSearchParams yêu cầu Suspense boundary trong Next.js App Router
+export default function ThiDuaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="text-emerald-600 text-sm">Đang tải...</div></div>}>
+      <ThiDuaPageInner />
+    </Suspense>
   );
 }

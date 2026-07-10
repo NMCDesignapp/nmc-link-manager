@@ -2767,7 +2767,7 @@ export default function QuanLyPage() {
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở (lần đầu) =====
   // Khi dataVersion tăng (tức là context vừa load xong), sync vào local state.
   // Sheet-specific fetch vẫn giữ nguyên để dùng sau CRUD / đổi sheet.
-  const { data: appData, dataVersion: appDataVersion, isReloading: appDataReloading } = useAppData();
+  const { data: appData, dataVersion: appDataVersion, isReloading: appDataReloading, reload: reloadAppData } = useAppData();
   const lastSyncedVersion = useRef<number>(-1);
   useEffect(() => {
     if (appDataVersion <= lastSyncedVersion.current) return;
@@ -2798,6 +2798,7 @@ export default function QuanLyPage() {
     if (appData.clbMembers) setClbMembers(appData.clbMembers);
     if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
     if (appData.settings) setOnlineSettings(appData.settings);
+    if (appData.contests) setSavedContestsList(appData.contests);
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
@@ -5237,6 +5238,9 @@ export default function QuanLyPage() {
   // Posters: each program has one 16:9 image (URL stored in Settings, file in /public/posters)
   const [saovietPosters, setSaovietPosters] = useState<Record<string, string>>({});
   const [saovietPosterUploading, setSaovietPosterUploading] = useState<Record<string, boolean>>({});
+  // Saved contests (từ Trang Thi Đua) — hiển thị thành card thứ 4, 5... trong mục Sao Việt
+  const [savedContestsList, setSavedContestsList] = useState<any[]>([]);
+  const [savedContestDeleting, setSavedContestDeleting] = useState<string | null>(null);
   // CLB Sao Việt posters — same pattern as saovietPosters
   const [clbsvPosters, setClbsvPosters] = useState<Record<string, string>>({});
   const [clbsvPosterUploading, setClbsvPosterUploading] = useState<Record<string, boolean>>({});
@@ -5709,6 +5713,33 @@ export default function QuanLyPage() {
       toast({ title: 'Lỗi xóa poster', description: String(e), variant: 'destructive' });
     }
   }, []);
+
+  // ---------- SAVED CONTESTS (từ Trang Thi Đua) — hiển thị trong mục Sao Việt ----------
+  // Xóa 1 chương trình đã lưu: gọi API DELETE /api/contests?id=<id>
+  // Sau khi xong, reload AppDataContext để sync savedContestsList mới (card biến mất)
+  const handleDeleteSavedContest = useCallback(async (contestId: string, contestTitle: string) => {
+    if (!confirm(`Xóa chương trình "${contestTitle}"?\n\nLưu ý: chương trình sẽ bị xóa khỏi cả Trang Thi Đua.`)) return;
+    setSavedContestDeleting(contestId);
+    try {
+      const res = await fetch(`/api/contests?id=${contestId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast({ title: 'Đã xóa', description: `Chương trình "${contestTitle}" đã được xóa` });
+        // Nếu đang mở sub-page của contest này → trở về list
+        if (saovietOpen === `saved-${contestId}`) {
+          navigateTo({ sheet: 'saoviet', saovietOpen: null });
+        }
+        // Reload để đồng bộ
+        await reloadAppData();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Lỗi xóa', description: data.error || `HTTP ${res.status}`, variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Lỗi xóa', description: String(e), variant: 'destructive' });
+    } finally {
+      setSavedContestDeleting(null);
+    }
+  }, [saovietOpen, navigateTo, reloadAppData]);
 
   // ========================================================================
   // EXCEL EXPORT — Tải file Excel cho chính sách đang mở
@@ -9970,6 +10001,85 @@ export default function QuanLyPage() {
             </button>
           );
         })}
+
+        {/* ===== Saved contests từ Trang Thi Đua — tự động hiện thành card thứ 4, 5... =====
+            Mỗi contest đã lưu (qua /api/contests POST trên Trang Thi Đua) sẽ xuất hiện ở đây.
+            Click → mở sub-page 'saved-<id>' render iframe embed Trang Thi Đua ở chế độ read-only.
+            Có nút X ở góc trên-phải để xóa contest khỏi DB (cũng biến mất khỏi Trang Thi Đua). */}
+        {savedContestsList.length > 0 && savedContestsList.map(contest => {
+          const contestId = contest.id;
+          const posterUrl = contest.posterUrl || '';
+          const startDateStr = contest.startDate ? new Date(contest.startDate).toLocaleDateString('vi-VN') : '';
+          const endDateStr = contest.endDate ? new Date(contest.endDate).toLocaleDateString('vi-VN') : '';
+          const isDeleting = savedContestDeleting === contestId;
+          return (
+            <div key={`saved-${contestId}`} className="relative group">
+              {/* Nút xóa — góc trên-phải, nổi lên trên poster */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDeleteSavedContest(contestId, contest.title); }}
+                disabled={isDeleting}
+                className="absolute top-1.5 right-1.5 z-20 w-6 h-6 rounded-full bg-red-500/90 hover:bg-red-500 text-white flex items-center justify-center text-sm font-bold shadow-lg transition-all hover:scale-110 active:scale-95"
+                title="Xóa chương trình"
+              >
+                {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : '×'}
+              </button>
+              {/* Card chính — click vào mở sub-page saved contest */}
+              <button
+                onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
+                className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                style={{
+                  borderColor: '#10B981AA',
+                  backgroundColor: '#0e1424',
+                }}
+              >
+                {/* Decorative top glow strip */}
+                <span
+                  className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
+                  style={{ background: 'linear-gradient(90deg, transparent, #10B981, transparent)' }}
+                />
+                {/* Top: poster 16:9 */}
+                <div
+                  className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
+                  style={{ aspectRatio: '16 / 9' }}
+                >
+                  {posterUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={posterUrl}
+                        alt={contest.title}
+                        className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-1 px-3 py-3 text-center">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
+                        style={{ borderColor: '#10B98166', backgroundColor: '#10B98111' }}
+                      >
+                        <Trophy className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-400 line-clamp-2">{contest.title}</span>
+                      <span className="text-[8px] text-gray-500 italic">Chưa có poster</span>
+                    </div>
+                  )}
+                </div>
+                {/* Bottom: title + period */}
+                <div className="text-left px-2.5 py-2 border-t flex-1 flex flex-col gap-0.5 transition-colors" style={{ borderColor: '#10B98133' }}>
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="w-3 h-3 flex-shrink-0 transition-transform duration-300 group-hover:scale-110 text-emerald-400" />
+                    <h3 className="text-[11px] font-extrabold truncate leading-tight text-emerald-400">{contest.title}</h3>
+                    <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                  </div>
+                  <p className="text-[10px] text-gray-300 font-semibold leading-tight truncate">
+                    {startDateStr} — {endDateStr}
+                  </p>
+                </div>
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -10531,10 +10641,57 @@ export default function QuanLyPage() {
     return renderSaovietDetailShell('tn-td', uniqueNhomList, filteredRows.length, totalFypTVVm, 'SL TN đạt', 'Tổng FYP TVVm', tableJsx);
   };
 
+  // ---------- SAVED CONTEST sub-page: hiển thị kết quả 1 chương trình đã lưu ----------
+  // Render iframe tới /thi-dua-chau ở embed mode (chỉ hiện bảng kết quả, không có form).
+  // Iframe tự load contest theo id và tự calculate → user chỉ xem được, không sửa.
+  const renderSavedContest = (contestId: string) => {
+    const contest = savedContestsList.find(c => c.id === contestId);
+    const contestTitle = contest?.title || 'Chương trình thi đua';
+    const startDateStr = contest?.startDate ? new Date(contest.startDate).toLocaleDateString('vi-VN') : '';
+    const endDateStr = contest?.endDate ? new Date(contest.endDate).toLocaleDateString('vi-VN') : '';
+    return (
+      <div className="space-y-3">
+        {/* Title bar */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <Trophy className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <h2 className="text-sm sm:text-base font-extrabold text-emerald-400 truncate">{contestTitle}</h2>
+            {startDateStr && endDateStr && (
+              <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
+                ({startDateStr} — {endDateStr})
+              </span>
+            )}
+          </div>
+          <a
+            href={`/thi-dua-chau?contest=${contestId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-emerald-300 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all active:scale-95 whitespace-nowrap"
+            title="Mở Trang Thi Đua trong tab mới để chỉnh sửa"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Mở trang Thi Đua
+          </a>
+        </div>
+        {/* Iframe embed — bảng kết quả */}
+        <div className="rounded-lg overflow-hidden border-2 border-emerald-500/30 shadow-lg bg-white" style={{ height: '80vh', minHeight: '500px' }}>
+          <iframe
+            src={`/thi-dua-chau?embed=1&contest=${contestId}&autocalc=1`}
+            className="w-full h-full border-0"
+            title={contestTitle}
+            loading="lazy"
+          />
+        </div>
+      </div>
+    );
+  };
+
   const renderSaoViet = () => {
     if (saovietOpen === 'ca-nhan') return renderSaoVietCaNhan();
     if (saovietOpen === 'tn-ktm')  return renderSaoVietTNKTM();
     if (saovietOpen === 'tn-td')   return renderSaoVietTNTD();
+    // Saved contest sub-page: key có dạng 'saved-<contestId>'
+    if (saovietOpen && saovietOpen.startsWith('saved-')) return renderSavedContest(saovietOpen.slice(6));
     return renderSaoVietList();
   };
 
@@ -11595,7 +11752,7 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng') : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng')) : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           {/* Nút Tải lại — HIỆN cho cả end-user (đến từ /kpi-standalone) và admin */}
