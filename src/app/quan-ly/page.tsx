@@ -10004,34 +10004,23 @@ export default function QuanLyPage() {
 
         {/* ===== Saved contests từ Trang Thi Đua — tự động hiện thành card thứ 4, 5... =====
             Mỗi contest đã lưu (qua /api/contests POST trên Trang Thi Đua) sẽ xuất hiện ở đây.
-            Click → mở sub-page 'saved-<id>' render iframe embed Trang Thi Đua ở chế độ read-only.
-            Có nút X ở góc trên-phải để xóa contest khỏi DB (cũng biến mất khỏi Trang Thi Đua). */}
+            Click → mở sub-page 'saved-<id>' render kết quả chi tiết inline.
+            KHÔNG có nút X — người dùng chỉ xem, không có quyền xóa/sửa (xóa/sửa thực hiện trên Trang Thi Đua). */}
         {savedContestsList.length > 0 && savedContestsList.map(contest => {
           const contestId = contest.id;
           const posterUrl = contest.posterUrl || '';
           const startDateStr = contest.startDate ? new Date(contest.startDate).toLocaleDateString('vi-VN') : '';
           const endDateStr = contest.endDate ? new Date(contest.endDate).toLocaleDateString('vi-VN') : '';
-          const isDeleting = savedContestDeleting === contestId;
           return (
-            <div key={`saved-${contestId}`} className="relative group">
-              {/* Nút xóa — góc trên-phải, nổi lên trên poster */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleDeleteSavedContest(contestId, contest.title); }}
-                disabled={isDeleting}
-                className="absolute top-1.5 right-1.5 z-20 w-6 h-6 rounded-full bg-red-500/90 hover:bg-red-500 text-white flex items-center justify-center text-sm font-bold shadow-lg transition-all hover:scale-110 active:scale-95"
-                title="Xóa chương trình"
-              >
-                {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : '×'}
-              </button>
-              {/* Card chính — click vào mở sub-page saved contest */}
-              <button
-                onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
-                className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
-                style={{
-                  borderColor: '#10B981AA',
-                  backgroundColor: '#0e1424',
-                }}
-              >
+            <button
+              key={`saved-${contestId}`}
+              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
+              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              style={{
+                borderColor: '#10B981AA',
+                backgroundColor: '#0e1424',
+              }}
+            >
                 {/* Decorative top glow strip */}
                 <span
                   className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
@@ -10076,8 +10065,7 @@ export default function QuanLyPage() {
                     {startDateStr} — {endDateStr}
                   </p>
                 </div>
-              </button>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -10647,41 +10635,17 @@ export default function QuanLyPage() {
   const renderSavedContest = (contestId: string) => {
     const contest = savedContestsList.find(c => c.id === contestId);
     const contestTitle = contest?.title || 'Chương trình thi đua';
-    const startDateStr = contest?.startDate ? new Date(contest.startDate).toLocaleDateString('vi-VN') : '';
-    const endDateStr = contest?.endDate ? new Date(contest.endDate).toLocaleDateString('vi-VN') : '';
+    // Render iframe Trang Thi Đua ở chế độ embed full-page (có sẵn header + poster + bảng + footer).
+    // KHÔNG có nút "Mở trang Thi Đua", KHÔNG có thanh tiêu đề xanh — để iframe hiển thị như một
+    // sub-page inline bình thường, đồng nhất với 3 chương trình ca-nhan / tn-ktm / tn-td.
     return (
-      <div className="space-y-3">
-        {/* Title bar */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            <Trophy className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <h2 className="text-sm sm:text-base font-extrabold text-emerald-400 truncate">{contestTitle}</h2>
-            {startDateStr && endDateStr && (
-              <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
-                ({startDateStr} — {endDateStr})
-              </span>
-            )}
-          </div>
-          <a
-            href={`/thi-dua-chau?contest=${contestId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-emerald-300 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all active:scale-95 whitespace-nowrap"
-            title="Mở Trang Thi Đua trong tab mới để chỉnh sửa"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Mở trang Thi Đua
-          </a>
-        </div>
-        {/* Iframe embed — bảng kết quả */}
-        <div className="rounded-lg overflow-hidden border-2 border-emerald-500/30 shadow-lg bg-white" style={{ height: '80vh', minHeight: '500px' }}>
-          <iframe
-            src={`/thi-dua-chau?embed=1&contest=${contestId}&autocalc=1`}
-            className="w-full h-full border-0"
-            title={contestTitle}
-            loading="lazy"
-          />
-        </div>
+      <div className="h-full flex flex-col">
+        <iframe
+          src={`/thi-dua-chau?embed=1&contest=${contestId}&autocalc=1`}
+          className="w-full flex-1 border-0 bg-white"
+          title={contestTitle}
+          loading="lazy"
+        />
       </div>
     );
   };
