@@ -13,16 +13,39 @@ function safeDate(v: any): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Self-heal migration: đảm bảo cột ngayHieuLuc tồn tại (Vercel không tự chạy migrate deploy)
+async function ensureNgayHieuLucColumn(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Recruiter" ADD COLUMN IF NOT EXISTS "ngayHieuLuc" TIMESTAMP(3)');
+  } catch (e) {
+    console.warn('[ensureNgayHieuLucColumn] Skipped:', (e as Error)?.message);
+  }
+}
+
 // GET /api/recruiters - List all recruiters (NTD)
 export async function GET() {
   try {
-    const recruiters = await db.recruiter.findMany({
-      select: {
-        id: true, nhom: true, agentCode: true, agentName: true,
-        position: true, startDate: true,
-      },
-      orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
-    });
+    let recruiters;
+    try {
+      recruiters = await db.recruiter.findMany({
+        select: {
+          id: true, nhom: true, agentCode: true, agentName: true,
+          position: true, startDate: true, ngayHieuLuc: true,
+        },
+        orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
+      });
+    } catch (err) {
+      // Có thể do thiếu cột ngayHieuLuc — self-heal rồi retry
+      console.warn('[GET /api/recruiters] First attempt failed, trying self-heal:', (err as Error)?.message);
+      await ensureNgayHieuLucColumn();
+      recruiters = await db.recruiter.findMany({
+        select: {
+          id: true, nhom: true, agentCode: true, agentName: true,
+          position: true, startDate: true, ngayHieuLuc: true,
+        },
+        orderBy: [{ nhom: 'asc' }, { agentName: 'asc' }],
+      });
+    }
     return NextResponse.json(recruiters, {
       headers: { 'Cache-Control': 'no-store' },
     });
@@ -39,6 +62,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    // Đảm bảo DB có cột ngayHieuLuc trước khi query/create (self-heal)
+    await ensureNgayHieuLucColumn();
     const { members, csvData } = body as {
       members?: Array<{
         nhom?: string;
@@ -46,6 +71,7 @@ export async function POST(request: NextRequest) {
         agentName: string;
         position?: string;
         startDate?: string;
+        ngayHieuLuc?: string;
       }>;
       csvData?: string;
     };
@@ -61,6 +87,7 @@ export async function POST(request: NextRequest) {
         agentName: string;
         position: string;
         startDate: Date | null;
+        ngayHieuLuc: Date | null;
       }> = [];
 
       for (const line of dataLines) {
@@ -75,13 +102,14 @@ export async function POST(request: NextRequest) {
         }
         columns.push(current.trim());
 
-        // Column mapping (6 columns):
-        // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu
+        // Column mapping (7 columns):
+        // 0: STT, 1: Nhóm, 2: Mã số, 3: Họ tên, 4: Chức vụ, 5: Ngày bắt đầu, 6: Ngày hiệu lực chức vụ
         const nhom = columns[1] || '';
         const agentCode = columns[2] || '';
         const agentName = columns[3] || '';
         const position = columns[4] || '';
         const startDateStr = columns[5] || '';
+        const ngayHieuLucStr = columns[6] || '';
 
         if (!agentCode || !agentName) continue;
 
@@ -91,6 +119,7 @@ export async function POST(request: NextRequest) {
           agentName,
           position,
           startDate: safeDate(startDateStr),
+          ngayHieuLuc: safeDate(ngayHieuLucStr),
         });
       }
 
@@ -137,6 +166,7 @@ export async function POST(request: NextRequest) {
           agentName: m.agentName,
           position: m.position || '',
           startDate: safeDate(m.startDate),
+          ngayHieuLuc: safeDate(m.ngayHieuLuc),
         }));
 
       if (data.length === 0) {
@@ -170,7 +200,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Single create mode
-    const { nhom, agentCode, agentName, position, startDate } = body;
+    const { nhom, agentCode, agentName, position, startDate, ngayHieuLuc } = body;
     if (!agentCode || !agentName) {
       return NextResponse.json({ error: 'Vui lòng nhập mã số và họ tên' }, { status: 400 });
     }
@@ -182,6 +212,7 @@ export async function POST(request: NextRequest) {
         agentName,
         position: position || '',
         startDate: safeDate(startDate),
+        ngayHieuLuc: safeDate(ngayHieuLuc),
       },
     });
 

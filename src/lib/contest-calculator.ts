@@ -87,6 +87,7 @@ export interface RecruiterMember {
   agentName: string;
   position: string;
   startDate: string | null;
+  ngayHieuLuc?: string | null; // Ngày hiệu lực chức vụ gần nhất (mỗi lần thăng/hạ thì ghi đè)
 }
 
 export type ConditionType =
@@ -140,6 +141,7 @@ export interface ContestConfig {
   includeTNInPassCount?: boolean;
   topN?: number;
   topNMinIP?: number;
+  filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV > ngày hiệu lực chức vụ gần nhất của NTD recruiter
 }
 
 // ===== Helpers — mode detection =====
@@ -407,6 +409,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     includeTNInPassCount: raw.includeTNInPassCount ?? false,
     topN: raw.topN ?? 3,
     topNMinIP: raw.topNMinIP ?? 50_000_000,
+    filterByEffectiveDate: raw.filterByEffectiveDate ?? false,
   };
 }
 
@@ -443,19 +446,80 @@ export function filterContractsByContest(
 }
 
 // ===== Phase 2: filter by target (TVV / Nhóm / NTD) + DSO exclusion =====
+
+/**
+ * Filter contracts theo "Ngày hiệu lực chức vụ" của NTD recruiter.
+ *
+ * Quy tắc (khi config.filterByEffectiveDate === true):
+ * - Mỗi contract có TVV (c.agentCode) được tuyển bởi NTD (c.maDaiLyTD).
+ * - Lấy ngày bắt đầu LV của TVV từ tvvStructList (TVVStruct.ngayBatDau).
+ * - Lấy ngày hiệu lực chức vụ gần nhất của NTD từ recruiterList (Recruiter.ngayHieuLuc).
+ * - Chỉ giữ contract nếu: TVV.ngayBatDau > NTD.ngayHieuLuc
+ *   (tức là TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
+ * - Nếu TVV không có ngày bắt đầu LV → bỏ qua (không tính, do data thiếu).
+ * - Nếu NTD không có ngày hiệu lực chức vụ → vẫn giữ contract (không có ràng buộc để loại).
+ *
+ * @param tvvStructList DS TVV từ /api/structure/tvv — chứa agentCode + ngayBatDau
+ */
+export function filterByEffectiveDateRule(
+  contracts: Contract[],
+  recruiterList: RecruiterMember[],
+  tvvStructList: { agentCode: string; ngayBatDau: string | null }[]
+): Contract[] {
+  // Build map: agentCode → ngayHieuLuc (NTD recruiter)
+  const ngayHieuLucMap = new Map<string, number>();
+  for (const r of recruiterList) {
+    if (r.agentCode && r.ngayHieuLuc) {
+      const t = new Date(r.ngayHieuLuc).getTime();
+      if (!isNaN(t)) ngayHieuLucMap.set(r.agentCode, t);
+    }
+  }
+  // Build map: agentCode → ngayBatDau (TVV)
+  const ngayBatDauMap = new Map<string, number>();
+  for (const t of tvvStructList) {
+    if (t.agentCode && t.ngayBatDau) {
+      const ts = new Date(t.ngayBatDau).getTime();
+      if (!isNaN(ts)) ngayBatDauMap.set(t.agentCode, ts);
+    }
+  }
+
+  return contracts.filter((c) => {
+    // Lấy NTD recruiter của contract này
+    const recruiterCode = c.maDaiLyTD || '';
+    if (!recruiterCode) return true; // Không có recruiter → không có ràng buộc → giữ
+    const ngayHieuLucTs = ngayHieuLucMap.get(recruiterCode);
+    if (!ngayHieuLucTs) return true; // NTD không có ngày hiệu lực → không có ràng buộc → giữ
+
+    // Lấy ngày bắt đầu LV của TVV (người bán HĐ)
+    const tvvCode = c.agentCode || '';
+    const ngayBatDauTs = ngayBatDauMap.get(tvvCode);
+    if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
+
+    // Chỉ giữ nếu TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ
+    return ngayBatDauTs > ngayHieuLucTs;
+  });
+}
+
 export function filterDisplayContracts(
   filteredContracts: Contract[],
   config: ContestConfig,
   staffList: StaffMember[],
-  recruiterList: RecruiterMember[]
+  recruiterList: RecruiterMember[],
+  tvvStructList?: { agentCode: string; ngayBatDau: string | null }[]
 ): Contract[] {
   const subjectCodes = config.participants;
   const targetType = config.targetType;
-  const contractsNoDSO = filteredContracts.filter(
+  let contractsNoDSO = filteredContracts.filter(
     (c) =>
       !norm(c.nhom || '').toLowerCase().includes('dso') &&
       !norm(c.maNhom || '').toLowerCase().includes('dso')
   );
+
+  // Áp dụng filter "ngày hiệu lực chức vụ" cho NTD và Nhóm (theo yêu cầu user)
+  if (config.filterByEffectiveDate && tvvStructList && (targetType === 'nyd' || targetType === 'nhom')) {
+    contractsNoDSO = filterByEffectiveDateRule(contractsNoDSO, recruiterList, tvvStructList);
+  }
+
   if (targetType === 'tvv') {
     if (subjectCodes.length === 0) return contractsNoDSO;
     return contractsNoDSO.filter(

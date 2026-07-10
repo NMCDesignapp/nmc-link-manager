@@ -23,7 +23,7 @@ import {
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
-  RefreshCw, CheckCircle2,
+  RefreshCw, CheckCircle2, CalendarClock,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 
@@ -75,6 +75,7 @@ interface StaffMember {
 interface RecruiterMember {
   id: string; nhom: string; agentCode: string; agentName: string;
   position: string; startDate: string | null;
+  ngayHieuLuc?: string | null; // Ngày hiệu lực chức vụ gần nhất của NTD
 }
 
 // TVV structure item — DS TVV đầy đủ từ /api/structure/tvv (gồm TẤT CẢ TVV, TTN, TB, TN)
@@ -109,6 +110,7 @@ interface SavedContest {
   includeTNInPassCount?: boolean;
   topN?: number;
   topNMinIP?: number;
+  filterByEffectiveDate?: boolean;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
@@ -544,6 +546,8 @@ function ThiDuaPageInner() {
   // Top N mode config (top_n_ip)
   const [topN, setTopN] = useState(3);
   const [topNMinIP, setTopNMinIP] = useState(50_000_000);
+  // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
 
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -809,9 +813,39 @@ function ThiDuaPageInner() {
   const displayContracts = useMemo(() => {
     // Luôn loại trừ hợp đồng thuộc nhóm DSO (không tham gia thi đua)
     const contractsNoDSO = filteredContracts.filter(c => !norm(c.nhom || '').toLowerCase().includes('dso') && !norm(c.maNhom || '').toLowerCase().includes('dso'));
+    // Áp dụng filter "ngày hiệu lực chức vụ" nếu tích chọn (chỉ cho NTD và Nhóm)
+    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+    let contractsFiltered = contractsNoDSO;
+    if (filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom')) {
+      // Build map: agentCode → ngayHieuLuc (NTD recruiter)
+      const ngayHieuLucMap = new Map<string, number>();
+      for (const r of recruiterList) {
+        if (r.agentCode && r.ngayHieuLuc) {
+          const t = new Date(r.ngayHieuLuc).getTime();
+          if (!isNaN(t)) ngayHieuLucMap.set(r.agentCode, t);
+        }
+      }
+      // Build map: agentCode → ngayBatDau (TVV từ DS TVV — Cấu trúc)
+      const ngayBatDauMap = new Map<string, number>();
+      for (const t of tvvStructList) {
+        if (t.agentCode && t.ngayBatDau) {
+          const ts = new Date(t.ngayBatDau).getTime();
+          if (!isNaN(ts)) ngayBatDauMap.set(t.agentCode, ts);
+        }
+      }
+      contractsFiltered = contractsNoDSO.filter(c => {
+        const recruiterCode = c.maDaiLyTD || '';
+        if (!recruiterCode) return true;
+        const ngayHieuLucTs = ngayHieuLucMap.get(recruiterCode);
+        if (!ngayHieuLucTs) return true; // NTD không có ngày hiệu lực → không ràng buộc → giữ
+        const ngayBatDauTs = ngayBatDauMap.get(c.agentCode || '');
+        if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
+        return ngayBatDauTs > ngayHieuLucTs;
+      });
+    }
     if (targetType === 'tvv') {
-      if (subjectCodes.length === 0) return contractsNoDSO;
-      return contractsNoDSO.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
+      if (subjectCodes.length === 0) return contractsFiltered;
+      return contractsFiltered.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName));
     }
     if (targetType === 'nhom') {
       // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại DSO)
@@ -839,22 +873,22 @@ function ThiDuaPageInner() {
           }
         }
       }
-      return contractsNoDSO.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
+      return contractsFiltered.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
     }
     if (targetType === 'nyd') {
       // NTD: xác định tập mã NTD từ Recruiter table
       // Bỏ NTD thuộc nhóm DSO
       const ntdNoDSO = recruiterList.filter(r => !norm(r.nhom || '').toLowerCase().includes('dso'));
       if (subjectCodes.length > 0) {
-        return contractsNoDSO.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
+        return contractsFiltered.filter(c => subjectCodes.includes(c.agentCode) || subjectCodes.includes(c.agentName) ||
           (c.maDaiLyTD && subjectCodes.includes(c.maDaiLyTD)));
       }
       // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table (trừ DSO)
       const ntdCodes = new Set(ntdNoDSO.map(r => r.agentCode));
-      return contractsNoDSO.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
+      return contractsFiltered.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
     }
-    return contractsNoDSO;
-  }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList]);
+    return contractsFiltered;
+  }, [filteredContracts, subjectCodes, targetType, staffList, recruiterList, filterByEffectiveDate, tvvStructList]);
 
   // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
 
@@ -1647,6 +1681,7 @@ function ThiDuaPageInner() {
         referenceContestId: referenceContestId || undefined,
         includeTNInPassCount,
         topN, topNMinIP,
+        filterByEffectiveDate,
       }) });
       if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
       else {
@@ -1725,6 +1760,8 @@ function ThiDuaPageInner() {
     // Top N mode
     setTopN(contest.topN ?? 3);
     setTopNMinIP(contest.topNMinIP ?? 50_000_000);
+    // Filter by effective date
+    setFilterByEffectiveDate(contest.filterByEffectiveDate ?? false);
     setTimeout(() => handleSearchRef.current(), 100);
   };
 
@@ -3196,7 +3233,21 @@ function ThiDuaPageInner() {
                       </Label>
                     </div>
                   )}
+                  {/* Filter by effective date — chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
+                  {(targetType === 'nhom' || targetType === 'nyd') && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
+                      <Checkbox id="filterByEffectiveDate" checked={filterByEffectiveDate} onCheckedChange={(v) => setFilterByEffectiveDate(!!v)} />
+                      <Label htmlFor="filterByEffectiveDate" className="text-xs text-amber-200/90 cursor-pointer flex items-center gap-1">
+                        <CalendarClock className="w-3 h-3 text-amber-400" /> Chỉ tính TVV có ngày LV sau ngày hiệu lực CV gần nhất
+                      </Label>
+                    </div>
+                  )}
                 </div>
+                {filterByEffectiveDate && (targetType === 'nhom' || targetType === 'nyd') && (
+                  <p className="text-[10px] text-amber-300/80 italic leading-snug">
+                    Khi tích: chỉ giữ HĐ của TVV có <b>ngày bắt đầu LV</b> (lấy từ DS TVV — Cấu trúc) <b>sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ (lấy từ DS TTN — Cấu trúc). TVV không có ngày LV sẽ bị bỏ qua. Độc lập với điều kiện "Tính cá nhân NTD/TN".
+                  </p>
+                )}
               </div>
 
               <Separator className="bg-emerald-500/20" />

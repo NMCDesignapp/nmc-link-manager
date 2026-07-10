@@ -94,6 +94,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const allContracts = (appData.contracts || []) as Contract[];
   const staffList = (appData.staff || []) as StaffMember[];
   const recruiterList = (appData.recruiters || []) as RecruiterMember[];
+  // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode
+  const tvvStructList = (appData.structureTvv || []) as { agentCode: string; ngayBatDau: string | null }[];
 
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
@@ -101,10 +103,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     [allContracts, config]
   );
 
-  // Step 2: filter by target (TVV / Nhóm / NTD)
+  // Step 2: filter by target (TVV / Nhóm / NTD) + apply filterByEffectiveDate if enabled
   const displayContracts = useMemo(
-    () => filterDisplayContracts(filteredContracts, config, staffList, recruiterList),
-    [filteredContracts, config, staffList, recruiterList]
+    () => filterDisplayContracts(filteredContracts, config, staffList, recruiterList, tvvStructList),
+    [filteredContracts, config, staffList, recruiterList, tvvStructList]
   );
 
   // Step 3: compute groupedData / tvvTotalRows / tvvPerContractRows

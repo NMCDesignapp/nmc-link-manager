@@ -87,7 +87,7 @@ interface StaffMember {
 
 interface Recruiter {
   id: string; nhom: string; agentCode: string; agentName: string;
-  position: string; startDate: string | null;
+  position: string; startDate: string | null; ngayHieuLuc?: string | null;
 }
 
 // DS TTN Tuyển Ngang — Trưởng Tổ Nhóm tuyển ngang cấp
@@ -376,10 +376,10 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
     sampleData: [{ 'Mã số': 'TVV001', 'Họ tên': 'Nguyễn Văn A', 'Chức vụ': 'TVV', 'Nhóm': 'Nhóm 1', 'Mã nhóm': 'NH01', 'Ngày bắt đầu': '01/01/2026' }],
   },
   recruiters: {
-    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu'],
+    headers: ['Mã số', 'Họ tên', 'Chức vụ', 'Nhóm', 'Ngày bắt đầu', 'Ngày hiệu lực chức vụ'],
     sampleData: [
-      { 'Mã số': 'D104102154', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'Trưởng nhóm', 'Nhóm': 'Nhiệt An', 'Ngày bắt đầu': '01/01/2026' },
-      { 'Mã số': 'D104102155', 'Họ tên': 'Lê Văn C', 'Chức vụ': 'Trưởng ban', 'Nhóm': 'Hùng Cường', 'Ngày bắt đầu': '15/02/2026' },
+      { 'Mã số': 'D104102154', 'Họ tên': 'Trần Thị B', 'Chức vụ': 'Trưởng nhóm', 'Nhóm': 'Nhiệt An', 'Ngày bắt đầu': '01/01/2026', 'Ngày hiệu lực chức vụ': '01/07/2026' },
+      { 'Mã số': 'D104102155', 'Họ tên': 'Lê Văn C', 'Chức vụ': 'Trưởng ban', 'Nhóm': 'Hùng Cường', 'Ngày bắt đầu': '15/02/2026', 'Ngày hiệu lực chức vụ': '01/07/2026' },
     ],
   },
   'structure-phong': {
@@ -3189,7 +3189,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
       else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
-      else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '' }));
+      else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
       else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Ghi chú': t.note }));
 
@@ -3401,7 +3401,7 @@ export default function QuanLyPage() {
           }
         }
       } else if (sheetName === 'recruiters') {
-        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']) })).filter(m => m.agentCode || m.agentName);
+        const members = data.map((r: any) => ({ nhom: String(r['Nhóm'] || r['nhom'] || ''), agentCode: String(r['Mã số'] || r['agentCode'] || ''), agentName: String(r['Họ tên'] || r['agentName'] || ''), position: String(r['Chức vụ'] || r['position'] || ''), startDate: parseDateValue(r['Ngày bắt đầu'] || r['startDate']), ngayHieuLuc: parseDateValue(r['Ngày hiệu lực chức vụ'] || r['Ngày hiệu lực CV'] || r['ngayHieuLuc']) })).filter(m => m.agentCode || m.agentName);
         if (members.length) {
           const r = await fetch('/api/recruiters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members }) });
           if (r.ok) { const result = await r.json(); successCount = result.count || members.length; } else {
@@ -4678,7 +4678,7 @@ export default function QuanLyPage() {
         <div className="overflow-x-auto border border-emerald-600">
           <Table>
             <TableHeader><TableRow className="bg-emerald-800 hover:bg-emerald-800 border-b border-emerald-700">
-              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }].map(col => (
+              {[{ f: 'agentCode', l: 'Mã số' }, { f: 'agentName', l: 'Họ tên' }, { f: 'position', l: 'Chức vụ' }, { f: 'nhom', l: 'Nhóm' }, { f: 'startDate', l: 'Ngày bắt đầu' }, { f: 'ngayHieuLuc', l: 'Ngày hiệu lực CV' }].map(col => (
                 <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
               <TableHead className="text-yellow-100 text-xs uppercase w-[40px]"></TableHead>
@@ -4691,10 +4691,11 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={r.position} onSave={(v) => updateRecruiter(r.id, 'position', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={r.nhom} onSave={(v) => updateRecruiter(r.id, 'nhom', v)} /></TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={r.startDate || ''} onSave={(v) => updateRecruiter(r.id, 'startDate', v)} type="date" /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={r.ngayHieuLuc || ''} onSave={(v) => updateRecruiter(r.id, 'ngayHieuLuc', v)} type="date" /></TableCell>
                   <TableCell className="text-xs p-1"><Button variant="ghost" size="sm" onClick={() => deleteRecruiter(r.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button></TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 text-sm py-8">Chưa có dữ liệu</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>

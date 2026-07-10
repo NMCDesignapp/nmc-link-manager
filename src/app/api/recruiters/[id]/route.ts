@@ -15,10 +15,22 @@ function parseDate(dateStr: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Self-heal migration: đảm bảo cột ngayHieuLuc tồn tại
+async function ensureNgayHieuLucColumn(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Recruiter" ADD COLUMN IF NOT EXISTS "ngayHieuLuc" TIMESTAMP(3)');
+  } catch (e) {
+    console.warn('[ensureNgayHieuLucColumn] Skipped:', (e as Error)?.message);
+  }
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
+
+    // Đảm bảo DB có cột ngayHieuLuc trước khi update (self-heal)
+    if (body.ngayHieuLuc !== undefined) await ensureNgayHieuLucColumn();
 
     const data: Record<string, unknown> = {};
     if (body.nhom !== undefined) data.nhom = body.nhom;
@@ -26,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.agentName !== undefined) data.agentName = body.agentName;
     if (body.position !== undefined) data.position = body.position;
     if (body.startDate !== undefined) data.startDate = body.startDate ? parseDate(body.startDate) : null;
+    if (body.ngayHieuLuc !== undefined) data.ngayHieuLuc = body.ngayHieuLuc ? parseDate(body.ngayHieuLuc) : null;
 
     const recruiter = await db.recruiter.update({ where: { id }, data });
     return NextResponse.json(recruiter);

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Self-healing migration helper:
 // Vercel chỉ chạy `prisma generate` (postinstall), KHÔNG tự chạy `prisma migrate deploy`.
-// Khi schema.prisma có column mới (topN, topNMinIP) nhưng production DB chưa được migrate,
+// Khi schema.prisma có column mới nhưng production DB chưa được migrate,
 // `findMany`/`create` sẽ fail với lỗi "column does not exist".
 // Helper này chạy ALTER TABLE IF NOT EXISTS để đảm bảo schema đồng bộ.
 async function ensureTopNColumns(): Promise<void> {
@@ -16,6 +16,15 @@ async function ensureTopNColumns(): Promise<void> {
   }
 }
 
+// Self-heal cho filterByEffectiveDate (boolean column mới)
+async function ensureFilterByEffectiveDateColumn(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "filterByEffectiveDate" BOOLEAN NOT NULL DEFAULT false');
+  } catch (e) {
+    console.warn('[ensureFilterByEffectiveDateColumn] Skipped:', (e as Error)?.message);
+  }
+}
+
 // GET /api/contests - List all saved contests
 export async function GET() {
   try {
@@ -24,9 +33,9 @@ export async function GET() {
     });
     return NextResponse.json(contests);
   } catch (error) {
-    // Có thể do thiếu column topN/topNMinIP (DB chưa migrate) — thử self-heal rồi retry 1 lần
+    // Có thể do thiếu column topN/topNMinIP/filterByEffectiveDate (DB chưa migrate) — thử self-heal rồi retry 1 lần
     console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
-    await ensureTopNColumns();
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn()]);
     try {
       const contests = await db.contest.findMany({
         orderBy: { createdAt: 'desc' },
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
-      topN, topNMinIP,
+      topN, topNMinIP, filterByEffectiveDate,
     } = body as {
       title: string;
       startDate: string;
@@ -98,14 +107,15 @@ export async function POST(request: NextRequest) {
       includeTNInPassCount?: boolean;
       topN?: number;
       topNMinIP?: number;
+      filterByEffectiveDate?: boolean;
     };
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
-    // Đảm bảo DB có 2 cột topN/topNMinIP trước khi query/create (self-heal)
-    await ensureTopNColumns();
+    // Đảm bảo DB có các cột mới trước khi query/create (self-heal)
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn()]);
 
     // Validate dates - Prisma will throw if invalid, but we want a clearer message
     const parsedStart = new Date(startDate);
@@ -153,6 +163,7 @@ export async function POST(request: NextRequest) {
       includeTNInPassCount: includeTNInPassCount ?? false,
       topN: topN ?? 3,
       topNMinIP: topNMinIP ?? 50_000_000,
+      filterByEffectiveDate: filterByEffectiveDate ?? false,
     };
 
     if (existing) {
