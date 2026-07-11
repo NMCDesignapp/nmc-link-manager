@@ -232,7 +232,11 @@ export function calculateLuot(
     if (conditionType === 'activity_round_tvv90') {
       if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
     }
-    if (c.tinhLuot3tr >= luotThreshold) count++;
+    // Dùng pdt10DT (IP thực tế của HĐ) so với luotThreshold (do user cấu hình)
+    // Trước đây dùng c.tinhLuot3tr — đây là field cố định trong DB (đã được pre-compute
+    // với ngưỡng 3M khi import Excel), nên khi user đổi luotHDThreshold (vd 6M) thì
+    // kết quả vẫn sai. Dùng pdt10DT đảm bảo so sánh động theo luotThreshold.
+    if (c.pdt10DT >= luotThreshold) count++;
   }
   return count;
 }

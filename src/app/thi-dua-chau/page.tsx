@@ -2673,6 +2673,8 @@ function ThiDuaPageInner() {
 
   // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
   const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
+  // Có hiển thị cột điều kiện bổ sung per-contract (AFYP/IP tối thiểu mỗi HĐ) không?
+  const showSecondaryPerContractColumn = useSecondaryCondition && (secondaryAFYPMin > 0 || secondaryIPMin > 0);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
 
   // Calculate and show results popup
@@ -3498,6 +3500,12 @@ function ThiDuaPageInner() {
                               {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                               {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                             </TableHead>
+                            {showSecondaryPerContractColumn && (
+                              <>
+                                {secondaryAFYPMin > 0 && !isAFYP && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>AFYP/HĐ</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                                {secondaryIPMin > 0 && isAFYP && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>IP/HĐ</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              </>
+                            )}
                             {showSecondaryTotalColumn && (
                               <>
                                 {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
@@ -3729,6 +3737,11 @@ function ThiDuaPageInner() {
                       const secondaryCheck = checkSecondaryTotalCondition(group.contracts || []);
                       const secondaryPassed = secondaryCheck.passed;
                       const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                      // Per-contract secondary: tính số HĐ đạt AFYP/IP tối thiểu / tổng số HĐ
+                      const groupContracts = group.contracts || [];
+                      const totalContracts = groupContracts.length;
+                      const afypPassCount = groupContracts.filter(c => c.afyp >= secondaryAFYPMin).length;
+                      const ipPassCount = groupContracts.filter(c => c.pdt10DT >= secondaryIPMin).length;
 
                       // Bảng đơn giản cho TVV đạt thi đua: STT - NHÓM - MÃ TN - HỌ TÊN TN - SL TVV đạt thi đua - THƯỞNG - GHI CHÚ
                       if (isTVVPassCountMode(conditionType)) {
@@ -3761,6 +3774,22 @@ function ThiDuaPageInner() {
                               : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
                             }
                           </TableCell>
+                          {showSecondaryPerContractColumn && (
+                            <>
+                              {secondaryAFYPMin > 0 && !isAFYP && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap bg-amber-50 ${afypPassCount === totalContracts && totalContracts > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {afypPassCount}/{totalContracts}
+                                  {afypPassCount < totalContracts && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                              {secondaryIPMin > 0 && isAFYP && (
+                                <TableCell className={`text-right text-xs whitespace-nowrap bg-amber-50 ${ipPassCount === totalContracts && totalContracts > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {ipPassCount}/{totalContracts}
+                                  {ipPassCount < totalContracts && <span className="text-[9px] ml-1">✗</span>}
+                                </TableCell>
+                              )}
+                            </>
+                          )}
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && (
