@@ -985,10 +985,23 @@ export function computeTVVTotalRows(
   // For top_n_ip mode: assign tier by rank (only top N with IP >= topNMinIP get reward)
   if (isTopN) {
     const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+    // Auto-create default tiers if user hasn't added any — Top N mode cần tier theo từng hạng
+    // Nếu không có tier nào → Hạng 1 = 1 triệu, Hạng 2 = 500k, Hạng 3 = 300k (mặc định)
+    const effectiveTiers = sortedTiers.length > 0
+      ? sortedTiers
+      : Array.from({ length: topN }, (_, i) => ({
+          id: `default-tier-${i + 1}`,
+          minFYP: 0,
+          maxFYP: null,
+          bonusAmount: i === 0 ? 1000000 : i === 1 ? 500000 : 300000,
+          bonusType: 'money' as const,
+          bonusText: '',
+          bonusPercent: 0,
+        }));
     return allRows.map((row, idx) => {
       const rank = idx + 1;
       const qualified = row.value >= topNMinIP && rank <= topN;
-      const tierByRank = qualified && rank <= sortedTiers.length ? sortedTiers[rank - 1] : null;
+      const tierByRank = qualified && rank <= effectiveTiers.length ? effectiveTiers[rank - 1] : null;
       return {
         ...row,
         tier: tierByRank,
