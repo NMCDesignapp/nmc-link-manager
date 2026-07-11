@@ -437,11 +437,11 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   .slice(0, idx)
                   .filter(r => r.tier).length;
                 if (qualifierRank === 0) {
-                  noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[10px]"><Crown className="w-3 h-3" />Quán quân</span>;
+                  noteLabel = <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm"><Crown className="w-4 h-4" />Quán quân</span>;
                 } else if (qualifierRank === 1) {
-                  noteLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold text-[10px]"><Medal className="w-3 h-3" />Á quân</span>;
+                  noteLabel = <span className="inline-flex items-center gap-1 text-slate-500 font-bold text-sm"><Medal className="w-4 h-4" />Á quân</span>;
                 } else {
-                  noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold text-[10px]"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                  noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}</span>;
                 }
               } else if (row.remaining !== null) {
                 noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>;

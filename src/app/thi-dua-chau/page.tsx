@@ -2861,12 +2861,12 @@ function ThiDuaPageInner() {
       {!isEmbedMode && (
       <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
         {/* STEP 1: Info */}
-        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
+        <Card className={`${neonBorder} bg-white/5`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                <CardTitle className="text-sm text-emerald-400 neon-text whitespace-nowrap">Thông tin chương trình</CardTitle>
+                <CardTitle className="text-sm text-emerald-400 whitespace-nowrap">Thông tin chương trình</CardTitle>
               </div>
               <div className="flex items-center gap-1.5 ml-auto">
                 <Popover open={contestListOpen} onOpenChange={setContestListOpen}>
@@ -2924,12 +2924,12 @@ function ThiDuaPageInner() {
         </Card>
 
         {/* STEP 2: Config - Collapsible */}
-        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm` + (!showConfig ? ' py-0' : '')}>
+        <Card className={`${neonBorder} bg-white/5` + (!showConfig ? ' py-0' : '')}>
           <CardHeader className={!showConfig ? 'py-1.5 px-4' : 'pb-2 pt-3 px-4'}>
             <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                <CardTitle className="text-sm text-emerald-400 neon-text whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
+                <CardTitle className="text-sm text-emerald-400 whitespace-nowrap">Cấu hình thi đua & Thưởng</CardTitle>
               </div>
               {showConfig ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>
@@ -3363,7 +3363,7 @@ function ThiDuaPageInner() {
         )}
 
         {/* Source Data - collapsible */}
-        <Card className={`${neonBorder} bg-white/5 backdrop-blur-sm`}>
+        <Card className={`${neonBorder} bg-white/5`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <button className="flex items-center justify-between w-full" onClick={() => setShowSourceData(!showSourceData)}>
               <div className="flex items-center gap-2"><Database className="w-4 h-4 text-emerald-400/60" /><CardTitle className="text-sm text-emerald-200">Dữ liệu nguồn</CardTitle><Badge variant="secondary" className="text-[10px]">{contracts.length} HĐ</Badge></div>
@@ -3882,11 +3882,11 @@ function ThiDuaPageInner() {
                         if (isTopNResult && effectiveTier) {
                           const qualifierRank = qualifiedIdxMap.get(agent.agentCode) ?? -1;
                           if (qualifierRank === 0) {
-                            noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[10px]"><Crown className="w-3 h-3" />Quán quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm"><Crown className="w-4 h-4" />Quán quân</span>;
                           } else if (qualifierRank === 1) {
-                            noteLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold text-[10px]"><Medal className="w-3 h-3" />Á quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-slate-500 font-bold text-sm"><Medal className="w-4 h-4" />Á quân</span>;
                           } else {
-                            noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold text-[10px]"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}</span>;
                           }
                         } else if (isTopNResult && !effectiveTier && remaining !== null) {
                           noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>;

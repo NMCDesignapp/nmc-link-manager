@@ -86,9 +86,6 @@ export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
         transition: isZooming
           ? 'opacity 0.4s ease-out'
           : 'none',
-        // Hint GPU + tránh artifact khi unmount
-        willChange: 'opacity',
-        backfaceVisibility: 'hidden',
         // Khi đang zooming (opacity 0), pointer-events none để không chặn UI bên dưới
         pointerEvents: isZooming ? 'none' as const : 'auto' as const,
       }}
