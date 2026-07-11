@@ -976,3 +976,49 @@ Stage Summary:
 - Commit 6715016 pushed lên GitHub (295fd59..6715016)
 - Bug đã fix: Top N mode giờ luôn có thưởng cho TVV đạt (dù user chưa add tier)
 - User cần hard refresh (Ctrl+Shift+R) để tải JS bundle mới
+
+---
+Task ID: fix-jank-textsize-2026-07-11
+Agent: main (Super Z)
+Task: Fix giật khi expand config + size chữ Quán quân = size chữ thưởng
+
+Work Log:
+- User báo 2 vấn đề:
+  1. Bấm 'Cấu hình thi đua' bị giật (jank)
+  2. Chữ Quán quân/Á quân cần bằng kích thước chữ tiền thưởng
+
+Fix 1: Bỏ giật khi expand config
+Nguyên nhân (phân tích code):
+- Card có 'backdrop-blur-sm' (CSS backdrop-filter) — đắt trên mobile, gây repaint lớn
+  khi mount/unmount nội dung bên trong
+- CardTitle có 'neon-text' (text-shadow: 0 0 20px blur) — đắt, paint cost cao
+- AppLoader có 'willChange: opacity' — promote layer không cần thiết
+
+Fix:
+- Bỏ 'backdrop-blur-sm' trên 3 Card (Thông tin chương trình, Cấu hình thi đua,
+  Dữ liệu nguồn) → chỉ giữ 'bg-white/5' (semi-transparent)
+- Bỏ 'neon-text' trên 2 CardTitle (Thông tin chương trình, Cấu hình thi đua)
+- Bỏ 'willChange: opacity' + 'backfaceVisibility: hidden' khỏi AppLoader
+- Sync sang kpi-app/src/components/app-loader.tsx
+
+Fix 2: Size chữ 'Quán quân/Á quân/Hạng N' = size chữ tiền thưởng
+- Trước: text-[10px] (10px) + icon w-3 h-3 (12px) — quá nhỏ so với cột thưởng
+- Sau: text-sm (14px) + icon w-4 h-4 (16px) — bằng đúng size chữ thưởng (text-sm)
+- Gap giữa icon và text: gap-0.5 → gap-1 (cân đối hơn với icon lớn hơn)
+- Áp dụng cho cả:
+  + src/app/thi-dua-chau/page.tsx (noteLabel trong tvvTotalRows render)
+  + src/components/saved-contest-inline.tsx (noteLabel trong renderTVVTotalTable)
+
+Verify trên production (commit b22ba93):
+- Main app /thi-dua-chau: HTTP 200 ✅
+- KPI tách: HTTP 200 ✅
+- /api/contests: HTTP 200, 4 contests (ĐỒNG LÒNG HOẠT ĐỘNG vẫn còn) ✅
+- Test thực tế: Load 'CHINH PHỤC TOP 3' → Tính thi đua → bảng kết quả:
+  + STT 1 | Lý Cẩm Oanh | 51,479,450 | 1.000.000₫ | 👑 Quán quân ✅
+  + Chữ 'Quán quân' (text-sm 14px) = size chữ '1.000.000₫' (text-sm 14px) ✅
+  + Icon Crown (w-4 h-4 16px) ✅
+
+Stage Summary:
+- Commit b22ba93 pushed (945c16a..b22ba93)
+- 2 fixes đã verify thực tế trên production
+- User cần hard refresh (Ctrl+Shift+R) để tải JS bundle mới

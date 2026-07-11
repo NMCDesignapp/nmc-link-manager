@@ -2861,7 +2861,7 @@ function ThiDuaPageInner() {
       {!isEmbedMode && (
       <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
         {/* STEP 1: Info */}
-        <Card className={`${neonBorder} bg-white/5`}>
+        <Card className={`${neonBorder} bg-[#0e1424]/95`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -2923,8 +2923,8 @@ function ThiDuaPageInner() {
           </CardContent>
         </Card>
 
-        {/* STEP 2: Config - Collapsible */}
-        <Card className={`${neonBorder} bg-white/5` + (!showConfig ? ' py-0' : '')}>
+        {/* STEP 2: Config - Collapsible (display toggle thay vì conditional render để tránh giật) */}
+        <Card className={`${neonBorder} bg-[#0e1424]/95`}>
           <CardHeader className={!showConfig ? 'py-1.5 px-4' : 'pb-2 pt-3 px-4'}>
             <button className="flex items-center justify-between w-full" onClick={() => setShowConfig(!showConfig)}>
               <div className="flex items-center gap-2">
@@ -2934,8 +2934,7 @@ function ThiDuaPageInner() {
               {showConfig ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>
           </CardHeader>
-          {showConfig && (
-            <CardContent className="px-4 pb-4 space-y-3">
+          <CardContent className="px-4 pb-4 space-y-3" style={{ display: showConfig ? 'block' : 'none' }}>
               {/* 1. Đối tượng thi đua - Chọn TRƯỚC điều kiện */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-emerald-200">Đối tượng thi đua</Label>
@@ -3316,7 +3315,6 @@ function ThiDuaPageInner() {
                 {posterUrl && <img src={posterUrl} alt="Preview" className="h-8 rounded border border-emerald-500/30" />}
               </div>
             </CardContent>
-          )}
         </Card>
 
         {/* Action Buttons - Tính thi đua prominent, refresh small */}
@@ -3362,16 +3360,15 @@ function ThiDuaPageInner() {
           </div>
         )}
 
-        {/* Source Data - collapsible */}
-        <Card className={`${neonBorder} bg-white/5`}>
+        {/* Source Data - collapsible (display toggle thay vì conditional render để tránh giật) */}
+        <Card className={`${neonBorder} bg-[#0e1424]/95`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <button className="flex items-center justify-between w-full" onClick={() => setShowSourceData(!showSourceData)}>
               <div className="flex items-center gap-2"><Database className="w-4 h-4 text-emerald-400/60" /><CardTitle className="text-sm text-emerald-200">Dữ liệu nguồn</CardTitle><Badge variant="secondary" className="text-[10px]">{contracts.length} HĐ</Badge></div>
               {showSourceData ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>
           </CardHeader>
-          {showSourceData && (
-            <CardContent className="px-4 pb-3">
+          <CardContent className="px-4 pb-3" style={{ display: showSourceData ? 'block' : 'none' }}>
               {contracts.length === 0 ? (
                 <div className="text-center py-6 text-emerald-400/50"><Database className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Chưa có dữ liệu</p><p className="text-xs">Nhấn &ldquo;Nhập HD&rdquo; để tải từ Google Sheets</p></div>
               ) : (
@@ -3384,7 +3381,6 @@ function ThiDuaPageInner() {
                 </div>
               )}
             </CardContent>
-          )}
         </Card>
       </main>
       )}
