@@ -36,22 +36,8 @@ export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');
   const [progress, setProgress] = useState(0);
 
-  // Fake progress bar — animates from 0 to 90% during 'loading' phase
-  useEffect(() => {
-    if (phase !== 'loading') return;
-    let raf: number;
-    let start: number | null = null;
-    const tick = (t: number) => {
-      if (start === null) start = t;
-      const elapsed = (t - start) / 1000;
-      // Easing: fast first 1.2s, slow tail to 90%
-      const target = elapsed < 1.2 ? (elapsed / 1.2) * 75 : 75 + Math.min(15, (elapsed - 1.2) * 5);
-      setProgress(prev => Math.max(prev, Math.min(90, target)));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [phase]);
+  // ĐÃ BỎ fake progress bar (0→90% easing) — nó chậm hơn data fetch thực tế
+  // → user thấy "chậm chậm" dù data đã xong. Giờ progress chỉ nhảy 0 → 100 khi data ready.
 
   // When show flips to false (data ready), bump progress to 100 and enter 'complete'
   useEffect(() => {
@@ -283,7 +269,7 @@ export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
               transition: 'color 0.3s',
             }}
           >
-            {Math.round(progress)}%
+            {progress >= 100 ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}
           </div>
         </motion.div>
 

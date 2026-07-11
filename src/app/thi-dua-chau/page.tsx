@@ -1162,12 +1162,15 @@ function ThiDuaPageInner() {
 
     // For top_n_ip mode: assign tier by rank (only top N with value >= topNMinIP get reward)
     if (isTopN) {
-      const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+      // QUAN TRỌNG: Trong Top N mode, tier theo THỨ TỰ hạng (Mức 1 = Hạng 1, Mức 2 = Hạng 2, ...)
+      // KHÔNG sort theo minFYP (sẽ sai: user setup Mức 1 minFYP=50M bonusAmount=1M,
+      // Mức 2 minFYP=0 bonusAmount=500K → sort sẽ đặt Mức 2 lên trước → Hạng 1 nhận 500K thay vì 1M)
+      const orderedTiers = [...bonusTiers];
       // Auto-create default tiers if user hasn't added any — Top N mode cần tier theo từng hạng
       // Nếu không có tier nào → Hạng 1 = 1 triệu, Hạng 2 = 500k, Hạng 3 = 300k (mặc định)
       // User có thể override bằng cách add tier trong UI
-      const effectiveTiers = sortedTiers.length > 0
-        ? sortedTiers
+      const effectiveTiers = orderedTiers.length > 0
+        ? orderedTiers
         : Array.from({ length: topN }, (_, i) => ({
             id: `default-tier-${i + 1}`,
             minFYP: 0,
@@ -3429,7 +3432,7 @@ function ThiDuaPageInner() {
                 <Table className="text-sm">
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
-                      <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">{isTopNMode(conditionType) ? 'HẠNG' : 'STT'}</TableHead>
+                      <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
                       {targetType === 'nyd' ? (
                         <>
                           <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center whitespace-nowrap">NHÓM</TableHead>
@@ -3854,7 +3857,8 @@ function ThiDuaPageInner() {
                       );
                     }) : (() => {
                       // total_ip / total_afyp / top_n_ip mode for TVV: use pre-computed tvvTotalRows (includes TVV with 0 contracts)
-                      // Top N mode: hiển thị TẤT CẢ TVV (kể cả k có doanh số), cột HẠNG hiện label Quán quân/Á quân cho TVV đạt
+                      // Top N mode: hiển thị TẤT CẢ TVV (kể cả k có doanh số)
+                      // Theo yêu cầu user: KHÔNG có cột HẠNG riêng — ghi 'Quán quân/Á quân/Hạng N' vào cột Ghi chú
                       const isTopNResult = isTopNMode(conditionType);
                       // Đếm số TVV đạt (qualified) để gán label Quán quân/Á quân theo thứ hạng đạt (không phải absolute rank)
                       const qualifiedRows = isTopNResult
@@ -3873,24 +3877,31 @@ function ThiDuaPageInner() {
                         const secondaryPassed = secondaryCheck.passed;
                         // Nếu có điều kiện bổ sung mà không đạt → không được thưởng (nhưng vẫn hiển thị)
                         const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
-                        // Top N mode: tính label hạng theo qualifier rank
-                        let rankLabel: React.ReactNode = idx + 1;
+                        // Top N mode: tính label hạng để ghi vào cột Ghi chú (KHÔNG có cột HẠNG riêng)
+                        let noteLabel: React.ReactNode = null;
                         if (isTopNResult && effectiveTier) {
                           const qualifierRank = qualifiedIdxMap.get(agent.agentCode) ?? -1;
                           if (qualifierRank === 0) {
-                            rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold"><Crown className="w-3 h-3" />Quán quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[10px]"><Crown className="w-3 h-3" />Quán quân</span>;
                           } else if (qualifierRank === 1) {
-                            rankLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold"><Medal className="w-3 h-3" />Á quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold text-[10px]"><Medal className="w-3 h-3" />Á quân</span>;
                           } else {
-                            rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                            noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold text-[10px]"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
                           }
+                        } else if (isTopNResult && !effectiveTier && remaining !== null) {
+                          noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>;
                         } else if (isTopNResult && !effectiveTier) {
-                          // Top N mode + không đạt → hiển thị số thứ tự + label "chưa đạt"
-                          rankLabel = <span className="text-gray-400">{idx + 1}</span>;
+                          noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>;
                         }
+                        // Cột Ghi chú cho mode KHÔNG phải Top N (giữ nguyên logic cũ)
+                        const nonTopNoteCell = !effectiveTier && remaining !== null
+                          ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>
+                          : !effectiveTier
+                            ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
+                            : null;
                         return (
                           <TableRow key={agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                            <TableCell className="text-center text-xs whitespace-nowrap">{rankLabel}</TableCell>
+                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
                             <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>
@@ -3923,7 +3934,7 @@ function ThiDuaPageInner() {
                             ) : (
                               <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, value)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                             )}
-                            <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                            <TableCell className="whitespace-nowrap">{isTopNResult ? noteLabel : nonTopNoteCell}</TableCell>
                           </TableRow>
                         );
                       });

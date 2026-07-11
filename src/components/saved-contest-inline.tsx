@@ -391,7 +391,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       <Table>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="border-b" style={{ backgroundColor: '#065F46', borderColor: '#047857' }}>
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{isTopN ? 'HẠNG' : 'STT'}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>STT</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NHÓM KD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
@@ -429,28 +429,36 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               if ((config.secondaryTotalIPMin ?? 0) > 0 && totalIP < (config.secondaryTotalIPMin ?? 0)) secondaryPassed = false;
             }
             const effectiveTier = secondaryPassed ? row.tier : ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0 ? null : row.tier);
-            // Top N mode: tính qualifier rank (thứ hạng trong số những TVV đạt) để gán label Quán quân/Á quân
-            let rankLabel: React.ReactNode = idx + 1;
+            // Top N mode: tính label hạng để ghi vào cột Ghi chú (KHÔNG có cột HẠNG riêng)
+            let noteLabel: React.ReactNode = null;
             if (isTopN) {
               if (effectiveTier) {
-                // qualifiedRowIdx đã được tính từ trước (xem dưới) — fallback: đếm TVV đạt trước idx này
                 const qualifierRank = filteredRows
                   .slice(0, idx)
                   .filter(r => r.tier).length;
                 if (qualifierRank === 0) {
-                  rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold"><Crown className="w-3 h-3" />Quán quân</span>;
+                  noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-600 font-bold text-[10px]"><Crown className="w-3 h-3" />Quán quân</span>;
                 } else if (qualifierRank === 1) {
-                  rankLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold"><Medal className="w-3 h-3" />Á quân</span>;
+                  noteLabel = <span className="inline-flex items-center gap-0.5 text-slate-500 font-bold text-[10px]"><Medal className="w-3 h-3" />Á quân</span>;
                 } else {
-                  rankLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
+                  noteLabel = <span className="inline-flex items-center gap-0.5 text-amber-700 font-bold text-[10px]"><Trophy className="w-3 h-3" />Hạng {qualifierRank + 1}</span>;
                 }
+              } else if (row.remaining !== null) {
+                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>;
               } else {
-                rankLabel = <span className="text-gray-400">{idx + 1}</span>;
+                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>;
               }
+            } else {
+              // Non-Top N: giữ nguyên logic cột Ghi chú
+              noteLabel = !effectiveTier && row.remaining !== null
+                ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>
+                : !effectiveTier
+                  ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
+                  : null;
             }
             return (
               <TableRow key={row.agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                <TableCell className="text-center text-xs whitespace-nowrap">{rankLabel}</TableCell>
+                <TableCell className="text-center text-xs whitespace-nowrap text-gray-400">{idx + 1}</TableCell>
                 <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || row.agent.maNhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>
@@ -476,13 +484,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                     ) : <span className="text-gray-400 text-xs">—</span>}
                   </TableCell>
                 )}
-                <TableCell className="whitespace-nowrap">
-                  {!effectiveTier && row.remaining !== null ? (
-                    <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>
-                  ) : !effectiveTier ? (
-                    <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
-                  ) : null}
-                </TableCell>
+                <TableCell className="whitespace-nowrap">{noteLabel}</TableCell>
               </TableRow>
             );
           })}

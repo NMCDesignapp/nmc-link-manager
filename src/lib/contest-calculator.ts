@@ -984,11 +984,14 @@ export function computeTVVTotalRows(
 
   // For top_n_ip mode: assign tier by rank (only top N with IP >= topNMinIP get reward)
   if (isTopN) {
-    const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+    // QUAN TRỌNG: Trong Top N mode, tier theo THỨ TỰ hạng (Mức 1 = Hạng 1, Mức 2 = Hạng 2, ...)
+    // KHÔNG sort theo minFYP (sẽ sai: user setup Mức 1 minFYP=50M bonusAmount=1M,
+    // Mức 2 minFYP=0 bonusAmount=500K → sort sẽ đặt Mức 2 lên trước → Hạng 1 nhận 500K thay vì 1M)
+    const orderedTiers = [...bonusTiers];
     // Auto-create default tiers if user hasn't added any — Top N mode cần tier theo từng hạng
     // Nếu không có tier nào → Hạng 1 = 1 triệu, Hạng 2 = 500k, Hạng 3 = 300k (mặc định)
-    const effectiveTiers = sortedTiers.length > 0
-      ? sortedTiers
+    const effectiveTiers = orderedTiers.length > 0
+      ? orderedTiers
       : Array.from({ length: topN }, (_, i) => ({
           id: `default-tier-${i + 1}`,
           minFYP: 0,
