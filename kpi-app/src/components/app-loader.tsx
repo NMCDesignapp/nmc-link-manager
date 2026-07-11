@@ -92,12 +92,19 @@ export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
     <div
       className="fixed inset-0 z-[1000] flex flex-col items-center justify-center overflow-hidden"
       style={{
-        background: 'radial-gradient(ellipse at center, #0a1a14 0%, #050a07 60%, #000000 100%)',
+        // Solid dark background — tránh radial-gradient gây GPU compositing artifact (sọc nhiễu) trên mobile
+        background: '#050a07',
         opacity: isZooming ? 0 : 1,
-        transform: isZooming ? 'scale(1.25)' : 'scale(1)',
+        // Bỏ transform: scale(1.25) — scale trên fullscreen overlay + gradient gây artifact nhiễu màu trên mobile
+        // Chỉ fade-out opacity (mượt hơn, không gây sọc)
         transition: isZooming
-          ? 'opacity 0.5s ease-in, transform 0.55s cubic-bezier(.55, .05, .7, .5)'
+          ? 'opacity 0.4s ease-out'
           : 'none',
+        // Hint GPU + tránh artifact khi unmount
+        willChange: 'opacity',
+        backfaceVisibility: 'hidden',
+        // Khi đang zooming (opacity 0), pointer-events none để không chặn UI bên dưới
+        pointerEvents: isZooming ? 'none' as const : 'auto' as const,
       }}
     >
       {/* Honeycomb background pattern (subtle, matches app) */}
