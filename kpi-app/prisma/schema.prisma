@@ -109,14 +109,15 @@ model Staff {
 }
 
 model Recruiter {
-  id        String    @id @default(uuid())
-  nhom      String    @default("")  // Nhóm
-  agentCode String    @unique       // Mã số NTD
-  agentName String                   // Họ tên
-  position  String    @default("")  // Chức vụ
-  startDate DateTime?               // Ngày bắt đầu
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  nhom         String    @default("")  // Nhóm
+  agentCode    String    @unique       // Mã số NTD
+  agentName    String                   // Họ tên
+  position     String    @default("")  // Chức vụ
+  startDate    DateTime?               // Ngày bắt đầu
+  ngayHieuLuc  DateTime?               // Ngày hiệu lực chức vụ (gần nhất — mỗi lần thăng/hạ thì ghi đè)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Contest {
@@ -152,6 +153,10 @@ model Contest {
   tvv90MinIP       Float  @default(12000000)
   referenceContestId String @default("")
   includeTNInPassCount Boolean @default(false)
+  topN             Int     @default(3)
+  topNMinIP        Float   @default(50000000)
+  topNValueType    String  @default("ip")     // Loại chỉ tiêu xét Top N: 'ip' | 'afyp'
+  filterByEffectiveDate Boolean @default(false) // Chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")
@@ -301,4 +306,16 @@ model PendingMember {
   note      String   @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Poster images — Lưu binary ảnh poster (Sao Việt / CLB Sao Việt)
+// Trước đây lưu base64 trong Setting → làm /api/settings trả về 16.9 MB (chậm).
+// Giờ chuyển sang bảng riêng: binary BYTEA + serve qua /api/poster-image/[key]
+// với Cache-Control: public, max-age=31536000, immutable → browser cache.
+// Trong Setting chỉ lưu URL ngắn: "/api/poster-image/saoviet-poster-ca-nhan"
+model PosterImage {
+  key         String   @id
+  data        Bytes
+  contentType String   @default("image/jpeg")
+  updatedAt   DateTime @updatedAt
 }

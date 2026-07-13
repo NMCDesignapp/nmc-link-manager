@@ -109,55 +109,70 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         // ignore — schema fix is best-effort
       }
 
-      try {
-        const [
-          leaders, revenue, contracts, staff, recruiters, tuyenNgang,
-          structurePhong, structureAd, structureBanNhom, structureTvv,
-          clbMembers, pendingMembers, quanLyAll, settings, contests,
-        ] = await Promise.all([
-          fetchJson('/api/leaders'),
-          fetchJson('/api/revenue'),
-          fetchJson('/api/contracts'),
-          fetchJson('/api/staff'),
-          fetchJson('/api/recruiters'),
-          fetchJson('/api/tuyen-ngang'),
-          fetchJson('/api/structure/phong'),
-          fetchJson('/api/structure/ad'),
-          fetchJson('/api/structure/bannhom'),
-          fetchJson('/api/structure/tvv'),
-          fetchJson('/api/clb-members'),
-          fetchJson('/api/pending-members'),
-          fetchJson('/api/quan-ly/all'),
-          fetchJson('/api/settings'),
-          fetchJson('/api/contests'),
-        ])
+      // Auto-retry: Neon free tier auto-suspend sau 5 phút → cold start có thể fail
+      // Retry 3 lần với delay 3s để Neon có thời gian wake up
+      const maxRetries = 3;
+      let lastError: any;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const [
+            leaders, revenue, contracts, staff, recruiters, tuyenNgang,
+            structurePhong, structureAd, structureBanNhom, structureTvv,
+            clbMembers, pendingMembers, quanLyAll, settings, contests,
+          ] = await Promise.all([
+            fetchJson('/api/leaders'),
+            fetchJson('/api/revenue'),
+            fetchJson('/api/contracts'),
+            fetchJson('/api/staff'),
+            fetchJson('/api/recruiters'),
+            fetchJson('/api/tuyen-ngang'),
+            fetchJson('/api/structure/phong'),
+            fetchJson('/api/structure/ad'),
+            fetchJson('/api/structure/bannhom'),
+            fetchJson('/api/structure/tvv'),
+            fetchJson('/api/clb-members'),
+            fetchJson('/api/pending-members'),
+            fetchJson('/api/quan-ly/all'),
+            fetchJson('/api/settings'),
+            fetchJson('/api/contests'),
+          ])
 
-        setData({
-          leaders: leaders || [],
-          revenue: revenue || [],
-          contracts: contracts || [],
-          staff: staff || [],
-          recruiters: recruiters || [],
-          tuyenNgang: tuyenNgang || [],
-          structurePhong: structurePhong || [],
-          structureAd: structureAd || [],
-          structureBanNhom: structureBanNhom || [],
-          structureTvv: structureTvv || [],
-          clbMembers: clbMembers || [],
-          pendingMembers: pendingMembers || [],
-          quanLyAll: quanLyAll || null,
-          settings: settings || null,
-          contests: contests || [],
-        })
-        setLastSync(new Date())
-        setDataVersion(v => v + 1)
-        setLoadError(null)
-      } catch (err: any) {
-        const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
-        console.error('[AppDataProvider] loadAll error:', msg)
-        setLoadError(msg)
-        throw err
+          setData({
+            leaders: leaders || [],
+            revenue: revenue || [],
+            contracts: contracts || [],
+            staff: staff || [],
+            recruiters: recruiters || [],
+            tuyenNgang: tuyenNgang || [],
+            structurePhong: structurePhong || [],
+            structureAd: structureAd || [],
+            structureBanNhom: structureBanNhom || [],
+            structureTvv: structureTvv || [],
+            clbMembers: clbMembers || [],
+            pendingMembers: pendingMembers || [],
+            quanLyAll: quanLyAll || null,
+            settings: settings || null,
+            contests: contests || [],
+          })
+          setLastSync(new Date())
+          setDataVersion(v => v + 1)
+          setLoadError(null)
+          return; // success → exit retry loop
+        } catch (err: any) {
+          lastError = err;
+          const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
+          console.error(`[AppDataProvider] loadAll attempt ${attempt + 1}/${maxRetries} failed:`, msg)
+          if (attempt < maxRetries - 1) {
+            setLoadError(`Đang kết nối lại database... (lần ${attempt + 1}/${maxRetries})`)
+            await new Promise(resolve => setTimeout(resolve, 3000))
+          }
+        }
       }
+      // All retries failed
+      const msg = lastError?.message || String(lastError) || 'Lỗi không xác định khi tải dữ liệu'
+      console.error('[AppDataProvider] loadAll all retries failed:', msg)
+      setLoadError(msg)
+      throw lastError
     })()
 
     inflight.current = p
