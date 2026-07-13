@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       try {
         const content = readFileSync(join(backupDir, filename), 'utf-8');
         const parsed = JSON.parse(content);
-        return Array.isArray(parsed) ? parsed : (parsed.data || []);
+        return Array.isArray(parsed) ? parsed : (parsed.records || parsed.data || []);
       } catch (err) {
         console.warn(`[restore-data] Cannot read ${filename}:`, err);
         return [];
