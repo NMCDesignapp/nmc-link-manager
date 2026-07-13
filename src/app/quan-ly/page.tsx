@@ -3596,10 +3596,11 @@ export default function QuanLyPage() {
   // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
   const ipAfypRatio = totalRevenueAFYP > 0 ? (totalRevenue / totalRevenueAFYP) * 100 : 0;
 
-  // Độ lớn hợp đồng (ĐLHĐ) = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
-  const doLonHD = luotHoatDong > 0 ? totalRevenueAFYP / luotHoatDong : 0;
+  // Độ lớn hợp đồng (ĐLHĐ) = Tổng AFYP / Số lượng hợp đồng (số dòng có dữ liệu)
+  // Mỗi dòng = 1 hợp đồng. Số lượng HĐ = totalRevenueContractCount.
+  const doLonHD = totalRevenueContractCount > 0 ? totalRevenueAFYP / totalRevenueContractCount : 0;
 
-  // Năng suất = SL hợp đồng / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
+  // Năng suất = SL hợp đồng / Lượt HĐ (số HĐ có pdt10DT >= 3tr)
   const nangSuat = luotHoatDong > 0 ? totalRevenueContractCount / luotHoatDong : 0;
 
   // SL tuyển dụng = đếm unique agentCode từ cấu trúc TVV có ngày bắt đầu trong năm hiện tại
@@ -8975,8 +8976,8 @@ export default function QuanLyPage() {
     const nangSuatMonth = tvvDat3tr > 0 ? soLuongHD / tvvDat3tr : 0;
     // IP/AFYP (%) = (IP + 10% PĐT) / AFYP * 100
     const ipAfypMonth = tongAFYP > 0 ? (tongIP / tongAFYP) * 100 : 0;
-    // ĐLHĐ = Tổng AFYP / Lượt HĐ (số TVV có tinhLuot3tr >= 3tr)
-    const dlhdMonth = luotHoatDong > 0 ? tongAFYP / luotHoatDong : 0;
+    // ĐLHĐ = Tổng AFYP / Số lượng hợp đồng (số dòng có dữ liệu)
+    const dlhdMonth = soLuongHD > 0 ? tongAFYP / soLuongHD : 0;
 
     // NTD count: count unique maDaiLyTD that exist in DS TB/TN + DS TTN (NTD = TB+TN+TTN)
     const ntdCodes = new Set([

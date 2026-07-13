@@ -2803,7 +2803,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       totalIP,
       slHD,
       nangSuat: totalLhd > 0 ? slHD / totalLhd : 0,
-      doLonHD: totalLhd > 0 ? totalAFYP / totalLhd : 0,
+      doLonHD: slHD > 0 ? totalAFYP / slHD : 0,
     };
 
     return { total, phongs, periodContracts };
@@ -2954,7 +2954,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     const slHD = finalContracts.length;
     const tyTrongIP = afyp > 0 ? (ip / afyp * 100) : 0;
     const nangSuat = lhd > 0 ? slHD / lhd : 0;
-    const doLonHD = lhd > 0 ? afyp / lhd : 0;
+    const doLonHD = slHD > 0 ? afyp / slHD : 0;
 
     // Annual KH 2026
     const annualKh = parseFloat(onlineSettings[`nmc-kh-nhom-${selectedBN.maBanNhom}`] || '0') || 0;
