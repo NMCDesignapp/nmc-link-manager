@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
     };
 
     // Restore each table (order: independent tables first, then dependent)
-    await restoreTable('ad', 'AD.json', async (rows) => {
+    await restoreTable('aD', 'AD.json', async (rows) => {
       if (rows.length === 0) return 0;
-      await db.ad.createMany({ data: rows.map((r: any) => ({
+      await db.aD.createMany({ data: rows.map((r: any) => ({
         id: r.id, maAD: r.maAD, tenAD: r.tenAD, maPhong: r.maPhong || '', note: r.note || '',
       })) });
       return rows.length;
