@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ["@prisma/client", "@neondatabase/serverless"],
+  // Fix: Turbopack không infer đúng workspace root khi có 2 lockfiles
+  // (kpi-app/package-lock.json + parent package-lock.json)
+  turbopack: {
+    root: __dirname,
+  },
   // Allow CORS from main nc-link app if needed (for future API sharing)
   async headers() {
     return [
