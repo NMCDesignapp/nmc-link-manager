@@ -1,15 +1,16 @@
 'use client'
 
 /**
- * AppDataContext — STANDALONE SHIM cho kpi-app.
+ * AppDataContext — Bộ tải dữ liệu toàn cục.
  *
- * Cung cấp CHÍNH XÁC cùng interface `useAppData()` như main app
- * (`src/lib/app-data-context.tsx`), để page.tsx có thể được sync 1:1
- * từ `src/app/kpi/page.tsx` mà không cần sửa code.
- *
- * Khác biệt duy nhất: standalone app tự fetch dữ liệu (không có
- * layout-level preload như main app), nhưng vẫn preload 1 lần khi
- * AppDataProvider mount → tương tự hành vi main app.
+ * Mục tiêu:
+ *  - Khi ứng dụng nc-link.vercel.app được mở, preload tất cả dữ liệu 1 lần
+ *    (contracts, leaders, revenue, staff, recruiters, tuyen-ngang,
+ *     structure: phong/ad/bannhom/tvv, clb-members, pending-members,
+ *     quan-ly/all, settings, contests).
+ *  - Các trang con (KPI, Quản lý, Thi đua) đọc dữ liệu đã load từ context
+ *    thay vì tự fetch khi mount → tránh reload mỗi lần đổi trang.
+ *  - Hàm reload() để user ép đồng bộ toàn bộ (nút "Load dữ liệu" ở trang chính).
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
@@ -52,11 +53,12 @@ const initialData: AppData = {
 
 interface AppDataContextValue {
   data: AppData
-  isLoading: boolean
-  isReloading: boolean
-  loadError: string | null
+  isLoading: boolean       // true khi đang load lần đầu (app vừa mở)
+  isReloading: boolean     // true khi user nhấn nút "Load dữ liệu"
+  loadError: string | null // error message nếu load thất bại (null nếu OK)
   lastSync: Date | null
   reload: () => Promise<void>
+  /** Bump version mỗi lần reload thành công — các trang useEffect vào [dataVersion] để sync local state */
   dataVersion: number
 }
 
@@ -72,7 +74,11 @@ const AppDataContext = createContext<AppDataContextValue>({
 
 const fetchJson = async (url: string): Promise<any> => {
   try {
-    const r = await fetch(url, { cache: 'no-store' })
+    // Cache-bust: thêm timestamp vào URL để tránh browser HTTP cache
+    // Đảm bảo luôn lấy data mới từ server
+    const sep = url.includes('?') ? '&' : '?'
+    const bustUrl = `${url}${sep}_t=${Date.now()}`
+    const r = await fetch(bustUrl, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } })
     if (!r.ok) return null
     return await r.json()
   } catch {
@@ -92,12 +98,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadAll = useCallback(async (): Promise<void> => {
     if (inflight.current) return inflight.current
-    setLoadError(null)
+    setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
-      // Standalone kpi-app chỉ có một số API route (không có leaders/revenue/
-      // recruiters/tuyenNgang/clbMembers/pendingMembers/contests standalone).
-      // Nhưng thử fetch hết — nếu route không tồn tại sẽ trả null → mảng [].
+      // Self-heal: ensure DB schema has all required columns/tables before fetching data.
+      // Idempotent + fail-safe — if it fails, data fetch still proceeds.
+      try {
+        await fetch('/api/admin/fix-schema', { method: 'POST' }).catch(() => {});
+      } catch {
+        // ignore — schema fix is best-effort
+      }
+
       try {
         const [
           leaders, revenue, contracts, staff, recruiters, tuyenNgang,
@@ -143,7 +154,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         setLoadError(null)
       } catch (err: any) {
         const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
-        console.error('[AppDataProvider/standalone] loadAll error:', msg)
+        console.error('[AppDataProvider] loadAll error:', msg)
         setLoadError(msg)
         throw err
       }
@@ -157,6 +168,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Auto-load 1 lần khi app mount
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
@@ -169,7 +181,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       await loadAll()
     } finally {
       setIsReloading(false)
-      setIsLoading(false)
+      setIsLoading(false) // ensure isLoading=false sau retry (dù thành/bại)
     }
   }, [loadAll])
 

@@ -591,36 +591,44 @@ function ThiDuaPageInner() {
     reader.readAsDataURL(file);
   };
 
-  const fetchContracts = useCallback(async () => {
-    setIsLoading(true);
-    try { const res = await fetch('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(data); } }
-    catch { /* silent - status shown by green check / spinner */ }
-    finally { setIsLoading(false); }
+  // Helper: fetch với cache-bust — đảm bảo luôn lấy data mới từ server
+  // Trước đây fetch không có cache: 'no-store' → browser cache API response → data cũ
+  const fetchFresh = useCallback(async (url: string) => {
+    const sep = url.includes('?') ? '&' : '?';
+    const bustUrl = `${url}${sep}_t=${Date.now()}`;
+    return fetch(bustUrl, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
   }, []);
 
+  const fetchContracts = useCallback(async () => {
+    setIsLoading(true);
+    try { const res = await fetchFresh('/api/contracts'); if (res.ok) { const data = await res.json(); setContracts(data); } }
+    catch { /* silent - status shown by green check / spinner */ }
+    finally { setIsLoading(false); }
+  }, [fetchFresh]);
+
   const fetchSavedContests = useCallback(async () => {
-    try { const res = await fetch('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
-  }, []);
+    try { const res = await fetchFresh('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+  }, [fetchFresh]);
 
   // Fetch staff list for group membership reference
   const fetchStaff = useCallback(async () => {
-    try { const res = await fetch('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
-  }, []);
+    try { const res = await fetchFresh('/api/staff'); if (res.ok) { const data = await res.json(); setStaffList(data); } } catch { /* silent */ }
+  }, [fetchFresh]);
 
   // Fetch recruiter list for NYD reference
   const fetchRecruiters = useCallback(async () => {
-    try { const res = await fetch('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
-  }, []);
+    try { const res = await fetchFresh('/api/recruiters'); if (res.ok) { const data = await res.json(); setRecruiterList(data); } } catch { /* silent */ }
+  }, [fetchFresh]);
 
   // Fetch DS TVV từ Cấu trúc — nguồn ĐÚNG cho DS đối tượng TVV/TVVm
   const fetchTvvStruct = useCallback(async () => {
-    try { const res = await fetch('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch { /* silent */ }
-  }, []);
+    try { const res = await fetchFresh('/api/structure/tvv'); if (res.ok) { const data = await res.json(); setTvvStructList(data); } } catch { /* silent */ }
+  }, [fetchFresh]);
 
   // Fetch DS TB/TN (Leaders) từ Cấu trúc — nguồn ĐÚNG cho DS đối tượng TN
   const fetchLeaders = useCallback(async () => {
-    try { const res = await fetch('/api/leaders'); if (res.ok) { const data = await res.json(); setLeadersList(data); } } catch { /* silent */ }
-  }, []);
+    try { const res = await fetchFresh('/api/leaders'); if (res.ok) { const data = await res.json(); setLeadersList(data); } } catch { /* silent */ }
+  }, [fetchFresh]);
 
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion } = useAppData();
@@ -640,13 +648,13 @@ function ThiDuaPageInner() {
   // fetchRevenue removed — all data now sourced from Contracts table only
 
   // Data is loaded directly from DB (populated by Quản lý page) — no CSV sync needed
-  // Refresh all data from DB
+  // Refresh all data from DB — dùng fetchFresh để tránh browser cache
   const handleRefreshData = useCallback(async () => {
     setIsLoading(true);
     try {
       await Promise.all([fetchContracts(), fetchStaff(), fetchRecruiters(), fetchTvvStruct(), fetchLeaders()]);
       // Show success indicator
-      const contractRes = await fetch('/api/contracts');
+      const contractRes = await fetchFresh('/api/contracts');
       if (contractRes.ok) {
         const contractData = await contractRes.json();
         setDataLoadedCount(contractData.length || contracts.length);
@@ -658,7 +666,7 @@ function ThiDuaPageInner() {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchTvvStruct, fetchLeaders, contracts.length]);
+  }, [fetchContracts, fetchStaff, fetchRecruiters, fetchTvvStruct, fetchLeaders, fetchFresh, contracts.length]);
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }

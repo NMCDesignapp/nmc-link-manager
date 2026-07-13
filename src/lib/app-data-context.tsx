@@ -74,7 +74,11 @@ const AppDataContext = createContext<AppDataContextValue>({
 
 const fetchJson = async (url: string): Promise<any> => {
   try {
-    const r = await fetch(url, { cache: 'no-store' })
+    // Cache-bust: thêm timestamp vào URL để tránh browser HTTP cache
+    // Đảm bảo luôn lấy data mới từ server
+    const sep = url.includes('?') ? '&' : '?'
+    const bustUrl = `${url}${sep}_t=${Date.now()}`
+    const r = await fetch(bustUrl, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } })
     if (!r.ok) return null
     return await r.json()
   } catch {
