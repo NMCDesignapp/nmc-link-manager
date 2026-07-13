@@ -1,0 +1,293 @@
+{
+  "table": "Staff",
+  "count": 26,
+  "exported_at": "2026-07-12T19:58:59.664949",
+  "records": [
+    {
+      "id": "cmp0z8nr30000l704aa8ra683",
+      "agentCode": "D104134807",
+      "agentName": "Dương Thanh Ny",
+      "position": "Trưởng nhóm",
+      "nhom": "An Phú 2",
+      "maNhom": "U104102122",
+      "startDate": "2018-03-21 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30001l704kn3tylcf",
+      "agentCode": "D251517012",
+      "agentName": "Phan Văn Thạnh",
+      "position": "Trưởng nhóm",
+      "nhom": "Cát Tường",
+      "maNhom": "U2510345943",
+      "startDate": "2025-09-25 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30002l7043c3rmi8w",
+      "agentCode": "D104142435",
+      "agentName": "Nguyễn Thị Lê Giào",
+      "position": "Trưởng nhóm",
+      "nhom": "Chợ Mới 1",
+      "maNhom": "U104106078",
+      "startDate": "2019-01-11 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30003l704y5zjcrhj",
+      "agentCode": "D104132535",
+      "agentName": "Nguyễn Thị Thảo",
+      "position": "Trưởng ban",
+      "nhom": "Hiệp Tiến",
+      "maNhom": "A104103002",
+      "startDate": "2017-09-13 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30004l7048gail2rz",
+      "agentCode": "D1041A2EWW",
+      "agentName": "Trương Văn Đậm",
+      "position": "Trưởng nhóm",
+      "nhom": "An Kiên Phát",
+      "maNhom": "U2510175986",
+      "startDate": "2022-02-17 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30005l704kznoadk2",
+      "agentCode": "D104133899",
+      "agentName": "Nguyễn Ngọc Thành",
+      "position": "Trưởng nhóm",
+      "nhom": "Bảo An",
+      "maNhom": "U104101167",
+      "startDate": "2018-01-24 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30006l704c5a4ux03",
+      "agentCode": "D104132784",
+      "agentName": "Dương Thị Hồng Nga",
+      "position": "Trưởng nhóm",
+      "nhom": "Nhiệt An",
+      "maNhom": "U1041A3L6E",
+      "startDate": "2017-10-16 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30007l704rdi8efty",
+      "agentCode": "D248764688",
+      "agentName": "Trần Thị Kim Thùy",
+      "position": "Trưởng nhóm",
+      "nhom": "Phú Hòa",
+      "maNhom": "U2510175992",
+      "startDate": "2025-01-14 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30008l7040204z07e",
+      "agentCode": "D104121292",
+      "agentName": "Nguyễn Thị Ánh Ngọc",
+      "position": "Trưởng nhóm",
+      "nhom": "Thiên Lộc",
+      "maNhom": "U1041A1A9N",
+      "startDate": "2015-11-10 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr30009l704zdemqsig",
+      "agentCode": "D248743157",
+      "agentName": "Lê Thị Mỹ Linh",
+      "position": "Trưởng nhóm",
+      "nhom": "Thương Phú",
+      "maNhom": "U257552148",
+      "startDate": "2024-12-10 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000al704qqwiabf7",
+      "agentCode": "D104118951",
+      "agentName": "Lê Thị Hạnh",
+      "position": "Trưởng nhóm",
+      "nhom": "Hồng Tâm",
+      "maNhom": "U1041A1ACX",
+      "startDate": "2015-03-10 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000bl7046m197buv",
+      "agentCode": "D104120637",
+      "agentName": "Cao Thị Mười",
+      "position": "Trưởng nhóm",
+      "nhom": "Phụng Hoàng Sơn",
+      "maNhom": "U104101058",
+      "startDate": "2015-08-04 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000cl704ev2t2ubl",
+      "agentCode": "D104128286",
+      "agentName": "Nguyễn Thị Kha Minh",
+      "position": "Trưởng nhóm",
+      "nhom": "Minh Phú",
+      "maNhom": "U1041A3TYP",
+      "startDate": "2017-03-20 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000dl7048lckmhkh",
+      "agentCode": "D104135240",
+      "agentName": "Trịnh Thị Mỹ Linh",
+      "position": "Trưởng nhóm",
+      "nhom": "Sao Tâm Yên",
+      "maNhom": "U1041A3MSY",
+      "startDate": "2018-03-30 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000el7041hjiel3v",
+      "agentCode": "D104101517",
+      "agentName": "Nguyễn Thị Thùy Linh",
+      "position": "Trưởng ban",
+      "nhom": "Sao An Phú",
+      "maNhom": "A1041A16Z5",
+      "startDate": "2001-07-25 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000fl704n1nrnav6",
+      "agentCode": "D104141038",
+      "agentName": "Nguyễn Thị Diễm",
+      "position": "Trưởng nhóm",
+      "nhom": "An Phú 9",
+      "maNhom": "U104102192",
+      "startDate": "2018-10-22 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000gl704qjj9t6e9",
+      "agentCode": "D1041A1VEW",
+      "agentName": "Đàm Thị Hương Tuyết",
+      "position": "Trưởng nhóm",
+      "nhom": "Sao Tâm An",
+      "maNhom": "U1041A2DTG",
+      "startDate": "2021-07-06 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000hl704i76brj4a",
+      "agentCode": "D251605032",
+      "agentName": "Lê Hồng Yến Nhi",
+      "position": "Trưởng nhóm",
+      "nhom": "Niềm Tin",
+      "maNhom": "U2610208925",
+      "startDate": "2025-12-16 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000il704jmrl8vy1",
+      "agentCode": "D1041A39HI",
+      "agentName": "Đỗ Thị Thùy Linh",
+      "position": "Trưởng nhóm",
+      "nhom": "Sao Châu Phú",
+      "maNhom": "U1041A3JMW",
+      "startDate": "2023-06-19 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000jl7045tjpmqid",
+      "agentCode": "D1041A3I8E",
+      "agentName": "Nguyễn Thị Kim Ngân",
+      "position": "Trưởng nhóm",
+      "nhom": "Sao Chợ Mới",
+      "maNhom": "U1041A3QG6",
+      "startDate": "2023-12-15 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000kl70402n7zmfd",
+      "agentCode": "D248734066",
+      "agentName": "Nguyễn Thị Tuyết Mai",
+      "position": "Trưởng nhóm",
+      "nhom": "Sao Việt",
+      "maNhom": "U2510076738",
+      "startDate": "2025-01-14 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000ll704dtr9062e",
+      "agentCode": "D104102154",
+      "agentName": "Phạm Thị Kim Chung",
+      "position": "Trưởng nhóm",
+      "nhom": "Tiên Phong",
+      "maNhom": "U1041A313D",
+      "startDate": "1999-01-01 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000ml704486i1esi",
+      "agentCode": "D104130564",
+      "agentName": "Trần Kim Ngân",
+      "position": "Trưởng nhóm",
+      "nhom": "Đồng Tiến",
+      "maNhom": "U104101117",
+      "startDate": "2017-06-14 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000nl7043ri8ypt4",
+      "agentCode": "D104100794",
+      "agentName": "Nguyễn Thị Nguyệt Phượng",
+      "position": "Trưởng nhóm",
+      "nhom": "An Khang",
+      "maNhom": "U1041A3L6F",
+      "startDate": "2001-06-25 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000ol7048qgv8r9m",
+      "agentCode": "D104126695",
+      "agentName": "Nguyễn Thị Bé Hương",
+      "position": "Trưởng nhóm",
+      "nhom": "Hoa Sen",
+      "maNhom": "U1041A3L6D",
+      "startDate": "2016-12-05 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    },
+    {
+      "id": "cmp0z8nr3000pl704pmpbudb3",
+      "agentCode": "D251409358",
+      "agentName": "Nguyễn Thị Diễm Kiều",
+      "position": "Trưởng nhóm",
+      "nhom": "Tinh Hoa",
+      "maNhom": "U2510345907",
+      "startDate": "2025-07-17 00:00:00",
+      "createdAt": "2026-05-11 09:05:59.103",
+      "updatedAt": "2026-05-11 09:05:59.103"
+    }
+  ]
+}

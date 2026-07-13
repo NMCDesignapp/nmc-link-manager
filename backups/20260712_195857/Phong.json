@@ -1,0 +1,47 @@
+{
+  "table": "Phong",
+  "count": 5,
+  "exported_at": "2026-07-12T19:58:58.796450",
+  "records": [
+    {
+      "id": "93209771-2bc5-4e2b-a6be-8ef17759b8b5",
+      "maPhong": "P001",
+      "tenPhong": "Phòng PTKD 1",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:06.367",
+      "updatedAt": "2026-06-17 03:18:06.367"
+    },
+    {
+      "id": "e96bb7df-c735-4415-825f-6212c2e41bd4",
+      "maPhong": "P002",
+      "tenPhong": "Phòng PTKD 2",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:06.367",
+      "updatedAt": "2026-06-17 03:18:06.367"
+    },
+    {
+      "id": "dab5ebe5-3b22-445d-be92-2f41f812b724",
+      "maPhong": "P003",
+      "tenPhong": "Phòng PTKD 3",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:06.367",
+      "updatedAt": "2026-06-17 03:18:06.367"
+    },
+    {
+      "id": "80d1bcbd-094b-41a9-ac92-a3b89bc64c4d",
+      "maPhong": "Banca",
+      "tenPhong": "Banca",
+      "note": "Auto-added per user request",
+      "createdAt": "2026-06-17 07:03:15.839",
+      "updatedAt": "2026-06-17 07:03:15.839"
+    },
+    {
+      "id": "ca49cff3-29e7-49de-bb93-cfaef4d30957",
+      "maPhong": "PA",
+      "tenPhong": "Nhóm PA",
+      "note": "Auto-added per user request",
+      "createdAt": "2026-06-17 07:03:15.147",
+      "updatedAt": "2026-07-01 07:54:30.254"
+    }
+  ]
+}

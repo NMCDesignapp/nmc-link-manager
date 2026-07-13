@@ -1,0 +1,673 @@
+{
+  "table": "CalendarEvent",
+  "count": 74,
+  "exported_at": "2026-07-12T19:58:58.300839",
+  "records": [
+    {
+      "id": 53,
+      "title": "Lớp BVLN Long Xuyên",
+      "date": "2026-04-04",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:07.496",
+      "updated_at": "2026-07-06 08:03:07.496",
+      "owner": "HTKD"
+    },
+    {
+      "id": 7,
+      "title": "Họp giao ban Công ty\nThi thử BVLN (khóa 27 - 28/6)",
+      "date": "2026-07-02",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 03:44:30.287",
+      "updated_at": "2026-07-01 03:44:30.287",
+      "owner": "Công ty - HTKD"
+    },
+    {
+      "id": 8,
+      "title": "Hội nghị MYC",
+      "date": "2026-07-05",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:20:41.038",
+      "updated_at": "2026-07-01 07:20:41.038",
+      "owner": "Công ty"
+    },
+    {
+      "id": 9,
+      "title": "Thi BVLN (khóa học ngày 27 -28/6",
+      "date": "2026-07-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:21:25.265",
+      "updated_at": "2026-07-01 07:21:25.265",
+      "owner": "HTKD"
+    },
+    {
+      "id": 12,
+      "title": "Thi BVLN",
+      "date": "2026-07-16",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:23:50.33",
+      "updated_at": "2026-07-01 07:23:50.33",
+      "owner": "HTKD"
+    },
+    {
+      "id": 54,
+      "title": "HNKH VIP Công Ty-Sảnh B (Hòa Bình II) DG Vũ Đình Thằng BVLN Long Xuyên",
+      "date": "2026-04-05",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:16",
+      "updated_at": "2026-07-06 08:03:16",
+      "owner": "HTKD"
+    },
+    {
+      "id": 15,
+      "title": "TVV-CQL du lịch Phú Quốc",
+      "date": "2026-07-19",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:25:03.629",
+      "updated_at": "2026-07-01 07:25:03.629",
+      "owner": "HTKD, Công ty"
+    },
+    {
+      "id": 16,
+      "title": "BVLN lớp 2",
+      "date": "2026-07-11",
+      "color": "#00ff88",
+      "created_at": "2026-07-03 03:38:16.173",
+      "updated_at": "2026-07-03 03:38:16.173",
+      "owner": "Công ty"
+    },
+    {
+      "id": 55,
+      "title": "Thi BVLN ( CĐ & chuyển khóa) Họp kinh doanh - họp chi bộ",
+      "date": "2026-04-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:27.331",
+      "updated_at": "2026-07-06 08:03:27.331",
+      "owner": "Phòng 3"
+    },
+    {
+      "id": 56,
+      "title": "T3\nWS \"Đánh thức tiềm năng- Thúc đẩy thăng tiến \" Đội ngũ CQL",
+      "date": "2026-04-07",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:40.41",
+      "updated_at": "2026-07-06 08:03:40.41",
+      "owner": "HTKD, PTKD"
+    },
+    {
+      "id": 10,
+      "title": "Học sản phẩm sau BVLN\n17h00 Chốt HS BVLN lớp 2 ( 11-12/7)",
+      "date": "2026-07-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:21:58.443",
+      "updated_at": "2026-07-03 03:39:27.809",
+      "owner": "Công ty"
+    },
+    {
+      "id": 14,
+      "title": "- TVV-CQL du lịch Phú Quốc",
+      "date": "2026-07-18",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:24:33.825",
+      "updated_at": "2026-07-03 03:41:25.303",
+      "owner": "Công ty, HTKD"
+    },
+    {
+      "id": 18,
+      "title": "HNKH VIP Công Ty (Diễn giả Nguyễn Đức Thắng)",
+      "date": "2026-08-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-03 03:43:43.298",
+      "updated_at": "2026-07-03 03:43:43.298",
+      "owner": "Công ty"
+    },
+    {
+      "id": 19,
+      "title": "HNKH VIP Công Ty",
+      "date": "2026-09-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-03 03:44:29.757",
+      "updated_at": "2026-07-03 03:44:29.757",
+      "owner": "Công ty"
+    },
+    {
+      "id": 11,
+      "title": "Hội nghị Vip Công ty (Diễn giả Nguyễn Đức Thắng)\nBVLN lớp 2",
+      "date": "2026-07-12",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:23:15.889",
+      "updated_at": "2026-07-06 07:47:45.561",
+      "owner": "Công ty"
+    },
+    {
+      "id": 57,
+      "title": "Lớp SPm Sau BVLN ( hủy)",
+      "date": "2026-04-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:51.221",
+      "updated_at": "2026-07-06 08:03:51.221",
+      "owner": "HTKD"
+    },
+    {
+      "id": 13,
+      "title": "CQL - TVV đi Phú Quốc",
+      "date": "2026-07-17",
+      "color": "#00ff88",
+      "created_at": "2026-07-01 07:24:08.351",
+      "updated_at": "2026-07-06 07:50:01.223",
+      "owner": "Công ty, HTKD"
+    },
+    {
+      "id": 22,
+      "title": "Kiểm tra sức khỏe định kỳ tại SG",
+      "date": "2026-06-01",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:55:46.455",
+      "updated_at": "2026-07-06 07:55:46.455",
+      "owner": "HTKD"
+    },
+    {
+      "id": 23,
+      "title": "Thi thử BVLN (23-24/5)",
+      "date": "2026-06-02",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:56:02.935",
+      "updated_at": "2026-07-06 07:56:02.935",
+      "owner": "HTKD"
+    },
+    {
+      "id": 24,
+      "title": "Thi BVLN",
+      "date": "2026-06-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:56:15.931",
+      "updated_at": "2026-07-06 07:56:15.931",
+      "owner": "Công ty"
+    },
+    {
+      "id": 25,
+      "title": "HNKH VIP Công Ty - NH Hòa Bình Sảnh A (Diễn giả Nguyễn Đức Thắng)",
+      "date": "2026-06-07",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:56:35.862",
+      "updated_at": "2026-07-06 07:56:35.862",
+      "owner": "HTKD"
+    },
+    {
+      "id": 26,
+      "title": "Lớp SPm Sau BVLN",
+      "date": "2026-06-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:56:55.413",
+      "updated_at": "2026-07-06 07:56:55.413",
+      "owner": "BVAG"
+    },
+    {
+      "id": 27,
+      "title": "Lớp đào tạo 2 SPm( NCUVL08 và NH02) - Lớp Long Xuyên : GV Trương Quốc Uy - Lớp Châu Đốc:GV Minh Châu - Phụ trách lớp học : A Kỳ",
+      "date": "2026-06-10",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:57:15.293",
+      "updated_at": "2026-07-06 07:57:15.293",
+      "owner": "TCT"
+    },
+    {
+      "id": 28,
+      "title": "A Hoan phụ trách Thi thử BVLN 2(6-7/6) - Họp dự án tuyển ngang",
+      "date": "2026-06-11",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:57:26.086",
+      "updated_at": "2026-07-06 07:57:26.086",
+      "owner": "HTKD"
+    },
+    {
+      "id": 29,
+      "title": "Lớp sản phẩm bán chéo (BV Tâm Bình, BH Xe cơ giới)",
+      "date": "2026-06-13",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:57:38.659",
+      "updated_at": "2026-07-06 07:57:38.659",
+      "owner": "HTKD"
+    },
+    {
+      "id": 30,
+      "title": "WS GIẢI MÃ SẢN PHẨM - CHINH PHỤC NGHIỆP VỤ",
+      "date": "2026-06-14",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:57:47.797",
+      "updated_at": "2026-07-06 07:57:47.797",
+      "owner": "HTKD"
+    },
+    {
+      "id": 31,
+      "title": "Thi BVLN",
+      "date": "2026-06-16",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:58:01.691",
+      "updated_at": "2026-07-06 07:58:01.691",
+      "owner": "HTKD, Công ty"
+    },
+    {
+      "id": 32,
+      "title": "Lớp SPm Sau BVLN",
+      "date": "2026-06-18",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:58:14.112",
+      "updated_at": "2026-07-06 07:58:14.112",
+      "owner": "Công ty"
+    },
+    {
+      "id": 33,
+      "title": "HN chăm sóc KH",
+      "date": "2026-06-21",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:58:24.665",
+      "updated_at": "2026-07-06 07:58:24.665",
+      "owner": "Công ty"
+    },
+    {
+      "id": 34,
+      "title": "BVLN",
+      "date": "2026-06-27",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:58:33.398",
+      "updated_at": "2026-07-06 07:58:33.398",
+      "owner": "HTKD"
+    },
+    {
+      "id": 35,
+      "title": "HNKH VIP + BVLN",
+      "date": "2026-06-28",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:58:43.102",
+      "updated_at": "2026-07-06 07:58:43.102",
+      "owner": "Công ty"
+    },
+    {
+      "id": 36,
+      "title": "Họp kinh doanh Thi thử BVLN (25-26/4)",
+      "date": "2026-05-03",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:59:13.401",
+      "updated_at": "2026-07-06 07:59:13.401",
+      "owner": "Phòng 2"
+    },
+    {
+      "id": 37,
+      "title": "Thi BVLN",
+      "date": "2026-05-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:59:29.516",
+      "updated_at": "2026-07-06 07:59:29.516",
+      "owner": "HTKD"
+    },
+    {
+      "id": 38,
+      "title": "Lớp SPm Sau BVLN",
+      "date": "2026-05-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:59:42.022",
+      "updated_at": "2026-07-06 07:59:42.022",
+      "owner": "HTKD"
+    },
+    {
+      "id": 39,
+      "title": "HNKH VIP Công Ty - NH Hòa Bình Sảnh A (Ca sĩ - dự kiến Lâm Hùng)",
+      "date": "2026-05-10",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 07:59:54.469",
+      "updated_at": "2026-07-06 07:59:54.469",
+      "owner": "Công ty"
+    },
+    {
+      "id": 40,
+      "title": "Thi BVLN\nNgày hội chăm sóc KH tại Công ty",
+      "date": "2026-05-16",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:00:09.306",
+      "updated_at": "2026-07-06 08:00:16.776",
+      "owner": "HTKD, DVKH"
+    },
+    {
+      "id": 41,
+      "title": "17h00 Chốt HSBVLN (23-24/5)",
+      "date": "2026-05-20",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:00:28.126",
+      "updated_at": "2026-07-06 08:00:28.126",
+      "owner": "HTKD"
+    },
+    {
+      "id": 42,
+      "title": "Phỏng vấn Tuyển ngang",
+      "date": "2026-05-21",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:00:38.667",
+      "updated_at": "2026-07-06 08:00:38.667",
+      "owner": "HTKD"
+    },
+    {
+      "id": 43,
+      "title": "Sao Việt hạng vàng",
+      "date": "2026-05-25",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:00:55.307",
+      "updated_at": "2026-07-06 08:00:55.307",
+      "owner": "HTKD"
+    },
+    {
+      "id": 44,
+      "title": "- Lớp BVLN Long Xuyên \n- HỌP GIAO BAN CQL",
+      "date": "2026-05-23",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:01:14.109",
+      "updated_at": "2026-07-06 08:01:14.109",
+      "owner": "PTKD, HTKD"
+    },
+    {
+      "id": 45,
+      "title": "Lớp BVLN Long Xuyên\nSao Việt hạng vàng",
+      "date": "2026-05-24",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:01:33.887",
+      "updated_at": "2026-07-06 08:01:33.887",
+      "owner": "HTKD"
+    },
+    {
+      "id": 46,
+      "title": "Sao Việt hạng vàng",
+      "date": "2026-05-26",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:01:43.868",
+      "updated_at": "2026-07-06 08:01:43.868",
+      "owner": "HTKD"
+    },
+    {
+      "id": 47,
+      "title": "Sao Việt hạng vàng + Bắc Kinh (HTGK)",
+      "date": "2026-05-27",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:01:55.119",
+      "updated_at": "2026-07-06 08:01:55.119",
+      "owner": "Công ty"
+    },
+    {
+      "id": 48,
+      "title": "Sao Việt hạng vàng + Bắc Kinh (HTGK)",
+      "date": "2026-05-28",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:02:03.687",
+      "updated_at": "2026-07-06 08:02:03.687",
+      "owner": "Công ty"
+    },
+    {
+      "id": 49,
+      "title": "Bắc Kinh - Hành trình gắn kết",
+      "date": "2026-05-29",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:02:14.738",
+      "updated_at": "2026-07-06 08:02:14.738",
+      "owner": "Công ty"
+    },
+    {
+      "id": 50,
+      "title": "Bắc Kinh - Hành trình gắn kết",
+      "date": "2026-05-30",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:02:23.729",
+      "updated_at": "2026-07-06 08:02:23.729",
+      "owner": "Công ty"
+    },
+    {
+      "id": 51,
+      "title": "Bắc Kinh - Hành trình gắn kết\nKiểm tra sức khỏe định kỳ tại SG",
+      "date": "2026-05-31",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:02:33.215",
+      "updated_at": "2026-07-06 08:02:33.215",
+      "owner": "Công ty"
+    },
+    {
+      "id": 52,
+      "title": "Thi thử ( Lớp BVLN CĐ và UV chuyển khóa thi)",
+      "date": "2026-04-02",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:02:49.369",
+      "updated_at": "2026-07-06 08:02:49.369",
+      "owner": "HTKD"
+    },
+    {
+      "id": 58,
+      "title": "Thi thử BVLN Khóa 1 LX (04-5/4)",
+      "date": "2026-04-10",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:03:59.268",
+      "updated_at": "2026-07-06 08:03:59.268",
+      "owner": "HTKD"
+    },
+    {
+      "id": 59,
+      "title": "HN Tốt nghiệp",
+      "date": "2026-04-12",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:04:06.558",
+      "updated_at": "2026-07-06 08:04:06.558",
+      "owner": "HTKD"
+    },
+    {
+      "id": 60,
+      "title": "Họp kinh doanh Thi BVLN",
+      "date": "2026-04-16",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:04:16.65",
+      "updated_at": "2026-07-06 08:04:16.65",
+      "owner": "HTKD, PTKD"
+    },
+    {
+      "id": 61,
+      "title": "Lớp SPm Sau BVLN",
+      "date": "2026-04-18",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:04:27.67",
+      "updated_at": "2026-07-06 08:04:27.67",
+      "owner": "HTKD"
+    },
+    {
+      "id": 62,
+      "title": "Sinh hoạt CLB Sao Việt",
+      "date": "2026-04-19",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:04:41.55",
+      "updated_at": "2026-07-06 08:04:41.55",
+      "owner": "BCN CLBSV"
+    },
+    {
+      "id": 63,
+      "title": "17h00 Chốt HSBVLN (25-26/4)",
+      "date": "2026-04-21",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:04:51.5",
+      "updated_at": "2026-07-06 08:04:51.5",
+      "owner": "HTKD"
+    },
+    {
+      "id": 64,
+      "title": "Phỏng vấn Tuyển ngang",
+      "date": "2026-04-22",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:05:00.992",
+      "updated_at": "2026-07-06 08:05:00.992",
+      "owner": "HTKD"
+    },
+    {
+      "id": 65,
+      "title": "Lớp BVLN Long Xuyên",
+      "date": "2026-04-25",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:05:11.922",
+      "updated_at": "2026-07-06 08:05:11.922",
+      "owner": "HTKD"
+    },
+    {
+      "id": 66,
+      "title": "Lớp BVLN Long Xuyên",
+      "date": "2026-04-26",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:05:18.806",
+      "updated_at": "2026-07-06 08:05:18.806",
+      "owner": "HTKD"
+    },
+    {
+      "id": 67,
+      "title": "Họp Giao Ban",
+      "date": "2026-04-30",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:05:30.597",
+      "updated_at": "2026-07-06 08:05:30.597",
+      "owner": "Công ty"
+    },
+    {
+      "id": 68,
+      "title": "BVLN",
+      "date": "2026-03-01",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:06:22.871",
+      "updated_at": "2026-07-06 08:06:22.871",
+      "owner": "HTKD"
+    },
+    {
+      "id": 69,
+      "title": "Thi thử BVLN",
+      "date": "2026-03-02",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:06:30.297",
+      "updated_at": "2026-07-06 08:06:30.297",
+      "owner": "HTKD"
+    },
+    {
+      "id": 70,
+      "title": "Đi Vân Nam",
+      "date": "2026-03-05",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:06:41.38",
+      "updated_at": "2026-07-06 08:06:41.38",
+      "owner": "HTKD"
+    },
+    {
+      "id": 71,
+      "title": "Thi BVLN",
+      "date": "2026-03-06",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:06:47.362",
+      "updated_at": "2026-07-06 08:06:47.362",
+      "owner": "HTKD"
+    },
+    {
+      "id": 72,
+      "title": "Lớp BVLN khóa 2",
+      "date": "2026-03-07",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:06:56.41",
+      "updated_at": "2026-07-06 08:06:56.41",
+      "owner": "HTKD"
+    },
+    {
+      "id": 73,
+      "title": "Lớp BVLN khóa 2",
+      "date": "2026-03-08",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:07:03.721",
+      "updated_at": "2026-07-06 08:07:03.721",
+      "owner": "HTKD"
+    },
+    {
+      "id": 74,
+      "title": "Đi Vân Nam",
+      "date": "2026-03-09",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:07:23.459",
+      "updated_at": "2026-07-06 08:07:30.326",
+      "owner": "HTKD"
+    },
+    {
+      "id": 75,
+      "title": "Thi thử BVLN Khóa 2 7-8/3",
+      "date": "2026-03-12",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:07:41.885",
+      "updated_at": "2026-07-06 08:07:41.885",
+      "owner": "HTKD"
+    },
+    {
+      "id": 77,
+      "title": "Thi BVLN",
+      "date": "2026-03-16",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:07:57.444",
+      "updated_at": "2026-07-06 08:07:57.444",
+      "owner": "HTKD"
+    },
+    {
+      "id": 76,
+      "title": "HNKH VIP",
+      "date": "2026-03-14",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:07:47.93",
+      "updated_at": "2026-07-06 08:08:05.212",
+      "owner": "Công ty"
+    },
+    {
+      "id": 78,
+      "title": "Lớp SPm sau BVLN khóa 2",
+      "date": "2026-03-18",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:17.054",
+      "updated_at": "2026-07-06 08:08:17.054",
+      "owner": "HTKD"
+    },
+    {
+      "id": 79,
+      "title": "Đào tạo 03 chuyên đề TVV mới TCT",
+      "date": "2026-03-21",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:24.671",
+      "updated_at": "2026-07-06 08:08:24.671",
+      "owner": "HTKD"
+    },
+    {
+      "id": 80,
+      "title": "Chốt HS BVLN Lớp Châu Đốc PTKD chủ động truyền thông KV",
+      "date": "2026-03-21",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:30.973",
+      "updated_at": "2026-07-06 08:08:30.973",
+      "owner": "HTKD"
+    },
+    {
+      "id": 81,
+      "title": "BVLN Châu Đốc",
+      "date": "2026-03-28",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:42.484",
+      "updated_at": "2026-07-06 08:08:42.484",
+      "owner": "HTKD"
+    },
+    {
+      "id": 82,
+      "title": "BVLN Châu Đốc",
+      "date": "2026-03-29",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:48.868",
+      "updated_at": "2026-07-06 08:08:48.868",
+      "owner": "HTKD"
+    },
+    {
+      "id": 83,
+      "title": "17h00 Chốt HS BVLN Lớp Tháng 4 (4-5/4)",
+      "date": "2026-03-31",
+      "color": "#00ff88",
+      "created_at": "2026-07-06 08:08:55.942",
+      "updated_at": "2026-07-06 08:08:55.942",
+      "owner": "HTKD"
+    }
+  ]
+}
