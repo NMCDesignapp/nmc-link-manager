@@ -640,7 +640,7 @@ function ThiDuaPageInner() {
   }, [fetchFresh]);
 
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
-  const { data: appData, dataVersion } = useAppData();
+  const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
   // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
@@ -1785,7 +1785,7 @@ function ThiDuaPageInner() {
         secondaryIPMin: conditionType === 'pass_count_ip_afyp' ? passCountIPMin : secondaryIPMin,
         secondaryAFYPMin: conditionType === 'pass_count_ip_afyp' ? passCountAFYPMin : secondaryAFYPMin,
       }) });
-      if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); }
+      if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); reloadAppData(); }
       else {
         let errMsg = 'Không thể lưu';
         try {
@@ -1872,7 +1872,7 @@ function ThiDuaPageInner() {
   };
 
   const handleDeleteContest = async (id: string) => {
-    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
+    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); reloadAppData(); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
     catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
     setDeleteConfirmId(null);
   };
