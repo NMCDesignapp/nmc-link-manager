@@ -196,8 +196,9 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
     if (conditionType === 'activity_round_tvv90') {
       if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
     }
-    // Đếm số dòng hợp đồng có tinhLuot3tr >= threshold
-    if (c.tinhLuot3tr >= luotThreshold) {
+    // Dùng pdt10DT (IP thực tế) so với luotThreshold — ĐỒNG BỘ với contest-calculator
+    // (Trước đây dùng c.tinhLuot3tr — field cố định trong DB, không đổi theo thời gian)
+    if (c.pdt10DT >= luotThreshold) {
       count++;
     }
   }
