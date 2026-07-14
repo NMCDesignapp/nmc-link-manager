@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmc-links-v10';
+const CACHE_NAME = 'nmc-links-v11';
 const POSTER_CACHE = 'nmc-posters-v1';
 
 // Pre-cache app shell
