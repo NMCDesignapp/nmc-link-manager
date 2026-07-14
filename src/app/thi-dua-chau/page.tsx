@@ -2086,7 +2086,10 @@ function ThiDuaPageInner() {
       if (isTVVPassCountMode(conditionType)) {
         // Bảng đơn giản cho TVV đạt thi đua: STT - NHÓM - MÃ TN - HỌ TÊN TN - SL TVV đạt thi đua - THƯỞNG - GHI CHÚ
         const refContestLabel = referenceContestId ? (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? ` (${rc.title})` : ''; })() : '';
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Họ tên TN', `SL TVV đạt thi đua${!includeTNInPassCount ? ' (KO tính TN)' : ''}${refContestLabel}`, 'Thưởng', 'Ghi chú'];
+        const passCountCondLabel = conditionType === 'pass_count_ip_afyp'
+          ? ` (IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
+          : refContestLabel || ' (CTĐK)';
+        headers = ['STT', 'Nhóm', 'Mã TN', 'Họ tên TN', `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ' (KO tính TN)' : ''}`, 'Thưởng', 'Ghi chú'];
         rows = [];
         const sortedGroups = [...groupedData].map((g) => {
           const tvvPassCount = conditionType === 'pass_count_ip_afyp' ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
@@ -3587,9 +3590,15 @@ function ThiDuaPageInner() {
                             <TableHead className="text-yellow-100 min-w-[55px] font-bold uppercase text-center">MÃ TN</TableHead>
                             <TableHead className="text-yellow-100 min-w-[100px] font-bold uppercase text-center">HỌ TÊN TN</TableHead>
                             <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center">
-                              <div>SL TVV ĐẠT THI ĐUA</div>
+                              <div>SL TVV ĐỦ ĐIỀU KIỆN</div>
+                              <div className="text-[9px] italic font-normal normal-case text-amber-300">
+                                {conditionType === 'pass_count_ip_afyp'
+                                  ? `(IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
+                                  : referenceContestId
+                                    ? (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? rc.title : ''; })()
+                                    : '(CTĐK)'}
+                              </div>
                               {!includeTNInPassCount && <div className="text-[9px] font-bold text-amber-400 italic">(KO tính TN)</div>}
-                              {referenceContestId && (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? <div className="text-[9px] font-bold text-purple-400 italic">{rc.title}</div> : null; })()}
                             </TableHead>
                             <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center bg-emerald-700">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> THƯỞNG</div>
