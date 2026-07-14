@@ -575,9 +575,13 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
     const valueLabel = isPassCount
       ? (config.conditionType === 'pass_count_ip_afyp'
-        ? `SL TVV ĐỦ ĐIỀU KIỆN (IP≥${Math.round(passCountIPMin/1000)}k + AFYP≥${Math.round(passCountAFYPMin/1000)}k)`
+        ? 'SL TVV ĐỦ ĐIỀU KIỆN'
         : 'SL TVV ĐẠT THI ĐUA')
       : isActivity ? 'LƯỢT HĐ' : isAFYP ? 'TỔNG AFYP' : 'TỔNG IP';
+    // Dòng phụ (trong ngoặc) — in nghiêng, dòng 2
+    const valueSubLabel = isPassCount && config.conditionType === 'pass_count_ip_afyp'
+      ? `(IP≥${Math.round(passCountIPMin/1000)}k + AFYP≥${Math.round(passCountAFYPMin/1000)}k)`
+      : null;
 
     return (
       <Table>
@@ -588,7 +592,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ TN</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>TÊN TRƯỞNG NHÓM</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>CHỨC VỤ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{valueLabel}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>
+              <div>{valueLabel}</div>
+              {valueSubLabel && <div className="text-[9px] italic font-normal normal-case" style={{ color: '#FCD34D' }}>{valueSubLabel}</div>}
+            </TableHead>
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
