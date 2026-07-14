@@ -1268,7 +1268,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-sum-val { font-size: 11px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
-  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow: visible; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 3px 3px; }
   .kpi-app .rg-ad-table thead th:first-child { padding-left: 8px; }
@@ -1394,7 +1394,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-sum-val { font-size: 12px; }
   .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
   .kpi-app .rg-divider { display: none; }
-  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow: visible; }
+  .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
   .kpi-app .rg-ad-table thead th { font-size: 9px; padding: 4px 4px; }
   .kpi-app .rg-ad-table thead th:first-child { padding-left: 9px; }
