@@ -462,7 +462,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || row.agent.maNhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>
-                <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+                <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isPassCount ? `${row.value} TVV` : isActivity ? row.value : formatNumber(row.value)}</TableCell>
                 {showRateColumn && (
                   <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                     {effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -497,10 +497,30 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const renderNhomTable = () => {
     // Sort groups by value desc
     const isActivity = isActivityRoundMode(config.conditionType);
+    const isPassCount = isTVVPassCountMode(config.conditionType);
+    // pass_count_ip_afyp: đếm TVV đạt IP+AFYP trong nhóm
+    // pass_count_ip_afyp reuse secondaryIPMin (IP min) + secondaryAFYPMin (AFYP min)
+    const passCountIPMin = config.secondaryIPMin || 6000000;
+    const passCountAFYPMin = config.secondaryAFYPMin || 12000000;
     const sortedGroups = [...groupedData]
       .map((g) => {
         let value: number;
-        if (isActivity) value = g.activityRounds;
+        if (isPassCount && config.conditionType === 'pass_count_ip_afyp') {
+          // Đếm TVV trong nhóm đạt tổng IP >= passCountIPMin AND tổng AFYP >= passCountAFYPMin
+          const agentCodes = new Set<string>();
+          for (const c of g.contracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
+          let count = 0;
+          for (const code of agentCodes) {
+            const tvvContracts = g.contracts.filter(c => c.agentCode === code);
+            const totalIP = tvvContracts.reduce((s, c) => s + c.pdt10DT, 0);
+            const totalAFYP = tvvContracts.reduce((s, c) => s + c.afyp, 0);
+            if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
+          }
+          value = count;
+        } else if (isPassCount) {
+          // tvv_pass_count: không hỗ trợ inline (cần reference contest) → fallback totalFYP
+          value = g.totalFYP;
+        } else if (isActivity) value = g.activityRounds;
         else if (config.conditionType === 'total_afyp') value = g.totalAFYP;
         else value = g.totalFYP;
         const { tier } = isActivity
@@ -552,7 +572,11 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       })
       .sort((a, b) => b.value - a.value);
 
-    const valueLabel = isActivity ? 'LƯỢT HĐ' : isAFYP ? 'TỔNG AFYP' : 'TỔNG IP';
+    const valueLabel = isPassCount
+      ? (config.conditionType === 'pass_count_ip_afyp'
+        ? `SL TVV ĐỦ ĐIỀU KIỆN (IP≥${Math.round(passCountIPMin/1000)}k + AFYP≥${Math.round(passCountAFYPMin/1000)}k)`
+        : 'SL TVV ĐẠT THI ĐUA')
+      : isActivity ? 'LƯỢT HĐ' : isAFYP ? 'TỔNG AFYP' : 'TỔNG IP';
 
     return (
       <Table>
@@ -593,7 +617,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.g.leader?.agentCode || '—'}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.g.leader?.agentName || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.g.leader?.position || '—'}</TableCell>
-              <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+              <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isPassCount ? `${row.value} TVV` : isActivity ? row.value : formatNumber(row.value)}</TableCell>
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
