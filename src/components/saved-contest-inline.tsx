@@ -97,6 +97,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const recruiterList = (appData.recruiters || []) as RecruiterMember[];
   // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode
   const tvvStructList = (appData.structureTvv || []) as TVVStructMember[];
+  // DS TB/TN (Cấu trúc) — nguồn ĐÚNG cho danh sách nhóm thi đua
+  const leadersList = (appData.leaders || []) as any[];
 
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
@@ -112,8 +114,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   // Step 3: compute groupedData / tvvTotalRows / tvvPerContractRows
   const groupedData = useMemo(
-    () => computeGroupedData(displayContracts, config, staffList, recruiterList),
-    [displayContracts, config, staffList, recruiterList]
+    () => computeGroupedData(displayContracts, config, staffList, recruiterList, leadersList),
+    [displayContracts, config, staffList, recruiterList, leadersList]
   );
   const tvvTotalRows = useMemo(
     () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList),

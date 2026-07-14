@@ -604,26 +604,31 @@ export function computeGroupedData(
   displayContracts: Contract[],
   config: ContestConfig,
   staffList: StaffMember[],
-  recruiterList: RecruiterMember[]
+  recruiterList: RecruiterMember[],
+  leadersList?: any[]
 ): GroupData[] {
   if (config.targetType !== 'nhom') return [];
   const subjectCodes = config.participants;
   const conditionType = config.conditionType;
   const map = new Map<string, GroupData>();
 
+  // NGUỒN ĐÚNG: DS TB/TN (leadersList) — 30 nhóm, mỗi nhóm có 1 TB hoặc TN
+  // Fallback: staffList nếu không có leadersList (backward compat)
+  const groupSource = leadersList && leadersList.length > 0 ? leadersList : staffList;
+
   const allowedMaNhom = new Set<string>();
   if (subjectCodes.length > 0) {
     for (const code of subjectCodes) {
       const codeLower = norm(code).toLowerCase();
       if (codeLower.includes('dso')) continue;
-      const staff = staffList.find(
-        (s) => norm(s.nhom || '').toLowerCase() === codeLower
+      const found = groupSource.find(
+        (s: any) => norm(s.nhom || '').toLowerCase() === codeLower
       );
-      if (staff?.maNhom) allowedMaNhom.add(staff.maNhom);
+      if (found?.maNhom) allowedMaNhom.add(found.maNhom);
       else allowedMaNhom.add(code);
     }
   } else {
-    for (const s of staffList) {
+    for (const s of groupSource) {
       const nhomLower = norm(s.nhom || '').toLowerCase();
       const maNhomLower = (s.maNhom || '').toLowerCase();
       if (s.maNhom && !nhomLower.includes('dso') && !maNhomLower.includes('dso')) {
@@ -632,8 +637,8 @@ export function computeGroupedData(
     }
   }
 
-  // Step 1: build groups from Staff
-  for (const s of staffList) {
+  // Step 1: build groups from DS TB/TN (hoặc staffList fallback)
+  for (const s of groupSource) {
     if (!s.maNhom) continue;
     if (map.has(s.maNhom)) continue;
     const nhomLower = norm(s.nhom || '').toLowerCase();
@@ -652,12 +657,12 @@ export function computeGroupedData(
       memberCount: 0,
     });
   }
-  // Add subjectCodes not in staffList
+  // Add subjectCodes not in groupSource
   if (subjectCodes.length > 0) {
     for (const maNhom of allowedMaNhom) {
       if (!map.has(maNhom)) {
-        const staff = staffList.find((s) => s.maNhom === maNhom);
-        const nhomName = staff?.nhom || maNhom;
+        const found = groupSource.find((s: any) => s.maNhom === maNhom);
+        const nhomName = found?.nhom || maNhom;
         map.set(maNhom, {
           maNhom,
           nhom: nhomName,
@@ -673,8 +678,19 @@ export function computeGroupedData(
     }
   }
 
-  // Find leader
+  // Find leader — từ DS TB/TN (leadersList) hoặc staffList
   for (const [maNhom, g] of map) {
+    // Ưu tiên: tìm trực tiếp từ leadersList (mỗi dòng = TB hoặc TN của nhóm)
+    const leader = leadersList?.find((l: any) => l.maNhom === maNhom);
+    if (leader) {
+      g.leader = {
+        agentCode: leader.agentCode,
+        agentName: leader.agentName,
+        position: leader.position,
+      };
+      continue;
+    }
+    // Fallback: tìm từ staffList
     const groupStaff = staffList.filter((s) => s.maNhom === maNhom);
     const truongBan = groupStaff.find(
       (s) => norm(s.position || '').toLowerCase().trim() === 'trưởng ban'
@@ -698,6 +714,7 @@ export function computeGroupedData(
       };
       continue;
     }
+    // Fallback: DS TTN (recruiterList)
     const groupRecruiters = recruiterList.filter(
       (r) => r.nhom === g.nhom || r.nhom === g.maNhom
     );
