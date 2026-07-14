@@ -1310,32 +1310,18 @@ function ThiDuaPageInner() {
     }
 
     // Tìm Trưởng nhóm tham dự thi đua
+    // NGUỒN ĐÚNG: DS TB/TN (leadersList) — mỗi dòng = 1 TB hoặc TN của nhóm đó
     // Ưu tiên: Trưởng ban > Trưởng nhóm (TB tham dự với vai trò TN)
-    // Fallback sang Recruiter table nếu Staff table không có
+    // Fallback sang Recruiter table (DS TTN) nếu DS TB/TN không có
     for (const [maNhom, g] of map) {
-      const groupStaff = staffList.filter(s => s.maNhom === maNhom);
-
-      // Ưu tiên Trưởng ban (họ tham dự thi đua với vai trò Trưởng nhóm)
-      const truongBan = groupStaff.find(s => {
-        const pos = norm(s.position || '').toLowerCase().trim();
-        return pos === 'trưởng ban';
-      });
-      if (truongBan) {
-        g.leader = { agentCode: truongBan.agentCode, agentName: truongBan.agentName, position: truongBan.position };
+      // Tìm leader từ DS TB/TN (leadersList) — nguồn CHÍNH
+      const leader = leadersList.find(l => l.maNhom === maNhom);
+      if (leader) {
+        g.leader = { agentCode: leader.agentCode, agentName: leader.agentName, position: leader.position };
         continue;
       }
 
-      // Nếu không có Trưởng ban → lấy Trưởng nhóm
-      const truongNhom = groupStaff.find(s => {
-        const pos = norm(s.position || '').toLowerCase().trim();
-        return pos === 'trưởng nhóm';
-      });
-      if (truongNhom) {
-        g.leader = { agentCode: truongNhom.agentCode, agentName: truongNhom.agentName, position: truongNhom.position };
-        continue;
-      }
-
-      // Fallback: Tìm trong Recruiter table theo mã nhóm hoặc tên nhóm
+      // Fallback: Tìm trong DS TTN (recruiterList) theo tên nhóm
       const groupRecruiters = recruiterList.filter(r => r.nhom === g.nhom || r.nhom === g.maNhom);
       const rBan = groupRecruiters.find(r => {
         const pos = norm(r.position || '').toLowerCase().trim();
