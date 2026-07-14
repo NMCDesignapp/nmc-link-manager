@@ -114,6 +114,7 @@ export type ConditionType =
   | 'activity_round_standard_tvvm'
   | 'activity_round_tvv90'
   | 'tvv_pass_count'
+  | 'pass_count_ip_afyp'
   | 'top_n_ip';
 
 export type TargetType = 'tvv' | 'nhom' | 'nyd';
@@ -169,7 +170,7 @@ export function isActivityRoundMode(ct: ConditionType): boolean {
   );
 }
 export function isTVVPassCountMode(ct: ConditionType): boolean {
-  return ct === 'tvv_pass_count';
+  return ct === 'tvv_pass_count' || ct === 'pass_count_ip_afyp';
 }
 export function isPerContractMode(ct: ConditionType): boolean {
   return ct === 'per_contract_ip' || ct === 'per_contract_afyp';
@@ -359,6 +360,7 @@ export function getConditionLabel(ct: ConditionType): string {
     case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
     case 'activity_round_tvv90': return 'Lượt TVV90';
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
+    case 'pass_count_ip_afyp': return 'Đếm TVV đạt IP+AFYP';
     case 'top_n_ip': return 'Xét Top N IP';
   }
 }
