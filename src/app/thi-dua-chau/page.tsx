@@ -1254,57 +1254,56 @@ function ThiDuaPageInner() {
     if (targetType !== 'nhom') return [];
     const map = new Map<string, GroupData>();
 
+    // NGUỒN ĐÚNG: DS TB/TN (leadersList = /api/leaders) — 30 nhóm, mỗi nhóm có 1 TB hoặc TN
+    // Nhóm không có TB/TN → không tham gia thi đua nhóm → không hiển thị
+    // (User: "nhóm nào mà không có trưởng nhóm thì lấy trưởng ban, nếu không có trưởng ban trưởng nhóm luôn thì không cần lấy")
+
     // Xác định tập mã nhóm hợp lệ
     // 1. Nếu có nhập đối tượng → chỉ lấy nhóm trong DS
-    // 2. Nếu không nhập → lấy tất cả nhóm từ Staff table (trừ PA)
+    // 2. Nếu không nhập → lấy tất cả nhóm từ DS TB/TN (trừ DSO)
     const allowedMaNhom = new Set<string>();
 
     if (subjectCodes.length > 0) {
-      // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
+      // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào (dùng leadersList)
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
-        // Bỏ nhóm DSO (không tham gia thi đua)
         if (codeLower.includes('dso')) continue;
-        const staff = staffList.find(s => norm(s.nhom || '').toLowerCase() === codeLower);
-        if (staff?.maNhom) {
-          allowedMaNhom.add(staff.maNhom);
+        const leader = leadersList.find(l => norm(l.nhom || '').toLowerCase() === codeLower);
+        if (leader?.maNhom) {
+          allowedMaNhom.add(leader.maNhom);
         } else {
-          // Không tìm thấy → vẫn thêm (nhóm chưa có trong staffList)
           allowedMaNhom.add(code);
         }
       }
     } else {
-      // Không nhập → lấy tất cả nhóm từ Staff table (trừ DSO)
-      for (const s of staffList) {
-        const nhomLower = norm(s.nhom || '').toLowerCase();
-        const maNhomLower = (s.maNhom || '').toLowerCase();
-        if (s.maNhom && !nhomLower.includes('dso') && !maNhomLower.includes('dso')) {
-          allowedMaNhom.add(s.maNhom);
+      // Không nhập → lấy tất cả nhóm từ DS TB/TN (trừ DSO)
+      for (const l of leadersList) {
+        const nhomLower = norm(l.nhom || '').toLowerCase();
+        const maNhomLower = (l.maNhom || '').toLowerCase();
+        if (l.maNhom && !nhomLower.includes('dso') && !maNhomLower.includes('dso')) {
+          allowedMaNhom.add(l.maNhom);
         }
       }
     }
 
-    // Step 1: Build groups từ Staff table (nguồn chính)
-    for (const s of staffList) {
-      if (!s.maNhom) continue;
-      if (map.has(s.maNhom)) continue;
-      // Loại bỏ nhóm DSO (PA vẫn được tính thi đua)
-      const nhomLower = norm(s.nhom || '').toLowerCase();
-      const maNhomLower = (s.maNhom || '').toLowerCase();
+    // Step 1: Build groups từ DS TB/TN (leadersList) — nguồn ĐÚNG
+    for (const l of leadersList) {
+      if (!l.maNhom) continue;
+      if (map.has(l.maNhom)) continue;
+      const nhomLower = norm(l.nhom || '').toLowerCase();
+      const maNhomLower = (l.maNhom || '').toLowerCase();
       if (nhomLower.includes('dso') || maNhomLower.includes('dso')) continue;
-      // Nếu có DS đối tượng → chỉ thêm nhóm trong DS
-      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(s.maNhom)) continue;
+      if (allowedMaNhom.size > 0 && !allowedMaNhom.has(l.maNhom)) continue;
 
-      map.set(s.maNhom, { maNhom: s.maNhom, nhom: s.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
+      map.set(l.maNhom, { maNhom: l.maNhom, nhom: l.nhom, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
     }
 
-    // Thêm nhóm trong DS đối tượng nhưng chưa có trong Staff table (nhóm mới, giá trị 0)
+    // Thêm nhóm trong DS đối tượng nhưng chưa có trong DS TB/TN (nhóm mới, giá trị 0)
     if (subjectCodes.length > 0) {
       for (const maNhom of allowedMaNhom) {
         if (!map.has(maNhom)) {
-          // Tìm tên nhóm từ staffList
-          const staff = staffList.find(s => s.maNhom === maNhom);
-          const nhomName = staff?.nhom || maNhom;
+          const leader = leadersList.find(l => l.maNhom === maNhom);
+          const nhomName = leader?.nhom || maNhom;
           map.set(maNhom, { maNhom, nhom: nhomName, leader: null, totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0, contracts: [], memberCount: 0 });
         }
       }
@@ -1398,7 +1397,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, staffList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // Phase 2: Split contracts by date and compute bonus — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
   const phase2Results = useMemo(() => {
