@@ -3912,14 +3912,19 @@ function ThiDuaPageInner() {
                         const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
                         // Top N mode: tính label hạng để ghi vào cột Ghi chú (KHÔNG có cột HẠNG riêng)
                         let noteLabel: React.ReactNode = null;
+                        // Detect selected Phòng để append tên phòng vào danh hiệu Top N
+                        // VD: chọn Phòng 1 → "Quán quân P1", "Á quân P1", "Hạng 3 P1"
+                        const selectedPhongKey = Array.from(selectedSubjectTypes).find(k => k.startsWith('phong_'));
+                        const selectedPhong = selectedPhongKey ? phongStructList.find(p => `phong_${p.maPhong}` === selectedPhongKey) : null;
+                        const phongSuffix = selectedPhong ? ` ${selectedPhong.tenPhong || selectedPhong.maPhong}` : '';
                         if (isTopNResult && effectiveTier) {
                           const qualifierRank = qualifiedIdxMap.get(agent.agentCode) ?? -1;
                           if (qualifierRank === 0) {
-                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm"><Crown className="w-4 h-4" />Quán quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm"><Crown className="w-4 h-4" />Quán quân{phongSuffix}</span>;
                           } else if (qualifierRank === 1) {
-                            noteLabel = <span className="inline-flex items-center gap-1 text-slate-500 font-bold text-sm"><Medal className="w-4 h-4" />Á quân</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-slate-500 font-bold text-sm"><Medal className="w-4 h-4" />Á quân{phongSuffix}</span>;
                           } else {
-                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}</span>;
+                            noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}{phongSuffix}</span>;
                           }
                         } else if (isTopNResult && !effectiveTier && remaining !== null) {
                           noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>;
