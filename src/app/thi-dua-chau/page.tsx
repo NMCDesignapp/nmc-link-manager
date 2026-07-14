@@ -575,7 +575,7 @@ function ThiDuaPageInner() {
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   // 4 nút chọn nhanh đối tượng: TVVm | TVV cũ | TTN | TN (chọn nhiều được)
-  const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<'tvvm' | 'tvvcu' | 'ttn' | 'tn'>>(new Set());
+  const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<string>>(new Set());
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
@@ -585,6 +585,10 @@ function ThiDuaPageInner() {
   //   - TVV/TVVm ← tvvStructList (DS TVV mục Cấu trúc, lọc TVVm theo ngayBatDau ≤ 12 tháng)
   const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
   const [leadersList, setLeadersList] = useState<any[]>([]);
+  // Structure data cho Phòng subject selection (TVV → BanNhom → AD → Phòng)
+  const [phongStructList, setPhongStructList] = useState<any[]>([]);
+  const [adStructList, setAdStructList] = useState<any[]>([]);
+  const [banNhomStructList, setBanNhomStructList] = useState<any[]>([]);
   // revenueData removed — all data now sourced from Contracts table only
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
@@ -648,7 +652,10 @@ function ThiDuaPageInner() {
     if (appData.recruiters) setRecruiterList(appData.recruiters);
     if (appData.structureTvv) setTvvStructList(appData.structureTvv);
     if (appData.leaders) setLeadersList(appData.leaders);
-  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, appData.structureTvv, appData.leaders, dataVersion]);
+    if (appData.structurePhong) setPhongStructList(appData.structurePhong);
+    if (appData.structureAd) setAdStructList(appData.structureAd);
+    if (appData.structureBanNhom) setBanNhomStructList(appData.structureBanNhom);
+  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, appData.structureTvv, appData.leaders, appData.structurePhong, appData.structureAd, appData.structureBanNhom, dataVersion]);
 
   // fetchRevenue removed — all data now sourced from Contracts table only
 
@@ -801,12 +808,40 @@ function ThiDuaPageInner() {
       .map(r => r.agentCode)
       .filter(Boolean);
 
-    return { tvvm, tvvCu, tn, ttn };
-  }, [tvvStructList, leadersList, recruiterList]);
+    // Phòng: tất cả TVV (mọi chức vụ: TB, TN, TTN, TVV) trong từng Phòng KD
+    // Map: maBanNhom → maAD, maAD → maPhong
+    const bnToAd = new Map<string, string>();
+    for (const bn of banNhomStructList) {
+      if (bn.maBanNhom) bnToAd.set(bn.maBanNhom, bn.maAD || '');
+    }
+    const adToPhong = new Map<string, string>();
+    for (const ad of adStructList) {
+      if (ad.maAD) adToPhong.set(ad.maAD, ad.maPhong || '');
+    }
+    // Build per-Phòng TVV lists
+    const phongLists: Record<string, string[]> = {};
+    for (const p of phongStructList) {
+      const maPhong = p.maPhong;
+      if (!maPhong) continue;
+      const tvvInPhong = tvvAll
+        .filter(t => {
+          const maAD = bnToAd.get(t.maBanNhom || '');
+          const pCode = adToPhong.get(maAD || '');
+          return pCode === maPhong;
+        })
+        .map(t => t.agentCode)
+        .filter(Boolean);
+      phongLists[`phong_${maPhong}`] = tvvInPhong;
+    }
 
-  // Toggle 1 trong 4 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
-  const toggleSubjectType = useCallback((type: 'tvvm' | 'tvvcu' | 'ttn' | 'tn') => {
-    const list = subjectLists[type];
+    return { tvvm, tvvCu, tn, ttn, phongLists };
+  }, [tvvStructList, leadersList, recruiterList, phongStructList, adStructList, banNhomStructList]);
+
+  // Toggle 1 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
+  const toggleSubjectType = useCallback((type: string) => {
+    const list = type.startsWith('phong_')
+      ? (subjectLists.phongLists?.[type] || [])
+      : (subjectLists as any)[type];
     const currentSet = new Set(subjectCodes);
     const newSelected = new Set(selectedSubjectTypes);
 
@@ -4092,6 +4127,31 @@ function ThiDuaPageInner() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${active ? 'bg-sky-400/30 text-sky-100' : 'bg-gray-700/50 text-emerald-300/60'}`}>{btn.count}</span>
                       </div>
                       <div className="text-[9px] mt-0.5 text-emerald-300/50 leading-tight">{btn.desc}</div>
+                    </button>
+                  );
+                })}
+                {/* Phòng buttons — tất cả TVV (mọi chức vụ) trong từng Phòng KD */}
+                {phongStructList.map((p, idx) => {
+                  const pKey = `phong_${p.maPhong}`;
+                  const pLabel = p.tenPhong || `Phòng ${idx + 1}`;
+                  const pCount = subjectLists.phongLists?.[pKey]?.length || 0;
+                  const active = selectedSubjectTypes.has(pKey);
+                  return (
+                    <button
+                      key={pKey}
+                      type="button"
+                      onClick={() => toggleSubjectType(pKey)}
+                      className={`text-left px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                        active
+                          ? 'bg-amber-500/25 border-amber-400/60 text-white'
+                          : 'bg-gray-800/40 border-gray-600/50 text-emerald-200/80 hover:bg-amber-500/10 hover:border-amber-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold">{pLabel}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${active ? 'bg-amber-400/30 text-amber-100' : 'bg-gray-700/50 text-emerald-300/60'}`}>{pCount}</span>
+                      </div>
+                      <div className="text-[9px] mt-0.5 text-emerald-300/50 leading-tight">Tất cả TVV trong phòng</div>
                     </button>
                   );
                 })}
