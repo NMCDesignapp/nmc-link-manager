@@ -384,6 +384,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     });
     const isActivity = isActivityRoundMode(config.conditionType);
     const isTopN = isTopNMode(config.conditionType);
+    const isPassCount = isTVVPassCountMode(config.conditionType);
     const topNValueType = config.topNValueType === 'afyp' ? 'afyp' : 'ip';
     const valueLabel = isActivity ? 'LƯỢT HĐ' : (isTopN ? (topNValueType === 'afyp' ? 'TỔNG AFYP' : 'TỔNG IP') : (isAFYP ? 'TỔNG AFYP' : 'TỔNG IP'));
 
