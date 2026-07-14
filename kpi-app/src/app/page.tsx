@@ -1204,9 +1204,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .desktop-split {
     display: grid; grid-template-columns: 3fr 1fr; gap: 20px;
     width: 100%; align-items: stretch; margin-top: 14px;
-    /* Fixed height theo viewport — 4 phòng BẰNG NHAU (minmax(0,1fr) + height:100% chain) */
-    height: calc(100vh - 230px);
-    min-height: 540px;
+    /* Tăng height + min-height để 4 phòng có đủ chỗ hiển thị AD không bị ẩn */
+    height: calc(100vh - 200px);
+    min-height: 640px;
   }
   .kpi-app .split-left { display: none; }
   .kpi-app .split-center { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; height: 100%; }
@@ -1429,7 +1429,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 1700px) {
   .kpi-app .app-wrap { max-width: 1560px; padding: 44px 48px 64px; }
   .kpi-app .hero-title { font-size: 2.6rem !important; }
-  .kpi-app .desktop-split { gap: 28px; height: calc(100vh - 270px); min-height: 540px; }
+  .kpi-app .desktop-split { gap: 28px; height: calc(100vh - 240px); min-height: 680px; }
   .kpi-app .split-center { gap: 16px; }
   .kpi-app .split-right { gap: 14px; }
   .kpi-app .nav-grid.dsk-nav { gap: 16px; }
