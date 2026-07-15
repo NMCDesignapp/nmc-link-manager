@@ -98,13 +98,14 @@ export function NeonDatePicker({
   const handleOpen = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect()
-      // Position popup below the trigger, same width
       const spaceBelow = window.innerHeight - rect.bottom
       const spaceAbove = rect.top
-      // If not enough space below, show above
       const showAbove = spaceBelow < 320 && spaceAbove > spaceBelow
+      // Center popup on screen — tránh lệch/tràn ra mép trên mobile
+      const popupWidth = Math.max(rect.width + 40, 280)
+      const centeredLeft = Math.max(8, Math.min((window.innerWidth - popupWidth) / 2, window.innerWidth - popupWidth - 8))
       setPopupPos({
-        left: rect.left,
+        left: centeredLeft,
         width: rect.width,
         top: showAbove ? rect.top - 310 : rect.bottom + 4,
       })
@@ -146,7 +147,7 @@ export function NeonDatePicker({
           <motion.div
             data-calendar-popup
             className="fixed inset-0 z-[9999]"
-            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }}
+            style={{ background: 'rgba(0,0,0,0.5)' }}
             onClick={() => setIsOpen(false)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -155,20 +156,18 @@ export function NeonDatePicker({
             <motion.div
               className="fixed rounded-xl p-3 shadow-2xl"
               style={{
-                background: 'rgba(15, 20, 30, 0.97)',
-                border: `1px solid ${neonColor}25`,
-                boxShadow: `0 12px 40px rgba(0,0,0,0.6), 0 0 20px ${neonColor}10`,
-                backdropFilter: 'blur(16px)',
-                // Center horizontally on screen, position vertically near trigger
-                left: Math.max(8, popupPos.left - 20),
+                background: '#0f141e',
+                border: `1px solid ${neonColor}30`,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+                left: popupPos.left,
                 top: popupPos.top,
                 width: Math.max(popupPos.width + 40, 280),
                 maxWidth: 'calc(100vw - 16px)',
               }}
               onClick={e => e.stopPropagation()}
-              initial={{ opacity: 0, y: -8, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
               {/* Close button */}
