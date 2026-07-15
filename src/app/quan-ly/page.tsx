@@ -3585,9 +3585,9 @@ export default function QuanLyPage() {
   // Trước đây dùng tinhLuot3tr (field cố định trong DB, đã pre-compute với ngưỡng 3M
   // khi import Excel) — nhưng field này không đổi khi user chọn thời gian khác → Lượt HĐ
   // không tính theo thời gian → ĐLHĐ sai. Dùng pdt10DT đảm bảo lọc động theo periodContracts.
-  const luotHoatDong = periodContracts.filter(c => c.pdt10DT >= 3000000).length;
+  const luotHoatDong = periodContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
   // Lượt HĐ chuẩn = đếm số dòng hợp đồng có pdt10DT (IP) >= 12,000,000
-  const luotHDChuan = periodContracts.filter(c => c.pdt10DT >= 12000000).length;
+  const luotHDChuan = periodContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
 
   // TVV đạt 3tr
   const tvvAchieved3M = luotHoatDong;
@@ -8952,8 +8952,8 @@ export default function QuanLyPage() {
     const soLuongHD = sortedContracts.length;
     const tongIP = sortedContracts.reduce((s, c) => s + c.pdt10DT, 0);
     const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
-    const luotHoatDong = sortedContracts.filter(c => c.pdt10DT >= 3000000).length;
-    const luotChuan = sortedContracts.filter(c => c.pdt10DT >= 12000000).length;
+    const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
+    const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
     // SL tuyển dụng trong tháng/năm (từ cấu trúc TVV)
     const slTuyenDungPeriod = revenueSub === 'all'
       ? tvvStructList.filter(t => {

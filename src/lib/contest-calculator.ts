@@ -237,7 +237,7 @@ export function calculateLuot(
     // Trước đây dùng c.tinhLuot3tr — đây là field cố định trong DB (đã được pre-compute
     // với ngưỡng 3M khi import Excel), nên khi user đổi luotHDThreshold (vd 6M) thì
     // kết quả vẫn sai. Dùng pdt10DT đảm bảo so sánh động theo luotThreshold.
-    if (c.pdt10DT >= luotThreshold) count++;
+    if (c.tinhLuot3tr >= luotThreshold) count++;
   }
   return count;
 }

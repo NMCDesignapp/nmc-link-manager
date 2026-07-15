@@ -2724,8 +2724,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         if (bancaPaPhong) {
           bancaPaPhong.afyp += newContracts.reduce((s, c) => s + num(c.afyp), 0);
           bancaPaIpSum += newContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
-          bancaPaPhong.lhd += newContracts.filter(c => num(c.pdt10DT) >= 3000000).length;
-          bancaPaPhong.hdChuan += newContracts.filter(c => num(c.pdt10DT) >= 12000000).length;
+          bancaPaPhong.lhd += newContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
+          bancaPaPhong.hdChuan += newContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
           bancaPaPhong.td += tvvInPeriodByPhong.get(phongStruct.maPhong) || 0;
           bancaPaPhong.tyTrong = bancaPaPhong.afyp > 0 ? (bancaPaIpSum / bancaPaPhong.afyp * 100) : 0;
         }
@@ -2759,9 +2759,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
         const afyp = adContracts.reduce((s, c) => s + num(c.afyp), 0);
         const ip = adContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
-        const lhd = adContracts.filter(c => num(c.pdt10DT) >= 3000000).length;
+        const lhd = adContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
         const td = tvvInPeriodByAD.get(adStruct.maAD) || 0;
-        const hdChuan = adContracts.filter(c => num(c.pdt10DT) >= 12000000).length;
+        const hdChuan = adContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
         const tyTrong = afyp > 0 ? (ip / afyp * 100) : 0;
 
         // Period KH for AD = Σ of AD's monthly values for months in selected period
@@ -2949,8 +2949,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     // Group metrics
     const afyp = finalContracts.reduce((s, c) => s + num(c.afyp), 0);
     const ip = finalContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
-    const lhd = finalContracts.filter(c => num(c.pdt10DT) >= 3000000).length;
-    const hdChuan = finalContracts.filter(c => num(c.pdt10DT) >= 12000000).length;
+    const lhd = finalContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
+    const hdChuan = finalContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
     const slHD = finalContracts.length;
     const tyTrongIP = afyp > 0 ? (ip / afyp * 100) : 0;
     const nangSuat = lhd > 0 ? slHD / lhd : 0;

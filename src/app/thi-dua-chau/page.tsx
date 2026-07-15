@@ -198,7 +198,7 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
     }
     // Dùng pdt10DT (IP thực tế) so với luotThreshold — ĐỒNG BỘ với contest-calculator
     // (Trước đây dùng c.tinhLuot3tr — field cố định trong DB, không đổi theo thời gian)
-    if (c.pdt10DT >= luotThreshold) {
+    if (c.tinhLuot3tr >= luotThreshold) {
       count++;
     }
   }
