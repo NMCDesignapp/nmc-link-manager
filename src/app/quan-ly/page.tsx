@@ -8142,7 +8142,8 @@ export default function QuanLyPage() {
       let fyp = monthContracts
         .filter(c => tvvmTeamCodes.has(c.agentCode))
         .reduce((s, c) => s + c.pdt10DT, 0);
-      if (tnIsTVVm) fyp += tnMonthIP;
+      // Luôn tính cá nhân TTN vào FYP (theo yêu cầu user — không cần điều kiện tnIsTVVm)
+      fyp += tnMonthIP;
 
       return { quymo, tvvmHdc, fyp };
     };
@@ -8206,18 +8207,17 @@ export default function QuanLyPage() {
         }
       }
 
-      // FYP cumulative = tổng IP trong window của TVVm team + TTN nếu là TVVm
+      // FYP cumulative = tổng IP trong window của TVVm team + TTN (luôn tính)
       const tvvmTeamCodes = new Set(
         teamTVVs.filter(tvv => isTVVm(tvv.ngayBatDau)).map(tvv => tvv.agentCode)
       );
       let fyp = windowContracts
         .filter(c => tvvmTeamCodes.has(c.agentCode))
         .reduce((s, c) => s + c.pdt10DT, 0);
-      if (tnIsTVVm) {
-        fyp += windowContracts
-          .filter(c => c.agentCode === tnCode)
-          .reduce((s, c) => s + c.pdt10DT, 0);
-      }
+      // Luôn tính cá nhân TTN vào FYP (theo yêu cầu user — không cần điều kiện tnIsTVVm)
+      fyp += windowContracts
+        .filter(c => c.agentCode === tnCode)
+        .reduce((s, c) => s + c.pdt10DT, 0);
 
       return { quymo, tvvmHdc, fyp };
     };
