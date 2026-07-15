@@ -202,6 +202,79 @@ function extractSpreadsheetId(link: string): string | null {
   return null;
 }
 
+// Check if link is a published link (/e/2PACX-.../pub?output=csv)
+function isPublishedLink(link: string): boolean {
+  return link.includes('/e/') && link.includes('/pub');
+}
+
+// Build published CSV URL with gid
+function buildPublishedCsvUrl(publishedLink: string, gid: string): string {
+  const base = publishedLink.replace(/&gid=\d+/g, '');
+  return `${base}&gid=${gid}`;
+}
+
+// Discover gids from published link via /pubhtml
+async function discoverPublishedGids(publishedLink: string): Promise<Record<Program, string>> {
+  const fallback: Record<Program, string> = {
+    'ca-nhan': DEFAULT_GIDS['ca-nhan'][0],
+    'tn-ktm':  DEFAULT_GIDS['tn-ktm'][0],
+    'tn-td':   DEFAULT_GIDS['tn-td'][0],
+  };
+  try {
+    const pubhtmlUrl = publishedLink.replace(/\/pub\?[^/]*$/, '/pubhtml');
+    const resp = await fetch(pubhtmlUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      next: { revalidate: 0 },
+    });
+    if (!resp.ok) return fallback;
+    const html = await resp.text();
+    const found: Record<string, string> = {};
+    const gids: string[] = [];
+    const regex = /gid=(\d+)/g;
+    let m;
+    while ((m = regex.exec(html)) !== null) {
+      if (!gids.includes(m[1])) gids.push(m[1]);
+    }
+    if (gids.length >= 3) {
+      found['ca-nhan'] = gids[0];
+      found['tn-ktm'] = gids[1];
+      found['tn-td'] = gids[2];
+    }
+    return {
+      'ca-nhan': found['ca-nhan'] || fallback['ca-nhan'],
+      'tn-ktm':  found['tn-ktm']  || fallback['tn-ktm'],
+      'tn-td':   found['tn-td']   || fallback['tn-td'],
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+// Fetch CSV from published link with specific gid
+async function fetchPublishedCsv(publishedLink: string, gid: string): Promise<{ csv?: string; error?: string }> {
+  const csvUrl = buildPublishedCsvUrl(publishedLink, gid);
+  try {
+    const resp = await fetch(csvUrl, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/csv,text/plain,*/*',
+      },
+      next: { revalidate: 0 },
+    });
+    if (!resp.ok) return { error: `HTTP ${resp.status} (gid=${gid})` };
+    const text = await resp.text();
+    const trimmed = text.trim().toLowerCase();
+    if (trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+      return { error: `Phản hồi HTML (gid=${gid})` };
+    }
+    if (!text || !text.trim()) return { error: `CSV rỗng (gid=${gid})` };
+    return { csv: text };
+  } catch (e: any) {
+    return { error: `${String(e?.message || e)} (gid=${gid})` };
+  }
+}
+
 // ---------- Build CSV URL with numeric gid ----------
 function buildCsvUrl(spreadsheetId: string, gid: string): string {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
@@ -251,20 +324,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'URL không hợp lệ — phải là Google Sheets URL' }, { status: 400 });
     }
 
-    const spreadsheetId = extractSpreadsheetId(link);
-    if (!spreadsheetId) {
-      return NextResponse.json({ error: 'Không đọc được spreadsheet ID từ link' }, { status: 400 });
-    }
+    // Check if link is a published link (/e/2PACX-.../pub?output=csv)
+    const published = isPublishedLink(link);
 
-    // Discover numeric gids for each program tab
-    const gids = await discoverGids(spreadsheetId);
+    let gids: Record<Program, string>;
+    if (published) {
+      // Published link: discover gids via /pubhtml
+      gids = await discoverPublishedGids(link);
+    } else {
+      // Standard link: extract spreadsheet ID + discover gids via /htmlembed
+      const spreadsheetId = extractSpreadsheetId(link);
+      if (!spreadsheetId) {
+        return NextResponse.json({ error: 'Không đọc được spreadsheet ID từ link' }, { status: 400 });
+      }
+      gids = await discoverGids(spreadsheetId);
+    }
 
     const results: Record<string, { count: number; deleted: number; error?: string; gidUsed?: string }> = {};
 
     for (const program of PROGRAMS) {
       try {
         const gid = gids[program];
-        const { csv, error } = await fetchCsv(spreadsheetId, gid);
+        // Use published fetch or standard fetch depending on link type
+        const csvResult = published
+          ? await fetchPublishedCsv(link, gid)
+          : await fetchCsv(extractSpreadsheetId(link)!, gid);
+        const { csv, error } = csvResult;
         if (error || !csv) {
           results[program] = { count: 0, deleted: 0, error: error || 'Không tải được CSV', gidUsed: gid };
           continue;
