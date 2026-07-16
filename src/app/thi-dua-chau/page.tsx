@@ -1349,10 +1349,21 @@ function ThiDuaPageInner() {
     }
 
     // TẤT CẢ chế độ: dùng displayContracts (nguồn duy nhất) cho FYP, AFYP, contractCount
+    // QUAN TRỌNG: Khi includeIndividualTN = false → LOẠI TRỪ HĐ của TB/TN (leader)
+    // Theo yêu cầu user: mặc định không tính cá nhân TB/TN vào nhóm, trừ khi tích checkbox
     const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+    // Build set of leader agentCodes (TB/TN) để loại trừ khi includeIndividualTN = false
+    const leaderCodes = new Set<string>();
+    if (!includeIndividualTN) {
+      for (const [maNhom, g] of map) {
+        if (g.leader?.agentCode) leaderCodes.add(g.leader.agentCode);
+      }
+    }
     const contractByNhom = new Map<string, { totalFYP: number; totalAFYP: number; contractCount: number }>();
     for (const c of displayContracts) {
       if (!c.maNhom) continue;
+      // Nếu includeIndividualTN = false → bỏ qua HĐ của TB/TN (leader)
+      if (!includeIndividualTN && leaderCodes.has(c.agentCode)) continue;
       const existing = contractByNhom.get(c.maNhom);
       if (existing) {
         existing.totalFYP += c.pdt10DT;
@@ -1372,8 +1383,13 @@ function ThiDuaPageInner() {
       }
     }
     // Tính lượt HĐ từ Contracts cho từng nhóm + gán contracts vào group
+    // Khi includeIndividualTN = false → groupContracts cũng loại trừ HĐ của TB/TN
     for (const [maNhom, g] of map) {
-      const groupContracts = displayContracts.filter(c => c.maNhom === maNhom || (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase()));
+      const groupContracts = displayContracts.filter(c => {
+        if (c.maNhom !== maNhom && (!c.maNhom || c.maNhom.toLowerCase() !== maNhom.toLowerCase())) return false;
+        if (!includeIndividualTN && leaderCodes.has(c.agentCode)) return false;
+        return true;
+      });
       g.contracts = groupContracts;
       g.activityRounds = calculateLuot(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
     }

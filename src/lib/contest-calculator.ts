@@ -748,12 +748,21 @@ export function computeGroupedData(
   const luotThreshold = isStandardMode(conditionType)
     ? config.luotHDCTThreshold
     : config.luotHDThreshold;
+  // Build set of leader agentCodes (TB/TN) để loại trừ khi includeIndividualTN = false
+  const leaderCodes = new Set<string>();
+  if (!config.includeIndividualTN) {
+    for (const [, g] of map) {
+      if (g.leader?.agentCode) leaderCodes.add(g.leader.agentCode);
+    }
+  }
   const contractByNhom = new Map<
     string,
     { totalFYP: number; totalAFYP: number; contractCount: number }
   >();
   for (const c of displayContracts) {
     if (!c.maNhom) continue;
+    // Nếu includeIndividualTN = false → bỏ qua HĐ của TB/TN (leader)
+    if (!config.includeIndividualTN && leaderCodes.has(c.agentCode)) continue;
     const existing = contractByNhom.get(c.maNhom);
     if (existing) {
       existing.totalFYP += c.pdt10DT;
@@ -780,9 +789,11 @@ export function computeGroupedData(
   }
   for (const [maNhom, g] of map) {
     const groupContracts = displayContracts.filter(
-      (c) =>
-        c.maNhom === maNhom ||
-        (c.maNhom && c.maNhom.toLowerCase() === maNhom.toLowerCase())
+      (c) => {
+        if (c.maNhom !== maNhom && (!c.maNhom || c.maNhom.toLowerCase() !== maNhom.toLowerCase())) return false;
+        if (!config.includeIndividualTN && leaderCodes.has(c.agentCode)) return false;
+        return true;
+      }
     );
     g.contracts = groupContracts;
     g.activityRounds = calculateLuot(
