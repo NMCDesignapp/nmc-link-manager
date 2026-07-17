@@ -11541,7 +11541,7 @@ export default function QuanLyPage() {
           : `Còn thiếu ${formatNumber(THRESHOLD - totalIP)} IP`;
         // Resolve nhóm từ tvvStruct
         const nhomName = (() => {
-          const bn = banNhomStructList.find(b => b.maBanNhom === tvv.maBanNhom);
+          const bn = banNhomList.find(b => b.maBanNhom === tvv.maBanNhom);
           return bn?.tenBanNhom || tvv.maBanNhom || '—';
         })();
         return { tvv, nhomName, ipT2, ipT1, ipT, totalIP, ketQua, datGiaNhap: totalIP >= THRESHOLD };
