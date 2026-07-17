@@ -154,7 +154,7 @@ const KPI_COLORS: Record<string, string> = {
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
 type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
-type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members' | 'pending-members';
+type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members';
 // Sub-sheets within "Tôn vinh" section: 4 bảng Top 5 trong 6 tháng đầu năm
 type VinhDanhSubKey = 'top5-tvv' | 'top5-tvvm' | 'top5-nhom' | 'nhom-hoan-thanh-kh';
 
@@ -339,7 +339,6 @@ const STRUCTURE_SUBS: { key: StructureSubKey; label: string; icon: React.Element
   { key: 'recruiters', label: 'DS TTN', icon: UserCircle },
   { key: 'tuyen-ngang', label: 'DS TTN Tuyển Ngang', icon: Merge },
   { key: 'clb-members', label: 'DS Thành viên CLB', icon: UserCheck },
-  { key: 'pending-members', label: 'DS Chờ xét gia nhập', icon: UserPlus },
 ];
 
 // Mobile menu button colors (solid) — only top-level sheets need a color
@@ -10673,6 +10672,7 @@ export default function QuanLyPage() {
     { key: 'ca-nhan',     label: 'XÉT DANH HIỆU CLB - CÁ NHÂN',     desc: 'FYP cá nhân TVV — 3 hạng: Vàng / Bạch Kim / Kim Cương',   icon: UserCircle, color: '#2563EB' },
     { key: 'tn-td',       label: 'XÉT DANH HIỆU - TN TUYỂN DỤNG',   desc: 'FYP TVVm + SL TVVm HĐC — 2 hạng: Vàng / Bạch Kim',         icon: UserPlus,   color: '#1D4ED8' },
     { key: 'tn-ktm',      label: 'XÉT DANH HIỆU CLB - TN KTM',       desc: 'FYP cá nhân TN KTM — 3 hạng: Vàng / Bạch Kim / Kim Cương', icon: Users,      color: '#1E3A8A' },
+    { key: 'tien-do',     label: 'TIẾN ĐỘ GIA NHẬP CLB',              desc: 'IP 3 tháng gần nhất (T-2, T-1, T) — xét gia nhập khi ≥ 60tr', icon: TrendingUp, color: '#0D9488' },
   ] as const;
   type CLBSVProgram = typeof CLBSV_ITEMS[number]['key'];
 
@@ -11499,10 +11499,111 @@ export default function QuanLyPage() {
     </div>
   );
 
+  // ---------- TIẾN ĐỘ GIA NHẬP CLB ----------
+  // Bảng: STT - NHÓM - MÃ SỐ - HỌ TÊN - IP T-2 - IP T-1 - IP T - TỔNG IP - KẾT QUẢ XÉT
+  // Đối tượng: tất cả TVV từ DS TVV (Cấu trúc), TRỪ TVV đã có trong DS Thành viên CLB
+  // KẾT QUẢ XÉT: Tổng IP >= 60tr → "Gia nhập", < 60tr → "Còn thiếu X IP"
+  const renderCLBSVTienDoGiaNhap = () => {
+    const now = new Date();
+    const curMonth = now.getMonth() + 1; // T
+    const curYear = now.getFullYear();
+    const t2Month = curMonth - 2 <= 0 ? curMonth - 2 + 12 : curMonth - 2;
+    const t2Year = curMonth - 2 <= 0 ? curYear - 1 : curYear;
+    const t1Month = curMonth - 1 <= 0 ? curMonth - 1 + 12 : curMonth - 1;
+    const t1Year = curMonth - 1 <= 0 ? curYear - 1 : curYear;
+    const THRESHOLD = 60_000_000; // 60 triệu
+
+    // DS TVV từ Cấu trúc
+    const allTvv = tvvStructList;
+    // DS agentCode đã có trong CLB members → loại trừ
+    const clbCodes = new Set(clbMembers.map(m => m.agentCode).filter(Boolean));
+
+    // Tính IP theo tháng cho mỗi TVV
+    const getMonthIP = (agentCode: string, month: number, year: number): number => {
+      return contracts
+        .filter(c => {
+          if (c.agentCode !== agentCode) return false;
+          const d = new Date(c.issueDate || c.effectiveDate);
+          return !isNaN(d.getTime()) && d.getMonth() + 1 === month && d.getFullYear() === year;
+        })
+        .reduce((s, c) => s + c.tinhLuot3tr, 0); // Dùng tinhLuot3tr (IP tính lượt)
+    };
+
+    const rows = allTvv
+      .filter(tvv => !clbCodes.has(tvv.agentCode))
+      .map(tvv => {
+        const ipT2 = getMonthIP(tvv.agentCode, t2Month, t2Year);
+        const ipT1 = getMonthIP(tvv.agentCode, t1Month, t1Year);
+        const ipT = getMonthIP(tvv.agentCode, curMonth, curYear);
+        const totalIP = ipT2 + ipT1 + ipT;
+        const ketQua = totalIP >= THRESHOLD
+          ? 'Gia nhập'
+          : `Còn thiếu ${formatNumber(THRESHOLD - totalIP)} IP`;
+        // Resolve nhóm từ tvvStruct
+        const nhomName = (() => {
+          const bn = banNhomStructList.find(b => b.maBanNhom === tvv.maBanNhom);
+          return bn?.tenBanNhom || tvv.maBanNhom || '—';
+        })();
+        return { tvv, nhomName, ipT2, ipT1, ipT, totalIP, ketQua, datGiaNhap: totalIP >= THRESHOLD };
+      })
+      .sort((a, b) => b.totalIP - a.totalIP);
+
+    const countGiaNhap = rows.filter(r => r.datGiaNhap).length;
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-sm sm:text-base font-extrabold text-blue-300 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" /> TIẾN ĐỘ GIA NHẬP CLB SAO VIỆT
+          </h2>
+          <div className="text-xs text-blue-200/70">
+            Tháng T-2: {t2Month}/{t2Year} · Tháng T-1: {t1Month}/{t1Year} · Tháng T: {curMonth}/{curYear}
+            <span className="ml-3 text-amber-300 font-bold">{countGiaNhap}/{rows.length} đạt gia nhập</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto border border-blue-500/30 rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-blue-900 hover:bg-blue-900 border-b border-blue-700">
+                {['STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', `IP T-2 (${t2Month})`, `IP T-1 (${t1Month})`, `IP T (${curMonth})`, 'TỔNG IP', 'KẾT QUẢ XÉT'].map((h, i) => (
+                  <TableHead key={i} className="text-blue-100 text-xs font-bold uppercase text-center whitespace-nowrap">{h}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow><TableCell colSpan={9} className="text-center text-gray-400 py-8 italic text-sm bg-white">Chưa có dữ liệu</TableCell></TableRow>
+              ) : rows.map((r, idx) => (
+                <TableRow key={r.tvv.agentCode} className={`${r.datGiaNhap ? 'bg-emerald-50' : 'bg-white'} hover:bg-blue-50 border-b border-gray-200`}>
+                  <TableCell className="text-center text-xs text-gray-500 whitespace-nowrap">{idx + 1}</TableCell>
+                  <TableCell className="text-xs text-blue-700 font-semibold whitespace-nowrap">{r.nhomName}</TableCell>
+                  <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{r.tvv.agentCode}</TableCell>
+                  <TableCell className="text-xs text-gray-800 whitespace-nowrap">{r.tvv.agentName}</TableCell>
+                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT2 > 0 ? formatNumber(r.ipT2) : '—'}</TableCell>
+                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT1 > 0 ? formatNumber(r.ipT1) : '—'}</TableCell>
+                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT > 0 ? formatNumber(r.ipT) : '—'}</TableCell>
+                  <TableCell className={`text-right text-xs font-bold whitespace-nowrap ${r.datGiaNhap ? 'text-emerald-600' : 'text-gray-900'}`}>{formatNumber(r.totalIP)}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {r.datGiaNhap
+                      ? <span className="text-emerald-600 font-bold">✓ Gia nhập</span>
+                      : <span className="text-red-500 font-medium">Còn thiếu {formatNumber(THRESHOLD - r.totalIP)} IP</span>
+                    }
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-gray-500">{rows.length} TVV (đã loại trừ {clbCodes.size} thành viên CLB hiện tại)</p>
+      </div>
+    );
+  };
+
   const renderCLBSaoViet = () => {
     if (clbsvOpen === 'ca-nhan') return renderCLBSVCaNhan();
     if (clbsvOpen === 'tn-td')   return renderCLBSVTNTuyenDung();
     if (clbsvOpen === 'tn-ktm')  return renderCLBSVTNKTM();
+    if (clbsvOpen === 'tien-do') return renderCLBSVTienDoGiaNhap();
     return renderCLBSaoVietList();
   };
 
