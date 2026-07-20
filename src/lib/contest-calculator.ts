@@ -542,7 +542,20 @@ export function filterDisplayContracts(
   }
 
   if (targetType === 'tvv') {
-    if (subjectCodes.length === 0) return contractsNoDSO;
+    if (subjectCodes.length === 0) {
+      // QUAN TRỌNG (fix user request): Khi không có DS đối tượng → dùng DS TVV
+      // từ Cấu trúc Quản lý (tvvStructList) làm nguồn DS đối tượng, KHÔNG dùng
+      // DS TVV từ file doanh số (Contracts). Lọc HĐ chỉ giữ lại HĐ của TVV có
+      // trong Cấu trúc. Nếu tvvStructList rỗng (chưa load) → fallback cũ.
+      if (tvvStructList && tvvStructList.length > 0) {
+        const structCodes = new Set<string>();
+        for (const t of tvvStructList) {
+          if (t.agentCode) structCodes.add(t.agentCode);
+        }
+        return contractsNoDSO.filter((c) => structCodes.has(c.agentCode));
+      }
+      return contractsNoDSO;
+    }
     return contractsNoDSO.filter(
       (c) =>
         subjectCodes.includes(c.agentCode) ||
@@ -934,9 +947,35 @@ export function computeTVVTotalRows(
       }
     }
   } else if (isTopN && tvvStructList && tvvStructList.length > 0) {
-    // Top N mode + no DS đối tượng → add ALL TVV from DS TVV (Cấu trúc) as participants (value 0)
+    // Top N mode + KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) để hiển thị hết
     // Yêu cầu user: bảng kết quả phải hiển thị hết danh sách đối tượng tham gia thi đua,
-    // không chỉ những người có doanh số. User có thể dùng "Ẩn chưa đạt mức" để ẩn những người k có doanh số.
+    // không chỉ những người có doanh số. User dùng "Ẩn chưa đạt mức" để ẩn người k có doanh số.
+    for (const t of tvvStructList) {
+      if (!t.agentCode) continue;
+      const codeLower = t.agentCode.toLowerCase();
+      const found = Array.from(agentMap.keys()).some(
+        (k) => norm(k).toLowerCase() === codeLower
+      );
+      if (!found) {
+        agentMap.set(t.agentCode, {
+          agentCode: t.agentCode,
+          agentName: t.agentName || t.agentCode,
+          nhom: '',
+          maNhom: t.maBanNhom || '',
+          totalFYP: 0,
+          totalAFYP: 0,
+          contractCount: 0,
+          activityRounds: 0,
+        });
+      }
+    }
+  } else if (tvvStructList && tvvStructList.length > 0) {
+    // FIX (user request): TẤT CẢ chế độ (total_ip / total_afyp / activity_round / ...)
+    // khi KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc Quản lý) vào
+    // bảng kết quả. Trước đây chỉ TopN mode mới thêm → các chế độ khác chỉ hiện TVV
+    // có doanh số, làm user tưởng "lấy DS đối tượng từ file doanh số".
+    // TVV trong Cấu trúc mà không có HĐ → giá trị 0, sẽ hiện "chưa đạt" (user có thể
+    // dùng "Ẩn chưa đạt mức" để ẩn).
     for (const t of tvvStructList) {
       if (!t.agentCode) continue;
       const codeLower = t.agentCode.toLowerCase();
