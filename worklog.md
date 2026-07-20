@@ -1085,3 +1085,43 @@ Stage Summary:
     password mới → ghép vào URL hiện tại trên Vercel.
   + Sau khi update, gọi lại /api/health → 200 + db.status = "ok" → trang KPI
     sẽ tự load.
+
+---
+Task ID: recover-neon-db-2026-07-20
+Agent: main (Super Z)
+Task: User xác nhận lỗi DB do vượt hạn mức Neon free tier — cần solution recover
+
+Work Log:
+- Vấn đề: Production DB `ep-proud-forest-at0fsa78.c-9.us-east-1.aws.neon.tech`
+  không kết nối được (Prisma báo "Can't reach database server" — thực ra là
+  password auth fail hoặc project suspended do free tier limit).
+- ALL API endpoints trả 500 → trang KPI stand ở "Đang tải dữ liệu…" vô tận.
+
+Recovery plan:
+1. Tạo Neon project mới (free tier starts fresh) — user làm trên Neon dashboard
+2. Lấy connection string mới
+3. Chạy script restore_neon_db_v2.py để:
+   - CREATE TABLE IF NOT EXISTS cho 20 tables (matching Prisma schema)
+   - CREATE INDEXES
+   - RESTORE data từ backup 12/07/2026 (4947 rows total)
+4. Update Vercel env var DATABASE_URL → connection string mới
+5. Redeploy → /api/health returns 200 + db.status = "ok"
+
+Tested trên DB `ep-divine-butterfly-ap71xees-pooler` (c-7 us-east-1):
+- Tạo 20 tables OK (17 tables chính + KpiTargetRegistration + 2 cũ)
+- Restore 4947 rows trong 45s (dùng execute_values batch INSERT)
+- Verify: TVVStruct=2084, Contract=810, SaoVietData=947, MonthlyRevenue=550,
+  Contest=4 (incl "BẮT NHỊP THÀNH CÔNG"), Setting=170, Staff=26, LeaderInfo=29,
+  Recruiter=68, TuyenNgang=18, ClbMember=59, PendingMember=49, PosterImage=6
+- 4 contests còn thiếu (added sau 12/07) — user cần re-create trong UI
+
+Files added:
+- scripts/restore_neon_db.py — v1 (row-by-row insert, slow)
+- scripts/restore_neon_db_v2.py — v2 (batch INSERT với execute_values,
+  10-100x faster, 45s cho 4947 rows)
+
+Stage Summary:
+- Script verify work trên Neon DB thật.
+- User chỉ cần: (1) tạo Neon project mới, (2) chạy script, (3) update Vercel.
+- Backup 12/07 khá gần hiện tại (20/07), chỉ mất 4 contests + few days of
+  Contract/MonthlyRevenue mới. User có thể re-enter thủ công.
