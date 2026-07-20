@@ -2655,7 +2655,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // ===== TIẾN ĐỘ KHU VỰC COLLAPSE =====
   // User request: cho phép thu gọn toàn bộ region từ "TIẾN ĐỘ KHU VỰC" đến hết card BANCA.
   // Click vào chữ "TIẾN ĐỘ KHU VỰC" để toggle.
-  const [khuVucCollapsed, setKhuVucCollapsed] = useState(false);
+  // Mặc định ẨN khi mở app (user request 2026-07-20).
+  const [khuVucCollapsed, setKhuVucCollapsed] = useState(true);
 
   // ===== BANCA GOLD CIRCLES (15 ô tròn để admin upload ảnh) =====
   // User request: dưới card BANCA, thêm 1 khoảng trống (cao cỡ 50% viewport) chứa 15 hình tròn nhỏ
