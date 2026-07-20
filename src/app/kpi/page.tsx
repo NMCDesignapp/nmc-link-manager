@@ -212,12 +212,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
-.kpi-app .nav-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; grid-column: 1 / -1; }
-.kpi-app .nav-btn { padding: 10px 8px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); }
+.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 24px; }
+.kpi-app .nav-row-3 { display: contents; }
+.kpi-app .nav-btn { padding: 10px 6px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); min-height: 48px; text-align: center; }
 .kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
 .kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
-.kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
+.kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; flex-shrink: 0; }
+.kpi-app .nav-btn .nav-label { white-space: normal; line-height: 1.1; }
 /* 6 nút — mỗi nút 1 màu solid, bỏ glow halo, chỉ giữ drop shadow đen */
 .kpi-app .nav-detail { background: #2563EB; }   /* blue-600 */
 .kpi-app .nav-plan   { background: #16A34A; }   /* green-600 */
@@ -506,29 +507,122 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .khuvuc-region { transition: max-height .35s ease, opacity .25s ease, overflow .25s; }
 .kpi-app .khuvuc-region.collapsed { max-height: 0 !important; opacity: 0; overflow: hidden; pointer-events: none; }
 
-/* ============= BANCA GOLD CIRCLES (15 ô tròn) ============= */
-/* User request: dưới card BANCA, 1 khoảng trống cỡ 50% viewport chứa 15 hình tròn nhỏ (gold border)
-   bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì. */
+/* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
+/* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
+   Nền dark, ảnh chèn lên có hiệu ứng bắt mắt. 50% ô trống phía trên chứa ảnh,
+   50% phía dưới để trống. */
 .kpi-app .banca-imgs-section {
   margin-top: 14px;
-  padding: 18px 14px;
-  background: linear-gradient(180deg, rgba(255,215,107,.04), rgba(212,168,67,.02));
-  border: 1px solid rgba(255,215,107,.18);
-  border-radius: 12px;
-  min-height: 50vh;
+  padding: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(255,215,107,.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 60%, rgba(192,132,252,.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0e1a 0%, #050810 100%);
+  border: 1px solid rgba(255,215,107,.22);
+  border-radius: 14px;
+  /* Section cao cố định: 50% trên chứa ảnh (wall-of-fame), 50% dưới để trống */
+  min-height: 80vh;
   display: flex; flex-direction: column;
   position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,215,107,.10);
+}
+/* Decorative gold top border accent */
+.kpi-app .banca-imgs-section::before {
+  content: '';
+  position: absolute; top: 0; left: 8%; right: 8%; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.6), rgba(212,168,67,.9), rgba(255,215,107,.6), transparent);
+  z-index: 1;
 }
 .kpi-app .banca-imgs-header {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+  padding: 12px 14px 6px; flex-wrap: wrap; gap: 8px;
+  position: relative; z-index: 2;
 }
 .kpi-app .banca-imgs-title {
-  font-size: 12px; font-weight: 800; color: #ffd76b; letter-spacing: .05em;
+  font-size: 11px; font-weight: 800; color: #ffd76b; letter-spacing: .12em;
   text-transform: uppercase; display: flex; align-items: center; gap: 6px;
+  text-shadow: 0 0 12px rgba(255,215,107,.4);
 }
-.kpi-app .banca-imgs-grid {
-  flex: 1;
+.kpi-app .banca-imgs-wall {
+  /* Wall-of-fame container: chiếm 50% phía trên của section.
+     Dùng position: relative + absolute placement để ảnh so le ngẫu hứng. */
+  position: relative;
+  flex: 0 0 50%;
+  min-height: 280px;
+  margin: 0 8px;
+  z-index: 2;
+}
+.kpi-app .banca-img-cell {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff8d8, #f3d77a 60%, #b89838 100%);
+  border: 3px solid #ffd76b;
+  box-shadow:
+    0 0 0 2px rgba(255,215,107,.18),
+    0 4px 14px rgba(184,152,56,.40),
+    0 0 20px rgba(255,215,107,.15);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform .25s ease, box-shadow .25s ease, z-index 0s;
+}
+.kpi-app .banca-img-cell:hover {
+  transform: scale(1.12) translateZ(0);
+  box-shadow:
+    0 0 0 3px rgba(255,215,107,.55),
+    0 8px 24px rgba(184,152,56,.60),
+    0 0 32px rgba(255,215,107,.40);
+  z-index: 10;
+}
+.kpi-app .banca-img-cell img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.kpi-app .banca-img-cell .banca-img-placeholder {
+  font-size: 10px; color: #7a5c14; font-weight: 800; text-align: center;
+  padding: 2px; line-height: 1;
+}
+.kpi-app .banca-img-cell .banca-img-del {
+  position: absolute; top: -4px; right: -4px;
+  width: 18px; height: 18px;
+  background: #ef4444; color: white;
+  border: 2px solid #1a1a2e; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  opacity: 0; transition: opacity .2s;
+}
+.kpi-app .banca-img-cell:hover .banca-img-del { opacity: 1; }
+.kpi-app .banca-img-cell.is-uploading { opacity: .5; pointer-events: none; }
+.kpi-app .banca-img-empty-hint {
+  text-align: center; font-size: 10px; color: #8a7530; font-style: italic;
+  padding: 12px 14px;
+  position: relative; z-index: 2;
+}
+/* Bottom 50% empty space — giữ trống theo yêu cầu user.
+   Thêm subtle decoration để không bị trống trải. */
+.kpi-app .banca-imgs-bottom-empty {
+  flex: 0 0 50%;
+  position: relative;
+  background:
+    repeating-linear-gradient(45deg, transparent 0, transparent 20px, rgba(255,215,107,.012) 20px, rgba(255,215,107,.012) 40px);
+}
+.kpi-app .banca-imgs-bottom-empty::after {
+  content: '';
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.30), transparent);
+}
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-section { min-height: 70vh; }
+  .kpi-app .banca-imgs-wall { min-height: 220px; }
+  /* Mobile: ảnh nhỏ hơn để vừa màn hình */
+  .kpi-app .banca-img-cell { transform: scale(.85) translate(-50%, -50%); transform-origin: 0 0; }
+  .kpi-app .banca-img-cell:hover { transform: scale(.95) translate(-50%, -50%); }
+}
+
+/* Admin modal grid (upload): dùng grid đều để dễ upload — khác với wall-of-fame ở section chính */
+.kpi-app .banca-admin-modal .banca-imgs-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 14px;
@@ -536,45 +630,23 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   justify-items: center;
   padding: 12px 4px;
 }
-.kpi-app .banca-img-cell {
+.kpi-app .banca-admin-modal .banca-img-cell {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-width: 110px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fff8d8, #f3d77a 60%, #b89838 100%);
-  border: 3px solid #ffd76b;
-  box-shadow: 0 0 0 2px rgba(255,215,107,.18), 0 4px 14px rgba(184,152,56,.30);
-  overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
+  max-width: 90px;
+  transform: none;
+  left: auto; top: auto;
 }
-.kpi-app .banca-img-cell:hover { transform: scale(1.05); box-shadow: 0 0 0 3px rgba(255,215,107,.35), 0 6px 20px rgba(184,152,56,.45); }
-.kpi-app .banca-img-cell img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+.kpi-app .banca-admin-modal .banca-img-cell:hover {
+  transform: scale(1.05);
+  z-index: auto;
 }
-.kpi-app .banca-img-cell .banca-img-placeholder {
-  font-size: 10px; color: #7a5c14; font-weight: 700; text-align: center;
-  padding: 4px;
-}
-.kpi-app .banca-img-cell .banca-img-del {
-  position: absolute; top: -6px; right: -6px;
-  width: 22px; height: 22px;
-  background: #ef4444; color: white;
-  border: 2px solid #1a1a2e; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 900; cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,.4);
-}
-.kpi-app .banca-img-cell.is-uploading { opacity: .5; pointer-events: none; }
-.kpi-app .banca-img-empty-hint {
-  text-align: center; font-size: 10px; color: #8a7530; font-style: italic;
-  margin-top: 8px;
+.kpi-app .banca-admin-modal .banca-img-cell .banca-img-del {
+  opacity: 1; /* luôn hiện trong modal để dễ xóa */
 }
 @media (max-width: 640px) {
-  .kpi-app .banca-imgs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .kpi-app .banca-img-cell { max-width: 80px; }
+  .kpi-app .banca-admin-modal .banca-imgs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
 }
 
 /* ============= BANCA ADMIN MODAL (upload 15 ảnh) ============= */
@@ -2474,6 +2546,28 @@ function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; c
      - Có admin features khi đã login
      - Iframe overlay có "Mở tab mới"
 */
+
+// 15 vị trí ngẫu nhiên-but-stable cho banca-imgs-wall (wall of fame style)
+// Mỗi entry: { left%, top%, size px, zIndex }
+// Bố trí so le, to nhỏ ngẫu hứng, không trùng lặp quá nhiều.
+const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: number }> = [
+  { left: 5,  top: 8,  size: 70, z: 3 },
+  { left: 22, top: 18, size: 55, z: 2 },
+  { left: 38, top: 6,  size: 80, z: 4 },
+  { left: 56, top: 22, size: 60, z: 3 },
+  { left: 72, top: 10, size: 50, z: 2 },
+  { left: 86, top: 28, size: 65, z: 3 },
+  { left: 12, top: 50, size: 60, z: 3 },
+  { left: 30, top: 60, size: 75, z: 4 },
+  { left: 48, top: 48, size: 50, z: 2 },
+  { left: 64, top: 58, size: 70, z: 3 },
+  { left: 80, top: 50, size: 55, z: 2 },
+  { left: 3,  top: 70, size: 50, z: 2 },
+  { left: 18, top: 80, size: 60, z: 3 },
+  { left: 42, top: 78, size: 55, z: 2 },
+  { left: 60, top: 82, size: 70, z: 4 },
+];
+
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
   const router = useRouter();
   const [rawData, setRawData] = useState<{
@@ -2814,6 +2908,98 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       alert(`Lỗi: ${e?.message || e}`);
     } finally {
       setTargetRegSaving(false);
+    }
+  };
+
+  // ===== EXPORT TARGET REGISTRATIONS TO EXCEL (admin only) =====
+  // User request: button trên target-reg-list view, chỉ admin thấy.
+  // Export danh sách đăng ký tháng hiện tại ra file .xlsx với format:
+  // STT | NHÓM | MÃ SỐ | HỌ TÊN | CV | AFYP (triệu) | LƯỢT | GHI CHÚ
+  const exportTargetRegExcel = async () => {
+    if (targetRegList.length === 0) {
+      alert('Không có dữ liệu để export');
+      return;
+    }
+    try {
+      const XLSXModule = await import('xlsx-js-style');
+      const XLSX = XLSXModule.default || XLSXModule;
+      const now = new Date();
+      const monthLabel = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+
+      // Build sheet data
+      const header = [
+        ['DANH SÁCH ĐĂNG KÝ MỤC TIÊU', '', '', '', '', '', '', ''],
+        [monthLabel, '', '', '', '', '', '', ''],
+        [`Tổng số: ${targetRegList.length} đăng ký`, '', '', '', '', '', '', ''],
+        [],
+        ['STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', 'CV', 'AFYP (triệu)', 'LƯỢT', 'GHI CHÚ'],
+      ];
+      const rows = targetRegList.map((reg, idx) => [
+        idx + 1,
+        reg.nhom || '',
+        reg.agentCode || '',
+        reg.agentName || '',
+        reg.position || '',
+        (reg.afypTarget || 0) / 1_000_000,
+        reg.luotHDTarget || 0,
+        reg.note || '',
+      ]);
+      const totals = [
+        [],
+        ['', '', '', '', 'TỔNG', targetRegList.reduce((s, r) => s + (r.afypTarget || 0) / 1_000_000, 0), targetRegList.reduce((s, r) => s + (r.luotHDTarget || 0), 0), ''],
+      ];
+      const aoa = [...header, ...rows, ...totals];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 5 },   // STT
+        { wch: 22 },  // NHÓM
+        { wch: 12 },  // MÃ SỐ
+        { wch: 22 },  // HỌ TÊN
+        { wch: 18 },  // CV
+        { wch: 14 },  // AFYP
+        { wch: 8 },   // LƯỢT
+        { wch: 28 },  // GHI CHÚ
+      ];
+
+      // Style: title rows (1-3) bold + merged
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },
+      ];
+      const titleStyle = { font: { bold: true, sz: 14, color: { rgb: 'FFD700' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+      const monthStyle = { font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center' }, fill: { fgColor: { rgb: '1E3A8A' } } };
+      const sumStyle = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } };
+      const headerStyle = { font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, fill: { fgColor: { rgb: '065F46' } }, border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } } };
+      const cellStyle = { font: { sz: 10 }, alignment: { vertical: 'center' }, border: { top: { style: 'thin', color: { rgb: 'CCCCCC' } }, bottom: { style: 'thin', color: { rgb: 'CCCCCC' } }, left: { style: 'thin', color: { rgb: 'CCCCCC' } }, right: { style: 'thin', color: { rgb: 'CCCCCC' } } } };
+      const numStyle = { ...cellStyle, alignment: { horizontal: 'right', vertical: 'center' } };
+
+      // Apply styles
+      for (let r = 0; r < aoa.length; r++) {
+        for (let c = 0; c < aoa[r].length; c++) {
+          const cellRef = XLSX.utils.encode_cell({ r, c });
+          if (!ws[cellRef]) continue;
+          if (r === 0) ws[cellRef].s = titleStyle;
+          else if (r === 1) ws[cellRef].s = monthStyle;
+          else if (r === 2) ws[cellRef].s = sumStyle;
+          else if (r === 4) ws[cellRef].s = headerStyle;
+          else if (r >= 5) {
+            // Data rows: AFYP (c=5) và LƯỢT (c=6) → right-aligned number
+            ws[cellRef].s = (c === 5 || c === 6) ? numStyle : cellStyle;
+          }
+        }
+      }
+
+      // Build workbook + download
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'DangKyMucTieu');
+      const filename = `DangKyMucTieu_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    } catch (e: any) {
+      alert(`Lỗi export Excel: ${e?.message || e}`);
+      console.error('Export target reg Excel error:', e);
     }
   };
 
@@ -4007,27 +4193,25 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 {/* Desktop Company Strip đã được chuyển vào trong .split-center (cột trái của desktop-split) */}
               </div>
 
-              {/* Navigation Grid — di chuyển vào desktop-split bên dưới, ẩn ở đây trên desktop */}
+              {/* Navigation Grid — mobile: 2 rows × 3 cols = 6 buttons */}
               <nav className="nav-grid mobile-only" aria-label="Điều hướng">
                 <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                  <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
+                  <span className="nav-icon"><BarChart3 size={14} /></span> <span className="nav-label">Chi tiết nhóm</span>
                 </button>
                 <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                  <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
+                  <span className="nav-icon"><CalendarDays size={14} /></span> <span className="nav-label">Kế hoạch khung</span>
                 </button>
-                <div className="nav-row-3">
-                  <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                    <span className="nav-icon"><Flag size={14} /></span> Thi đua
-                  </button>
-                  <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                    <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
-                  </button>
-                  <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                    <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
-                  </button>
-                </div>
-                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#c89828,#a87818)', color: '#fff' }}>
-                  <span className="nav-icon"><Trophy size={14} /></span> DS Đăng Ký Mục Tiêu
+                <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
+                </button>
+                <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><BookOpen size={14} /></span> <span className="nav-label">Chính sách 2026</span>
+                </button>
+                <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
+                </button>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Trophy size={14} /></span> <span className="nav-label">DS Đăng Ký Mục Tiêu</span>
                 </button>
               </nav>
 
@@ -4044,7 +4228,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </span>
               </div>
 
-              {/* Mobile Region - Redesign as table-style cards (collapsible) */}
+              {/* Mobile Region - Redesign as table-style cards (collapsible)
+                  User fix: chỉ thu gọn cards (incl. Banca card), KHÔNG ẩn banca-imgs-section
+                  và target-reg-section ở dưới. */}
               <div className={`khuvuc-region mobile-only${khuVucCollapsed ? ' collapsed' : ''}`}>
               <div className="rg-wrap mobile-only">
                 {dashboard.phongs.map((phong, pi) => {
@@ -4191,11 +4377,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   );
                 })}
               </div>
+              </div>{/* end khuvuc-region mobile — chỉ chứa cards (incl banca) */}
 
               {/* === BANCA IMAGES (15 gold circles) — ADMIN ONLY ===
                   User request: sau card BANCA, thêm 1 khoảng trống cỡ 50% màn hình
                   chứa 15 hình tròn nhỏ (gold border). Chỉ admin thấy & upload.
-                  Non-admin không thấy gì (không hiển thị khung trống). */}
+                  Non-admin không thấy gì (không hiển thị khung trống).
+                  User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
+                  50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
               {adminAuthed && (
                 <div className="banca-imgs-section mobile-only">
                   <div className="banca-imgs-header">
@@ -4211,20 +4400,32 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       ⚙ Cài đặt ảnh
                     </button>
                   </div>
-                  <div className="banca-imgs-grid">
+                  {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
+                  <div className="banca-imgs-wall">
                     {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
                       const idx = String(i + 1).padStart(2, '0');
                       const key = `kpi-banca-img-${idx}`;
                       const url = bancaImages[key];
                       const isUploading = bancaImgUploading === key;
+                      const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
+                      // Chỉ render cell nếu có ảnh HOẶC admin (để placeholder +N)
+                      // Theo yêu cầu user: nếu chưa add hình thì không hiển thị hình trống ra (chỉ admin thấy)
+                      // → admin luôn thấy placeholder; non-admin không thấy section này (đã check adminAuthed ở ngoài)
                       return (
                         <div
                           key={key}
                           className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+                          style={{
+                            left: `${pos.left}%`,
+                            top: `${pos.top}%`,
+                            width: `${pos.size}px`,
+                            height: `${pos.size}px`,
+                            zIndex: pos.z,
+                            transform: 'translate(-50%, -50%)',
+                          }}
                           onClick={() => {
                             if (isUploading) return;
                             if (url) {
-                              // Already has image — confirm replace
                               if (!confirm('Thay ảnh này?')) return;
                             }
                             const input = document.createElement('input');
@@ -4258,6 +4459,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   {Object.keys(bancaImages).length === 0 && (
                     <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                   )}
+                  {/* 50% bottom — empty space theo yêu cầu user */}
+                  <div className="banca-imgs-bottom-empty" />
                 </div>
               )}
 
@@ -4268,8 +4471,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
                 </button>
               </div>
-
-              </div>{/* end khuvuc-region mobile */}
 
               {/* Desktop Split Layout: 2 cột — TRÁI (3fr): 5 nút nav + công ty + biểu đồ | PHẢI (1fr): 4 phòng dọc (bằng nhau, fill height) */}
               <div className="desktop-split">
@@ -4342,7 +4543,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </div>
                   </div>
                 </div>
-                {/* Desktop Region Divider (clickable to collapse) */}
+                {/* Desktop Region Divider (clickable to collapse) — only hides cards in split-right,
+                    banca images + target reg button stay visible below. */}
                 <div
                   className={`region-divider is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
                   style={{ gridColumn: '1 / -1', marginTop: 24, marginBottom: 4 }}
@@ -4355,79 +4557,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     Tiến Độ Khu Vực
                   </span>
                 </div>
-                <div className={`khuvuc-region${khuVucCollapsed ? ' collapsed' : ''}`} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16 }}>
-                <div className="split-left-bottom" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {/* Banca images section (admin only) — desktop */}
-                  {adminAuthed && (
-                    <div className="banca-imgs-section">
-                      <div className="banca-imgs-header">
-                        <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
-                        <button
-                          onClick={() => setBancaImgAdminOpen(true)}
-                          style={{
-                            padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
-                            background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
-                            cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
-                          }}
-                        >
-                          ⚙ Cài đặt ảnh
-                        </button>
-                      </div>
-                      <div className="banca-imgs-grid">
-                        {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                          const idx = String(i + 1).padStart(2, '0');
-                          const key = `kpi-banca-img-${idx}`;
-                          const url = bancaImages[key];
-                          const isUploading = bancaImgUploading === key;
-                          return (
-                            <div
-                              key={key}
-                              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                              onClick={() => {
-                                if (isUploading) return;
-                                if (url) {
-                                  if (!confirm('Thay ảnh này?')) return;
-                                }
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.accept = 'image/*';
-                                input.onchange = (e: any) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) uploadBancaImage(key, file);
-                                };
-                                input.click();
-                              }}
-                              title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
-                            >
-                              {url ? (
-                                <>
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={url} alt={`Banca ${idx}`} />
-                                  <button
-                                    className="banca-img-del"
-                                    onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
-                                    title="Xóa ảnh"
-                                  >×</button>
-                                </>
-                              ) : (
-                                <span className="banca-img-placeholder">+{idx}</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {Object.keys(bancaImages).length === 0 && (
-                        <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
-                      )}
-                    </div>
-                  )}
-                  {/* Target registration button */}
-                  <div className="target-reg-section">
-                    <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
-                      ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
-                    </button>
-                  </div>
-                </div>
+                {/* Desktop: only split-right (cards) is collapsible.
+                    Banca images + target reg button stay visible below. */}
+                <div className={`khuvuc-region${khuVucCollapsed ? ' collapsed' : ''}`} style={{ gridColumn: '2 / 3' }}>
                 <div className="split-right" id="split-depts">
                     {dashboard.phongs.map((phong, pi) => {
                       const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
@@ -4668,7 +4800,95 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       );
                     })}
                 </div>{/* end split-right */}
-                </div>{/* end khuvuc-region desktop */}
+                </div>{/* end khuvuc-region desktop — only split-right cards */}
+
+                {/* Desktop: banca images (admin) + target reg button stay visible below collapsed region */}
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16, marginTop: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Banca images section (admin only) — desktop */}
+                    {adminAuthed && (
+                      <div className="banca-imgs-section">
+                        <div className="banca-imgs-header">
+                          <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                          <button
+                            onClick={() => setBancaImgAdminOpen(true)}
+                            style={{
+                              padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                              background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
+                              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
+                            }}
+                          >
+                            ⚙ Cài đặt ảnh
+                          </button>
+                        </div>
+                        <div className="banca-imgs-wall">
+                          {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
+                            const idx = String(i + 1).padStart(2, '0');
+                            const key = `kpi-banca-img-${idx}`;
+                            const url = bancaImages[key];
+                            const isUploading = bancaImgUploading === key;
+                            const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
+                            return (
+                              <div
+                                key={key}
+                                className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+                                style={{
+                                  left: `${pos.left}%`,
+                                  top: `${pos.top}%`,
+                                  width: `${pos.size}px`,
+                                  height: `${pos.size}px`,
+                                  zIndex: pos.z,
+                                  transform: 'translate(-50%, -50%)',
+                                }}
+                                onClick={() => {
+                                  if (isUploading) return;
+                                  if (url) {
+                                    if (!confirm('Thay ảnh này?')) return;
+                                  }
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = 'image/*';
+                                  input.onchange = (e: any) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) uploadBancaImage(key, file);
+                                  };
+                                  input.click();
+                                }}
+                                title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                              >
+                                {url ? (
+                                  <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={url} alt={`Banca ${idx}`} />
+                                    <button
+                                      className="banca-img-del"
+                                      onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                                      title="Xóa ảnh"
+                                    >×</button>
+                                  </>
+                                ) : (
+                                  <span className="banca-img-placeholder">+{idx}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {Object.keys(bancaImages).length === 0 && (
+                          <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
+                        )}
+                        {/* 50% bottom — empty space theo yêu cầu user */}
+                        <div className="banca-imgs-bottom-empty" />
+                      </div>
+                    )}
+                    {/* Target registration button */}
+                    <div className="target-reg-section">
+                      <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
+                        ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                      </button>
+                    </div>
+                  </div>
+                  <div />{/* empty right column to keep grid layout */}
+                </div>
               </div>{/* end desktop-split */}
             </>
           )}
@@ -5167,7 +5387,22 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
             <span className="sub-title">Danh Sách Đăng Ký Mục Tiêu</span>
-            <div style={{ width: 32 }} />
+            {/* Export Excel button — admin only */}
+            {adminAuthed && targetRegList.length > 0 && (
+              <button
+                onClick={exportTargetRegExcel}
+                style={{
+                  height: 32, padding: '0 12px', borderRadius: 6, border: '1px solid rgba(108,199,138,.30)',
+                  background: 'rgba(108,199,138,.10)', color: '#6cc78a', fontSize: 10, fontWeight: 700,
+                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+                  textTransform: 'uppercase', letterSpacing: '.04em',
+                }}
+                title="Tải file Excel danh sách đăng ký"
+              >
+                ⬇ Excel
+              </button>
+            )}
+            {!adminAuthed && <div style={{ width: 32 }} />}
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="detail-hero" style={{ textAlign: 'center', marginTop: 6 }}>
