@@ -1022,3 +1022,66 @@ Stage Summary:
 - Commit b22ba93 pushed (945c16a..b22ba93)
 - 2 fixes đã verify thực tế trên production
 - User cần hard refresh (Ctrl+Shift+R) để tải JS bundle mới
+
+---
+Task ID: fix-kpi-default-collapse-2026-07-20
+Agent: main (Super Z)
+Task: User báo 2 vấn đề: (1) mặc định ẩn TIẾN ĐỘ KHU VỰC khi mở KPI, (2) trang KPI khởi động không lên, cứ quay
+
+Work Log:
+- Clone repo NMCDesignapp/nmc-link-manager về /home/z/my-project/nmc-link-manager
+- Vị trí state: src/app/kpi/page.tsx line 2658 — `const [khuVucCollapsed, setKhuVucCollapsed] = useState(false)`
+- Fix #1: Đổi useState(false) → useState(true) ở 2 file:
+  + src/app/kpi/page.tsx (main app — nc-link.vercel.app/kpi)
+  + kpi-app/src/app/page.tsx (kpi tách — angiang2026-nhom.vercel.app)
+  + Chúng chỉ khác 1 dòng cuối (standalone prop), giữ nguyên cấu trúc.
+- Commit 2f1d7b9 push lên origin/main.
+
+Fix #2 — Khảo sát lỗi trang KPI quay mãi:
+- Mở trang https://angiang2026-nhom.vercel.app/ bằng agent-browser, đợi 8s.
+- Body text: "Tiến Độ Kinh Doanh / BẢO VIỆT NHÂN THỌ AN GIANG / Đang tải dữ liệu…"
+  → Trang CÓ render, KHÔNG crash, chỉ kẹt ở loading state.
+- Network requests: TẤT CẢ API endpoints đều trả về 500:
+  /api/leaders, /api/revenue, /api/contracts, /api/staff, /api/recruiters,
+  /api/tuyen-ngang, /api/structure/{phong,ad,bannhom,tvv}, /api/clb-members,
+  /api/pending-members, /api/quan-ly/all, /api/settings, /api/contests,
+  /api/admin/fix-schema (POST)
+- curl /api/health → HTTP 503, body: "Can't reach database server at
+  ep-proud-forest-at0fsa78.c-9.us-east-1.aws.neon.tech:5432"
+
+Root cause analysis:
+- DNS lookup ep-proud-forest-at0fsa78.c-9.us-east-1.aws.neon.tech → 54.147.180.180, 52.45.105.76 (OK)
+- TCP connect :5432 → OK (server reachable)
+- psycopg2 connect với password có trong production (npg_7oOXIs4nkj...) →
+  FAIL sau 1.3s: "password authentication failed for user 'neondb_owner'"
+- → Neon server ĐANG HOẠT ĐỘNG, nhưng password ĐÃ BỊ ĐỔI (không còn khớp với
+  DATABASE_URL đang set trên Vercel). Prisma wrap lỗi auth thành
+  "Can't reach database server" gây hiểu lầm.
+
+DB URL history (tìm trong git log -S):
+- 6f1a0c0 (initial):  file:/home/z/my-project/db/custom.db (SQLite local)
+- d56eb2d (switch postgres): postgresql://neondb_owner:npg_hgMDzk2naP8Q@ep-bitter-boat-aoiku51z...  (cũ, giờ unreachable)
+- 860bbfc + commits khác: có dấu vết 3 Neon DB khác:
+  + ep-still-bird-ajsntqwu (c-3 us-east-2): CONNECT OK, 15 tables, 7 contests
+    (nhưng thiếu PosterImage, TuyenNgang, SaoVietData, ClbMember, PendingMember,
+    KpiTargetRegistration — đây là DB cũ từ trước khi add các table mới)
+  + ep-divine-butterfly-ap71xees (c-7 us-east-1, pooler): CONNECT OK, 6 tables,
+    TẤT CẢ table rỗng (DB mới chưa có data)
+  + ep-proud-forest-at0fsa78 (c-9 us-east-1, hiện tại production): CONNECT OK
+    nhưng password bị reject
+
+→ Vercel env DATABASE_URL hiện đang trỏ tới ep-proud-forest với password cũ.
+  User đã đổi password trên Neon dashboard (hoặc Neon auto-rotate) nhưng chưa
+  cập nhật DATABASE_URL trên Vercel.
+
+Stage Summary:
+- Fix #1 đã commit + push (2f1d7b9). Vercel sẽ tự deploy trong 1-2 phút.
+- Fix #2 KHÔNG thể fix bằng code — cần user cập nhật DATABASE_URL trên Vercel:
+  + Cách 1: Vào Neon dashboard (https://neon.tech) → project ep-proud-forest
+    → Connection Details → copy connection string mới → dán vào Vercel:
+    Project Settings → Environment Variables → DATABASE_URL (cả Production +
+    Preview + Development) → Redeploy.
+  + Cách 2: Vào Neon dashboard → Reset password cho role neondb_owner → copy
+    password mới → ghép vào URL hiện tại trên Vercel.
+  + Sau khi update, gọi lại /api/health → 200 + db.status = "ok" → trang KPI
+    sẽ tự load.
