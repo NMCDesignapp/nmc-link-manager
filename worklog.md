@@ -1052,7 +1052,7 @@ Fix #2 — Khảo sát lỗi trang KPI quay mãi:
 Root cause analysis:
 - DNS lookup ep-proud-forest-at0fsa78.c-9.us-east-1.aws.neon.tech → 54.147.180.180, 52.45.105.76 (OK)
 - TCP connect :5432 → OK (server reachable)
-- psycopg2 connect với password có trong production (npg_7oOXIs4nkj...) →
+- psycopg2 connect với password có trong production (<NEON_PASSWORD>...) →
   FAIL sau 1.3s: "password authentication failed for user 'neondb_owner'"
 - → Neon server ĐANG HOẠT ĐỘNG, nhưng password ĐÃ BỊ ĐỔI (không còn khớp với
   DATABASE_URL đang set trên Vercel). Prisma wrap lỗi auth thành
@@ -1060,7 +1060,7 @@ Root cause analysis:
 
 DB URL history (tìm trong git log -S):
 - 6f1a0c0 (initial):  file:/home/z/my-project/db/custom.db (SQLite local)
-- d56eb2d (switch postgres): postgresql://neondb_owner:npg_hgMDzk2naP8Q@ep-bitter-boat-aoiku51z...  (cũ, giờ unreachable)
+- d56eb2d (switch postgres): postgresql://neondb_owner:<NEON_PASSWORD>@ep-bitter-boat-aoiku51z...  (cũ, giờ unreachable)
 - 860bbfc + commits khác: có dấu vết 3 Neon DB khác:
   + ep-still-bird-ajsntqwu (c-3 us-east-2): CONNECT OK, 15 tables, 7 contests
     (nhưng thiếu PosterImage, TuyenNgang, SaoVietData, ClbMember, PendingMember,
@@ -1125,3 +1125,60 @@ Stage Summary:
 - User chỉ cần: (1) tạo Neon project mới, (2) chạy script, (3) update Vercel.
 - Backup 12/07 khá gần hiện tại (20/07), chỉ mất 4 contests + few days of
   Contract/MonthlyRevenue mới. User có thể re-enter thủ công.
+
+---
+Task ID: switch-neon-db-2026-07-20
+Agent: main (Super Z)
+Task: User cung cấp Neon DB URL mới + Vercel token — cài đặt end-to-end
+
+Work Log:
+- User tạo Neon project mới: ep-broad-queen-awukcwu7 (c-12 us-east-1, pooler URL)
+- Cấp Vercel token vcp_7L8LKulj... (personal access, REST API compatible)
+
+Bước 1: Restore DB vào Neon mới
+- Chạy scripts/restore_neon_db_v2.py với URL mới
+- 4947 rows restored trong 45s (20 tables + 11 indexes)
+- Verify: TVVStruct=2084, Contract=810, SaoVietData=947, MonthlyRevenue=550,
+  Contest=4, Setting=170, Staff=26, LeaderInfo=29, Recruiter=68, TuyenNgang=18,
+  ClbMember=59, PendingMember=49, PosterImage=6
+
+Bước 2: Tìm Vercel project IDs
+- GET /v9/projects → 2 projects:
+  + prj_yzyA7oAQ3h3xGhQPjLfco9p6mAAa (name=my-project, alias=nc-link.vercel.app, rootDir=None)
+  + prj_u8zwP6nP2spudPFIkZCC8Ybx9LAe (name=kpi-nc-link, alias=angiang2026-nhom.vercel.app, rootDir=kpi-app)
+
+Bước 3: Update env vars (scripts/update_vercel_env.py)
+- DELETE tất cả entries DATABASE_URL + DIRECT_URL cũ
+- CREATE mới với 1 entry duy nhất mỗi key, target=production+preview+development:
+  + DATABASE_URL = postgresql://neondb_owner:<NEON_PASSWORD>@ep-broad-queen-awukcwu7-pooler.../neondb?sslmode=require
+  + DIRECT_URL = postgresql://neondb_owner:<NEON_PASSWORD>@ep-broad-queen-awukcwu7.../neondb?sslmode=require (unpooled, cho Prisma migrate)
+- Đã bỏ channel_binding=require (Prisma Node pg driver không support)
+
+Bước 4: Trigger redeploy (scripts/redeploy_vercel.py)
+- POST /v13/deployments với deploymentId=latest production deployment
+- my-project: dpl_JECDBgz5TtsFyWsNNBLDmiwCkMrs → READY sau 63s
+- kpi-nc-link: dpl_BHi6purv747i1tQKBWD2vDiQrQ3k → READY sau 42s
+
+Bước 5: Verify production
+- GET https://nc-link.vercel.app/api/health → 200, db.status="connected" ✅
+- GET https://nc-link.vercel.app/api/leaders → HTTP 200 ✅
+- GET https://angiang2026-nhom.vercel.app/api/health → 200, db.status="connected" ✅
+- GET https://angiang2026-nhom.vercel.app/api/leaders → HTTP 200 ✅
+- Mở KPI standalone trong browser → load đầy đủ, isLoading=false, hasCards=true,
+  hasTiendeDo=false (TIẾN ĐỘ KHU VỰC đã ẩn mặc định — Fix #1 đã live) ✅
+- Mở /kpi trên main app → tương tự ✅
+
+Files added:
+- scripts/update_vercel_env.py — cập nhật DATABASE_URL/DIRECT_URL trên cả 2 project
+- scripts/redeploy_vercel.py — trigger redeploy production trên cả 2 project
+
+Stage Summary:
+- ✅ DB production switched từ ep-proud-forest (suspended/auth fail) sang ep-broad-queen (mới)
+- ✅ 4947 rows data restored từ backup 12/07/2026
+- ✅ Cả 2 app (nc-link + angiang2026-nhom) redeployed với env mới
+- ✅ /api/health reports "connected" — trang KPI load đầy đủ
+- ✅ Fix #1 (mặc định ẩn TIẾN ĐỘ KHU VỰC) đã live trên cả 2 app
+- ⚠ Mất data từ 13/07-20/07 (4 contests mới + Contracts/MonthlyRevenue trong 8 ngày)
+  → user có thể re-enter thủ công qua UI Thi Đua + Quản Lý
+- ⚠ Neon free tier mới: 0.5 GB storage, 100 compute hours/tháng. Nếu tiếp tục vượt,
+  cân nhắc upgrade lên Launch plan ($19/mo, 10 GB storage, không giới hạn compute hours).
