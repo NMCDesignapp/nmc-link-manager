@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate key format — only allow known prefix patterns
-    const allowedPrefixes = ['saoviet-poster-', 'clbsv-poster-']
+    const allowedPrefixes = ['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-']
     if (!allowedPrefixes.some(p => key.startsWith(p))) {
       return NextResponse.json({ error: `key must start with one of: ${allowedPrefixes.join(', ')}` }, { status: 400 })
     }

@@ -218,12 +218,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
 .kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; }
-/* 5 nút — mỗi nút 1 màu solid, bỏ glow halo, chỉ giữ drop shadow đen */
+/* 6 nút — mỗi nút 1 màu solid, bỏ glow halo, chỉ giữ drop shadow đen */
 .kpi-app .nav-detail { background: #2563EB; }   /* blue-600 */
 .kpi-app .nav-plan   { background: #16A34A; }   /* green-600 */
 .kpi-app .nav-race   { background: #0891B2; }   /* cyan-600 */
 .kpi-app .nav-policy { background: #CA8A04; }   /* yellow-600 */
 .kpi-app .nav-clb    { background: #EA580C; }   /* orange-600 */
+.kpi-app .nav-target-reg { background: linear-gradient(135deg, #c89828, #a87818); } /* gold — ĐK mục tiêu */
 
 /* Section Divider */
 .kpi-app .section-divider { text-align: center; margin: 20px 0 10px; font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: .3em; position: relative; }
@@ -483,6 +484,235 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   padding: 4px 14px; border-radius: 4px;
   background: transparent; border: none; box-shadow: none;
 }
+
+/* ============= TIẾN ĐỘ KHU VỰC COLLAPSE ============= */
+/* Make region-divider clickable: button-like with hover */
+.kpi-app .region-divider.is-collapse-btn { cursor: pointer; user-select: none; transition: opacity .2s; }
+.kpi-app .region-divider.is-collapse-btn:hover { opacity: .85; }
+.kpi-app .region-divider.is-collapse-btn .region-divider-title {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 6px;
+  background: linear-gradient(135deg, rgba(212,168,67,.18), rgba(255,215,107,.10));
+  border: 1px solid rgba(255,215,107,.30);
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon {
+  display: inline-block; width: 14px; height: 14px; transition: transform .25s ease;
+  border: solid #ffd76b; border-width: 0 2px 2px 0; padding: 2px; transform: rotate(45deg);
+}
+.kpi-app .region-divider.is-collapse-btn.collapsed .region-divider-title .collapse-icon {
+  transform: rotate(-45deg);
+}
+/* Hidden content when collapsed — applied to wrapper containing the cards */
+.kpi-app .khuvuc-region { transition: max-height .35s ease, opacity .25s ease, overflow .25s; }
+.kpi-app .khuvuc-region.collapsed { max-height: 0 !important; opacity: 0; overflow: hidden; pointer-events: none; }
+
+/* ============= BANCA GOLD CIRCLES (15 ô tròn) ============= */
+/* User request: dưới card BANCA, 1 khoảng trống cỡ 50% viewport chứa 15 hình tròn nhỏ (gold border)
+   bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì. */
+.kpi-app .banca-imgs-section {
+  margin-top: 14px;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, rgba(255,215,107,.04), rgba(212,168,67,.02));
+  border: 1px solid rgba(255,215,107,.18);
+  border-radius: 12px;
+  min-height: 50vh;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.kpi-app .banca-imgs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.kpi-app .banca-imgs-title {
+  font-size: 12px; font-weight: 800; color: #ffd76b; letter-spacing: .05em;
+  text-transform: uppercase; display: flex; align-items: center; gap: 6px;
+}
+.kpi-app .banca-imgs-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  align-content: center;
+  justify-items: center;
+  padding: 12px 4px;
+}
+.kpi-app .banca-img-cell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff8d8, #f3d77a 60%, #b89838 100%);
+  border: 3px solid #ffd76b;
+  box-shadow: 0 0 0 2px rgba(255,215,107,.18), 0 4px 14px rgba(184,152,56,.30);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.kpi-app .banca-img-cell:hover { transform: scale(1.05); box-shadow: 0 0 0 3px rgba(255,215,107,.35), 0 6px 20px rgba(184,152,56,.45); }
+.kpi-app .banca-img-cell img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.kpi-app .banca-img-cell .banca-img-placeholder {
+  font-size: 10px; color: #7a5c14; font-weight: 700; text-align: center;
+  padding: 4px;
+}
+.kpi-app .banca-img-cell .banca-img-del {
+  position: absolute; top: -6px; right: -6px;
+  width: 22px; height: 22px;
+  background: #ef4444; color: white;
+  border: 2px solid #1a1a2e; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.kpi-app .banca-img-cell.is-uploading { opacity: .5; pointer-events: none; }
+.kpi-app .banca-img-empty-hint {
+  text-align: center; font-size: 10px; color: #8a7530; font-style: italic;
+  margin-top: 8px;
+}
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi-app .banca-img-cell { max-width: 80px; }
+}
+
+/* ============= BANCA ADMIN MODAL (upload 15 ảnh) ============= */
+.kpi-app .banca-admin-modal {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.kpi-app .banca-admin-modal-inner {
+  background: #0e1424; border: 1px solid rgba(255,215,107,.30);
+  border-radius: 14px; padding: 20px;
+  max-width: 720px; width: 100%; max-height: 85vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.kpi-app .banca-admin-modal-title {
+  font-size: 14px; font-weight: 800; color: #ffd76b; text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ============= ĐĂNG KÝ MỤC TIÊU THÁNG — button + popup ============= */
+.kpi-app .target-reg-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+.kpi-app .target-reg-btn {
+  width: 100%;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #c89828 0%, #a87818 100%);
+  color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  cursor: pointer; transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 12px rgba(184,152,56,.30);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.kpi-app .target-reg-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(184,152,56,.45); }
+.kpi-app .target-reg-btn:active { transform: translateY(0); }
+
+.kpi-app .tgr-modal {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.kpi-app .tgr-modal-inner {
+  background: #0e1424; border: 1px solid rgba(108,199,138,.30);
+  border-radius: 14px; padding: 22px;
+  max-width: 480px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.kpi-app .tgr-modal-title {
+  font-size: 14px; font-weight: 800; color: #6cc78a; text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: 16px; text-align: center;
+}
+.kpi-app .tgr-choice-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;
+}
+.kpi-app .tgr-choice-btn {
+  padding: 18px 12px; border-radius: 10px; border: 1px solid rgba(108,199,138,.30);
+  background: rgba(108,199,138,.06); color: #6cc78a;
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.kpi-app .tgr-choice-btn:hover {
+  background: rgba(108,199,138,.18); transform: translateY(-2px);
+  border-color: rgba(108,199,138,.60);
+}
+.kpi-app .tgr-choice-btn .tgr-choice-icon { font-size: 22px; }
+.kpi-app .tgr-choice-btn .tgr-choice-sub { font-size: 9px; opacity: .7; font-weight: 500; }
+
+.kpi-app .tgr-form { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.kpi-app .tgr-field { display: flex; flex-direction: column; gap: 4px; }
+.kpi-app .tgr-field-label {
+  font-size: 10px; font-weight: 700; color: #8ab8e0; text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.kpi-app .tgr-field-input,
+.kpi-app .tgr-field-select {
+  height: 38px; padding: 0 12px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600;
+  outline: none; transition: border-color .15s;
+  font-family: inherit;
+}
+.kpi-app .tgr-field-input:focus,
+.kpi-app .tgr-field-select:focus { border-color: #6cc78a; }
+.kpi-app .tgr-field-input:read-only { background: rgba(255,255,255,.03); color: #8ab8e0; }
+.kpi-app .tgr-field-row { display: flex; gap: 10px; }
+.kpi-app .tgr-field-row > .tgr-field { flex: 1; }
+.kpi-app .tgr-field-suffix {
+  font-size: 10px; color: #8ab8e0; font-weight: 600; padding-top: 4px;
+}
+.kpi-app .tgr-actions {
+  display: flex; gap: 10px; margin-top: 6px;
+}
+.kpi-app .tgr-btn {
+  flex: 1; height: 40px; border-radius: 8px; border: none;
+  font-size: 12px; font-weight: 800; letter-spacing: .05em;
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.kpi-app .tgr-btn-cancel { background: rgba(255,255,255,.08); color: #c0c8d0; }
+.kpi-app .tgr-btn-cancel:hover { background: rgba(255,255,255,.14); }
+.kpi-app .tgr-btn-confirm { background: #6cc78a; color: #062a14; }
+.kpi-app .tgr-btn-confirm:hover { background: #7ed3a0; }
+.kpi-app .tgr-btn-confirm:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ============= TARGET REG LIST VIEW ============= */
+.kpi-app .tgr-list-shell { margin-top: 0; margin-left: auto; margin-right: auto; max-width: 100%; padding: 0 4px; }
+.kpi-app .tgr-list-table-wrap {
+  background: rgba(14,20,36,.6); border: 1px solid rgba(108,199,138,.18);
+  border-radius: 12px; padding: 8px; margin-top: 12px;
+}
+.kpi-app .tgr-list-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kpi-app .tgr-list-table thead th {
+  background: rgba(108,199,138,.10); color: #6cc78a;
+  padding: 10px 8px; text-align: left; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid rgba(108,199,138,.20);
+}
+.kpi-app .tgr-list-table tbody td {
+  padding: 9px 8px; color: #e0e6ed; border-bottom: 1px solid rgba(255,255,255,.06);
+  vertical-align: middle;
+}
+.kpi-app .tgr-list-table tbody tr:hover td { background: rgba(108,199,138,.04); }
+.kpi-app .tgr-list-empty {
+  text-align: center; padding: 30px 16px; color: #8a93a0; font-size: 12px; font-style: italic;
+}
+.kpi-app .tgr-list-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.kpi-app .tgr-list-action-btn {
+  height: 26px; padding: 0 8px; border-radius: 6px; border: none;
+  font-size: 10px; font-weight: 700; cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.kpi-app .tgr-list-action-btn.edit { background: rgba(108,199,138,.16); color: #6cc78a; }
+.kpi-app .tgr-list-action-btn.edit:hover { background: rgba(108,199,138,.30); }
+.kpi-app .tgr-list-action-btn.del { background: rgba(239,68,68,.16); color: #f87171; }
+.kpi-app .tgr-list-action-btn.del:hover { background: rgba(239,68,68,.30); }
 
 /* Mobile compact: smaller fonts/padding */
 @media (max-width: 640px) {
@@ -1150,8 +1380,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
   /* --- Nav grid: ẩn trên desktop (đã move vào split-center) --- */
   .kpi-app .nav-grid.mobile-only { display: none !important; }
-  /* --- Nav grid desktop (bên trong split-center): 5 nút đều nhau --- */
-  .kpi-app .nav-grid.dsk-nav { display: grid !important; grid-template-columns: repeat(5, 1fr); gap: 12px; width: 100%; margin: 0 0 16px; flex-wrap: nowrap; }
+  /* --- Nav grid desktop (bên trong split-center): 6 nút đều nhau --- */
+  .kpi-app .nav-grid.dsk-nav { display: grid !important; grid-template-columns: repeat(6, 1fr); gap: 12px; width: 100%; margin: 0 0 16px; flex-wrap: nowrap; }
   .kpi-app .nav-grid.dsk-nav .nav-row-3 { display: contents; }
   .kpi-app .nav-grid.dsk-nav .nav-btn { padding: 12px 8px; font-size: 11px; min-height: 56px; }
   .kpi-app .nav-row-3 { display: contents; }
@@ -2255,7 +2485,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [splashVisible, setSplashVisible] = useState(true);
   const [splashExiting, setSplashExiting] = useState(false);
   const [error, setError] = useState(false);
-  const [view, setView] = useState<'main' | 'detail' | 'calendar'>('main');
+  const [view, setView] = useState<'main' | 'detail' | 'calendar' | 'target-reg-list'>('main');
   // ===== KPI EMBEDDED SHEET =====
   // Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt) — nội dung
   // sẽ được mở NGAY TRONG KPI app bằng iframe overlay đến /quan-ly?sheet=xxx&from=kpi.
@@ -2327,6 +2557,266 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [calEditOpen, setCalEditOpen] = useState(false);
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owners: string[]; ownerCustom: string }>({ id: null, date: '', title: '', owners: [], ownerCustom: '' });
   const [calEditSaving, setCalEditSaving] = useState(false);
+
+  // ===== TIẾN ĐỘ KHU VỰC COLLAPSE =====
+  // User request: cho phép thu gọn toàn bộ region từ "TIẾN ĐỘ KHU VỰC" đến hết card BANCA.
+  // Click vào chữ "TIẾN ĐỘ KHU VỰC" để toggle.
+  const [khuVucCollapsed, setKhuVucCollapsed] = useState(false);
+
+  // ===== BANCA GOLD CIRCLES (15 ô tròn để admin upload ảnh) =====
+  // User request: dưới card BANCA, thêm 1 khoảng trống (cao cỡ 50% viewport) chứa 15 hình tròn nhỏ
+  // (gold border) bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì (không hiển thị khung trống).
+  // 15 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-15`.
+  const BANCA_IMG_COUNT = 15;
+  const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> url
+  const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null); // key being uploaded
+  const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false); // admin modal để upload tất cả 15 ảnh
+
+  // Load banca images on mount + when adminAuthed changes (chỉ load khi admin)
+  useEffect(() => {
+    if (!adminAuthed) {
+      setBancaImages({});
+      return;
+    }
+    let cancelled = false;
+    const loadBancaImages = async () => {
+      const imgs: Record<string, string> = {};
+      // Fetch all 15 in parallel — most will 404 (chưa upload) → skip
+      await Promise.all(
+        Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          return fetch(`/api/poster-image/${encodeURIComponent(key)}`, { cache: 'no-store' })
+            .then((r) => (r.ok ? r.text() : null))
+            .then((url) => {
+              if (url && !cancelled) imgs[key] = `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}`;
+            })
+            .catch(() => {});
+        })
+      );
+      if (!cancelled) setBancaImages(imgs);
+    };
+    loadBancaImages();
+    return () => { cancelled = true; };
+  }, [adminAuthed]);
+
+  const uploadBancaImage = async (key: string, file: File) => {
+    setBancaImgUploading(key);
+    try {
+      // Convert file → base64
+      const dataBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/poster-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, dataBase64 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBancaImages((prev) => ({ ...prev, [key]: `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}` }));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Lỗi upload: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
+      alert(`Lỗi: ${e?.message || e}`);
+    } finally {
+      setBancaImgUploading(null);
+    }
+  };
+
+  const deleteBancaImage = async (key: string) => {
+    if (!confirm('Xóa ảnh này?')) return;
+    try {
+      await fetch(`/api/poster-image?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+      setBancaImages((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } catch (e: any) {
+      alert(`Lỗi xóa: ${e?.message || e}`);
+    }
+  };
+
+  // ===== KPI TARGET REGISTRATION (Đăng ký mục tiêu tháng) =====
+  // User request: button "ĐĂNG KÝ MỤC TIÊU THÁNG (hiện tại)" → popup 2 lựa chọn:
+  //   1. Trưởng nhóm → popup form: chọn nhóm + auto-fill tên TN + AFYP triệu + Lượt HĐ + confirm
+  //   2. Tiền trưởng nhóm → popup form: nhập tay tên + mã + AFYP triệu + Lượt HĐ + confirm
+  // Sau khi đăng ký → hiển thị trong trang "Danh sách đăng ký mục tiêu tháng" (1 nút mới trong 5 nút nav).
+  const [targetRegOpen, setTargetRegOpen] = useState(false); // popup level 1: chọn TN / TTN
+  const [targetRegRole, setTargetRegRole] = useState<'tn' | 'ttn' | null>(null); // level 2
+  // Level 2 form state
+  const [targetRegForm, setTargetRegForm] = useState<{
+    nhom: string; maNhom: string; agentCode: string; agentName: string; position: string;
+    afypTrieu: string; luotHD: string; note: string;
+  }>({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
+  const [targetRegSaving, setTargetRegSaving] = useState(false);
+
+  const closeTargetReg = () => {
+    setTargetRegOpen(false);
+    setTargetRegRole(null);
+    setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
+  };
+
+  // When user picks "Trưởng nhóm" → reset form để nhập
+  // When user picks nhóm trong dropdown → auto-fill TN info từ leadersList
+  const selectTargetRegNhom = (maNhom: string) => {
+    const leader = (rawData?.leaders || []).find((l: LeaderInfo) => l.maNhom === maNhom);
+    setTargetRegForm((prev) => ({
+      ...prev,
+      nhom: leader?.nhom || '',
+      maNhom,
+      agentCode: leader?.agentCode || '',
+      agentName: leader?.agentName || '',
+      position: leader?.position || 'Trưởng nhóm',
+    }));
+  };
+
+  const submitTargetReg = async () => {
+    if (!targetRegRole) return;
+    const afypTrieu = parseFloat(targetRegForm.afypTrieu);
+    const luotHD = parseFloat(targetRegForm.luotHD);
+    if (isNaN(afypTrieu) || afypTrieu <= 0) {
+      alert('Vui lòng nhập AFYP hợp lệ (số triệu đồng)');
+      return;
+    }
+    if (isNaN(luotHD) || luotHD < 0) {
+      alert('Vui lòng nhập Lượt HĐ hợp lệ');
+      return;
+    }
+    if (targetRegRole === 'tn' && !targetRegForm.maNhom) {
+      alert('Vui lòng chọn nhóm');
+      return;
+    }
+    if (targetRegRole === 'ttn' && (!targetRegForm.agentName || !targetRegForm.agentCode)) {
+      alert('Vui lòng nhập họ tên và mã số');
+      return;
+    }
+    setTargetRegSaving(true);
+    try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const res = await fetch('/api/kpi-target-registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month,
+          role: targetRegRole,
+          nhom: targetRegForm.nhom,
+          maNhom: targetRegForm.maNhom,
+          agentCode: targetRegForm.agentCode,
+          agentName: targetRegForm.agentName,
+          position: targetRegRole === 'tn' ? 'Trưởng nhóm' : 'Tiền trưởng nhóm',
+          afypTarget: afypTrieu * 1_000_000, // triệu → VND
+          luotHDTarget: luotHD,
+          note: targetRegForm.note,
+        }),
+      });
+      if (res.ok) {
+        closeTargetReg();
+        // Reload list view nếu đang mở
+        setTargetRegListT(Date.now());
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Lỗi lưu: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
+      alert(`Lỗi: ${e?.message || e}`);
+    } finally {
+      setTargetRegSaving(false);
+    }
+  };
+
+  // ===== TARGET REGISTRATION LIST VIEW =====
+  // User request: thêm 1 nút nav (sau 5 nút) → trang "Danh sách đăng ký mục tiêu tháng"
+  // Hiển thị bảng: STT | Nhóm | Mã số | Họ tên | CV | AFYP | Lượt | Ghi chú
+  // Chỉ admin được chỉnh sửa (delete); non-admin chỉ xem.
+  const [targetRegListT, setTargetRegListT] = useState(0);
+  const [targetRegList, setTargetRegList] = useState<any[]>([]);
+  const [targetRegLoading, setTargetRegLoading] = useState(false);
+  // Edit state (admin)
+  const [targetRegEditId, setTargetRegEditId] = useState<string | null>(null);
+  const [targetRegEditForm, setTargetRegEditForm] = useState<any>(null);
+
+  const loadTargetRegList = useCallback(async () => {
+    setTargetRegLoading(true);
+    try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const res = await fetch(`/api/kpi-target-registrations?month=${month}&_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setTargetRegList(data);
+      } else {
+        setTargetRegList([]);
+      }
+    } catch {
+      setTargetRegList([]);
+    } finally {
+      setTargetRegLoading(false);
+    }
+  }, []);
+
+  // Load list when entering view
+  useEffect(() => {
+    if (view === 'target-reg-list') {
+      loadTargetRegList();
+    }
+  }, [view, targetRegListT, loadTargetRegList]);
+
+  const deleteTargetReg = async (id: string) => {
+    if (!confirm('Xóa đăng ký này?')) return;
+    try {
+      await fetch(`/api/kpi-target-registrations/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      setTargetRegListT(Date.now());
+    } catch (e: any) {
+      alert(`Lỗi xóa: ${e?.message || e}`);
+    }
+  };
+
+  const saveTargetRegEdit = async () => {
+    if (!targetRegEditId || !targetRegEditForm) return;
+    setTargetRegSaving(true);
+    try {
+      const afypTrieu = parseFloat(targetRegEditForm.afypTrieu);
+      const luotHD = parseFloat(targetRegEditForm.luotHD);
+      if (isNaN(afypTrieu) || isNaN(luotHD)) {
+        alert('AFYP và Lượt phải là số');
+        return;
+      }
+      const res = await fetch(`/api/kpi-target-registrations/${encodeURIComponent(targetRegEditId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nhom: targetRegEditForm.nhom || '',
+          agentCode: targetRegEditForm.agentCode || '',
+          agentName: targetRegEditForm.agentName || '',
+          position: targetRegEditForm.position || '',
+          afypTarget: afypTrieu * 1_000_000,
+          luotHDTarget: luotHD,
+          note: targetRegEditForm.note || '',
+        }),
+      });
+      if (res.ok) {
+        setTargetRegEditId(null);
+        setTargetRegEditForm(null);
+        setTargetRegListT(Date.now());
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Lỗi lưu: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
+      alert(`Lỗi: ${e?.message || e}`);
+    } finally {
+      setTargetRegSaving(false);
+    }
+  };
+
   const [calEditError, setCalEditError] = useState<string | null>(null);
   // Remember which existing event the user wanted to edit, so after password
   // auth we can open the edit form for THAT event (not a blank new-entry form).
@@ -3536,14 +4026,26 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                   </button>
                 </div>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#c89828,#a87818)', color: '#fff' }}>
+                  <span className="nav-icon"><Trophy size={14} /></span> DS Đăng Ký Mục Tiêu
+                </button>
               </nav>
 
-              {/* Region Divider - Mobile */}
-              <div className="region-divider mobile-only">
-                <span className="region-divider-title">Tiến Độ Khu Vực</span>
+              {/* Region Divider - Mobile (clickable to collapse) */}
+              <div
+                className={`region-divider mobile-only is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
+                onClick={() => setKhuVucCollapsed((v) => !v)}
+                role="button"
+                aria-expanded={!khuVucCollapsed}
+              >
+                <span className="region-divider-title">
+                  <span className="collapse-icon" />
+                  Tiến Độ Khu Vực
+                </span>
               </div>
 
-              {/* Mobile Region - Redesign as table-style cards */}
+              {/* Mobile Region - Redesign as table-style cards (collapsible) */}
+              <div className={`khuvuc-region mobile-only${khuVucCollapsed ? ' collapsed' : ''}`}>
               <div className="rg-wrap mobile-only">
                 {dashboard.phongs.map((phong, pi) => {
                   const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
@@ -3690,11 +4192,90 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 })}
               </div>
 
+              {/* === BANCA IMAGES (15 gold circles) — ADMIN ONLY ===
+                  User request: sau card BANCA, thêm 1 khoảng trống cỡ 50% màn hình
+                  chứa 15 hình tròn nhỏ (gold border). Chỉ admin thấy & upload.
+                  Non-admin không thấy gì (không hiển thị khung trống). */}
+              {adminAuthed && (
+                <div className="banca-imgs-section mobile-only">
+                  <div className="banca-imgs-header">
+                    <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                    <button
+                      onClick={() => setBancaImgAdminOpen(true)}
+                      style={{
+                        padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                        background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
+                        cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
+                      }}
+                    >
+                      ⚙ Cài đặt ảnh
+                    </button>
+                  </div>
+                  <div className="banca-imgs-grid">
+                    {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
+                      const idx = String(i + 1).padStart(2, '0');
+                      const key = `kpi-banca-img-${idx}`;
+                      const url = bancaImages[key];
+                      const isUploading = bancaImgUploading === key;
+                      return (
+                        <div
+                          key={key}
+                          className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+                          onClick={() => {
+                            if (isUploading) return;
+                            if (url) {
+                              // Already has image — confirm replace
+                              if (!confirm('Thay ảnh này?')) return;
+                            }
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = (e: any) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadBancaImage(key, file);
+                            };
+                            input.click();
+                          }}
+                          title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                        >
+                          {url ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={url} alt={`Banca ${idx}`} />
+                              <button
+                                className="banca-img-del"
+                                onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                                title="Xóa ảnh"
+                              >×</button>
+                            </>
+                          ) : (
+                            <span className="banca-img-placeholder">+{idx}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {Object.keys(bancaImages).length === 0 && (
+                    <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
+                  )}
+                </div>
+              )}
+
+              {/* === ĐĂNG KÝ MỤC TIÊU THÁNG (button) ===
+                  User request: button bấm → popup chọn TN/TTN → form đăng ký. */}
+              <div className="target-reg-section mobile-only">
+                <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
+                  ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                </button>
+              </div>
+
+              </div>{/* end khuvuc-region mobile */}
+
               {/* Desktop Split Layout: 2 cột — TRÁI (3fr): 5 nút nav + công ty + biểu đồ | PHẢI (1fr): 4 phòng dọc (bằng nhau, fill height) */}
               <div className="desktop-split">
                 <div className="split-left" id="split-company" />
                 <div className="split-center" id="split-chart">
-                  {/* Navigation Grid — 5 nút đều nhau trên desktop */}
+                  {/* Navigation Grid — 6 nút đều nhau trên desktop */}
                   <nav className="nav-grid dsk-nav" aria-label="Điều hướng">
                     <button className="nav-btn nav-detail" onClick={() => { setDetailAdFilter('all'); setDetailAdDropdownOpen(false); setView('detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><BarChart3 size={14} /></span> Chi tiết nhóm
@@ -3710,6 +4291,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </button>
                     <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
+                    </button>
+                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#c89828,#a87818)', color: '#fff' }}>
+                      <span className="nav-icon"><Trophy size={14} /></span> DS Đăng Ký Mục Tiêu
                     </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
@@ -3756,6 +4340,92 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <div className="legend-item"><div className="legend-dot" style={{ background: '#f59e0b', borderRadius: '50%' }} />Kế hoạch</div>
                       <div className="legend-item"><div className="legend-dot" style={{ background: '#38bdf8', borderRadius: '50%' }} />Xu hướng</div>
                     </div>
+                  </div>
+                </div>
+                {/* Desktop Region Divider (clickable to collapse) */}
+                <div
+                  className={`region-divider is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
+                  style={{ gridColumn: '1 / -1', marginTop: 24, marginBottom: 4 }}
+                  onClick={() => setKhuVucCollapsed((v) => !v)}
+                  role="button"
+                  aria-expanded={!khuVucCollapsed}
+                >
+                  <span className="region-divider-title">
+                    <span className="collapse-icon" />
+                    Tiến Độ Khu Vực
+                  </span>
+                </div>
+                <div className={`khuvuc-region${khuVucCollapsed ? ' collapsed' : ''}`} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16 }}>
+                <div className="split-left-bottom" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {/* Banca images section (admin only) — desktop */}
+                  {adminAuthed && (
+                    <div className="banca-imgs-section">
+                      <div className="banca-imgs-header">
+                        <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                        <button
+                          onClick={() => setBancaImgAdminOpen(true)}
+                          style={{
+                            padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                            background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
+                            cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
+                          }}
+                        >
+                          ⚙ Cài đặt ảnh
+                        </button>
+                      </div>
+                      <div className="banca-imgs-grid">
+                        {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
+                          const idx = String(i + 1).padStart(2, '0');
+                          const key = `kpi-banca-img-${idx}`;
+                          const url = bancaImages[key];
+                          const isUploading = bancaImgUploading === key;
+                          return (
+                            <div
+                              key={key}
+                              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+                              onClick={() => {
+                                if (isUploading) return;
+                                if (url) {
+                                  if (!confirm('Thay ảnh này?')) return;
+                                }
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = (e: any) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) uploadBancaImage(key, file);
+                                };
+                                input.click();
+                              }}
+                              title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                            >
+                              {url ? (
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt={`Banca ${idx}`} />
+                                  <button
+                                    className="banca-img-del"
+                                    onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                                    title="Xóa ảnh"
+                                  >×</button>
+                                </>
+                              ) : (
+                                <span className="banca-img-placeholder">+{idx}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {Object.keys(bancaImages).length === 0 && (
+                        <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
+                      )}
+                    </div>
+                  )}
+                  {/* Target registration button */}
+                  <div className="target-reg-section">
+                    <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
+                      ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                    </button>
                   </div>
                 </div>
                 <div className="split-right" id="split-depts">
@@ -3997,8 +4667,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                       );
                     })}
-                </div>
-              </div>
+                </div>{/* end split-right */}
+                </div>{/* end khuvuc-region desktop */}
+              </div>{/* end desktop-split */}
             </>
           )}
         </section>
@@ -4485,6 +5156,378 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   </table>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== TARGET REGISTRATION LIST VIEW ===== */}
+      <section className={`view ${view === 'target-reg-list' ? 'active' : ''}`} id="view-target-reg-list" role="region">
+        <div className="tgr-list-shell">
+          <div className="sub-header">
+            <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
+            <span className="sub-title">Danh Sách Đăng Ký Mục Tiêu</span>
+            <div style={{ width: 32 }} />
+          </div>
+          <div className="sub-line-wrap"><div className="sub-line" /></div>
+          <div className="detail-hero" style={{ textAlign: 'center', marginTop: 6 }}>
+            <div className="detail-title" style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)' }}>
+              DANH SÁCH ĐĂNG KÝ MỤC TIÊU THÁNG {new Date().getMonth() + 1}/{new Date().getFullYear()}
+            </div>
+            <div className="detail-meta">
+              Tổng số đăng ký: {targetRegList.length}
+              {adminAuthed && ' — Bạn có quyền chỉnh sửa (admin)'}
+            </div>
+          </div>
+          <div className="tgr-list-table-wrap">
+            {targetRegLoading ? (
+              <div className="tgr-list-empty">Đang tải...</div>
+            ) : targetRegList.length === 0 ? (
+              <div className="tgr-list-empty">Chưa có đăng ký nào trong tháng này.</div>
+            ) : (
+              <table className="tgr-list-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>NHÓM</th>
+                    <th>MÃ SỐ</th>
+                    <th>HỌ TÊN</th>
+                    <th>CV</th>
+                    <th style={{ textAlign: 'right' }}>AFYP (triệu)</th>
+                    <th style={{ textAlign: 'right' }}>LƯỢT</th>
+                    <th>GHI CHÚ</th>
+                    {adminAuthed && <th style={{ textAlign: 'right' }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {targetRegList.map((reg, idx) => {
+                    const isEditing = targetRegEditId === reg.id;
+                    if (isEditing && targetRegEditForm) {
+                      return (
+                        <tr key={reg.id}>
+                          <td>{idx + 1}</td>
+                          <td>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
+                              value={targetRegEditForm.nhom || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, nhom: e.target.value }))}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
+                              value={targetRegEditForm.agentCode || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, agentCode: e.target.value }))}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
+                              value={targetRegEditForm.agentName || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, agentName: e.target.value }))}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
+                              value={targetRegEditForm.position || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, position: e.target.value }))}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'right' }}
+                              value={targetRegEditForm.afypTrieu || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, afypTrieu: e.target.value }))}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'right' }}
+                              value={targetRegEditForm.luotHD || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, luotHD: e.target.value }))}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="tgr-field-input"
+                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
+                              value={targetRegEditForm.note || ''}
+                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, note: e.target.value }))}
+                            />
+                          </td>
+                          <td>
+                            <div className="tgr-list-actions">
+                              <button className="tgr-list-action-btn edit" onClick={saveTargetRegEdit} disabled={targetRegSaving}>
+                                {targetRegSaving ? '...' : 'Lưu'}
+                              </button>
+                              <button className="tgr-list-action-btn del" onClick={() => { setTargetRegEditId(null); setTargetRegEditForm(null); }}>
+                                Hủy
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr key={reg.id}>
+                        <td>{idx + 1}</td>
+                        <td>{reg.nhom || '—'}</td>
+                        <td style={{ fontFamily: 'monospace' }}>{reg.agentCode || '—'}</td>
+                        <td>{reg.agentName || '—'}</td>
+                        <td>{reg.position || '—'}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#ffd76b' }}>
+                          {(reg.afypTarget / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{reg.luotHDTarget || 0}</td>
+                        <td style={{ fontSize: 10, color: '#8ab8e0' }}>{reg.note || ''}</td>
+                        {adminAuthed && (
+                          <td>
+                            <div className="tgr-list-actions">
+                              <button
+                                className="tgr-list-action-btn edit"
+                                onClick={() => {
+                                  setTargetRegEditId(reg.id);
+                                  setTargetRegEditForm({
+                                    nhom: reg.nhom || '',
+                                    agentCode: reg.agentCode || '',
+                                    agentName: reg.agentName || '',
+                                    position: reg.position || '',
+                                    afypTrieu: String(reg.afypTarget / 1_000_000),
+                                    luotHD: String(reg.luotHDTarget || 0),
+                                    note: reg.note || '',
+                                  });
+                                }}
+                              >
+                                Sửa
+                              </button>
+                              <button className="tgr-list-action-btn del" onClick={() => deleteTargetReg(reg.id)}>
+                                Xóa
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== TARGET REGISTRATION POPUP (Đăng ký mục tiêu tháng) ===== */}
+      {targetRegOpen && (
+        <div className="tgr-modal" onClick={closeTargetReg}>
+          <div className="tgr-modal-inner" onClick={(e) => e.stopPropagation()}>
+            {!targetRegRole ? (
+              <>
+                <div className="tgr-modal-title">Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}</div>
+                <div className="tgr-choice-grid">
+                  <button
+                    className="tgr-choice-btn"
+                    onClick={() => {
+                      setTargetRegRole('tn');
+                      setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: 'Trưởng nhóm', afypTrieu: '', luotHD: '', note: '' });
+                    }}
+                  >
+                    <span className="tgr-choice-icon">👨‍💼</span>
+                    <span>Trưởng Nhóm</span>
+                    <span className="tgr-choice-sub">Chọn từ DS nhóm có sẵn</span>
+                  </button>
+                  <button
+                    className="tgr-choice-btn"
+                    onClick={() => {
+                      setTargetRegRole('ttn');
+                      setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: 'Tiền trưởng nhóm', afypTrieu: '', luotHD: '', note: '' });
+                    }}
+                  >
+                    <span className="tgr-choice-icon">📋</span>
+                    <span>Tiền Trưởng Nhóm</span>
+                    <span className="tgr-choice-sub">Nhập tay thông tin</span>
+                  </button>
+                </div>
+                <div className="tgr-actions" style={{ marginTop: 16 }}>
+                  <button className="tgr-btn tgr-btn-cancel" onClick={closeTargetReg}>Hủy</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="tgr-modal-title">
+                  {targetRegRole === 'tn' ? 'Đăng Ký — Trưởng Nhóm' : 'Đăng Ký — Tiền Trưởng Nhóm'}
+                </div>
+                <div className="tgr-form">
+                  {targetRegRole === 'tn' ? (
+                    <>
+                      <div className="tgr-field">
+                        <label className="tgr-field-label">Nhóm</label>
+                        <select
+                          className="tgr-field-select"
+                          value={targetRegForm.maNhom}
+                          onChange={(e) => selectTargetRegNhom(e.target.value)}
+                        >
+                          <option value="">— Chọn nhóm —</option>
+                          {(rawData?.leaders || [])
+                            .filter((l: LeaderInfo) => {
+                              // Lọc TB/TN (Trưởng nhóm / Trưởng ban) — bỏ TTN
+                              const pos = (l.position || '').toLowerCase().trim();
+                              if (pos.includes('tiền trưởng') || pos.includes('trưởng tổ') || pos === 'ttn') return false;
+                              return pos.includes('trưởng nhóm') || pos.includes('trưởng ban');
+                            })
+                            .map((l: LeaderInfo) => (
+                              <option key={l.id} value={l.maNhom}>
+                                {l.nhom} ({l.maNhom})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="tgr-field">
+                        <label className="tgr-field-label">Họ tên Trưởng nhóm</label>
+                        <input
+                          className="tgr-field-input"
+                          readOnly
+                          value={targetRegForm.agentName || '(tự động khi chọn nhóm)'}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="tgr-field">
+                        <label className="tgr-field-label">Họ tên</label>
+                        <input
+                          className="tgr-field-input"
+                          value={targetRegForm.agentName}
+                          onChange={(e) => setTargetRegForm((p) => ({ ...p, agentName: e.target.value }))}
+                          placeholder="Nhập họ tên Tiền trưởng nhóm"
+                        />
+                      </div>
+                      <div className="tgr-field">
+                        <label className="tgr-field-label">Mã số</label>
+                        <input
+                          className="tgr-field-input"
+                          value={targetRegForm.agentCode}
+                          onChange={(e) => setTargetRegForm((p) => ({ ...p, agentCode: e.target.value }))}
+                          placeholder="Nhập mã số đại lý"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="tgr-field">
+                    <label className="tgr-field-label">Mục tiêu đăng ký: AFYP</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        className="tgr-field-input"
+                        type="number"
+                        inputMode="decimal"
+                        value={targetRegForm.afypTrieu}
+                        onChange={(e) => setTargetRegForm((p) => ({ ...p, afypTrieu: e.target.value }))}
+                        placeholder="VD: 50"
+                        style={{ flex: 1 }}
+                      />
+                      <span className="tgr-field-suffix">triệu đồng</span>
+                    </div>
+                  </div>
+                  <div className="tgr-field">
+                    <label className="tgr-field-label">Lượt HĐ</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        className="tgr-field-input"
+                        type="number"
+                        inputMode="decimal"
+                        value={targetRegForm.luotHD}
+                        onChange={(e) => setTargetRegForm((p) => ({ ...p, luotHD: e.target.value }))}
+                        placeholder="VD: 10"
+                        style={{ flex: 1 }}
+                      />
+                      <span className="tgr-field-suffix">lượt</span>
+                    </div>
+                  </div>
+                  <div className="tgr-field">
+                    <label className="tgr-field-label">Ghi chú (tùy chọn)</label>
+                    <input
+                      className="tgr-field-input"
+                      value={targetRegForm.note}
+                      onChange={(e) => setTargetRegForm((p) => ({ ...p, note: e.target.value }))}
+                      placeholder=""
+                    />
+                  </div>
+                  <div className="tgr-actions">
+                    <button className="tgr-btn tgr-btn-cancel" onClick={() => setTargetRegRole(null)}>← Quay lại</button>
+                    <button className="tgr-btn tgr-btn-confirm" onClick={submitTargetReg} disabled={targetRegSaving}>
+                      {targetRegSaving ? 'Đang lưu...' : '✓ Xác nhận đăng ký'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== BANCA ADMIN MODAL (upload 15 ảnh) ===== */}
+      {bancaImgAdminOpen && (
+        <div className="banca-admin-modal" onClick={() => setBancaImgAdminOpen(false)}>
+          <div className="banca-admin-modal-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="banca-admin-modal-title">
+              <span>★ Cài đặt 15 ảnh đặc biệt</span>
+              <button
+                onClick={() => setBancaImgAdminOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}
+              >×</button>
+            </div>
+            <div style={{ fontSize: 11, color: '#8ab8e0', marginBottom: 12 }}>
+              Bấm vào ô tròn để upload ảnh. Bấm dấu × trên ảnh để xóa. Ảnh được lưu trên server.
+            </div>
+            <div className="banca-imgs-grid" style={{ minHeight: 200 }}>
+              {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
+                const idx = String(i + 1).padStart(2, '0');
+                const key = `kpi-banca-img-${idx}`;
+                const url = bancaImages[key];
+                const isUploading = bancaImgUploading === key;
+                return (
+                  <div
+                    key={key}
+                    className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+                    style={{ maxWidth: 90 }}
+                    onClick={() => {
+                      if (isUploading) return;
+                      if (url) {
+                        if (!confirm('Thay ảnh này?')) return;
+                      }
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e: any) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadBancaImage(key, file);
+                      };
+                      input.click();
+                    }}
+                    title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                  >
+                    {url ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Banca ${idx}`} />
+                        <button
+                          className="banca-img-del"
+                          onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                          title="Xóa ảnh"
+                        >×</button>
+                      </>
+                    ) : (
+                      <span className="banca-img-placeholder">+{idx}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
