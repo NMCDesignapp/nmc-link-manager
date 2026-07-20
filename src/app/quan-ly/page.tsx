@@ -11526,76 +11526,81 @@ export default function QuanLyPage() {
           const d = new Date(c.issueDate || c.effectiveDate);
           return !isNaN(d.getTime()) && d.getMonth() + 1 === month && d.getFullYear() === year;
         })
-        .reduce((s, c) => s + c.tinhLuot3tr, 0); // Dùng tinhLuot3tr (IP tính lượt)
+        .reduce((s, c) => s + c.tinhLuot3tr, 0);
     };
 
-    const rows = allTvv
+    const allRows = allTvv
       .filter(tvv => !clbCodes.has(tvv.agentCode))
       .map(tvv => {
         const ipT2 = getMonthIP(tvv.agentCode, t2Month, t2Year);
         const ipT1 = getMonthIP(tvv.agentCode, t1Month, t1Year);
         const ipT = getMonthIP(tvv.agentCode, curMonth, curYear);
         const totalIP = ipT2 + ipT1 + ipT;
-        const ketQua = totalIP >= THRESHOLD
-          ? 'Gia nhập'
-          : `Còn thiếu ${formatNumber(THRESHOLD - totalIP)} IP`;
-        // Resolve nhóm từ tvvStruct
         const nhomName = (() => {
           const bn = banNhomList.find(b => b.maBanNhom === tvv.maBanNhom);
           return bn?.tenBanNhom || tvv.maBanNhom || '—';
         })();
-        return { tvv, nhomName, ipT2, ipT1, ipT, totalIP, ketQua, datGiaNhap: totalIP >= THRESHOLD };
+        return { tvv, nhomName, ipT2, ipT1, ipT, totalIP, datGiaNhap: totalIP >= THRESHOLD };
       })
       .sort((a, b) => b.totalIP - a.totalIP);
 
-    const countGiaNhap = rows.filter(r => r.datGiaNhap).length;
+    // Unique nhóm list for filter
+    const uniqueNhomList = Array.from(new Set(allRows.map(r => r.nhomName).filter(n => n && n !== '—'))).sort();
 
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-sm sm:text-base font-extrabold text-blue-300 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" /> TIẾN ĐỘ GIA NHẬP CLB SAO VIỆT
-          </h2>
-          <div className="text-xs text-blue-200/70">
-            Tháng T-2: {t2Month}/{t2Year} · Tháng T-1: {t1Month}/{t1Year} · Tháng T: {curMonth}/{curYear}
-            <span className="ml-3 text-amber-300 font-bold">{countGiaNhap}/{rows.length} đạt gia nhập</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto border border-blue-500/30 rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-blue-900 hover:bg-blue-900 border-b border-blue-700">
-                {['STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', `IP T-2 (${t2Month})`, `IP T-1 (${t1Month})`, `IP T (${curMonth})`, 'TỔNG IP', 'KẾT QUẢ XÉT'].map((h, i) => (
-                  <TableHead key={i} className="text-blue-100 text-xs font-bold uppercase text-center whitespace-nowrap">{h}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center text-gray-400 py-8 italic text-sm bg-white">Chưa có dữ liệu</TableCell></TableRow>
-              ) : rows.map((r, idx) => (
-                <TableRow key={r.tvv.agentCode} className={`${r.datGiaNhap ? 'bg-emerald-50' : 'bg-white'} hover:bg-blue-50 border-b border-gray-200`}>
-                  <TableCell className="text-center text-xs text-gray-500 whitespace-nowrap">{idx + 1}</TableCell>
-                  <TableCell className="text-xs text-blue-700 font-semibold whitespace-nowrap">{r.nhomName}</TableCell>
-                  <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{r.tvv.agentCode}</TableCell>
-                  <TableCell className="text-xs text-gray-800 whitespace-nowrap">{r.tvv.agentName}</TableCell>
-                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT2 > 0 ? formatNumber(r.ipT2) : '—'}</TableCell>
-                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT1 > 0 ? formatNumber(r.ipT1) : '—'}</TableCell>
-                  <TableCell className="text-right text-xs text-gray-700 whitespace-nowrap">{r.ipT > 0 ? formatNumber(r.ipT) : '—'}</TableCell>
-                  <TableCell className={`text-right text-xs font-bold whitespace-nowrap ${r.datGiaNhap ? 'text-emerald-600' : 'text-gray-900'}`}>{formatNumber(r.totalIP)}</TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {r.datGiaNhap
-                      ? <span className="text-emerald-600 font-bold">✓ Gia nhập</span>
-                      : <span className="text-red-500 font-medium">Còn thiếu {formatNumber(THRESHOLD - r.totalIP)} IP</span>
-                    }
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="text-xs text-gray-500">{rows.length} TVV (đã loại trừ {clbCodes.size} thành viên CLB hiện tại)</p>
-      </div>
+    // Apply filters
+    const q = clbsvNameFilter.toLowerCase().trim();
+    const filteredRows = allRows.filter(r => {
+      if (clbsvNhomFilter && r.nhomName !== clbsvNhomFilter) return false;
+      if (q && !((r.tvv.agentName || '').toLowerCase().includes(q) || (r.tvv.agentCode || '').toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    const countGiaNhap = filteredRows.filter(r => r.datGiaNhap).length;
+
+    // Table JSX
+    const tableJsx = (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-blue-900 hover:bg-blue-900 border-b border-blue-700">
+            {['STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', `IP T-2 (${t2Month})`, `IP T-1 (${t1Month})`, `IP T (${curMonth})`, 'TỔNG IP', 'KẾT QUẢ XÉT'].map((h, i) => (
+              <TableHead key={i} className="text-blue-100 text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap" style={{ backgroundColor: '#1E3A8A' }}>{h}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredRows.length === 0 ? (
+            <TableRow><TableCell colSpan={9} className="text-center text-gray-400 py-8 italic text-sm bg-white">Không có dữ liệu phù hợp.</TableCell></TableRow>
+          ) : filteredRows.map((r, idx) => (
+            <TableRow key={r.tvv.agentCode} className={`${r.datGiaNhap ? 'bg-emerald-50' : 'bg-white'} hover:bg-blue-50 border-b border-gray-200`}>
+              <TableCell className="text-center text-[10px] text-gray-500 whitespace-nowrap">{idx + 1}</TableCell>
+              <TableCell className="text-[10px] text-blue-700 font-semibold whitespace-nowrap">{r.nhomName}</TableCell>
+              <TableCell className="text-[10px] text-gray-600 font-mono whitespace-nowrap">{r.tvv.agentCode}</TableCell>
+              <TableCell className="text-[10px] text-gray-800 whitespace-nowrap">{r.tvv.agentName}</TableCell>
+              <TableCell className="text-right text-[10px] text-gray-700 whitespace-nowrap">{r.ipT2 > 0 ? formatNumber(r.ipT2) : '—'}</TableCell>
+              <TableCell className="text-right text-[10px] text-gray-700 whitespace-nowrap">{r.ipT1 > 0 ? formatNumber(r.ipT1) : '—'}</TableCell>
+              <TableCell className="text-right text-[10px] text-gray-700 whitespace-nowrap">{r.ipT > 0 ? formatNumber(r.ipT) : '—'}</TableCell>
+              <TableCell className={`text-right text-[10px] font-bold whitespace-nowrap ${r.datGiaNhap ? 'text-emerald-600' : 'text-gray-900'}`}>{formatNumber(r.totalIP)}</TableCell>
+              <TableCell className="text-[10px] whitespace-nowrap">
+                {r.datGiaNhap
+                  ? <span className="text-emerald-600 font-bold">✓ Gia nhập</span>
+                  : <span className="text-red-500 font-medium">Còn thiếu {formatNumber(THRESHOLD - r.totalIP)} IP</span>
+                }
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+
+    // Dùng renderClbsvDetailShell (giống 3 chương trình kia: poster + filter + table + footer)
+    return renderClbsvDetailShell(
+      'tien-do',
+      uniqueNhomList,
+      filteredRows.length,
+      countGiaNhap,
+      'SL TVV đạt',
+      `Gia nhập (≥ 60tr)`,
+      tableJsx,
     );
   };
 
