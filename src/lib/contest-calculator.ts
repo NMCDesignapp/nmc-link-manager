@@ -1307,3 +1307,277 @@ export function computeContestStats(
 
   return { totalFYP, totalBonus, achievedCount, notAchievedCount, filteredCount };
 }
+
+// ===== NYD data computation (extracted from thi-dua-chau/page.tsx) =====
+// Compute NTD list with recruitCount / recruitFYP / ownFYP for targetType='nyd'.
+// Used by SavedContestInline to render NYD table (previously "chưa hỗ trợ").
+//
+// Logic:
+//   - For activity_round modes: recruitCount = tổng lượt HĐ của TVV do NTD tuyển
+//     (lọc TVVm / TVV90 theo conditionType)
+//   - For total modes: recruitCount = số TVV do NTD tuyển có FYP ≥ luotHDThreshold
+//   - ownFYP = FYP cá nhân của NTD (chỉ tính vào value khi includeIndividualTN=true)
+//   - value = isActivityMode ? recruitCount : (recruitFYP + (includeIndividualTN ? ownFYP : 0))
+export function computeNYDData(
+  displayContracts: Contract[],
+  config: ContestConfig,
+  recruiterList: RecruiterMember[],
+  staffList: StaffMember[],
+  tvvStructList?: TVVStructMember[]
+): NYDData[] {
+  if (config.targetType !== 'nyd') return [];
+  const conditionType = config.conditionType;
+  const subjectCodes = config.participants;
+  const luotHDThreshold = config.luotHDThreshold ?? 3_000_000;
+  const luotHDCTThreshold = config.luotHDCTThreshold ?? 12_000_000;
+  const tvv90MaxMonths = config.tvv90MaxMonths ?? 3;
+  const tvv90MinIP = config.tvv90MinIP ?? 12_000_000;
+  const isAFYP = conditionType === 'total_afyp';
+  const isActivityMode = isActivityRoundMode(conditionType);
+  const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+
+  const nydMap = new Map<string, NYDData>();
+
+  // Step 1: Load NTD from Recruiter table (or subjectCodes)
+  if (subjectCodes.length > 0) {
+    for (const r of recruiterList) {
+      if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
+        nydMap.set(r.agentCode, {
+          nydCode: r.agentCode,
+          nydName: r.agentName,
+          nhom: r.nhom,
+          position: r.position || '',
+          startDate: r.startDate,
+          recruitCount: 0,
+          recruitFYP: 0,
+          ownFYP: 0,
+          contracts: [],
+        });
+      }
+    }
+    // Add NTD from subjectCodes not in recruiterList
+    for (const code of subjectCodes) {
+      const codeLower = norm(code).toLowerCase();
+      const found = Array.from(nydMap.keys()).some((k) => norm(k).toLowerCase() === codeLower);
+      if (!found) {
+        const staff = staffList.find(
+          (s) =>
+            s.agentCode.toLowerCase() === codeLower ||
+            norm(s.agentName || '').toLowerCase() === codeLower
+        );
+        nydMap.set(code, {
+          nydCode: staff?.agentCode || code,
+          nydName: staff?.agentName || code,
+          nhom: staff?.nhom || '',
+          position: staff?.position || '',
+          startDate: staff?.startDate || null,
+          recruitCount: 0,
+          recruitFYP: 0,
+          ownFYP: 0,
+          contracts: [],
+        });
+      }
+    }
+  } else {
+    // No subject codes → all recruiters
+    for (const r of recruiterList) {
+      nydMap.set(r.agentCode, {
+        nydCode: r.agentCode,
+        nydName: r.agentName,
+        nhom: r.nhom,
+        position: r.position || '',
+        startDate: r.startDate,
+        recruitCount: 0,
+        recruitFYP: 0,
+        ownFYP: 0,
+        contracts: [],
+      });
+    }
+  }
+
+  // Step 2: Build FYP lookup by agentCode
+  const agentFYPLookup = new Map<
+    string,
+    { totalFYP: number; totalAFYP: number; activityRounds: number }
+  >();
+  for (const c of displayContracts) {
+    const key = c.agentCode;
+    if (!key) continue;
+    const existing = agentFYPLookup.get(key);
+    if (existing) {
+      existing.totalFYP += c.pdt10DT;
+      existing.totalAFYP += c.afyp;
+    } else {
+      agentFYPLookup.set(key, {
+        totalFYP: c.pdt10DT,
+        totalAFYP: c.afyp,
+        activityRounds: 0,
+      });
+    }
+  }
+  // Calculate activityRounds per agent
+  const agentContractsMap = new Map<string, Contract[]>();
+  for (const c of displayContracts) {
+    const key = c.agentCode;
+    if (!key) continue;
+    if (!agentContractsMap.has(key)) agentContractsMap.set(key, []);
+    agentContractsMap.get(key)!.push(c);
+  }
+  for (const [key, cList] of agentContractsMap) {
+    const data = agentFYPLookup.get(key);
+    if (data)
+      data.activityRounds = calculateLuot(
+        cList,
+        luotThreshold,
+        conditionType,
+        tvv90MaxMonths,
+        tvv90MinIP
+      );
+  }
+
+  // Step 3: For each NTD, find recruited TVV and compute recruit data
+  for (const [nydCode, nyd] of nydMap) {
+    const recruitedContracts = displayContracts.filter(
+      (c) => c.maDaiLyTD === nydCode && c.agentCode !== nydCode
+    );
+
+    if (isActivityMode) {
+      let totalRounds = 0;
+      let totalRecruitFYP = 0;
+      let recruitedAgents = new Set(recruitedContracts.map((c) => c.agentCode));
+      // Filter TVVm if mode is TVVm
+      if (isTVVmMode(conditionType)) {
+        recruitedAgents = new Set(
+          [...recruitedAgents].filter((agentCode) => {
+            const staff = staffList.find((s) => s.agentCode === agentCode);
+            if (staff?.startDate) return isTVVm(staff.startDate);
+            const contract = recruitedContracts.find((c) => c.agentCode === agentCode);
+            if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
+            return false;
+          })
+        );
+      }
+      // Filter TVV90 if mode is TVV90
+      if (conditionType === 'activity_round_tvv90') {
+        recruitedAgents = new Set(
+          [...recruitedAgents].filter((agentCode) => {
+            const contract = recruitedContracts.find((c) => c.agentCode === agentCode);
+            return contract
+              ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP)
+              : false;
+          })
+        );
+      }
+      for (const agentCode of recruitedAgents) {
+        const rv = agentFYPLookup.get(agentCode);
+        if (rv) {
+          totalRounds += rv.activityRounds;
+          totalRecruitFYP += rv.totalFYP;
+        }
+      }
+      nyd.recruitCount = totalRounds;
+      nyd.recruitFYP = totalRecruitFYP;
+    } else {
+      // NTD FYP mode: get FYP from agentFYPLookup
+      let recruitCount = 0;
+      let recruitFYP = 0;
+      const recruitedAgents = new Set(recruitedContracts.map((c) => c.agentCode));
+      for (const agentCode of recruitedAgents) {
+        const rv = agentFYPLookup.get(agentCode);
+        const agentFYP = rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
+        if (agentFYP >= luotHDThreshold) recruitCount++;
+        recruitFYP += agentFYP;
+      }
+      nyd.recruitCount = recruitCount;
+      nyd.recruitFYP = recruitFYP;
+    }
+
+    // NTD's own FYP
+    const ownRevenue = agentFYPLookup.get(nydCode);
+    nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
+    nyd.contracts = [
+      ...recruitedContracts,
+      ...displayContracts.filter((c) => c.agentCode === nydCode),
+    ];
+  }
+
+  return Array.from(nydMap.values());
+}
+
+// ===== NYD result rows (with tier + value) =====
+export interface NYDResultRow {
+  nyd: NYDData;
+  value: number;
+  tier: BonusTier | null;
+  tierIndex: number;
+  remaining: number | null;
+}
+
+export function computeNYDResultRows(
+  nydData: NYDData[],
+  config: ContestConfig
+): NYDResultRow[] {
+  if (config.targetType !== 'nyd') return [];
+  const conditionType = config.conditionType;
+  const isActivityMode = isActivityRoundMode(conditionType);
+  const includeIndividualTN = config.includeIndividualNTD ?? false;
+  const bonusTiers = config.bonusTiers;
+
+  return nydData
+    .map((n) => {
+      const value = isActivityMode
+        ? n.recruitCount
+        : n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0);
+      const { tier, tierIndex } = calculateBonusWithTiers(value, bonusTiers);
+      const remaining = getRemainingToNextTier(value, bonusTiers);
+      return { nyd: n, value, tier, tierIndex, remaining };
+    })
+    .sort((a, b) => b.value - a.value);
+}
+
+// ===== Group TVV pass count for 'pass_count_ip_afyp' mode =====
+// Count TVV in group meeting BOTH:
+//   - totalIP (pdt10DT) >= config.secondaryIPMin
+//   - totalAFYP >= config.secondaryAFYPMin
+// TVV list = unique agentCodes from displayContracts in group + staff in group
+// (mimics thi-dua-chau/page.tsx getGroupTVVPassCountIPAFYP)
+export function getGroupTVVPassCountIPAFYP(
+  g: GroupData,
+  displayContracts: Contract[],
+  staffList: StaffMember[],
+  config: ContestConfig
+): number {
+  if (config.conditionType !== 'pass_count_ip_afyp') return 0;
+  const tnAgentCode = g.leader?.agentCode || '';
+  const includeTNInPassCount = config.includeTNInPassCount ?? false;
+  const passCountIPMin = config.secondaryIPMin ?? 0;
+  const passCountAFYPMin = config.secondaryAFYPMin ?? 0;
+
+  const agentCodes = new Set<string>();
+  const groupContracts = displayContracts.filter(
+    (c) =>
+      c.maNhom === g.maNhom ||
+      (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase())
+  );
+  for (const c of groupContracts) {
+    if (c.agentCode) agentCodes.add(c.agentCode);
+  }
+  // Also include TVV from staffList in group (no contracts → won't pass anyway)
+  const groupStaff = staffList.filter(
+    (s) =>
+      s.maNhom === g.maNhom ||
+      (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase())
+  );
+  for (const s of groupStaff) agentCodes.add(s.agentCode);
+
+  let count = 0;
+  for (const code of agentCodes) {
+    if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
+    const tvvContracts = displayContracts.filter((c) => c.agentCode === code);
+    const totalIP = tvvContracts.reduce((s, c) => s + c.pdt10DT, 0);
+    const totalAFYP = tvvContracts.reduce((s, c) => s + c.afyp, 0);
+    if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
+  }
+  return count;
+}
+
