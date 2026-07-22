@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import './kpi-honour-board.css'
 import { SpaceBackground } from '@/components/space-bg'
 import { AppDataProvider } from '@/lib/app-data-context'
 
