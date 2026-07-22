@@ -6,7 +6,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
-import './kpi-honour-board.css'
 
 export const metadata: Metadata = {
   title: 'N.M.C - Trung tam quan ly lien ket',
