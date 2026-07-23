@@ -1,4 +1,4 @@
-# Release marker: Vercel must rebuild both projects after a [skip ci] kpi-app sync commit.
+# Release marker v2: force a Vercel rebuild after KPI layout release.
 name: Auto-sync kpi-app with main app
 
 # Tự động sync kpi-app/ khi src/app/kpi/page.tsx (hoặc các file phụ thuộc) thay đổi.
