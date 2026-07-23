@@ -2161,8 +2161,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 24px 70px rgba(0,0,0,.56), inset 0 1px 0 rgba(255,255,255,.07);
 }
 .kpi-app .honour-profile-card::before {
-  content: ''; position: absolute; left: 18px; top: 18px; bottom: 18px; width: 1px;
-  background: linear-gradient(transparent, rgba(255,215,107,.55), transparent);
+  /* Vạch ngăn rõ ràng giữa ảnh bên trái và thông tin bên phải. */
+  content: ''; position: absolute; left: 172px; top: 22px; bottom: 22px; width: 1px;
+  background: linear-gradient(transparent, rgba(255,215,107,.62), transparent);
 }
 .kpi-app .honour-profile-card > img {
   width: 144px; height: 144px; object-fit: cover; border-radius: 50%;
@@ -2195,7 +2196,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 560px) {
   /* Giữ dạng danh thiếp ngang cả trên điện thoại: ảnh trái, thông tin phải. */
   .kpi-app .honour-profile-card { grid-template-columns: 96px minmax(0,1fr); gap: 14px; min-height: 132px; padding: 16px 36px 16px 16px; text-align: left; }
-  .kpi-app .honour-profile-card::before { left: 16px; top: 16px; bottom: 16px; }
+  .kpi-app .honour-profile-card::before { left: 124px; top: 16px; bottom: 16px; }
   .kpi-app .honour-profile-card > img { margin: 0; width: 96px; height: 96px; }
   .kpi-app .honour-profile-kicker { font-size: 8px; letter-spacing: .10em; }
   .kpi-app .honour-profile-info h3 { margin-top: 4px; font-size: 16px; }
