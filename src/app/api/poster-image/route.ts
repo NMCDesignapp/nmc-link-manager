@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// ---------- GET /api/poster-image?prefix=kpi-banca-img- ----------
+// Returns only image keys and version timestamps. This lets KPI render each real
+// image once, instead of probing/downloading every binary before showing it.
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const prefix = searchParams.get('prefix') || ''
+    if (prefix && !['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-'].includes(prefix)) {
+      return NextResponse.json({ error: 'unsupported prefix' }, { status: 400 })
+    }
+    const rows: Array<{ key: string; updatedAt: Date }> = await db.$queryRawUnsafe(
+      `SELECT "key", "updatedAt" FROM "PosterImage" WHERE ($1 = '' OR "key" LIKE $1) ORDER BY "key" ASC`,
+      prefix ? `${prefix}%` : ''
+    )
+    return NextResponse.json({
+      items: rows.map(row => ({ key: row.key, updatedAt: new Date(row.updatedAt).getTime() })),
+    }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error: any) {
+    // An empty board is valid before the first upload; do not expose a DB error to viewers.
+    console.error('GET /api/poster-image manifest error:', error?.message || error)
+    return NextResponse.json({ items: [] }, { status: 200 })
+  }
+}
+
 // ---------- POST /api/poster-image ----------
 // Body: { key: string, dataBase64: string, contentType?: string }
 // Action: upsert (insert or update) poster binary in PosterImage table.
