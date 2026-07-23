@@ -1970,6 +1970,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
 }
 
+/* ============= VINH DANH RỖNG — THU GỌN, KHÔNG CHỒNG NHÃN ============= */
+.kpi-app .banca-imgs-wall::before,
+.kpi-app .banca-imgs-wall::after { content: none !important; display: none !important; }
+.kpi-app .banca-imgs-section.is-empty {
+  min-height: 0 !important;
+  padding-bottom: 14px;
+}
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-wall,
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-bottom-empty { display: none; }
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-header { padding: 18px 20px 4px; }
+
 /* ============= DESKTOP VINH DANH — KHỐI TRUNG TÂM ============= */
 @media (min-width: 900px) {
   .kpi-app .desktop-honour-layout {
@@ -4571,7 +4582,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
                   50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
               {(
-                <div className="banca-imgs-section mobile-only">
+                <div className={`banca-imgs-section mobile-only${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
                   <div className="banca-imgs-header">
                     <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                     <button
@@ -4989,7 +5000,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Banca images section (admin only) — desktop */}
                     {(
-                      <div className="banca-imgs-section">
+                      <div className={`banca-imgs-section${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
                         <div className="banca-imgs-header">
                           <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                           <button
