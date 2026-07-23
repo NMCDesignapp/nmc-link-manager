@@ -2154,14 +2154,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: rgba(3,8,16,.76); backdrop-filter: blur(5px);
 }
 .kpi-app .honour-profile-card {
-  position: relative; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px;
-  width: min(100%, 520px); padding: 18px;
-  border: 1px solid rgba(255,215,107,.30); border-radius: 16px;
-  background: linear-gradient(145deg, #17233a, #090f1d);
-  box-shadow: 0 24px 70px rgba(0,0,0,.56);
+  position: relative; display: grid; grid-template-columns: 144px minmax(0, 1fr); align-items: center; gap: 20px;
+  width: min(100%, 540px); min-height: 178px; padding: 18px 44px 18px 18px;
+  border: 1px solid rgba(255,215,107,.34); border-radius: 16px;
+  background: linear-gradient(135deg, #1b2a43 0%, #10192b 52%, #080e1a 100%);
+  box-shadow: 0 24px 70px rgba(0,0,0,.56), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.kpi-app .honour-profile-card::before {
+  content: ''; position: absolute; left: 18px; top: 18px; bottom: 18px; width: 1px;
+  background: linear-gradient(transparent, rgba(255,215,107,.55), transparent);
 }
 .kpi-app .honour-profile-card > img {
-  width: 160px; height: 160px; object-fit: cover; border-radius: 50%;
+  width: 144px; height: 144px; object-fit: cover; border-radius: 50%;
   border: 3px solid #ffd76b; box-shadow: 0 0 0 3px rgba(255,215,107,.15), 0 10px 26px rgba(0,0,0,.34);
 }
 .kpi-app .honour-profile-close {
@@ -2189,8 +2193,14 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .banca-profile-action.save { background: #5cae7e; color: #062a14; }
 .kpi-app .banca-profile-action.danger { background: rgba(239,68,68,.17); color: #ff9f9f; }
 @media (max-width: 560px) {
-  .kpi-app .honour-profile-card { grid-template-columns: 1fr; text-align: center; padding: 22px 18px 18px; }
-  .kpi-app .honour-profile-card > img { margin: 0 auto; width: 132px; height: 132px; }
+  /* Giữ dạng danh thiếp ngang cả trên điện thoại: ảnh trái, thông tin phải. */
+  .kpi-app .honour-profile-card { grid-template-columns: 96px minmax(0,1fr); gap: 14px; min-height: 132px; padding: 16px 36px 16px 16px; text-align: left; }
+  .kpi-app .honour-profile-card::before { left: 16px; top: 16px; bottom: 16px; }
+  .kpi-app .honour-profile-card > img { margin: 0; width: 96px; height: 96px; }
+  .kpi-app .honour-profile-kicker { font-size: 8px; letter-spacing: .10em; }
+  .kpi-app .honour-profile-info h3 { margin-top: 4px; font-size: 16px; }
+  .kpi-app .honour-profile-title { font-size: 11px; }
+  .kpi-app .honour-profile-note { margin-top: 6px; font-size: 10px; line-height: 1.45; }
   .kpi-app .banca-profile-editor-grid { grid-template-columns: 72px minmax(0,1fr); }
   .kpi-app .banca-profile-preview { width: 72px; height: 72px; }
 }
