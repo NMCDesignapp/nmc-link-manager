@@ -1102,7 +1102,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [displayContracts, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure]);
 
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
@@ -1421,13 +1421,13 @@ function ThiDuaPageInner() {
       g.activityRounds = calculateLuotWithStructure(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
     }
 
-    // Step 4: Calculate memberCount từ Staff table
+    // Step 4: Thành viên luôn lấy từ DS TVV của Cấu trúc, kể cả khi chưa có HĐ.
     for (const g of Array.from(map.values())) {
-      g.memberCount = staffList.filter(s => s.maNhom === g.maNhom).length;
+      g.memberCount = tvvStructList.filter(member => member.maBanNhom === g.maNhom).length;
     }
 
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
 
   // Phase 2: Split contracts by date and compute bonus — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
   const phase2Results = useMemo(() => {
