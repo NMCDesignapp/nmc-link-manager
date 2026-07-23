@@ -2723,6 +2723,14 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .target-reg-btn { min-height: 40px; padding: 0 11px; font-size: 10px; letter-spacing: .075em; }
   .kpi-app .target-reg-btn::before { font-size: 25px; margin-right: 4px; }
 }
+
+/* ============= DANH THIẾP VINH DANH — CÂN ĐỐI KHOẢNG CÁCH ============= */
+.kpi-app .honour-profile-card { column-gap: 24px; }
+.kpi-app .honour-profile-info { padding-left: 20px; }
+@media (max-width: 560px) {
+  .kpi-app .honour-profile-card { column-gap: 18px; }
+  .kpi-app .honour-profile-info { padding-left: 18px; }
+}
 `;
 
 
@@ -3259,6 +3267,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [bancaAdminSelectedKey, setBancaAdminSelectedKey] = useState<string | null>(null);
   const [bancaProfileOpenKey, setBancaProfileOpenKey] = useState<string | null>(null);
   const [bancaProfileSaving, setBancaProfileSaving] = useState(false);
+  const [bancaProfileSavedKey, setBancaProfileSavedKey] = useState<string | null>(null);
   const [bancaProfiles, setBancaProfiles] = useState<Record<string, { name: string; title: string; note: string }>>({});
   const [honourLoading, setHonourLoading] = useState(true);
 
@@ -3688,10 +3697,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         // Ignore one malformed legacy profile instead of blocking the honour board.
       }
     }
-    setBancaProfiles(profiles);
+    // Preserve a draft being edited if a background settings refresh arrives.
+    setBancaProfiles(prev => ({ ...prev, ...profiles }));
   }, [onlineSettings]);
 
   const updateBancaProfile = (key: string, patch: Partial<{ name: string; title: string; note: string }>) => {
+    setBancaProfileSavedKey(null);
     setBancaProfiles(prev => ({
       ...prev,
       [key]: { name: prev[key]?.name || '', title: prev[key]?.title || '', note: prev[key]?.note || '', ...patch },
@@ -3708,8 +3719,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }),
       });
-      if (!res.ok) throw new Error('save failed');
+      const result = await res.json().catch(() => null);
+      if (!res.ok || !result?.success) throw new Error('save failed');
       setOnlineSettings(prev => ({ ...prev, [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }));
+      setBancaProfileSavedKey(key);
     } catch {
       alert('Không thể lưu thông tin ảnh. Vui lòng thử lại.');
     } finally {
@@ -6400,7 +6413,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <input value={profile.title} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { title: e.target.value })} placeholder="Danh hiệu / chức danh" />
                       <textarea value={profile.note} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { note: e.target.value })} placeholder="Thông tin thêm (tùy chọn)" rows={3} />
                       <div className="banca-profile-actions">
-                        <button className="banca-profile-action save" onClick={() => saveBancaProfile(bancaAdminSelectedKey)} disabled={bancaProfileSaving}>{bancaProfileSaving ? 'Đang lưu...' : 'Lưu thông tin'}</button>
+                        <button className="banca-profile-action save" onClick={() => saveBancaProfile(bancaAdminSelectedKey)} disabled={bancaProfileSaving}>{bancaProfileSaving ? 'Đang lưu...' : bancaProfileSavedKey === bancaAdminSelectedKey ? 'Đã lưu ✓' : 'Lưu thông tin'}</button>
                         <button className="banca-profile-action" onClick={chooseImage}>{selectedUrl ? 'Thay ảnh' : 'Tải ảnh lên'}</button>
                         {selectedUrl && <button className="banca-profile-action danger" onClick={() => deleteBancaImage(bancaAdminSelectedKey)}>Xóa ảnh</button>}
                       </div>
