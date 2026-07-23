@@ -212,9 +212,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 24px; }
+.kpi-app .nav-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
 .kpi-app .nav-row-3 { display: contents; }
-.kpi-app .nav-btn { padding: 10px 6px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); min-height: 48px; text-align: center; }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .18s ease, filter .18s ease, box-shadow .18s ease; position: relative; overflow: hidden; box-shadow: 0 5px 12px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.14); min-height: 52px; text-align: center; }
 .kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
 .kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; flex-shrink: 0; }
@@ -504,8 +504,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   transform: rotate(-45deg);
 }
 /* Hidden content when collapsed — applied to wrapper containing the cards */
-.kpi-app .khuvuc-region { transition: max-height .35s ease, opacity .25s ease, overflow .25s; }
-.kpi-app .khuvuc-region.collapsed { max-height: 0 !important; opacity: 0; overflow: hidden; pointer-events: none; }
+.kpi-app .khuvuc-region { display: grid; grid-template-rows: 1fr; overflow: hidden; opacity: 1; transform: translateY(0); transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .22s ease, transform .42s cubic-bezier(.22,1,.36,1), margin .42s ease; }
+.kpi-app .khuvuc-region > * { min-height: 0; overflow: hidden; }
+.kpi-app .khuvuc-region.collapsed { grid-template-rows: 0fr; opacity: 0; transform: translateY(-8px); margin-top: 0 !important; margin-bottom: 0 !important; pointer-events: none; }
 
 /* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
@@ -620,6 +621,19 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-img-cell { transform: scale(.85) translate(-50%, -50%); transform-origin: 0 0; }
   .kpi-app .banca-img-cell:hover { transform: scale(.95) translate(-50%, -50%); }
 }
+
+/* ============= VINH DANH NGÔI SAO — 2 HẠNG ĐỒNG NHẤT ============= */
+.kpi-app .banca-imgs-section { min-height: 680px; border-radius: 18px; }
+.kpi-app .banca-imgs-header { padding: 18px 18px 6px; }
+.kpi-app .banca-imgs-title { font-size: 14px; letter-spacing: .16em; }
+.kpi-app .banca-imgs-wall { flex-basis: 62%; min-height: 410px; margin: 0 12px; }
+.kpi-app .banca-imgs-wall::before, .kpi-app .banca-imgs-wall::after { position: absolute; left: 50%; transform: translateX(-50%); z-index: 1; display: inline-flex; white-space: nowrap; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; padding: 5px 13px; border-radius: 999px; backdrop-filter: blur(4px); }
+.kpi-app .banca-imgs-wall::before { content: '✦ NGÔI SAO BẠCH KIM ✦'; top: 1px; color: #e9f7ff; border: 1px solid rgba(213,239,255,.72); background: linear-gradient(135deg, rgba(225,245,255,.20), rgba(130,190,225,.10)); box-shadow: 0 0 18px rgba(177,224,255,.24); }
+.kpi-app .banca-imgs-wall::after { content: '✦ NGÔI SAO VÀNG ✦'; top: 57%; color: #ffd76b; border: 1px solid rgba(255,215,107,.62); background: linear-gradient(135deg, rgba(255,215,107,.16), rgba(184,152,56,.10)); box-shadow: 0 0 18px rgba(255,215,107,.18); }
+.kpi-app .banca-imgs-wall .banca-img-cell:nth-of-type(-n+8) { border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%); box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20); }
+.kpi-app .banca-imgs-wall .banca-img-cell:nth-of-type(n+9) { border-color: #ffd76b; }
+.kpi-app .banca-imgs-bottom-empty { flex-basis: 38%; }
+@media (max-width: 640px) { .kpi-app .banca-imgs-section { min-height: 600px; } .kpi-app .banca-imgs-wall { min-height: 360px; } .kpi-app .banca-imgs-wall::before, .kpi-app .banca-imgs-wall::after { font-size: 8px; letter-spacing: .11em; padding: 4px 9px; } }
 
 /* Admin modal grid (upload): dùng grid đều để dễ upload — khác với wall-of-fame ở section chính */
 .kpi-app .banca-admin-modal .banca-imgs-grid {
@@ -2551,21 +2565,10 @@ function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; c
 // Mỗi entry: { left%, top%, size px, zIndex }
 // Bố trí so le, to nhỏ ngẫu hứng, không trùng lặp quá nhiều.
 const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: number }> = [
-  { left: 5,  top: 8,  size: 70, z: 3 },
-  { left: 22, top: 18, size: 55, z: 2 },
-  { left: 38, top: 6,  size: 80, z: 4 },
-  { left: 56, top: 22, size: 60, z: 3 },
-  { left: 72, top: 10, size: 50, z: 2 },
-  { left: 86, top: 28, size: 65, z: 3 },
-  { left: 12, top: 50, size: 60, z: 3 },
-  { left: 30, top: 60, size: 75, z: 4 },
-  { left: 48, top: 48, size: 50, z: 2 },
-  { left: 64, top: 58, size: 70, z: 3 },
-  { left: 80, top: 50, size: 55, z: 2 },
-  { left: 3,  top: 70, size: 50, z: 2 },
-  { left: 18, top: 80, size: 60, z: 3 },
-  { left: 42, top: 78, size: 55, z: 2 },
-  { left: 60, top: 82, size: 70, z: 4 },
+  // Ngôi sao Bạch Kim — hạng cao nhất
+  { left: 7, top: 20, size: 66, z: 3 }, { left: 22, top: 31, size: 54, z: 2 }, { left: 38, top: 18, size: 74, z: 4 }, { left: 55, top: 32, size: 58, z: 3 }, { left: 72, top: 19, size: 50, z: 2 }, { left: 88, top: 31, size: 62, z: 3 }, { left: 14, top: 45, size: 56, z: 3 }, { left: 46, top: 46, size: 66, z: 4 },
+  // Ngôi sao Vàng — hạng kế tiếp
+  { left: 67, top: 66, size: 52, z: 2 }, { left: 84, top: 74, size: 64, z: 3 }, { left: 7, top: 72, size: 54, z: 2 }, { left: 24, top: 84, size: 60, z: 3 }, { left: 43, top: 70, size: 54, z: 2 }, { left: 58, top: 84, size: 64, z: 4 }, { left: 88, top: 88, size: 54, z: 3 },
 ];
 
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
@@ -4389,7 +4392,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               {adminAuthed && (
                 <div className="banca-imgs-section mobile-only">
                   <div className="banca-imgs-header">
-                    <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                    <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                     <button
                       onClick={() => setBancaImgAdminOpen(true)}
                       style={{
@@ -4810,7 +4813,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     {adminAuthed && (
                       <div className="banca-imgs-section">
                         <div className="banca-imgs-header">
-                          <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                          <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                           <button
                             onClick={() => setBancaImgAdminOpen(true)}
                             style={{
