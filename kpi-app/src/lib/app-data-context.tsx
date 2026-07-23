@@ -72,17 +72,36 @@ const AppDataContext = createContext<AppDataContextValue>({
   dataVersion: 0,
 })
 
+const APP_DATA_CACHE_KEY = 'nmc-kpi-app-data-v1'
+const APP_DATA_CACHE_TTL_MS = 60 * 1000
+
 const fetchJson = async (url: string): Promise<any> => {
   try {
-    // Cache-bust: thêm timestamp vào URL để tránh browser HTTP cache
-    // Đảm bảo luôn lấy data mới từ server
-    const sep = url.includes('?') ? '&' : '?'
-    const bustUrl = `${url}${sep}_t=${Date.now()}`
-    const r = await fetch(bustUrl, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } })
+    const r = await fetch(url, { cache: 'no-store' })
     if (!r.ok) return null
     return await r.json()
   } catch {
     return null
+  }
+}
+
+const readSessionCache = (): AppData | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || 'null')
+    if (!cached || Date.now() - cached.savedAt > APP_DATA_CACHE_TTL_MS) return null
+    return cached.data as AppData
+  } catch {
+    return null
+  }
+}
+
+const writeSessionCache = (data: AppData) => {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }))
+  } catch {
+    // Session storage is only a performance layer; continue normally if it is full.
   }
 }
 
@@ -96,83 +115,70 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false)
   const inflight = useRef<Promise<void> | null>(null)
 
-  const loadAll = useCallback(async (): Promise<void> => {
+  const loadAll = useCallback(async (force = false): Promise<void> => {
     if (inflight.current) return inflight.current
+    if (!force) {
+      const cached = readSessionCache()
+      if (cached) {
+        setData(cached)
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)
+        return
+      }
+    }
     setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
-      // Self-heal: ensure DB schema has all required columns/tables before fetching data.
-      // Idempotent + fail-safe — if it fails, data fetch still proceeds.
+      // KPI chỉ đọc dữ liệu khi mở; không chạy tác vụ sửa schema trong luồng người dùng.
       try {
-        await fetch('/api/admin/fix-schema', { method: 'POST' }).catch(() => {});
-      } catch {
-        // ignore — schema fix is best-effort
-      }
+        const [
+          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
+          structureTvv, clbMembers, pendingMembers, quanLyAll, settings, contests,
+        ] = await Promise.all([
+          fetchJson('/api/recruiters'),
+          fetchJson('/api/tuyen-ngang'),
+          fetchJson('/api/structure/phong'),
+          fetchJson('/api/structure/ad'),
+          fetchJson('/api/structure/bannhom'),
+          fetchJson('/api/structure/tvv'),
+          fetchJson('/api/clb-members'),
+          fetchJson('/api/pending-members'),
+          fetchJson('/api/quan-ly/all'),
+          fetchJson('/api/settings'),
+          fetchJson('/api/contests'),
+        ])
 
-      // Auto-retry: Neon free tier auto-suspend sau 5 phút → cold start có thể fail
-      // Retry 3 lần với delay 3s để Neon có thời gian wake up
-      const maxRetries = 3;
-      let lastError: any;
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          const [
-            leaders, revenue, contracts, staff, recruiters, tuyenNgang,
-            structurePhong, structureAd, structureBanNhom, structureTvv,
-            clbMembers, pendingMembers, quanLyAll, settings, contests,
-          ] = await Promise.all([
-            fetchJson('/api/leaders'),
-            fetchJson('/api/revenue'),
-            fetchJson('/api/contracts'),
-            fetchJson('/api/staff'),
-            fetchJson('/api/recruiters'),
-            fetchJson('/api/tuyen-ngang'),
-            fetchJson('/api/structure/phong'),
-            fetchJson('/api/structure/ad'),
-            fetchJson('/api/structure/bannhom'),
-            fetchJson('/api/structure/tvv'),
-            fetchJson('/api/clb-members'),
-            fetchJson('/api/pending-members'),
-            fetchJson('/api/quan-ly/all'),
-            fetchJson('/api/settings'),
-            fetchJson('/api/contests'),
-          ])
-
-          setData({
-            leaders: leaders || [],
-            revenue: revenue || [],
-            contracts: contracts || [],
-            staff: staff || [],
-            recruiters: recruiters || [],
-            tuyenNgang: tuyenNgang || [],
-            structurePhong: structurePhong || [],
-            structureAd: structureAd || [],
-            structureBanNhom: structureBanNhom || [],
-            structureTvv: structureTvv || [],
-            clbMembers: clbMembers || [],
-            pendingMembers: pendingMembers || [],
-            quanLyAll: quanLyAll || null,
-            settings: settings || null,
-            contests: contests || [],
-          })
-          setLastSync(new Date())
-          setDataVersion(v => v + 1)
-          setLoadError(null)
-          return; // success → exit retry loop
-        } catch (err: any) {
-          lastError = err;
-          const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
-          console.error(`[AppDataProvider] loadAll attempt ${attempt + 1}/${maxRetries} failed:`, msg)
-          if (attempt < maxRetries - 1) {
-            setLoadError(`Đang kết nối lại database... (lần ${attempt + 1}/${maxRetries})`)
-            await new Promise(resolve => setTimeout(resolve, 3000))
-          }
+        // /api/quan-ly/all is the single source for the four largest tables.
+        // Avoid fetching the same contracts/revenue/staff/leaders a second time.
+        const nextData: AppData = {
+          leaders: quanLyAll?.leaders || [],
+          revenue: quanLyAll?.revenue || [],
+          contracts: quanLyAll?.contracts || [],
+          staff: quanLyAll?.staff || [],
+          recruiters: recruiters || [],
+          tuyenNgang: tuyenNgang || [],
+          structurePhong: structurePhong || [],
+          structureAd: structureAd || [],
+          structureBanNhom: structureBanNhom || [],
+          structureTvv: structureTvv || [],
+          clbMembers: clbMembers || [],
+          pendingMembers: pendingMembers || [],
+          quanLyAll: quanLyAll || null,
+          settings: settings || null,
+          contests: contests || [],
         }
+        setData(nextData)
+        writeSessionCache(nextData)
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)
+      } catch (err: any) {
+        const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
+        console.error('[AppDataProvider] loadAll error:', msg)
+        setLoadError(msg)
+        throw err
       }
-      // All retries failed
-      const msg = lastError?.message || String(lastError) || 'Lỗi không xác định khi tải dữ liệu'
-      console.error('[AppDataProvider] loadAll all retries failed:', msg)
-      setLoadError(msg)
-      throw lastError
     })()
 
     inflight.current = p
@@ -193,7 +199,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const reload = useCallback(async () => {
     setIsReloading(true)
     try {
-      await loadAll()
+      await loadAll(true)
     } finally {
       setIsReloading(false)
       setIsLoading(false) // ensure isLoading=false sau retry (dù thành/bại)
