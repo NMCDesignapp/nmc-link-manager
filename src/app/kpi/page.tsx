@@ -1849,6 +1849,51 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-bottom: 2px solid #806010;
 }
 
+/* ============= DESKTOP COMPANY + NAV — CÙNG KHUNG, CÙNG NHỊP ============= */
+@media (min-width: 900px) {
+  .kpi-app .split-center { width: 100%; }
+  .kpi-app .nav-grid.dsk-nav,
+  .kpi-app .dsk-company { width: 100%; box-sizing: border-box; }
+  .kpi-app .nav-grid.dsk-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px;
+    margin: 0 0 10px;
+    padding: 7px;
+    border: 1px solid rgba(102, 160, 205, .24);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(13, 34, 60, .72), rgba(7, 20, 38, .58));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 20px rgba(0,0,0,.16);
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn {
+    min-height: 50px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 1.12;
+    white-space: normal;
+    box-shadow: 0 3px 8px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.11);
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn .nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn .nav-icon svg { width: 16px; height: 16px; }
+  .kpi-app .nav-grid.dsk-nav .nav-btn.nav-target-reg {
+    background: linear-gradient(135deg, #bf9130, #8f661b) !important;
+    border-color: rgba(255,215,107,.34);
+  }
+  .kpi-app .dsk-company { margin-top: 0; }
+  .kpi-app .dsk-cty-top { gap: 10px; }
+  .kpi-app .dsk-cty-left,
+  .kpi-app .dsk-cty-kpi { border-radius: 14px; }
+  .kpi-app .dsk-cty-main-head { border-radius: 14px 14px 0 0; }
+  .kpi-app .dsk-cty-main-body { border-radius: 0 0 14px 14px; }
+}
+
 /* ============= DESKTOP KPI V2 — CÂN ĐỐI, KHÔNG CẮT NỘI DUNG ============= */
 @media (min-width: 900px) {
   .kpi-app .app-wrap { max-width: 1440px; }
