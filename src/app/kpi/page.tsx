@@ -2957,28 +2957,33 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // (gold border) bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì (không hiển thị khung trống).
   // 15 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-15`.
   const BANCA_IMG_COUNT = 15;
-  const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> url
-  const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null); // key being uploaded
-  const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false); // admin modal để upload tất cả 15 ảnh
+  const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> cacheable image URL
+  const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null);
+  const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false);
+  const [bancaAdminSelectedKey, setBancaAdminSelectedKey] = useState<string | null>(null);
+  const [bancaProfileOpenKey, setBancaProfileOpenKey] = useState<string | null>(null);
+  const [bancaProfileSaving, setBancaProfileSaving] = useState(false);
+  const [bancaProfiles, setBancaProfiles] = useState<Record<string, { name: string; title: string; note: string }>>({});
+  const [honourLoading, setHonourLoading] = useState(true);
 
-  // Người xem cũng cần thấy ảnh vinh danh; chỉ thao tác upload/xóa mới cần quyền admin.
+  // A single lightweight manifest guarantees that viewers receive every honour image
+  // without downloading each binary once for checking and once again for display.
   useEffect(() => {
     let cancelled = false;
     const loadBancaImages = async () => {
-      const imgs: Record<string, string> = {};
-      // Chỉ kiểm tra phản hồi, không đọc binary hai lần. Thẻ <img> sẽ tải ảnh thật từ URL cacheable.
-      await Promise.all(
-        Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-          const idx = String(i + 1).padStart(2, '0');
-          const key = `kpi-banca-img-${idx}`;
-          return fetch(`/api/poster-image/${encodeURIComponent(key)}`, { cache: 'no-store' })
-            .then((r) => {
-              if (r.ok && !cancelled) imgs[key] = `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}`;
-            })
-            .catch(() => {});
-        })
-      );
-      if (!cancelled) setBancaImages(imgs);
+      try {
+        const res = await fetch('/api/poster-image?prefix=kpi-banca-img-', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : { items: [] };
+        const imgs: Record<string, string> = {};
+        for (const item of data.items || []) {
+          if (item?.key) imgs[item.key] = `/api/poster-image/${encodeURIComponent(item.key)}?v=${item.updatedAt || 0}`;
+        }
+        if (!cancelled) setBancaImages(imgs);
+      } catch {
+        if (!cancelled) setBancaImages({});
+      } finally {
+        if (!cancelled) setHonourLoading(false);
+      }
     };
     loadBancaImages();
     return () => { cancelled = true; };
@@ -3367,6 +3372,54 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   useEffect(() => {
     if (appData.settings) setOnlineSettings(appData.settings);
   }, [appData.settings, dataVersion]);
+
+  // Metadata is stored as compact Settings values: the image binary stays out of Settings.
+  useEffect(() => {
+    const profiles: Record<string, { name: string; title: string; note: string }> = {};
+    for (let i = 1; i <= BANCA_IMG_COUNT; i++) {
+      const key = `kpi-banca-img-${String(i).padStart(2, '0')}`;
+      try {
+        const saved = onlineSettings[`kpi-banca-profile-${String(i).padStart(2, '0')}`];
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          profiles[key] = {
+            name: String(parsed?.name || ''),
+            title: String(parsed?.title || ''),
+            note: String(parsed?.note || ''),
+          };
+        }
+      } catch {
+        // Ignore one malformed legacy profile instead of blocking the honour board.
+      }
+    }
+    setBancaProfiles(profiles);
+  }, [onlineSettings]);
+
+  const updateBancaProfile = (key: string, patch: Partial<{ name: string; title: string; note: string }>) => {
+    setBancaProfiles(prev => ({
+      ...prev,
+      [key]: { name: prev[key]?.name || '', title: prev[key]?.title || '', note: prev[key]?.note || '', ...patch },
+    }));
+  };
+
+  const saveBancaProfile = async (key: string) => {
+    const idx = key.replace('kpi-banca-img-', '');
+    const profile = bancaProfiles[key] || { name: '', title: '', note: '' };
+    setBancaProfileSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }),
+      });
+      if (!res.ok) throw new Error('save failed');
+      setOnlineSettings(prev => ({ ...prev, [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }));
+    } catch {
+      alert('Không thể lưu thông tin ảnh. Vui lòng thử lại.');
+    } finally {
+      setBancaProfileSaving(false);
+    }
+  };
 
   /* Structure AD/Phong/BanNhom/TVV — đọc từ context */
   useEffect(() => {
@@ -3786,7 +3839,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
      đợi 1 nhịp rồi fade-out splash (~550ms) rồi unmount. */
   useEffect(() => {
     if (!splashVisible) return;
-    if (loading || !dashboard) return;
+    if (loading || honourLoading || !dashboard) return;
     const t1 = setTimeout(() => setSplashExiting(true), 250);
     const t2 = setTimeout(() => {
       setSplashVisible(false);
