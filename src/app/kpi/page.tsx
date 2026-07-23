@@ -5176,7 +5176,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       </button>
                     </div>
                   </div>
-                  <div />{/* empty right column to keep grid layout */}
                 </div>
                 </div>
                 {/* Desktop Region Divider (clickable to collapse) — only hides cards in split-right,
