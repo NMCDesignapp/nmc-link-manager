@@ -2759,6 +2759,44 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     height: 14px;
   }
 }
+
+
+/* ============= 6 NÚT — KHUNG TỐI RÕ, NỔI KHỐI ============= */
+@media (min-width: 900px) {
+  .kpi-app .split-center > .nav-grid.dsk-nav {
+    width: min(100%, 570px);
+    padding: 10px;
+    gap: 8px;
+    border: 1px solid rgba(123, 184, 228, .36);
+    border-radius: 15px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(42, 92, 132, .42), transparent 72%), rgba(5, 21, 39, .92);
+    box-shadow: 0 10px 28px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.30);
+  }
+  .kpi-app .split-center > .nav-grid.dsk-nav .nav-btn {
+    min-height: 45px;
+    border: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 10px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.16);
+  }
+}
+
+/* ============= BẠCH KIM — ƯU TIÊN CĂN GIỮA KHI CHƯA ĐỦ 5 ẢNH ============= */
+@supports selector(.honour-image-grid:has(> .banca-img-cell)) {
+  .kpi-app .honour-tier.platinum .honour-image-grid:has(> .banca-img-cell:only-child) > .banca-img-cell:only-child {
+    grid-column: 3;
+  }
+  .kpi-app .honour-tier.platinum .honour-image-grid:has(> .banca-img-cell:nth-child(2):last-child) > .banca-img-cell:nth-child(1) {
+    grid-column: 2;
+  }
+  .kpi-app .honour-tier.platinum .honour-image-grid:has(> .banca-img-cell:nth-child(2):last-child) > .banca-img-cell:nth-child(2) {
+    grid-column: 4;
+  }
+  .kpi-app .honour-tier.platinum .honour-image-grid:has(> .banca-img-cell:nth-child(3):last-child) > .banca-img-cell:nth-child(2) {
+    grid-column: 3;
+  }
+  .kpi-app .honour-tier.platinum .honour-image-grid:has(> .banca-img-cell:nth-child(3):last-child) > .banca-img-cell:nth-child(3) {
+    grid-column: 5;
+  }
+}
 `;
 
 
@@ -3726,7 +3764,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
     }
     // Preserve a draft being edited if a background settings refresh arrives.
-    setBancaProfiles(prev => ({ ...prev, ...profiles }));
+    setBancaProfiles(prev => ({ ...profiles, ...prev }));
   }, [onlineSettings]);
 
   const updateBancaProfile = (key: string, patch: Partial<{ name: string; title: string; note: string }>) => {
@@ -5090,8 +5128,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
-  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 5 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 5, count: BANCA_IMG_COUNT - 5 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -5238,8 +5276,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
-  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 5 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 5, count: BANCA_IMG_COUNT - 5 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
