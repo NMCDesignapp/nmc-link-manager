@@ -2086,6 +2086,60 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   }
 }
 
+/* ============= VINH DANH GỌN THEO NỘI DUNG ============= */
+/* Không giữ khoảng trống cố định: viền dưới tự lên theo số ảnh đang có. */
+.kpi-app .banca-imgs-section,
+.kpi-app .desktop-honour-layout .banca-imgs-section {
+  min-height: 0 !important;
+  height: auto !important;
+}
+.kpi-app .banca-imgs-bottom-empty { display: none !important; }
+.kpi-app .banca-imgs-wall,
+.kpi-app .desktop-honour-layout .banca-imgs-wall {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  padding: 4px 0 22px;
+}
+.kpi-app .honour-tier { gap: 8px; }
+.kpi-app .honour-tier-title {
+  width: min(100%, 520px);
+  min-height: 18px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: grid;
+  grid-template-columns: minmax(18px, 1fr) auto minmax(18px, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .12em;
+}
+.kpi-app .honour-tier-title::before,
+.kpi-app .honour-tier-title::after {
+  content: '';
+  display: block;
+  height: 1px;
+}
+.kpi-app .honour-tier.platinum .honour-tier-title::before {
+  background: linear-gradient(90deg, transparent, rgba(218,242,255,.46));
+}
+.kpi-app .honour-tier.platinum .honour-tier-title::after {
+  background: linear-gradient(90deg, rgba(218,242,255,.46), transparent);
+}
+.kpi-app .honour-tier.gold .honour-tier-title::before {
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.46));
+}
+.kpi-app .honour-tier.gold .honour-tier-title::after {
+  background: linear-gradient(90deg, rgba(255,215,107,.46), transparent);
+}
+@media (max-width: 640px) {
+  .kpi-app .honour-tier-title { width: min(100%, 300px); font-size: 7.5px; gap: 8px; }
+  .kpi-app .banca-imgs-wall { padding-bottom: 16px; }
+}
+
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
 /* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
