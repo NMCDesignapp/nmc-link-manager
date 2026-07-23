@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// Nâng cấp an toàn các bảng được tạo từ phiên bản KPI cũ trước khi đọc hoặc ghi.
+async function ensureTargetRegistrationSchema() {
+  const columns: Array<[string, string]> = [
+    ['role', `TEXT NOT NULL DEFAULT 'tn'`], ['nhom', `TEXT NOT NULL DEFAULT ''`],
+    ['maNhom', `TEXT NOT NULL DEFAULT ''`], ['agentCode', `TEXT NOT NULL DEFAULT ''`],
+    ['agentName', `TEXT NOT NULL DEFAULT ''`], ['position', `TEXT NOT NULL DEFAULT ''`],
+    ['afypTarget', 'DOUBLE PRECISION NOT NULL DEFAULT 0'], ['luotHDTarget', 'DOUBLE PRECISION NOT NULL DEFAULT 0'],
+    ['note', `TEXT NOT NULL DEFAULT ''`], ['createdAt', 'TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP'],
+    ['updatedAt', 'TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP'],
+  ]
+  for (const [name, definition] of columns) {
+    await db.$executeRawUnsafe(`ALTER TABLE "KpiTargetRegistration" ADD COLUMN IF NOT EXISTS "${name}" ${definition}`)
+  }
+}
+
 // ---------- GET /api/kpi-target-registrations ----------
 // Query params:
 //   - month (optional): "YYYY-MM" format. If omitted, returns all.
@@ -21,7 +36,7 @@ export async function GET(req: NextRequest) {
         CREATE TABLE IF NOT EXISTS "KpiTargetRegistration" (
           "id" TEXT NOT NULL PRIMARY KEY,
           "month" TEXT NOT NULL,
-          "role" TEXT NOT NULL,
+          "role" TEXT NOT NULL DEFAULT 'tn',
           "nhom" TEXT NOT NULL DEFAULT '',
           "maNhom" TEXT NOT NULL DEFAULT '',
           "agentCode" TEXT NOT NULL DEFAULT '',
@@ -37,6 +52,8 @@ export async function GET(req: NextRequest) {
     } catch (tableErr: any) {
       console.error('[kpi-target-registrations] CREATE TABLE failed (may already exist):', tableErr?.message || tableErr)
     }
+
+    await ensureTargetRegistrationSchema()
 
     // Build query
     const conditions: string[] = []
@@ -93,7 +110,7 @@ export async function POST(req: NextRequest) {
         CREATE TABLE IF NOT EXISTS "KpiTargetRegistration" (
           "id" TEXT NOT NULL PRIMARY KEY,
           "month" TEXT NOT NULL,
-          "role" TEXT NOT NULL,
+          "role" TEXT NOT NULL DEFAULT 'tn',
           "nhom" TEXT NOT NULL DEFAULT '',
           "maNhom" TEXT NOT NULL DEFAULT '',
           "agentCode" TEXT NOT NULL DEFAULT '',
@@ -109,6 +126,8 @@ export async function POST(req: NextRequest) {
     } catch (tableErr: any) {
       console.error('[kpi-target-registrations] CREATE TABLE failed (may already exist):', tableErr?.message || tableErr)
     }
+
+    await ensureTargetRegistrationSchema()
 
     // Generate UUID
     const id = (crypto as any).randomUUID ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
