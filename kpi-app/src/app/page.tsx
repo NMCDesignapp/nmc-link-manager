@@ -2639,6 +2639,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .afyp-chart-wrap { border-radius: 18px; padding: 16px; }
   .kpi-app .afyp-chart { height: 270px; }
 }
+
+
+/* ============= DANH THIẾP VINH DANH — VẠCH NGĂN KHÔNG ĐÈ CHỮ ============= */
+.kpi-app .honour-profile-card::before { display: none; }
+.kpi-app .honour-profile-info {
+  border-left: 1px solid rgba(255,215,107,.48);
+  padding-left: 14px;
+}
+@media (max-width: 560px) {
+  .kpi-app .honour-profile-info { padding-left: 12px; }
+}
 `;
 
 
