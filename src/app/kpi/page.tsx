@@ -2671,6 +2671,58 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     aspect-ratio: 1 / 1;
   }
 }
+
+
+/* ============= ĐĂNG KÝ MỤC TIÊU — DẢI NÚT ÁNH VÀNG ============= */
+.kpi-app .target-reg-section {
+  display: grid;
+  grid-template-columns: minmax(18px, 1fr) auto minmax(18px, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0 18px;
+  padding: 0;
+  border-top: 0;
+}
+.kpi-app .target-reg-section::before,
+.kpi-app .target-reg-section::after {
+  content: '';
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(212,168,67,.72), rgba(255,215,107,.92), rgba(212,168,67,.72), transparent);
+  box-shadow: 0 0 12px rgba(255,215,107,.22);
+}
+.kpi-app .target-reg-btn {
+  width: auto;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255,215,107,.42);
+  border-radius: 7px;
+  background: linear-gradient(135deg, rgba(212,168,67,.22), rgba(255,215,107,.10)) !important;
+  color: #ffd76b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-shadow: 0 1px 6px rgba(255,215,107,.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 0 18px rgba(212,168,67,.10);
+}
+.kpi-app .target-reg-btn::before {
+  content: '›';
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 30px;
+  line-height: 0;
+  font-weight: 300;
+  transform: translateY(1px);
+}
+.kpi-app .target-reg-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(212,168,67,.34), rgba(255,215,107,.16)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.20), 0 0 24px rgba(212,168,67,.20);
+}
+@media (max-width: 480px) {
+  .kpi-app .target-reg-section { gap: 7px; }
+  .kpi-app .target-reg-btn { min-height: 40px; padding: 0 11px; font-size: 10px; letter-spacing: .075em; }
+  .kpi-app .target-reg-btn::before { font-size: 25px; margin-right: 4px; }
+}
 `;
 
 
