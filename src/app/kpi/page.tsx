@@ -775,15 +775,21 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: rgba(14,20,36,.6); border: 1px solid rgba(108,199,138,.18);
   border-radius: 12px; padding: 8px; margin-top: 12px;
 }
-.kpi-app .tgr-list-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kpi-app .tgr-list-table-meta {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 2px 2px 10px; color: #9bb2c8; font-size: 10px;
+}
+.kpi-app .tgr-list-table-meta em { color: #7890a8; font-size: 9px; font-style: italic; white-space: nowrap; }
+.kpi-app .tgr-list-table { width: 100%; min-width: 700px; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
 .kpi-app .tgr-list-table thead th {
   background: rgba(108,199,138,.10); color: #6cc78a;
   padding: 10px 8px; text-align: left; font-size: 10px; font-weight: 800;
   text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid rgba(108,199,138,.20);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-app .tgr-list-table tbody td {
   padding: 9px 8px; color: #e0e6ed; border-bottom: 1px solid rgba(255,255,255,.06);
-  vertical-align: middle;
+  vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-app .tgr-list-table tbody tr:hover td { background: rgba(108,199,138,.04); }
 .kpi-app .tgr-list-empty {
@@ -802,6 +808,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Mobile compact: smaller fonts/padding */
 @media (max-width: 640px) {
+  .kpi-app .tgr-list-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .kpi-app .tgr-list-table-meta { min-width: 700px; }
   .kpi-app .rg-head { padding: 10px 12px; }
   .kpi-app .rg-head-name { font-size: 11px; }
   .kpi-app .rg-head-pct { font-size: 15px; }
