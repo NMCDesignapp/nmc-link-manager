@@ -506,7 +506,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* Hidden content when collapsed — applied to wrapper containing the cards */
 .kpi-app .khuvuc-region { display: grid; grid-template-rows: 1fr; overflow: hidden; opacity: 1; transform: translateY(0); transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .22s ease, transform .42s cubic-bezier(.22,1,.36,1), margin .42s ease; }
 .kpi-app .khuvuc-region > * { min-height: 0; overflow: hidden; }
-.kpi-app .khuvuc-region.collapsed { grid-template-rows: 0fr; opacity: 0; transform: translateY(-8px); margin-top: 0 !important; margin-bottom: 0 !important; pointer-events: none; }
+.kpi-app .khuvuc-region.collapsed { grid-template-rows: 0fr; height: 0 !important; opacity: 0; transform: translateY(-8px); margin-top: 0 !important; margin-bottom: 0 !important; pointer-events: none; }
 
 /* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
