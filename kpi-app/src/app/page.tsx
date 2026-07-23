@@ -2797,6 +2797,70 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     grid-column: 5;
   }
 }
+
+
+/* ============= DẢI THAO TÁC KPI — MÀU ĐẬM, ĐỒNG BỘ ============= */
+/* Tiến độ khu vực: xanh navy/teal để biểu thị theo dõi. */
+.kpi-app .region-divider.is-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 28px 0 18px !important;
+}
+.kpi-app .region-divider.is-collapse-btn::before,
+.kpi-app .region-divider.is-collapse-btn::after {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1d7095 45%, #63c4df 50%, #1d7095 55%, transparent);
+  box-shadow: 0 0 10px rgba(74,184,214,.24);
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid #3b8eb1;
+  border-radius: 9px;
+  background: #103c56;
+  color: #d7f5ff;
+  box-shadow: 0 8px 18px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.24);
+  text-shadow: 0 1px 4px rgba(0,0,0,.45);
+}
+.kpi-app .region-divider.is-collapse-btn:hover .region-divider-title {
+  background: #164d69;
+  border-color: #68c8e4;
+}
+.kpi-app .region-divider.is-collapse-btn .collapse-icon {
+  border-color: #8de2f7;
+}
+
+/* Đăng ký mục tiêu: vàng đồng đậm — cùng kích thước và nhịp bố cục. */
+.kpi-app .target-reg-section {
+  gap: 14px;
+  margin: 28px 0 18px;
+}
+.kpi-app .target-reg-section::before,
+.kpi-app .target-reg-section::after {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a87524 45%, #f4d477 50%, #a87524 55%, transparent);
+  box-shadow: 0 0 10px rgba(238,190,78,.22);
+}
+.kpi-app .target-reg-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid #c69332;
+  border-radius: 9px;
+  background: #644613 !important;
+  color: #ffe5a0;
+  box-shadow: 0 8px 18px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.26);
+}
+.kpi-app .target-reg-btn:hover {
+  background: #795618 !important;
+  border-color: #f1c95f;
+}
+@media (max-width: 560px) {
+  .kpi-app .region-divider.is-collapse-btn,
+  .kpi-app .target-reg-section { gap: 8px; margin: 22px 0 14px !important; }
+  .kpi-app .region-divider.is-collapse-btn .region-divider-title,
+  .kpi-app .target-reg-btn { min-height: 40px; padding-left: 12px; padding-right: 12px; }
+}
 `;
 
 
