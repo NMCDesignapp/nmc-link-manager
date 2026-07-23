@@ -6682,3 +6682,5 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 export default function KPIPage() {
   return <KPIDashboard standalone />;
 }
+
+// Release marker: synchronized KPI navigation and contest participant source.
