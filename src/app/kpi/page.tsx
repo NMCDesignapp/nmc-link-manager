@@ -1849,6 +1849,77 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-bottom: 2px solid #806010;
 }
 
+/* ============= DESKTOP KPI V2 — CÂN ĐỐI, KHÔNG CẮT NỘI DUNG ============= */
+@media (min-width: 900px) {
+  .kpi-app .app-wrap { max-width: 1440px; }
+  .kpi-app .desktop-split {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 16px;
+    gap: 0;
+  }
+  .kpi-app .split-center { height: auto; gap: 16px; }
+  .kpi-app .nav-grid.dsk-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn {
+    min-height: 58px;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 11px;
+    white-space: normal;
+  }
+  .kpi-app .dsk-company { margin-top: 2px; }
+  .kpi-app .dsk-cty-top { grid-template-columns: minmax(240px, .9fr) minmax(0, 2.1fr); }
+  .kpi-app .split-center .afyp-chart-wrap { flex: none; min-height: 350px; }
+  .kpi-app .region-divider.is-collapse-btn {
+    display: flex !important;
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    margin: 24px 0 12px !important;
+  }
+  .kpi-app .khuvuc-region {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    height: auto;
+  }
+  .kpi-app .khuvuc-region:not(.collapsed) { margin-top: 4px !important; }
+  .kpi-app .split-right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    gap: 16px;
+    height: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .kpi-app .dept-section { height: 360px; min-height: 360px; }
+  .kpi-app .dept-section > .rg-card,
+  .kpi-app .dept-section > .banca-separator + .rg-card { height: 100%; }
+  .kpi-app .rg-card { border-radius: 14px; }
+  .kpi-app .rg-head { padding: 10px 14px; }
+  .kpi-app .rg-head-name { font-size: 12px; }
+  .kpi-app .rg-head-pct { font-size: 17px; }
+  .kpi-app .rg-afyp-row { padding: 8px 14px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-sum-cell { padding: 7px 4px; min-height: 38px; }
+  .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-sum-val { font-size: 13px; }
+  .kpi-app .rg-ad-wrap { padding: 6px 0 8px; }
+  .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; font-size: 10px; }
+  .kpi-app .rg-ad-table thead th,
+  .kpi-app .rg-ad-table tbody td { padding: 5px 4px; font-size: 10px; }
+}
+@media (min-width: 1400px) {
+  .kpi-app .nav-grid.dsk-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .kpi-app .desktop-split { margin-top: 18px; }
+  .kpi-app .split-right { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-app .dept-section { height: 380px; min-height: 380px; }
+}
+
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
 /* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
