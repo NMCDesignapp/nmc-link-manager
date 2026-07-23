@@ -1920,6 +1920,66 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dept-section { height: 380px; min-height: 380px; }
 }
 
+/* ============= DESKTOP VINH DANH — KHỐI TRUNG TÂM ============= */
+@media (min-width: 900px) {
+  .kpi-app .desktop-honour-layout {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: block !important;
+    margin: 34px 0 12px;
+  }
+  .kpi-app .desktop-honour-layout > div:first-child {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+    gap: 20px !important;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-section {
+    min-height: 590px;
+    border: 1px solid rgba(255, 215, 107, .35);
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(213,239,255,.12), transparent 36%),
+      radial-gradient(ellipse at 20% 85%, rgba(255,215,107,.08), transparent 34%),
+      linear-gradient(160deg, #10182b 0%, #070c16 68%, #03060c 100%);
+    box-shadow: 0 24px 64px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.11);
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-header {
+    justify-content: center;
+    padding: 24px 24px 10px;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-title {
+    font-size: 16px;
+    letter-spacing: .22em;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-wall {
+    min-height: 400px;
+    flex-basis: 68%;
+    width: min(100% - 48px, 860px);
+    margin: 0 auto;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-bottom-empty {
+    flex-basis: 32%;
+  }
+  .kpi-app .desktop-honour-layout .target-reg-section {
+    width: min(100%, 520px);
+    align-self: center;
+    margin: 0 auto 8px;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .kpi-app .desktop-honour-layout .target-reg-btn {
+    min-height: 54px;
+    border: 1px solid rgba(255,215,107,.55);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0c75e 0%, #bd8520 48%, #85530f 100%);
+    box-shadow: 0 12px 28px rgba(184,132,32,.30), inset 0 1px 0 rgba(255,255,255,.38);
+  }
+  .kpi-app .desktop-honour-layout .target-reg-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(184,132,32,.42), inset 0 1px 0 rgba(255,255,255,.42);
+  }
+}
+
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
 /* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
@@ -4878,7 +4938,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </div>{/* end khuvuc-region desktop — only split-right cards */}
 
                 {/* Desktop: banca images (admin) + target reg button stay visible below collapsed region */}
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16, marginTop: 16 }}>
+                <div className="desktop-honour-layout">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Banca images section (admin only) — desktop */}
                     {(
