@@ -2907,24 +2907,19 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null); // key being uploaded
   const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false); // admin modal để upload tất cả 15 ảnh
 
-  // Load banca images on mount + when adminAuthed changes (chỉ load khi admin)
+  // Người xem cũng cần thấy ảnh vinh danh; chỉ thao tác upload/xóa mới cần quyền admin.
   useEffect(() => {
-    if (!adminAuthed) {
-      setBancaImages({});
-      return;
-    }
     let cancelled = false;
     const loadBancaImages = async () => {
       const imgs: Record<string, string> = {};
-      // Fetch all 15 in parallel — most will 404 (chưa upload) → skip
+      // Chỉ kiểm tra phản hồi, không đọc binary hai lần. Thẻ <img> sẽ tải ảnh thật từ URL cacheable.
       await Promise.all(
         Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
           const idx = String(i + 1).padStart(2, '0');
           const key = `kpi-banca-img-${idx}`;
           return fetch(`/api/poster-image/${encodeURIComponent(key)}`, { cache: 'no-store' })
-            .then((r) => (r.ok ? r.text() : null))
-            .then((url) => {
-              if (url && !cancelled) imgs[key] = `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}`;
+            .then((r) => {
+              if (r.ok && !cancelled) imgs[key] = `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}`;
             })
             .catch(() => {});
         })
@@ -2933,7 +2928,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     };
     loadBancaImages();
     return () => { cancelled = true; };
-  }, [adminAuthed]);
+  }, []);
 
   const uploadBancaImage = async (key: string, file: File) => {
     setBancaImgUploading(key);
@@ -3295,7 +3290,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       });
       setError(false);
     }
-    setLoading(false);
+    // Giữ splash cho tới khi AppDataProvider hoàn tất toàn bộ lần preload đầu tiên.
+    if (!appDataLoading) setLoading(false);
     setSyncing(appDataReloading);
   }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataReloading, dataVersion]);
 
@@ -3668,6 +3664,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         // Find contracts for this AD — match by normalized name (both adKey and resolved full name)
         // Contracts' ad field stores FULL name (e.g. "Trương Quốc Uy"), adKey may be short ("AD Uy")
         const adContracts = periodContracts.filter(c => {
+          // Nguồn chuẩn là Mã Ban/Nhóm → AD. Dữ liệu import có thể có AD = '#N/A',
+          // nhưng maNhom vẫn hợp lệ; nếu chỉ so tên AD, các hợp đồng này bị rơi khỏi KPI.
+          const groupCode = String(c.maBanNhom || c.maNhom || '').trim();
+          if (groupCode && bnToAdMap.get(groupCode)?.maAD === adStruct.maAD) return true;
+
+          // Fallback cho dữ liệu cũ không có mã nhóm.
           const cAdNorm = normKey(c.ad || '');
           if (!cAdNorm) return false;
           return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm)
