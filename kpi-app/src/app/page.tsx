@@ -212,9 +212,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 
 /* Navigation */
-.kpi-app .nav-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 24px; }
+.kpi-app .nav-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
 .kpi-app .nav-row-3 { display: contents; }
-.kpi-app .nav-btn { padding: 10px 6px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s, filter .15s, box-shadow .15s; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,.45); min-height: 48px; text-align: center; }
+.kpi-app .nav-btn { padding: 10px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); cursor: pointer; font-family: inherit; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .18s ease, filter .18s ease, box-shadow .18s ease; position: relative; overflow: hidden; box-shadow: 0 5px 12px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.14); min-height: 52px; text-align: center; }
 .kpi-app .nav-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 10px 22px rgba(0,0,0,.55); }
 .kpi-app .nav-btn:active { transform: translateY(0) scale(.98); filter: brightness(.92); box-shadow: 0 3px 8px rgba(0,0,0,.40); }
 .kpi-app .nav-btn .nav-icon { font-size: 12px; line-height: 1; flex-shrink: 0; }
@@ -504,8 +504,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   transform: rotate(-45deg);
 }
 /* Hidden content when collapsed — applied to wrapper containing the cards */
-.kpi-app .khuvuc-region { transition: max-height .35s ease, opacity .25s ease, overflow .25s; }
-.kpi-app .khuvuc-region.collapsed { max-height: 0 !important; opacity: 0; overflow: hidden; pointer-events: none; }
+.kpi-app .khuvuc-region { display: grid; grid-template-rows: 1fr; overflow: hidden; opacity: 1; transform: translateY(0); transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .22s ease, transform .42s cubic-bezier(.22,1,.36,1), margin .42s ease; }
+.kpi-app .khuvuc-region > * { min-height: 0; overflow: hidden; }
+.kpi-app .khuvuc-region.collapsed { grid-template-rows: 0fr; height: 0 !important; opacity: 0; transform: translateY(-8px); margin-top: 0 !important; margin-bottom: 0 !important; pointer-events: none; }
 
 /* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
@@ -620,6 +621,19 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-img-cell { transform: scale(.85) translate(-50%, -50%); transform-origin: 0 0; }
   .kpi-app .banca-img-cell:hover { transform: scale(.95) translate(-50%, -50%); }
 }
+
+/* ============= VINH DANH NGÔI SAO — 2 HẠNG ĐỒNG NHẤT ============= */
+.kpi-app .banca-imgs-section { min-height: 680px; border-radius: 18px; }
+.kpi-app .banca-imgs-header { padding: 18px 18px 6px; }
+.kpi-app .banca-imgs-title { font-size: 14px; letter-spacing: .16em; }
+.kpi-app .banca-imgs-wall { flex-basis: 62%; min-height: 410px; margin: 0 12px; }
+.kpi-app .banca-imgs-wall::before, .kpi-app .banca-imgs-wall::after { position: absolute; left: 50%; transform: translateX(-50%); z-index: 1; display: inline-flex; white-space: nowrap; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; padding: 5px 13px; border-radius: 999px; backdrop-filter: blur(4px); }
+.kpi-app .banca-imgs-wall::before { content: '✦ NGÔI SAO BẠCH KIM ✦'; top: 1px; color: #e9f7ff; border: 1px solid rgba(213,239,255,.72); background: linear-gradient(135deg, rgba(225,245,255,.20), rgba(130,190,225,.10)); box-shadow: 0 0 18px rgba(177,224,255,.24); }
+.kpi-app .banca-imgs-wall::after { content: '✦ NGÔI SAO VÀNG ✦'; top: 57%; color: #ffd76b; border: 1px solid rgba(255,215,107,.62); background: linear-gradient(135deg, rgba(255,215,107,.16), rgba(184,152,56,.10)); box-shadow: 0 0 18px rgba(255,215,107,.18); }
+.kpi-app .banca-imgs-wall .banca-img-cell:nth-of-type(-n+8) { border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%); box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20); }
+.kpi-app .banca-imgs-wall .banca-img-cell:nth-of-type(n+9) { border-color: #ffd76b; }
+.kpi-app .banca-imgs-bottom-empty { flex-basis: 38%; }
+@media (max-width: 640px) { .kpi-app .banca-imgs-section { min-height: 600px; } .kpi-app .banca-imgs-wall { min-height: 360px; } .kpi-app .banca-imgs-wall::before, .kpi-app .banca-imgs-wall::after { font-size: 8px; letter-spacing: .11em; padding: 4px 9px; } }
 
 /* Admin modal grid (upload): dùng grid đều để dễ upload — khác với wall-of-fame ở section chính */
 .kpi-app .banca-admin-modal .banca-imgs-grid {
@@ -1835,6 +1849,363 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-bottom: 2px solid #806010;
 }
 
+/* ============= DESKTOP COMPANY + NAV — CÙNG KHUNG, CÙNG NHỊP ============= */
+@media (min-width: 900px) {
+  .kpi-app .split-center { width: 100%; }
+  .kpi-app .nav-grid.dsk-nav,
+  .kpi-app .dsk-company { width: 100%; box-sizing: border-box; }
+  .kpi-app .nav-grid.dsk-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px;
+    margin: 0 0 10px;
+    padding: 7px;
+    border: 1px solid rgba(102, 160, 205, .24);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(13, 34, 60, .72), rgba(7, 20, 38, .58));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 20px rgba(0,0,0,.16);
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn {
+    min-height: 50px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 1.12;
+    white-space: normal;
+    box-shadow: 0 3px 8px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.11);
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn .nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn .nav-icon svg { width: 16px; height: 16px; }
+  .kpi-app .nav-grid.dsk-nav .nav-btn.nav-target-reg {
+    background: linear-gradient(135deg, #bf9130, #8f661b) !important;
+    border-color: rgba(255,215,107,.34);
+  }
+  .kpi-app .dsk-company { margin-top: 0; }
+  .kpi-app .dsk-cty-top { gap: 10px; }
+  .kpi-app .dsk-cty-left,
+  .kpi-app .dsk-cty-kpi { border-radius: 14px; }
+  .kpi-app .dsk-cty-main-head { border-radius: 14px 14px 0 0; }
+  .kpi-app .dsk-cty-main-body { border-radius: 0 0 14px 14px; }
+}
+
+/* ============= DESKTOP KPI V2 — CÂN ĐỐI, KHÔNG CẮT NỘI DUNG ============= */
+@media (min-width: 900px) {
+  .kpi-app .app-wrap { max-width: 1440px; }
+  .kpi-app .desktop-split {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 16px;
+    gap: 0;
+  }
+  .kpi-app .split-center { height: auto; gap: 16px; }
+  .kpi-app .nav-grid.dsk-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .kpi-app .nav-grid.dsk-nav .nav-btn {
+    min-height: 58px;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 11px;
+    white-space: normal;
+  }
+  .kpi-app .dsk-company { margin-top: 2px; }
+  .kpi-app .dsk-cty-top { grid-template-columns: minmax(240px, .9fr) minmax(0, 2.1fr); }
+  .kpi-app .split-center .afyp-chart-wrap { flex: none; min-height: 350px; }
+  .kpi-app .region-divider.is-collapse-btn {
+    display: flex !important;
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    margin: 24px 0 12px !important;
+  }
+  .kpi-app .khuvuc-region {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    height: auto;
+  }
+  .kpi-app .khuvuc-region:not(.collapsed) { margin-top: 4px !important; }
+  .kpi-app .split-right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    gap: 16px;
+    height: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .kpi-app .dept-section { height: 360px; min-height: 360px; }
+  .kpi-app .dept-section > .rg-card,
+  .kpi-app .dept-section > .banca-separator + .rg-card { height: 100%; }
+  .kpi-app .rg-card { border-radius: 14px; }
+  .kpi-app .rg-head { padding: 10px 14px; }
+  .kpi-app .rg-head-name { font-size: 12px; }
+  .kpi-app .rg-head-pct { font-size: 17px; }
+  .kpi-app .rg-afyp-row { padding: 8px 14px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-sum-cell { padding: 7px 4px; min-height: 38px; }
+  .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-sum-val { font-size: 13px; }
+  .kpi-app .rg-ad-wrap { padding: 6px 0 8px; }
+  .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; font-size: 10px; }
+  .kpi-app .rg-ad-table thead th,
+  .kpi-app .rg-ad-table tbody td { padding: 5px 4px; font-size: 10px; }
+}
+@media (min-width: 1400px) {
+  .kpi-app .nav-grid.dsk-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .kpi-app .desktop-split { margin-top: 18px; }
+  .kpi-app .split-right { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-app .dept-section { height: 380px; min-height: 380px; }
+}
+
+/* ============= VINH DANH LƯỚI ĐỀU — BẠCH KIM 1 HÀNG, VÀNG 3 HÀNG ============= */
+.kpi-app .banca-imgs-wall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+  width: min(100% - 32px, 440px);
+  min-height: auto !important;
+  margin: 8px auto 0;
+  padding: 8px 0 18px;
+}
+.kpi-app .honour-tier { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.kpi-app .honour-tier-title {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 28px; padding: 0 14px; border-radius: 999px;
+  font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase;
+}
+.kpi-app .honour-tier.platinum .honour-tier-title {
+  color: #eaf8ff; border: 1px solid rgba(213,239,255,.78);
+  background: linear-gradient(135deg, rgba(225,245,255,.22), rgba(130,190,225,.12));
+  box-shadow: 0 0 18px rgba(177,224,255,.24);
+}
+.kpi-app .honour-tier.gold .honour-tier-title {
+  color: #ffd76b; border: 1px solid rgba(255,215,107,.68);
+  background: linear-gradient(135deg, rgba(255,215,107,.18), rgba(184,152,56,.10));
+  box-shadow: 0 0 18px rgba(255,215,107,.18);
+}
+.kpi-app .honour-image-grid {
+  width: 100%; display: flex; flex-wrap: wrap; justify-content: center;
+  align-items: center; gap: 14px;
+}
+.kpi-app .banca-imgs-wall .banca-img-cell {
+  position: relative !important; left: auto !important; top: auto !important;
+  width: 78px !important; height: 78px !important; transform: none !important;
+  flex: 0 0 78px; border-width: 3px; cursor: default;
+}
+.kpi-app .banca-imgs-wall .banca-img-cell:hover { transform: translateY(-3px) !important; }
+.kpi-app .honour-tier.platinum .banca-img-cell {
+  border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%);
+  box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20);
+}
+.kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-wall { width: min(100% - 20px, 360px); gap: 18px; }
+  .kpi-app .honour-image-grid { gap: 10px; }
+  .kpi-app .banca-imgs-wall .banca-img-cell { width: 62px !important; height: 62px !important; flex-basis: 62px; }
+  .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
+}
+
+/* ============= VINH DANH RỖNG — THU GỌN, KHÔNG CHỒNG NHÃN ============= */
+.kpi-app .banca-imgs-wall::before,
+.kpi-app .banca-imgs-wall::after { content: none !important; display: none !important; }
+.kpi-app .banca-imgs-section.is-empty {
+  min-height: 0 !important;
+  padding-bottom: 14px;
+}
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-wall,
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-bottom-empty { display: none; }
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-header { padding: 18px 20px 4px; }
+
+/* ============= DESKTOP VINH DANH — KHỐI TRUNG TÂM ============= */
+@media (min-width: 900px) {
+  .kpi-app .desktop-honour-layout {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: block !important;
+    margin: 34px 0 12px;
+  }
+  .kpi-app .desktop-honour-layout > div:first-child {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+    gap: 20px !important;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-section {
+    min-height: 590px;
+    border: 1px solid rgba(255, 215, 107, .35);
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(213,239,255,.12), transparent 36%),
+      radial-gradient(ellipse at 20% 85%, rgba(255,215,107,.08), transparent 34%),
+      linear-gradient(160deg, #10182b 0%, #070c16 68%, #03060c 100%);
+    box-shadow: 0 24px 64px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.11);
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-header {
+    justify-content: center;
+    padding: 24px 24px 10px;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-title {
+    font-size: 16px;
+    letter-spacing: .22em;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-wall {
+    min-height: 400px;
+    flex-basis: 68%;
+    width: min(100% - 48px, 860px);
+    margin: 0 auto;
+  }
+  .kpi-app .desktop-honour-layout .banca-imgs-bottom-empty {
+    flex-basis: 32%;
+  }
+  .kpi-app .desktop-honour-layout .target-reg-section {
+    width: min(100%, 520px);
+    align-self: center;
+    margin: 0 auto 8px;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .kpi-app .desktop-honour-layout .target-reg-btn {
+    min-height: 54px;
+    border: 1px solid rgba(255,215,107,.55);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0c75e 0%, #bd8520 48%, #85530f 100%);
+    box-shadow: 0 12px 28px rgba(184,132,32,.30), inset 0 1px 0 rgba(255,255,255,.38);
+  }
+  .kpi-app .desktop-honour-layout .target-reg-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(184,132,32,.42), inset 0 1px 0 rgba(255,255,255,.42);
+  }
+}
+
+/* ============= VINH DANH GỌN THEO NỘI DUNG ============= */
+/* Không giữ khoảng trống cố định: viền dưới tự lên theo số ảnh đang có. */
+.kpi-app .banca-imgs-section,
+.kpi-app .desktop-honour-layout .banca-imgs-section {
+  min-height: 0 !important;
+  height: auto !important;
+}
+.kpi-app .banca-imgs-bottom-empty { display: none !important; }
+.kpi-app .banca-imgs-wall,
+.kpi-app .desktop-honour-layout .banca-imgs-wall {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  padding: 4px 0 22px;
+}
+.kpi-app .honour-tier { gap: 8px; }
+.kpi-app .honour-tier-title {
+  width: min(100%, 520px);
+  min-height: 18px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: grid;
+  grid-template-columns: minmax(18px, 1fr) auto minmax(18px, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .12em;
+}
+.kpi-app .honour-tier-title::before,
+.kpi-app .honour-tier-title::after {
+  content: '';
+  display: block;
+  height: 1px;
+}
+.kpi-app .honour-tier.platinum .honour-tier-title::before {
+  background: linear-gradient(90deg, transparent, rgba(218,242,255,.46));
+}
+.kpi-app .honour-tier.platinum .honour-tier-title::after {
+  background: linear-gradient(90deg, rgba(218,242,255,.46), transparent);
+}
+.kpi-app .honour-tier.gold .honour-tier-title::before {
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.46));
+}
+.kpi-app .honour-tier.gold .honour-tier-title::after {
+  background: linear-gradient(90deg, rgba(255,215,107,.46), transparent);
+}
+@media (max-width: 640px) {
+  .kpi-app .honour-tier-title { width: min(100%, 300px); font-size: 7.5px; gap: 8px; }
+  .kpi-app .banca-imgs-wall { padding-bottom: 16px; }
+}
+
+/* ============= VINH DANH — PHÂN CÁCH + HỒ SƠ NGÔI SAO ============= */
+.kpi-app .honour-divider {
+  width: min(calc(100% - 44px), 760px);
+  height: 1px;
+  margin: 2px auto 18px;
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.45), transparent);
+  box-shadow: 0 1px 10px rgba(255,215,107,.12);
+}
+.kpi-app .honour-profile-modal {
+  position: fixed; inset: 0; z-index: 320;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(3,8,16,.76); backdrop-filter: blur(5px);
+}
+.kpi-app .honour-profile-card {
+  position: relative; display: grid; grid-template-columns: 144px minmax(0, 1fr); align-items: center; gap: 20px;
+  width: min(100%, 540px); min-height: 178px; padding: 18px 44px 18px 18px;
+  border: 1px solid rgba(255,215,107,.34); border-radius: 16px;
+  background: linear-gradient(135deg, #1b2a43 0%, #10192b 52%, #080e1a 100%);
+  box-shadow: 0 24px 70px rgba(0,0,0,.56), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.kpi-app .honour-profile-card::before {
+  /* Vạch ngăn rõ ràng giữa ảnh bên trái và thông tin bên phải. */
+  content: ''; position: absolute; left: 172px; top: 22px; bottom: 22px; width: 1px;
+  background: linear-gradient(transparent, rgba(255,215,107,.62), transparent);
+}
+.kpi-app .honour-profile-card > img {
+  width: 144px; height: 144px; object-fit: cover; border-radius: 50%;
+  border: 3px solid #ffd76b; box-shadow: 0 0 0 3px rgba(255,215,107,.15), 0 10px 26px rgba(0,0,0,.34);
+}
+.kpi-app .honour-profile-close {
+  position: absolute; top: 8px; right: 10px; width: 28px; height: 28px;
+  color: #dce8f4; font-size: 20px; line-height: 1; border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+.kpi-app .honour-profile-info { align-self: center; min-width: 0; }
+.kpi-app .honour-profile-kicker { color: #ffd76b; font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.kpi-app .honour-profile-info h3 { margin: 5px 0 4px; color: #fff; font-size: 20px; line-height: 1.18; }
+.kpi-app .honour-profile-title { margin: 0; color: #a9d9ff; font-weight: 700; font-size: 13px; }
+.kpi-app .honour-profile-note { margin: 9px 0 0; color: #b9c7d8; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+.kpi-app .banca-profile-editor {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,215,107,.20);
+}
+.kpi-app .banca-profile-editor-head { display: flex; align-items: center; justify-content: space-between; color: #ffd76b; font-size: 12px; font-weight: 800; }
+.kpi-app .banca-profile-editor-head button { font-size: 20px; color: #dce8f4; }
+.kpi-app .banca-profile-editor-grid { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 14px; margin-top: 12px; }
+.kpi-app .banca-profile-preview { width: 96px; height: 96px; border: 2px solid rgba(255,215,107,.5); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #8ab8e0; font-size: 10px; text-align: center; }
+.kpi-app .banca-profile-preview img { width: 100%; height: 100%; object-fit: cover; }
+.kpi-app .banca-profile-fields { display: flex; flex-direction: column; gap: 7px; }
+.kpi-app .banca-profile-fields input, .kpi-app .banca-profile-fields textarea { width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: rgba(255,255,255,.06); color: #fff; padding: 8px 9px; font: inherit; font-size: 12px; resize: vertical; }
+.kpi-app .banca-profile-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.kpi-app .banca-profile-action { min-height: 30px; padding: 0 9px; border-radius: 7px; background: rgba(255,255,255,.10); color: #e5eef8; font-size: 10px; font-weight: 800; }
+.kpi-app .banca-profile-action.save { background: #5cae7e; color: #062a14; }
+.kpi-app .banca-profile-action.danger { background: rgba(239,68,68,.17); color: #ff9f9f; }
+@media (max-width: 560px) {
+  /* Giữ dạng danh thiếp ngang cả trên điện thoại: ảnh trái, thông tin phải. */
+  .kpi-app .honour-profile-card { grid-template-columns: 96px minmax(0,1fr); gap: 14px; min-height: 132px; padding: 16px 36px 16px 16px; text-align: left; }
+  .kpi-app .honour-profile-card::before { left: 124px; top: 16px; bottom: 16px; }
+  .kpi-app .honour-profile-card > img { margin: 0; width: 96px; height: 96px; }
+  .kpi-app .honour-profile-kicker { font-size: 8px; letter-spacing: .10em; }
+  .kpi-app .honour-profile-info h3 { margin-top: 4px; font-size: 16px; }
+  .kpi-app .honour-profile-title { font-size: 11px; }
+  .kpi-app .honour-profile-note { margin-top: 6px; font-size: 10px; line-height: 1.45; }
+  .kpi-app .banca-profile-editor-grid { grid-template-columns: 72px minmax(0,1fr); }
+  .kpi-app .banca-profile-preview { width: 72px; height: 72px; }
+}
+
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
 /* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
@@ -2551,21 +2922,10 @@ function AnimPct({ value, dec = 0, className }: { value: number; dec?: number; c
 // Mỗi entry: { left%, top%, size px, zIndex }
 // Bố trí so le, to nhỏ ngẫu hứng, không trùng lặp quá nhiều.
 const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: number }> = [
-  { left: 5,  top: 8,  size: 70, z: 3 },
-  { left: 22, top: 18, size: 55, z: 2 },
-  { left: 38, top: 6,  size: 80, z: 4 },
-  { left: 56, top: 22, size: 60, z: 3 },
-  { left: 72, top: 10, size: 50, z: 2 },
-  { left: 86, top: 28, size: 65, z: 3 },
-  { left: 12, top: 50, size: 60, z: 3 },
-  { left: 30, top: 60, size: 75, z: 4 },
-  { left: 48, top: 48, size: 50, z: 2 },
-  { left: 64, top: 58, size: 70, z: 3 },
-  { left: 80, top: 50, size: 55, z: 2 },
-  { left: 3,  top: 70, size: 50, z: 2 },
-  { left: 18, top: 80, size: 60, z: 3 },
-  { left: 42, top: 78, size: 55, z: 2 },
-  { left: 60, top: 82, size: 70, z: 4 },
+  // Ngôi sao Bạch Kim — hạng cao nhất
+  { left: 7, top: 20, size: 66, z: 3 }, { left: 22, top: 31, size: 54, z: 2 }, { left: 38, top: 18, size: 74, z: 4 }, { left: 55, top: 32, size: 58, z: 3 }, { left: 72, top: 19, size: 50, z: 2 }, { left: 88, top: 31, size: 62, z: 3 }, { left: 14, top: 45, size: 56, z: 3 }, { left: 46, top: 46, size: 66, z: 4 },
+  // Ngôi sao Vàng — hạng kế tiếp
+  { left: 67, top: 66, size: 52, z: 2 }, { left: 84, top: 74, size: 64, z: 3 }, { left: 7, top: 72, size: 54, z: 2 }, { left: 24, top: 84, size: 60, z: 3 }, { left: 43, top: 70, size: 54, z: 2 }, { left: 58, top: 84, size: 64, z: 4 }, { left: 88, top: 88, size: 54, z: 3 },
 ];
 
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
@@ -2663,37 +3023,37 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // (gold border) bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì (không hiển thị khung trống).
   // 15 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-15`.
   const BANCA_IMG_COUNT = 15;
-  const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> url
-  const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null); // key being uploaded
-  const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false); // admin modal để upload tất cả 15 ảnh
+  const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> cacheable image URL
+  const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null);
+  const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false);
+  const [bancaAdminSelectedKey, setBancaAdminSelectedKey] = useState<string | null>(null);
+  const [bancaProfileOpenKey, setBancaProfileOpenKey] = useState<string | null>(null);
+  const [bancaProfileSaving, setBancaProfileSaving] = useState(false);
+  const [bancaProfiles, setBancaProfiles] = useState<Record<string, { name: string; title: string; note: string }>>({});
+  const [honourLoading, setHonourLoading] = useState(true);
 
-  // Load banca images on mount + when adminAuthed changes (chỉ load khi admin)
+  // A single lightweight manifest guarantees that viewers receive every honour image
+  // without downloading each binary once for checking and once again for display.
   useEffect(() => {
-    if (!adminAuthed) {
-      setBancaImages({});
-      return;
-    }
     let cancelled = false;
     const loadBancaImages = async () => {
-      const imgs: Record<string, string> = {};
-      // Fetch all 15 in parallel — most will 404 (chưa upload) → skip
-      await Promise.all(
-        Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-          const idx = String(i + 1).padStart(2, '0');
-          const key = `kpi-banca-img-${idx}`;
-          return fetch(`/api/poster-image/${encodeURIComponent(key)}`, { cache: 'no-store' })
-            .then((r) => (r.ok ? r.text() : null))
-            .then((url) => {
-              if (url && !cancelled) imgs[key] = `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}`;
-            })
-            .catch(() => {});
-        })
-      );
-      if (!cancelled) setBancaImages(imgs);
+      try {
+        const res = await fetch('/api/poster-image?prefix=kpi-banca-img-', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : { items: [] };
+        const imgs: Record<string, string> = {};
+        for (const item of data.items || []) {
+          if (item?.key) imgs[item.key] = `/api/poster-image/${encodeURIComponent(item.key)}?v=${item.updatedAt || 0}`;
+        }
+        if (!cancelled) setBancaImages(imgs);
+      } catch {
+        if (!cancelled) setBancaImages({});
+      } finally {
+        if (!cancelled) setHonourLoading(false);
+      }
     };
     loadBancaImages();
     return () => { cancelled = true; };
-  }, [adminAuthed]);
+  }, []);
 
   const uploadBancaImage = async (key: string, file: File) => {
     setBancaImgUploading(key);
@@ -3055,7 +3415,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       });
       setError(false);
     }
-    setLoading(false);
+    // Giữ splash cho tới khi AppDataProvider hoàn tất toàn bộ lần preload đầu tiên.
+    if (!appDataLoading) setLoading(false);
     setSyncing(appDataReloading);
   }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataReloading, dataVersion]);
 
@@ -3077,6 +3438,54 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   useEffect(() => {
     if (appData.settings) setOnlineSettings(appData.settings);
   }, [appData.settings, dataVersion]);
+
+  // Metadata is stored as compact Settings values: the image binary stays out of Settings.
+  useEffect(() => {
+    const profiles: Record<string, { name: string; title: string; note: string }> = {};
+    for (let i = 1; i <= BANCA_IMG_COUNT; i++) {
+      const key = `kpi-banca-img-${String(i).padStart(2, '0')}`;
+      try {
+        const saved = onlineSettings[`kpi-banca-profile-${String(i).padStart(2, '0')}`];
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          profiles[key] = {
+            name: String(parsed?.name || ''),
+            title: String(parsed?.title || ''),
+            note: String(parsed?.note || ''),
+          };
+        }
+      } catch {
+        // Ignore one malformed legacy profile instead of blocking the honour board.
+      }
+    }
+    setBancaProfiles(profiles);
+  }, [onlineSettings]);
+
+  const updateBancaProfile = (key: string, patch: Partial<{ name: string; title: string; note: string }>) => {
+    setBancaProfiles(prev => ({
+      ...prev,
+      [key]: { name: prev[key]?.name || '', title: prev[key]?.title || '', note: prev[key]?.note || '', ...patch },
+    }));
+  };
+
+  const saveBancaProfile = async (key: string) => {
+    const idx = key.replace('kpi-banca-img-', '');
+    const profile = bancaProfiles[key] || { name: '', title: '', note: '' };
+    setBancaProfileSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }),
+      });
+      if (!res.ok) throw new Error('save failed');
+      setOnlineSettings(prev => ({ ...prev, [`kpi-banca-profile-${idx}`]: JSON.stringify(profile) }));
+    } catch {
+      alert('Không thể lưu thông tin ảnh. Vui lòng thử lại.');
+    } finally {
+      setBancaProfileSaving(false);
+    }
+  };
 
   /* Structure AD/Phong/BanNhom/TVV — đọc từ context */
   useEffect(() => {
@@ -3428,6 +3837,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         // Find contracts for this AD — match by normalized name (both adKey and resolved full name)
         // Contracts' ad field stores FULL name (e.g. "Trương Quốc Uy"), adKey may be short ("AD Uy")
         const adContracts = periodContracts.filter(c => {
+          // Nguồn chuẩn là Mã Ban/Nhóm → AD. Dữ liệu import có thể có AD = '#N/A',
+          // nhưng maNhom vẫn hợp lệ; nếu chỉ so tên AD, các hợp đồng này bị rơi khỏi KPI.
+          const groupCode = String(c.maBanNhom || c.maNhom || '').trim();
+          if (groupCode && bnToAdMap.get(groupCode)?.maAD === adStruct.maAD) return true;
+
+          // Fallback cho dữ liệu cũ không có mã nhóm.
           const cAdNorm = normKey(c.ad || '');
           if (!cAdNorm) return false;
           return cAdNorm === adNormKey || cAdNorm.includes(adNormKey) || adNormKey.includes(cAdNorm)
@@ -3490,7 +3905,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
      đợi 1 nhịp rồi fade-out splash (~550ms) rồi unmount. */
   useEffect(() => {
     if (!splashVisible) return;
-    if (loading || !dashboard) return;
+    if (loading || honourLoading || !dashboard) return;
     const t1 = setTimeout(() => setSplashExiting(true), 250);
     const t2 = setTimeout(() => {
       setSplashVisible(false);
@@ -4386,14 +4801,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   Non-admin không thấy gì (không hiển thị khung trống).
                   User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
                   50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
-              {adminAuthed && (
-                <div className="banca-imgs-section mobile-only">
+              {(
+                <div className={`banca-imgs-section mobile-only${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
                   <div className="banca-imgs-header">
-                    <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                    <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                     <button
                       onClick={() => setBancaImgAdminOpen(true)}
                       style={{
-                        padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                        display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
                         background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
                         cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
                       }}
@@ -4403,61 +4818,49 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   </div>
                   {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
                   <div className="banca-imgs-wall">
-                    {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                      const idx = String(i + 1).padStart(2, '0');
-                      const key = `kpi-banca-img-${idx}`;
-                      const url = bancaImages[key];
-                      const isUploading = bancaImgUploading === key;
-                      const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
-                      // Chỉ render cell nếu có ảnh HOẶC admin (để placeholder +N)
-                      // Theo yêu cầu user: nếu chưa add hình thì không hiển thị hình trống ra (chỉ admin thấy)
-                      // → admin luôn thấy placeholder; non-admin không thấy section này (đã check adminAuthed ở ngoài)
-                      return (
-                        <div
-                          key={key}
-                          className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                          style={{
-                            left: `${pos.left}%`,
-                            top: `${pos.top}%`,
-                            width: `${pos.size}px`,
-                            height: `${pos.size}px`,
-                            zIndex: pos.z,
-                            transform: 'translate(-50%, -50%)',
-                          }}
-                          onClick={() => {
-                            if (isUploading) return;
-                            if (url) {
-                              if (!confirm('Thay ảnh này?')) return;
-                            }
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'image/*';
-                            input.onchange = (e: any) => {
-                              const file = e.target.files?.[0];
-                              if (file) uploadBancaImage(key, file);
-                            };
-                            input.click();
-                          }}
-                          title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
-                        >
-                          {url ? (
-                            <>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={url} alt={`Banca ${idx}`} />
-                              <button
-                                className="banca-img-del"
-                                onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
-                                title="Xóa ảnh"
-                              >×</button>
-                            </>
-                          ) : (
-                            <span className="banca-img-placeholder">+{idx}</span>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {[
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+].map(({ id, label, start, count }) => {
+  const indices = Array.from({ length: count }, (_, offset) => start + offset)
+    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
+  if (indices.length === 0) return null;
+  return (
+    <section className={`honour-tier ${id}`} key={id}>
+      <div className="honour-tier-title">{label}</div>
+      <div className="honour-image-grid">
+        {indices.map((i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          const url = bancaImages[key];
+          const isUploading = bancaImgUploading === key;
+          return (
+            <div
+              key={key}
+              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+              onClick={() => {
+                if (url && !isUploading) setBancaProfileOpenKey(key);
+              }}
+              title={url ? 'Xem thông tin vinh danh' : undefined}
+            >
+              {url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
+                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
+                </>
+              ) : (
+                <span className="banca-img-placeholder">+{idx}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+})}
                   </div>
-                  {Object.keys(bancaImages).length === 0 && (
+                  {adminAuthed && Object.keys(bancaImages).length === 0 && (
                     <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                   )}
                   {/* 50% bottom — empty space theo yêu cầu user */}
@@ -4804,17 +5207,17 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </div>{/* end khuvuc-region desktop — only split-right cards */}
 
                 {/* Desktop: banca images (admin) + target reg button stay visible below collapsed region */}
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16, marginTop: 16 }}>
+                <div className="desktop-honour-layout">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Banca images section (admin only) — desktop */}
-                    {adminAuthed && (
-                      <div className="banca-imgs-section">
+                    {(
+                      <div className={`banca-imgs-section${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
                         <div className="banca-imgs-header">
-                          <div className="banca-imgs-title">★ 15 Ảnh Đặc Biệt</div>
+                          <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                           <button
                             onClick={() => setBancaImgAdminOpen(true)}
                             style={{
-                              padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                              display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
                               background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
                               cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
                             }}
@@ -4823,62 +5226,61 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           </button>
                         </div>
                         <div className="banca-imgs-wall">
-                          {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                            const idx = String(i + 1).padStart(2, '0');
-                            const key = `kpi-banca-img-${idx}`;
-                            const url = bancaImages[key];
-                            const isUploading = bancaImgUploading === key;
-                            const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
-                            return (
-                              <div
-                                key={key}
-                                className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                                style={{
-                                  left: `${pos.left}%`,
-                                  top: `${pos.top}%`,
-                                  width: `${pos.size}px`,
-                                  height: `${pos.size}px`,
-                                  zIndex: pos.z,
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                                onClick={() => {
-                                  if (isUploading) return;
-                                  if (url) {
-                                    if (!confirm('Thay ảnh này?')) return;
-                                  }
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = 'image/*';
-                                  input.onchange = (e: any) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) uploadBancaImage(key, file);
-                                  };
-                                  input.click();
-                                }}
-                                title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
-                              >
-                                {url ? (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt={`Banca ${idx}`} />
-                                    <button
-                                      className="banca-img-del"
-                                      onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
-                                      title="Xóa ảnh"
-                                    >×</button>
-                                  </>
-                                ) : (
-                                  <span className="banca-img-placeholder">+{idx}</span>
-                                )}
-                              </div>
-                            );
-                          })}
+                          {[
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+].map(({ id, label, start, count }) => {
+  const indices = Array.from({ length: count }, (_, offset) => start + offset)
+    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
+  if (indices.length === 0) return null;
+  return (
+    <section className={`honour-tier ${id}`} key={id}>
+      <div className="honour-tier-title">{label}</div>
+      <div className="honour-image-grid">
+        {indices.map((i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          const url = bancaImages[key];
+          const isUploading = bancaImgUploading === key;
+          return (
+            <div
+              key={key}
+              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+              onClick={() => {
+                if (!adminAuthed || isUploading) return;
+                if (url && !confirm('Thay ảnh này?')) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(key, file);
+                };
+                input.click();
+              }}
+              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
+            >
+              {url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
+                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
+                </>
+              ) : (
+                <span className="banca-img-placeholder">+{idx}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+})}
                         </div>
-                        {Object.keys(bancaImages).length === 0 && (
+                        {adminAuthed && Object.keys(bancaImages).length === 0 && (
                           <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                         )}
-                        {/* 50% bottom — empty space theo yêu cầu user */}
-                        <div className="banca-imgs-bottom-empty" />
+                        <div className="honour-divider" aria-hidden="true" />
                       </div>
                     )}
                     {/* Target registration button */}
@@ -5733,20 +6135,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
                     style={{ maxWidth: 90 }}
                     onClick={() => {
-                      if (isUploading) return;
-                      if (url) {
-                        if (!confirm('Thay ảnh này?')) return;
-                      }
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e: any) => {
-                        const file = e.target.files?.[0];
-                        if (file) uploadBancaImage(key, file);
-                      };
-                      input.click();
+                      if (!isUploading) setBancaAdminSelectedKey(key);
                     }}
-                    title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                    title={url ? 'Chọn để chỉnh thông tin / thay ảnh' : 'Chọn để upload ảnh'}
                   >
                     {url ? (
                       <>
@@ -5754,7 +6145,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <img src={url} alt={`Banca ${idx}`} />
                         <button
                           className="banca-img-del"
-                          onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                          onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
                           title="Xóa ảnh"
                         >×</button>
                       </>
@@ -5765,9 +6156,65 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 );
               })}
             </div>
+            {bancaAdminSelectedKey && (() => {
+              const selectedUrl = bancaImages[bancaAdminSelectedKey];
+              const selectedIdx = bancaAdminSelectedKey.replace('kpi-banca-img-', '');
+              const profile = bancaProfiles[bancaAdminSelectedKey] || { name: '', title: '', note: '' };
+              const chooseImage = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(bancaAdminSelectedKey, file);
+                };
+                input.click();
+              };
+              return (
+                <div className="banca-profile-editor">
+                  <div className="banca-profile-editor-head">
+                    <span>Ảnh #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
+                  </div>
+                  <div className="banca-profile-editor-grid">
+                    <div className="banca-profile-preview">
+                      {selectedUrl ? <img src={selectedUrl} alt={profile.name || `Vinh danh ${selectedIdx}`} /> : <span>Chưa có ảnh</span>}
+                    </div>
+                    <div className="banca-profile-fields">
+                      <input value={profile.name} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { name: e.target.value })} placeholder="Họ và tên" />
+                      <input value={profile.title} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { title: e.target.value })} placeholder="Danh hiệu / chức danh" />
+                      <textarea value={profile.note} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { note: e.target.value })} placeholder="Thông tin thêm (tùy chọn)" rows={3} />
+                      <div className="banca-profile-actions">
+                        <button className="banca-profile-action save" onClick={() => saveBancaProfile(bancaAdminSelectedKey)} disabled={bancaProfileSaving}>{bancaProfileSaving ? 'Đang lưu...' : 'Lưu thông tin'}</button>
+                        <button className="banca-profile-action" onClick={chooseImage}>{selectedUrl ? 'Thay ảnh' : 'Tải ảnh lên'}</button>
+                        {selectedUrl && <button className="banca-profile-action danger" onClick={() => deleteBancaImage(bancaAdminSelectedKey)}>Xóa ảnh</button>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
+
+      {bancaProfileOpenKey && bancaImages[bancaProfileOpenKey] && (() => {
+        const profile = bancaProfiles[bancaProfileOpenKey] || { name: '', title: '', note: '' };
+        return (
+          <div className="honour-profile-modal" onClick={() => setBancaProfileOpenKey(null)}>
+            <div className="honour-profile-card" onClick={(e) => e.stopPropagation()}>
+              <button className="honour-profile-close" onClick={() => setBancaProfileOpenKey(null)} aria-label="Đóng">×</button>
+              <img src={bancaImages[bancaProfileOpenKey]} alt={profile.name || 'Ngôi sao vinh danh'} />
+              <div className="honour-profile-info">
+                <div className="honour-profile-kicker">VINH DANH NGÔI SAO</div>
+                <h3>{profile.name || 'Ngôi sao vinh danh'}</h3>
+                {profile.title && <p className="honour-profile-title">{profile.title}</p>}
+                {profile.note && <p className="honour-profile-note">{profile.note}</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== BANCA-PA DETAIL POPUP (no summary, only detail table) ===== */}
       {bancaPopupOpen && bancaPopupData && (

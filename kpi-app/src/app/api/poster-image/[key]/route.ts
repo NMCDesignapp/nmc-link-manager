@@ -37,6 +37,11 @@ export async function GET(
     }
 
     const row = rows[0]
+    // A legacy/corrupt row can exist without binary data. Return 404 instead of
+    // throwing in Buffer.from(null), which previously produced a noisy 500.
+    if (row.data == null) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
     const data: Buffer = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data)
     const contentType: string = row.contentType || 'image/jpeg'
 
