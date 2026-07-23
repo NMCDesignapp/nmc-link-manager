@@ -2140,6 +2140,61 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-imgs-wall { padding-bottom: 16px; }
 }
 
+/* ============= VINH DANH — PHÂN CÁCH + HỒ SƠ NGÔI SAO ============= */
+.kpi-app .honour-divider {
+  width: min(calc(100% - 44px), 760px);
+  height: 1px;
+  margin: 2px auto 18px;
+  background: linear-gradient(90deg, transparent, rgba(255,215,107,.45), transparent);
+  box-shadow: 0 1px 10px rgba(255,215,107,.12);
+}
+.kpi-app .honour-profile-modal {
+  position: fixed; inset: 0; z-index: 320;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(3,8,16,.76); backdrop-filter: blur(5px);
+}
+.kpi-app .honour-profile-card {
+  position: relative; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 18px;
+  width: min(100%, 520px); padding: 18px;
+  border: 1px solid rgba(255,215,107,.30); border-radius: 16px;
+  background: linear-gradient(145deg, #17233a, #090f1d);
+  box-shadow: 0 24px 70px rgba(0,0,0,.56);
+}
+.kpi-app .honour-profile-card > img {
+  width: 160px; height: 160px; object-fit: cover; border-radius: 50%;
+  border: 3px solid #ffd76b; box-shadow: 0 0 0 3px rgba(255,215,107,.15), 0 10px 26px rgba(0,0,0,.34);
+}
+.kpi-app .honour-profile-close {
+  position: absolute; top: 8px; right: 10px; width: 28px; height: 28px;
+  color: #dce8f4; font-size: 20px; line-height: 1; border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+.kpi-app .honour-profile-info { align-self: center; min-width: 0; }
+.kpi-app .honour-profile-kicker { color: #ffd76b; font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.kpi-app .honour-profile-info h3 { margin: 5px 0 4px; color: #fff; font-size: 20px; line-height: 1.18; }
+.kpi-app .honour-profile-title { margin: 0; color: #a9d9ff; font-weight: 700; font-size: 13px; }
+.kpi-app .honour-profile-note { margin: 9px 0 0; color: #b9c7d8; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+.kpi-app .banca-profile-editor {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,215,107,.20);
+}
+.kpi-app .banca-profile-editor-head { display: flex; align-items: center; justify-content: space-between; color: #ffd76b; font-size: 12px; font-weight: 800; }
+.kpi-app .banca-profile-editor-head button { font-size: 20px; color: #dce8f4; }
+.kpi-app .banca-profile-editor-grid { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 14px; margin-top: 12px; }
+.kpi-app .banca-profile-preview { width: 96px; height: 96px; border: 2px solid rgba(255,215,107,.5); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #8ab8e0; font-size: 10px; text-align: center; }
+.kpi-app .banca-profile-preview img { width: 100%; height: 100%; object-fit: cover; }
+.kpi-app .banca-profile-fields { display: flex; flex-direction: column; gap: 7px; }
+.kpi-app .banca-profile-fields input, .kpi-app .banca-profile-fields textarea { width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: rgba(255,255,255,.06); color: #fff; padding: 8px 9px; font: inherit; font-size: 12px; resize: vertical; }
+.kpi-app .banca-profile-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.kpi-app .banca-profile-action { min-height: 30px; padding: 0 9px; border-radius: 7px; background: rgba(255,255,255,.10); color: #e5eef8; font-size: 10px; font-weight: 800; }
+.kpi-app .banca-profile-action.save { background: #5cae7e; color: #062a14; }
+.kpi-app .banca-profile-action.danger { background: rgba(239,68,68,.17); color: #ff9f9f; }
+@media (max-width: 560px) {
+  .kpi-app .honour-profile-card { grid-template-columns: 1fr; text-align: center; padding: 22px 18px 18px; }
+  .kpi-app .honour-profile-card > img { margin: 0 auto; width: 132px; height: 132px; }
+  .kpi-app .banca-profile-editor-grid { grid-template-columns: 72px minmax(0,1fr); }
+  .kpi-app .banca-profile-preview { width: 72px; height: 72px; }
+}
+
 /* ============= SCROLLING NOTIFICATION BANNER ============= */
 /* Banner full viewport width — vượt ra khỏi .app-wrap (max-width 860/1100px) */
 .kpi-app .kpi-notice-banner {
@@ -4773,18 +4828,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               key={key}
               className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
               onClick={() => {
-                if (!adminAuthed || isUploading) return;
-                if (url && !confirm('Thay ảnh này?')) return;
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = (e: any) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadBancaImage(key, file);
-                };
-                input.click();
+                if (url && !isUploading) setBancaProfileOpenKey(key);
               }}
-              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
+              title={url ? 'Xem thông tin vinh danh' : undefined}
             >
               {url ? (
                 <>
@@ -5223,8 +5269,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         {adminAuthed && Object.keys(bancaImages).length === 0 && (
                           <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                         )}
-                        {/* 50% bottom — empty space theo yêu cầu user */}
-                        <div className="banca-imgs-bottom-empty" />
+                        <div className="honour-divider" aria-hidden="true" />
                       </div>
                     )}
                     {/* Target registration button */}
@@ -6079,20 +6124,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
                     style={{ maxWidth: 90 }}
                     onClick={() => {
-                      if (!adminAuthed || isUploading) return;
-                      if (url) {
-                        if (!confirm('Thay ảnh này?')) return;
-                      }
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = (e: any) => {
-                        const file = e.target.files?.[0];
-                        if (file) uploadBancaImage(key, file);
-                      };
-                      input.click();
+                      if (!isUploading) setBancaAdminSelectedKey(key);
                     }}
-                    title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
+                    title={url ? 'Chọn để chỉnh thông tin / thay ảnh' : 'Chọn để upload ảnh'}
                   >
                     {url ? (
                       <>
@@ -6111,9 +6145,65 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 );
               })}
             </div>
+            {bancaAdminSelectedKey && (() => {
+              const selectedUrl = bancaImages[bancaAdminSelectedKey];
+              const selectedIdx = bancaAdminSelectedKey.replace('kpi-banca-img-', '');
+              const profile = bancaProfiles[bancaAdminSelectedKey] || { name: '', title: '', note: '' };
+              const chooseImage = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(bancaAdminSelectedKey, file);
+                };
+                input.click();
+              };
+              return (
+                <div className="banca-profile-editor">
+                  <div className="banca-profile-editor-head">
+                    <span>Ảnh #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
+                  </div>
+                  <div className="banca-profile-editor-grid">
+                    <div className="banca-profile-preview">
+                      {selectedUrl ? <img src={selectedUrl} alt={profile.name || `Vinh danh ${selectedIdx}`} /> : <span>Chưa có ảnh</span>}
+                    </div>
+                    <div className="banca-profile-fields">
+                      <input value={profile.name} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { name: e.target.value })} placeholder="Họ và tên" />
+                      <input value={profile.title} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { title: e.target.value })} placeholder="Danh hiệu / chức danh" />
+                      <textarea value={profile.note} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { note: e.target.value })} placeholder="Thông tin thêm (tùy chọn)" rows={3} />
+                      <div className="banca-profile-actions">
+                        <button className="banca-profile-action save" onClick={() => saveBancaProfile(bancaAdminSelectedKey)} disabled={bancaProfileSaving}>{bancaProfileSaving ? 'Đang lưu...' : 'Lưu thông tin'}</button>
+                        <button className="banca-profile-action" onClick={chooseImage}>{selectedUrl ? 'Thay ảnh' : 'Tải ảnh lên'}</button>
+                        {selectedUrl && <button className="banca-profile-action danger" onClick={() => deleteBancaImage(bancaAdminSelectedKey)}>Xóa ảnh</button>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
+
+      {bancaProfileOpenKey && bancaImages[bancaProfileOpenKey] && (() => {
+        const profile = bancaProfiles[bancaProfileOpenKey] || { name: '', title: '', note: '' };
+        return (
+          <div className="honour-profile-modal" onClick={() => setBancaProfileOpenKey(null)}>
+            <div className="honour-profile-card" onClick={(e) => e.stopPropagation()}>
+              <button className="honour-profile-close" onClick={() => setBancaProfileOpenKey(null)} aria-label="Đóng">×</button>
+              <img src={bancaImages[bancaProfileOpenKey]} alt={profile.name || 'Ngôi sao vinh danh'} />
+              <div className="honour-profile-info">
+                <div className="honour-profile-kicker">VINH DANH NGÔI SAO</div>
+                <h3>{profile.name || 'Ngôi sao vinh danh'}</h3>
+                {profile.title && <p className="honour-profile-title">{profile.title}</p>}
+                {profile.note && <p className="honour-profile-note">{profile.note}</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== BANCA-PA DETAIL POPUP (no summary, only detail table) ===== */}
       {bancaPopupOpen && bancaPopupData && (
