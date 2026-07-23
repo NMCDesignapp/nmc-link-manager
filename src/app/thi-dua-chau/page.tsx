@@ -1059,11 +1059,7 @@ function ThiDuaPageInner() {
         if (isTVVmMode(conditionType)) {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              const staff = staffList.find(s => s.agentCode === agentCode);
-              if (staff?.startDate) return isTVVm(staff.startDate);
-              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
-              if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
-              return false;
+              return isTVVm(structureStartDateByCode.get(agentCode) || null);
             })
           );
         }
@@ -1071,8 +1067,7 @@ function ThiDuaPageInner() {
         if (conditionType === 'activity_round_tvv90') {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              const contract = recruitedContracts.find(c => c.agentCode === agentCode);
-              return contract ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP) : false;
+              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode));
             })
           );
         }
@@ -1519,8 +1514,8 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (!staff || !staff.startDate) return false; return isTVVm(staff.startDate); })); }
-          if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
@@ -1555,8 +1550,8 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => { const staff = staffList.find(s => s.agentCode === agentCode); if (!staff || !staff.startDate) return false; return isTVVm(staff.startDate); })); }
-          if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
