@@ -72,17 +72,36 @@ const AppDataContext = createContext<AppDataContextValue>({
   dataVersion: 0,
 })
 
+const APP_DATA_CACHE_KEY = 'nmc-app-data-v1'
+const APP_DATA_CACHE_TTL_MS = 60 * 1000
+
 const fetchJson = async (url: string): Promise<any> => {
   try {
-    // Cache-bust: thêm timestamp vào URL để tránh browser HTTP cache
-    // Đảm bảo luôn lấy data mới từ server
-    const sep = url.includes('?') ? '&' : '?'
-    const bustUrl = `${url}${sep}_t=${Date.now()}`
-    const r = await fetch(bustUrl, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } })
+    const r = await fetch(url, { cache: 'no-store' })
     if (!r.ok) return null
     return await r.json()
   } catch {
     return null
+  }
+}
+
+const readSessionCache = (): AppData | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || 'null')
+    if (!cached || Date.now() - cached.savedAt > APP_DATA_CACHE_TTL_MS) return null
+    return cached.data as AppData
+  } catch {
+    return null
+  }
+}
+
+const writeSessionCache = (data: AppData) => {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }))
+  } catch {
+    // Session storage is only a performance layer; continue normally if it is full.
   }
 }
 
@@ -96,8 +115,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false)
   const inflight = useRef<Promise<void> | null>(null)
 
-  const loadAll = useCallback(async (): Promise<void> => {
+  const loadAll = useCallback(async (force = false): Promise<void> => {
     if (inflight.current) return inflight.current
+    if (!force) {
+      const cached = readSessionCache()
+      if (cached) {
+        setData(cached)
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)
+        return
+      }
+    }
     setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
@@ -111,14 +140,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const [
-          leaders, revenue, contracts, staff, recruiters, tuyenNgang,
-          structurePhong, structureAd, structureBanNhom, structureTvv,
-          clbMembers, pendingMembers, quanLyAll, settings, contests,
+          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
+          structureTvv, clbMembers, pendingMembers, quanLyAll, settings, contests,
         ] = await Promise.all([
-          fetchJson('/api/leaders'),
-          fetchJson('/api/revenue'),
-          fetchJson('/api/contracts'),
-          fetchJson('/api/staff'),
           fetchJson('/api/recruiters'),
           fetchJson('/api/tuyen-ngang'),
           fetchJson('/api/structure/phong'),
@@ -132,11 +156,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/contests'),
         ])
 
-        setData({
-          leaders: leaders || [],
-          revenue: revenue || [],
-          contracts: contracts || [],
-          staff: staff || [],
+        // /api/quan-ly/all is the single source for the four largest tables.
+        // Avoid fetching the same contracts/revenue/staff/leaders a second time.
+        const nextData: AppData = {
+          leaders: quanLyAll?.leaders || [],
+          revenue: quanLyAll?.revenue || [],
+          contracts: quanLyAll?.contracts || [],
+          staff: quanLyAll?.staff || [],
           recruiters: recruiters || [],
           tuyenNgang: tuyenNgang || [],
           structurePhong: structurePhong || [],
@@ -148,7 +174,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           quanLyAll: quanLyAll || null,
           settings: settings || null,
           contests: contests || [],
-        })
+        }
+        setData(nextData)
+        writeSessionCache(nextData)
         setLastSync(new Date())
         setDataVersion(v => v + 1)
         setLoadError(null)
@@ -178,7 +206,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const reload = useCallback(async () => {
     setIsReloading(true)
     try {
-      await loadAll()
+      await loadAll(true)
     } finally {
       setIsReloading(false)
       setIsLoading(false) // ensure isLoading=false sau retry (dù thành/bại)
