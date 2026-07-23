@@ -73,7 +73,7 @@ const AppDataContext = createContext<AppDataContextValue>({
 })
 
 const APP_DATA_CACHE_KEY = 'nmc-app-data-v1'
-const APP_DATA_CACHE_TTL_MS = 5 * 60 * 1000
+const APP_DATA_CACHE_TTL_MS = 60 * 1000
 
 const fetchJson = async (url: string): Promise<any> => {
   try {
