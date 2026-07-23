@@ -2508,6 +2508,55 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-embed-title { font-size: 12px; gap: 4px; }
   .kpi-embed-open { width: 30px; height: 30px; }
 }
+
+
+/* ============= TIÊU ĐỀ VINH DANH TRÊN VIỀN KHUNG ============= */
+.kpi-app .banca-imgs-section,
+.kpi-app .desktop-honour-layout .banca-imgs-section {
+  position: relative;
+  overflow: visible !important;
+  margin-top: 34px;
+}
+.kpi-app .banca-imgs-header,
+.kpi-app .desktop-honour-layout .banca-imgs-header {
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  z-index: 8;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 0;
+  padding: 0 !important;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.kpi-app .banca-imgs-title {
+  display: inline-flex;
+  position: relative;
+  z-index: 1;
+  padding: 0 14px;
+  background: #090d17;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.kpi-app .banca-imgs-header > button {
+  position: absolute;
+  right: 14px;
+  pointer-events: auto;
+}
+.kpi-app .banca-imgs-wall,
+.kpi-app .desktop-honour-layout .banca-imgs-wall {
+  margin-top: 14px;
+}
+.kpi-app .banca-imgs-section.is-empty .banca-imgs-header {
+  padding: 0 !important;
+}
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-section,
+  .kpi-app .desktop-honour-layout .banca-imgs-section { margin-top: 28px; }
+  .kpi-app .banca-imgs-title { padding: 0 9px; font-size: 10px; letter-spacing: .11em; }
+  .kpi-app .banca-imgs-header > button { right: 8px; }
+}
 `;
 
 
@@ -4834,8 +4883,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
-  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -5242,8 +5291,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
-  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
