@@ -2557,6 +2557,88 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-imgs-title { padding: 0 9px; font-size: 10px; letter-spacing: .11em; }
   .kpi-app .banca-imgs-header > button { right: 8px; }
 }
+
+
+/* ============= KPI MOBILE + DESKTOP: VINH DANH VÀ BIỂU ĐỒ ============= */
+/* Mobile: năm ô luôn chiếm vừa bề ngang, ảnh co giãn cùng kích thước. */
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-wall {
+    width: calc(100% - 20px) !important;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .kpi-app .honour-image-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    max-width: none !important;
+    gap: clamp(5px, 2vw, 8px) !important;
+  }
+  .kpi-app .banca-imgs-wall .banca-img-cell {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    flex: 0 0 auto !important;
+  }
+}
+/* Desktop: biểu đồ và vinh danh là hai nửa cân bằng, cùng hàng. */
+@media (min-width: 900px) {
+  .kpi-app .split-center {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr);
+    align-items: start;
+    column-gap: 20px;
+    row-gap: 16px;
+  }
+  .kpi-app .split-center > .nav-grid,
+  .kpi-app .split-center > .dsk-company {
+    grid-column: 1 / -1;
+  }
+  .kpi-app .split-center > .afyp-chart-wrap {
+    grid-column: 1;
+    margin: 0 !important;
+    min-height: 100%;
+  }
+  .kpi-app .split-center > .desktop-honour-layout {
+    grid-column: 2;
+    width: 100% !important;
+    display: block !important;
+    margin: 0 !important;
+  }
+  .kpi-app .split-center > .desktop-honour-layout > div:first-child {
+    width: 100% !important;
+    margin: 0 !important;
+    gap: 12px !important;
+  }
+  .kpi-app .split-center .desktop-honour-layout .banca-imgs-section {
+    min-height: 0 !important;
+    border-radius: 18px;
+  }
+  .kpi-app .split-center .desktop-honour-layout .banca-imgs-wall {
+    width: min(100% - 26px, 390px);
+    min-height: 0 !important;
+    padding-bottom: 16px;
+  }
+  .kpi-app .split-center .desktop-honour-layout .honour-image-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+  .kpi-app .split-center .desktop-honour-layout .banca-img-cell {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    flex-basis: auto;
+  }
+  .kpi-app .split-center .desktop-honour-layout .target-reg-section {
+    width: 100%;
+    margin: 0;
+  }
+  .kpi-app .afyp-chart-wrap { border-radius: 18px; padding: 16px; }
+  .kpi-app .afyp-chart { height: 270px; }
+}
 `;
 
 
@@ -3719,7 +3801,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     if (!rawData) return null;
     const { contracts, staff, revenue } = rawData;
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = CUR_YEAR;
     // Filter contracts for current year using getDoanhSoMonth (same as quan-ly)
     const yearContracts = contracts.filter(c => {
       const d = getDoanhSoMonth(c);
@@ -5000,7 +5082,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <div className="afyp-chart-summary">
                       <div className="sum-item"><div className="sum-label">Tổng AFYP (T1-T{CUR_MONTH})</div><div className="sum-val">{fmtBig(chartData.slice(0, parseInt(CUR_MONTH)).reduce((s,d) => s+d.afyp, 0))}</div></div>
                       <div className="sum-item"><div className="sum-label">Tháng cao nhất</div><div className="sum-val">{fmtBig(Math.max(...chartData.map(d => d.afyp)))}</div></div>
-                      <div className="sum-item"><div className="sum-label">TB/tháng</div><div className="sum-val">{fmtBig(chartData.reduce((s,d) => s+d.afyp, 0) / 12)}</div></div>
+                      <div className="sum-item"><div className="sum-label">TB/tháng</div><div className="sum-val">{fmtBig(chartData.slice(0, Math.min(12, parseInt(CUR_MONTH, 10) || 1)).reduce((s,d) => s+d.afyp, 0) / Math.min(12, parseInt(CUR_MONTH, 10) || 1))}</div></div>
                     </div>
                     <div className="afyp-chart" dangerouslySetInnerHTML={{ __html: renderChart() || '' }} />
                     <div className="chart-legend">
@@ -5010,6 +5092,92 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <div className="legend-item"><div className="legend-dot" style={{ background: '#38bdf8', borderRadius: '50%' }} />Xu hướng</div>
                     </div>
                   </div>
+                {/* Desktop: biểu đồ và vinh danh hiển thị song song */}
+                <div className="desktop-honour-layout">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Banca images section (admin only) — desktop */}
+                    {(
+                      <div className={`banca-imgs-section${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
+                        <div className="banca-imgs-header">
+                          <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
+                          <button
+                            onClick={() => setBancaImgAdminOpen(true)}
+                            style={{
+                              display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                              background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
+                              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
+                            }}
+                          >
+                            ⚙ Cài đặt ảnh
+                          </button>
+                        </div>
+                        <div className="banca-imgs-wall">
+                          {[
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
+].map(({ id, label, start, count }) => {
+  const indices = Array.from({ length: count }, (_, offset) => start + offset)
+    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
+  if (indices.length === 0) return null;
+  return (
+    <section className={`honour-tier ${id}`} key={id}>
+      <div className="honour-tier-title">{label}</div>
+      <div className="honour-image-grid">
+        {indices.map((i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          const url = bancaImages[key];
+          const isUploading = bancaImgUploading === key;
+          return (
+            <div
+              key={key}
+              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+              onClick={() => {
+                if (!adminAuthed || isUploading) return;
+                if (url && !confirm('Thay ảnh này?')) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(key, file);
+                };
+                input.click();
+              }}
+              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
+            >
+              {url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
+                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
+                </>
+              ) : (
+                <span className="banca-img-placeholder">+{idx}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+})}
+                        </div>
+                        {adminAuthed && Object.keys(bancaImages).length === 0 && (
+                          <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
+                        )}
+                        <div className="honour-divider" aria-hidden="true" />
+                      </div>
+                    )}
+                    {/* Target registration button */}
+                    <div className="target-reg-section">
+                      <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
+                        ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                      </button>
+                    </div>
+                  </div>
+                  <div />{/* empty right column to keep grid layout */}
+                </div>
                 </div>
                 {/* Desktop Region Divider (clickable to collapse) — only hides cards in split-right,
                     banca images + target reg button stay visible below. */}
@@ -5270,92 +5438,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </div>{/* end split-right */}
                 </div>{/* end khuvuc-region desktop — only split-right cards */}
 
-                {/* Desktop: banca images (admin) + target reg button stay visible below collapsed region */}
-                <div className="desktop-honour-layout">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {/* Banca images section (admin only) — desktop */}
-                    {(
-                      <div className={`banca-imgs-section${Object.keys(bancaImages).length === 0 ? ' is-empty' : ''}`}>
-                        <div className="banca-imgs-header">
-                          <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
-                          <button
-                            onClick={() => setBancaImgAdminOpen(true)}
-                            style={{
-                              display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
-                              background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
-                              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
-                            }}
-                          >
-                            ⚙ Cài đặt ảnh
-                          </button>
-                        </div>
-                        <div className="banca-imgs-wall">
-                          {[
-  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 5 },
-  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 5, count: BANCA_IMG_COUNT - 5 },
-].map(({ id, label, start, count }) => {
-  const indices = Array.from({ length: count }, (_, offset) => start + offset)
-    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
-  if (indices.length === 0) return null;
-  return (
-    <section className={`honour-tier ${id}`} key={id}>
-      <div className="honour-tier-title">{label}</div>
-      <div className="honour-image-grid">
-        {indices.map((i) => {
-          const idx = String(i + 1).padStart(2, '0');
-          const key = `kpi-banca-img-${idx}`;
-          const url = bancaImages[key];
-          const isUploading = bancaImgUploading === key;
-          return (
-            <div
-              key={key}
-              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-              onClick={() => {
-                if (!adminAuthed || isUploading) return;
-                if (url && !confirm('Thay ảnh này?')) return;
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = (e: any) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadBancaImage(key, file);
-                };
-                input.click();
-              }}
-              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
-            >
-              {url ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
-                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
-                </>
-              ) : (
-                <span className="banca-img-placeholder">+{idx}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-})}
-                        </div>
-                        {adminAuthed && Object.keys(bancaImages).length === 0 && (
-                          <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
-                        )}
-                        <div className="honour-divider" aria-hidden="true" />
-                      </div>
-                    )}
-                    {/* Target registration button */}
-                    <div className="target-reg-section">
-                      <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)}>
-                        ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
-                      </button>
-                    </div>
-                  </div>
-                  <div />{/* empty right column to keep grid layout */}
-                </div>
+
               </div>{/* end desktop-split */}
             </>
           )}
@@ -6222,7 +6305,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               return (
                 <div className="banca-profile-editor">
                   <div className="banca-profile-editor-head">
-                    <span>Ảnh #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <span>{Number(selectedIdx) <= 5 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
                     <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
                   </div>
                   <div className="banca-profile-editor-grid">
