@@ -2650,6 +2650,27 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (max-width: 560px) {
   .kpi-app .honour-profile-info { padding-left: 12px; }
 }
+
+
+/* ============= VINH DANH DESKTOP — ẢNH LỚN, CÂN ĐỐI 5 CỘT ============= */
+@media (min-width: 900px) {
+  .kpi-app .split-center .desktop-honour-layout .banca-imgs-wall {
+    width: min(calc(100% - 18px), 500px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .kpi-app .split-center .desktop-honour-layout .honour-image-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+    justify-content: stretch;
+  }
+  .kpi-app .split-center .desktop-honour-layout .banca-img-cell {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+}
 `;
 
 
