@@ -1994,13 +1994,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 0 18px rgba(255,215,107,.18);
 }
 .kpi-app .honour-image-grid {
-  width: 100%; display: flex; flex-wrap: wrap; justify-content: center;
-  align-items: center; gap: 14px;
+  /* Mỗi hàng chứa tối đa 5 ảnh; ô, khe và lề ngoài luôn đối xứng. */
+  display: grid; grid-template-columns: repeat(5, 55px); gap: 11px;
+  justify-content: center; align-items: center; width: max-content; max-width: 100%;
+  margin: 0 auto;
 }
 .kpi-app .banca-imgs-wall .banca-img-cell {
   position: relative !important; left: auto !important; top: auto !important;
-  width: 78px !important; height: 78px !important; transform: none !important;
-  flex: 0 0 78px; border-width: 3px; cursor: default;
+  /* Nhỏ hơn 30% so với cỡ cũ 78px. */
+  width: 55px !important; height: 55px !important; transform: none !important;
+  flex: 0 0 55px; border-width: 2px; cursor: default;
 }
 .kpi-app .banca-imgs-wall .banca-img-cell:hover { transform: translateY(-3px) !important; }
 .kpi-app .honour-tier.platinum .banca-img-cell {
@@ -2010,8 +2013,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
 @media (max-width: 640px) {
   .kpi-app .banca-imgs-wall { width: min(100% - 20px, 360px); gap: 18px; }
-  .kpi-app .honour-image-grid { gap: 10px; }
-  .kpi-app .banca-imgs-wall .banca-img-cell { width: 62px !important; height: 62px !important; flex-basis: 62px; }
+  .kpi-app .honour-image-grid { grid-template-columns: repeat(5, 43px); gap: 8px; }
+  .kpi-app .banca-imgs-wall .banca-img-cell { width: 43px !important; height: 43px !important; flex-basis: 43px; border-width: 2px; }
   .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
 }
 
@@ -2142,11 +2145,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* ============= VINH DANH — PHÂN CÁCH + HỒ SƠ NGÔI SAO ============= */
 .kpi-app .honour-divider {
-  width: min(calc(100% - 44px), 760px);
-  height: 1px;
-  margin: 2px auto 18px;
-  background: linear-gradient(90deg, transparent, rgba(255,215,107,.45), transparent);
-  box-shadow: 0 1px 10px rgba(255,215,107,.12);
+  position: relative; width: min(calc(100% - 44px), 760px); height: 1px;
+  margin: 22px auto; background: linear-gradient(90deg, transparent, rgba(255,215,107,.36) 22%, rgba(255,231,153,.68) 50%, rgba(255,215,107,.36) 78%, transparent);
+  box-shadow: 0 1px 10px rgba(255,215,107,.16);
+}
+.kpi-app .honour-divider::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 54px; height: 12px;
+  transform: translate(-50%, -50%); border-radius: 999px;
+  background: radial-gradient(ellipse, rgba(255,239,177,.92) 0%, rgba(255,215,107,.38) 32%, transparent 72%);
+  filter: blur(1px); pointer-events: none;
 }
 .kpi-app .honour-profile-modal {
   position: fixed; inset: 0; z-index: 320;
@@ -3134,14 +3141,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
   const submitTargetReg = async () => {
     if (!targetRegRole) return;
-    const afypTrieu = parseFloat(targetRegForm.afypTrieu);
-    const luotHD = parseFloat(targetRegForm.luotHD);
-    if (isNaN(afypTrieu) || afypTrieu <= 0) {
-      alert('Vui lòng nhập AFYP hợp lệ (số triệu đồng)');
+    const afypTrieu = targetRegForm.afypTrieu.trim() ? parseFloat(targetRegForm.afypTrieu) : 0;
+    const luotHD = targetRegForm.luotHD.trim() ? parseFloat(targetRegForm.luotHD) : 0;
+    if (isNaN(afypTrieu) || afypTrieu < 0 || isNaN(luotHD) || luotHD < 0) {
+      alert('Mục tiêu cần là số không âm.');
       return;
     }
-    if (isNaN(luotHD) || luotHD < 0) {
-      alert('Vui lòng nhập Lượt HĐ hợp lệ');
+    if (afypTrieu <= 0 && luotHD <= 0) {
+      alert('Vui lòng đăng ký ít nhất một mục tiêu: AFYP hoặc Lượt HĐ.');
       return;
     }
     if (targetRegRole === 'tn' && !targetRegForm.maNhom) {
@@ -5808,16 +5815,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             {!adminAuthed && <div style={{ width: 32 }} />}
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
-          <div className="detail-hero" style={{ textAlign: 'center', marginTop: 6 }}>
-            <div className="detail-title" style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)' }}>
-              DANH SÁCH ĐĂNG KÝ MỤC TIÊU THÁNG {new Date().getMonth() + 1}/{new Date().getFullYear()}
-            </div>
-            <div className="detail-meta">
-              Tổng số đăng ký: {targetRegList.length}
-              {adminAuthed && ' — Bạn có quyền chỉnh sửa (admin)'}
-            </div>
-          </div>
           <div className="tgr-list-table-wrap">
+            <div className="tgr-list-table-meta">
+              <span>Tổng số đăng ký: {targetRegList.length}{adminAuthed && ' — admin có quyền chỉnh sửa'}</span>
+              <em>Đơn vị tính: AFYP - triệu đồng và Lượt - TVV</em>
+            </div>
             {targetRegLoading ? (
               <div className="tgr-list-empty">Đang tải...</div>
             ) : targetRegList.length === 0 ? (
@@ -5828,7 +5830,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   <tr>
                     <th>STT</th>
                     <th>NHÓM</th>
-                    <th>MÃ SỐ</th>
                     <th>HỌ TÊN</th>
                     <th>CV</th>
                     <th style={{ textAlign: 'right' }}>AFYP (triệu)</th>
@@ -5850,14 +5851,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               style={{ height: 30, padding: '0 8px', fontSize: 11 }}
                               value={targetRegEditForm.nhom || ''}
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, nhom: e.target.value }))}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="tgr-field-input"
-                              style={{ height: 30, padding: '0 8px', fontSize: 11 }}
-                              value={targetRegEditForm.agentCode || ''}
-                              onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, agentCode: e.target.value }))}
                             />
                           </td>
                           <td>
@@ -5917,7 +5910,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <tr key={reg.id}>
                         <td>{idx + 1}</td>
                         <td>{reg.nhom || '—'}</td>
-                        <td style={{ fontFamily: 'monospace' }}>{reg.agentCode || '—'}</td>
                         <td>{reg.agentName || '—'}</td>
                         <td>{reg.position || '—'}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#ffd76b' }}>
@@ -6058,7 +6050,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </>
                   )}
                   <div className="tgr-field">
-                    <label className="tgr-field-label">Mục tiêu đăng ký: AFYP</label>
+                    <label className="tgr-field-label">Mục tiêu đăng ký: AFYP <span>(tùy chọn)</span></label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
                         className="tgr-field-input"
@@ -6073,7 +6065,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </div>
                   </div>
                   <div className="tgr-field">
-                    <label className="tgr-field-label">Lượt HĐ</label>
+                    <label className="tgr-field-label">Lượt HĐ <span>(tùy chọn)</span></label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
                         className="tgr-field-input"
