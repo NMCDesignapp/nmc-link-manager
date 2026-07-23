@@ -4389,14 +4389,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   Non-admin không thấy gì (không hiển thị khung trống).
                   User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
                   50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
-              {adminAuthed && (
+              {(
                 <div className="banca-imgs-section mobile-only">
                   <div className="banca-imgs-header">
                     <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                     <button
                       onClick={() => setBancaImgAdminOpen(true)}
                       style={{
-                        padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                        display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
                         background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
                         cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
                       }}
@@ -4428,7 +4428,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                             transform: 'translate(-50%, -50%)',
                           }}
                           onClick={() => {
-                            if (isUploading) return;
+                            if (!adminAuthed || isUploading) return;
                             if (url) {
                               if (!confirm('Thay ảnh này?')) return;
                             }
@@ -4449,7 +4449,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               <img src={url} alt={`Banca ${idx}`} />
                               <button
                                 className="banca-img-del"
-                                onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                                onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
                                 title="Xóa ảnh"
                               >×</button>
                             </>
@@ -4810,14 +4810,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 16, marginTop: 16 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {/* Banca images section (admin only) — desktop */}
-                    {adminAuthed && (
+                    {(
                       <div className="banca-imgs-section">
                         <div className="banca-imgs-header">
                           <div className="banca-imgs-title">✦ Vinh Danh Ngôi Sao</div>
                           <button
                             onClick={() => setBancaImgAdminOpen(true)}
                             style={{
-                              padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
+                              display: adminAuthed ? undefined : 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,215,107,.30)',
                               background: 'rgba(255,215,107,.10)', color: '#ffd76b', fontSize: 10, fontWeight: 700,
                               cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.05em',
                             }}
@@ -4845,7 +4845,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                   transform: 'translate(-50%, -50%)',
                                 }}
                                 onClick={() => {
-                                  if (isUploading) return;
+                                  if (!adminAuthed || isUploading) return;
                                   if (url) {
                                     if (!confirm('Thay ảnh này?')) return;
                                   }
@@ -4866,7 +4866,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                     <img src={url} alt={`Banca ${idx}`} />
                                     <button
                                       className="banca-img-del"
-                                      onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                                      onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
                                       title="Xóa ảnh"
                                     >×</button>
                                   </>
@@ -5736,7 +5736,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
                     style={{ maxWidth: 90 }}
                     onClick={() => {
-                      if (isUploading) return;
+                      if (!adminAuthed || isUploading) return;
                       if (url) {
                         if (!confirm('Thay ảnh này?')) return;
                       }
@@ -5757,7 +5757,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <img src={url} alt={`Banca ${idx}`} />
                         <button
                           className="banca-img-del"
-                          onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }}
+                          onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
                           title="Xóa ảnh"
                         >×</button>
                       </>
