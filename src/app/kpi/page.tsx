@@ -2731,6 +2731,34 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .honour-profile-card { column-gap: 18px; }
   .kpi-app .honour-profile-info { padding-left: 18px; }
 }
+
+
+/* ============= 6 NÚT LIÊN KẾT — KHUNG GỌN, NỀN MỜ ============= */
+@media (min-width: 900px) {
+  .kpi-app .split-center > .nav-grid.dsk-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: min(100%, 640px);
+    justify-self: center;
+    margin: 0 auto 12px !important;
+    gap: 7px;
+    padding: 8px;
+    border: 1px solid rgba(116, 167, 210, .24);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(11, 35, 60, .64), rgba(7, 20, 38, .48));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.16);
+  }
+  .kpi-app .split-center > .nav-grid.dsk-nav .nav-btn {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 9px;
+    font-size: 9.5px;
+    line-height: 1.08;
+  }
+  .kpi-app .split-center > .nav-grid.dsk-nav .nav-btn .nav-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+}
 `;
 
 
