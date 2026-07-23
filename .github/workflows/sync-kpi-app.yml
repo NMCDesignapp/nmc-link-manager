@@ -24,6 +24,8 @@ on:
       - 'src/app/api/structure/phong/route.ts'
       - 'src/app/api/structure/bannhom/route.ts'
       - 'src/app/api/structure/tvv/route.ts'
+      - 'src/app/api/poster-image/route.ts'
+      - 'src/app/api/poster-image/[key]/route.ts'
       - 'scripts/sync-kpi-app.sh'
       - '.github/workflows/sync-kpi-app.yml'
   workflow_dispatch:  # Cho phép trigger thủ công từ GitHub UI
