@@ -1920,6 +1920,56 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .dept-section { height: 380px; min-height: 380px; }
 }
 
+/* ============= VINH DANH LƯỚI ĐỀU — BẠCH KIM 1 HÀNG, VÀNG 3 HÀNG ============= */
+.kpi-app .banca-imgs-wall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+  width: min(100% - 32px, 440px);
+  min-height: auto !important;
+  margin: 8px auto 0;
+  padding: 8px 0 18px;
+}
+.kpi-app .honour-tier { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.kpi-app .honour-tier-title {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 28px; padding: 0 14px; border-radius: 999px;
+  font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase;
+}
+.kpi-app .honour-tier.platinum .honour-tier-title {
+  color: #eaf8ff; border: 1px solid rgba(213,239,255,.78);
+  background: linear-gradient(135deg, rgba(225,245,255,.22), rgba(130,190,225,.12));
+  box-shadow: 0 0 18px rgba(177,224,255,.24);
+}
+.kpi-app .honour-tier.gold .honour-tier-title {
+  color: #ffd76b; border: 1px solid rgba(255,215,107,.68);
+  background: linear-gradient(135deg, rgba(255,215,107,.18), rgba(184,152,56,.10));
+  box-shadow: 0 0 18px rgba(255,215,107,.18);
+}
+.kpi-app .honour-image-grid {
+  width: 100%; display: flex; flex-wrap: wrap; justify-content: center;
+  align-items: center; gap: 14px;
+}
+.kpi-app .banca-imgs-wall .banca-img-cell {
+  position: relative !important; left: auto !important; top: auto !important;
+  width: 78px !important; height: 78px !important; transform: none !important;
+  flex: 0 0 78px; border-width: 3px; cursor: default;
+}
+.kpi-app .banca-imgs-wall .banca-img-cell:hover { transform: translateY(-3px) !important; }
+.kpi-app .honour-tier.platinum .banca-img-cell {
+  border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%);
+  box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20);
+}
+.kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
+@media (max-width: 640px) {
+  .kpi-app .banca-imgs-wall { width: min(100% - 20px, 360px); gap: 18px; }
+  .kpi-app .honour-image-grid { gap: 10px; }
+  .kpi-app .banca-imgs-wall .banca-img-cell { width: 62px !important; height: 62px !important; flex-basis: 62px; }
+  .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
+}
+
 /* ============= DESKTOP VINH DANH — KHỐI TRUNG TÂM ============= */
 @media (min-width: 900px) {
   .kpi-app .desktop-honour-layout {
@@ -4537,61 +4587,58 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   </div>
                   {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
                   <div className="banca-imgs-wall">
-                    {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                      const idx = String(i + 1).padStart(2, '0');
-                      const key = `kpi-banca-img-${idx}`;
-                      const url = bancaImages[key];
-                      const isUploading = bancaImgUploading === key;
-                      const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
-                      // Chỉ render cell nếu có ảnh HOẶC admin (để placeholder +N)
-                      // Theo yêu cầu user: nếu chưa add hình thì không hiển thị hình trống ra (chỉ admin thấy)
-                      // → admin luôn thấy placeholder; non-admin không thấy section này (đã check adminAuthed ở ngoài)
-                      return (
-                        <div
-                          key={key}
-                          className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                          style={{
-                            left: `${pos.left}%`,
-                            top: `${pos.top}%`,
-                            width: `${pos.size}px`,
-                            height: `${pos.size}px`,
-                            zIndex: pos.z,
-                            transform: 'translate(-50%, -50%)',
-                          }}
-                          onClick={() => {
-                            if (!adminAuthed || isUploading) return;
-                            if (url) {
-                              if (!confirm('Thay ảnh này?')) return;
-                            }
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'image/*';
-                            input.onchange = (e: any) => {
-                              const file = e.target.files?.[0];
-                              if (file) uploadBancaImage(key, file);
-                            };
-                            input.click();
-                          }}
-                          title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
-                        >
-                          {url ? (
-                            <>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={url} alt={`Banca ${idx}`} />
-                              <button
-                                className="banca-img-del"
-                                onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
-                                title="Xóa ảnh"
-                              >×</button>
-                            </>
-                          ) : (
-                            <span className="banca-img-placeholder">+{idx}</span>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {[
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+].map(({ id, label, start, count }) => {
+  const indices = Array.from({ length: count }, (_, offset) => start + offset)
+    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
+  if (indices.length === 0) return null;
+  return (
+    <section className={`honour-tier ${id}`} key={id}>
+      <div className="honour-tier-title">{label}</div>
+      <div className="honour-image-grid">
+        {indices.map((i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          const url = bancaImages[key];
+          const isUploading = bancaImgUploading === key;
+          return (
+            <div
+              key={key}
+              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+              onClick={() => {
+                if (!adminAuthed || isUploading) return;
+                if (url && !confirm('Thay ảnh này?')) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(key, file);
+                };
+                input.click();
+              }}
+              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
+            >
+              {url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
+                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
+                </>
+              ) : (
+                <span className="banca-img-placeholder">+{idx}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+})}
                   </div>
-                  {Object.keys(bancaImages).length === 0 && (
+                  {adminAuthed && Object.keys(bancaImages).length === 0 && (
                     <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                   )}
                   {/* 50% bottom — empty space theo yêu cầu user */}
@@ -4957,58 +5004,58 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           </button>
                         </div>
                         <div className="banca-imgs-wall">
-                          {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                            const idx = String(i + 1).padStart(2, '0');
-                            const key = `kpi-banca-img-${idx}`;
-                            const url = bancaImages[key];
-                            const isUploading = bancaImgUploading === key;
-                            const pos = BANCA_IMG_POSITIONS[i] || { left: 50, top: 50, size: 60, z: 2 };
-                            return (
-                              <div
-                                key={key}
-                                className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                                style={{
-                                  left: `${pos.left}%`,
-                                  top: `${pos.top}%`,
-                                  width: `${pos.size}px`,
-                                  height: `${pos.size}px`,
-                                  zIndex: pos.z,
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                                onClick={() => {
-                                  if (!adminAuthed || isUploading) return;
-                                  if (url) {
-                                    if (!confirm('Thay ảnh này?')) return;
-                                  }
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = 'image/*';
-                                  input.onchange = (e: any) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) uploadBancaImage(key, file);
-                                  };
-                                  input.click();
-                                }}
-                                title={url ? 'Click để thay ảnh' : 'Click để upload ảnh'}
-                              >
-                                {url ? (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt={`Banca ${idx}`} />
-                                    <button
-                                      className="banca-img-del"
-                                      onClick={(e) => { e.stopPropagation(); if (!adminAuthed) return; deleteBancaImage(key); }}
-                                      title="Xóa ảnh"
-                                    >×</button>
-                                  </>
-                                ) : (
-                                  <span className="banca-img-placeholder">+{idx}</span>
-                                )}
-                              </div>
-                            );
-                          })}
+                          {[
+  { id: 'platinum', label: '✦ Ngôi Sao Bạch Kim ✦', start: 0, count: 4 },
+  { id: 'gold', label: '✦ Ngôi Sao Vàng ✦', start: 4, count: BANCA_IMG_COUNT - 4 },
+].map(({ id, label, start, count }) => {
+  const indices = Array.from({ length: count }, (_, offset) => start + offset)
+    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
+  if (indices.length === 0) return null;
+  return (
+    <section className={`honour-tier ${id}`} key={id}>
+      <div className="honour-tier-title">{label}</div>
+      <div className="honour-image-grid">
+        {indices.map((i) => {
+          const idx = String(i + 1).padStart(2, '0');
+          const key = `kpi-banca-img-${idx}`;
+          const url = bancaImages[key];
+          const isUploading = bancaImgUploading === key;
+          return (
+            <div
+              key={key}
+              className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
+              onClick={() => {
+                if (!adminAuthed || isUploading) return;
+                if (url && !confirm('Thay ảnh này?')) return;
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadBancaImage(key, file);
+                };
+                input.click();
+              }}
+              title={adminAuthed ? (url ? 'Click để thay ảnh' : 'Click để upload ảnh') : undefined}
+            >
+              {url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${id === 'platinum' ? 'Bạch Kim' : 'Vàng'} ${idx}`} />
+                  {adminAuthed && <button className="banca-img-del" onClick={(e) => { e.stopPropagation(); deleteBancaImage(key); }} title="Xóa ảnh">×</button>}
+                </>
+              ) : (
+                <span className="banca-img-placeholder">+{idx}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+})}
                         </div>
-                        {Object.keys(bancaImages).length === 0 && (
+                        {adminAuthed && Object.keys(bancaImages).length === 0 && (
                           <div className="banca-img-empty-hint">Chưa có ảnh nào. Bấm vào ô tròn hoặc nút "Cài đặt ảnh" để upload.</div>
                         )}
                         {/* 50% bottom — empty space theo yêu cầu user */}
