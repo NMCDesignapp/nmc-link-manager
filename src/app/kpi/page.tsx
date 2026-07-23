@@ -3317,6 +3317,25 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Cache-buster timestamp — mỗi lần mở sheet sẽ sinh timestamp mới để iframe
   // luôn fetch HTML mới nhất, tránh bị SW cache hoặc HTTP cache serving stale content.
   const [kpiSheetT, setKpiSheetT] = useState<number>(0);
+
+  // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
+  const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet') => {
+    setKpiSheetT(Date.now());
+    setKpiSheet(sheet);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, []);
+
+  const closeKpiSheet = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.state?.nmcKpiSheet) {
+      window.history.back();
+      return;
+    }
+    setKpiSheet('home');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
   const [selectedKy, setSelectedKy] = useState('');
   const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
@@ -3355,6 +3374,16 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
     } catch {}
   }, [standalone]);
+
+  // Browser/mobile back đóng màn hình đang nhúng trước, thay vì thoát khỏi KPI.
+  useEffect(() => {
+    const handlePopState = () => {
+      setKpiSheet('home');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /)
   useEffect(() => {
@@ -4806,7 +4835,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <button
               type="button"
               className="kpi-embed-back"
-              onClick={() => { setKpiSheet('home'); window.scrollTo({ top: 0, behavior: 'auto' }); }}
+              onClick={closeKpiSheet}
               aria-label="Quay lại KPI"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
@@ -4990,13 +5019,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><CalendarDays size={14} /></span> <span className="nav-label">Kế hoạch khung</span>
                 </button>
-                <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
                   <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
                 </button>
-                <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                   <span className="nav-icon"><BookOpen size={14} /></span> <span className="nav-label">Chính sách 2026</span>
                 </button>
-                <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                   <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
                 </button>
                 <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
@@ -5261,13 +5290,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <button type="button" className="nav-btn nav-race" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
                       <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </button>
-                    <button type="button" className="nav-btn nav-policy" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('report'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
                     </button>
-                    <button type="button" className="nav-btn nav-clb" onClick={() => { setKpiSheetT(Date.now()); setKpiSheet('clb-saoviet'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </button>
                     <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#c89828,#a87818)', color: '#fff' }}>

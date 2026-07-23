@@ -11799,7 +11799,8 @@ export default function QuanLyPage() {
           <span className="text-xs font-bold">{syncSuccessCount} HĐ đã đồng bộ</span>
         </div>
       )}
-      {/* Header */}
+      {/* Trong iframe, KPI overlay là header duy nhất: tránh trùng tiêu đề và dành thêm chiều cao cho nội dung mobile. */}
+      {!isInIframe && (
       <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Mobile hamburger — mở sidebar (chỉ hiện trên mobile, KHÔNG embedded, và CHỈ khi đã là admin).
             - End-user trên angiang2026-nhom.vercel.app (đến từ /kpi-standalone iframe hoặc truy cập trực tiếp
@@ -11860,6 +11861,7 @@ export default function QuanLyPage() {
           )}
         </div>
       </header>
+      )}
 
       <div className="flex flex-1 min-h-0">
         {/* Mobile overlay */}
