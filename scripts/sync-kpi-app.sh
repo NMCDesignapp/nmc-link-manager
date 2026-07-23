@@ -67,7 +67,7 @@ fi
 
 # 4. API routes
 echo "[4/8] Syncing API routes"
-for route in quan-ly/all settings calendar structure/ad structure/phong structure/bannhom structure/tvv; do
+for route in quan-ly/all settings calendar structure/ad structure/phong structure/bannhom structure/tvv poster-image; do
   if [ -f "$ROOT/src/app/api/$route/route.ts" ]; then
     if [ $CHECK_ONLY -eq 0 ]; then
       mkdir -p "$KPI_APP/src/app/api/$route"
@@ -75,6 +75,14 @@ for route in quan-ly/all settings calendar structure/ad structure/phong structur
     fi
   fi
 done
+
+# Poster image binary endpoint is a dynamic route and must travel with its manifest route.
+if [ -f "$ROOT/src/app/api/poster-image/[key]/route.ts" ]; then
+  if [ $CHECK_ONLY -eq 0 ]; then
+    mkdir -p "$KPI_APP/src/app/api/poster-image/[key]"
+    cp "$ROOT/src/app/api/poster-image/[key]/route.ts" "$KPI_APP/src/app/api/poster-image/[key]/route.ts"
+  fi
+fi
 
 # 5. Components
 echo "[5/8] Syncing components (back-button, space-bg, honeycomb-bg)"
