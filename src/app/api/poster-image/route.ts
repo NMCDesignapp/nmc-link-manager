@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     if (prefix && !['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-'].includes(prefix)) {
       return NextResponse.json({ error: 'unsupported prefix' }, { status: 400 })
     }
-    const rows: Array<{ key: string; updatedAt: Date }> = await db.$queryRawUnsafe(
+    const rows: Array<{ key: string; updatedAt: Date }> = await db.$queryRawUnsafe<Array<{ key: string; updatedAt: Date }>>(
       `SELECT "key", "updatedAt" FROM "PosterImage" WHERE ($1 = '' OR "key" LIKE $1) ORDER BY "key" ASC`,
       prefix ? `${prefix}%` : ''
     )
