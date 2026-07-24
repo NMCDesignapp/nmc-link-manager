@@ -101,11 +101,13 @@ export async function POST(request: NextRequest) {
     if (isDataHubImport(body) && !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
     }
-    const { contractCsv, staffCsv, recruiterCsv } = body as {
+    const { contractCsv, staffCsv, recruiterCsv, replaceRevenueMonths } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
+      replaceRevenueMonths?: boolean;
     };
+    const replaceDataHubRevenueMonths = isDataHubImport(body) && replaceRevenueMonths === true;
 
     const results = { contracts: 0, staff: 0, recruiters: 0, errors: [] as string[] };
 
@@ -116,6 +118,23 @@ export async function POST(request: NextRequest) {
         const records = csvToObjects(rows);
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
+
+        // Data Hub is the authoritative monthly source: replace only the
+        // months that are present in this file, never other months.
+        if (replaceDataHubRevenueMonths) {
+          const monthsInSource = new Set<string>();
+          for (const row of records) {
+            const dateValue = getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate');
+            const date = parseDate(dateValue);
+            if (date) monthsInSource.add(`${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`);
+          }
+          for (const monthKey of monthsInSource) {
+            const [year, month] = monthKey.split('-').map(Number);
+            const from = new Date(Date.UTC(year, month - 1, 1));
+            const until = new Date(Date.UTC(year, month, 1));
+            await db.contract.deleteMany({ where: { effectiveDate: { gte: from, lt: until } } });
+          }
+        }
 
         for (const row of records) {
           // Đọc theo tên header — hỗ trợ nhiều tên khác nhau
