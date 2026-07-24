@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { db, withRetry } from '@/lib/db';
 
 // ---------- Constants ----------
@@ -190,26 +191,35 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const program = body?.program;
     const link = String(body?.link || '').trim();
+    const directCsv = typeof body?.csv === 'string' ? body.csv : '';
+    const fromDataHub = isDataHubImport(body);
 
+    if (fromDataHub && !isAuthorizedDataHubRequest(req)) {
+      return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
+    }
     if (!isValidProgram(program)) {
       return NextResponse.json({ error: 'program không hợp lệ (ca-nhan | tn-ktm | tn-td)' }, { status: 400 });
     }
-    if (!link) {
-      return NextResponse.json({ error: 'Thiếu link Google Sheets' }, { status: 400 });
-    }
-    if (!link.includes('docs.google.com') && !link.includes('googleusercontent.com')) {
-      return NextResponse.json({ error: 'URL không hợp lệ — phải là Google Sheets URL' }, { status: 400 });
+    if (!directCsv && !link) {
+      return NextResponse.json({ error: 'Thiếu CSV Data Hub hoặc link Google Sheets' }, { status: 400 });
     }
 
-    const spreadsheetId = extractSpreadsheetId(link);
-    if (!spreadsheetId) {
-      return NextResponse.json({ error: 'Không đọc được spreadsheet ID từ link' }, { status: 400 });
-    }
-
-    const gid = await discoverGidForProgram(spreadsheetId, program);
-    const { csv, error } = await fetchCsv(spreadsheetId, gid);
-    if (error || !csv) {
-      return NextResponse.json({ error: error || 'Không tải được CSV' }, { status: 502 });
+    let csv = directCsv;
+    let gid: string | null = null;
+    if (!csv) {
+      if (!link.includes('docs.google.com') && !link.includes('googleusercontent.com')) {
+        return NextResponse.json({ error: 'URL không hợp lệ — phải là Google Sheets URL' }, { status: 400 });
+      }
+      const spreadsheetId = extractSpreadsheetId(link);
+      if (!spreadsheetId) {
+        return NextResponse.json({ error: 'Không đọc được spreadsheet ID từ link' }, { status: 400 });
+      }
+      gid = await discoverGidForProgram(spreadsheetId, program);
+      const fetched = await fetchCsv(spreadsheetId, gid);
+      if (fetched.error || !fetched.csv) {
+        return NextResponse.json({ error: fetched.error || 'Không tải được CSV' }, { status: 502 });
+      }
+      csv = fetched.csv;
     }
 
     const rowsRaw = parseCsvToRowsRaw(csv);
@@ -247,8 +257,8 @@ export async function POST(req: NextRequest) {
       count: result.created,
       deleted: result.deleted,
       program,
-      syncedFrom: link,
-      gidUsed: gid,
+      syncedFrom: fromDataHub ? 'nmc-data-hub' : link,
+      gidUsed: gid || 'local',
     }, { status: 201 });
   } catch (error: any) {
     console.error('POST /api/saoviet-data/sync error:', error);
