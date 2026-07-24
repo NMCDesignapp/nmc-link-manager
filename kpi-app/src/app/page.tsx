@@ -2018,11 +2018,19 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%);
   box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20);
 }
-.kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
+.kpi-app .honour-tier.gold .honour-image-grid {
+  grid-template-columns: repeat(5, 50px); gap: 12px;
+}
+.kpi-app .honour-tier.gold .banca-img-cell {
+  width: 50px !important; height: 50px !important; flex-basis: 50px;
+  border-color: #ffd76b;
+}
 @media (max-width: 640px) {
   .kpi-app .banca-imgs-wall { width: min(100% - 20px, 360px); gap: 18px; }
   .kpi-app .honour-image-grid { grid-template-columns: repeat(5, 43px); gap: 8px; }
   .kpi-app .banca-imgs-wall .banca-img-cell { width: 43px !important; height: 43px !important; flex-basis: 43px; border-width: 2px; }
+  .kpi-app .honour-tier.gold .honour-image-grid { grid-template-columns: repeat(5, 40px); gap: 9px; }
+  .kpi-app .honour-tier.gold .banca-img-cell { width: 40px !important; height: 40px !important; flex-basis: 40px; }
   .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
 }
 
