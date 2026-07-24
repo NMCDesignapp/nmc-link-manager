@@ -45,8 +45,8 @@ function hasData(csv, source) {
 }
 
 async function postJson(config, endpoint, body) {
-  const token = process.env[config.tokenEnv || 'NMC_DATA_HUB_TOKEN'];
-  if (!token) throw new Error(`Chưa có biến môi trường ${config.tokenEnv || 'NMC_DATA_HUB_TOKEN'}`);
+  const token = config.token || process.env[config.tokenEnv || 'NMC_DATA_HUB_TOKEN'];
+  if (!token) throw new Error(`Chưa có khóa kết nối. Thêm token trong cấu hình cục bộ hoặc biến môi trường ${config.tokenEnv || 'NMC_DATA_HUB_TOKEN'}`);
 
   const response = await fetch(new URL(endpoint, config.appUrl), {
     method: 'POST',
