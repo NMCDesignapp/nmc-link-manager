@@ -2856,8 +2856,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-color: #f1c95f;
 }
 @media (max-width: 560px) {
-  .kpi-app .region-divider.is-collapse-btn,
-  .kpi-app .target-reg-section { gap: 8px; margin: 22px 0 14px !important; }
+  /* Nhịp dọc mobile: bảng Vinh danh nằm cân giữa dải Tiến độ và Đăng ký mục tiêu. */
+  .kpi-app .region-divider.is-collapse-btn { gap: 8px; margin: 18px 0 10px !important; }
+  .kpi-app .banca-imgs-section,
+  .kpi-app .desktop-honour-layout .banca-imgs-section { margin-top: 16px; }
+  .kpi-app .target-reg-section { gap: 8px; margin: 24px 0 16px !important; }
   .kpi-app .region-divider.is-collapse-btn .region-divider-title,
   .kpi-app .target-reg-btn { min-height: 40px; padding-left: 12px; padding-right: 12px; }
 }
