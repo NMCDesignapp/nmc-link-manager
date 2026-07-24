@@ -85,6 +85,52 @@ const fetchJson = async (url: string): Promise<any> => {
   }
 }
 
+/**
+ * Nguồn nền bắt buộc: Doanh số tháng 7 và 3 chương trình Sao Việt.
+ * Đồng bộ chúng trước khi nạp toàn bộ dữ liệu để KPI/Thi đua không tính
+ * trên bản ghi cũ. Lỗi từng nguồn được bỏ qua để ứng dụng vẫn mở được.
+ */
+const syncPrimaryGoogleSources = async (settings: Record<string, string> | null): Promise<void> => {
+  if (!settings) return
+
+  const tasks: Promise<unknown>[] = []
+  const revenueJulyLink = settings['nmc-link-revenue-07']
+  if (revenueJulyLink && settings['nmc-sync-revenue-07'] !== 'false') {
+    tasks.push((async () => {
+      const csvResponse = await fetch(`/api/import-csv?url=${encodeURIComponent(revenueJulyLink)}`, { cache: 'no-store' })
+      if (!csvResponse.ok) return
+      const csvPayload = await csvResponse.json()
+      if (!csvPayload?.csvData) return
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractCsv: csvPayload.csvData, staffCsv: '', recruiterCsv: '' }),
+      })
+    })())
+  }
+
+  const sharedSaoVietLink = settings['saoviet-link-shared']
+  if (sharedSaoVietLink) {
+    tasks.push(fetch('/api/saoviet-data/sync-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ link: sharedSaoVietLink }),
+    }))
+  } else {
+    for (const program of ['ca-nhan', 'tn-ktm', 'tn-td']) {
+      const link = settings[`saoviet-link-${program}`]
+      if (!link) continue
+      tasks.push(fetch('/api/saoviet-data/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ program, link }),
+      }))
+    }
+  }
+
+  await Promise.allSettled(tasks)
+}
+
 const readSessionCache = (): AppData | null => {
   if (typeof window === 'undefined') return null
   try {
@@ -139,9 +185,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        // Đồng bộ hai nguồn Google Sheets nền trước: Doanh số tháng 7 và Sao Việt.
+        // Khi Promise.all bên dưới hoàn tất, mọi màn hình sẽ nhận được dữ liệu mới.
+        const settings = await fetchJson('/api/settings')
+        await syncPrimaryGoogleSources(settings)
+
         const [
           recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
-          structureTvv, clbMembers, pendingMembers, quanLyAll, settings, contests,
+          structureTvv, clbMembers, pendingMembers, quanLyAll, contests,
         ] = await Promise.all([
           fetchJson('/api/recruiters'),
           fetchJson('/api/tuyen-ngang'),
@@ -152,7 +203,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/clb-members'),
           fetchJson('/api/pending-members'),
           fetchJson('/api/quan-ly/all'),
-          fetchJson('/api/settings'),
           fetchJson('/api/contests'),
         ])
 
