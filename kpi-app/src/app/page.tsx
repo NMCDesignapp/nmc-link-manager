@@ -3001,13 +3001,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     align-items: start;
     grid-auto-rows: min-content;
   }
-  .kpi-app .dept-section,
+  .kpi-app .dept-section {
+    height: 280px !important;
+    min-height: 280px !important;
+    align-self: start;
+  }
   .kpi-app .dept-section > .rg-card,
   .kpi-app .dept-section > .banca-separator + .rg-card {
-    height: auto !important;
+    height: 100% !important;
     min-height: 0 !important;
   }
-  .kpi-app .dept-section { align-self: start; }
 }
 
 @media (min-width: 1400px) {
