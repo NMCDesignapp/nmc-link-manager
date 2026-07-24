@@ -171,6 +171,13 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
   return tokens.includes('tb') || tokens.includes('tn');
 }
 
+// BanCa không thuộc các danh sách đối tượng thi đua.  Việc loại trừ này
+// dựa trên Cấu trúc, tuyệt đối không suy ra từ bảng doanh số.
+function isBancaPosition(position: string | null | undefined): boolean {
+  const pos = (position || '').toLowerCase().replace(/\s+/g, '');
+  return pos.includes('banca');
+}
+
 // TVV90: TVV có thời gian làm việc không quá N tháng
 function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: number = 3, _minIP?: number, structureStartDate?: string | null): boolean {
   const agentContract = contracts.find(c => c.agentCode === agentCode);
@@ -574,7 +581,8 @@ function ThiDuaPageInner() {
   const [isResultExpanded, setIsResultExpanded] = useState(false);
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
-  // 4 nút chọn nhanh đối tượng: TVVm | TVV cũ | TTN | TN (chọn nhiều được)
+  // Bộ đối tượng chính là chọn đơn (1 trong 9).  Mã ở mục “Khác” vẫn có
+  // thể cộng thêm vào bộ đang chọn.
   const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<string>>(new Set());
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
@@ -793,6 +801,12 @@ function ThiDuaPageInner() {
     }
     const tvvAll = Array.from(tvvMap.values());
 
+    // Tất cả TVV: toàn bộ nhân sự trong Cấu trúc, trừ BanCa.
+    const allTvv = tvvAll
+      .filter(t => !isBancaPosition(t.chucVu))
+      .map(t => t.agentCode)
+      .filter(Boolean);
+
     // TVVm: DS TVV có ngayBatDau → nay ≤ 12 tháng, KHÔNG phải TB/TN/TTN
     const tvvm = tvvAll
       .filter(t => isTVVm(t.ngayBatDau))
@@ -823,6 +837,17 @@ function ThiDuaPageInner() {
       .map(r => r.agentCode)
       .filter(Boolean);
 
+    // Nhóm: danh sách nhóm được lấy từ DS TB/TN trong Cấu trúc, không lấy
+    // từ doanh số.  Mã nhóm chỉ dùng nội bộ để tính, giao diện hiển thị tên.
+    const nhom = Array.from(new Set(
+      Array.from(tnMap.values())
+        .filter(l => l.maNhom && !norm(l.nhom || '').toLowerCase().includes('dso'))
+        .map(l => l.maNhom)
+    ));
+
+    // NTD: cả TN và TTN đều có quyền tuyển dụng.
+    const ntd = Array.from(new Set([...tn, ...ttn]));
+
     // Phòng: tất cả TVV (mọi chức vụ: TB, TN, TTN, TVV) trong từng Phòng KD
     // Map: maBanNhom → maAD, maAD → maPhong
     const bnToAd = new Map<string, string>();
@@ -849,30 +874,58 @@ function ThiDuaPageInner() {
       phongLists[`phong_${maPhong}`] = tvvInPhong;
     }
 
-    return { tvvm, tvvCu, tn, ttn, phongLists };
+    return { allTvv, tvvm, tvvCu, nhom, ttn, ntd, phongLists };
   }, [tvvStructList, leadersList, recruiterList, phongStructList, adStructList, banNhomStructList]);
 
-  // Toggle 1 nút — append/remove danh sách tương ứng vào ô nhập đối tượng
-  const toggleSubjectType = useCallback((type: string) => {
+  // Danh sách NTD hợp nhất từ DS TN và DS TTN của Cấu trúc.  TTN được ưu
+  // tiên metadata riêng, sau đó bổ sung TN chưa có trong DS TTN.
+  const ntdCandidates = useMemo(() => {
+    const map = new Map<string, RecruiterMember>();
+    for (const person of recruiterList) {
+      if (person.agentCode && !map.has(person.agentCode)) map.set(person.agentCode, person);
+    }
+    for (const leader of leadersList) {
+      if (!leader.agentCode || map.has(leader.agentCode)) continue;
+      map.set(leader.agentCode, {
+        id: leader.id || leader.agentCode,
+        nhom: leader.nhom || '',
+        agentCode: leader.agentCode,
+        agentName: leader.agentName || '',
+        position: leader.position || leader.chucVu || '',
+        startDate: leader.startDate || leader.ngayBatDau || null,
+        ngayHieuLuc: leader.ngayHieuLuc || null,
+      });
+    }
+    return Array.from(map.values()).filter(person => !norm(person.nhom || '').toLowerCase().includes('dso'));
+  }, [recruiterList, leadersList]);
+
+  const chooseSubjectType = useCallback((type: string) => {
     const list = type.startsWith('phong_')
       ? (subjectLists.phongLists?.[type] || [])
-      : (subjectLists as any)[type];
-    const currentSet = new Set(subjectCodes);
-    const newSelected = new Set(selectedSubjectTypes);
-
-    if (selectedSubjectTypes.has(type)) {
-      // Đang on → tắt và remove các code của type này
-      newSelected.delete(type);
-      list.forEach(code => currentSet.delete(code));
-    } else {
-      // Đang off → bật và add các code (dedupe tự động qua Set)
-      newSelected.add(type);
-      list.forEach(code => currentSet.add(code));
+      : (subjectLists as any)[type] || [];
+    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : type === 'ntd' ? 'nyd' : 'tvv';
+    setTargetType(nextTarget);
+    if (nextTarget === 'nhom') {
+      setIncludeIndividualTN(false); // mặc định không tính cá nhân trưởng nhóm
     }
+    if (nextTarget === 'nyd') {
+      setIncludeIndividualNTD(false); // mặc định không tính cá nhân người tuyển dụng
+    }
+    if (conditionType === 'tvv_pass_count' && nextTarget !== 'nhom') setConditionType('total_ip');
+    setSelectedSubjectTypes(new Set([type]));
+    setThiDuaSubjects(Array.from(new Set(list)).join('\n'));
+  }, [subjectLists, conditionType]);
 
-    setSelectedSubjectTypes(newSelected);
-    setThiDuaSubjects([...currentSet].join('\n'));
-  }, [subjectLists, subjectCodes, selectedSubjectTypes]);
+  // Toggle tại hộp “Khác”: chỉ có thể chọn một bộ đối tượng chính; khi đổi
+  // bộ thì danh sách được thay bằng đúng danh sách lấy từ Cấu trúc.
+  const toggleSubjectType = useCallback((type: string) => {
+    if (selectedSubjectTypes.has(type)) {
+      setSelectedSubjectTypes(new Set());
+      setThiDuaSubjects('');
+    } else {
+      chooseSubjectType(type);
+    }
+  }, [chooseSubjectType, selectedSubjectTypes]);
 
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
@@ -885,7 +938,7 @@ function ThiDuaPageInner() {
     if (filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom')) {
       // Build map: agentCode → ngayHieuLuc (NTD recruiter)
       const ngayHieuLucMap = new Map<string, number>();
-      for (const r of recruiterList) {
+      for (const r of ntdCandidates) {
         if (r.agentCode && r.ngayHieuLuc) {
           const t = new Date(r.ngayHieuLuc).getTime();
           if (!isNaN(t)) ngayHieuLucMap.set(r.agentCode, t);
@@ -962,7 +1015,7 @@ function ThiDuaPageInner() {
     if (targetType === 'nyd') {
       // NTD: xác định tập mã NTD từ Recruiter table
       // Bỏ NTD thuộc nhóm DSO
-      const ntdNoDSO = recruiterList.filter(r => !norm(r.nhom || '').toLowerCase().includes('dso'));
+      const ntdNoDSO = ntdCandidates;
       if (subjectCodes.length > 0) {
         const selectedNydCodes = new Set(ntdNoDSO.filter(r => subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)).map(r => r.agentCode));
         return contractsFiltered.filter(c => selectedNydCodes.has(c.agentCode) || (c.maDaiLyTD && selectedNydCodes.has(c.maDaiLyTD)));
@@ -972,7 +1025,7 @@ function ThiDuaPageInner() {
       return contractsFiltered.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
     }
     return contractsFiltered;
-  }, [filteredContracts, subjectCodes, targetType, leadersList, recruiterList, filterByEffectiveDate, tvvStructList]);
+  }, [filteredContracts, subjectCodes, targetType, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList]);
 
   // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
 
@@ -984,7 +1037,7 @@ function ThiDuaPageInner() {
     // Step 1: Load NTD from Recruiter table
     // Nếu có DS đối tượng → chỉ lấy NTD trong DS, ngược lại lấy tất cả
     if (subjectCodes.length > 0) {
-      for (const r of recruiterList) {
+      for (const r of ntdCandidates) {
         if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
           nydMap.set(r.agentCode, {
             nydCode: r.agentCode,
@@ -1002,7 +1055,7 @@ function ThiDuaPageInner() {
       // Không tạo NTD từ mã tự nhập không thuộc DS TTN/Cấu trúc.
     } else {
       // Không có DS đối tượng → lấy tất cả NTD
-      for (const r of recruiterList) {
+      for (const r of ntdCandidates) {
         nydMap.set(r.agentCode, {
           nydCode: r.agentCode,
           nydName: r.agentName,
@@ -1102,7 +1155,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, recruiterList, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure]);
+  }, [displayContracts, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure]);
 
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
@@ -1534,7 +1587,7 @@ function ThiDuaPageInner() {
         if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
         else { agentFYPLookupP1.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
       }
-      for (const r of recruiterList) {
+      for (const r of ntdCandidates) {
         const recruited = phase1Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
@@ -1570,7 +1623,7 @@ function ThiDuaPageInner() {
         if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
         else { agentFYPLookupP2.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
       }
-      for (const r of recruiterList) {
+      for (const r of ntdCandidates) {
         const recruited = phase2Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
@@ -1661,7 +1714,7 @@ function ThiDuaPageInner() {
     const phase1Count = phase1Contracts.length;
     const phase2Count = phase2Contracts.length;
     return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, recruiterList, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, ntdCandidates, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // Helper: get the value for comparison based on condition type
   const getContractValue = useCallback((c: Contract): number => {
@@ -1842,7 +1895,7 @@ function ThiDuaPageInner() {
         posterUrl, participants: JSON.stringify(subjectCodes),
         usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
         bonusTiers2: JSON.stringify(bonusTiers2),
-        useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
+        useSecondaryCondition,
         secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
         secondaryTotalAFYPMin, secondaryTotalIPMin,
         hideNotAchieved, includeIndividualNTD, includeIndividualTN,
@@ -2038,8 +2091,8 @@ function ThiDuaPageInner() {
       merges = [];
       let currentRow = 1; // row 0 = header
       const sortedNYD = [...nydData].sort((a, b) => {
-        const aVal = isActivityRoundMode(conditionType) ? a.recruitCount : (a.recruitFYP + (includeIndividualTN ? a.ownFYP : 0));
-        const bVal = isActivityRoundMode(conditionType) ? b.recruitCount : (b.recruitFYP + (includeIndividualTN ? b.ownFYP : 0));
+        const aVal = isActivityRoundMode(conditionType) ? a.recruitCount : (a.recruitFYP + (includeIndividualNTD ? a.ownFYP : 0));
+        const bVal = isActivityRoundMode(conditionType) ? b.recruitCount : (b.recruitFYP + (includeIndividualNTD ? b.ownFYP : 0));
         return bVal - aVal;
       });
       sortedNYD.forEach((n, nIdx) => {
@@ -2109,7 +2162,7 @@ function ThiDuaPageInner() {
             // Điều kiện col 5
             merges.push({ s: { r: startRow, c: 5 }, e: { r: endRow, c: 5 } });
             let mergeOffset = 0;
-            if (includeIndividualTN) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
+            if (includeIndividualNTD) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
             // Supplementary cols (6 + mergeOffset ... 6 + mergeOffset + secOffset - 1)
             for (let ci = 0; ci < secOffset; ci++) {
               merges.push({ s: { r: startRow, c: 6 + mergeOffset + ci }, e: { r: endRow, c: 6 + mergeOffset + ci } });
@@ -2799,7 +2852,7 @@ function ThiDuaPageInner() {
       baseTotalBonus, totalBonusDisplay, displayTotalFYP,
       totalFYPValue, totalValue, matchedTotalTier, totalRemaining
     };
-  }, [displayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier]);
+  }, [displayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier]);
 
   const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
 
@@ -2954,7 +3007,7 @@ function ThiDuaPageInner() {
       const { tier, tierIndex } = calculateBonus(value);
       return { nyd: n, tier, tierIndex, value };
     }).sort((a, b) => b.value - a.value);
-  }, [nydData, conditionType, includeIndividualTN, calculateBonus]);
+  }, [nydData, conditionType, includeIndividualNTD, calculateBonus]);
 
   return (
     <div className={`min-h-screen ${isEmbedMode ? 'embed-mode bg-white' : ''}`}>
@@ -3072,9 +3125,48 @@ function ThiDuaPageInner() {
             </button>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3" style={{ display: showConfig ? 'block' : 'none' }}>
-              {/* 1. Đối tượng thi đua - Chọn TRƯỚC điều kiện */}
+              {/* 1. Đối tượng thi đua - luôn chọn trước điều kiện và hình thức */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-emerald-200">Đối tượng thi đua</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs font-medium text-emerald-200">Đối tượng thi đua</Label>
+                  <span className="text-[9px] text-emerald-300/60">Nguồn: Cấu trúc · không lấy từ doanh số</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                  {([
+                    { key: 'allTvv', label: 'Tất cả TVV', desc: 'Trừ BanCa', count: subjectLists.allTvv.length, icon: Users },
+                    { key: 'tvvm', label: 'TVVm', desc: '≤ 12 tháng', count: subjectLists.tvvm.length, icon: UserCheck },
+                    { key: 'tvvCu', label: 'TVV cũ', desc: 'Trừ TVVm', count: subjectLists.tvvCu.length, icon: Users },
+                    { key: 'nhom', label: 'Nhóm', desc: 'DS TB/TN', count: subjectLists.nhom.length, icon: Layers },
+                    { key: 'ttn', label: 'TTN', desc: 'DS TTN', count: subjectLists.ttn.length, icon: UserPlus },
+                    { key: 'ntd', label: 'NTD', desc: 'TN + TTN', count: subjectLists.ntd.length, icon: UserPlus },
+                  ]).map(option => {
+                    const active = selectedSubjectTypes.has(option.key);
+                    const Icon = option.icon;
+                    return (
+                      <button key={option.key} type="button" onClick={() => chooseSubjectType(option.key)}
+                        className={`relative min-h-[56px] rounded-lg border px-2 py-1.5 text-left transition-all ${active ? 'border-emerald-300 bg-emerald-500/25 text-white shadow-[0_0_14px_rgba(16,185,129,.2)]' : 'border-emerald-500/20 bg-[#111b2d] text-emerald-100/80 hover:border-emerald-400/60 hover:bg-emerald-500/10'}`}>
+                        <div className="flex items-center justify-between gap-1"><span className="flex items-center gap-1 font-bold text-[11px]"><Icon className="h-3.5 w-3.5" />{option.label}</span><span className="text-[9px] tabular-nums opacity-70">{option.count}</span></div>
+                        <span className="block mt-0.5 text-[9px] opacity-60">{option.desc}</span>
+                      </button>
+                    );
+                  })}
+                  {phongStructList.slice(0, 3).map((phong, index) => {
+                    const key = `phong_${phong.maPhong}`;
+                    const active = selectedSubjectTypes.has(key);
+                    const label = phong.tenPhong || `Phòng ${index + 1}`;
+                    const count = subjectLists.phongLists?.[key]?.length || 0;
+                    return <button key={key} type="button" onClick={() => chooseSubjectType(key)} className={`relative min-h-[56px] rounded-lg border px-2 py-1.5 text-left transition-all ${active ? 'border-sky-300 bg-sky-500/25 text-white shadow-[0_0_14px_rgba(14,165,233,.2)]' : 'border-sky-500/20 bg-[#111b2d] text-sky-100/80 hover:border-sky-400/60 hover:bg-sky-500/10'}`}><div className="flex items-center justify-between gap-1"><span className="flex items-center gap-1 font-bold text-[11px]"><Users className="h-3.5 w-3.5" />{label}</span><span className="text-[9px] tabular-nums opacity-70">{count}</span></div><span className="block mt-0.5 text-[9px] opacity-60">Tất cả TVV phòng</span></button>;
+                  })}
+                  <button type="button" onClick={() => setIsSubjectDialogOpen(true)} className="min-h-[56px] rounded-lg border border-amber-400/35 bg-amber-500/10 px-2 py-1.5 text-left text-amber-100 transition-all hover:border-amber-300 hover:bg-amber-500/20"><div className="flex items-center gap-1 font-bold text-[11px]"><Plus className="h-3.5 w-3.5" />Khác</div><span className="block mt-0.5 text-[9px] opacity-70">Thêm mã đại lý</span></button>
+                </div>
+                <p className="text-[10px] text-emerald-400/50 italic">Chọn một nhóm đối tượng chính. “Khác” có thể cộng thêm mã đại lý vào nhóm đang chọn.</p>
+              </div>
+
+              <Separator className="bg-emerald-500/20" />
+
+              {/* 2. Hình thức thi đua - quyết định cách tổng hợp kết quả */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-emerald-200">Hình thức thi đua</Label>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
@@ -3122,7 +3214,7 @@ function ThiDuaPageInner() {
 
               <Separator className="bg-emerald-500/20" />
 
-              {/* 2. Điều kiện thi đua */}
+              {/* 3. Điều kiện thi đua */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-emerald-200">Điều kiện thi đua</Label>
                 {/* Theo HĐ row */}
@@ -3434,7 +3526,7 @@ function ThiDuaPageInner() {
                     </Label>
                   </div>
                   {/* Include Individual NTD - for nhóm and NTD targets */}
-                  {(targetType === 'nhom' || targetType === 'nyd') && (
+                  {targetType === 'nyd' && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-violet-500/30 bg-emerald-500/10">
                       <Checkbox id="includeIndividualNTD" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
                       <Label htmlFor="includeIndividualNTD" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
@@ -3443,7 +3535,7 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                   {/* Include Individual TN - for nhóm and NTD targets */}
-                  {(targetType === 'nhom' || targetType === 'nyd') && (
+                  {targetType === 'nhom' && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-500/10">
                       <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(v) => setIncludeIndividualTN(!!v)} />
                       <Label htmlFor="includeIndividualTN" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
@@ -3609,7 +3701,7 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
-                          {includeIndividualTN && (
+                          {includeIndividualNTD && (
                             <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
@@ -3814,7 +3906,7 @@ function ThiDuaPageInner() {
                           for (const [, af] of p1RecruitedMap) { if (af >= luotHDThreshold) p1RecruitCount++; p1RecruitFYP += af; }
                         }
                         const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
-                        const p1Value = isActivityRoundMode(conditionType) ? p1RecruitCount : (p1RecruitFYP + (includeIndividualTN ? p1OwnFYP : 0));
+                        const p1Value = isActivityRoundMode(conditionType) ? p1RecruitCount : (p1RecruitFYP + (includeIndividualNTD ? p1OwnFYP : 0));
                         const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
                         const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
 
@@ -3831,7 +3923,7 @@ function ThiDuaPageInner() {
                           for (const [, af] of p2RecruitedMap) { if (af >= luotHDThreshold) p2RecruitCount++; p2RecruitFYP += af; }
                         }
                         const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
-                        const p2Value = isActivityRoundMode(conditionType) ? p2RecruitCount : (p2RecruitFYP + (includeIndividualTN ? p2OwnFYP : 0));
+                        const p2Value = isActivityRoundMode(conditionType) ? p2RecruitCount : (p2RecruitFYP + (includeIndividualNTD ? p2OwnFYP : 0));
                         const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
                         const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
 
@@ -3867,7 +3959,7 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
-                          {includeIndividualTN && (
+                          {includeIndividualNTD && (
                             <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(nyd.ownFYP)}</TableCell>
                           )}
                           {showRateColumn && !usePhase2 && (
@@ -4163,15 +4255,17 @@ function ThiDuaPageInner() {
                 className="w-full h-32 text-xs bg-gray-800 border border-gray-600 text-white rounded-lg p-2 font-mono resize-none focus:outline-none focus:border-sky-500/50"
               />
             </div>
-            {/* ===== 4 nút chọn nhanh đối tượng — cho phép chọn nhiều ===== */}
+            {/* Bộ chọn nhanh cũng dùng đúng một nguồn Cấu trúc như ở cấu hình. */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-emerald-300/70">Chọn nhanh theo nhóm đối tượng (có thể chọn nhiều):</Label>
+              <Label className="text-xs text-emerald-300/70">Đổi nhóm đối tượng chính:</Label>
               <div className="grid grid-cols-2 gap-1.5">
                 {([
+                  { key: 'allTvv' as const, label: 'Tất cả TVV', desc: `Trừ BanCa`, count: subjectLists.allTvv.length },
                   { key: 'tvvm'  as const, label: 'TVVm',  desc: `TVV mới ≤ 12 tháng`, count: subjectLists.tvvm.length },
-                  { key: 'tvvcu' as const, label: 'TVV cũ', desc: `TVV còn lại (trừ ban cán)`, count: subjectLists.tvvCu.length },
+                  { key: 'tvvCu' as const, label: 'TVV cũ', desc: `TVV còn lại`, count: subjectLists.tvvCu.length },
+                  { key: 'nhom'  as const, label: 'Nhóm',  desc: `DS TB/TN`, count: subjectLists.nhom.length },
                   { key: 'ttn'   as const, label: 'TTN',   desc: `Trưởng tổ nhóm (Cấu trúc)`, count: subjectLists.ttn.length },
-                  { key: 'tn'    as const, label: 'TN',    desc: `Trưởng ban/nhóm (Cấu trúc)`, count: subjectLists.tn.length },
+                  { key: 'ntd'   as const, label: 'NTD',   desc: `TN + TTN`, count: subjectLists.ntd.length },
                 ]).map(btn => {
                   const active = selectedSubjectTypes.has(btn.key);
                   return (
@@ -4225,7 +4319,7 @@ function ThiDuaPageInner() {
                 <p className="font-medium">Đã nhập {subjectCodes.length} đối tượng</p>
               </div>
             )}
-            {(targetType === 'tvv' ? contracts.length > 0 : targetType === 'nyd' ? recruiterList.length > 0 : staffList.length > 0) && (
+            {(targetType === 'tvv' ? contracts.length > 0 : targetType === 'nyd' ? ntdCandidates.length > 0 : staffList.length > 0) && (
               <div className="space-y-1">
                 <Label className="text-xs text-emerald-300/70">Đối tượng có sẵn ({targetType === 'tvv' ? 'TVV' : targetType === 'nyd' ? 'NTD' : 'Nhóm'}):</Label>
                 <div className="max-h-24 overflow-y-auto rounded-lg border border-gray-600/50 p-1.5">
@@ -4235,7 +4329,7 @@ function ThiDuaPageInner() {
                           <button key={code} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + code : code)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{code}</button>
                         ))
                       : targetType === 'nyd'
-                        ? recruiterList.map(r => (
+                        ? ntdCandidates.map(r => (
                             <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
                           ))
                         : [...new Map(staffList.filter(s => s.maNhom && !norm(s.nhom || '').toLowerCase().includes('dso') && !(s.maNhom || '').toLowerCase().includes('dso')).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
@@ -4267,3 +4361,4 @@ export default function ThiDuaPage() {
     </Suspense>
   );
 }
+
