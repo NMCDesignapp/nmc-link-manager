@@ -5373,15 +5373,26 @@ export default function QuanLyPage() {
   }, []);
 
   // ---------- SAO VIỆT: save SHARED link via Settings API ----------
+  // Only keep one canonical Google Sheets URL. This prevents pasted URLs from
+  // being concatenated and making the CSV export URL invalid.
+  const normalizeSaovietSharedLink = (rawLink: string) => {
+    const raw = rawLink.trim();
+    const spreadsheet = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,})/);
+    if (spreadsheet) return `https://docs.google.com/spreadsheets/d/${spreadsheet[1]}/edit`;
+    const published = raw.match(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/e\/[a-zA-Z0-9_-]+\/pub(?:\?[^\s]*)?/);
+    return published?.[0] || raw;
+  };
   // 1 spreadsheet with 3 tabs (ca-nhan | tn-ktm | tn-td) — syncs all 3 programs at once
   const saveSaovietSharedLink = useCallback(async (link: string) => {
-    setSaovietSharedLink(link);
+    const normalizedLink = normalizeSaovietSharedLink(link);
+    setSaovietSharedLink(normalizedLink);
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'saoviet-link-shared': link }),
+        body: JSON.stringify({ 'saoviet-link-shared': normalizedLink }),
       });
+      if (!res.ok) throw new Error('Không lưu được link');
     } catch {
       toast({ title: 'Lỗi lưu link', variant: 'destructive' });
     }
@@ -12114,10 +12125,11 @@ export default function QuanLyPage() {
                   <Label className="text-[10px] text-orange-200/70">Link Google Sheets (chung cho 3 chương trình)</Label>
                   <div className="flex items-center gap-1">
                     <Input
-                      defaultValue={saovietSharedLink}
+                      value={saovietSharedLink}
                       placeholder="https://docs.google.com/spreadsheets/d/..."
                       className="h-8 text-[11px] bg-white border-orange-500/30 text-gray-800 placeholder-gray-400 flex-1"
-                      onBlur={(e) => saveSaovietSharedLink(e.target.value.trim())}
+                      onChange={(e) => setSaovietSharedLink(e.target.value)}
+                      onBlur={(e) => saveSaovietSharedLink(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                     />
                     {saovietSharedLink && (
