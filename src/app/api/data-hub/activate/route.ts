@@ -9,11 +9,13 @@ export async function POST(request: NextRequest) {
     }
     const body = await request.json().catch(() => ({}));
     const enabled = body?.enabled === true;
+    const source = body?.source === 'revenue' ? 'revenue' : body?.source === 'saoviet' ? 'saoviet' : null;
+    if (!source) return NextResponse.json({ error: 'source phải là saoviet hoặc revenue' }, { status: 400 });
     await withRetry(() => db.$transaction([
       db.setting.upsert({
-        where: { key: 'nmc-data-hub-enabled' },
+        where: { key: `nmc-data-hub-${source}-enabled` },
         update: { value: String(enabled), updated_at: new Date() },
-        create: { key: 'nmc-data-hub-enabled', value: String(enabled) },
+        create: { key: `nmc-data-hub-${source}-enabled`, value: String(enabled) },
       }),
       db.setting.upsert({
         where: { key: 'nmc-data-hub-activated-at' },
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
         create: { key: 'nmc-data-hub-activated-at', value: new Date().toISOString() },
       }),
     ]));
-    return NextResponse.json({ enabled, activatedAt: new Date().toISOString() });
+    return NextResponse.json({ enabled, source, activatedAt: new Date().toISOString() });
   } catch (error: any) {
     console.error('POST /api/data-hub/activate error:', error);
     return NextResponse.json({ error: String(error?.message || error) }, { status: 500 });
