@@ -207,6 +207,17 @@ function isPublishedLink(link: string): boolean {
   return link.includes('/e/') && link.includes('/pub');
 }
 
+// Keep exactly one Google Sheets URL even if an administrator accidentally pastes
+// multiple URLs into the same setting. Prefer the standard spreadsheet link because
+// it lets the sync match the three tabs by their names.
+function normalizeGoogleSheetLink(rawLink: string): string {
+  const raw = rawLink.trim();
+  const spreadsheetId = extractSpreadsheetId(raw);
+  if (spreadsheetId) return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+  const published = raw.match(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/e\/[a-zA-Z0-9_-]+\/pub(?:\?[^\s]*)?/);
+  return published?.[0] || raw;
+}
+
 // Build published CSV URL with gid
 function buildPublishedCsvUrl(publishedLink: string, gid: string): string {
   const base = publishedLink.replace(/&gid=\d+/g, '');
@@ -315,7 +326,7 @@ async function fetchCsv(spreadsheetId: string, gid: string): Promise<{ csv?: str
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const link = String(body?.link || '').trim();
+    const link = normalizeGoogleSheetLink(String(body?.link || ''));
 
     if (!link) {
       return NextResponse.json({ error: 'Thiếu link Google Sheets' }, { status: 400 });
