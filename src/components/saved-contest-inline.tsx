@@ -104,6 +104,13 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const tvvStructList = (appData.structureTvv || []) as TVVStructMember[];
   // DS TB/TN (Cấu trúc) — nguồn ĐÚNG cho danh sách nhóm thi đua
   const leadersList = (appData.leaders || []) as any[];
+  // Ưu tiên TVV thuộc các Phòng đã khai báo trong Cấu trúc khi đồng điểm.
+  const priorityTvvCodes = useMemo(() => {
+    const phongCodes = new Set((appData.structurePhong || []).map((p: any) => p.maPhong).filter(Boolean));
+    const adCodes = new Set((appData.structureAd || []).filter((ad: any) => phongCodes.has(ad.maPhong)).map((ad: any) => ad.maAD).filter(Boolean));
+    const banNhomCodes = new Set((appData.structureBanNhom || []).filter((bn: any) => adCodes.has(bn.maAD)).map((bn: any) => bn.maBanNhom).filter(Boolean));
+    return new Set(tvvStructList.filter((tvv: any) => banNhomCodes.has(tvv.maBanNhom)).map((tvv: any) => tvv.agentCode).filter(Boolean));
+  }, [appData.structurePhong, appData.structureAd, appData.structureBanNhom, tvvStructList]);
 
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
@@ -123,8 +130,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     [displayContracts, config, staffList, recruiterList, leadersList]
   );
   const tvvTotalRows = useMemo(
-    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList),
-    [displayContracts, config, staffList, recruiterList, tvvStructList]
+    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes),
+    [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes]
   );
   const tvvPerContractRows = useMemo(
     () => computeTVVPerContractRows(displayContracts, config),
@@ -349,7 +356,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           ) : filteredRows.map((row, idx) => (
             <TableRow key={`${row.contract.id}-${idx}`} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-              <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.contract.nhom || row.contract.maNhom || '—'}</TableCell>
+              <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.contract.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.contract.agentCode}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.contract.agentName}</TableCell>
               <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(row.contract.effectiveDate)}</TableCell>
@@ -476,7 +483,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             return (
               <TableRow key={row.agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                 <TableCell className="text-center text-xs whitespace-nowrap text-gray-400">{idx + 1}</TableCell>
-                <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || row.agent.maNhom || '—'}</TableCell>
+                <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>
                 <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isPassCount ? `${row.value} TVV` : isActivity ? row.value : formatNumber(row.value)}</TableCell>
@@ -636,7 +643,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           ) : sortedGroups.map((row, idx) => (
             <TableRow key={row.g.maNhom} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-              <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.g.nhom || row.g.maNhom || '—'}</TableCell>
+              <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.g.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.g.leader?.agentCode || '—'}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.g.leader?.agentName || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.g.leader?.position || '—'}</TableCell>
