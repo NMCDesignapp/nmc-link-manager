@@ -1,8 +1,7 @@
 # NMC Data Hub — Giai đoạn 1
 
-Dịch vụ này chạy trên máy quản trị và **chủ động đẩy** 4 nguồn dữ liệu chuẩn hóa vào Main App:
+Dịch vụ này chạy trên máy quản trị và chủ động đẩy dữ liệu chuẩn hóa vào Main App. Giai đoạn đầu chỉ bật **Sao Việt Toàn Chặng**:
 
-- Doanh số tháng 7
 - Sao Việt Cá nhân
 - Sao Việt TN KTM
 - Sao Việt TN TD
@@ -38,13 +37,13 @@ Lệnh này phải báo `✓` cho cả 4 nguồn. Chưa tự bật chuyển đ�
 
 ## Bật nguồn Data Hub
 
-Sau khi đối chiếu số liệu trên Main App với file nguồn, chạy:
+Sau khi đối chiếu Sao Việt trên Main App với file nguồn, chạy:
 
 ```powershell
 npm run activate
 ```
 
-Từ thời điểm đó Main App và KPI không còn tự tải hai link Google. Chỉ dữ liệu do Data Hub công bố mới được dùng.
+Từ thời điểm đó chỉ 3 chương trình Sao Việt ngừng tải Google Sheets. Nguồn Tạm thu/Doanh số vẫn giữ Google Sheets đến giai đoạn kế tiếp.
 
 ## Chạy liên tục và tự đồng bộ
 
@@ -58,7 +57,6 @@ Mỗi 15 giây Data Hub kiểm tra thay đổi file. Dữ liệu chỉ được 
 
 ## Quy tắc dữ liệu
 
-- File doanh số phải có hàng tiêu đề giống file đã dùng trên Google Sheets.
 - Các sheet Sao Việt có thể có hoặc không có hàng tiêu đề; dữ liệu được giữ nguyên theo cấu trúc hiện có của app.
 - Nguồn không có dữ liệu không bị tự thay bằng dữ liệu cũ. Với nguồn doanh số, Data Hub chặn việc gửi file thiếu hàng tiêu đề; với Sao Việt, file/sheet rỗng được công bố là rỗng nếu `allowEmpty: true`.
 - Token không được đưa vào GitHub, email hoặc ảnh chụp màn hình.
