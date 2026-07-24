@@ -1,0 +1,39 @@
+{
+  "appUrl": "https://nc-link.vercel.app",
+  "tokenEnv": "NMC_DATA_HUB_TOKEN",
+  "watchIntervalSeconds": 15,
+  "activateAfterAllSourcesSynced": false,
+  "sources": [
+    {
+      "id": "revenue-july",
+      "kind": "revenue",
+      "file": "C:\\NMC-Data\\doanh-so-thang-7.xlsx",
+      "sheet": "Doanh so T7",
+      "allowEmpty": false
+    },
+    {
+      "id": "saoviet-ca-nhan",
+      "kind": "saoviet",
+      "program": "ca-nhan",
+      "file": "C:\\NMC-Data\\sao-viet.xlsx",
+      "sheet": "ca-nhan",
+      "allowEmpty": true
+    },
+    {
+      "id": "saoviet-tn-ktm",
+      "kind": "saoviet",
+      "program": "tn-ktm",
+      "file": "C:\\NMC-Data\\sao-viet.xlsx",
+      "sheet": "tn-ktm",
+      "allowEmpty": true
+    },
+    {
+      "id": "saoviet-tn-td",
+      "kind": "saoviet",
+      "program": "tn-td",
+      "file": "C:\\NMC-Data\\sao-viet.xlsx",
+      "sheet": "tn-td",
+      "allowEmpty": true
+    }
+  ]
+}
