@@ -6,6 +6,16 @@ import { db, withRetry } from '@/lib/db';
 const VALID_PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
 type Program = typeof VALID_PROGRAMS[number];
 
+type NormalizedSaoVietRow = {
+  agentCode: string;
+  agentName: string;
+  nhomKD: string;
+  fyp: number;
+  fypTVVm: number;
+  slTvvmHDC: number;
+  tvvmCount: number;
+};
+
 const DEFAULT_GIDS: Record<Program, string[]> = {
   'ca-nhan': ['681352635', '0'],
   'tn-ktm':  ['1078354882', '1'],
@@ -81,7 +91,7 @@ function parseCsvToRowsRaw(csv: string): string[][] {
   return lines.map(parseCsvLine);
 }
 
-function normalizeRow(program: Program, cells: string[]) {
+function normalizeRow(program: Program, cells: string[]): NormalizedSaoVietRow {
   const pickStr = (idx: number): string => {
     const v = cells[idx];
     return v == null ? '' : String(v).trim();
@@ -110,6 +120,62 @@ function normalizeRow(program: Program, cells: string[]) {
     slTvvmHDC: 0,
     tvvmCount: 0,
   };
+}
+
+// Local workbook layout (Data Hub): use Excel columns C,D,E,G,H,I,J,K,L
+// and ignore all rows before row 6. This avoids the title/header rows that
+// differ between the Excel file and the legacy Google Sheet export.
+function normalizeDataHubWorkbookRow(program: Program, cells: string[]): NormalizedSaoVietRow {
+  const pick = (idx: number) => String(cells[idx] ?? '').trim();
+  const nhomKD = pick(2); // C
+  const agentCode = pick(3); // D
+  const agentName = pick(4); // E
+  const valueG = parseVietnameseNumber(pick(6)); // G
+  const valueH = parseIntVal(pick(7)); // H
+  const valueI = parseIntVal(pick(8)); // I
+  // Read J/K/L deliberately so the source contract remains explicit even
+  // though the current SaoVietData model only displays the metrics above.
+  void pick(9); void pick(10); void pick(11);
+
+  if (program === 'tn-td') {
+    return { agentCode, agentName, nhomKD, fyp: 0, fypTVVm: valueG, slTvvmHDC: valueH, tvvmCount: valueI };
+  }
+  return { agentCode, agentName, nhomKD, fyp: valueG, fypTVVm: 0, slTvvmHDC: 0, tvvmCount: 0 };
+}
+
+// C can be blank for a leader in the Sao Viet workbook. In that case,
+// resolve the group from the Structure module, with Staff/Leader data as
+// compatibility fallbacks. Never invent a group when no structure exists.
+async function fillMissingGroups(rows: NormalizedSaoVietRow[]): Promise<NormalizedSaoVietRow[]> {
+  const codes = [...new Set(rows.filter(row => !row.nhomKD && row.agentCode).map(row => row.agentCode))];
+  if (codes.length === 0) return rows;
+
+  const [tvvRows, staffRows, leaderRows] = await Promise.all([
+    db.tVVStruct.findMany({ where: { agentCode: { in: codes } }, select: { agentCode: true, maBanNhom: true } }),
+    db.staff.findMany({ where: { agentCode: { in: codes } }, select: { agentCode: true, nhom: true } }),
+    db.leaderInfo.findMany({ where: { agentCode: { in: codes } }, select: { agentCode: true, nhom: true } }),
+  ]);
+  const structureCodes = [...new Set(tvvRows.map(row => row.maBanNhom).filter(Boolean))];
+  const banNhomRows = structureCodes.length
+    ? await db.banNhom.findMany({ where: { maBanNhom: { in: structureCodes } }, select: { maBanNhom: true, tenBanNhom: true } })
+    : [];
+  const groupByStructureCode = new Map(banNhomRows.map(row => [row.maBanNhom, row.tenBanNhom]));
+  const groupByAgentCode = new Map<string, string>();
+
+  for (const row of tvvRows) {
+    const group = groupByStructureCode.get(row.maBanNhom);
+    if (group) groupByAgentCode.set(row.agentCode, group);
+  }
+  for (const row of staffRows) {
+    if (row.nhom && !groupByAgentCode.has(row.agentCode)) groupByAgentCode.set(row.agentCode, row.nhom);
+  }
+  for (const row of leaderRows) {
+    if (row.nhom && !groupByAgentCode.has(row.agentCode)) groupByAgentCode.set(row.agentCode, row.nhom);
+  }
+
+  return rows.map(row => row.nhomKD || !row.agentCode
+    ? row
+    : { ...row, nhomKD: groupByAgentCode.get(row.agentCode) || '' });
 }
 
 function extractSpreadsheetId(link: string): string | null {
@@ -228,18 +294,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ count: 0, deleted: true, message: 'Sheet rỗng — đã xóa dữ liệu cũ', gidUsed: gid });
     }
 
-    // Skip header row if it looks like a header
+    // Local Excel has fixed columns and begins its actual records at row 6.
+    // The Google export retains its existing positional behavior.
     const firstRow = rowsRaw[0].map(c => c.toLowerCase().trim());
     const looksLikeHeader = firstRow.some(c =>
       c.includes('nhóm') || c.includes('nhom') ||
       c.includes('mã số') || c.includes('ma so') ||
       c.includes('họ tên') || c.includes('ho ten')
     );
-    const dataRows = looksLikeHeader ? rowsRaw.slice(1) : rowsRaw;
+    const dataRows = fromDataHub ? rowsRaw.slice(5) : (looksLikeHeader ? rowsRaw.slice(1) : rowsRaw);
 
-    const normalized = dataRows
-      .map(cells => normalizeRow(program, cells))
-      .filter(r => (r.agentCode || '').trim() !== '' || (r.agentName || '').trim() !== '' || (r.nhomKD || '').trim() !== '');
+    const parsedRows = dataRows
+      .map(cells => fromDataHub ? normalizeDataHubWorkbookRow(program, cells) : normalizeRow(program, cells))
+      .filter(r => (r.agentCode || '').trim() !== '' || (r.agentName || '').trim() !== '');
+    const normalized = await fillMissingGroups(parsedRows);
 
     if (normalized.length === 0) {
       return NextResponse.json({ error: `CSV không có dòng hợp lệ (có ${rowsRaw.length} dòng)` }, { status: 400 });
