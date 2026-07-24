@@ -2988,6 +2988,22 @@ export default function QuanLyPage() {
     try { const res = await fetch(`/api/structure/tvv/${id}`, { method: 'DELETE' }); if (res.ok) { fetchTvvStruct(); toast({ title: 'Đã xóa' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [fetchTvvStruct]);
 
+  const handleDeleteAllTvv = useCallback(async () => {
+    if (tvvStructList.length === 0) return;
+    const accepted = confirm(`Xóa toàn bộ ${tvvStructList.length} TVV trong DS TVV?\n\nThao tác này không thể hoàn tác. Hãy chắc chắn bạn đã có file cập nhật trước khi tiếp tục.`);
+    if (!accepted) return;
+    try {
+      const res = await fetch('/api/structure/tvv?deleteAll=true', { method: 'DELETE' });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || 'Không thể xóa DS TVV');
+      setTvvStructList([]);
+      await reloadAppData();
+      toast({ title: 'Đã xóa toàn bộ DS TVV', description: `Đã xóa ${result.deleted || tvvStructList.length} TVV. Bạn có thể cập nhật file mới ngay bây giờ.` });
+    } catch (error: any) {
+      toast({ title: 'Không thể xóa DS TVV', description: error?.message || 'Vui lòng thử lại', variant: 'destructive' });
+    }
+  }, [tvvStructList.length, reloadAppData]);
+
   // Upsert TVV from uploaded file — bấm nút → chọn file → upsert thông minh
   const [isReplacingTvv, setIsReplacingTvv] = useState(false);
 
@@ -4847,6 +4863,7 @@ export default function QuanLyPage() {
           <label htmlFor="tvv-list-upsert-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
             <Upload className="w-3.5 h-3.5" /> Cập nhật DS TVV
           </label>
+          <Button onClick={handleDeleteAllTvv} disabled={tvvStructList.length === 0} variant="outline" className="border-red-500/40 text-red-300 hover:bg-red-500/15 hover:text-red-200 h-8 text-xs disabled:opacity-40"><Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa toàn bộ</Button>
           <Button onClick={() => handleDownloadTemplate('structure-tvv')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('structure-tvv')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
         </div>
@@ -12572,3 +12589,4 @@ export default function QuanLyPage() {
     </div>
   );
 }
+
