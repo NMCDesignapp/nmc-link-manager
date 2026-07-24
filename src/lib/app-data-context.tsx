@@ -92,6 +92,9 @@ const fetchJson = async (url: string): Promise<any> => {
  */
 const syncPrimaryGoogleSources = async (settings: Record<string, string> | null): Promise<void> => {
   if (!settings) return
+  // Khi Data Hub đã được bật, dữ liệu được máy quản trị chủ động đẩy vào API.
+  // Không gọi Google Sheets và không tự thay bằng số liệu cũ ở phía trình duyệt.
+  if (settings['nmc-data-hub-enabled'] === 'true') return
 
   const tasks: Promise<unknown>[] = []
   const revenueJulyLink = settings['nmc-link-revenue-07']
