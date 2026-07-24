@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 
 // Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO) - UTC safe
 function parseDate(dateStr: string): Date | null {
@@ -97,6 +98,9 @@ function csvToObjects(rows: string[][]): Record<string, string>[] {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    if (isDataHubImport(body) && !isAuthorizedDataHubRequest(request)) {
+      return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
+    }
     const { contractCsv, staffCsv, recruiterCsv } = body as {
       contractCsv?: string;
       staffCsv?: string;
