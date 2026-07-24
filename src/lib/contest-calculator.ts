@@ -847,7 +847,8 @@ export function computeTVVTotalRows(
   config: ContestConfig,
   staffList: StaffMember[],
   recruiterList: RecruiterMember[],
-  tvvStructList?: TVVStructMember[]
+  tvvStructList?: TVVStructMember[],
+  priorityAgentCodes?: ReadonlySet<string>
 ): TVVTotalRow[] {
   if (config.targetType !== 'tvv' || isPerContractMode(config.conditionType)) {
     return [];
@@ -1053,7 +1054,14 @@ export function computeTVVTotalRows(
       }
       return { agent, value, tier, remaining, phaseInfo };
     })
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => {
+      const valueDiff = b.value - a.value;
+      if (valueDiff !== 0) return valueDiff;
+      const aPriority = priorityAgentCodes?.has(a.agent.agentCode) ? 1 : 0;
+      const bPriority = priorityAgentCodes?.has(b.agent.agentCode) ? 1 : 0;
+      if (aPriority !== bPriority) return bPriority - aPriority;
+      return a.agent.agentName.localeCompare(b.agent.agentName, 'vi');
+    });
 
   // For top_n_ip mode: assign tier by rank (only top N with IP >= topNMinIP get reward)
   if (isTopN) {
