@@ -3574,12 +3574,8 @@ function ThiDuaPageInner() {
             </CardContent>
         </Card>
 
-        {/* Action Buttons - Tính thi đua prominent, refresh small */}
+        {/* Action Buttons - đối tượng đã chọn ở bước cấu hình phía trên */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-10 text-[11px] bg-transparent" onClick={() => setIsSubjectDialogOpen(true)}>
-            <Users className="w-3.5 h-3.5 mr-1" /> DS đối tượng
-            {subjectCodes.length > 0 && <Badge className="ml-1 bg-sky-500 text-white text-[9px] h-4 px-1">{subjectCodes.length}</Badge>}
-          </Button>
           <Button onClick={handleCalculate} className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 h-10 text-sm font-bold shadow-lg shadow-emerald-600/20 border border-emerald-500/30">
             <Trophy className="w-4 h-4 mr-1" /> Tính thi đua
           </Button>
