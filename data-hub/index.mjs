@@ -102,7 +102,7 @@ async function importOne(config, source, state, force) {
 }
 
 async function activate(config) {
-  const result = await postJson(config, '/api/data-hub/activate', { enabled: true });
+  const result = await postJson(config, '/api/data-hub/activate', { enabled: true, source: config.activationSource || 'saoviet' });
   console.log(result.enabled ? '✓ Data Hub đã được bật trên Main App.' : 'Data Hub chưa được bật.');
 }
 
