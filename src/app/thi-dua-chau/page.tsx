@@ -1130,7 +1130,7 @@ function ThiDuaPageInner() {
       } else {
         agentMap.set(key, {
           agentCode: c.agentCode, agentName: c.agentName,
-          nhom: c.nhom || c.maNhom || '', maNhom: c.maNhom || '',
+          nhom: c.nhom || '—' || '', maNhom: c.maNhom || '',
           totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1,
           activityRounds: 0,
         });
@@ -1197,6 +1197,15 @@ function ThiDuaPageInner() {
         }
       }
     }
+    const priorityBanNhomCodes = new Set(
+      banNhomStructList
+        .filter(bn => adStructList.some(ad => ad.maAD === bn.maAD && phongStructList.some(p => p.maPhong === ad.maPhong)))
+        .map(bn => bn.maBanNhom)
+        .filter(Boolean)
+    );
+    const priorityTvvCodes = new Set(
+      tvvStructList.filter(tvv => priorityBanNhomCodes.has(tvv.maBanNhom)).map(tvv => tvv.agentCode).filter(Boolean)
+    );
     const allRows = Array.from(agentMap.values()).map(agent => {
       // Top N mode: chọn giá trị theo topNValueType ('ip' hoặc 'afyp')
       const value = isTopN
@@ -1234,7 +1243,14 @@ function ThiDuaPageInner() {
         };
       }
       return { agent, value, tier, remaining, phaseInfo };
-    }).sort((a, b) => b.value - a.value);
+    }).sort((a, b) => {
+      const valueDiff = b.value - a.value;
+      if (valueDiff !== 0) return valueDiff;
+      const aPriority = priorityTvvCodes.has(a.agent.agentCode) ? 1 : 0;
+      const bPriority = priorityTvvCodes.has(b.agent.agentCode) ? 1 : 0;
+      if (aPriority !== bPriority) return bPriority - aPriority;
+      return a.agent.agentName.localeCompare(b.agent.agentName, 'vi');
+    });
 
     // For top_n_ip mode: assign tier by rank (only top N with value >= topNMinIP get reward)
     if (isTopN) {
@@ -1268,7 +1284,7 @@ function ThiDuaPageInner() {
       });
     }
     return allRows;
-  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList]);
+  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList, phongStructList, adStructList, banNhomStructList]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
@@ -1427,7 +1443,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
+  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, includeIndividualTN, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
 
   // Phase 2: Split contracts by date and compute bonus — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
   const phase2Results = useMemo(() => {
@@ -1438,8 +1454,17 @@ function ThiDuaPageInner() {
     const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
 
     // TẤT CẢ chế độ: dùng Contracts (nguồn duy nhất), chia theo effectiveDate
-    const phase1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
-    const phase2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
+    const excludedGroupLeaderCodes = new Set(
+      targetType === 'nhom' && !includeIndividualTN
+        ? leadersList.map(l => l.agentCode).filter(Boolean)
+        : []
+    );
+    const phase1Contracts = displayContracts.filter(c =>
+      new Date(c.effectiveDate) < p2Start && !excludedGroupLeaderCodes.has(c.agentCode)
+    );
+    const phase2Contracts = displayContracts.filter(c =>
+      new Date(c.effectiveDate) >= p2Start && !excludedGroupLeaderCodes.has(c.agentCode)
+    );
 
     // Calculate Phase 1 and Phase 2 bonus
     let phase1Bonus = 0;
@@ -1531,7 +1556,7 @@ function ThiDuaPageInner() {
           }
           const ownRV = agentFYPLookupP1.get(r.agentCode);
           const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
-          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+          const value = recruitFYP + (includeIndividualNTD ? ownFYP : 0);
           const { tier } = calculateBonusWithTiers(value, bonusTiers);
           if (tier) phase1Bonus += computeBonusFromTier(tier, value);
         }
@@ -1567,7 +1592,7 @@ function ThiDuaPageInner() {
           }
           const ownRV = agentFYPLookupP2.get(r.agentCode);
           const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
-          const value = recruitFYP + (includeIndividualTN ? ownFYP : 0);
+          const value = recruitFYP + (includeIndividualNTD ? ownFYP : 0);
           const { tier } = calculateBonusWithTiers(value, bonusTiers2);
           if (tier) phase2Bonus += computeBonusFromTier(tier, value);
         }
@@ -1636,7 +1661,7 @@ function ThiDuaPageInner() {
     const phase1Count = phase1Contracts.length;
     const phase2Count = phase2Contracts.length;
     return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, recruiterList, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, recruiterList, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
 
   // Helper: get the value for comparison based on condition type
   const getContractValue = useCallback((c: Contract): number => {
@@ -1938,12 +1963,12 @@ function ThiDuaPageInner() {
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     if (targetType === 'nyd') {
       nydData.map(n => {
-        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
         return { nyd: n, tier, value };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value }, idx) => {
         const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} Lượt` : formatNumber(value);
-        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualTN ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
+        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualNTD ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
       [...groupedData].map((g) => {
@@ -1959,14 +1984,14 @@ function ThiDuaPageInner() {
         if (isTVVPassCountMode(conditionType)) {
           // Bảng đơn giản cho TVV đạt thi đua
           const bonusLabel = tier ? `Thưởng: ${formatBonus(tier, 0, tvvPassCount)}` : 'Chưa đạt';
-          text += `${idx + 1}. ${g.nhom || g.maNhom} | ${g.leader?.agentCode || '—'} | ${g.leader?.agentName || '—'} | ${tvvPassCount} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''} | ${bonusLabel}\n`;
+          text += `${idx + 1}. ${g.nhom || '—'} | ${g.leader?.agentCode || '—'} | ${g.leader?.agentName || '—'} | ${tvvPassCount} TVV đạt${!includeTNInPassCount ? ' (KO tính TN)' : ''} | ${bonusLabel}\n`;
         } else {
           const valueLabel = isActivityRoundMode(conditionType) ? `${g.activityRounds} ${isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}` : `IP: ${formatNumber(g.totalFYP)}`;
           const leaderLabel = g.leader ? `${g.leader.agentCode} ${g.leader.agentName} (${g.leader.position || 'TN'})` : '';
           if (usePhase2 && phase2StartDate) {
-            text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
+            text += `${idx + 1}. ${g.nhom || '—'} | ${leaderLabel} | ${valueLabel} | GD1: ${formatCurrency(groupPhase.phase1Bonus)} | GD2: ${formatCurrency(groupPhase.phase2Bonus)} | Tổng: ${formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus)}\n`;
           } else {
-            text += `${idx + 1}. ${g.nhom || g.maNhom} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
+            text += `${idx + 1}. ${g.nhom || '—'} | ${leaderLabel} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, g.totalFYP, g.activityRounds)}` : 'Chưa đạt'}\n`;
           }
         }
       });
@@ -1981,7 +2006,7 @@ function ThiDuaPageInner() {
         if (usePhase2 && phase2StartDate) {
           text += `${idx + 1}. ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | ${mainColLabel}: ${formatNumber(cValue)} | GD1: ${formatCurrency(phaseInfo.phase1Bonus)} | GD2: ${formatCurrency(phaseInfo.phase2Bonus)} | Tổng: ${formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus)}\n`;
         } else {
-          text += `${idx + 1}. ${c.nhom || c.maNhom} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | ${mainColLabel}: ${formatNumber(cValue)} | ${tier ? `Thưởng: ${formatBonus(tier, cValue)}` : 'Chưa đạt'}\n`;
+          text += `${idx + 1}. ${c.nhom || '—'} | ${c.agentCode} | ${c.agentName} | ${formatDate(c.effectiveDate)} | ${mainColLabel}: ${formatNumber(cValue)} | ${tier ? `Thưởng: ${formatBonus(tier, cValue)}` : 'Chưa đạt'}\n`;
         }
       });
     } else {
@@ -1989,7 +2014,7 @@ function ThiDuaPageInner() {
       const isAFYP = conditionType === 'total_afyp';
       tvvTotalRows.forEach(({ agent, value, tier }, idx) => {
         const valueLabel = isAFYP ? `AFYP: ${formatNumber(value)}` : `IP: ${formatNumber(value)}`;
-        text += `${idx + 1}. ${agent.nhom || agent.maNhom} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, value)}` : 'Chưa đạt'}\n`;
+        text += `${idx + 1}. ${agent.nhom || '—'} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonus(tier, value)}` : 'Chưa đạt'}\n`;
       });
     }
     navigator.clipboard.writeText(text).then(() => toast({ title: 'Đã sao chép!', description: 'Dán vào Zalo/Telegram' })).catch(() => toast({ title: 'Lỗi', description: 'Không thể sao chép', variant: 'destructive' }));
@@ -2008,7 +2033,7 @@ function ThiDuaPageInner() {
 
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualTN ? ['IP cá nhân'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualNTD ? ['IP cá nhân'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
       rows = [];
       merges = [];
       let currentRow = 1; // row 0 = header
@@ -2018,7 +2043,7 @@ function ThiDuaPageInner() {
         return bVal - aVal;
       });
       sortedNYD.forEach((n, nIdx) => {
-        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
         const { tier } = calculateBonus(value);
         // Check supplementary total condition
         const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
@@ -2029,7 +2054,7 @@ function ThiDuaPageInner() {
         if (contracts.length === 0) {
           // NTD không có HĐ, vẫn ghi 1 dòng
           const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName, n.position || '', isActivityRoundMode(conditionType) ? n.recruitCount : value];
-          if (includeIndividualTN) row.push(n.ownFYP);
+          if (includeIndividualNTD) row.push(n.ownFYP);
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
           row.push('', '', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
@@ -2048,7 +2073,7 @@ function ThiDuaPageInner() {
               cIdx === 0 ? (n.position || '') : '',
               cIdx === 0 ? (isActivityRoundMode(conditionType) ? n.recruitCount : value) : '',
             ];
-            if (includeIndividualTN) row.push(cIdx === 0 ? n.ownFYP : '');
+            if (includeIndividualNTD) row.push(cIdx === 0 ? n.ownFYP : '');
             if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             row.push(
@@ -2131,7 +2156,7 @@ function ThiDuaPageInner() {
           const remaining = getRemainingToNextTier(tvvPassCount);
           const row: (string | number)[] = [
             gIdx + 1,
-            g.nhom || g.maNhom,
+            g.nhom || '—',
             g.leader?.agentCode || '',
             g.leader?.agentName || '',
             tvvPassCount,
@@ -2170,7 +2195,7 @@ function ThiDuaPageInner() {
           const sc = checkSecondaryTotalCondition(g.contracts || []);
           const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
           if (contracts.length === 0) {
-            const row: (string | number)[] = [gIdx + 1, g.nhom || g.maNhom, g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
+            const row: (string | number)[] = [gIdx + 1, g.nhom || '—', g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
             if (expSecAFYP) row.push(sc.totalAFYP);
             if (expSecIP) row.push(sc.totalIP);
             row.push('', '', '', '', '', g.totalFYP);
@@ -2186,7 +2211,7 @@ function ThiDuaPageInner() {
             contracts.forEach((c, cIdx) => {
               const row: (string | number)[] = [
                 cIdx === 0 ? gIdx + 1 : '',
-                cIdx === 0 ? (g.nhom || g.maNhom) : '',
+                cIdx === 0 ? (g.nhom || '—') : '',
                 cIdx === 0 ? (g.leader?.agentCode || '') : '',
                 cIdx === 0 ? (g.leader?.agentName || '') : '',
                 cIdx === 0 ? (g.leader?.position || '') : '',
@@ -2267,7 +2292,7 @@ function ThiDuaPageInner() {
             const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
             return { c, cValue, tier, effectiveTier, phaseInfo, sc };
           }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, phaseInfo, sc }, idx) => {
-            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
+            const base: (string | number)[] = [idx + 1, c.nhom || '—', c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
             if (useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP) base.push(c.afyp);
             if (useSecondaryCondition && secondaryIPMin > 0 && isAFYP) base.push(c.pdt10DT);
             if (expSecAFYP) base.push(sc.totalAFYP);
@@ -2285,7 +2310,7 @@ function ThiDuaPageInner() {
             const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
             return { c, cValue, tier, effectiveTier, sc };
           }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, sc }, idx) => {
-            const base: (string | number)[] = [idx + 1, c.nhom || c.maNhom, c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
+            const base: (string | number)[] = [idx + 1, c.nhom || '—', c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
             if (useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP) base.push(c.afyp);
             if (useSecondaryCondition && secondaryIPMin > 0 && isAFYP) base.push(c.pdt10DT);
             if (expSecAFYP) base.push(sc.totalAFYP);
@@ -2310,7 +2335,7 @@ function ThiDuaPageInner() {
             const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
             const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
-            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+            const row: (string | number)[] = [idx + 1, agent.nhom || '—', agent.agentCode, agent.agentName, value];
             if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
             if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
             row.push(idx === 0 ? grandTotal : '');
@@ -2328,7 +2353,7 @@ function ThiDuaPageInner() {
             const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
             const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
-            const row: (string | number)[] = [idx + 1, agent.nhom || agent.maNhom, agent.agentCode, agent.agentName, value];
+            const row: (string | number)[] = [idx + 1, agent.nhom || '—', agent.agentCode, agent.agentName, value];
             if (expSecAFYP && !isAFYP) row.push(sc.totalAFYP);
             if (expSecIP && conditionType !== 'total_ip') row.push(sc.totalIP);
             row.push(idx === 0 ? grandTotal : '');
@@ -2376,7 +2401,7 @@ function ThiDuaPageInner() {
         if (targetType === 'nyd') {
           const n = nydData.find(n => n.nydCode === groupKey);
           if (!n) return '';
-          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
           const { tier } = calculateBonus(value);
           const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
           const sc = checkSecondaryTotalCondition(nydContracts);
@@ -2421,7 +2446,7 @@ function ThiDuaPageInner() {
           data: [
             0, // STT placeholder, will be set below
             c.ban || '',
-            c.nhom || c.maNhom || '',
+            c.nhom || '—' || '',
             c.maNhom || '',
             c.agentCode || '',
             c.agentName || '',
@@ -2734,12 +2759,12 @@ function ThiDuaPageInner() {
 
     // NYD stats
     const nydAchievedCount = targetType === 'nyd' ? nydData.filter(n => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
       return calculateBonus(value).tier;
     }).length : 0;
     const nydNotAchievedCount = targetType === 'nyd' ? nydData.length - nydAchievedCount : 0;
     const nydTotalBonus = targetType === 'nyd' ? nydData.reduce((sum, n) => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
       const { tier } = calculateBonus(value);
       if (!tier) return sum;
       return sum + computeBonusFromTier(tier, value, n.recruitCount);
@@ -2925,7 +2950,7 @@ function ThiDuaPageInner() {
   const nydResultRows = useMemo(() => {
     if (targetType !== 'nyd') return [];
     return nydData.map(n => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0));
+      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
       const { tier, tierIndex } = calculateBonus(value);
       return { nyd: n, tier, tierIndex, value };
     }).sort((a, b) => b.value - a.value);
@@ -3494,7 +3519,7 @@ function ThiDuaPageInner() {
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
-                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}` : `Tổng FYP${includeIndividualTN ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}` : `Tổng FYP${includeIndividualNTD ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
             )}
           </div>
@@ -3892,7 +3917,7 @@ function ThiDuaPageInner() {
                         return (
                           <TableRow key={group.maNhom} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                             <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-                            <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                            <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || '—'}</span></TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
                             <TableCell className="text-center text-xs whitespace-nowrap">
@@ -3908,7 +3933,7 @@ function ThiDuaPageInner() {
                       return (
                         <TableRow key={group.maNhom} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || group.maNhom}</span></TableCell>
+                          <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-semibold text-emerald-700">{group.nhom || '—'}</span></TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{group.leader?.agentCode || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap"><span className="font-medium">{group.leader?.agentName || '—'}</span></TableCell>
                           <TableCell className="text-xs text-gray-600 whitespace-nowrap">{group.leader?.position || '—'}</TableCell>
@@ -3982,7 +4007,7 @@ function ThiDuaPageInner() {
                       return (
                         <TableRow key={contract.id} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{contract.nhom || contract.maNhom}</TableCell>
+                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{contract.nhom || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap">{contract.agentName}</TableCell>
                           <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(contract.effectiveDate)}</TableCell>
@@ -4076,7 +4101,7 @@ function ThiDuaPageInner() {
                         return (
                           <TableRow key={agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                             <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-                            <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || agent.maNhom}</TableCell>
+                            <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || '—'}</TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>
                             <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(value)}</TableCell>
@@ -4214,7 +4239,7 @@ function ThiDuaPageInner() {
                             <button key={r.agentCode} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + r.agentCode : r.agentCode)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{r.agentCode}</button>
                           ))
                         : [...new Map(staffList.filter(s => s.maNhom && !norm(s.nhom || '').toLowerCase().includes('dso') && !(s.maNhom || '').toLowerCase().includes('dso')).map(s => [s.maNhom, { maNhom: s.maNhom, nhom: s.nhom }])).values()].map(g => (
-                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || g.maNhom}</button>
+                            <button key={g.maNhom} onClick={() => setThiDuaSubjects(prev => prev ? prev + '\n' + g.maNhom : g.maNhom)} className="px-1.5 py-0.5 text-[9px] bg-gray-800/50 hover:bg-sky-500/10 border border-gray-600/50 text-emerald-200/70 hover:text-sky-400 rounded cursor-pointer transition-colors">{g.nhom || '—'}</button>
                           ))
                     }
                   </div>
