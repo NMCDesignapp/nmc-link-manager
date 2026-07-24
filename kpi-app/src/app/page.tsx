@@ -2873,11 +2873,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .region-divider.is-collapse-btn .region-divider-title,
   .kpi-app .target-reg-btn { min-height: 40px; padding-left: 12px; padding-right: 12px; }
 }
-`;
-
-
-
-
 /* ============= DESKTOP DASHBOARD — DÙNG TRỌN KHUNG HÌNH ============= */
 @media (min-width: 900px) {
   .kpi-app .app-wrap {
@@ -3023,6 +3018,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .split-center > .afyp-chart-wrap { min-height: 455px; }
   .kpi-app .split-center .afyp-chart { height: 350px !important; }
 }
+
+`;
 
 /* ================= TYPES ================= */
 interface Contract {
