@@ -92,13 +92,14 @@ const fetchJson = async (url: string): Promise<any> => {
  */
 const syncPrimaryGoogleSources = async (settings: Record<string, string> | null): Promise<void> => {
   if (!settings) return
-  // Khi Data Hub đã được bật, dữ liệu được máy quản trị chủ động đẩy vào API.
-  // Không gọi Google Sheets và không tự thay bằng số liệu cũ ở phía trình duyệt.
-  if (settings['nmc-data-hub-enabled'] === 'true') return
+  // Hai nguồn chuyển dần độc lập: Sao Việt và doanh số/Tạm thu.
+  // Khi một nguồn đã được Data Hub công bố, chỉ nguồn đó ngừng gọi Google Sheets.
+  const useDataHubRevenue = settings['nmc-data-hub-revenue-enabled'] === 'true'
+  const useDataHubSaoViet = settings['nmc-data-hub-saoviet-enabled'] === 'true'
 
   const tasks: Promise<unknown>[] = []
   const revenueJulyLink = settings['nmc-link-revenue-07']
-  if (revenueJulyLink && settings['nmc-sync-revenue-07'] !== 'false') {
+  if (!useDataHubRevenue && revenueJulyLink && settings['nmc-sync-revenue-07'] !== 'false') {
     tasks.push((async () => {
       const csvResponse = await fetch(`/api/import-csv?url=${encodeURIComponent(revenueJulyLink)}`, { cache: 'no-store' })
       if (!csvResponse.ok) return
@@ -113,13 +114,13 @@ const syncPrimaryGoogleSources = async (settings: Record<string, string> | null)
   }
 
   const sharedSaoVietLink = settings['saoviet-link-shared']
-  if (sharedSaoVietLink) {
+  if (!useDataHubSaoViet && sharedSaoVietLink) {
     tasks.push(fetch('/api/saoviet-data/sync-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ link: sharedSaoVietLink }),
     }))
-  } else {
+  } else if (!useDataHubSaoViet) {
     for (const program of ['ca-nhan', 'tn-ktm', 'tn-td']) {
       const link = settings[`saoviet-link-${program}`]
       if (!link) continue
