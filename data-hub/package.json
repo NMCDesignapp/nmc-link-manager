@@ -1,0 +1,14 @@
+{
+  "name": "nmc-data-hub",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "once": "node index.mjs --once",
+    "activate": "node index.mjs --activate"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
