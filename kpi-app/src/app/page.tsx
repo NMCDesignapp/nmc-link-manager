@@ -2876,6 +2876,154 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 `;
 
 
+
+
+/* ============= DESKTOP DASHBOARD — DÙNG TRỌN KHUNG HÌNH ============= */
+@media (min-width: 900px) {
+  .kpi-app .app-wrap {
+    max-width: 1600px;
+    padding: 24px 36px 48px;
+  }
+
+  /* Chỉ giữ một dải Tiến độ khu vực cho desktop. */
+  .kpi-app .region-divider.mobile-only { display: none !important; }
+
+  .kpi-app .desktop-split { margin-top: 16px; }
+  .kpi-app .split-center {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.08fr) minmax(420px, .92fr);
+    grid-template-areas:
+      "nav company"
+      "chart honour";
+    align-items: start;
+    column-gap: 24px;
+    row-gap: 20px;
+  }
+
+  /* Sáu chức năng thành bảng điều khiển gọn ở cạnh trái của hàng tổng quan. */
+  .kpi-app .split-center > .nav-grid.dsk-nav {
+    grid-area: nav;
+    width: 100%;
+    align-self: stretch;
+    justify-self: stretch;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 10px;
+    border-radius: 16px;
+  }
+  .kpi-app .split-center > .nav-grid.dsk-nav .nav-btn {
+    min-height: 58px;
+    padding: 9px 10px;
+    font-size: 10px;
+  }
+
+  /* Công ty và 8 chỉ số dùng cùng một hàng, bớt chiều cao nhưng vẫn dễ đọc. */
+  .kpi-app .split-center > .dsk-company {
+    grid-area: company;
+    width: 100%;
+    margin: 0;
+    align-self: stretch;
+  }
+  .kpi-app .dsk-cty-top {
+    grid-template-columns: minmax(168px, .72fr) minmax(0, 1.28fr);
+    min-height: 136px;
+    gap: 10px;
+  }
+  .kpi-app .dsk-cty-main-head { padding: 8px 14px; }
+  .kpi-app .dsk-cty-main-body { padding: 12px 16px; gap: 6px; }
+  .kpi-app .dsk-cty-pct { font-size: 2.25rem; }
+  .kpi-app .dsk-cty-afyp { font-size: 1.3rem; }
+  .kpi-app .dsk-cty-kh { font-size: 10px; }
+  .kpi-app .dsk-cty-tier { gap: 8px; }
+  .kpi-app .dsk-cty-kpi-head { min-height: 28px; }
+  .kpi-app .dsk-cty-kpi-body { min-height: 46px; }
+  .kpi-app .dsk-cty-kpi-label { font-size: 9px; }
+  .kpi-app .dsk-cty-kpi-val { font-size: 1.35rem; }
+
+  /* Biểu đồ và Vinh danh là hai khối ngang có trọng lượng tương đương. */
+  .kpi-app .split-center > .afyp-chart-wrap {
+    grid-area: chart;
+    width: 100%;
+    min-height: 430px;
+    margin: 0 !important;
+    padding: 20px;
+    border-radius: 18px;
+  }
+  .kpi-app .split-center .afyp-chart { height: 330px !important; }
+  .kpi-app .split-center > .desktop-honour-layout {
+    grid-area: honour;
+    width: 100% !important;
+    margin: 0 !important;
+    align-self: stretch;
+  }
+  .kpi-app .split-center > .desktop-honour-layout > div:first-child { height: 100%; }
+  .kpi-app .split-center .desktop-honour-layout .banca-imgs-section {
+    min-height: 430px !important;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .kpi-app .split-center .desktop-honour-layout .banca-imgs-wall {
+    flex: 1 0 auto !important;
+    justify-content: center;
+    padding-top: 10px;
+  }
+  /* Nút này đã được đưa xuống cùng hàng với Tiến độ khu vực. */
+  .kpi-app .desktop-honour-layout .target-reg-section { display: none; }
+
+  /* Hai thao tác chính nằm trên một dải chung, không còn rơi tách xuống dưới. */
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) {
+    display: flex !important;
+    width: 100%;
+    margin: 22px 0 12px !important;
+    gap: 14px;
+  }
+  .kpi-app .desktop-target-inline {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid #c69332;
+    border-radius: 9px;
+    background: #644613;
+    color: #ffe5a0;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.14);
+    cursor: pointer;
+  }
+  .kpi-app .desktop-target-inline:hover {
+    background: #795618;
+    border-color: #f1c95f;
+  }
+
+  /* Bảng phòng theo đúng nội dung; không chừa một vùng trắng lớn khi ít AD. */
+  .kpi-app .split-right {
+    align-items: start;
+    grid-auto-rows: min-content;
+  }
+  .kpi-app .dept-section,
+  .kpi-app .dept-section > .rg-card,
+  .kpi-app .dept-section > .banca-separator + .rg-card {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .kpi-app .dept-section { align-self: start; }
+}
+
+@media (min-width: 1400px) {
+  .kpi-app .split-center {
+    grid-template-columns: minmax(0, 1.14fr) minmax(470px, .86fr);
+    column-gap: 28px;
+  }
+  .kpi-app .split-center > .afyp-chart-wrap { min-height: 455px; }
+  .kpi-app .split-center .afyp-chart { height: 350px !important; }
+}
+
 /* ================= TYPES ================= */
 interface Contract {
   id: string; agentCode: string; agentName: string; position: string;
@@ -5459,6 +5607,16 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <span className="collapse-icon" />
                     Tiến Độ Khu Vực
                   </span>
+                  <button
+                    type="button"
+                    className="desktop-target-inline"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setTargetRegOpen(true);
+                    }}
+                  >
+                    ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                  </button>
                 </div>
                 {/* Desktop: only split-right (cards) is collapsible.
                     Banca images + target reg button stay visible below. */}
