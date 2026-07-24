@@ -2002,35 +2002,36 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 0 18px rgba(255,215,107,.18);
 }
 .kpi-app .honour-image-grid {
-  /* Mỗi hàng chứa tối đa 5 ảnh; ô, khe và lề ngoài luôn đối xứng. */
-  display: grid; grid-template-columns: repeat(5, 55px); gap: 11px;
-  justify-content: center; align-items: center; width: max-content; max-width: 100%;
-  margin: 0 auto;
+  /* Lưới 5 cột luôn cân giữa: kích thước và khoảng trống hai bên đồng đều. */
+  --honour-cell-size: 62px;
+  display: grid; grid-template-columns: repeat(5, var(--honour-cell-size)); gap: 12px;
+  place-content: center; justify-items: center; align-items: center;
+  width: max-content; max-width: 100%; margin: 0 auto;
 }
 .kpi-app .banca-imgs-wall .banca-img-cell {
   position: relative !important; left: auto !important; top: auto !important;
-  /* Nhỏ hơn 30% so với cỡ cũ 78px. */
-  width: 55px !important; height: 55px !important; transform: none !important;
-  flex: 0 0 55px; border-width: 2px; cursor: default;
+  width: var(--honour-cell-size) !important; height: var(--honour-cell-size) !important;
+  transform: none !important; flex: 0 0 var(--honour-cell-size);
+  border-width: 2px; cursor: default;
 }
 .kpi-app .banca-imgs-wall .banca-img-cell:hover { transform: translateY(-3px) !important; }
 .kpi-app .honour-tier.platinum .banca-img-cell {
   border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%);
   box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20);
 }
+/* Hạng Vàng luôn bằng 80% kích thước Hạng Bạch Kim. */
 .kpi-app .honour-tier.gold .honour-image-grid {
-  grid-template-columns: repeat(5, 50px); gap: 12px;
+  --honour-cell-size: 50px; /* 50 / 62 ≈ 80% */
+  gap: 12px;
 }
-.kpi-app .honour-tier.gold .banca-img-cell {
-  width: 50px !important; height: 50px !important; flex-basis: 50px;
-  border-color: #ffd76b;
-}
+.kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
 @media (max-width: 640px) {
-  .kpi-app .banca-imgs-wall { width: min(100% - 20px, 360px); gap: 18px; }
-  .kpi-app .honour-image-grid { grid-template-columns: repeat(5, 43px); gap: 8px; }
-  .kpi-app .banca-imgs-wall .banca-img-cell { width: 43px !important; height: 43px !important; flex-basis: 43px; border-width: 2px; }
-  .kpi-app .honour-tier.gold .honour-image-grid { grid-template-columns: repeat(5, 40px); gap: 9px; }
-  .kpi-app .honour-tier.gold .banca-img-cell { width: 40px !important; height: 40px !important; flex-basis: 40px; }
+  .kpi-app .banca-imgs-wall { width: min(100% - 20px, 390px); gap: 18px; }
+  .kpi-app .honour-image-grid { --honour-cell-size: 55px; gap: 9px; }
+  .kpi-app .honour-tier.gold .honour-image-grid {
+    --honour-cell-size: 44px; /* 44 / 55 = 80% */
+    gap: 10px;
+  }
   .kpi-app .honour-tier-title { font-size: 8px; letter-spacing: .10em; }
 }
 
