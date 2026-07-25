@@ -29,6 +29,14 @@ function csvFromWorkbook(file, sheetName) {
   return XLSX.utils.sheet_to_csv(sheet, { FS: ',', RS: '\n', forceQuotes: true });
 }
 
+function rowsFromWorkbook(file, sheetName) {
+  const workbook = XLSX.readFile(file, { raw: false, cellDates: false });
+  const name = sheetName || workbook.SheetNames[0];
+  const sheet = workbook.Sheets[name];
+  if (!sheet) throw new Error(`Không tìm thấy sheet "${name}" trong ${file}`);
+  return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+}
+
 async function csvFromSource(source) {
   const extension = path.extname(source.file).toLowerCase();
   if (extension === '.csv') return fs.readFile(source.file, 'utf8');
@@ -39,6 +47,7 @@ async function csvFromSource(source) {
 }
 
 function hasData(csv, source) {
+  if (source.kind === 'structure') return Array.isArray(csv) && csv.length > 0;
   const rows = csv.split(/\r?\n/).filter(line => line.trim() !== '');
   const minimum = source.kind === 'revenue' ? 2 : 1;
   return rows.length >= minimum;
@@ -62,12 +71,14 @@ async function postJson(config, endpoint, body) {
 }
 
 async function importOne(config, source, state, force) {
-  const csv = await csvFromSource(source);
-  if (!source.allowEmpty && !hasData(csv, source)) {
+  const input = source.kind === 'structure'
+    ? rowsFromWorkbook(source.file, source.sheet)
+    : await csvFromSource(source);
+  if (!source.allowEmpty && !hasData(input, source)) {
     throw new Error(`Nguồn "${source.id}" không có dữ liệu hợp lệ; không công bố bản rỗng.`);
   }
 
-  const checksum = sha256(csv);
+  const checksum = sha256(typeof input === 'string' ? input : JSON.stringify(input));
   if (!force && state.sources?.[source.id]?.checksum === checksum) {
     return { id: source.id, changed: false, ok: true, count: state.sources[source.id].count ?? null };
   }
@@ -76,7 +87,7 @@ async function importOne(config, source, state, force) {
   if (source.kind === 'revenue') {
     payload = await postJson(config, '/api/sync', {
       source: 'nmc-data-hub',
-      contractCsv: csv,
+      contractCsv: input,
       staffCsv: '',
       recruiterCsv: '',
       replaceRevenueMonths: source.replaceMonths === true,
@@ -85,7 +96,13 @@ async function importOne(config, source, state, force) {
     payload = await postJson(config, '/api/saoviet-data/sync', {
       source: 'nmc-data-hub',
       program: source.program,
-      csv,
+      csv: input,
+    });
+  } else if (source.kind === 'structure') {
+    payload = await postJson(config, '/api/structure/sync', {
+      source: 'nmc-data-hub',
+      collection: source.collection,
+      rows: input,
     });
   } else {
     throw new Error(`Nguồn "${source.id}" có kind không hợp lệ: ${source.kind}`);
