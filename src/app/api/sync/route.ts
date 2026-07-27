@@ -138,6 +138,10 @@ export async function POST(request: NextRequest) {
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
 
+        // A blank Số HĐ is a valid business value. PostgreSQL unique indexes
+        // allow many NULLs, so the database can preserve it as truly blank.
+        await db.$executeRawUnsafe('ALTER TABLE "Contract" ALTER COLUMN "contractNumber" DROP NOT NULL');
+
         // The local Tamthu file is authoritative for the current month only.
         // Validate real HĐ numbers before deleting anything, then remove stale
         // records and upsert the file. Blank HĐ numbers are allowed.
@@ -239,7 +243,7 @@ export async function POST(request: NextRequest) {
           const tinhLuot3tr = parseNumber(tinhLuot3trStr);
 
           try {
-            await db.contract.upsert({
+            const savedContract = await db.contract.upsert({
               where: { contractNumber: finalContractNumber },
               update: {
                 stt: parseInt(sttStr) || 0,
@@ -288,6 +292,9 @@ export async function POST(request: NextRequest) {
                 maDaiLyTD, danhDauTVV, chucVu2,
               },
             });
+            if (!contractNumber.trim()) {
+              await db.$executeRawUnsafe('UPDATE "Contract" SET "contractNumber" = NULL WHERE "id" = $1', savedContract.id);
+            }
             upserted++;
           } catch {
             // Skip duplicate or error on individual record
