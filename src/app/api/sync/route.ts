@@ -120,15 +120,19 @@ export async function POST(request: NextRequest) {
     if (isDataHubImport(body) && !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
     }
-    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth } = body as {
+    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
       replaceCurrentRevenueMonth?: boolean;
+      replaceHistoricalRevenueMonths?: string[];
     };
     const replaceDataHubCurrentRevenueMonth = isDataHubImport(body) && replaceCurrentRevenueMonth === true;
+    const historicalRevenueMonths = isDataHubImport(body) && Array.isArray(replaceHistoricalRevenueMonths)
+      ? replaceHistoricalRevenueMonths.filter((month): month is string => typeof month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+      : [];
 
-    const results = { contracts: 0, deletedContracts: 0, currentMonth: '', staff: 0, recruiters: 0, errors: [] as string[] };
+    const results = { contracts: 0, deletedContracts: 0, currentMonth: '', historicalMonths: [] as string[], staff: 0, recruiters: 0, errors: [] as string[] };
 
     // 1. Import Contracts — HEADER-BASED mapping (không dùng vị trí cột nữa!)
     if (contractCsv) {
@@ -185,6 +189,43 @@ export async function POST(request: NextRequest) {
           });
           results.deletedContracts = deleted.count;
           results.currentMonth = currentMonth;
+        }
+
+        // Doanhso.xlsx is the authoritative source for completed months.
+        // The Data Hub never sends the current month here (Tamthu owns it).
+        if (historicalRevenueMonths.length > 0) {
+          const requestedMonths = [...new Set(historicalRevenueMonths)];
+          const requestedSet = new Set(requestedMonths);
+          const activeMonth = getCurrentBangkokMonth().label;
+          if (requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
+          importRows = importRows.filter(({ row }) => {
+            const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
+            const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
+            const date = issueDate || effectiveDate;
+            if (!date || !effectiveDate) return false;
+            const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+            return requestedSet.has(month);
+          });
+          if (importRows.length === 0) throw new Error('Doanhso không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
+          const numbers = new Set<string>();
+          const duplicates = new Set<string>();
+          for (const { row } of importRows) {
+            const number = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber').trim();
+            if (!number) continue;
+            if (numbers.has(number)) duplicates.add(number);
+            numbers.add(number);
+          }
+          if (duplicates.size > 0) throw new Error(`Số HĐ trùng trong Doanhso: ${[...duplicates].slice(0, 10).join(', ')}. Không cập nhật dữ liệu.`);
+          for (const month of requestedMonths) {
+            const from = new Date(`${month}-01T00:00:00.000Z`);
+            const until = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
+            const deleted = await db.contract.deleteMany({ where: { OR: [
+              { issueDate: { gte: from, lt: until } },
+              { issueDate: null, effectiveDate: { gte: from, lt: until } },
+            ] } });
+            results.deletedContracts += deleted.count;
+          }
+          results.historicalMonths = requestedMonths;
         }
 
         for (const { row, index } of importRows) {
