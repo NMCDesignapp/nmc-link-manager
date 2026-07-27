@@ -94,6 +94,25 @@ function csvToObjects(rows: string[][]): Record<string, string>[] {
   });
 }
 
+// The revenue dashboard groups a contract by issueDate, falling back to
+// effectiveDate. Keep the replacement window on exactly the same rule.
+function getCurrentBangkokMonth() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit',
+  }).formatToParts(new Date());
+  const year = Number(parts.find(part => part.type === 'year')?.value);
+  const month = Number(parts.find(part => part.type === 'month')?.value);
+  return {
+    from: new Date(Date.UTC(year, month - 1, 1)),
+    until: new Date(Date.UTC(year, month, 1)),
+    label: `${year}-${String(month).padStart(2, '0')}`,
+  };
+}
+
+function isInMonth(date: Date | null, from: Date, until: Date) {
+  return !!date && date >= from && date < until;
+}
+
 // POST /api/sync - Sync all 3 CSVs simultaneously
 export async function POST(request: NextRequest) {
   try {
@@ -101,15 +120,15 @@ export async function POST(request: NextRequest) {
     if (isDataHubImport(body) && !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
     }
-    const { contractCsv, staffCsv, recruiterCsv, replaceRevenueMonths } = body as {
+    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
-      replaceRevenueMonths?: boolean;
+      replaceCurrentRevenueMonth?: boolean;
     };
-    const replaceDataHubRevenueMonths = isDataHubImport(body) && replaceRevenueMonths === true;
+    const replaceDataHubCurrentRevenueMonth = isDataHubImport(body) && replaceCurrentRevenueMonth === true;
 
-    const results = { contracts: 0, staff: 0, recruiters: 0, errors: [] as string[] };
+    const results = { contracts: 0, deletedContracts: 0, currentMonth: '', staff: 0, recruiters: 0, errors: [] as string[] };
 
     // 1. Import Contracts — HEADER-BASED mapping (không dùng vị trí cột nữa!)
     if (contractCsv) {
@@ -119,24 +138,56 @@ export async function POST(request: NextRequest) {
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
 
-        // Data Hub is the authoritative monthly source: replace only the
-        // months that are present in this file, never other months.
-        if (replaceDataHubRevenueMonths) {
-          const monthsInSource = new Set<string>();
-          for (const row of records) {
-            const dateValue = getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate');
-            const date = parseDate(dateValue);
-            if (date) monthsInSource.add(`${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`);
+        // The local Tamthu file is authoritative for the current month only.
+        // Validate real HĐ numbers before deleting anything, then remove stale
+        // records and upsert the file. Blank HĐ numbers are allowed.
+        let importRows = records.map((row, index) => ({ row, index }));
+        let currentMonth = '';
+        if (replaceDataHubCurrentRevenueMonth) {
+          const window = getCurrentBangkokMonth();
+          currentMonth = window.label;
+          importRows = importRows.filter(({ row }) => {
+            const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
+            const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
+            return isInMonth(issueDate || effectiveDate, window.from, window.until) && !!effectiveDate;
+          });
+
+          if (importRows.length === 0) {
+            throw new Error(`Không có HĐ hợp lệ của tháng ${currentMonth} trong file; dữ liệu trên app không bị xóa.`);
           }
-          for (const monthKey of monthsInSource) {
-            const [year, month] = monthKey.split('-').map(Number);
-            const from = new Date(Date.UTC(year, month - 1, 1));
-            const until = new Date(Date.UTC(year, month, 1));
-            await db.contract.deleteMany({ where: { effectiveDate: { gte: from, lt: until } } });
+
+          const realNumbers = new Set<string>();
+          const duplicates = new Set<string>();
+          for (const { row } of importRows) {
+            const contractNumber = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber').trim();
+            if (!contractNumber) continue;
+            if (realNumbers.has(contractNumber)) duplicates.add(contractNumber);
+            realNumbers.add(contractNumber);
           }
+          if (duplicates.size > 0) {
+            throw new Error(`Số HĐ trùng trong file tháng ${currentMonth}: ${[...duplicates].slice(0, 10).join(', ')}. Không xóa hoặc cập nhật dữ liệu.`);
+          }
+
+          const existingCurrentMonth = await db.contract.findMany({
+            where: {
+              OR: [
+                { issueDate: { gte: window.from, lt: window.until } },
+                { issueDate: null, effectiveDate: { gte: window.from, lt: window.until } },
+              ],
+            },
+            select: { id: true, contractNumber: true },
+          });
+          const staleIds = existingCurrentMonth
+            .filter(contract => !realNumbers.has(contract.contractNumber))
+            .map(contract => contract.id);
+          if (staleIds.length > 0) {
+            const deleted = await db.contract.deleteMany({ where: { id: { in: staleIds } } });
+            results.deletedContracts = deleted.count;
+          }
+          results.currentMonth = currentMonth;
         }
 
-        for (const row of records) {
+        for (const { row, index } of importRows) {
           // Đọc theo tên header — hỗ trợ nhiều tên khác nhau
           const agentCode = getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode');
           const agentName = getVal(row, 'Tên', 'Họ tên', 'Tên TVV', 'agentName');
@@ -173,13 +224,12 @@ export async function POST(request: NextRequest) {
           const sttStr = getVal(row, 'STT', 'stt');
 
           if (!effectiveDateStr) continue;
-          // Generate deterministic contractNumber if missing: agentCode_effectiveDate_pdt10DT
-          // This ensures same CSV row maps to same contract across sync runs (no duplicates)
-          const finalContractNumber = contractNumber || (() => {
-            const key = `${agentCode || 'X'}_${effectiveDateStr || 'X'}_${pdt10DTStr || fypStr || '0'}_${afypStr || '0'}`;
-            return `AUTO_${key.replace(/[^a-zA-Z0-9_]/g, '')}`;
-          })();
-          if (seenContractNumbers.has(finalContractNumber)) continue;
+          // Blank contract numbers use a unique import key and are removed at
+          // the next authoritative current-month replacement.
+          const finalContractNumber = contractNumber || `AUTO_${currentMonth.replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
+          if (seenContractNumbers.has(finalContractNumber)) {
+            throw new Error(`Số HĐ trùng sau khi chuẩn hóa: ${finalContractNumber}`);
+          }
           seenContractNumbers.add(finalContractNumber);
 
           const effectiveDate = parseDate(effectiveDateStr);
