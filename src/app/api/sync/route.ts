@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
         await db.$executeRawUnsafe('ALTER TABLE "Contract" ALTER COLUMN "contractNumber" DROP NOT NULL');
 
         // The local Tamthu file is authoritative for the current month only.
-        // Validate real HĐ numbers before deleting anything, then remove stale
-        // records and upsert the file. Blank HĐ numbers are allowed.
+        // Validate all real HĐ numbers before deleting anything, then remove
+        // stale records and upsert the file. Blank HĐ numbers are allowed.
         let importRows = records.map((row, index) => ({ row, index }));
         let currentMonth = '';
         if (replaceDataHubCurrentRevenueMonth) {
@@ -177,8 +177,8 @@ export async function POST(request: NextRequest) {
           }
 
           // The current month is fully rebuilt from the file. Historical
-          // months are untouched, while any cancellation or edited row in the
-          // source is reflected exactly after this replacement.
+          // months are untouched, while cancellations and changes in the
+          // source are reflected exactly after this replacement.
           const deleted = await db.contract.deleteMany({
             where: {
               OR: [
@@ -265,9 +265,11 @@ export async function POST(request: NextRequest) {
           const sttStr = getVal(row, 'STT', 'stt');
 
           if (!effectiveDateStr) continue;
-          // Blank contract numbers use a unique import key and are removed at
-          // the next authoritative current-month replacement.
-          const finalContractNumber = contractNumber || `AUTO_${currentMonth.replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
+          // Blank contract numbers are normalised to a unique import key. They
+          // are removed at the next authoritative current-month replacement.
+          const finalContractNumber = contractNumber || (() => {
+            return `AUTO_${currentMonth.replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
+          })();
           if (seenContractNumbers.has(finalContractNumber)) {
             throw new Error(`Số HĐ trùng sau khi chuẩn hóa: ${finalContractNumber}`);
           }
@@ -293,7 +295,9 @@ export async function POST(request: NextRequest) {
                 recruiterCode: recruiterCode || '',
                 startDate,
                 effectiveDate,
-                issueDate: issueDate || effectiveDate,
+                // Ngày phát hành là dữ liệu thô: để trống trong Excel thì giữ trống.
+                // Không được suy diễn từ ngày hiệu lực.
+                issueDate,
                 pdt10DT: parseNumber(pdt10DTStr),
                 fyp,
                 nguonDuLieu, hopDongToChuc, dkDongPhi,
@@ -317,7 +321,9 @@ export async function POST(request: NextRequest) {
                 recruiterCode: recruiterCode || '',
                 startDate,
                 effectiveDate,
-                issueDate: issueDate || effectiveDate,
+                // Ngày phát hành là dữ liệu thô: để trống trong Excel thì giữ trống.
+                // Không được suy diễn từ ngày hiệu lực.
+                issueDate,
                 pdt10DT: parseNumber(pdt10DTStr),
                 fyp,
                 nguonDuLieu, hopDongToChuc, dkDongPhi,
