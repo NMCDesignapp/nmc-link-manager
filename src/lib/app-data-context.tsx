@@ -92,26 +92,11 @@ const fetchJson = async (url: string): Promise<any> => {
  */
 const syncPrimaryGoogleSources = async (settings: Record<string, string> | null): Promise<void> => {
   if (!settings) return
-  // Hai nguồn chuyển dần độc lập: Sao Việt và doanh số/Tạm thu.
-  // Khi một nguồn đã được Data Hub công bố, chỉ nguồn đó ngừng gọi Google Sheets.
-  const useDataHubRevenue = settings['nmc-data-hub-revenue-enabled'] === 'true'
+  // Doanh số/Tạm thu đã chuyển hẳn sang Data Hub từ Tamthu.xlsx trên máy tính.
+  // Không giữ fallback Google để tránh import trùng khi cấu hình bị thay đổi.
   const useDataHubSaoViet = settings['nmc-data-hub-saoviet-enabled'] === 'true'
 
   const tasks: Promise<unknown>[] = []
-  const revenueJulyLink = settings['nmc-link-revenue-07']
-  if (!useDataHubRevenue && revenueJulyLink && settings['nmc-sync-revenue-07'] !== 'false') {
-    tasks.push((async () => {
-      const csvResponse = await fetch(`/api/import-csv?url=${encodeURIComponent(revenueJulyLink)}`, { cache: 'no-store' })
-      if (!csvResponse.ok) return
-      const csvPayload = await csvResponse.json()
-      if (!csvPayload?.csvData) return
-      await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractCsv: csvPayload.csvData, staffCsv: '', recruiterCsv: '' }),
-      })
-    })())
-  }
 
   const sharedSaoVietLink = settings['saoviet-link-shared']
   if (!useDataHubSaoViet && sharedSaoVietLink) {
@@ -269,4 +254,3 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 export function useAppData() {
   return useContext(AppDataContext)
 }
-
