@@ -2022,8 +2022,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .honour-tier.platinum .banca-img-cell img { border-radius: inherit; }
 .kpi-app .honour-tier.platinum .banca-img-cell::after {
-  content: '♛'; position: absolute; left: 50%; top: -17px; z-index: 4;
-  transform: translateX(-50%); color: #eaf8ff; font-size: 20px; line-height: 1;
+  content: '♛'; position: absolute; left: 50%; top: -11px; z-index: 4;
+  transform: translateX(-50%) scaleX(1.22); color: #eaf8ff; font-size: 22px; line-height: 1;
   text-shadow: 0 1px 0 #5e8098, 0 0 9px rgba(218,242,255,.9); pointer-events: none;
 }
 /* Hạng Vàng luôn bằng 80% kích thước Hạng Bạch Kim. */
@@ -2815,10 +2815,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 
-/* Hạng Vàng nhỏ hơn 10% trên mọi kích thước màn hình. */
-.kpi-app .honour-tier.gold .banca-img-cell {
+/* Thu gọn toàn bộ ảnh vinh danh 10%; hạng Vàng vẫn nhỏ hơn Bạch Kim thêm 10%. */
+.kpi-app .honour-tier.platinum .banca-img-cell {
   width: 90% !important; height: 90% !important;
   align-self: center; justify-self: center;
+}
+.kpi-app .honour-tier.gold .banca-img-cell {
+  width: 81% !important; height: 81% !important;
+  align-self: center; justify-self: center;
+}
+@supports selector(.honour-image-grid:has(> .banca-img-cell)) {
+  .kpi-app .honour-tier.gold .honour-image-grid:has(> .banca-img-cell:nth-child(4):last-child) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    width: 80% !important; margin-left: auto; margin-right: auto;
+  }
 }
 
 /* ============= DẢI THAO TÁC KPI — MÀU ĐẬM, ĐỒNG BỘ ============= */
