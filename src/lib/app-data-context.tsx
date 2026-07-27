@@ -72,7 +72,7 @@ const AppDataContext = createContext<AppDataContextValue>({
   dataVersion: 0,
 })
 
-const APP_DATA_CACHE_KEY = 'nmc-app-data-v1'
+const APP_DATA_CACHE_KEY = 'nmc-app-data-v2'
 const APP_DATA_CACHE_TTL_MS = 60 * 1000
 
 const fetchJson = async (url: string): Promise<any> => {
@@ -180,14 +180,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
-      // Self-heal: ensure DB schema has all required columns/tables before fetching data.
-      // Idempotent + fail-safe — if it fails, data fetch still proceeds.
-      try {
-        await fetch('/api/admin/fix-schema', { method: 'POST' }).catch(() => {});
-      } catch {
-        // ignore — schema fix is best-effort
-      }
-
       try {
         // Đồng bộ hai nguồn Google Sheets nền trước: Doanh số tháng 7 và Sao Việt.
         // Khi Promise.all bên dưới hoàn tất, mọi màn hình sẽ nhận được dữ liệu mới.
@@ -207,7 +199,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/clb-members'),
           fetchJson('/api/pending-members'),
           fetchJson('/api/quan-ly/all'),
-          fetchJson('/api/contests'),
+          fetchJson('/api/contests?summary=1'),
         ])
 
         // /api/quan-ly/all is the single source for the four largest tables.
@@ -277,3 +269,4 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 export function useAppData() {
   return useContext(AppDataContext)
 }
+
