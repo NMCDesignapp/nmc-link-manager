@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
       orderBy: { effectiveDate: 'asc' },
     });
 
-    return NextResponse.json(contracts, {
+    // Keep a blank Số HĐ as an empty value for every UI consumer.
+    return NextResponse.json(contracts.map(contract => ({ ...contract, contractNumber: contract.contractNumber || '' })), {
       headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
