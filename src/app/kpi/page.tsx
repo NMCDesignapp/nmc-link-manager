@@ -2043,9 +2043,31 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   text-shadow: 0 1px 0 #5e8098, 0 0 9px rgba(218,242,255,.9); pointer-events: none;
 }
 /* Hạng Vàng luôn bằng 80% kích thước Hạng Bạch Kim. */
+.kpi-app .honour-tier.platinum .honour-image-grid {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
 .kpi-app .honour-tier.gold .honour-image-grid {
   --honour-cell-size: 50px; /* 50 / 62 ≈ 80% */
   gap: 12px;
+}
+.kpi-app .honour-tier.gold .honour-image-grid.honour-gold-pyramid {
+  grid-template-columns: repeat(5, var(--honour-cell-size));
+  column-gap: 12px;
+  row-gap: 12px;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(n + 6):nth-child(-n + 9) {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) / 2)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(n + 10):nth-child(-n + 12) {
+  transform: translateX(calc(var(--honour-cell-size) + 12px)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(n + 6):nth-child(-n + 9):hover {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) / 2)) translateY(-3px) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(n + 10):nth-child(-n + 12):hover {
+  transform: translateX(calc(var(--honour-cell-size) + 12px)) translateY(-3px) !important;
 }
 .kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
 @media (max-width: 640px) {
@@ -5452,8 +5474,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 5 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 5, count: BANCA_IMG_COUNT - 5 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -5461,7 +5483,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   return (
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
-      <div className="honour-image-grid">
+      <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
         {indices.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
           const key = `kpi-banca-img-${idx}`;
@@ -5600,8 +5622,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 5 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 5, count: BANCA_IMG_COUNT - 5 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -5609,7 +5631,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   return (
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
-      <div className="honour-image-grid">
+      <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
         {indices.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
           const key = `kpi-banca-img-${idx}`;
@@ -6801,7 +6823,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               return (
                 <div className="banca-profile-editor">
                   <div className="banca-profile-editor-head">
-                    <span>{Number(selectedIdx) <= 5 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <span>{Number(selectedIdx) <= 3 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
                     <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
                   </div>
                   <div className="banca-profile-editor-grid">
