@@ -1576,42 +1576,38 @@ function VinhDanhTable({
           </span>
         );
       }
-      return <span className="font-bold text-emerald-200/70">{row.rank}</span>;
+      return <span className="font-bold text-slate-600">{row.rank}</span>;
     }
     if (col.key === 'ip' || col.key === 'afypH1' || col.key === 'khH1') {
-      return <span className="font-bold text-emerald-300">{fmtNum(v)}</span>;
+      return <span className="font-bold text-emerald-700">{fmtNum(v)}</span>;
     }
     if (col.key === 'pct') {
       const isOver100 = typeof v === 'number' && v >= 100;
-      return <span className={`font-bold ${isOver100 ? 'text-emerald-300' : 'text-amber-300'}`}>{fmtPct(v)}</span>;
+      return <span className={`font-bold ${isOver100 ? 'text-emerald-700' : 'text-amber-700'}`}>{fmtPct(v)}</span>;
     }
     return <span>{v ?? '—'}</span>;
   };
   return (
-    <div className="bg-[#1a2332]/80 border border-emerald-500/30 rounded-lg overflow-hidden">
+    <div className="bg-white border border-emerald-300 rounded-none overflow-hidden shadow-[0_8px_22px_rgba(15,23,42,0.22)]">
       {/* Title bar */}
       <div
-        className="px-3 py-2"
-        style={{
-          background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
-          borderBottom: '2px solid #34d399',
-        }}
+        className="px-3 py-2 bg-emerald-600 border-b-2 border-emerald-800"
       >
-        <h3 className="text-sm font-extrabold text-emerald-100 tracking-wide uppercase">{title}</h3>
-        {subtitle && <p className="text-[10px] text-emerald-200/80 mt-0.5 italic">{subtitle}</p>}
+        <h3 className="text-sm font-extrabold text-white tracking-wide uppercase">{title}</h3>
+        {subtitle && <p className="text-[10px] text-emerald-50 mt-0.5 italic">{subtitle}</p>}
       </div>
       {/* Table */}
       {rows.length === 0 ? (
-        <div className="py-8 text-center text-emerald-200/50 text-xs italic">{emptyText}</div>
+        <div className="py-8 text-center text-slate-500 text-xs italic">{emptyText}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-emerald-500/10 border-b border-emerald-500/20">
+              <tr className="bg-emerald-100 border-b-2 border-emerald-300">
                 {columns.map(col => (
                   <th
                     key={col.key}
-                    className="px-2.5 py-1.5 text-emerald-300 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap"
+                    className="px-2.5 py-2 text-emerald-900 font-extrabold uppercase tracking-wide text-[10px] whitespace-nowrap"
                     style={{
                       textAlign: col.align || 'left',
                       width: col.width,
@@ -1626,12 +1622,12 @@ function VinhDanhTable({
               {rows.map((row, idx) => (
                 <tr
                   key={idx}
-                  className="border-b border-emerald-500/10 hover:bg-emerald-500/5 transition-colors"
+                  className="border-b border-slate-200 hover:bg-emerald-50 transition-colors"
                 >
                   {columns.map(col => (
                     <td
                       key={col.key}
-                      className="px-2.5 py-2 text-emerald-100/90"
+                      className="px-2.5 py-2 text-slate-700"
                       style={{ textAlign: col.align || 'left' }}
                     >
                       {renderCell(col, row)}
@@ -1721,6 +1717,11 @@ export default function QuanLyPage() {
   // ===== TÔN VINH — 4 bảng Top 5 (H1) =====
   const [vinhdanhSub, setVinhDanhSub] = useState<VinhDanhSubKey>('top5-tvv');
   const [vinhdanhExpanded, setVinhDanhExpanded] = useState(false); // desktop sidebar expand/collapse
+  // Tôn vinh luôn tính theo một giai đoạn trong cùng năm, để tỷ lệ KH tháng
+  // và các bảng xếp hạng dùng đúng cùng một tập doanh số.
+  const [vinhDanhYear, setVinhDanhYear] = useState(() => new Date().getFullYear());
+  const [vinhDanhFromMonth, setVinhDanhFromMonth] = useState('01');
+  const [vinhDanhToMonth, setVinhDanhToMonth] = useState('06');
 
   // ===== ADMIN AUTH (read from sessionStorage set by KPI page) =====
   // Khi chưa admin: ẩn BackButton + nút Cài đặt, chỉ hiện nút "Về trang KPI".
@@ -2201,7 +2202,7 @@ export default function QuanLyPage() {
   const hasSectionLink = useCallback((key: string) => !!sectionLinks[key], [sectionLinks]);
   const getSectionSync = useCallback((key: string) => sectionSyncs[key] !== false, [sectionSyncs]);
 
-  // ===== TÔN VINH — Tính toán 4 bảng Top 5 (6 tháng đầu năm = H1) =====
+  // ===== TÔN VINH — Tính toán 4 bảng Top 5 theo giai đoạn được chọn =====
   // Nguyên tắc:
   //   - IP = sum of contract.fyp trong H1 (theo getDoanhSoMonth = issueDate, fallback effectiveDate)
   //   - AFYP = sum of contract.afyp trong H1 (cho mục "Nhóm hoàn thành KH")
@@ -2211,19 +2212,21 @@ export default function QuanLyPage() {
   //     (chỉ hiển thị 1 chỗ, lấy hạng cao hơn)
   //   - "Hoàn thành KH 6 tháng" = nhóm có AFYP H1 >= KH năm × (tổng ratio tháng 1-6 / 100)
   //     KHÔNG fallback — nếu ratio = 0 thì KH H1 = 0
-  const VINH_DANH_H1_MONTHS = ['01', '02', '03', '04', '05', '06'];
-
   const vinhDanhData = useMemo(() => {
-    const curYear = new Date().getFullYear();
-    // H1 = tháng 1-6 của năm hiện tại
-    const h1Start = new Date(curYear, 0, 1);
-    const h1End = new Date(curYear, 5, 30, 23, 59, 59);
+    const fromMonth = Math.min(Number(vinhDanhFromMonth), Number(vinhDanhToMonth));
+    const toMonth = Math.max(Number(vinhDanhFromMonth), Number(vinhDanhToMonth));
+    const periodStart = new Date(vinhDanhYear, fromMonth - 1, 1);
+    const periodEnd = new Date(vinhDanhYear, toMonth, 0, 23, 59, 59, 999);
+    const periodMonths = Array.from({ length: toMonth - fromMonth + 1 }, (_, index) => String(fromMonth + index).padStart(2, '0'));
+    const periodLabel = fromMonth === toMonth
+      ? `T${String(fromMonth).padStart(2, '0')}/${vinhDanhYear}`
+      : `T${String(fromMonth).padStart(2, '0')} – T${String(toMonth).padStart(2, '0')}/${vinhDanhYear}`;
 
-    // ===== Filter contracts in H1 (theo tháng phát hành, fallback hiệu lực) =====
-    const h1Contracts = contracts.filter(c => {
+    // ===== Filter contracts theo tháng phát hành, fallback hiệu lực =====
+    const periodContracts = contracts.filter(c => {
       const d = getDoanhSoMonth(c);
       if (isNaN(d.getTime())) return false;
-      return d >= h1Start && d <= h1End;
+      return d >= periodStart && d <= periodEnd;
     });
 
     // ===== Build lookup: maBanNhom → AD/Phong (to exclude Banca) =====
@@ -2265,7 +2268,7 @@ export default function QuanLyPage() {
 
     // ===== 1. IP per TVV (agentCode) trong H1 =====
     const ipByTvv = new Map<string, { agentCode: string; agentName: string; maBanNhom: string; tenNhom: string; ip: number }>();
-    h1Contracts.forEach(c => {
+    periodContracts.forEach(c => {
       if (isContractExcluded(c)) return;
       const key = c.agentCode || c.maDL;
       if (!key) return;
@@ -2320,7 +2323,7 @@ export default function QuanLyPage() {
 
     // ===== 3. IP per Nhóm (maBanNhom) trong H1 =====
     const ipByNhom = new Map<string, { maBanNhom: string; tenNhom: string; ip: number; truongNhomMaSo?: string; truongNhomHoTen?: string }>();
-    h1Contracts.forEach(c => {
+    periodContracts.forEach(c => {
       if (isContractExcluded(c)) return;
       const maBN = c.maBanNhom || c.maNhom;
       if (!maBN) return;
@@ -2349,20 +2352,20 @@ export default function QuanLyPage() {
     // KH H1 = (KH năm của nhóm) × (tổng ratio tháng 1-6 / 100)
     // KHÔNG fallback — nếu ratio = 0 thì KH H1 = 0 (user chưa set ratio → 0)
     const afypByNhom = new Map<string, number>();
-    h1Contracts.forEach(c => {
+    periodContracts.forEach(c => {
       if (isContractExcluded(c)) return;
       const maBN = c.maBanNhom || c.maNhom;
       if (!maBN) return;
       afypByNhom.set(maBN, (afypByNhom.get(maBN) || 0) + (c.afyp || 0));
     });
-    // Total ratio tháng 1-6 từ settings
-    const h1Ratio = VINH_DANH_H1_MONTHS.reduce((s, m) => s + (parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0), 0);
-    const h1RatioPct = h1Ratio > 0 ? h1Ratio / 100 : 0; // KHÔNG fallback 50%
+    // Tổng tỷ lệ KH đúng theo các tháng đang xem; không dùng fallback.
+    const periodRatio = periodMonths.reduce((s, m) => s + (parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0), 0);
+    const periodRatioPct = periodRatio > 0 ? periodRatio / 100 : 0;
 
     const nhomHoanThanhKH = banNhomList
       .map(bn => {
         const khYear = parseFloat(onlineSettings[`nmc-kh-nhom-${bn.maBanNhom}`] || '0') || 0;
-        const khH1 = khYear * h1RatioPct;
+        const khH1 = khYear * periodRatioPct;
         const afypH1 = afypByNhom.get(bn.maBanNhom) || 0;
         // Loại nhóm Banca
         const maPhong = bnToPhong.get(bn.maBanNhom);
@@ -2387,9 +2390,10 @@ export default function QuanLyPage() {
       nhomHoanThanhKH: nhomHoanThanhKH.filter(n => n.hoanThanh),
       // Toàn bộ nhóm có KH (để hiển thị cả những nhóm chưa đạt — bonus info)
       allNhomWithKH: nhomHoanThanhKH,
-      h1RatioPct,
+      periodRatioPct,
+      periodLabel,
     };
-  }, [contracts, banNhomList, adList, leaders, tvvStructList, onlineSettings]);
+  }, [contracts, banNhomList, adList, leaders, tvvStructList, onlineSettings, vinhDanhYear, vinhDanhFromMonth, vinhDanhToMonth]);
 
 
   // Fetch individual (for refresh or single-tab loads after initial load)
@@ -6148,7 +6152,7 @@ export default function QuanLyPage() {
         top5TvvM: vinhDanhData.top5TvvM,
         top5Nhom: vinhDanhData.top5Nhom,
         nhomHoanThanhKH: vinhDanhData.nhomHoanThanhKH,
-        h1RatioPct: vinhDanhData.h1RatioPct,
+        h1RatioPct: vinhDanhData.periodRatioPct,
         year: new Date().getFullYear(),
       });
       toast({
@@ -11645,6 +11649,12 @@ export default function QuanLyPage() {
   const renderVinhDanh = () => {
     const cur = VINH_DANH_SUBS.find(s => s.key === vinhdanhSub) || VINH_DANH_SUBS[0];
     const Icon = cur.icon;
+    const availableYears = Array.from(new Set(contracts
+      .map(contract => getDoanhSoMonth(contract).getFullYear())
+      .filter(year => Number.isFinite(year))))
+      .sort((a, b) => b - a);
+    if (!availableYears.includes(vinhDanhYear)) availableYears.push(vinhDanhYear);
+    const months = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
     return (
       <div className="space-y-3">
         {/* Sub-tabs — xanh lục đồng bộ với Chính sách */}
@@ -11669,13 +11679,46 @@ export default function QuanLyPage() {
           })}
         </div>
 
+        <div className="flex flex-wrap items-end gap-2 border border-emerald-500/30 bg-slate-950/40 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-1.5 text-emerald-300 text-xs font-extrabold uppercase tracking-wide mr-1">
+            <Calendar className="w-4 h-4" /> Giai đoạn xem
+          </div>
+          <label className="flex flex-col gap-1 text-[10px] text-emerald-200/70 font-bold">
+            Năm
+            <select value={vinhDanhYear} onChange={(event) => setVinhDanhYear(Number(event.target.value))} className="h-8 min-w-[84px] bg-white border border-emerald-300 px-2 text-xs font-bold text-slate-800 outline-none">
+              {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[10px] text-emerald-200/70 font-bold">
+            Từ tháng
+            <select value={vinhDanhFromMonth} onChange={(event) => {
+              const month = event.target.value;
+              setVinhDanhFromMonth(month);
+              if (Number(month) > Number(vinhDanhToMonth)) setVinhDanhToMonth(month);
+            }} className="h-8 min-w-[82px] bg-white border border-emerald-300 px-2 text-xs font-bold text-slate-800 outline-none">
+              {months.map(month => <option key={month} value={month}>T{month}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[10px] text-emerald-200/70 font-bold">
+            Đến tháng
+            <select value={vinhDanhToMonth} onChange={(event) => {
+              const month = event.target.value;
+              setVinhDanhToMonth(month);
+              if (Number(month) < Number(vinhDanhFromMonth)) setVinhDanhFromMonth(month);
+            }} className="h-8 min-w-[82px] bg-white border border-emerald-300 px-2 text-xs font-bold text-slate-800 outline-none">
+              {months.map(month => <option key={month} value={month}>T{month}</option>)}
+            </select>
+          </label>
+          <span className="pb-1 text-[10px] text-slate-400 italic">Số liệu và xếp hạng cập nhật theo giai đoạn đã chọn.</span>
+        </div>
+
         {/* Current sub-page header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-base font-extrabold text-emerald-300 flex items-center gap-2 drop-shadow-[0_0_6px_rgba(16,185,129,0.3)]">
             <Icon className="w-5 h-5" /> {cur.label}
           </h2>
           <span className="text-[10px] text-emerald-200/70 italic">
-            Kỳ tính: 6 tháng đầu năm {new Date().getFullYear()} (T01 – T06)
+            Kỳ tính: {vinhDanhData.periodLabel}
           </span>
         </div>
 
@@ -11686,7 +11729,7 @@ export default function QuanLyPage() {
             - KHÔNG bao giờ hiển thị MÃ NHÓM (maBanNhom) trên bảng — mã nhóm chỉ để tính toán/lookup. */}
         {vinhdanhSub === 'top5-tvv' && (
           <VinhDanhTable
-            title="TOP 5 TVV — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            title={`TOP 5 TVV — TỔNG IP CAO NHẤT ${vinhDanhData.periodLabel}`}
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
@@ -11702,13 +11745,13 @@ export default function QuanLyPage() {
               ip: t.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
-            emptyText="Chưa có dữ liệu IP trong 6 tháng đầu năm"
+            emptyText={`Chưa có dữ liệu IP trong giai đoạn ${vinhDanhData.periodLabel}`}
           />
         )}
 
         {vinhdanhSub === 'top5-tvvm' && (
           <VinhDanhTable
-            title="TOP 5 TVVm (TVV MỚI) — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            title={`TOP 5 TVVm (TVV MỚI) — TỔNG IP CAO NHẤT ${vinhDanhData.periodLabel}`}
             subtitle="Lưu ý: TVVm đã lọt Top 5 TVV chung (mục 1) sẽ KHÔNG hiển thị ở đây — chỉ lấy hạng cao hơn."
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
@@ -11731,7 +11774,7 @@ export default function QuanLyPage() {
 
         {vinhdanhSub === 'top5-nhom' && (
           <VinhDanhTable
-            title="TOP 5 NHÓM — TỔNG IP CAO NHẤT 6 THÁNG ĐẦU NĂM"
+            title={`TOP 5 NHÓM — TỔNG IP CAO NHẤT ${vinhDanhData.periodLabel}`}
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
@@ -11747,14 +11790,14 @@ export default function QuanLyPage() {
               ip: n.ip,
             }))}
             rankColors={['#FFD700', '#C0C0C0', '#CD7F32', '#9CA3AF', '#9CA3AF']}
-            emptyText="Chưa có dữ liệu IP theo nhóm trong 6 tháng đầu năm"
+            emptyText={`Chưa có dữ liệu IP theo nhóm trong giai đoạn ${vinhDanhData.periodLabel}`}
           />
         )}
 
         {vinhdanhSub === 'nhom-hoan-thanh-kh' && (
           <VinhDanhTable
-            title="NHÓM KINH DOANH HOÀN THÀNH KẾ HOẠCH 6 THÁNG ĐẦU NĂM"
-            subtitle={`Tính theo AFYP H1 ≥ KH H1 (KH H1 = KH năm × ${(vinhDanhData.h1RatioPct * 100).toFixed(1)}% tỷ lệ tháng T01-T06). Chỉ hiển thị các nhóm đã đạt.`}
+            title={`NHÓM KINH DOANH HOÀN THÀNH KẾ HOẠCH ${vinhDanhData.periodLabel}`}
+            subtitle={`Tính theo AFYP giai đoạn ≥ KH giai đoạn (KH = KH năm × ${(vinhDanhData.periodRatioPct * 100).toFixed(1)}% tỷ lệ tháng đã chọn). Chỉ hiển thị các nhóm đã đạt.`}
             columns={[
               { key: 'rank', label: 'STT', width: '50px' },
               { key: 'tenNhom', label: 'Nhóm' },
@@ -12589,4 +12632,3 @@ export default function QuanLyPage() {
     </div>
   );
 }
-
