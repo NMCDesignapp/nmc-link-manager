@@ -168,22 +168,18 @@ export async function POST(request: NextRequest) {
             throw new Error(`Số HĐ trùng trong file tháng ${currentMonth}: ${[...duplicates].slice(0, 10).join(', ')}. Không xóa hoặc cập nhật dữ liệu.`);
           }
 
-          const existingCurrentMonth = await db.contract.findMany({
+          // The current month is fully rebuilt from the file. Historical
+          // months are untouched, while any cancellation or edited row in the
+          // source is reflected exactly after this replacement.
+          const deleted = await db.contract.deleteMany({
             where: {
               OR: [
                 { issueDate: { gte: window.from, lt: window.until } },
                 { issueDate: null, effectiveDate: { gte: window.from, lt: window.until } },
               ],
             },
-            select: { id: true, contractNumber: true },
           });
-          const staleIds = existingCurrentMonth
-            .filter(contract => !realNumbers.has(contract.contractNumber))
-            .map(contract => contract.id);
-          if (staleIds.length > 0) {
-            const deleted = await db.contract.deleteMany({ where: { id: { in: staleIds } } });
-            results.deletedContracts = deleted.count;
-          }
+          results.deletedContracts = deleted.count;
           results.currentMonth = currentMonth;
         }
 
