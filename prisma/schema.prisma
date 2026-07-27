@@ -56,7 +56,7 @@ model CalendarEvent {
 model Contract {
   id                  String    @id @default(uuid())
   stt                 Int       @default(0)
-  contractNumber      String    @unique
+  contractNumber      String?   @unique
   agentCode           String
   agentName           String
   position            String    @default("")
