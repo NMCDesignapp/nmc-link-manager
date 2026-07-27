@@ -2817,12 +2817,24 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Thu gọn toàn bộ ảnh vinh danh 10%; hạng Vàng vẫn nhỏ hơn Bạch Kim thêm 10%. */
 .kpi-app .honour-tier.platinum .banca-img-cell {
-  width: 90% !important; height: 90% !important;
+  width: 90% !important; height: auto !important; aspect-ratio: 1 / 1;
   align-self: center; justify-self: center;
 }
 .kpi-app .honour-tier.gold .banca-img-cell {
-  width: 81% !important; height: 81% !important;
+  width: 81% !important; height: auto !important; aspect-ratio: 1 / 1;
   align-self: center; justify-self: center;
+}
+.kpi-app .honour-image-grid .banca-img-cell,
+.kpi-app .honour-image-grid .banca-img-cell img {
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+}
+/* Vương miện chỉ tựa trên viền: phần chân được cắt, không lấn vào ảnh. */
+.kpi-app .honour-tier.platinum .banca-img-cell::after {
+  top: -15px;
+  height: 13px;
+  overflow: hidden;
+  transform: translateX(-50%) scaleX(1.34);
 }
 @supports selector(.honour-image-grid:has(> .banca-img-cell)) {
   .kpi-app .honour-tier.gold .honour-image-grid:has(> .banca-img-cell:nth-child(4):last-child) {
