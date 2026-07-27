@@ -3711,6 +3711,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
   };
 
+  const openTargetRegistration = () => {
+    if (!targetRegistrationOpen) {
+      alert('Chức năng đăng ký mục tiêu đang tạm khóa bởi admin');
+      return;
+    }
+    setTargetRegOpen(true);
+  };
+
   // When user picks "Trưởng nhóm" → reset form để nhập
   // When user picks nhóm trong dropdown → auto-fill TN info từ leadersList
   const selectTargetRegNhom = (maNhom: string) => {
@@ -3986,20 +3994,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const noticeContent = (onlineSettings['kpi-notice-content'] || '').trim();
   const noticeEnabled = onlineSettings['kpi-notice-enabled'] !== '0'; // default true
   const targetRegistrationOpen = onlineSettings['kpi-target-registration-open'] !== '0';
-
-  const toggleTargetRegistration = async () => {
-    const next = !targetRegistrationOpen;
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'kpi-target-registration-open': next ? '1' : '0' }),
-      });
-      if (!res.ok) throw new Error('save failed');
-      setOnlineSettings(prev => ({ ...prev, 'kpi-target-registration-open': next ? '1' : '0' }));
-    } catch {
-      alert('Không thể cập nhật trạng thái đăng ký mục tiêu. Vui lòng thử lại.');
-    }
-  };
 
   const NOW = useMemo(() => new Date(), []);
   const CUR_YEAR = NOW.getFullYear();
@@ -5488,10 +5482,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               {/* === ĐĂNG KÝ MỤC TIÊU THÁNG (button) ===
                   User request: button bấm → popup chọn TN/TTN → form đăng ký. */}
               <div className="target-reg-section mobile-only">
-                <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)} disabled={!targetRegistrationOpen}>
+                <button className="target-reg-btn" onClick={openTargetRegistration}>
                   ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
                 </button>
-                {!standalone && adminAuthed && <button type="button" className="target-reg-btn" style={{ marginTop: 8, fontSize: 11, opacity: .86 }} onClick={toggleTargetRegistration}>{targetRegistrationOpen ? '🔓 Khóa đăng ký mục tiêu' : '🔒 Mở đăng ký mục tiêu'}</button>}
               </div>
 
               {/* Desktop Split Layout: 2 cột — TRÁI (3fr): 5 nút nav + công ty + biểu đồ | PHẢI (1fr): 4 phòng dọc (bằng nhau, fill height) */}
@@ -5643,10 +5636,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     )}
                     {/* Target registration button */}
                     <div className="target-reg-section">
-                      <button className="target-reg-btn" onClick={() => setTargetRegOpen(true)} disabled={!targetRegistrationOpen}>
+                      <button className="target-reg-btn" onClick={openTargetRegistration}>
                         ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
                       </button>
-                      {!standalone && adminAuthed && <button type="button" className="target-reg-btn" style={{ marginTop: 8, fontSize: 11, opacity: .86 }} onClick={toggleTargetRegistration}>{targetRegistrationOpen ? '🔓 Khóa đăng ký mục tiêu' : '🔒 Mở đăng ký mục tiêu'}</button>}
                     </div>
                   </div>
                 </div>
@@ -5669,9 +5661,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     className="desktop-target-inline"
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (targetRegistrationOpen) setTargetRegOpen(true);
+                      openTargetRegistration();
                     }}
-                    disabled={!targetRegistrationOpen}
                   >
                     ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
                   </button>
