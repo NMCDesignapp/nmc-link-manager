@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, LockKeyhole
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { AppLoader } from '@/components/app-loader';
@@ -61,6 +61,22 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .main-header > div { flex: 1; text-align: center; }
 .kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
 .kpi-app .main-header > .btn-admin-u + div { margin-right: 46px; }
+
+/* Thông báo trạng thái đăng ký — gọn, luôn ở trung tâm màn hình. */
+.kpi-app .target-registration-lock-notice {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(1, 10, 22, .48); backdrop-filter: blur(3px);
+}
+.kpi-app .target-registration-lock-notice-card {
+  width: min(340px, 100%); display: flex; align-items: center; gap: 12px; padding: 15px 17px;
+  background: linear-gradient(145deg, #10233a, #091524); border: 1px solid #d8a93b88; border-radius: 14px;
+  box-shadow: 0 18px 48px #00000090, 0 0 24px #d8a93b24; color: #eef7ff;
+}
+.kpi-app .target-registration-lock-notice-icon {
+  width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px;
+  color: #ffda75; background: #d8a93b1c; border: 1px solid #d8a93b55;
+}
+.kpi-app .target-registration-lock-notice p { margin: 0; color: #dce9f6; font-size: 13px; font-weight: 700; line-height: 1.4; }
 
 /* Controls */
 .kpi-app .ctrl-bar { display: flex; gap: 10px; margin-top: 16px; flex-wrap: nowrap; align-items: center; position: relative; }
@@ -2814,7 +2830,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   }
 }
 
-
 /* Thu gọn toàn bộ ảnh vinh danh 10%; hạng Vàng vẫn nhỏ hơn Bạch Kim thêm 10%. */
 .kpi-app .honour-tier.platinum .banca-img-cell {
   width: 90% !important; height: auto !important; aspect-ratio: 1 / 1;
@@ -2842,6 +2857,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     width: 80% !important; margin-left: auto; margin-right: auto;
   }
 }
+
 
 /* ============= DẢI THAO TÁC KPI — MÀU ĐẬM, ĐỒNG BỘ ============= */
 /* Tiến độ khu vực: xanh navy/teal để biểu thị theo dõi. */
@@ -3698,6 +3714,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Sau khi đăng ký → hiển thị trong trang "Danh sách đăng ký mục tiêu tháng" (1 nút mới trong 5 nút nav).
   const [targetRegOpen, setTargetRegOpen] = useState(false); // popup level 1: chọn TN / TTN
   const [targetRegRole, setTargetRegRole] = useState<'tn' | 'ttn' | null>(null); // level 2
+  const [targetRegistrationLockedNotice, setTargetRegistrationLockedNotice] = useState(false);
   // Level 2 form state
   const [targetRegForm, setTargetRegForm] = useState<{
     nhom: string; maNhom: string; agentCode: string; agentName: string; position: string;
@@ -3711,9 +3728,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
   };
 
+  const showTargetRegistrationLockedNotice = useCallback(() => {
+    setTargetRegistrationLockedNotice(true);
+    window.setTimeout(() => setTargetRegistrationLockedNotice(false), 2800);
+  }, []);
+
   const openTargetRegistration = () => {
     if (!targetRegistrationOpen) {
-      alert('Chức năng đăng ký mục tiêu đang tạm khóa bởi admin');
+      showTargetRegistrationLockedNotice();
       return;
     }
     setTargetRegOpen(true);
@@ -3735,7 +3757,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
   const submitTargetReg = async () => {
     if (!targetRegistrationOpen) {
-      alert('Đăng ký mục tiêu đang tạm khóa.');
+      showTargetRegistrationLockedNotice();
       closeTargetReg();
       return;
     }
@@ -6821,6 +6843,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           </div>
         );
       })()}
+
+      {targetRegistrationLockedNotice && (
+        <div className="target-registration-lock-notice" role="alert" onClick={() => setTargetRegistrationLockedNotice(false)}>
+          <div className="target-registration-lock-notice-card" onClick={(event) => event.stopPropagation()}>
+            <div className="target-registration-lock-notice-icon"><LockKeyhole size={17} /></div>
+            <p>Chức năng đăng ký mục tiêu đang tạm khóa bởi admin.</p>
+          </div>
+        </div>
+      )}
 
       {/* ===== BANCA-PA DETAIL POPUP (no summary, only detail table) ===== */}
       {bancaPopupOpen && bancaPopupData && (
