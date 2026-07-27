@@ -1722,6 +1722,13 @@ export default function QuanLyPage() {
   const [vinhDanhYear, setVinhDanhYear] = useState(() => new Date().getFullYear());
   const [vinhDanhFromMonth, setVinhDanhFromMonth] = useState('01');
   const [vinhDanhToMonth, setVinhDanhToMonth] = useState('06');
+  // Buộc các điều kiện dựa theo thời gian (TVVm, tháng/quý hiện hành...) được
+  // tính lại ngay cả khi người dùng để app mở xuyên qua đầu tháng.
+  const [, setCalendarTick] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setCalendarTick(value => value + 1), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // ===== ADMIN AUTH (read from sessionStorage set by KPI page) =====
   // Khi chưa admin: ẩn BackButton + nút Cài đặt, chỉ hiện nút "Về trang KPI".
@@ -2816,12 +2823,14 @@ export default function QuanLyPage() {
       kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
-      saoviet: async () => { /* No data to load — placeholder page */ },
-      'clb-saoviet': async () => { /* Criteria shown statically — no data to load */ },
+      // Các trang này tính trực tiếp từ cấu trúc + doanh số, nên luôn lấy mới
+      // khi người dùng mở để không giữ danh sách đối tượng cũ.
+      saoviet: async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchLeaders(), fetchRecruiters()]); },
+      'clb-saoviet': async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchLeaders(), fetchRecruiters(), fetchClbMembers(), fetchPendingMembers()]); },
       'vinh-danh': async () => { await Promise.all([fetchContracts(), fetchLeaders(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
     };
     loaders[sheet]().finally(() => setIsLoading(false));
-  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct]);
+  }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct, fetchClbMembers, fetchPendingMembers]);
 
   // Skip initial loadSheet — context đã preload dữ liệu toàn app.
   // Chỉ gọi loadSheet khi user chủ động đổi sheet (để load sheet-specific data nếu cần).
@@ -2833,6 +2842,22 @@ export default function QuanLyPage() {
     }
     loadSheet(activeSheet);
   }, [activeSheet, loadSheet]);
+
+  // Khi đang xem Chính sách, Sao Việt hoặc CLB Sao Việt, làm mới nguồn cấu
+  // trúc/dữ liệu nền định kỳ. Vì vậy thêm/bớt TVV, TB/TN, TTN hay thành viên
+  // CLB từ Cấu trúc sẽ tự phản ánh vào đúng đối tượng xét thưởng mà không cần
+  // tải lại trang thủ công.
+  useEffect(() => {
+    if (!['report', 'saoviet', 'clb-saoviet'].includes(activeSheet)) return;
+    const refreshDynamicPrograms = () => {
+      void Promise.all([
+        fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom(),
+        fetchLeaders(), fetchRecruiters(), fetchClbMembers(), fetchPendingMembers(),
+      ]);
+    };
+    const timer = window.setInterval(refreshDynamicPrograms, 30_000);
+    return () => window.clearInterval(timer);
+  }, [activeSheet, fetchAllData, fetchTvvStruct, fetchPhong, fetchAD, fetchBanNhom, fetchLeaders, fetchRecruiters, fetchClbMembers, fetchPendingMembers]);
 
   // ========== CRUD: Leaders ==========
   const updateLeader = useCallback(async (id: string, field: string, value: any) => {
@@ -3651,6 +3676,16 @@ export default function QuanLyPage() {
     adPlansForTarget.set(ad.maAD, sum);
   });
   const targetTongAFYP = adList.reduce((s, ad) => s + (adPlansForTarget.get(ad.maAD) || 0), 0);
+  // Một nguồn kế hoạch duy nhất cho cả Tổng quan và trang Kế hoạch:
+  // KH tháng công ty = tổng KH tháng đã nhập cho các AD, không phân bổ lại
+  // từ tổng năm theo tỷ lệ % (hai cách có thể khác nhau).
+  const companyMonthlyAFYPPlans = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    return adList.reduce((sum, ad) => {
+      const mm = String(month).padStart(2, '0');
+      return sum + (parseFloat(onlineSettings[`nmc-kh-ad-${ad.maAD}-t${mm}`] || '0') || 0);
+    }, 0);
+  });
 
   // Other indicators: display only, no plan from KẾ HOẠCH
   const targetTongIP = 0; // IP has no plan
@@ -4145,9 +4180,7 @@ export default function QuanLyPage() {
           const selectedPeriodMonths = getPeriodMonths(overviewPeriod);
           let aggPlan = 0, aggActual = 0;
           selectedPeriodMonths.forEach(mi => {
-            const mm = String(mi).padStart(2, '0');
-            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
-            const mp = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
+            const mp = companyMonthlyAFYPPlans[mi - 1] || 0;
             aggPlan += mp;
             const mcc = yearContracts.filter(c => { const d = getDoanhSoMonth(c); return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() + 1 === mi; });
             aggActual += mcc.reduce((s, c) => s + c.afyp, 0);
@@ -4174,8 +4207,7 @@ export default function QuanLyPage() {
         <div className="space-y-0.5">
           {Array.from({ length: 12 }, (_, i) => {
             const m = String(i + 1).padStart(2, '0');
-            const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0;
-            const monthlyPlan = targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0;
+            const monthlyPlan = companyMonthlyAFYPPlans[i] || 0;
             const mc = yearContracts.filter(c => {
               const d = getDoanhSoMonth(c);
               return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
@@ -4215,7 +4247,7 @@ export default function QuanLyPage() {
             const d = getDoanhSoMonth(c);
             return !isNaN(d.getTime()) && d.getFullYear() === currentYear && String(d.getMonth() + 1).padStart(2, '0') === m;
           });
-          const target = (() => { const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${m}`] || '0') || 0; return targetTongAFYP > 0 && ratio > 0 ? targetTongAFYP * ratio / 100 : 0; })();
+          const target = companyMonthlyAFYPPlans[i] || 0;
           return { month: m, index: i, afyp: mc.reduce((s, c) => s + c.afyp, 0), ip: mc.reduce((s, c) => s + c.pdt10DT, 0), count: mc.length, target };
         });
         const maxAfyp = Math.max(...monthlyData.map(d => Math.max(d.afyp, d.target)), 1);
@@ -5363,7 +5395,7 @@ export default function QuanLyPage() {
   }, [onlineSettings]);
 
   // ---------- SAO VIỆT: load manual data per program (DB-backed, không nằm trong settings) ----------
-  useEffect(() => {
+  const fetchSaoVietManualData = useCallback(async () => {
     Promise.all(SAOVIET_PROGRAMS.map(p =>
       fetch(`/api/saoviet-data?program=${p}`).then(r => r.ok ? r.json() : []).then(rows => [p, rows] as const)
     ))
@@ -5374,6 +5406,19 @@ export default function QuanLyPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    void fetchSaoVietManualData();
+  }, [fetchSaoVietManualData]);
+
+  // File Sao Việt được đồng bộ nền từ máy tính. Khi đang mở Sao Việt hoặc
+  // CLB Sao Việt, lấy lại bản DB định kỳ để số liệu và đối tượng mới xuất hiện
+  // mà không cần người dùng tải lại trang.
+  useEffect(() => {
+    if (activeSheet !== 'saoviet' && activeSheet !== 'clb-saoviet') return;
+    const timer = window.setInterval(() => { void fetchSaoVietManualData(); }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [activeSheet, fetchSaoVietManualData]);
 
   // ---------- SAO VIỆT: save link via Settings API ----------
   const saveSaovietLink = useCallback(async (program: string, link: string) => {
