@@ -90,7 +90,7 @@ async function importOne(config, source, state, force) {
       contractCsv: input,
       staffCsv: '',
       recruiterCsv: '',
-      replaceRevenueMonths: source.replaceMonths === true,
+      replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
     });
   } else if (source.kind === 'saoviet') {
     payload = await postJson(config, '/api/saoviet-data/sync', {
