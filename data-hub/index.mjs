@@ -29,6 +29,34 @@ function csvFromWorkbook(file, sheetName) {
   return XLSX.utils.sheet_to_csv(sheet, { FS: ',', RS: '\n', forceQuotes: true });
 }
 
+function bangkokYearMonth() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+  return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}`;
+}
+
+function historicalRevenueFromWorkbook(file) {
+  const workbook = XLSX.readFile(file, { raw: false, cellDates: false });
+  const currentMonth = bangkokYearMonth();
+  const year = currentMonth.slice(0, 4);
+  let header = '';
+  const rows = [];
+  const months = [];
+  for (const name of workbook.SheetNames) {
+    if (!/^(?:[1-9]|1[0-2])$/.test(name)) continue; // skip “Cả năm”
+    const month = `${year}-${name.padStart(2, '0')}`;
+    if (month === currentMonth) continue; // Tamthu owns the live month
+    const values = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: false })
+      .filter(row => row.some(cell => String(cell).trim() !== ''));
+    if (values.length < 2) continue;
+    const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
+    const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (!header) header = lines[0];
+    rows.push(...lines.slice(1));
+    months.push(month);
+  }
+  return { csv: header ? [header, ...rows].join('\n') : '', months };
+}
+
 function rowsFromWorkbook(file, sheetName) {
   const workbook = XLSX.readFile(file, { raw: false, cellDates: false });
   const name = sheetName || workbook.SheetNames[0];
@@ -49,7 +77,7 @@ async function csvFromSource(source) {
 function hasData(csv, source) {
   if (source.kind === 'structure') return Array.isArray(csv) && csv.length > 0;
   const rows = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-  const minimum = source.kind === 'revenue' ? 2 : 1;
+  const minimum = (source.kind === 'revenue' || source.kind === 'revenue-history') ? 2 : 1;
   return rows.length >= minimum;
 }
 
@@ -71,14 +99,15 @@ async function postJson(config, endpoint, body) {
 }
 
 async function importOne(config, source, state, force) {
-  const input = source.kind === 'structure'
+  const historyInput = source.kind === 'revenue-history' ? historicalRevenueFromWorkbook(source.file) : null;
+  const input = historyInput ? historyInput.csv : source.kind === 'structure'
     ? rowsFromWorkbook(source.file, source.sheet)
     : await csvFromSource(source);
   if (!source.allowEmpty && !hasData(input, source)) {
     throw new Error(`Nguồn "${source.id}" không có dữ liệu hợp lệ; không công bố bản rỗng.`);
   }
 
-  const checksum = sha256(typeof input === 'string' ? input : JSON.stringify(input));
+  const checksum = sha256(historyInput ? JSON.stringify(historyInput) : (typeof input === 'string' ? input : JSON.stringify(input)));
   if (!force && state.sources?.[source.id]?.checksum === checksum) {
     return { id: source.id, changed: false, ok: true, count: state.sources[source.id].count ?? null };
   }
@@ -91,6 +120,11 @@ async function importOne(config, source, state, force) {
       staffCsv: '',
       recruiterCsv: '',
       replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
+    });
+  } else if (source.kind === 'revenue-history') {
+    payload = await postJson(config, '/api/sync', {
+      source: 'nmc-data-hub', contractCsv: input, staffCsv: '', recruiterCsv: '',
+      replaceHistoricalRevenueMonths: historyInput.months,
     });
   } else if (source.kind === 'saoviet') {
     payload = await postJson(config, '/api/saoviet-data/sync', {
