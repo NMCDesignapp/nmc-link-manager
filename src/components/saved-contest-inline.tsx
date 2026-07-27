@@ -16,7 +16,7 @@
  * để kết quả khớp 100% với popup "Kết quả chi tiết" trên trang đó.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -92,6 +92,28 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const { data: appData } = useAppData();
   const [nhomFilter, setNhomFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
+  // Danh sáº¡ch card táº£i nhanh khÃ´ng kÃ¨m base64 poster. Khi má»Ÿ chi tiáº¿t,
+  // láº¥y poster cá»§a Ä‘Ãºng chÆ°Æ¡ng trÃ¬nh nÃ y tá»« server Ä‘á»ƒ khÃ´ng bao giá» máº¥t áº£nh.
+  const [posterUrl, setPosterUrl] = useState<string>(contest?.posterUrl || '');
+
+  useEffect(() => {
+    const initialPoster = contest?.posterUrl || '';
+    if (initialPoster) {
+      setPosterUrl(initialPoster);
+      return;
+    }
+    if (!contest?.id) return;
+    let cancelled = false;
+    fetch(`/api/contests?id=${encodeURIComponent(contest.id)}`, { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((detail) => {
+        if (!cancelled) setPosterUrl(detail?.posterUrl || '');
+      })
+      .catch(() => {
+        if (!cancelled) setPosterUrl('');
+      });
+    return () => { cancelled = true; };
+  }, [contest?.id, contest?.posterUrl]);
 
   // Parse contest into config
   const config = useMemo<ContestConfig>(() => parseContestConfig(contest), [contest]);
@@ -203,14 +225,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   // ===== Render functions =====
   const renderPosterBlock = () => {
-    const posterUrl = config.posterUrl || '';
+    const currentPosterUrl = posterUrl || config.posterUrl || '';
     const startDateStr = config.startDate ? formatDate(config.startDate) : '...';
     const endDateStr = config.endDate ? formatDate(config.endDate) : '...';
     return (
       <div className="relative flex-shrink-0 w-full overflow-hidden" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
-        {posterUrl ? (
+        {currentPosterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={posterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={currentPosterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
             <Trophy className="w-8 h-8 text-emerald-400/70" />
@@ -889,9 +911,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           >
             {/* Left: poster */}
             <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
-              {config.posterUrl ? (
+              {(posterUrl || config.posterUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={config.posterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                <img src={posterUrl || config.posterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">
                   <Trophy className="w-5 h-5 text-emerald-400/70" />
