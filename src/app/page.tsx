@@ -8,7 +8,7 @@ import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { StatsPanel } from '@/components/stats-panel'
 import { MonthlyCalendar } from '@/components/monthly-calendar'
-import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, X, RefreshCw, Bell, Bold, Italic, Underline } from 'lucide-react'
+import { Settings, Check, AlertCircle, Link2, Trophy, Award, Database, BarChart3, Lock, Unlock, X, RefreshCw, Bell, Bold, Italic, Underline } from 'lucide-react'
 import { SettingsPanel } from '@/components/settings-panel'
 import { DesktopBigClock } from '@/components/desktop-big-clock'
 import { AppLoader } from '@/components/app-loader'
@@ -372,6 +372,25 @@ export default function Home() {
     }
   }, [noticeEnabled]);
 
+  const targetRegistrationOpen = (settings as Record<string, string>)['kpi-target-registration-open'] !== '0';
+  const toggleTargetRegistration = useCallback(async () => {
+    const next = !targetRegistrationOpen;
+    mutate('/api/settings', (current: Record<string, string> | undefined) => ({
+      ...(current || {}),
+      'kpi-target-registration-open': next ? '1' : '0',
+    }), false);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'kpi-target-registration-open': next ? '1' : '0' }),
+      });
+      if (!res.ok) throw new Error('save failed');
+    } catch {
+      mutate('/api/settings');
+      alert('Không thể cập nhật trạng thái đăng ký mục tiêu. Vui lòng thử lại.');
+    }
+  }, [targetRegistrationOpen]);
+
   // Đọc sessionStorage khi mount
   useEffect(() => {
     try {
@@ -568,6 +587,18 @@ export default function Home() {
                 <Settings className="w-3 h-3" style={{ color: neonColor }} />
               </motion.button>
             )}
+            {adminAuthed && (
+              <motion.button
+                onClick={toggleTargetRegistration}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }} whileTap={{ scale: 0.85 }}
+                title={targetRegistrationOpen ? 'Đăng ký mục tiêu đang mở — bấm để khóa' : 'Đăng ký mục tiêu đang khóa — bấm để mở'}
+                aria-label="Khóa hoặc mở đăng ký mục tiêu"
+              >
+                {targetRegistrationOpen ? <Unlock className="w-3 h-3" style={{ color: neonColor }} /> : <Lock className="w-3 h-3" style={{ color: neonColor }} />}
+              </motion.button>
+            )}
             {/* Notice button — chỉ hiện khi đã đăng nhập Admin. Mở popup nhập thông báo cho băng rôn KPI. */}
             {adminAuthed && (
               <motion.button
@@ -752,6 +783,18 @@ export default function Home() {
                   title="Cài đặt"
                 >
                   <Settings className="w-3.5 h-3.5" style={{ color: neonColor }} />
+                </motion.button>
+              )}
+              {adminAuthed && (
+                <motion.button
+                  onClick={toggleTargetRegistration}
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${neonColor}15`, border: `1px solid ${neonColor}30`, boxShadow: `0 0 8px ${neonColor}20` }}
+                  whileHover={{ scale: 1.2, boxShadow: `0 0 20px ${neonColor}50` }} whileTap={{ scale: 0.85 }}
+                  title={targetRegistrationOpen ? 'Đăng ký mục tiêu đang mở — bấm để khóa' : 'Đăng ký mục tiêu đang khóa — bấm để mở'}
+                  aria-label="Khóa hoặc mở đăng ký mục tiêu"
+                >
+                  {targetRegistrationOpen ? <Unlock className="w-3.5 h-3.5" style={{ color: neonColor }} /> : <Lock className="w-3.5 h-3.5" style={{ color: neonColor }} />}
                 </motion.button>
               )}
               {/* Notice button — chỉ hiện khi đã đăng nhập Admin. Mở popup nhập thông báo cho băng rôn KPI. */}
