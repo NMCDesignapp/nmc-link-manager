@@ -2018,6 +2018,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .honour-tier.platinum .banca-img-cell {
   border-color: #d9f1ff; background: radial-gradient(circle at 30% 30%, #fff, #d7f0ff 58%, #719bb8 100%);
   box-shadow: 0 0 0 2px rgba(210,239,255,.20), 0 4px 16px rgba(136,204,242,.38), 0 0 26px rgba(194,232,255,.20);
+  overflow: visible;
+}
+.kpi-app .honour-tier.platinum .banca-img-cell img { border-radius: inherit; }
+.kpi-app .honour-tier.platinum .banca-img-cell::after {
+  content: '♛'; position: absolute; left: 50%; top: -17px; z-index: 4;
+  transform: translateX(-50%); color: #eaf8ff; font-size: 20px; line-height: 1;
+  text-shadow: 0 1px 0 #5e8098, 0 0 9px rgba(218,242,255,.9); pointer-events: none;
 }
 /* Hạng Vàng luôn bằng 80% kích thước Hạng Bạch Kim. */
 .kpi-app .honour-tier.gold .honour-image-grid {
@@ -2807,6 +2814,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   }
 }
 
+
+/* Hạng Vàng nhỏ hơn 10% trên mọi kích thước màn hình. */
+.kpi-app .honour-tier.gold .banca-img-cell {
+  width: 90% !important; height: 90% !important;
+  align-self: center; justify-self: center;
+}
 
 /* ============= DẢI THAO TÁC KPI — MÀU ĐẬM, ĐỒNG BỘ ============= */
 /* Tiến độ khu vực: xanh navy/teal để biểu thị theo dõi. */
