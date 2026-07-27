@@ -601,11 +601,30 @@ function ThiDuaPageInner() {
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
 
-  const handlePosterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { setPosterUrl(ev.target?.result as string); };
-    reader.readAsDataURL(file);
+  const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Poster Ä‘Æ°á»£c lÆ°u cÃ¹ng chÆ°Æ¡ng trÃ¬nh, nhÆ°ng nÃ©n ngay táº¡i trÃ¬nh duyá»‡t
+    // (cáº¡nh dÃ i tá»‘i Ä‘a 1280px, JPEG 72%) Ä‘á»ƒ card váº«n cÃ³ áº£nh mÃ  app khÃ´ng náº·ng.
+    try {
+      const sourceUrl = URL.createObjectURL(file);
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Không đọc được ảnh poster'));
+        img.src = sourceUrl;
+      });
+      const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+      const scale = longestSide > 1280 ? 1280 / longestSide : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(sourceUrl);
+      setPosterUrl(canvas.toDataURL('image/jpeg', 0.72));
+    } catch (error) {
+      toast({ title: 'Lỗi ảnh poster', description: error instanceof Error ? error.message : 'Không thể xử lý ảnh', variant: 'destructive' });
+    }
   };
 
   // Helper: fetch với cache-bust — đảm bảo luôn lấy data mới từ server
@@ -4365,4 +4384,3 @@ export default function ThiDuaPage() {
     </Suspense>
   );
 }
-
