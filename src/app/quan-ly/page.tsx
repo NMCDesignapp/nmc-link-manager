@@ -5298,6 +5298,7 @@ export default function QuanLyPage() {
   const [saovietPosterUploading, setSaovietPosterUploading] = useState<Record<string, boolean>>({});
   // Saved contests (từ Trang Thi Đua) — hiển thị thành card thứ 4, 5... trong mục Sao Việt
   const [savedContestsList, setSavedContestsList] = useState<any[]>([]);
+  const savedContestPosterRequests = useRef(new Set<string>());
   const [savedContestDeleting, setSavedContestDeleting] = useState<string | null>(null);
   // CLB Sao Việt posters — same pattern as saovietPosters
   const [clbsvPosters, setClbsvPosters] = useState<Record<string, string>>({});
@@ -5309,6 +5310,23 @@ export default function QuanLyPage() {
   const [saovietSettingsOpen, setSaovietSettingsOpen] = useState<boolean>(false);
   // CLB Sao Việt settings modal — quản lý poster cho 3 chương trình CLBSV (ngoài detail tables)
   const [clbsvSettingsOpen, setClbsvSettingsOpen] = useState<boolean>(false);
+
+  // Summary tÃ¡ch poster Ä‘á»ƒ app khá»Ÿi Ä‘á»™ng nhanh. Táº£i nháº¹ tá»«ng poster ngay sau
+  // khi danh sÃ¡ch card sáºµn sÃ ng, nÃªn card táº¡o tá»« Trang Thi Äua luÃ´n cÃ³ áº£nh.
+  useEffect(() => {
+    const missingPosters = savedContestsList.filter((contest) => contest?.id && !contest.posterUrl && !savedContestPosterRequests.current.has(contest.id));
+    if (missingPosters.length === 0) return;
+    missingPosters.forEach((contest) => {
+      savedContestPosterRequests.current.add(contest.id);
+      fetch(`/api/contests?id=${encodeURIComponent(contest.id)}`, { cache: 'no-store' })
+        .then((response) => response.ok ? response.json() : null)
+        .then((detail) => {
+          if (!detail?.id || !detail.posterUrl) return;
+          setSavedContestsList((current) => current.map((item) => item.id === detail.id ? { ...item, posterUrl: detail.posterUrl } : item));
+        })
+        .catch(() => undefined);
+    });
+  }, [savedContestsList]);
 
   // Update summary boxes (top) + footer (bottom) khi policy/filter thay đổi
   // Mỗi render function thêm data-policy-count + data-policy-amount vào div ngoài cùng của bảng
