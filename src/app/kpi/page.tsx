@@ -2069,6 +2069,26 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(n + 10):nth-child(-n + 12):hover {
   transform: translateX(calc(var(--honour-cell-size) + 12px)) translateY(-3px) !important;
 }
+/* Khi chÆ°a Ä‘á»§ 12 áº£nh, hÃ ng cÃ²n láº¡i váº«n tá»± cáº­n giá»¯a. */
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(6):nth-last-child(1) {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) * 2)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(6):nth-last-child(2),
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(7):nth-last-child(1) {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) * 1.5)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(6):nth-last-child(3),
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(7):nth-last-child(2),
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(8):nth-last-child(1) {
+  transform: translateX(var(--honour-cell-size)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(10):nth-last-child(1) {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) * 2)) !important;
+}
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(10):nth-last-child(2),
+.kpi-app .honour-tier.gold .honour-gold-pyramid .banca-img-cell:nth-child(11):nth-last-child(1) {
+  transform: translateX(calc((var(--honour-cell-size) + 12px) * 1.5)) !important;
+}
 .kpi-app .honour-tier.gold .banca-img-cell { border-color: #ffd76b; }
 @media (max-width: 640px) {
   .kpi-app .banca-imgs-wall { width: min(100% - 20px, 390px); gap: 18px; }
