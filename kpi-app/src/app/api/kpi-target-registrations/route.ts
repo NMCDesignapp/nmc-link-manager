@@ -85,6 +85,10 @@ export async function GET(req: NextRequest) {
 // Creates a new registration. Returns the created record.
 export async function POST(req: NextRequest) {
   try {
+    const registrationSetting = await db.setting.findUnique({ where: { key: 'kpi-target-registration-open' } })
+    if (registrationSetting?.value === '0') {
+      return NextResponse.json({ error: 'Đăng ký mục tiêu đang tạm khóa.' }, { status: 403 })
+    }
     const body = await req.json()
     const {
       month, role,
