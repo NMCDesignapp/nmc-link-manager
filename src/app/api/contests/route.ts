@@ -1,6 +1,23 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+// The dashboard only needs contest configuration. Posters are large base64 data
+// and must be requested only when a user opens a specific contest.
+const contestSummarySelect = {
+  id: true, title: true, startDate: true, endDate: true, issueDate: true,
+  conditionType: true, targetType: true, bonusTiers: true, participants: true,
+  usePhase2: true, phase2StartDate: true, phase2EndDate: true, bonusTiers2: true,
+  useSecondaryCondition: true, secondaryAFYPMin: true, secondaryIPMin: true,
+  secondaryLuotHDMin: true, secondaryLuotHDCMin: true, secondaryLuotHDFilter: true,
+  secondaryLuotHDCFilter: true, secondaryTotalAFYPMin: true, secondaryTotalIPMin: true,
+  hideNotAchieved: true, includeIndividualNTD: true, includeIndividualTN: true,
+  luotHDThreshold: true, luotHDCTThreshold: true, tvv90MaxMonths: true,
+  tvv90MinIP: true, referenceContestId: true, includeTNInPassCount: true,
+  topN: true, topNMinIP: true, topNValueType: true, filterByEffectiveDate: true,
+  csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
+  createdAt: true, updatedAt: true,
+} as const;
+
 // Self-healing migration helper:
 // Vercel chỉ chạy `prisma generate` (postinstall), KHÔNG tự chạy `prisma migrate deploy`.
 // Khi schema.prisma có column mới nhưng production DB chưa được migrate,
@@ -34,21 +51,32 @@ async function ensureTopNValueTypeColumn(): Promise<void> {
   }
 }
 
-// GET /api/contests - List all saved contests
-export async function GET() {
+// GET /api/contests?summary=1 - small list for app startup (without poster blobs)
+// GET /api/contests?id=... - one complete contest, including its poster, on demand
+export async function GET(request: NextRequest) {
   try {
-    const contests = await db.contest.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    const id = request.nextUrl.searchParams.get('id');
+    const summary = request.nextUrl.searchParams.get('summary') === '1';
+    if (id) {
+      const contest = await db.contest.findUnique({ where: { id } });
+      if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
+      return NextResponse.json(contest);
+    }
+    const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
     return NextResponse.json(contests);
   } catch (error) {
     // Có thể do thiếu column topN/topNMinIP/filterByEffectiveDate (DB chưa migrate) — thử self-heal rồi retry 1 lần
     console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
     await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
     try {
-      const contests = await db.contest.findMany({
-        orderBy: { createdAt: 'desc' },
-      });
+      const id = request.nextUrl.searchParams.get('id');
+      const summary = request.nextUrl.searchParams.get('summary') === '1';
+      if (id) {
+        const contest = await db.contest.findUnique({ where: { id } });
+        if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
+        return NextResponse.json(contest);
+      }
+      const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
       return NextResponse.json(contests);
     } catch (retryError) {
       console.error('Error fetching contests after self-heal:', retryError);
@@ -242,3 +270,4 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }
 }
+
