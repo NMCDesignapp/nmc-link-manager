@@ -1,0 +1,126 @@
+name: Fix TVV zero-revenue contest rows
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-tvv-zero-revenue.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch contest TVV source
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/lib/contest-calculator.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '''  if (targetType === 'tvv') {
+    if (subjectCodes.length === 0) {
+      // QUAN TRỌNG (fix user request): Khi không có DS đối tượng → dùng DS TVV
+      // từ Cấu trúc Quản lý (tvvStructList) làm nguồn DS đối tượng, KHÔNG dùng
+      // DS TVV từ file doanh số (Contracts). Lọc HĐ chỉ giữ lại HĐ của TVV có
+      // trong Cấu trúc. Nếu tvvStructList rỗng (chưa load) → fallback cũ.
+      if (tvvStructList && tvvStructList.length > 0) {
+        const structCodes = new Set<string>();
+        for (const t of tvvStructList) {
+          if (t.agentCode) structCodes.add(t.agentCode);
+        }
+        return contractsNoDSO.filter((c) => structCodes.has(c.agentCode));
+      }
+      return contractsNoDSO;
+    }
+    return contractsNoDSO.filter(
+      (c) =>
+        subjectCodes.includes(c.agentCode) ||
+        subjectCodes.includes(c.agentName)
+    );
+  }
+'''
+          new = '''  if (targetType === 'tvv') {
+    const appendZeroRevenueTVVRows = (contracts: Contract[]): Contract[] => {
+      if (!isPerContractMode(config.conditionType) || !tvvStructList || tvvStructList.length === 0) {
+        return contracts;
+      }
+
+      const existingCodes = new Set(contracts.map((c) => c.agentCode).filter(Boolean));
+      const selectedTVV = subjectCodes.length === 0
+        ? tvvStructList
+        : tvvStructList.filter(
+            (t: any) =>
+              subjectCodes.includes(t.agentCode) ||
+              subjectCodes.includes(t.agentName)
+          );
+
+      const zeroRows: Contract[] = selectedTVV
+        .filter((t: any) => t.agentCode && !existingCodes.has(t.agentCode))
+        .map((t: any) => {
+          const staff = staffList.find((s) => s.agentCode === t.agentCode);
+          return {
+            id: `zero-revenue-${t.agentCode}`,
+            contractNumber: '',
+            agentCode: t.agentCode,
+            agentName: t.agentName || t.agentCode,
+            position: t.chucVu || staff?.position || '',
+            ban: '',
+            nhom: staff?.nhom || '',
+            maNhom: staff?.maNhom || t.maBanNhom || '',
+            leaderAgentCode: '',
+            recruiterCode: '',
+            startDate: t.ngayBatDau || staff?.startDate || null,
+            effectiveDate: config.startDate || config.endDate || new Date(0).toISOString(),
+            issueDate: config.issueDate || config.startDate || '',
+            fyp: 0,
+            afyp: 0,
+            pdt10DT: 0,
+            tinhLuot3tr: 0,
+            maDaiLyTD: t.maTVVTuyendung || '',
+            ngayBatDauLamViec: t.ngayBatDau || null,
+          };
+        });
+
+      // Dòng 0 được thêm sau dữ liệu thật; computeTVVPerContractRows tiếp tục sort giảm dần,
+      // nên TVV doanh số 0 luôn nằm cuối danh sách.
+      return [...contracts, ...zeroRows];
+    };
+
+    if (subjectCodes.length === 0) {
+      // Khi không có DS đối tượng → dùng DS TVV từ Cấu trúc Quản lý làm nguồn.
+      if (tvvStructList && tvvStructList.length > 0) {
+        const structCodes = new Set<string>();
+        for (const t of tvvStructList) {
+          if (t.agentCode) structCodes.add(t.agentCode);
+        }
+        const matchingContracts = contractsNoDSO.filter((c) => structCodes.has(c.agentCode));
+        return appendZeroRevenueTVVRows(matchingContracts);
+      }
+      return contractsNoDSO;
+    }
+
+    const matchingContracts = contractsNoDSO.filter(
+      (c) =>
+        subjectCodes.includes(c.agentCode) ||
+        subjectCodes.includes(c.agentName)
+    );
+    return appendZeroRevenueTVVRows(matchingContracts);
+  }
+'''
+          if old not in text:
+              raise SystemExit('Expected TVV block was not found; source may have changed.')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+          rm -f .github/workflows/fix-tvv-zero-revenue.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/contest-calculator.ts .github/workflows/fix-tvv-zero-revenue.yml
+          git commit -m "Fix zero-revenue TVV contest display"
+          git push
