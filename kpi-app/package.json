@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3100",
+    "prebuild": "bash ../scripts/sync-kpi-app.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
