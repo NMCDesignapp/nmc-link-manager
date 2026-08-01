@@ -1,49 +1,25 @@
-# Release marker v2: force a Vercel rebuild after KPI layout release.
-name: Auto-sync kpi-app with main app
+name: Manual fallback sync for kpi-app
 
-# Tự động sync kpi-app/ khi src/app/kpi/page.tsx (hoặc các file phụ thuộc) thay đổi.
-# Chạy SAU khi code đã được push lên main.
-# Nếu sync script tạo ra diff → tự commit + push lại.
-# Thanks to that, user chỉ cần sửa main app → standalone tự cập nhật.
+# Luồng chính hiện tại: Vercel chạy scripts/sync-kpi-app.sh trong prebuild,
+# vì vậy KPI standalone luôn lấy mã nguồn mới nhất từ Main App trước khi build.
+# Workflow này chỉ giữ lại như công cụ dự phòng để cập nhật bản generated
+# trong thư mục kpi-app/ của repository khi cần kiểm tra hoặc lưu snapshot.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/app/kpi/page.tsx'
-      - 'src/app/layout.tsx'
-      - 'src/app/globals.css'
-      - 'src/components/space-bg.tsx'
-      - 'src/components/honeycomb-bg.tsx'
-      - 'src/components/back-button.tsx'
-      - 'src/lib/db.ts'
-      - 'src/lib/utils.ts'
-      - 'src/app/api/quan-ly/all/route.ts'
-      - 'src/app/api/settings/route.ts'
-      - 'src/app/api/calendar/route.ts'
-      - 'src/app/api/structure/ad/route.ts'
-      - 'src/app/api/structure/phong/route.ts'
-      - 'src/app/api/structure/bannhom/route.ts'
-      - 'src/app/api/structure/tvv/route.ts'
-      - 'src/app/api/poster-image/route.ts'
-      - 'src/app/api/poster-image/[key]/route.ts'
-      - 'src/app/api/kpi-target-registrations/route.ts'
-      - 'scripts/sync-kpi-app.sh'
-      - '.github/workflows/sync-kpi-app.yml'
-  workflow_dispatch:  # Cho phép trigger thủ công từ GitHub UI
+  workflow_dispatch:
 
 permissions:
-  contents: write  # Cần để push commit sync trở lại repo
+  contents: write
 
 concurrency:
-  group: sync-kpi-app
+  group: manual-sync-kpi-app
   cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,53 +30,18 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Run sync script
+      - name: Sync standalone KPI from Main App
         run: bash scripts/sync-kpi-app.sh
 
-      - name: Check for changes
-        id: changes
+      - name: Commit generated snapshot when changed
         run: |
-          if git diff --quiet kpi-app/; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "✅ kpi-app/ đã đồng bộ — không cần commit"
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "⚠️ kpi-app/ có diff — sẽ commit"
-            git diff --stat kpi-app/
+          if [ -z "$(git status --porcelain -- kpi-app/)" ]; then
+            echo "KPI snapshot is already synchronized."
+            exit 0
           fi
 
-      - name: Commit & push sync
-        if: steps.changes.outputs.changed == 'true'
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add kpi-app/
-          git commit -m "chore(kpi-app): auto-sync với main app [skip ci]
-
-          Auto-synced by GitHub Action after changes to main app source.
-          Triggered by commit: ${{ github.sha }}"
-
-          # Retry push trong trường hợp race condition
-          for i in 1 2 3; do
-            if git push; then
-              echo "✅ Push thành công"
-              exit 0
-            fi
-            echo "⚠️ Push failed (attempt $i), retrying..."
-            git pull --rebase origin main
-            sleep 5
-          done
-          echo "❌ Push failed after 3 attempts"
-          exit 1
-
-      - name: Summary
-        run: |
-          echo "## KPI App Sync Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.changes.outputs.changed }}" = "true" ]; then
-            echo "✅ Đã auto-sync kpi-app/ và push commit mới" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Standalone KPI app sẽ được Vercel auto-deploy trong vài phút." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ kpi-app/ đã đồng bộ — không có thay đổi cần commit" >> $GITHUB_STEP_SUMMARY
-          fi
+          git commit -m "chore(kpi-app): refresh generated snapshot"
+          git push
