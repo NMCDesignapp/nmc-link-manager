@@ -16,26 +16,40 @@ function patchKpiLoadingDependency() {
   const pagePath = path.join(process.cwd(), relativePagePath);
   if (!fs.existsSync(pagePath)) return;
 
-  const source = fs.readFileSync(pagePath, "utf8");
-  const fixedDependencies =
-    "      nguoiTuyenNgang,\n      appDataLoading,\n      standalone,\n    ]);";
+  let source = fs.readFileSync(pagePath, "utf8");
 
-  if (source.includes(fixedDependencies)) return;
+  const currentFixed =
+    "appData.leaders, appDataReloading, appDataLoading, dataVersion]);";
+  const currentBuggy =
+    "appData.leaders, appDataReloading, dataVersion]);";
 
-  const oldDependencies =
-    "      nguoiTuyenNgang,\n      standalone,\n    ]);";
+  if (source.includes(currentFixed)) return;
 
-  if (!source.includes(oldDependencies)) {
-    console.warn(`[KPI] Không tìm thấy dependency block cần vá trong ${relativePagePath}`);
+  if (source.includes(currentBuggy)) {
+    source = source.replace(currentBuggy, currentFixed);
+    fs.writeFileSync(pagePath, source, "utf8");
+    console.log(`[KPI] Đã thêm appDataLoading dependency cho ${relativePagePath}`);
     return;
   }
 
-  fs.writeFileSync(
-    pagePath,
-    source.replace(oldDependencies, fixedDependencies),
-    "utf8",
-  );
-  console.log(`[KPI] Đã thêm appDataLoading dependency cho ${relativePagePath}`);
+  // Compatibility with the older KPI data shape kept in some recovery refs.
+  const legacyFixed =
+    "      nguoiTuyenNgang,\n      appDataLoading,\n      standalone,\n    ]);";
+  const legacyBuggy =
+    "      nguoiTuyenNgang,\n      standalone,\n    ]);";
+
+  if (source.includes(legacyFixed)) return;
+  if (source.includes(legacyBuggy)) {
+    fs.writeFileSync(
+      pagePath,
+      source.replace(legacyBuggy, legacyFixed),
+      "utf8",
+    );
+    console.log(`[KPI] Đã thêm appDataLoading dependency cho ${relativePagePath}`);
+    return;
+  }
+
+  console.warn(`[KPI] Không tìm thấy dependency block cần vá trong ${relativePagePath}`);
 }
 
 patchKpiLoadingDependency();
