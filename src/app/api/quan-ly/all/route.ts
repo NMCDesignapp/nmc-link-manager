@@ -13,7 +13,7 @@ export async function GET() {
             id: true, stt: true, contractNumber: true, agentCode: true, agentName: true,
             position: true, ban: true, maTruongBan: true, nhom: true, maBanNhom: true,
             maTruongBanNhom: true, maDL: true, maNhom: true, leaderAgentCode: true,
-            ngayBatDauLamViec: true, effectiveDate: true, issueDate: true, contractStatus: true,
+            ngayBatDauLamViec: true, effectiveDate: true, issueDate: true,
             pdt10DT: true, fyp: true, nguonDuLieu: true, hopDongToChuc: true,
             dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
             ad: true, nhom2: true, ngayBatDauLamViec2: true,
