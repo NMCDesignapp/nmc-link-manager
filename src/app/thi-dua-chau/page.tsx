@@ -1176,6 +1176,47 @@ function ThiDuaPageInner() {
     return Array.from(nydMap.values());
   }, [displayContracts, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure]);
 
+  // Nhóm hiển thị luôn lấy theo Cấu trúc. Dữ liệu hợp đồng chỉ là nguồn doanh
+  // số nên có thể thiếu tên/mã nhóm, nhưng không được làm trống cột Nhóm.
+  const resolveTvvGroup = useMemo(() => {
+    const normalizeKey = (value: string) => norm(value || '').toLowerCase();
+    const groupNameByCode = new Map<string, string>();
+    const groupByAgentCode = new Map<string, { maNhom: string; nhom: string }>();
+
+    for (const group of banNhomStructList) {
+      if (group.maBanNhom && group.tenBanNhom) {
+        groupNameByCode.set(normalizeKey(group.maBanNhom), group.tenBanNhom);
+      }
+    }
+    // DS TB/TN là nguồn dự phòng cho trường hợp mã nhóm đã có TVV nhưng chưa
+    // kịp có một dòng tương ứng trong danh mục Ban/Nhóm.
+    for (const member of [...staffList, ...leadersList]) {
+      const maNhom = member.maBanNhom || member.maNhom || '';
+      if (maNhom && member.nhom) {
+        groupNameByCode.set(normalizeKey(maNhom), member.nhom);
+      }
+    }
+    const addMember = (member: { agentCode?: string; maBanNhom?: string; maNhom?: string; nhom?: string }) => {
+      const agentCode = normalizeKey(member.agentCode || '');
+      if (!agentCode) return;
+      const maNhom = member.maBanNhom || member.maNhom || '';
+      const nhom = groupNameByCode.get(normalizeKey(maNhom)) || member.nhom || '';
+      if (maNhom || nhom) groupByAgentCode.set(agentCode, { maNhom, nhom });
+    };
+    tvvStructList.forEach(addMember);
+    staffList.forEach(addMember);
+    leadersList.forEach(addMember);
+
+    return (agentCode: string, maNhom = '', nhom = '') => {
+      const structureGroup = groupByAgentCode.get(normalizeKey(agentCode));
+      const resolvedMaNhom = maNhom || structureGroup?.maNhom || '';
+      return {
+        maNhom: resolvedMaNhom,
+        nhom: groupNameByCode.get(normalizeKey(resolvedMaNhom)) || structureGroup?.nhom || nhom || '—',
+      };
+    };
+  }, [tvvStructList, staffList, leadersList, banNhomStructList]);
+
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
   // Top N mode: nếu KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) để hiển thị hết danh sách
@@ -1195,14 +1236,19 @@ function ThiDuaPageInner() {
       const key = c.agentCode;
       if (!key) continue;
       const existing = agentMap.get(key);
+      const group = resolveTvvGroup(c.agentCode, c.maNhom, c.nhom);
       if (existing) {
         existing.totalFYP += c.pdt10DT;
         existing.totalAFYP += c.afyp;
         existing.contractCount += 1;
+        if ((!existing.maNhom || existing.nhom === '—') && group.maNhom) {
+          existing.maNhom = group.maNhom;
+          existing.nhom = group.nhom;
+        }
       } else {
         agentMap.set(key, {
           agentCode: c.agentCode, agentName: c.agentName,
-          nhom: c.nhom || '—' || '', maNhom: c.maNhom || '',
+          nhom: group.nhom, maNhom: group.maNhom,
           totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1,
           activityRounds: 0,
         });
@@ -1220,11 +1266,12 @@ function ThiDuaPageInner() {
         const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
         if (!found) {
           const info = tvvStructList.find(t => t.agentCode.toLowerCase() === codeLower || norm(t.agentName || '').toLowerCase() === codeLower);
+          const group = resolveTvvGroup(info?.agentCode || code, info?.maBanNhom || '');
           agentMap.set(code, {
             agentCode: info?.agentCode || code,
             agentName: info?.agentName || code,
-            nhom: '',
-            maNhom: info?.maBanNhom || '',
+            nhom: group.nhom,
+            maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
         }
@@ -1238,11 +1285,12 @@ function ThiDuaPageInner() {
         const codeLower = t.agentCode.toLowerCase();
         const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
         if (!found) {
+          const group = resolveTvvGroup(t.agentCode, t.maBanNhom || '');
           agentMap.set(t.agentCode, {
             agentCode: t.agentCode,
             agentName: t.agentName || t.agentCode,
-            nhom: '',
-            maNhom: t.maBanNhom || '',
+            nhom: group.nhom,
+            maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
         }
@@ -1259,11 +1307,12 @@ function ThiDuaPageInner() {
         const codeLower = t.agentCode.toLowerCase();
         const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
         if (!found) {
+          const group = resolveTvvGroup(t.agentCode, t.maBanNhom || '');
           agentMap.set(t.agentCode, {
             agentCode: t.agentCode,
             agentName: t.agentName || t.agentCode,
-            nhom: '',
-            maNhom: t.maBanNhom || '',
+            nhom: group.nhom,
+            maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
         }
@@ -1356,7 +1405,7 @@ function ThiDuaPageInner() {
       });
     }
     return allRows;
-  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList, phongStructList, adStructList, banNhomStructList]);
+  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList, phongStructList, adStructList, banNhomStructList, resolveTvvGroup]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
@@ -2021,7 +2070,7 @@ function ThiDuaPageInner() {
   };
 
   const handleDeleteContest = async (id: string) => {
-    try { const res = await fetch(`/api/contests?id=${id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchSavedContests(); if (selectedContestId === id) setSelectedContestId(''); reloadAppData(); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
+    try { const res = await fetch(`/api/contests?id=${encodeURIComponent(id)}`, { method: 'DELETE', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }); if (res.ok) { setSavedContests(prev => prev.filter(contest => contest.id !== id)); if (selectedContestId === id) setSelectedContestId(''); await Promise.all([fetchSavedContests(), reloadAppData()]); window.dispatchEvent(new Event('nmc-contests-updated')); toast({ title: 'Thành công', description: 'Đã xóa' }); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
     catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
     setDeleteConfirmId(null);
   };
@@ -2633,6 +2682,8 @@ function ThiDuaPageInner() {
       // Count result rows to determine if splitting is needed
       const tableRows = el.querySelectorAll('tbody tr');
       const MAX_ROWS_PER_IMAGE = 20;
+      const MAX_IMAGES_PER_DOWNLOAD = 2;
+      const maxRowsThisDownload = MAX_ROWS_PER_IMAGE * MAX_IMAGES_PER_DOWNLOAD;
       const needsSplit = tableRows.length > MAX_ROWS_PER_IMAGE;
 
       if (!needsSplit) {
@@ -2642,7 +2693,7 @@ function ThiDuaPageInner() {
         hideAllScrollbars();
         const blob = await toBlob(el, {
           quality: 1,
-          pixelRatio: 3,
+          pixelRatio: 2,
           backgroundColor: '#ffffff',
         });
         el.style.width = origWidth;
@@ -2660,7 +2711,8 @@ function ThiDuaPageInner() {
         URL.revokeObjectURL(url);
         toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
       } else {
-        // Split into 2 images
+        // Capture at most two images, 20 result rows each. Older code put all
+        // remaining rows into image 2, causing slow or failed captures.
         const dateStr = new Date().toISOString().slice(0, 10);
 
         // === IMAGE 1: Poster + first half of rows ===
@@ -2680,17 +2732,17 @@ function ThiDuaPageInner() {
         hideAllScrollbars();
         const blob1 = await toBlob(el, {
           quality: 1,
-          pixelRatio: 3,
+          pixelRatio: 2,
           backgroundColor: '#ffffff',
         });
 
         // Restore hidden rows
         hiddenRows2.forEach(row => { row.style.display = ''; });
 
-        // === IMAGE 2: Poster + title + second half of rows ===
+        // === IMAGE 2: Poster + title + rows 21–40 ===
         const hiddenRows1: HTMLTableRowElement[] = [];
         allRows.forEach((row, idx) => {
-          if (idx < MAX_ROWS_PER_IMAGE) {
+          if (idx < MAX_ROWS_PER_IMAGE || idx >= maxRowsThisDownload) {
             row.style.display = 'none';
             hiddenRows1.push(row);
           }
@@ -2698,7 +2750,7 @@ function ThiDuaPageInner() {
 
         const blob2 = await toBlob(el, {
           quality: 1,
-          pixelRatio: 3,
+          pixelRatio: 2,
           backgroundColor: '#ffffff',
         });
 
@@ -2732,7 +2784,13 @@ function ThiDuaPageInner() {
           toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
           return;
         }
-        toast({ title: 'Thành công', description: `Đã tải 2 ảnh (${allRows.length} dòng kết quả)` });
+        const capturedRows = Math.min(allRows.length, maxRowsThisDownload);
+        toast({
+          title: 'Thành công',
+          description: allRows.length > capturedRows
+            ? `Đã tải 2 ảnh, 20 dòng/ảnh (40/${allRows.length} dòng đầu).`
+            : `Đã tải 2 ảnh, 20 dòng/ảnh (${capturedRows} dòng).`,
+        });
       }
     } catch (error) {
       console.error('Download image error:', error);
@@ -4118,11 +4176,11 @@ function ThiDuaPageInner() {
                       return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
                     }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
                       if (hideNotAchieved && !tier) return null;
-                      if (!contract.nhom && !contract.maNhom) return null;
+                      const group = resolveTvvGroup(contract.agentCode, contract.maNhom, contract.nhom);
                       return (
                         <TableRow key={contract.id} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
-                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{contract.nhom || '—'}</TableCell>
+                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{group.nhom}</TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap">{contract.agentName}</TableCell>
                           <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(contract.effectiveDate)}</TableCell>

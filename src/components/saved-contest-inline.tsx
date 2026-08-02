@@ -25,7 +25,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal } from 'lucide-react';
+import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal, LoaderCircle } from 'lucide-react';
 import { useAppData } from '@/lib/app-data-context';
 import {
   ContestConfig,
@@ -89,7 +89,7 @@ interface SavedContestInlineProps {
 // Main component
 // ============================================================
 export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest }) => {
-  const { data: appData } = useAppData();
+  const { data: appData, isLoading, isReloading } = useAppData();
   const [nhomFilter, setNhomFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
   // Danh sáº¡ch card táº£i nhanh khÃ´ng kÃ¨m base64 poster. Khi má»Ÿ chi tiáº¿t,
@@ -218,6 +218,20 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0);
   const usePhase2 = config.usePhase2 ?? false;
   const hideNotAchieved = config.hideNotAchieved ?? false;
+  // The contest card can be opened while the shared AppDataProvider is still
+  // fetching its source arrays. Keep the table in an explicit loading state
+  // instead of briefly showing a misleading empty-result message.
+  const isContestDataLoading = isLoading || isReloading;
+  const renderLoadingTableRow = (colSpan: number) => (
+    <TableRow>
+      <TableCell colSpan={colSpan} className="bg-white py-10 text-center">
+        <span className="inline-flex items-center justify-center gap-2 text-xs font-bold text-emerald-700">
+          <LoaderCircle className="h-5 w-5 animate-spin text-emerald-500" aria-hidden="true" />
+          Đang tải dữ liệu...
+        </span>
+      </TableCell>
+    </TableRow>
+  );
   const sortedTiers = useMemo(
     () => [...config.bonusTiers].sort((a, b) => a.minFYP - b.minFYP),
     [config.bonusTiers]
@@ -369,7 +383,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 11 : 9) : filteredRows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={usePhase2 ? 11 : 9} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
@@ -458,7 +472,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 10 : 8) : filteredRows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={usePhase2 ? 10 : 8} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
@@ -626,6 +640,11 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       : isAFYP
       ? 'TỔNG AFYP'
       : 'TỔNG IP';
+    const valueSubLabel = isPassCountIPAFYP
+      ? `IP ≥ ${formatCurrency(config.secondaryIPMin ?? 0)} + AFYP ≥ ${formatCurrency(config.secondaryAFYPMin ?? 0)}${config.includeTNInPassCount ? '' : ' · Không tính TN'}`
+      : isPassCount
+      ? `${config.referenceContestId ? 'Theo chương trình tham chiếu' : 'Theo CTĐK'}${config.includeTNInPassCount ? '' : ' · Không tính TN'}`
+      : '';
 
     return (
       <Table>
@@ -656,7 +675,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedGroups.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 11 : 9) : sortedGroups.length === 0 ? (
             <TableRow>
               <TableCell colSpan={usePhase2 ? 11 : 9} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
@@ -719,10 +738,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       if (q && !((row.nyd.nydName || '').toLowerCase().includes(q) || (row.nyd.nydCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
-    const valueLabel = isActivity ? 'LƯỢT HĐ TUYỂN' : 'TỔNG FYP TUYỂN';
+    const valueLabel = isActivity ? 'LƯỢT HĐ CHUẨN' : 'TỔNG FYP TUYỂN';
 
     return (
-      <Table>
+      <Table className="saved-contest-nyd-table">
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
             <TableHead className="text-[10px] font-bold uppercase text-center align-middle w-[40px]" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>STT</TableHead>
@@ -730,9 +749,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>MÃ NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>TÊN NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>CHỨC VỤ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>{valueLabel}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}>{valueLabel}</TableHead>
             {showRateColumn && (
-              <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
             {usePhase2 ? (
               <>
@@ -743,11 +762,11 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             ) : (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ backgroundColor: '#065F46', color: '#FEF3C7' }}>Thưởng</TableHead>
             )}
-            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>Ghi chú</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}>Ghi chú</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 10 : 8) : filteredRows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={usePhase2 ? 10 : 8} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
@@ -760,7 +779,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.nyd.nydCode}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.nyd.nydName}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.nyd.position || '—'}</TableCell>
-              <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+              <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.tier ? <span className="font-bold text-violet-600">{formatRate(row.tier)}</span> : <span className="text-gray-400">—</span>}
@@ -768,21 +787,21 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               )}
               {usePhase2 ? (
                 <>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.tier ? formatCurrency(0) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.tier ? formatCurrency(0) : <span className="text-gray-400">—</span>}</TableCell>
                 </>
               ) : (
-                <TableCell className="text-right bg-emerald-50 whitespace-nowrap">
+                <TableCell className="text-center bg-emerald-50 whitespace-nowrap">
                   {row.tier ? (
-                    <span className="flex items-center justify-end gap-1">
+                    <span className="flex items-center justify-center gap-1">
                       {row.tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
                       <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.tier, row.value, isActivity ? row.value : undefined)}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
                 </TableCell>
               )}
-              <TableCell className="whitespace-nowrap">
+              <TableCell className="text-left px-3 whitespace-nowrap">
                 {!row.tier && row.remaining !== null ? (
                   <span className="text-[10px] italic text-gray-400">{isActivity ? `Cần thêm ${row.remaining} lượt` : `Cần thêm ${formatNumber(row.remaining)}`}</span>
                 ) : !row.tier ? (
@@ -820,7 +839,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   const tableBlock = (
     <div
-      className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper"
+      className="flex-1 min-h-0 overflow-auto border bg-white saoviet-detail-table-wrapper"
       style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
       data-saoviet-table={`saved-${config.id}`}
       onClick={(e) => {
@@ -837,6 +856,16 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
+        .saoviet-detail-table-wrapper thead {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          box-shadow: 0 2px 5px rgba(6, 95, 70, .26);
+        }
+        .saoviet-detail-table-wrapper .saved-contest-nyd-table thead tr:first-child th {
+          background-color: #065F46 !important;
+          color: #FEF3C7 !important;
+        }
         @media (max-width: 767px) {
           .saoviet-detail-table-wrapper table { font-size: 9px !important; }
           .saoviet-detail-table-wrapper th,

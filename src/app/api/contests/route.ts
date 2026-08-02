@@ -1,5 +1,12 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { createDefaultContestPoster } from '@/lib/contest-poster';
+
+// Contest cards are edited from the Thi Đua screen and read again in Sao Việt
+// toàn chặng. Never let a CDN/browser keep an old list after a delete.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+const noStore = { 'Cache-Control': 'no-store, max-age=0, must-revalidate' };
 
 // The dashboard only needs contest configuration. Posters are large base64 data
 // and must be requested only when a user opens a specific contest.
@@ -17,6 +24,11 @@ const contestSummarySelect = {
   csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
   createdAt: true, updatedAt: true,
 } as const;
+
+const withPoster = <T extends { posterUrl?: string | null; title?: string; startDate?: Date; endDate?: Date; targetType?: string }>(contest: T) => ({
+  ...contest,
+  posterUrl: contest.posterUrl || createDefaultContestPoster(contest),
+});
 
 // Self-healing migration helper:
 // Vercel chỉ chạy `prisma generate` (postinstall), KHÔNG tự chạy `prisma migrate deploy`.
@@ -60,10 +72,13 @@ export async function GET(request: NextRequest) {
     if (id) {
       const contest = await db.contest.findUnique({ where: { id } });
       if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
-      return NextResponse.json(contest);
+      return NextResponse.json(withPoster(contest), { headers: noStore });
     }
     const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
-    return NextResponse.json(contests);
+    // Summary cards intentionally omit poster data. The Sao Việt viewer then
+    // requests each poster by ID on demand, avoiding a multi-megabyte initial
+    // response while still showing the real poster (not a generic fallback).
+    return NextResponse.json(summary ? contests : contests.map(withPoster), { headers: noStore });
   } catch (error) {
     // Có thể do thiếu column topN/topNMinIP/filterByEffectiveDate (DB chưa migrate) — thử self-heal rồi retry 1 lần
     console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
@@ -74,10 +89,10 @@ export async function GET(request: NextRequest) {
       if (id) {
         const contest = await db.contest.findUnique({ where: { id } });
         if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
-        return NextResponse.json(contest);
+      return NextResponse.json(withPoster(contest), { headers: noStore });
       }
       const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
-      return NextResponse.json(contests);
+      return NextResponse.json(summary ? contests : contests.map(withPoster), { headers: noStore });
     } catch (retryError) {
       console.error('Error fetching contests after self-heal:', retryError);
       return NextResponse.json({ error: 'Không thể tải danh sách chương trình thi đua', details: (retryError as Error)?.message }, { status: 500 });
@@ -175,7 +190,7 @@ export async function POST(request: NextRequest) {
       conditionType,
       targetType: targetType || 'tvv',
       bonusTiers,
-      posterUrl: posterUrl || '',
+      posterUrl: posterUrl || createDefaultContestPoster({ title, startDate: parsedStart, endDate: parsedEnd, targetType }),
       participants: participants || '[]',
       usePhase2: usePhase2 ?? false,
       phase2StartDate: phase2StartDate ? new Date(phase2StartDate) : null,
@@ -241,11 +256,35 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     }
 
-    await db.contest.delete({ where: { id } });
-    return NextResponse.json({ message: 'Đã xóa chương trình thi đua' });
-  } catch (error) {
-    console.error('Error deleting contest:', error);
-    return NextResponse.json({ error: 'Không thể xóa chương trình thi đua' }, { status: 500 });
+    // DELETE must be idempotent: repeated clicks and stale cached cards are
+    // already in the desired state when the database row no longer exists.
+    const result = await db.contest.deleteMany({ where: { id } });
+    console.log('[DELETE /api/contests] Completed', {
+      id,
+      deletedCount: result.count,
+      alreadyDeleted: result.count === 0,
+    });
+    return NextResponse.json(
+      {
+        message: 'Đã xóa chương trình thi đua',
+        deleted: result.count > 0,
+        alreadyDeleted: result.count === 0,
+      },
+      { headers: noStore }
+    );
+  } catch (error: any) {
+    console.error('[DELETE /api/contests] Failed', {
+      error: error?.message || String(error),
+      code: error?.code,
+    });
+    return NextResponse.json(
+      {
+        error: 'Không thể xóa chương trình thi đua',
+        details: error?.message || String(error),
+        code: error?.code,
+      },
+      { status: 500, headers: noStore }
+    );
   }
 }
 
@@ -270,4 +309,3 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }
 }
-

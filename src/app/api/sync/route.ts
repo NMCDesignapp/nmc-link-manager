@@ -141,6 +141,9 @@ export async function POST(request: NextRequest) {
         const records = csvToObjects(rows);
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
+        const authoritativeReplacement = replaceDataHubCurrentRevenueMonth || historicalRevenueMonths.length > 0;
+        const contractsToCreate: any[] = [];
+        let currentMonthWindow: ReturnType<typeof getCurrentBangkokMonth> | null = null;
 
         // A blank Số HĐ is a valid business value. PostgreSQL unique indexes
         // allow many NULLs, so the database can preserve it as truly blank.
@@ -154,10 +157,13 @@ export async function POST(request: NextRequest) {
         if (replaceDataHubCurrentRevenueMonth) {
           const window = getCurrentBangkokMonth();
           currentMonth = window.label;
+          currentMonthWindow = window;
           importRows = importRows.filter(({ row }) => {
-            const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
             const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
-            return isInMonth(issueDate || effectiveDate, window.from, window.until) && !!effectiveDate;
+            // Tạm thu là nguồn của tháng hiện tại: lấy đúng các HĐ có ngày
+            // hiệu lực trong tháng đó. Ngày phát hành có thể trống hoặc khác
+            // tháng và không được dùng để làm lệch số dòng đồng bộ.
+            return isInMonth(effectiveDate, window.from, window.until);
           });
 
           if (importRows.length === 0) {
@@ -176,18 +182,6 @@ export async function POST(request: NextRequest) {
             throw new Error(`Số HĐ trùng trong file tháng ${currentMonth}: ${[...duplicates].slice(0, 10).join(', ')}. Không xóa hoặc cập nhật dữ liệu.`);
           }
 
-          // The current month is fully rebuilt from the file. Historical
-          // months are untouched, while cancellations and changes in the
-          // source are reflected exactly after this replacement.
-          const deleted = await db.contract.deleteMany({
-            where: {
-              OR: [
-                { issueDate: { gte: window.from, lt: window.until } },
-                { issueDate: null, effectiveDate: { gte: window.from, lt: window.until } },
-              ],
-            },
-          });
-          results.deletedContracts = deleted.count;
           results.currentMonth = currentMonth;
         }
 
@@ -228,7 +222,13 @@ export async function POST(request: NextRequest) {
           results.historicalMonths = requestedMonths;
         }
 
-        for (const { row, index } of importRows) {
+        // A full historical workbook can contain hundreds of contracts. Process
+        // modest parallel batches so Data Hub imports finish within Vercel's
+        // function limit, while keeping the database connection pool healthy.
+        const batchSize = 20;
+        for (let batchStart = 0; batchStart < importRows.length; batchStart += batchSize) {
+          const batch = importRows.slice(batchStart, batchStart + batchSize);
+          await Promise.all(batch.map(async ({ row, index }) => {
           // Đọc theo tên header — hỗ trợ nhiều tên khác nhau
           const agentCode = getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode');
           const agentName = getVal(row, 'Tên', 'Họ tên', 'Tên TVV', 'agentName');
@@ -242,6 +242,7 @@ export async function POST(request: NextRequest) {
           const contractNumber = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber');
           const effectiveDateStr = getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate');
           const issueDateStr = getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate');
+          const contractStatus = getVal(row, 'Tình trạng hợp đồng', 'Tình trạng HĐ', 'Tình trạng', 'contractStatus');
           const pdt10DTStr = getVal(row, 'PĐT + 10% ĐT', 'IP+10%PĐT', 'PĐT+10%ĐT', 'pdt10DT');
           const fypStr = getVal(row, 'FYP', 'fyp');
           const nguonDuLieu = getVal(row, 'Nguồn dữ liệu', 'Nguồn DL', 'nguonDuLieu');
@@ -264,7 +265,7 @@ export async function POST(request: NextRequest) {
           const recruiterCode = getVal(row, 'Mã tuyển dụng', 'MÃ TUYỂN DỤNG', 'recruiterCode');
           const sttStr = getVal(row, 'STT', 'stt');
 
-          if (!effectiveDateStr) continue;
+          if (!effectiveDateStr) return;
           // Blank contract numbers are normalised to a unique import key. They
           // are removed at the next authoritative current-month replacement.
           const finalContractNumber = contractNumber || (() => {
@@ -279,11 +280,30 @@ export async function POST(request: NextRequest) {
           const issueDate = parseDate(issueDateStr);
           const startDate = parseDate(startDateStr);
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
-          if (!effectiveDate) continue;
+          if (!effectiveDate) return;
 
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
           const tinhLuot3tr = parseNumber(tinhLuot3trStr);
+
+          if (authoritativeReplacement) {
+            contractsToCreate.push({
+              stt: parseInt(sttStr) || 0,
+              contractNumber: contractNumber || null,
+              agentCode, agentName, position, ban, nhom, maNhom, leaderAgentCode,
+              maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
+              ngayBatDauLamViec: startDate, recruiterCode: recruiterCode || '', startDate,
+              effectiveDate, issueDate, contractStatus, pdt10DT: parseNumber(pdt10DTStr), fyp,
+              nguonDuLieu, hopDongToChuc, dkDongPhi,
+              phiDongThem: parseNumber(phiDongThemStr),
+              afypChuaTru10DT: parseNumber(afypChuaTru10DTStr), afyp, ad, nhom2,
+              ngayBatDauLamViec2, thangTD: parseInt(thangTDStr) || 0,
+              namTD: parseInt(namTDStr) || 0, thangHL: parseInt(thangHLStr) || 0,
+              tinhLuot3tr, maDaiLyTD, danhDauTVV, chucVu2,
+            });
+            upserted++;
+            return;
+          }
 
           try {
             const savedContract = await db.contract.upsert({
@@ -298,6 +318,7 @@ export async function POST(request: NextRequest) {
                 // Ngày phát hành là dữ liệu thô: để trống trong Excel thì giữ trống.
                 // Không được suy diễn từ ngày hiệu lực.
                 issueDate,
+                contractStatus,
                 pdt10DT: parseNumber(pdt10DTStr),
                 fyp,
                 nguonDuLieu, hopDongToChuc, dkDongPhi,
@@ -324,6 +345,7 @@ export async function POST(request: NextRequest) {
                 // Ngày phát hành là dữ liệu thô: để trống trong Excel thì giữ trống.
                 // Không được suy diễn từ ngày hiệu lực.
                 issueDate,
+                contractStatus,
                 pdt10DT: parseNumber(pdt10DTStr),
                 fyp,
                 nguonDuLieu, hopDongToChuc, dkDongPhi,
@@ -346,9 +368,40 @@ export async function POST(request: NextRequest) {
           } catch {
             // Skip duplicate or error on individual record
           }
+          }));
         }
 
-        results.contracts = upserted;
+        if (authoritativeReplacement && contractsToCreate.length > 0) {
+          if (replaceDataHubCurrentRevenueMonth && currentMonthWindow) {
+            // Xóa toàn bộ tháng hiện tại theo Ngày hiệu lực trước khi thêm
+            // file Tạm thu. Sau thao tác này số dòng tháng luôn bằng đúng
+            // số dòng hợp lệ của Sheet 4, không thể cộng dồn dữ liệu cũ.
+            const deletedCurrentMonth = await db.contract.deleteMany({
+              where: { effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
+            });
+            results.deletedContracts += deletedCurrentMonth.count;
+          }
+          // Số HĐ là khóa nghiệp vụ duy nhất. Một HĐ đang nằm ở tháng cũ do
+          // lần import trước ghi sai ngày không được phép chặn bản ghi Tạm thu
+          // hiện tại. Xóa các bản ghi cùng số trước khi tạo lại từ file nguồn.
+          // Các ô Số HĐ trống giữ NULL và được phép có nhiều dòng.
+          const sourceContractNumbers = [...new Set(
+            contractsToCreate
+              .map(contract => contract.contractNumber)
+              .filter((contractNumber): contractNumber is string => !!contractNumber)
+          )];
+          if (sourceContractNumbers.length > 0) {
+            const duplicateNumbers = await db.contract.deleteMany({
+              where: { contractNumber: { in: sourceContractNumbers } },
+            });
+            results.deletedContracts += duplicateNumbers.count;
+          }
+
+          const created = await db.contract.createMany({ data: contractsToCreate });
+          results.contracts = created.count;
+        } else {
+          results.contracts = upserted;
+        }
       } catch (err) {
         results.errors.push(`HĐ: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }

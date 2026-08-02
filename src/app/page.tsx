@@ -386,6 +386,15 @@ export default function Home() {
         body: JSON.stringify({ 'kpi-target-registration-open': next ? '1' : '0' }),
       });
       if (!res.ok) throw new Error('save failed');
+      // Tell KPI tabs on this domain immediately; no full data reload is needed.
+      try {
+        const channel = new BroadcastChannel('nmc-kpi-settings');
+        channel.postMessage({ key: 'kpi-target-registration-open', value: next ? '1' : '0' });
+        channel.close();
+      } catch {}
+      try {
+        localStorage.setItem('nmc-kpi-settings-changed', String(Date.now()));
+      } catch {}
     } catch {
       mutate('/api/settings');
       alert('Không thể cập nhật trạng thái đăng ký mục tiêu. Vui lòng thử lại.');

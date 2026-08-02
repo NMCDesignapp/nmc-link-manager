@@ -56,6 +56,7 @@ interface Contract {
   ngayBatDauLamViec: string | null;
   effectiveDate: string;
   issueDate: string;
+  contractStatus: string;
   pdt10DT: number;
   fyp: number;
   nguonDuLieu: string;
@@ -424,6 +425,7 @@ const CONTRACT_COLUMNS = [
   { f: 'contractNumber', l: 'Số hợp đồng', type: 'text' as const },
   { f: 'effectiveDate', l: 'Ngày hiệu lực', type: 'date' as const },
   { f: 'issueDate', l: 'Ngày phát hành', type: 'date' as const },
+  { f: 'contractStatus', l: 'Tình trạng hợp đồng', type: 'text' as const },
   { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
   { f: 'afyp', l: 'AFYP', type: 'number' as const },
   { f: 'ad', l: 'AD', type: 'text' as const },
@@ -749,6 +751,49 @@ async function compressImage(file: File, maxSize = 1200, quality = 0.82): Promis
     return canvas.toDataURL('image/jpeg', quality);
   }
   return canvas.toDataURL('image/jpeg', quality);
+}
+
+// Fixed Sao Việt / CLB posters are shown repeatedly to many viewers. Keep a
+// dedicated, lighter WebP rendition for those images without changing the
+// original file that the admin selected on their device.
+async function compressFixedPosterImage(file: File): Promise<string> {
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Không đọc được file ảnh'));
+    reader.readAsDataURL(file);
+  });
+  const image = new Image();
+  image.src = source;
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('Không xử lý được ảnh poster'));
+  });
+
+  const maxDimension = 1280;
+  let width = image.width;
+  let height = image.height;
+  if (width > maxDimension || height > maxDimension) {
+    const ratio = Math.min(maxDimension / width, maxDimension / height);
+    width = Math.max(1, Math.round(width * ratio));
+    height = Math.max(1, Math.round(height * ratio));
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return compressImage(file, maxDimension, 0.74);
+  context.drawImage(image, 0, 0, width, height);
+
+  // Aim for about 260 KB: visually crisp at poster size but fast on mobile.
+  let quality = 0.80;
+  let result = canvas.toDataURL('image/webp', quality);
+  while (result.length > 355000 && quality > 0.58) {
+    quality -= 0.06;
+    result = canvas.toDataURL('image/webp', quality);
+  }
+  return result;
 }
 
 // ==================== EDITABLE CELL ====================
@@ -1652,12 +1697,19 @@ export default function QuanLyPage() {
     try {
       const params = new URLSearchParams(window.location.search);
       const sheetParam = params.get('sheet');
+      const isKpiEmbedRequest = params.get('from') === 'kpi';
+      const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+      if (isKpiEmbedRequest && (!sheetParam || !allowedKpiSheets.includes(sheetParam as SheetKey))) {
+        return 'report';
+      }
       const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
       if (sheetParam && validSheets.includes(sheetParam as SheetKey)) {
-        // Clear ?sheet= from URL so internal nav doesn't keep re-applying it
-        const url = new URL(window.location.href);
-        url.searchParams.delete('sheet');
-        window.history.replaceState({}, '', url.toString());
+        // Giữ ?sheet= trong chế độ KPI nhúng để refresh vẫn trở lại đúng khu vực.
+        if (!isKpiEmbedRequest) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('sheet');
+          window.history.replaceState({}, '', url.toString());
+        }
         return sheetParam as SheetKey;
       }
     } catch {}
@@ -1757,15 +1809,26 @@ export default function QuanLyPage() {
         //    → clear kpi_embed/kpi_from_tach để force admin mode
         // 3. Admin truy cập trực tiếp /quan-ly: không có param → hiện sidebar (admin mode mặc định)
         if (params.get('from') === 'kpi') {
+          const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+          const requestedSheet = params.get('sheet') as SheetKey | null;
+          const embeddedSheet: SheetKey = requestedSheet && allowedKpiSheets.includes(requestedSheet)
+            ? requestedSheet
+            : 'report';
           try {
             sessionStorage.setItem('kpi_embed', '1');
             sessionStorage.setItem('kpi_from_tach', '1');
+            sessionStorage.setItem('kpi_embed_sheet', embeddedSheet);
             sessionStorage.removeItem('kpi_standalone');
           } catch {}
+          // Chế độ từ KPI tách luôn là người xem, không kế thừa quyền admin
+          // còn sót trong session của main app.
+          setIsAdmin(false);
           setIsEmbedded(true);
+          setActiveSheet(embeddedSheet);
           // Clear `from` khỏi URL để internal nav không giữ lại
           const urlClean = new URL(window.location.href);
           urlClean.searchParams.delete('from');
+          urlClean.searchParams.set('sheet', embeddedSheet);
           window.history.replaceState({}, '', urlClean.toString());
         } else if (params.get('admin') === '1') {
           // Admin mode (từ main app's /kpi) → force hiện sidebar
@@ -1785,12 +1848,16 @@ export default function QuanLyPage() {
           try {
             if (sessionStorage.getItem('kpi_embed') === '1') {
               setIsEmbedded(true);
+              setIsAdmin(false);
+              const storedSheet = sessionStorage.getItem('kpi_embed_sheet') as SheetKey | null;
+              const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+              setActiveSheet(storedSheet && allowedKpiSheets.includes(storedSheet) ? storedSheet : 'report');
             }
           } catch {}
         }
         const sheetParam = params.get('sheet');
         const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
-        if (sheetParam && validSheets.includes(sheetParam as SheetKey) && sheetParam !== activeSheet) {
+        if (params.get('from') !== 'kpi' && sheetParam && validSheets.includes(sheetParam as SheetKey) && sheetParam !== activeSheet) {
           // Clear ?sheet= from URL so internal nav doesn't keep re-applying it
           const url = new URL(window.location.href);
           url.searchParams.delete('sheet');
@@ -1874,6 +1941,35 @@ export default function QuanLyPage() {
     // Tất cả sheet còn lại (overview + các sheet admin-only khác) → về trang chính ứng dụng
     router.push('/');
   }, [activeSheet, policyOpen, saovietOpen, clbsvOpen, structureSub, revenueSub, router]);
+
+  // Khi /quan-ly được mở trong iframe của KPI, thanh điều hướng duy nhất nằm ở
+  // parent. Báo cho parent biết đang ở trang con hay trang tổng quan để nút
+  // "Quay lại" thực hiện đúng một cấp thay vì đóng toàn bộ iframe.
+  const embeddedCanGoBack = Boolean(
+    (activeSheet === 'report' && policyOpen)
+    || (activeSheet === 'saoviet' && saovietOpen)
+    || (activeSheet === 'clb-saoviet' && clbsvOpen)
+  );
+
+  useEffect(() => {
+    if (!isInIframe || typeof window === 'undefined') return;
+    window.parent.postMessage({
+      type: 'nmc:kpi-embedded-navigation',
+      canGoBack: embeddedCanGoBack,
+    }, '*');
+  }, [isInIframe, embeddedCanGoBack]);
+
+  useEffect(() => {
+    if (!isInIframe || typeof window === 'undefined') return;
+    const handleEmbeddedBack = (event: MessageEvent) => {
+      if (event.source !== window.parent || event.data?.type !== 'nmc:kpi-embedded-back') return;
+      if (activeSheet === 'report' && policyOpen) { setPolicyOpen(null); return; }
+      if (activeSheet === 'saoviet' && saovietOpen) { setSaovietOpen(null); return; }
+      if (activeSheet === 'clb-saoviet' && clbsvOpen) { setClbsvOpen(null); }
+    };
+    window.addEventListener('message', handleEmbeddedBack);
+    return () => window.removeEventListener('message', handleEmbeddedBack);
+  }, [isInIframe, activeSheet, policyOpen, saovietOpen, clbsvOpen]);
 
   // ========== INTERNAL NAV HISTORY (Back button support) ==========
   // Lưu lịch sử điều hướng nội bộ: mỗi lần đổi sheet/sub/policy sẽ push vào stack.
@@ -3231,7 +3327,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': new Date(c.issueDate).toLocaleDateString('vi-VN'), 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD }));
+      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': c.issueDate ? new Date(c.issueDate).toLocaleDateString('vi-VN') : '', 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD, 'Tình trạng hợp đồng': c.contractStatus || '' }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
@@ -3384,6 +3480,7 @@ export default function QuanLyPage() {
             contractNumber: contractNumber || 'HD_' + Date.now() + '_' + contractRows.length,
             effectiveDate: effectiveDate || null,
             issueDate: parseDateValue(row['Ngày phát hành'] || row['Ngày cấp'] || row['Ngày PH'] || row['issueDate']) || null,
+            contractStatus: String(row['Tình trạng hợp đồng'] || row['Tình trạng HĐ'] || row['Tình trạng'] || row['contractStatus'] || '').trim(),
             pdt10DT: parseFloat(String(row['PĐT + 10% ĐT'] || row['PĐT+10%ĐT'] || row['IP+10%PĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
             fyp: fyp || parseFloat(String(row['PĐT + 10% ĐT'] || row['pdt10DT'] || '0').replace(/,/g, '')) || 0,
             nguonDuLieu: String(row['Nguồn dữ liệu'] || row['nguonDuLieu'] || '').trim(),
@@ -5242,6 +5339,7 @@ export default function QuanLyPage() {
     { f: 'contractNumber', l: 'Số hợp đồng', type: 'text' as const },
     { f: 'effectiveDate', l: 'Ngày hiệu lực', type: 'date' as const },
     { f: 'issueDate', l: 'Ngày phát hành', type: 'date' as const },
+    ...(revenueSub === String(new Date().getMonth() + 1).padStart(2, '0') ? [{ f: 'contractStatus', l: 'Tình trạng hợp đồng', type: 'text' as const }] : []),
     { f: 'pdt10DT', l: 'PĐT + 10% ĐT', type: 'number' as const },
     { f: 'afyp', l: 'AFYP', type: 'number' as const },
     { f: 'ad', l: 'AD', type: 'text' as const },
@@ -5302,6 +5400,34 @@ export default function QuanLyPage() {
   const [savedContestDeleting, setSavedContestDeleting] = useState<string | null>(null);
   // CLB Sao Việt posters — same pattern as saovietPosters
   const [clbsvPosters, setClbsvPosters] = useState<Record<string, string>>({});
+
+  // Sao Việt toàn chặng is a viewer of contests created/deleted on Trang Thi Đua.
+  // Fetch its small summary directly when opened (and after a contest mutation),
+  // so a card cannot survive merely because an in-memory app snapshot is old.
+  useEffect(() => {
+    if (activeSheet !== 'saoviet') return;
+    let cancelled = false;
+    const refreshSavedContests = async () => {
+      try {
+        const response = await fetch(`/api/contests?summary=1&_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        });
+        if (!response.ok || cancelled) return;
+        const contests = await response.json();
+        if (!cancelled && Array.isArray(contests)) setSavedContestsList(contests);
+      } catch {
+        // Keep the current list during a temporary network interruption.
+      }
+    };
+    const onContestChanged = () => { void refreshSavedContests(); };
+    void refreshSavedContests();
+    window.addEventListener('nmc-contests-updated', onContestChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('nmc-contests-updated', onContestChanged);
+    };
+  }, [activeSheet, appDataVersion]);
   const [clbsvPosterUploading, setClbsvPosterUploading] = useState<Record<string, boolean>>({});
   // Filters for Sao Việt detail pages (shared, applies to whichever detail page is open)
   const [saovietNhomFilter, setSaovietNhomFilter] = useState<string>('');
@@ -5681,7 +5807,7 @@ export default function QuanLyPage() {
     setSaovietPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
       // 1) Compress image → base64 data URL
-      const dataUrl: string = await compressImage(file);
+      const dataUrl: string = await compressFixedPosterImage(file);
       // 2) Upload binary to PosterImage table (returns URL)
       const settingKey = `saoviet-poster-${program}`;
       const upRes = await fetch('/api/poster-image', {
@@ -5757,7 +5883,7 @@ export default function QuanLyPage() {
     }
     setClbsvPosterUploading(prev => ({ ...prev, [program]: true }));
     try {
-      const dataUrl: string = await compressImage(file);
+      const dataUrl: string = await compressFixedPosterImage(file);
       const settingKey = `clbsv-poster-${program}`;
       const upRes = await fetch('/api/poster-image', {
         method: 'POST',
@@ -5821,7 +5947,11 @@ export default function QuanLyPage() {
     if (!confirm(`Xóa chương trình "${contestTitle}"?\n\nLưu ý: chương trình sẽ bị xóa khỏi cả Trang Thi Đua.`)) return;
     setSavedContestDeleting(contestId);
     try {
-      const res = await fetch(`/api/contests?id=${contestId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/contests?id=${encodeURIComponent(contestId)}`, {
+        method: 'DELETE',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       if (res.ok) {
         toast({ title: 'Đã xóa', description: `Chương trình "${contestTitle}" đã được xóa` });
         // Nếu đang mở sub-page của contest này → trở về list
@@ -8770,7 +8900,7 @@ export default function QuanLyPage() {
 
           {/* Table */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
+            className="flex-1 min-h-0 overflow-auto border bg-white policy-detail-table-wrapper"
             style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
             data-policy-table={policyOpen}
             onClick={(e) => {
@@ -8787,6 +8917,12 @@ export default function QuanLyPage() {
             }}
           >
             <style dangerouslySetInnerHTML={{ __html: `
+              .policy-detail-table-wrapper thead {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                box-shadow: 0 2px 5px rgba(6, 95, 70, .26);
+              }
               @media (max-width: 767px) {
                 .policy-detail-table-wrapper table { font-size: 9px !important; }
                 .policy-detail-table-wrapper th,
@@ -8952,7 +9088,7 @@ export default function QuanLyPage() {
 
           {/* Middle: bảng chi tiết */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto border bg-white policy-detail-table-wrapper"
+            className="flex-1 min-h-0 overflow-auto border bg-white policy-detail-table-wrapper"
             style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
             data-policy-table={policyOpen}
             onClick={(e) => {
@@ -8969,6 +9105,12 @@ export default function QuanLyPage() {
             }}
           >
             <style dangerouslySetInnerHTML={{ __html: `
+              .policy-detail-table-wrapper thead {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                box-shadow: 0 2px 5px rgba(6, 95, 70, .26);
+              }
               @media (max-width: 767px) {
                 .policy-detail-table-wrapper table { font-size: 9px !important; }
                 .policy-detail-table-wrapper th,
@@ -10300,7 +10442,7 @@ export default function QuanLyPage() {
     // Shared table block
     const tableBlock = (
       <div
-        className="flex-1 min-h-0 overflow-y-auto border bg-white saoviet-detail-table-wrapper"
+        className="flex-1 min-h-0 overflow-auto border bg-white saoviet-detail-table-wrapper"
         style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
         data-saoviet-table={program}
         onClick={(e) => {
@@ -10317,6 +10459,12 @@ export default function QuanLyPage() {
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: `
+          .saoviet-detail-table-wrapper thead {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(6, 95, 70, .26);
+          }
           @media (max-width: 767px) {
             .saoviet-detail-table-wrapper table { font-size: 9px !important; }
             .saoviet-detail-table-wrapper th,
@@ -11020,11 +11168,17 @@ export default function QuanLyPage() {
     // Shared table block (mobile + desktop)
     const tableBlock = (
       <div
-        className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border bg-white clbsv-detail-table-wrapper"
+        className="flex-1 min-h-0 overflow-auto border bg-white clbsv-detail-table-wrapper"
         style={{ borderColor: '#3B82F6' }}
       >
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media (max-width: 767px) {
+          <style dangerouslySetInnerHTML={{ __html: `
+            .clbsv-detail-table-wrapper thead {
+              position: sticky;
+              top: 0;
+              z-index: 20;
+              box-shadow: 0 2px 5px rgba(14, 116, 144, .28);
+            }
+            @media (max-width: 767px) {
             .clbsv-detail-table-wrapper table { font-size: 9px !important; }
             .clbsv-detail-table-wrapper th,
             .clbsv-detail-table-wrapper td {
@@ -11323,10 +11477,16 @@ export default function QuanLyPage() {
               <TableHead
                 key={rk.label}
                 colSpan={2}
-                className="text-[8px] font-black uppercase text-center align-middle whitespace-nowrap py-0 px-1 border-l-2 border-white clbsv-rank-colspan leading-[1]"
-                style={{ backgroundColor: rk.bg, color: rk.fg }}
+                className="h-[22px] min-h-0 text-[8px] font-black uppercase text-center align-middle whitespace-nowrap !py-0 px-1 border-l-2 border-white clbsv-rank-colspan leading-none"
+                style={{
+                  // Tầng tên hạng đậm hơn một nấc so với tầng chỉ tiêu bên dưới,
+                  // để phân cấp rõ ràng mà vẫn giữ đúng màu Vàng/Bạch kim.
+                  backgroundColor: rk.label === 'HẠNG VÀNG' ? '#D99A00' : '#7F8791',
+                  color: rk.fg,
+                  height: '22px',
+                }}
               >
-                <div className="font-black text-[8px] leading-[1]">{rk.label}</div>
+                <div className="font-black text-[8px] leading-none">{rk.label}</div>
               </TableHead>
             ))}
           </TableRow>

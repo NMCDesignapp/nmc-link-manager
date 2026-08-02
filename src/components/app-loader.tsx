@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from '@/lib/animations';
-import { AlertCircle, RotateCw } from 'lucide-react';
+import { AlertCircle, RotateCw, Trophy } from 'lucide-react';
 
 /**
  * Branded loading screen shown on initial app load.
@@ -29,9 +29,11 @@ export interface AppLoaderProps {
   show: boolean;
   error?: string | null;
   onRetry?: () => void | Promise<void>;
+  /** KPI uses a compact modal so the dashboard remains visually recognizable while data loads. */
+  variant?: 'default' | 'kpi';
 }
 
-export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
+export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoaderProps) {
   // 'loading' → 'complete' → 'zooming' → unmount
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');
   const [progress, setProgress] = useState(0);
@@ -73,6 +75,84 @@ export function AppLoader({ show, error, onRetry }: AppLoaderProps) {
   const isZooming = phase === 'zooming';
 
   const color = '#00ff88';
+
+  if (variant === 'kpi') {
+    return (
+      <div
+        className="fixed inset-0 z-[1000] flex items-center justify-center overflow-hidden p-5"
+        style={{
+          background: 'rgba(3, 12, 25, 0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          opacity: isZooming ? 0 : 1,
+          transition: isZooming ? 'opacity .38s ease-out' : 'none',
+          pointerEvents: isZooming ? 'none' as const : 'auto' as const,
+        }}
+        role="status"
+        aria-live="polite"
+        aria-label={error ? 'Tải dữ liệu gặp lỗi' : 'Đang tải dữ liệu KPI'}
+      >
+        <div
+          className="relative w-full max-w-[350px] overflow-hidden px-7 py-9 text-center"
+          style={{
+            borderRadius: 22,
+            border: '1px solid rgba(104, 186, 239, .44)',
+            background: 'linear-gradient(145deg, rgba(10, 35, 62, .98), rgba(11, 25, 49, .98))',
+            boxShadow: '0 20px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08)',
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-8 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, #66d8ff, transparent)' }}
+          />
+          <div
+            className="mx-auto mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-full"
+            style={{
+              color: '#fff4cf',
+              background: 'radial-gradient(circle at 35% 30%, #ffd978, #d79726 62%, #9c5c11)',
+              boxShadow: '0 0 0 7px rgba(244, 189, 70, .08), 0 10px 26px rgba(220, 149, 26, .34)',
+            }}
+          >
+            <Trophy size={43} strokeWidth={2.2} />
+          </div>
+          <h2 className="text-[24px] font-black tracking-tight text-white">Tiến Độ Kinh Doanh</h2>
+          <p className="mt-1 text-[11px] font-extrabold uppercase tracking-[.2em]" style={{ color: '#f4ca62' }}>
+            Bảo Việt Nhân Thọ An Giang
+          </p>
+          {error ? (
+            <div className="mt-7">
+              <AlertCircle className="mx-auto mb-2 h-7 w-7 text-amber-300" />
+              <p className="text-sm font-semibold text-amber-100">{error}</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={() => void onRetry()}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-white"
+                  style={{ borderRadius: 10, border: '1px solid rgba(105, 218, 166, .55)', background: 'rgba(28, 138, 94, .7)' }}
+                >
+                  <RotateCw size={15} /> Thử lại
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="mt-7 flex flex-col items-center gap-3">
+              <div
+                className="h-10 w-10 rounded-full"
+                style={{
+                  border: '3px solid rgba(91, 222, 164, .2)',
+                  borderTopColor: '#54e4a3',
+                  borderRightColor: '#86d8ff',
+                  animation: 'nmc-kpi-loader-spin .82s linear infinite',
+                }}
+              />
+              <p className="text-sm italic text-slate-300">Đang tải dữ liệu...</p>
+            </div>
+          )}
+          <style>{`@keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

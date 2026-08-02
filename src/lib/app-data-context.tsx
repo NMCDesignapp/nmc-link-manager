@@ -76,12 +76,17 @@ const APP_DATA_CACHE_KEY = 'nmc-app-data-v2'
 const APP_DATA_CACHE_TTL_MS = 60 * 1000
 
 const fetchJson = async (url: string): Promise<any> => {
+  const controller = new AbortController()
+  // Không để một endpoint chậm khiến toàn bộ KPI đứng ở màn hình khởi động mãi.
+  const timeoutId = window.setTimeout(() => controller.abort(), 15_000)
   try {
-    const r = await fetch(url, { cache: 'no-store' })
+    const r = await fetch(url, { cache: 'no-store', signal: controller.signal })
     if (!r.ok) return null
     return await r.json()
   } catch {
     return null
+  } finally {
+    window.clearTimeout(timeoutId)
   }
 }
 
@@ -227,11 +232,77 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Trạng thái mở/khóa đăng ký mục tiêu cần phản hồi nhanh nhưng không đáng để
+  // tải lại toàn bộ dữ liệu KPI. Chỉ làm mới đúng một Setting nhỏ này.
+  const refreshTargetRegistrationSetting = useCallback(async () => {
+    const latestSettings = await fetchJson('/api/settings') as Record<string, string> | null
+    if (!latestSettings) return
+
+    const nextValue = latestSettings['kpi-target-registration-open'] ?? '1'
+    setData((previous) => {
+      const currentValue = previous.settings?.['kpi-target-registration-open'] ?? '1'
+      if (currentValue === nextValue) return previous
+      const next = {
+        ...previous,
+        settings: { ...(previous.settings || {}), 'kpi-target-registration-open': nextValue },
+      }
+      writeSessionCache(next)
+      return next
+    })
+  }, [])
+
   // Auto-load 1 lần khi app mount
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
     loadAll().finally(() => setIsLoading(false))
+  }, [loadAll])
+
+  // Tab KPI cùng domain nhận lệnh ngay bằng BroadcastChannel. KPI tách ở domain
+  // khác vẫn bắt được thay đổi qua lần kiểm tra Setting nhẹ mỗi 4 giây.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void refreshTargetRegistrationSetting()
+    }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'nmc-kpi-settings-changed') refresh()
+    }
+    let channel: BroadcastChannel | null = null
+    try {
+      channel = new BroadcastChannel('nmc-kpi-settings')
+      channel.onmessage = refresh
+    } catch {
+      // BroadcastChannel is an optimization only; polling remains available.
+    }
+    const intervalId = window.setInterval(refresh, 4_000)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('storage', onStorage)
+      channel?.close()
+    }
+  }, [refreshTargetRegistrationSetting])
+
+  // Người dùng KPI có thể để app mở suốt ngày. Tự làm mới nền khi tab đang
+  // được xem để dữ liệu vừa được Data Hub cập nhật từ máy tính xuất hiện mà
+  // không cần F5. Không hiện loader và không chạy ở tab đang ẩn để giảm tải.
+  useEffect(() => {
+    const refreshInBackground = () => {
+      if (document.visibilityState !== 'visible') return
+      void loadAll(true).catch(() => {
+        // Giữ dữ liệu đang hiển thị nếu lần làm mới nền gặp lỗi mạng tạm thời.
+      })
+    }
+    const intervalId = window.setInterval(refreshInBackground, 60_000)
+    window.addEventListener('focus', refreshInBackground)
+    document.addEventListener('visibilitychange', refreshInBackground)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refreshInBackground)
+      document.removeEventListener('visibilitychange', refreshInBackground)
+    }
   }, [loadAll])
 
   const reload = useCallback(async () => {

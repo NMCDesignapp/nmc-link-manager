@@ -1,0 +1,1 @@
+ALTER TABLE "Contract" ADD COLUMN IF NOT EXISTS "contractStatus" TEXT NOT NULL DEFAULT '';

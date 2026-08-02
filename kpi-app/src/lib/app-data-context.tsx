@@ -189,12 +189,56 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Refresh only the registration lock setting so the independent KPI updates
+  // quickly without reloading all KPI data.
+  const refreshTargetRegistrationSetting = useCallback(async () => {
+    const latestSettings = await fetchJson('/api/settings') as Record<string, string> | null
+    if (!latestSettings) return
+
+    const nextValue = latestSettings['kpi-target-registration-open'] ?? '1'
+    setData((previous) => {
+      const currentValue = previous.settings?.['kpi-target-registration-open'] ?? '1'
+      if (currentValue === nextValue) return previous
+      const next = {
+        ...previous,
+        settings: { ...(previous.settings || {}), 'kpi-target-registration-open': nextValue },
+      }
+      writeSessionCache(next)
+      return next
+    })
+  }, [])
+
   // Auto-load 1 lần khi app mount
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
     loadAll().finally(() => setIsLoading(false))
   }, [loadAll])
+
+  // Same-domain tabs receive an instant signal; the 4-second poll also covers
+  // the separate KPI deployment, which is hosted on another origin.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void refreshTargetRegistrationSetting()
+    }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'nmc-kpi-settings-changed') refresh()
+    }
+    let channel: BroadcastChannel | null = null
+    try {
+      channel = new BroadcastChannel('nmc-kpi-settings')
+      channel.onmessage = refresh
+    } catch {}
+    const intervalId = window.setInterval(refresh, 4_000)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('storage', onStorage)
+      channel?.close()
+    }
+  }, [refreshTargetRegistrationSetting])
 
   const reload = useCallback(async () => {
     setIsReloading(true)

@@ -4,8 +4,10 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // Managed by the Supabase ↔ Vercel integration. Keeping these names means
+  // Vercel rotates connection credentials without copying them into this repo.
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model Link {
@@ -71,6 +73,7 @@ model Contract {
   ngayBatDauLamViec   DateTime?
   effectiveDate       DateTime?
   issueDate           DateTime?
+  contractStatus      String    @default("")
   pdt10DT             Float     @default(0)
   fyp                 Float     @default(0)
   nguonDuLieu         String    @default("")
@@ -94,6 +97,27 @@ model Contract {
   startDate           DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+// Bảng chỉ-đọc cho màn "Chi tiết tạm thu". Dữ liệu lấy riêng từ Sheet2,
+// không được dùng cho KPI, doanh số hay các phép tính thi đua.
+model TamthuDetail {
+  id              String   @id @default(uuid())
+  rowNo           Int      @default(0)
+  nhom            String   @default("")
+  maNhom          String   @default("")
+  agentCode       String   @default("")
+  agentName       String   @default("")
+  effectiveDate   String   @default("")
+  issueDate       String   @default("")
+  pdt             Float    @default(0)
+  afyp            Float    @default(0)
+  contractStatus  String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([nhom])
+  @@index([agentCode])
 }
 
 model Staff {

@@ -113,6 +113,35 @@ export async function POST() {
     const colExists = verifyCol[0]?.exists === true;
     results.push(colExists ? 'VERIFY: maTVVTuyendung column exists' : 'VERIFY FAILED: maTVVTuyendung column still missing');
 
+    // Tình trạng hợp đồng — nguồn dữ liệu thô từ Tamthu.xlsx, giữ nguyên giá trị file.
+    await db.$executeRaw`
+      ALTER TABLE "Contract" ADD COLUMN IF NOT EXISTS "contractStatus" TEXT NOT NULL DEFAULT ''
+    `;
+    results.push('OK: Contract.contractStatus column ensured');
+
+    // Sheet2 của Tamthu.xlsx chỉ phục vụ bảng xem chi tiết, tách khỏi Contract/KPI.
+    await db.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "TamthuDetail" (
+        "id" TEXT NOT NULL,
+        "rowNo" INTEGER NOT NULL DEFAULT 0,
+        "nhom" TEXT NOT NULL DEFAULT '',
+        "maNhom" TEXT NOT NULL DEFAULT '',
+        "agentCode" TEXT NOT NULL DEFAULT '',
+        "agentName" TEXT NOT NULL DEFAULT '',
+        "effectiveDate" TEXT NOT NULL DEFAULT '',
+        "issueDate" TEXT NOT NULL DEFAULT '',
+        "pdt" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "afyp" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "contractStatus" TEXT NOT NULL DEFAULT '',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "TamthuDetail_pkey" PRIMARY KEY ("id")
+      )
+    `;
+    await db.$executeRaw`CREATE INDEX IF NOT EXISTS "TamthuDetail_nhom_idx" ON "TamthuDetail"("nhom")`;
+    await db.$executeRaw`CREATE INDEX IF NOT EXISTS "TamthuDetail_agentCode_idx" ON "TamthuDetail"("agentCode")`;
+    results.push('OK: TamthuDetail (Sheet2 read-only) table ensured');
+
     // 7. Create SaoVietData table if not exists (for per-program sync/upload)
     await db.$executeRaw`
       CREATE TABLE IF NOT EXISTS "SaoVietData" (

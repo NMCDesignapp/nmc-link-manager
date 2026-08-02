@@ -61,7 +61,7 @@ function rowsFromWorkbook(file, sheetName) {
   const workbook = XLSX.readFile(file, { raw: false, cellDates: false });
   const name = sheetName || workbook.SheetNames[0];
   const sheet = workbook.Sheets[name];
-  if (!sheet) throw new Error(`Không tìm thấy sheet "${name}" trong ${file}`);
+  if (!sheet) throw new Error(`KhÃ´ng tÃ¬m tháº¥y sheet "${name}" trong ${file}`);
   return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 }
 
@@ -119,7 +119,7 @@ async function importOne(config, source, state, force) {
       contractCsv: input,
       staffCsv: '',
       recruiterCsv: '',
-      replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
+        replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
     });
   } else if (source.kind === 'revenue-history') {
     payload = await postJson(config, '/api/sync', {

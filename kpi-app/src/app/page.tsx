@@ -524,6 +524,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .khuvuc-region > * { min-height: 0; overflow: hidden; }
 .kpi-app .khuvuc-region.collapsed { grid-template-rows: 0fr; height: 0 !important; opacity: 0; transform: translateY(-8px); margin-top: 0 !important; margin-bottom: 0 !important; pointer-events: none; }
 
+/* Mã mở TIẾN ĐỘ KHU VỰC */
+.kpi-app .region-lock-modal { position: fixed; inset: 0; z-index: 360; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(3,14,27,.72); backdrop-filter: blur(5px); }
+.kpi-app .region-lock-card { width: min(100%, 320px); padding: 20px; border: 1px solid rgba(99,196,223,.5); border-radius: 14px; background: linear-gradient(145deg,#102b45,#081727); box-shadow: 0 22px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.1); text-align: center; }
+.kpi-app .region-lock-icon { width: 40px; height: 40px; margin: 0 auto 10px; display: grid; place-items: center; border-radius: 50%; color: #8de2f7; background: rgba(38,139,177,.2); border: 1px solid rgba(141,226,247,.4); }
+.kpi-app .region-lock-title { color: #e9f8ff; font-size: 14px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.kpi-app .region-lock-note { margin: 7px 0 14px; color: #9dc3d6; font-size: 11px; }
+.kpi-app .region-lock-input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid #4589a8; border-radius: 8px; background: #07131f; color: #fff; text-align: center; letter-spacing: .32em; font-size: 18px; outline: none; }
+.kpi-app .region-lock-input:focus { border-color: #8de2f7; box-shadow: 0 0 0 3px rgba(80,190,224,.14); }
+.kpi-app .region-lock-error { min-height: 15px; margin-top: 7px; color: #ff9e9e; font-size: 10px; }
+.kpi-app .region-lock-actions { display: flex; gap: 8px; justify-content: center; margin-top: 9px; }
+.kpi-app .region-lock-actions button { min-width: 100px; height: 34px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 800; }
+.kpi-app .region-lock-cancel { color: #c4d5df; background: transparent; border: 1px solid #426078; }
+.kpi-app .region-lock-submit { color: #062232; background: linear-gradient(135deg,#8de2f7,#3fb5db); border: 1px solid #a5edff; }
+
 /* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
    Nền dark, ảnh chèn lên có hiệu ứng bắt mắt. 50% ô trống phía trên chứa ảnh,
@@ -764,6 +778,40 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .tgr-field-input:focus,
 .kpi-app .tgr-field-select:focus { border-color: #6cc78a; }
+.kpi-app .tgr-field-select option {
+  /* Danh sách native trên điện thoại dùng nền sáng: phải ép màu chữ tối
+     để tên Nhóm không bị trắng trên nền trắng. */
+  background: #ffffff;
+  color: #142033;
+  font-weight: 600;
+}
+.kpi-app .tgr-group-picker { position: relative; }
+.kpi-app .tgr-group-picker-trigger {
+  width: 100%; min-height: 42px; padding: 0 12px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: linear-gradient(135deg, #172238, #101a2c); border: 1px solid #57c991;
+  color: #f3f8ff; font: inherit; font-size: 13px; font-weight: 700; text-align: left;
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 4px 14px #00000028;
+}
+.kpi-app .tgr-group-picker-trigger.open { border-color: #88efbd; box-shadow: 0 0 0 3px #6cc78a22; }
+.kpi-app .tgr-group-picker-arrow { color: #82ddaa; font-size: 15px; line-height: 1; transition: transform .18s ease; }
+.kpi-app .tgr-group-picker-trigger.open .tgr-group-picker-arrow { transform: rotate(180deg); }
+.kpi-app .tgr-group-picker-menu {
+  position: absolute; z-index: 260; top: calc(100% + 7px); left: 0; right: 0;
+  max-height: min(300px, 42vh); overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid #377b62; border-radius: 10px; background: #101b2e;
+  box-shadow: 0 16px 34px #000000a0, inset 0 1px 0 #ffffff0d; padding: 4px 0;
+}
+.kpi-app .tgr-group-picker-option {
+  width: 100%; min-height: 48px; padding: 10px 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  color: #e8f2fb; font: inherit; font-size: 13px; font-weight: 700; text-align: left;
+  border-radius: 0; background: transparent;
+}
+.kpi-app .tgr-group-picker-option + .tgr-group-picker-option { border-top: 1px solid #ffffff16; }
+.kpi-app .tgr-group-picker-option:hover, .kpi-app .tgr-group-picker-option:focus-visible { background: #1b3550; color: #a5f2c7; }
+.kpi-app .tgr-group-picker-option.selected { background: #1a4b3a; color: #aaf4cc; }
+.kpi-app .tgr-group-picker-code { color: #7ea6c8; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.kpi-app .tgr-group-picker-option.selected .tgr-group-picker-code { color: #91dcb3; }
 .kpi-app .tgr-field-input:read-only { background: rgba(255,255,255,.03); color: #8ab8e0; }
 .kpi-app .tgr-field-row { display: flex; gap: 10px; }
 .kpi-app .tgr-field-row > .tgr-field { flex: 1; }
@@ -786,30 +834,48 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .tgr-btn-confirm:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ============= TARGET REG LIST VIEW ============= */
-.kpi-app .tgr-list-shell { margin-top: 0; margin-left: auto; margin-right: auto; max-width: 100%; padding: 0 4px; }
+.kpi-app .tgr-list-shell { margin-top: 0; margin-left: auto; margin-right: auto; max-width: 100%; padding: 0 8px; }
+.kpi-app .tgr-list-heading {
+  min-height: 72px; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  padding: 2px 0 10px;
+}
+.kpi-app .tgr-list-heading-copy { min-width: 0; width: 100%; justify-self: center; text-align: center; line-height: 1.08; }
+.kpi-app .tgr-list-heading-top { color: #f3b144; font-size: clamp(18px, 5vw, 28px); font-weight: 950; letter-spacing: .06em; text-transform: uppercase; }
+.kpi-app .tgr-list-heading-bottom { margin-top: 6px; color: #f3b144; font-size: clamp(13px, 3.2vw, 17px); font-weight: 900; letter-spacing: .035em; }
+.kpi-app .tgr-list-heading-spacer { width: 32px; }
 .kpi-app .tgr-list-table-wrap {
-  background: rgba(14,20,36,.6); border: 1px solid rgba(108,199,138,.18);
-  border-radius: 12px; padding: 8px; margin-top: 12px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  background: transparent; border: 0; border-radius: 0; padding: 0; margin-top: 14px;
+  box-shadow: none;
 }
 .kpi-app .tgr-list-table-meta {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  padding: 2px 2px 10px; color: #9bb2c8; font-size: 10px;
+  min-width: 0; padding: 0 2px 8px; color: #b9d2c5; font-size: 10px; background: transparent; border: 0;
 }
-.kpi-app .tgr-list-table-meta em { color: #7890a8; font-size: 9px; font-style: italic; white-space: nowrap; }
-.kpi-app .tgr-list-table { width: 100%; min-width: 700px; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+.kpi-app .tgr-list-table-meta em { color: #8dab9b; font-size: 9px; font-style: italic; white-space: nowrap; margin-left: auto; }
+.kpi-app .tgr-list-table { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
 .kpi-app .tgr-list-table thead th {
-  background: rgba(108,199,138,.10); color: #6cc78a;
-  padding: 10px 8px; text-align: left; font-size: 10px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid rgba(108,199,138,.20);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(180deg, #239a69, #16845a); color: #ffffff;
+  padding: 10px 8px; text-align: center !important; font-size: 10px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .05em; border-right: 1px solid #ffffff30; border-bottom: 2px solid #117049;
+  white-space: normal; line-height: 1.15;
 }
 .kpi-app .tgr-list-table tbody td {
-  padding: 9px 8px; color: #e0e6ed; border-bottom: 1px solid rgba(255,255,255,.06);
-  vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 11px 9px; color: #183548; border-right: 1px solid #e0ebe5; border-bottom: 1px solid #d8e7df;
+  vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #ffffff;
 }
-.kpi-app .tgr-list-table tbody tr:hover td { background: rgba(108,199,138,.04); }
+.kpi-app .tgr-list-table tbody tr:nth-child(even) td { background: #f4faf6; }
+.kpi-app .tgr-list-table tbody tr:hover td { background: #e6f6eb; }
+.kpi-app .tgr-list-table th:last-child, .kpi-app .tgr-list-table td:last-child { border-right: 0; }
+.kpi-app .tgr-list-table .tgr-col-stt { width: 5%; text-align: center; }
+.kpi-app .tgr-list-table .tgr-col-nhom { width: 15%; }
+.kpi-app .tgr-list-table .tgr-col-name { width: 18%; }
+.kpi-app .tgr-list-table .tgr-col-cv { width: 6%; text-align: center; }
+.kpi-app .tgr-list-table .tgr-col-afyp { width: 17%; text-align: right; }
+.kpi-app .tgr-list-table .tgr-col-luot { width: 7%; text-align: right; }
+.kpi-app .tgr-list-table .tgr-col-note { width: 20%; }
 .kpi-app .tgr-list-empty {
-  text-align: center; padding: 30px 16px; color: #8a93a0; font-size: 12px; font-style: italic;
+  text-align: center; padding: 30px 16px; color: #668274; font-size: 12px; font-style: italic; background: #fff;
 }
 .kpi-app .tgr-list-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .kpi-app .tgr-list-action-btn {
@@ -824,8 +890,21 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Mobile compact: smaller fonts/padding */
 @media (max-width: 640px) {
-  .kpi-app .tgr-list-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .kpi-app .tgr-list-table-meta { min-width: 700px; }
+  .kpi-app .tgr-list-heading { grid-template-columns: 30px minmax(0, 1fr) 30px; }
+  .kpi-app .tgr-list-heading-top { font-size: 20px; }
+  .kpi-app .tgr-list-heading-bottom { font-size: 14px; }
+  .kpi-app .tgr-list-table-meta { min-width: 0; font-size: 8px; padding-bottom: 7px; }
+  .kpi-app .tgr-list-table-meta em { display: block; font-size: 8px; }
+  .kpi-app .tgr-list-table { font-size: 9px; }
+  .kpi-app .tgr-list-table thead th { padding: 8px 3px; font-size: 8px; letter-spacing: 0; }
+  .kpi-app .tgr-list-table tbody td { padding: 9px 3px; }
+  .kpi-app .tgr-list-table .tgr-col-stt { width: 7%; }
+  .kpi-app .tgr-list-table .tgr-col-nhom { width: 21%; }
+  .kpi-app .tgr-list-table .tgr-col-name { width: 28%; }
+  .kpi-app .tgr-list-table .tgr-col-cv { width: 6%; }
+  .kpi-app .tgr-list-table .tgr-col-afyp { width: 11%; }
+  .kpi-app .tgr-list-table .tgr-col-luot { width: 7%; }
+  .kpi-app .tgr-list-table .tgr-col-note { width: 8%; }
   .kpi-app .rg-head { padding: 10px 12px; }
   .kpi-app .rg-head-name { font-size: 11px; }
   .kpi-app .rg-head-pct { font-size: 15px; }
@@ -846,6 +925,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .mobile-only { display: none !important; }
   .kpi-app .rg-wrap { display: flex; flex-direction: column; gap: 22px; }
   .kpi-app .rg-card { max-width: 900px; margin: 0 auto; }
+  .kpi-app .tgr-list-shell { max-width: 1180px; padding: 0 22px; }
+  .kpi-app .tgr-list-table { font-size: 13px; }
+  .kpi-app .tgr-list-table thead th { padding: 12px 11px; font-size: 11px; }
+  .kpi-app .tgr-list-table tbody td { padding: 12px 11px; }
 }
 
 
@@ -1182,6 +1265,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Flat group item — minimal rounding, compact */
 .kpi-app .grp-item-flat {
+  width: 100%; text-align: left; cursor: pointer;
   border-radius: 3px !important;
   padding: 5px 10px 5px !important;
   gap: 2px !important;
@@ -2567,6 +2651,33 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   position: relative;
   background: #0a1424;
 }
+.kpi-embed-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #dceeff;
+  background: radial-gradient(circle at center, rgba(15, 49, 79, .92), rgba(5, 17, 31, .97));
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.kpi-embed-loader::after {
+  content: '';
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  border: 3px solid rgba(104, 216, 255, .18);
+  border-top-color: #67d9ff;
+  border-right-color: #61e4aa;
+  box-shadow: 0 0 18px rgba(89, 213, 255, .28);
+  animation: kpi-embed-spin .8s linear infinite;
+}
+@keyframes kpi-embed-spin { to { transform: rotate(360deg); } }
 .kpi-embed-iframe {
   display: block;
   width: 100%;
@@ -2903,6 +3014,68 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* ============= DẢI THAO TÁC KPI — MÀU ĐẬM, ĐỒNG BỘ ============= */
 /* Tiến độ khu vực: xanh navy/teal để biểu thị theo dõi. */
+/* Vinh danh: khóa kích thước độc lập, không để lưới mobile cũ phóng to ảnh. */
+.kpi-app .honour-tier .honour-image-grid {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  max-width: 100% !important;
+  gap: 9px !important;
+}
+.kpi-app .honour-platinum-row,
+.kpi-app .honour-gold-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 10px;
+}
+.kpi-app .honour-tier.platinum .banca-img-cell {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  flex: 0 0 56px !important;
+  aspect-ratio: 1 / 1 !important;
+}
+.kpi-app .honour-tier.gold .banca-img-cell {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  flex: 0 0 44px !important;
+  aspect-ratio: 1 / 1 !important;
+  transform: none !important;
+}
+.kpi-app .honour-tier.gold .banca-img-cell:hover { transform: translateY(-3px) !important; }
+/* Hạng Vàng trải đều theo từng tầng kim tự tháp, tận dụng bề ngang khung
+   nhưng vẫn giữ tỷ lệ 5 – 4 – 3 cân đối. */
+.kpi-app .honour-tier.gold .honour-gold-row {
+  justify-content: space-between;
+  gap: 0;
+}
+.kpi-app .honour-tier.gold .honour-gold-row-5 { width: 92%; }
+.kpi-app .honour-tier.gold .honour-gold-row-4 { width: 76%; }
+.kpi-app .honour-tier.gold .honour-gold-row-3 { width: 60%; }
+.kpi-app .honour-tier.gold .honour-gold-row-2 { width: 40%; }
+.kpi-app .honour-tier.gold .honour-gold-row-1 { width: auto; }
+/* Ưu tiên căn giữa từng dòng; các ảnh vàng lớn hơn nhẹ nhưng vẫn nhỏ hơn Bạch Kim. */
+.kpi-app .honour-tier.gold .honour-gold-row {
+  width: 100% !important;
+  justify-content: center;
+  gap: clamp(16px, 5vw, 24px);
+}
+.kpi-app .honour-tier.gold .banca-img-cell {
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 50px !important;
+  flex-basis: 50px !important;
+}
+@media (min-width: 900px) {
+  .kpi-app .honour-tier.platinum .banca-img-cell { width: 62px !important; height: 62px !important; min-width: 62px !important; flex-basis: 62px !important; }
+  .kpi-app .honour-tier.gold .banca-img-cell { width: 54px !important; height: 54px !important; min-width: 54px !important; flex-basis: 54px !important; }
+}
+
 .kpi-app .region-divider.is-collapse-btn {
   display: flex;
   align-items: center;
@@ -2957,6 +3130,49 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: #795618 !important;
   border-color: #f1c95f;
 }
+.kpi-app .target-reg-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+}
+.kpi-app .target-reg-actions .target-reg-btn { min-width: 0; }
+.kpi-app .target-reg-list-btn {
+  background: linear-gradient(135deg, #105b78, #0c3858) !important;
+  border-color: #3bb9df !important;
+  color: #d7f7ff !important;
+  text-shadow: 0 1px 6px rgba(60,190,224,.32) !important;
+}
+.kpi-app .target-reg-list-btn:hover {
+  background: linear-gradient(135deg, #147296, #10506f) !important;
+  border-color: #8ae8ff !important;
+}
+.kpi-app .tamthu-detail-shell { max-width: 1380px; margin: 0 auto; }
+.kpi-app .tamthu-detail-card { overflow: visible; background: transparent; border: 0; box-shadow: none; }
+.kpi-app .tamthu-detail-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 2px 10px; border-bottom: 0;
+}
+.kpi-app .tamthu-detail-summary { color: #b9d2c5; font-size: 10px; font-weight: 700; }
+.kpi-app .tamthu-detail-summary strong { color: #6cc78a; }
+.kpi-app .tamthu-detail-filters { display: flex; gap: 8px; align-items: center; }
+.kpi-app .tamthu-detail-filters select, .kpi-app .tamthu-detail-filters input {
+  height: 32px; border: 1px solid #83c9a8; border-radius: 6px;
+  background: #ffffff; color: #183548; padding: 0 10px; font: inherit; font-size: 11px; outline: none;
+}
+.kpi-app .tamthu-detail-filters input { width: 210px; }
+.kpi-app .tamthu-detail-filters select:focus, .kpi-app .tamthu-detail-filters input:focus { border-color: #239a69; }
+.kpi-app .tamthu-table-wrap { overflow: auto; max-height: min(68vh, 720px); background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
+.kpi-app .tamthu-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px; background: #fff; }
+.kpi-app .tamthu-table th { position: sticky; top: 0; z-index: 2; background: linear-gradient(180deg, #239a69, #16845a); color: #fff; padding: 8px 5px; text-align: center; white-space: normal; text-transform: uppercase; font-size: 9px; font-weight: 900; letter-spacing: .04em; line-height: 1.12; border-right: 1px solid #ffffff30; border-bottom: 2px solid #117049; }
+.kpi-app .tamthu-table td { padding: 8px 6px; border-right: 1px solid #e0ebe5; border-bottom: 1px solid #d8e7df; color: #183548; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; line-height: 1.2; }
+.kpi-app .tamthu-table tbody tr:nth-child(even) td { background: #f4faf6; }
+.kpi-app .tamthu-table tbody tr:hover td { background: #e6f6eb; }
+.kpi-app .tamthu-table th:last-child, .kpi-app .tamthu-table td:last-child { border-right: 0; }
+.kpi-app .tamthu-table .num, .kpi-app .tamthu-table .date, .kpi-app .tamthu-table .code, .kpi-app .tamthu-table .stt { text-align: center; font-variant-numeric: tabular-nums; }
+.kpi-app .tamthu-table .text-left { text-align: left; }
+.kpi-app .tamthu-table .muted { color: #7898aa; }
+.kpi-app .tamthu-empty { padding: 42px 18px; text-align: center; color: #668274; font-size: 13px; background: #fff; }
 @media (max-width: 560px) {
   /* Nhịp dọc mobile: bảng Vinh danh nằm cân giữa dải Tiến độ và Đăng ký mục tiêu. */
   .kpi-app .region-divider.is-collapse-btn { gap: 8px; margin: 18px 0 10px !important; }
@@ -2965,6 +3181,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .target-reg-section { gap: 8px; margin: 24px 0 16px !important; }
   .kpi-app .region-divider.is-collapse-btn .region-divider-title,
   .kpi-app .target-reg-btn { min-height: 40px; padding-left: 12px; padding-right: 12px; }
+  .kpi-app .target-reg-actions { gap: 6px; }
+  .kpi-app .target-reg-actions .target-reg-btn { flex: 1 1 0; font-size: 9px; letter-spacing: .055em; padding-left: 8px; padding-right: 8px; }
+  .kpi-app .target-reg-actions .target-reg-btn::before { display: none; }
+  .kpi-app .tamthu-detail-toolbar { align-items: stretch; flex-direction: column; padding: 12px; }
+  .kpi-app .tamthu-detail-filters { width: 100%; }
+  .kpi-app .tamthu-detail-filters select { min-width: 0; width: 43%; }
+  .kpi-app .tamthu-detail-filters input { min-width: 0; width: 57%; }
+  .kpi-app .tamthu-table-wrap { max-height: calc(100vh - 286px); }
+  .kpi-app .tamthu-table { min-width: 920px; font-size: 10px; }
+  .kpi-app .tamthu-table th { padding: 7px 4px; font-size: 8px; }
+  .kpi-app .tamthu-table td { padding: 7px 5px; }
 }
 /* ============= DESKTOP DASHBOARD — DÙNG TRỌN KHUNG HÌNH ============= */
 @media (min-width: 900px) {
@@ -3088,6 +3315,15 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
     background: #795618;
     border-color: #f1c95f;
   }
+  .kpi-app .desktop-target-list-inline {
+    background: #0d4c69;
+    border-color: #3bb9df;
+    color: #d7f7ff;
+  }
+  .kpi-app .desktop-target-list-inline:hover {
+    background: #116382;
+    border-color: #8ae8ff;
+  }
 
   /* Bảng phòng theo đúng nội dung; không chừa một vùng trắng lớn khi ít AD. */
   .kpi-app .split-right {
@@ -3121,9 +3357,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 interface Contract {
   id: string; agentCode: string; agentName: string; position: string;
   ban: string; nhom: string; maNhom: string; maBanNhom: string;
-  ad: string; effectiveDate: string; issueDate: string | null; afyp: number; fyp: number;
+  ad: string; contractNumber?: string; effectiveDate: string; issueDate: string | null; contractStatus?: string; afyp: number; fyp: number;
   pdt10DT: number; tinhLuot3tr: number; ngayBatDauLamViec: string | null;
   thangTD: string | null; namTD: string | null; thangHL: string | null;
+}
+interface TamthuDetailRow {
+  rowNo: number; nhom: string; maNhom: string; agentCode: string; agentName: string;
+  effectiveDate: string; issueDate: string; pdt: number; afyp: number; contractStatus: string;
 }
 interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
 interface Revenue { id: string; month: string; maNhom: string; nhom: string; agentCode: string; agentName: string; totalFYP: number; totalAFYP: number; contractCount: number; activityRounds: number; }
@@ -3549,6 +3789,13 @@ const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: n
   { left: 67, top: 66, size: 52, z: 2 }, { left: 84, top: 74, size: 64, z: 3 }, { left: 7, top: 72, size: 54, z: 2 }, { left: 24, top: 84, size: 60, z: 3 }, { left: 43, top: 70, size: 54, z: 2 }, { left: 58, top: 84, size: 64, z: 4 }, { left: 88, top: 88, size: 54, z: 3 },
 ];
 
+function getGoldHonourRows(indices: number[]): number[][] {
+  // Lấp theo thứ tự từ trên xuống: dòng 1 tối đa 5, dòng 2 tối đa 4,
+  // dòng 3 tối đa 3. Không chia lại để lấp các dòng dưới khi dòng trên còn trống.
+  return [indices.slice(0, 5), indices.slice(5, 9), indices.slice(9, 12)]
+    .filter((row) => row.length > 0);
+}
+
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
   const router = useRouter();
   const [rawData, setRawData] = useState<{
@@ -3556,11 +3803,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     leaders: LeaderInfo[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  // Splash screen overlay — chỉ hiện lần đầu khi app vừa mở, tự fade-out khi data sẵn sàng.
-  const [splashVisible, setSplashVisible] = useState(true);
-  const [splashExiting, setSplashExiting] = useState(false);
   const [error, setError] = useState(false);
-  const [view, setView] = useState<'main' | 'detail' | 'calendar' | 'target-reg-list'>('main');
+  const [view, setView] = useState<'main' | 'detail' | 'calendar' | 'target-reg-list' | 'tamthu-detail'>('main');
+  const [tamthuNhomFilter, setTamthuNhomFilter] = useState('');
+  const [tamthuNameFilter, setTamthuNameFilter] = useState('');
+  const [tamthuDetailRows, setTamthuDetailRows] = useState<TamthuDetailRow[]>([]);
+  const [tamthuDetailLoading, setTamthuDetailLoading] = useState(false);
   // ===== KPI EMBEDDED SHEET =====
   // Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt) — nội dung
   // sẽ được mở NGAY TRONG KPI app bằng iframe overlay đến /quan-ly?sheet=xxx&from=kpi.
@@ -3569,11 +3817,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [kpiSheet, setKpiSheet] = useState<'home' | 'saoviet' | 'report' | 'clb-saoviet'>('home');
   // Cache-buster timestamp — mỗi lần mở sheet sẽ sinh timestamp mới để iframe
   // luôn fetch HTML mới nhất, tránh bị SW cache hoặc HTTP cache serving stale content.
-  const [kpiSheetT, setKpiSheetT] = useState<number>(0);
+  const kpiIframeRef = useRef<HTMLIFrameElement>(null);
+  const [kpiEmbeddedCanGoBack, setKpiEmbeddedCanGoBack] = useState(false);
+  const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
   const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet') => {
-    setKpiSheetT(Date.now());
+    setKpiEmbeddedCanGoBack(false);
+    setKpiEmbedLoading(true);
     setKpiSheet(sheet);
     if (typeof window !== 'undefined') {
       window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
@@ -3582,12 +3833,27 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   }, []);
 
   const closeKpiSheet = useCallback(() => {
+    if (kpiEmbeddedCanGoBack) {
+      kpiIframeRef.current?.contentWindow?.postMessage({ type: 'nmc:kpi-embedded-back' }, '*');
+      return;
+    }
     if (typeof window !== 'undefined' && window.history.state?.nmcKpiSheet) {
       window.history.back();
       return;
     }
+    setKpiEmbedLoading(false);
     setKpiSheet('home');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [kpiEmbeddedCanGoBack]);
+
+  useEffect(() => {
+    const handleEmbeddedNavigation = (event: MessageEvent) => {
+      if (event.source !== kpiIframeRef.current?.contentWindow) return;
+      if (event.data?.type !== 'nmc:kpi-embedded-navigation') return;
+      setKpiEmbeddedCanGoBack(event.data.canGoBack === true);
+    };
+    window.addEventListener('message', handleEmbeddedNavigation);
+    return () => window.removeEventListener('message', handleEmbeddedNavigation);
   }, []);
   const [selectedKy, setSelectedKy] = useState('');
   const [kyDropdownOpen, setKyDropdownOpen] = useState(false);
@@ -3667,6 +3933,28 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Click vào chữ "TIẾN ĐỘ KHU VỰC" để toggle.
   // Mặc định ẨN khi mở app (user request 2026-07-20).
   const [khuVucCollapsed, setKhuVucCollapsed] = useState(true);
+  const [regionLockOpen, setRegionLockOpen] = useState(false);
+  const [regionLockCode, setRegionLockCode] = useState('');
+  const [regionLockError, setRegionLockError] = useState(false);
+  const requestKhuVucToggle = useCallback(() => {
+    if (!khuVucCollapsed) {
+      setKhuVucCollapsed(true);
+      return;
+    }
+    setRegionLockCode('');
+    setRegionLockError(false);
+    setRegionLockOpen(true);
+  }, [khuVucCollapsed]);
+  const unlockKhuVuc = useCallback(() => {
+    if (regionLockCode === '6789') {
+      setKhuVucCollapsed(false);
+      setRegionLockOpen(false);
+      setRegionLockCode('');
+      setRegionLockError(false);
+      return;
+    }
+    setRegionLockError(true);
+  }, [regionLockCode]);
 
   // ===== BANCA GOLD CIRCLES (15 ô tròn để admin upload ảnh) =====
   // User request: dưới card BANCA, thêm 1 khoảng trống (cao cỡ 50% viewport) chứa 15 hình tròn nhỏ
@@ -3763,10 +4051,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     afypTrieu: string; luotHD: string; note: string;
   }>({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
   const [targetRegSaving, setTargetRegSaving] = useState(false);
+  const [targetRegGroupPickerOpen, setTargetRegGroupPickerOpen] = useState(false);
 
   const closeTargetReg = () => {
     setTargetRegOpen(false);
     setTargetRegRole(null);
+    setTargetRegGroupPickerOpen(false);
     setTargetRegForm({ nhom: '', maNhom: '', agentCode: '', agentName: '', position: '', afypTrieu: '', luotHD: '', note: '' });
   };
 
@@ -4050,6 +4340,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   /* AD detail popup state */
   const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
   const [adPopupNhom, setAdPopupNhom] = useState<string | null>(null);
+  // Khi mở từ trang Chi tiết ban nhóm, popup chỉ hiển thị đúng một nhóm đã chọn.
+  const [adPopupGroupOnly, setAdPopupGroupOnly] = useState(false);
 
   /* Banca-PA detail popup state — chỉ hiện bảng chi tiết (không có tổng hợp) */
   const [bancaPopupOpen, setBancaPopupOpen] = useState(false);
@@ -4089,7 +4381,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     // Giữ splash cho tới khi AppDataProvider hoàn tất toàn bộ lần preload đầu tiên.
     if (!appDataLoading) setLoading(false);
     setSyncing(appDataReloading);
-  }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataReloading, dataVersion]);
+  // appDataLoading phải là dependency: khi điều hướng từ trang chính sang KPI,
+  // dữ liệu có thể đã có sẵn nhưng trạng thái preload chỉ vừa chuyển sang false.
+  // Nếu không nghe thay đổi này, loading của KPI giữ true và splash quay vô hạn.
+  }, [appData.quanLyAll, appData.contracts, appData.staff, appData.revenue, appData.leaders, appDataLoading, appDataReloading, dataVersion]);
 
   // Hàm sync thủ công — gọi reloadAppData (đồng bộ toàn app)
   const fetchData = useCallback(async () => {
@@ -4104,6 +4399,26 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       setSyncing(false);
     }
   }, [reloadAppData]);
+
+  // Sheet2 của Tamthu.xlsx là nguồn RIÊNG, chỉ dùng để xem bảng chi tiết tạm thu.
+  // Không trộn vào rawData nên không ảnh hưởng bất kỳ phép tính KPI/thi đua nào.
+  const fetchTamthuDetail = useCallback(async () => {
+    setTamthuDetailLoading(true);
+    try {
+      const response = await fetch('/api/tamthu-detail', { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data?.rows)) throw new Error('load failed');
+      setTamthuDetailRows(data.rows);
+    } catch {
+      setTamthuDetailRows([]);
+    } finally {
+      setTamthuDetailLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'tamthu-detail') fetchTamthuDetail();
+  }, [view, fetchTamthuDetail]);
 
   /* Online settings (KPI targets) — đọc từ context */
   useEffect(() => {
@@ -4576,19 +4891,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return { total, phongs, periodContracts };
   }, [rawData, overviewPeriod, onlineSettings, adStructList, phongStructList, banNhomStructList, tvvStructList]);
 
-  /* Splash exit — khi data đã load xong (loading=false) VÀ dashboard đã sẵn sàng,
-     đợi 1 nhịp rồi fade-out splash (~550ms) rồi unmount. */
-  useEffect(() => {
-    if (!splashVisible) return;
-    if (loading || honourLoading || !dashboard) return;
-    const t1 = setTimeout(() => setSplashExiting(true), 250);
-    const t2 = setTimeout(() => {
-      setSplashVisible(false);
-      setSplashExiting(false);
-    }, 250 + 600);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [loading, dashboard, splashVisible]);
-
   /* Compute detail data */
   const detailData = useMemo(() => {
     if (!rawData) return [];
@@ -5044,6 +5346,24 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   /* Render helpers */
   const pct = dashboard ? (dashboard.total.kh ? (dashboard.total.afyp / dashboard.total.kh * 100) : 0) : 0;
   const cp = Math.min(pct, 100);
+  const currentMonthKey = `${CUR_YEAR}-${CUR_MONTH}`;
+  const tamthuMonthLabel = `Tháng ${Number(CUR_MONTH)}/${CUR_YEAR}`;
+  const tamthuContracts = useMemo(() => {
+    // Chỉ dùng snapshot Sheet2 (bảng xem), tuyệt đối không dùng dữ liệu tính KPI Sheet4.
+    const records = tamthuDetailRows;
+    const query = tamthuNameFilter.trim().toLocaleLowerCase('vi-VN');
+    return records.filter((contract) => {
+      const nhom = contract.nhom || contract.maNhom || 'Chưa phân nhóm';
+      if (tamthuNhomFilter && nhom !== tamthuNhomFilter) return false;
+      if (!query) return true;
+      return [contract.agentName, contract.agentCode]
+        .some((value) => String(value || '').toLocaleLowerCase('vi-VN').includes(query));
+    });
+  }, [tamthuDetailRows, tamthuNhomFilter, tamthuNameFilter]);
+  const tamthuNhomOptions = useMemo(() => Array.from(new Set(
+    tamthuDetailRows.map((contract) => contract.nhom || contract.maNhom || 'Chưa phân nhóm')
+  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuDetailRows]);
+  const tamthuAfypTotal = useMemo(() => tamthuContracts.reduce((sum, contract) => sum + num(contract.afyp), 0), [tamthuContracts]);
 
   /* Detail top 3 */
   const top3Items = detailData.filter(x => x.kh > 0).slice(0, 3);
@@ -5075,26 +5395,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           Fullscreen splash gate — chờ tải xong toàn bộ dữ liệu (AppDataProvider)
           mới cho vào UI chính. Nếu load lỗi, hiện nút 'Thử lại'.
           Áp dụng cho cả main app (/kpi, /kpi-standalone) và kpi-app standalone (angiang2026-nhom.vercel.app). */}
-      <AppLoader show={appDataLoading} error={loadError} onRetry={reload} />
-
-      {/* ===== POPUP LOADING =====
-          Popup nhỏ ở giữa màn hình khi vừa mở trang KPI (đang preload data).
-          Tự động fade-out mượt mà khi dashboard sẵn sàng — xem useEffect [loading, dashboard, splashVisible] ở trên. */}
-      {splashVisible && (
-        <div className={`kpi-splash${splashExiting ? ' exiting' : ''}`} aria-hidden={splashExiting}>
-          <div className="kpi-splash-card">
-            <div className="kpi-splash-logo" aria-hidden="true">
-              <Trophy size={32} />
-            </div>
-            <div className="kpi-splash-text">
-              <div className="kpi-splash-title">Tiến Độ Kinh Doanh</div>
-              <div className="kpi-splash-sub">Bảo Việt Nhân Thọ An Giang</div>
-            </div>
-            <div className="kpi-splash-spinner" aria-hidden="true" />
-            <div className="kpi-splash-hint">Đang tải dữ liệu…</div>
-          </div>
-        </div>
-      )}
+      <AppLoader variant="kpi" show={appDataLoading} error={loadError} onRetry={reload} />
 
       {/* ===== KPI EMBEDDED SHEET OVERLAY =====
           Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt),
@@ -5137,15 +5438,22 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             )}
           </div>
           <div className="kpi-embed-body">
+            {kpiEmbedLoading && (
+              <div className="kpi-embed-loader" role="status" aria-live="polite">
+                <span>Đang tải nội dung...</span>
+              </div>
+            )}
             <iframe
-              key={`${kpiSheet}-${kpiSheetT}`}
+              ref={kpiIframeRef}
+              key={kpiSheet}
               src={standalone
-                ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi&_t=' + kpiSheetT)}`
-                : `/quan-ly?sheet=${kpiSheet}&admin=1&_t=${kpiSheetT}`}
+                ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi')}`
+                : `/quan-ly?sheet=${kpiSheet}&admin=1`}
               title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
+              onLoad={() => setKpiEmbedLoading(false)}
             />
           </div>
         </div>
@@ -5301,15 +5609,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                   <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
                 </button>
-                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                  <span className="nav-icon"><Trophy size={14} /></span> <span className="nav-label">DS Đăng Ký Mục Tiêu</span>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); fetchData(); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
                 </button>
               </nav>
 
               {/* Region Divider - Mobile (clickable to collapse) */}
               <div
                 className={`region-divider mobile-only is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
-                onClick={() => setKhuVucCollapsed((v) => !v)}
+                onClick={requestKhuVucToggle}
                 role="button"
                 aria-expanded={!khuVucCollapsed}
               >
@@ -5504,7 +5812,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
       <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
-        {indices.map((i) => {
+        {(id === 'gold' ? getGoldHonourRows(indices) : [indices]).map((row, rowIndex) => (
+          <div className={id === 'gold' ? `honour-gold-row honour-gold-row-${row.length}` : 'honour-platinum-row'} key={`${id}-row-${rowIndex}`}>
+          {row.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
           const key = `kpi-banca-img-${idx}`;
           const url = bancaImages[key];
@@ -5529,7 +5839,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               )}
             </div>
           );
-        })}
+          })}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -5546,9 +5858,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               {/* === ĐĂNG KÝ MỤC TIÊU THÁNG (button) ===
                   User request: button bấm → popup chọn TN/TTN → form đăng ký. */}
               <div className="target-reg-section mobile-only">
-                <button className="target-reg-btn" onClick={openTargetRegistration}>
-                  ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
-                </button>
+                <div className="target-reg-actions">
+                  <button className="target-reg-btn" onClick={openTargetRegistration}>
+                    ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                  </button>
+                  <button className="target-reg-btn target-reg-list-btn" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                    DS Đã Đăng Ký
+                  </button>
+                </div>
               </div>
 
               {/* Desktop Split Layout: 2 cột — TRÁI (3fr): 5 nút nav + công ty + biểu đồ | PHẢI (1fr): 4 phòng dọc (bằng nhau, fill height) */}
@@ -5572,8 +5889,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </button>
-                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#c89828,#a87818)', color: '#fff' }}>
-                      <span className="nav-icon"><Trophy size={14} /></span> DS Đăng Ký Mục Tiêu
+                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); fetchData(); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
+                      <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
                     </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
@@ -5652,7 +5969,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
       <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
-        {indices.map((i) => {
+        {(id === 'gold' ? getGoldHonourRows(indices) : [indices]).map((row, rowIndex) => (
+          <div className={id === 'gold' ? `honour-gold-row honour-gold-row-${row.length}` : 'honour-platinum-row'} key={`${id}-row-${rowIndex}`}>
+          {row.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
           const key = `kpi-banca-img-${idx}`;
           const url = bancaImages[key];
@@ -5686,7 +6005,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               )}
             </div>
           );
-        })}
+          })}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -5700,9 +6021,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     )}
                     {/* Target registration button */}
                     <div className="target-reg-section">
-                      <button className="target-reg-btn" onClick={openTargetRegistration}>
-                        ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
-                      </button>
+                      <div className="target-reg-actions">
+                        <button className="target-reg-btn" onClick={openTargetRegistration}>
+                          ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                        </button>
+                        <button className="target-reg-btn target-reg-list-btn" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                          DS Đã Đăng Ký
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -5712,7 +6038,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <div
                   className={`region-divider is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
                   style={{ gridColumn: '1 / -1', marginTop: 24, marginBottom: 4 }}
-                  onClick={() => setKhuVucCollapsed((v) => !v)}
+                  onClick={requestKhuVucToggle}
                   role="button"
                   aria-expanded={!khuVucCollapsed}
                 >
@@ -5729,6 +6055,17 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     }}
                   >
                     ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                  </button>
+                  <button
+                    type="button"
+                    className="desktop-target-inline desktop-target-list-inline"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setView('target-reg-list');
+                      window.scrollTo({ top: 0, behavior: 'auto' });
+                    }}
+                  >
+                    DS Đã Đăng Ký
                   </button>
                 </div>
                 {/* Desktop: only split-right (cards) is collapsible.
@@ -6066,7 +6403,19 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 const pc = item.pct >= 90 ? '#7de8c8' : item.pct >= 70 ? '#8fd0ff' : '#7a9bbf';
                 return (
                   <div className="dt-bn-flat" key={item.maBanNhom}>
-                    <div className="grp-item grp-item-flat" style={{ animationDelay: `${idx * 30}ms` }}>
+                    <button
+                      type="button"
+                      className="grp-item grp-item-flat"
+                      style={{ animationDelay: `${idx * 30}ms` }}
+                      onClick={(event) => {
+                        const vw = typeof window !== 'undefined' ? window.innerWidth : 0;
+                        const vh = typeof window !== 'undefined' ? window.innerHeight : 0;
+                        setAdPopupNhom(item.maBanNhom);
+                        setAdPopupGroupOnly(true);
+                        setAdPopup({ maAD: item.maAD, tenAD: item.tenAD, originX: event.clientX - vw / 2, originY: event.clientY - vh / 2 });
+                      }}
+                      aria-label={`Xem chi tiết nhóm ${item.name}`}
+                    >
                       <div className="grp-fill" style={{ width: `${fill}%` }} />
                       {/* Single-line header: Nhóm ... - TN ... - TLHT ... */}
                       <div className="grp-head-line">
@@ -6082,7 +6431,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </span>
                       </div>
                       <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
-                    </div>
+                    </button>
                   </div>
                 );
               })}
@@ -6335,15 +6684,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
       {/* ===== AD DETAIL POPUP ===== */}
       {adPopupData && (
-        <div className="adp-overlay" onClick={() => setAdPopup(null)}>
+        <div className="adp-overlay" onClick={() => { setAdPopup(null); setAdPopupGroupOnly(false); }}>
           <div
             className="adp-modal"
             onClick={e => e.stopPropagation()}
           >
             {/* Slim header: AD name + close */}
             <div className="adp-header">
-              <span className="adp-header-name">{adPopupData.ad.tenAD}</span>
-              <button className="adp-close" onClick={() => setAdPopup(null)} aria-label="Đóng">
+              <span className="adp-header-name">{adPopupGroupOnly ? `Chi tiết nhóm — ${adPopupData.selectedBN.tenBanNhom}` : adPopupData.ad.tenAD}</span>
+              <button className="adp-close" onClick={() => { setAdPopup(null); setAdPopupGroupOnly(false); }} aria-label="Đóng">
                 <X size={16} />
               </button>
             </div>
@@ -6351,8 +6700,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <div className="adp-body">
               {/* TOP 1/3: DS nhóm + Thông tin nhóm */}
               <div className="adp-top">
-                <div className="adp-top-grid">
-                  <div className="adp-block">
+                <div className="adp-top-grid" style={adPopupGroupOnly ? { gridTemplateColumns: '1fr' } : undefined}>
+                  {!adPopupGroupOnly && <div className="adp-block">
                     <div className="adp-section-label">Danh sách nhóm</div>
                     <div className="adp-nhom-buttons">
                       {adPopupData.bannhoms.map(bn => {
@@ -6368,7 +6717,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         );
                       })}
                     </div>
-                  </div>
+                  </div>}
 
                   <div className="adp-block">
                     <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span></div>
@@ -6469,12 +6818,126 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         </div>
       )}
 
+      {regionLockOpen && (
+        <div className="region-lock-modal" role="dialog" aria-modal="true" aria-labelledby="region-lock-title" onMouseDown={() => setRegionLockOpen(false)}>
+          <div className="region-lock-card" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="region-lock-icon"><LockKeyhole size={20} /></div>
+            <div className="region-lock-title" id="region-lock-title">Mở tiến độ khu vực</div>
+            <div className="region-lock-note">Nhập mã khóa để xem số liệu chi tiết.</div>
+            <input
+              className="region-lock-input"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              autoFocus
+              value={regionLockCode}
+              onChange={(event) => { setRegionLockCode(event.target.value.replace(/\D/g, '')); setRegionLockError(false); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') unlockKhuVuc(); }}
+              aria-label="Mã khóa tiến độ khu vực"
+            />
+            <div className="region-lock-error">{regionLockError ? 'Mã khóa chưa đúng. Vui lòng thử lại.' : ''}</div>
+            <div className="region-lock-actions">
+              <button type="button" className="region-lock-cancel" onClick={() => setRegionLockOpen(false)}>Hủy</button>
+              <button type="button" className="region-lock-submit" onClick={unlockKhuVuc}>Mở xem</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== CHI TIẾT TẠM THU THÁNG HIỆN TẠI ===== */}
+      <section className={`view ${view === 'tamthu-detail' ? 'active' : ''}`} id="view-tamthu-detail" role="region">
+        <div className="tamthu-detail-shell">
+          <div className="sub-header">
+            <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
+            <span className="sub-title">Chi Tiết Tạm Thu — {tamthuMonthLabel}</span>
+            <button
+              type="button"
+              onClick={() => { fetchData(); fetchTamthuDetail(); }}
+              title="Làm mới dữ liệu"
+              style={{ width: 32, height: 32, display: 'grid', placeItems: 'center', color: '#7ce5ff', border: '1px solid rgba(124,229,255,.32)', borderRadius: 7, background: 'rgba(16,91,120,.2)' }}
+            >
+              <RotateCw size={15} className={syncing ? 'spin' : ''} />
+            </button>
+          </div>
+          <div className="sub-line-wrap"><div className="sub-line" /></div>
+          <div className="tamthu-detail-card">
+            <div className="tamthu-detail-toolbar">
+              <div className="tamthu-detail-summary">
+                <strong>{tamthuContracts.length}</strong> hợp đồng &nbsp;•&nbsp; AFYP: <strong>{fmt(tamthuAfypTotal)}đ</strong>
+              </div>
+              <div className="tamthu-detail-filters">
+                <select value={tamthuNhomFilter} onChange={(event) => setTamthuNhomFilter(event.target.value)} aria-label="Lọc theo nhóm">
+                  <option value="">Tất cả nhóm</option>
+                  {tamthuNhomOptions.map((nhom) => <option key={nhom} value={nhom}>{nhom}</option>)}
+                </select>
+                <input
+                  value={tamthuNameFilter}
+                  onChange={(event) => setTamthuNameFilter(event.target.value)}
+                  placeholder="Tìm tên hoặc mã TVV"
+                  aria-label="Tìm tên hoặc mã TVV"
+                />
+              </div>
+            </div>
+            <div className="tamthu-table-wrap">
+              {tamthuDetailLoading ? (
+                <div className="tamthu-empty">Đang tải bảng chi tiết từ Sheet2...</div>
+              ) : tamthuContracts.length === 0 ? (
+                <div className="tamthu-empty">Chưa có dữ liệu Sheet2 phù hợp. Vui lòng chờ Data Hub đồng bộ.</div>
+              ) : (
+                <table className="tamthu-table">
+                  <colgroup>
+                    <col style={{ width: '42px' }} />
+                    <col style={{ width: '108px' }} />
+                    <col style={{ width: '92px' }} />
+                    <col style={{ width: '148px' }} />
+                    <col style={{ width: '74px' }} />
+                    <col style={{ width: '74px' }} />
+                    <col style={{ width: '82px' }} />
+                    <col style={{ width: '92px' }} />
+                    <col style={{ width: '132px' }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>STT</th><th>NHÓM</th><th>MÃ SỐ</th><th>TVV</th>
+                      <th>NGÀY HL</th><th>NGÀY PH</th><th className="num">IP + PĐT</th><th className="num">AFYP</th><th>TÌNH TRẠNG HỢP ĐỒNG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tamthuContracts.map((contract, index) => (
+                      <tr key={`${contract.rowNo}-${contract.agentCode}-${index}`}>
+                        <td className="stt">{contract.rowNo || index + 1}</td>
+                        <td className="text-left" title={contract.nhom || contract.maNhom || ''}>{contract.nhom || contract.maNhom || '—'}</td>
+                        <td className="code">{contract.agentCode || '—'}</td>
+                        <td className="text-left" title={contract.agentName || ''}>{contract.agentName || '—'}</td>
+                        <td className={`date ${contract.effectiveDate ? '' : 'muted'}`}>{contract.effectiveDate || '—'}</td>
+                        <td className={`date ${contract.issueDate ? '' : 'muted'}`}>{contract.issueDate || '—'}</td>
+                        <td className="num">{fmt(num(contract.pdt))}</td>
+                        <td className="num">{fmt(num(contract.afyp))}</td>
+                        <td className={`text-left ${contract.contractStatus ? '' : 'muted'}`} title={contract.contractStatus || ''}>{contract.contractStatus || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== TARGET REGISTRATION LIST VIEW ===== */}
       <section className={`view ${view === 'target-reg-list' ? 'active' : ''}`} id="view-target-reg-list" role="region">
         <div className="tgr-list-shell">
-          <div className="sub-header">
+          <div className="tgr-list-heading">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-            <span className="sub-title">Danh Sách Đăng Ký Mục Tiêu</span>
+            <div className="tgr-list-heading-copy">
+              <div className="tgr-list-heading-top">Danh sách</div>
+              <div className="tgr-list-heading-bottom">
+                {(() => {
+                  const nextMonth = new Date(NOW.getFullYear(), NOW.getMonth() + 1, 1);
+                  return `Đăng ký mục tiêu tháng ${nextMonth.getMonth() + 1}/${nextMonth.getFullYear()}`;
+                })()}
+              </div>
+            </div>
             {/* Export Excel button — admin only */}
             {adminAuthed && targetRegList.length > 0 && (
               <button
@@ -6490,13 +6953,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 ⬇ Excel
               </button>
             )}
-            {!adminAuthed && <div style={{ width: 32 }} />}
+            {!adminAuthed && <div className="tgr-list-heading-spacer" />}
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="tgr-list-table-wrap">
             <div className="tgr-list-table-meta">
               <span>Tổng số đăng ký: {targetRegList.length}{adminAuthed && ' — admin có quyền chỉnh sửa'}</span>
-              <em>Đơn vị tính: AFYP - triệu đồng và Lượt - TVV</em>
+              <em>Đơn vị tính: Triệu đồng</em>
             </div>
             {targetRegLoading ? (
               <div className="tgr-list-empty">Đang tải...</div>
@@ -6506,13 +6969,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               <table className="tgr-list-table">
                 <thead>
                   <tr>
-                    <th>STT</th>
-                    <th>NHÓM</th>
-                    <th>HỌ TÊN</th>
-                    <th>CV</th>
-                    <th style={{ textAlign: 'right' }}>AFYP (triệu)</th>
-                    <th style={{ textAlign: 'right' }}>LƯỢT</th>
-                    <th>GHI CHÚ</th>
+                    <th className="tgr-col-stt">STT</th>
+                    <th className="tgr-col-nhom">NHÓM</th>
+                    <th className="tgr-col-name">HỌ TÊN</th>
+                    <th className="tgr-col-cv">CV</th>
+                    <th className="tgr-col-afyp">AFYP</th>
+                    <th className="tgr-col-luot">LƯỢT</th>
+                    <th className="tgr-col-note">GHI CHÚ</th>
                     {adminAuthed && <th style={{ textAlign: 'right' }}></th>}
                   </tr>
                 </thead>
@@ -6522,8 +6985,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     if (isEditing && targetRegEditForm) {
                       return (
                         <tr key={reg.id}>
-                          <td>{idx + 1}</td>
-                          <td>
+                          <td className="tgr-col-stt">{idx + 1}</td>
+                          <td className="tgr-col-nhom">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11 }}
@@ -6531,7 +6994,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, nhom: e.target.value }))}
                             />
                           </td>
-                          <td>
+                          <td className="tgr-col-name">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11 }}
@@ -6539,7 +7002,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, agentName: e.target.value }))}
                             />
                           </td>
-                          <td>
+                          <td className="tgr-col-cv">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11 }}
@@ -6547,7 +7010,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, position: e.target.value }))}
                             />
                           </td>
-                          <td style={{ textAlign: 'right' }}>
+                          <td className="tgr-col-afyp">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'right' }}
@@ -6555,7 +7018,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, afypTrieu: e.target.value }))}
                             />
                           </td>
-                          <td style={{ textAlign: 'right' }}>
+                          <td className="tgr-col-luot">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'right' }}
@@ -6563,7 +7026,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, luotHD: e.target.value }))}
                             />
                           </td>
-                          <td>
+                          <td className="tgr-col-note">
                             <input
                               className="tgr-field-input"
                               style={{ height: 30, padding: '0 8px', fontSize: 11 }}
@@ -6586,15 +7049,17 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     }
                     return (
                       <tr key={reg.id}>
-                        <td>{idx + 1}</td>
-                        <td>{reg.nhom || '—'}</td>
-                        <td>{reg.agentName || '—'}</td>
-                        <td>{reg.position || '—'}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#ffd76b' }}>
-                          {(reg.afypTarget / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}
+                        <td className="tgr-col-stt">{idx + 1}</td>
+                        <td className="tgr-col-nhom" title={reg.nhom || ''}>
+                          {(reg.nhom || '—').replace(/^\s*nhóm\s+/i, '') || '—'}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{reg.luotHDTarget || 0}</td>
-                        <td style={{ fontSize: 10, color: '#8ab8e0' }}>{reg.note || ''}</td>
+                        <td className="tgr-col-name">{reg.agentName || '—'}</td>
+                        <td className="tgr-col-cv">{(reg.position || '—').replace(/trưởng nhóm/gi, 'TN')}</td>
+                        <td className="tgr-col-afyp" style={{ fontWeight: 800, color: '#0a704a' }}>
+                          {(num(reg.afypTarget) / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}
+                        </td>
+                        <td className="tgr-col-luot" style={{ fontWeight: 800 }}>{reg.luotHDTarget || 0}</td>
+                        <td className="tgr-col-note" style={{ fontSize: 10, color: '#527267' }}>{reg.note || ''}</td>
                         {adminAuthed && (
                           <td>
                             <div className="tgr-list-actions">
@@ -6676,25 +7141,39 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <>
                       <div className="tgr-field">
                         <label className="tgr-field-label">Nhóm</label>
-                        <select
-                          className="tgr-field-select"
-                          value={targetRegForm.maNhom}
-                          onChange={(e) => selectTargetRegNhom(e.target.value)}
-                        >
-                          <option value="">— Chọn nhóm —</option>
-                          {(rawData?.leaders || [])
-                            .filter((l: LeaderInfo) => {
-                              // Lọc TB/TN (Trưởng nhóm / Trưởng ban) — bỏ TTN
-                              const pos = (l.position || '').toLowerCase().trim();
-                              if (pos.includes('tiền trưởng') || pos.includes('trưởng tổ') || pos === 'ttn') return false;
-                              return pos.includes('trưởng nhóm') || pos.includes('trưởng ban');
-                            })
-                            .map((l: LeaderInfo) => (
-                              <option key={l.id} value={l.maNhom}>
-                                {l.nhom} ({l.maNhom})
-                              </option>
-                            ))}
-                        </select>
+                        <div className="tgr-group-picker">
+                          <button
+                            type="button"
+                            className={`tgr-group-picker-trigger${targetRegGroupPickerOpen ? ' open' : ''}`}
+                            onClick={() => setTargetRegGroupPickerOpen((open) => !open)}
+                            aria-expanded={targetRegGroupPickerOpen}
+                          >
+                            <span>{targetRegForm.nhom ? `${targetRegForm.nhom} (${targetRegForm.maNhom})` : '— Chọn nhóm —'}</span>
+                            <span className="tgr-group-picker-arrow">⌄</span>
+                          </button>
+                          {targetRegGroupPickerOpen && (
+                            <div className="tgr-group-picker-menu" role="listbox" aria-label="Danh sách nhóm">
+                              {(rawData?.leaders || [])
+                                .filter((l: LeaderInfo) => {
+                                  const pos = (l.position || '').toLowerCase().trim();
+                                  if (pos.includes('tiền trưởng') || pos.includes('trưởng tổ') || pos === 'ttn') return false;
+                                  return pos.includes('trưởng nhóm') || pos.includes('trưởng ban');
+                                })
+                                .map((l: LeaderInfo) => (
+                                  <button
+                                    type="button"
+                                    role="option"
+                                    aria-selected={targetRegForm.maNhom === l.maNhom}
+                                    className={`tgr-group-picker-option${targetRegForm.maNhom === l.maNhom ? ' selected' : ''}`}
+                                    key={l.id}
+                                    onClick={() => { selectTargetRegNhom(l.maNhom); setTargetRegGroupPickerOpen(false); }}
+                                  >
+                                    <span>{l.nhom}</span><span className="tgr-group-picker-code">{l.maNhom}</span>
+                                  </button>
+                                ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="tgr-field">
                         <label className="tgr-field-label">Họ tên Trưởng nhóm</label>

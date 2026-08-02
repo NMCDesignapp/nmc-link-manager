@@ -4,11 +4,17 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Resolve the correct database URL for PostgreSQL
-// Priority: 1) DATABASE_URL if it starts with postgres, 2) DIRECT_URL if postgres, 3) fallback Neon URL
+// Resolve the database injected by the Supabase ↔ Vercel integration first.
+// Legacy DATABASE_URL / DIRECT_URL values may still point at the retired Neon
+// project, so they are only compatibility fallbacks.
 function resolveDatabaseUrl(): string {
+  const supabasePrismaUrl = process.env.POSTGRES_PRISMA_URL || ''
   const databaseUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''
+
+  if (supabasePrismaUrl.startsWith('postgresql://') || supabasePrismaUrl.startsWith('postgres://')) {
+    return supabasePrismaUrl
+  }
   
   // If DATABASE_URL is already PostgreSQL, use it
   if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {

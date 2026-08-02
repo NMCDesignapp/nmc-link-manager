@@ -54,17 +54,26 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    // Helper: delete all + insert for a table
+    // Restore only empty tables. The backup is older than live Data Hub data,
+    // so this route must never delete or overwrite production records.
     const restoreTable = async (table: string, filename: string, insertFn: (rows: any[]) => Promise<number>) => {
       const rows = readJson(filename);
       try {
-        // Delete all existing rows
         // @ts-expect-error - dynamic table access
-        await db[table].deleteMany({});
+        const existing = await db[table].count();
+        if (existing > 0) {
+          results.push({ table, deleted: 0, inserted: 0, error: `Skipped: ${existing} live rows already exist` });
+          console.log(`[restore-data] ${table}: skipped (${existing} live rows)`);
+          return;
+        }
+        if (rows.length === 0) {
+          results.push({ table, deleted: 0, inserted: 0 });
+          return;
+        }
         // Insert rows from backup
         const inserted = await insertFn(rows);
-        results.push({ table, deleted: rows.length, inserted });
-        console.log(`[restore-data] ${table}: deleted all, inserted ${inserted} rows`);
+        results.push({ table, deleted: 0, inserted });
+        console.log(`[restore-data] ${table}: inserted ${inserted} rows into empty table`);
       } catch (err: any) {
         console.error(`[restore-data] Error restoring ${table}:`, err?.message);
         results.push({ table, deleted: 0, inserted: 0, error: err?.message || String(err) });
@@ -183,11 +192,17 @@ export async function POST(req: NextRequest) {
     });
 
     await restoreTable('monthlyRevenue', 'MonthlyRevenue.json', async (rows) => {
-      if (rows.length === 0) return 0;
+      // The current month is always calculated from the live Tamthu source.
+      // Never restore its historical aggregate rows, otherwise KPI totals can
+      // count the same July/August contracts twice.
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const historicalRows = rows.filter((r: any) => r.month !== currentMonth);
+      if (historicalRows.length === 0) return 0;
       const batchSize = 100;
       let totalInserted = 0;
-      for (let i = 0; i < rows.length; i += batchSize) {
-        const batch = rows.slice(i, i + batchSize);
+      for (let i = 0; i < historicalRows.length; i += batchSize) {
+        const batch = historicalRows.slice(i, i + batchSize);
         await db.monthlyRevenue.createMany({ data: batch.map((r: any) => ({
           id: r.id, month: r.month, maNhom: r.maNhom || '', nhom: r.nhom || '',
           agentCode: r.agentCode || '', agentName: r.agentName || '',

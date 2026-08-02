@@ -19,6 +19,16 @@ async function ensureOwnerColumn() {
     await db.$executeRawUnsafe(
       `ALTER TABLE "CalendarEvent" ADD COLUMN IF NOT EXISTS "owner" TEXT NOT NULL DEFAULT ''`
     )
+    // Bản backup có thể chép lại id cũ nhưng sequence chưa được nâng lên,
+    // khiến lần thêm kế hoạch tiếp theo bị trùng khóa chính. Đồng bộ sequence
+    // theo id lớn nhất trước khi cho phép form ghi dữ liệu.
+    await db.$executeRawUnsafe(`
+      SELECT setval(
+        pg_get_serial_sequence('"CalendarEvent"', 'id'),
+        GREATEST(COALESCE((SELECT MAX(id) FROM "CalendarEvent"), 1), 1),
+        true
+      )
+    `)
     migrationEnsured = true
   } catch (e) {
     // Table might not exist yet, or another issue. Log and continue — the
@@ -104,7 +114,9 @@ export async function POST(request: Request) {
       console.warn('[calendar] Prisma create failed, falling back to raw SQL:', prismaErr?.message || prismaErr)
       // Fallback: raw SQL INSERT
       const rows: any[] = await db.$queryRawUnsafe(
-        `INSERT INTO "CalendarEvent" (title, date, color, owner) VALUES ($1, $2, $3, $4)
+        // Một số bản CalendarEvent cũ có updated_at NOT NULL nhưng không có
+        // default. Ghi rõ NOW() để form Nhập kế hoạch luôn lưu được.
+        `INSERT INTO "CalendarEvent" (title, date, color, owner, updated_at) VALUES ($1, $2, $3, $4, NOW())
          RETURNING id, title, date, color, owner, created_at, updated_at`,
         title,
         date,

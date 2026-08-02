@@ -114,4 +114,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Không thể đồng bộ cấu trúc' }, { status: 500 });
   }
 }
-
