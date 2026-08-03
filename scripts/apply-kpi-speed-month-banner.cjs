@@ -55,7 +55,7 @@ replaceRegexOnce(
 
 // 3) Dời băng thông báo vào cùng hàng với bộ lọc tháng.
 replaceRegexOnce(
-  /\n\s*\/\* ===== NOTIFICATION BANNER[\s\S]*?\{noticeEnabled && noticeContent && \([\s\S]*?\n\s*\)\}\n\s*<header>/,
+  /\n\s*\{\/\* ===== NOTIFICATION BANNER[\s\S]*?\*\/\}\n\s*\{noticeEnabled && noticeContent && \([\s\S]*?\n\s*\)\}\n\s*<header>/,
   `\n          <header>`,
   'remove old top notice banner'
 );
