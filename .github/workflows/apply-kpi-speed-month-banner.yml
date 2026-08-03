@@ -1,9 +1,9 @@
 name: Apply KPI speed month banner improvements
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/kpi-speed-month-banner-20260803
+      - main
     paths:
       - scripts/apply-kpi-speed-month-banner.cjs
       - .github/workflows/apply-kpi-speed-month-banner.yml
