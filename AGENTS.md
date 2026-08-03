@@ -126,6 +126,8 @@ Data Hub dùng kiểu mirror/replace cho nhiều nguồn. Không chuyển thành
 
 ### KPI
 
+- KPI trong Main App và KPI tách thực tế là cùng một sản phẩm: phải dùng chung giao diện, logic và dữ liệu; không được phát triển thành hai phiên bản nghiệp vụ độc lập.
+- Khác biệt hợp lệ của KPI tách chỉ là điều hướng dành cho người dùng: không có thao tác quay lại Main App và không cho đi vào các vùng/chức năng khác của Main App.
 - Main App và KPI tách phải đồng bộ về giao diện và logic.
 - KPI tách luôn giữ chế độ công khai, chỉ đọc.
 - Mobile phải ưu tiên bố cục cố định, không tràn ngang, không che nội dung.

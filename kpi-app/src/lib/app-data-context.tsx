@@ -132,10 +132,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const p = (async () => {
       // KPI chỉ đọc dữ liệu khi mở; không chạy tác vụ sửa schema trong luồng người dùng.
       try {
-        const [
-          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
-          structureTvv, clbMembers, pendingMembers, quanLyAll, settings, contests,
-        ] = await Promise.all([
+        // Hiển thị dữ liệu lõi ngay khi /api/quan-ly/all sẵn sàng. Các nguồn
+        // phụ tiếp tục tải nền để KPI tách có cùng hành vi dữ liệu với KPI Main.
+        const settingsPromise = fetchJson('/api/settings') as Promise<Record<string, string> | null>
+        const secondaryDataPromise = Promise.all([
           fetchJson('/api/recruiters'),
           fetchJson('/api/tuyen-ngang'),
           fetchJson('/api/structure/phong'),
@@ -144,10 +144,30 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/structure/tvv'),
           fetchJson('/api/clb-members'),
           fetchJson('/api/pending-members'),
-          fetchJson('/api/quan-ly/all'),
-          fetchJson('/api/settings'),
           fetchJson('/api/contests'),
         ])
+        const quanLyAll = await fetchJson('/api/quan-ly/all')
+
+        if (!force && quanLyAll) {
+          const coreData: AppData = {
+            ...initialData,
+            leaders: quanLyAll.leaders || [],
+            revenue: quanLyAll.revenue || [],
+            contracts: quanLyAll.contracts || [],
+            staff: quanLyAll.staff || [],
+            quanLyAll,
+          }
+          setData(coreData)
+          setLastSync(new Date())
+          setDataVersion(v => v + 1)
+          setIsLoading(false)
+        }
+
+        const settings = await settingsPromise
+        const [
+          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
+          structureTvv, clbMembers, pendingMembers, contests,
+        ] = await secondaryDataPromise
 
         // /api/quan-ly/all is the single source for the four largest tables.
         // Avoid fetching the same contracts/revenue/staff/leaders a second time.

@@ -81,7 +81,7 @@ Một prompt tốt phải có:
 Ví dụ sửa KPI mobile:
 
 ```text
-Ở KPI Main App và KPI tách, chỉnh [mô tả]. Chỉ áp dụng mobile tối đa 720px. Không thay đổi logic dữ liệu hoặc desktop. Sửa source main trước, chạy script sync standalone, build cả hai project, xem diff và báo lại file/kiểm tra. Không merge main trước khi kiểm tra xong.
+Ở KPI Main App và KPI tách, chỉnh [mô tả]. Hai KPI là cùng một sản phẩm, chỉ khác điều hướng vì KPI tách không được quay lại hoặc đi vào vùng khác của Main App. Chỉ áp dụng mobile tối đa 720px. Không thay đổi logic dữ liệu hoặc desktop. Sửa source main trước, chạy script sync standalone, build cả hai project, xem diff và báo lại file/kiểm tra. Không merge main trước khi kiểm tra xong.
 ```
 
 Ví dụ kiểm tra luồng dữ liệu:
