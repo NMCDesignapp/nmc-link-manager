@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
@@ -83,7 +84,12 @@ export default function RootLayout({
             <Toaster />
           </AppDataProvider>
         </ErrorBoundary>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
         <script
           dangerouslySetInnerHTML={{
             __html: `
