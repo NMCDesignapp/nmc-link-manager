@@ -27,6 +27,18 @@ export async function GET() {
     }));
     return NextResponse.json({ rows, count: rows.length }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    const prismaError = error as { code?: string; meta?: { modelName?: string; table?: string } };
+    if (
+      prismaError?.code === 'P2021'
+      && `${prismaError.meta?.modelName || ''} ${prismaError.meta?.table || ''}`.includes('TamthuDetail')
+    ) {
+      console.warn('[tamthu-detail] Table is not migrated; returning an empty read-only snapshot');
+      return NextResponse.json(
+        { rows: [], count: 0, available: false },
+        { headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
     console.error('tamthu detail get error:', error);
     return NextResponse.json({ rows: [], count: 0, error: 'Không thể tải chi tiết tạm thu.' }, { status: 500 });
   }
