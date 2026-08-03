@@ -45,6 +45,7 @@ echo ""
 if [ $CHECK_ONLY -eq 0 ]; then
   echo "[1/8] Copying src/app/kpi/page.tsx → kpi-app/src/app/page.tsx"
   cp "$ROOT/src/app/kpi/page.tsx" "$KPI_APP/src/app/page.tsx"
+  cp "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx"
 fi
 
 # Apply standalone patches via node script (reliable multi-line + regex)
@@ -188,7 +189,23 @@ echo ""
 # Diff check (excluding standalone patches)
 # Standalone patches: MAIN_APP_URL constant, buildMainUrl helper, STANDALONE_BACK_FALLBACK line,
 #                    3 nav hrefs (target=_blank + rel=noopener)
-DIFF_COUNT=$(diff <(grep -v "MAIN_APP_URL\|buildMainUrl\|STANDALONE_BACK_FALLBACK\|window\.location\.href = MAIN_APP_URL\|target=\"_blank\" rel=\"noopener noreferrer\"" "$ROOT/src/app/kpi/page.tsx") <(grep -v "MAIN_APP_URL\|buildMainUrl\|STANDALONE_BACK_FALLBACK\|window\.location\.href = MAIN_APP_URL\|target=\"_blank\" rel=\"noopener noreferrer\"" "$KPI_APP/src/app/page.tsx") | wc -l)
+EXPECTED_PAGE=$(mktemp)
+trap 'rm -f "$EXPECTED_PAGE"' EXIT
+cp "$ROOT/src/app/kpi/page.tsx" "$EXPECTED_PAGE"
+node "$ROOT/scripts/apply-standalone-patches.js" "$EXPECTED_PAGE" >/dev/null
+DIFF_COUNT=$(diff "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" | wc -l)
+if [ $DIFF_COUNT -ne 0 ]; then
+  echo "ERROR: kpi-app/src/app/page.tsx differs from Main source + standalone patch"
+  diff -u "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" || true
+  exit 1
+fi
+
+if ! diff -q "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" >/dev/null; then
+  echo "ERROR: kpi-app/src/app/template.tsx differs from Main KPI template"
+  diff -u "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" || true
+  exit 1
+fi
+echo "  OK: KPI template is synced (including notice banner position)"
 echo "  Diff (sau khi bỏ standalone patches): $DIFF_COUNT lines"
 if [ $DIFF_COUNT -eq 0 ]; then
   echo "  ✅ SYNCED — kpi-app/src/app/page.tsx ≡ src/app/kpi/page.tsx"

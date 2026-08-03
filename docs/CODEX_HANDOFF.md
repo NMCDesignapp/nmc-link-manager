@@ -51,6 +51,8 @@ README gốc phản ánh giai đoạn đầu và còn ghi Neon. Không dùng REA
 
 ### Quy tắc đồng bộ KPI
 
+KPI trong Main App và KPI tách là cùng một sản phẩm, dùng chung giao diện, logic và dữ liệu. Không được coi chúng là hai phiên bản nghiệp vụ độc lập. Khác biệt hợp lệ của KPI tách chỉ nằm ở điều hướng dành cho người dùng: không có thao tác quay lại Main App và không cho truy cập các vùng/chức năng khác của Main App.
+
 Nguồn giao diện KPI chính là:
 
 ```text
@@ -417,6 +419,8 @@ Giao diện tự refresh từ Supabase mỗi 60 giây không có nghĩa Excel lo
 
 ### 11.1 KPI
 
+- KPI trong Main App và KPI tách là một sản phẩm; mọi thay đổi giao diện, logic và dữ liệu phải được thực hiện từ cùng nguồn rồi đồng bộ.
+- KPI tách chỉ khác về điều hướng: không có thao tác quay lại hoặc đi vào các vùng khác của Main App.
 - Khi người dùng yêu cầu sửa KPI, phải sửa/kiểm tra cả Main App và standalone.
 - Standalone chỉ đọc.
 - Không được xuất hiện chức năng admin của Main App trên standalone.

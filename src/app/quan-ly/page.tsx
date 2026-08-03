@@ -20,7 +20,7 @@ import {
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
-  Crown, Medal,
+  Crown, Medal, Database,
   FileDown, Star, Image as ImageIcon,
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type ContractDetailRow } from './policy-excel-export';

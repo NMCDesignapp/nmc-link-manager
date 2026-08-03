@@ -171,15 +171,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     const p = (async () => {
       try {
-        // Đồng bộ hai nguồn Google Sheets nền trước: Doanh số tháng 7 và Sao Việt.
-        // Khi Promise.all bên dưới hoàn tất, mọi màn hình sẽ nhận được dữ liệu mới.
-        const settings = await fetchJson('/api/settings')
-        await syncPrimaryGoogleSources(settings)
+        // Khởi động các nguồn phụ song song nhưng không giữ màn hình khởi động
+        // chờ endpoint chậm nhất. KPI và Quản lý chỉ cần /api/quan-ly/all để
+        // hiển thị dữ liệu lõi; cấu trúc/CLB/contest sẽ được ghép vào sau.
+        const settingsPromise = fetchJson('/api/settings') as Promise<Record<string, string> | null>
+        void settingsPromise
+          .then(settings => syncPrimaryGoogleSources(settings))
+          .catch(() => {
+            // Đồng bộ Google là tác vụ nền; lỗi không được chặn dữ liệu DB hiện có.
+          })
 
-        const [
-          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
-          structureTvv, clbMembers, pendingMembers, quanLyAll, contests,
-        ] = await Promise.all([
+        const secondaryDataPromise = Promise.all([
           fetchJson('/api/recruiters'),
           fetchJson('/api/tuyen-ngang'),
           fetchJson('/api/structure/phong'),
@@ -188,9 +190,32 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/structure/tvv'),
           fetchJson('/api/clb-members'),
           fetchJson('/api/pending-members'),
-          fetchJson('/api/quan-ly/all'),
           fetchJson('/api/contests?summary=1'),
         ])
+        const quanLyAll = await fetchJson('/api/quan-ly/all')
+
+        // Lần mở app đầu tiên: bỏ loader ngay khi bốn bảng dữ liệu lớn đã có.
+        // Không ghi cache ở bước trung gian để tránh lưu snapshot thiếu dữ liệu phụ.
+        if (!force && quanLyAll) {
+          const coreData: AppData = {
+            ...initialData,
+            leaders: quanLyAll.leaders || [],
+            revenue: quanLyAll.revenue || [],
+            contracts: quanLyAll.contracts || [],
+            staff: quanLyAll.staff || [],
+            quanLyAll,
+          }
+          setData(coreData)
+          setLastSync(new Date())
+          setDataVersion(v => v + 1)
+          setIsLoading(false)
+        }
+
+        const settings = await settingsPromise
+        const [
+          recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
+          structureTvv, clbMembers, pendingMembers, contests,
+        ] = await secondaryDataPromise
 
         // /api/quan-ly/all is the single source for the four largest tables.
         // Avoid fetching the same contracts/revenue/staff/leaders a second time.
