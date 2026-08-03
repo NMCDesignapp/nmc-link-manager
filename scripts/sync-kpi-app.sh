@@ -128,10 +128,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon/kpi-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon/kpi-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icon/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/icon/kpi-192.png', sizes: '192x192', type: 'image/png' }],
   },
 }
 
@@ -170,11 +170,10 @@ fi
 # 7. Prisma schema (only the tables kpi-app needs — main schema has PosterImage table etc)
 # Skip — kpi-app keeps its own schema subset
 
-# 8. Public assets (icons only — no posters, no large files)
-echo "[7/8] Syncing public icons"
+# 8. Shared public assets — standalone PWA icons stay project-specific.
+echo "[7/8] Syncing shared KPI assets"
 if [ $CHECK_ONLY -eq 0 ]; then
   mkdir -p "$KPI_APP/public/icon" "$KPI_APP/public/kpi"
-  cp -r "$ROOT/public/icon/"* "$KPI_APP/public/icon/" 2>/dev/null || true
   cp -r "$ROOT/public/kpi/"* "$KPI_APP/public/kpi/" 2>/dev/null || true
   cp "$ROOT/public/logo.svg" "$KPI_APP/public/" 2>/dev/null || true
 fi
