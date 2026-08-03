@@ -6,6 +6,7 @@ const STATUS_KEYS = [
   'nmc-data-hub-last-seen-at',
   'nmc-data-hub-last-sync-at',
   'nmc-data-hub-last-result',
+  'nmc-google-last-sync-at',
   'nmc-sync-source-updated-at',
   'nmc-sync-source-reason',
 ];
@@ -20,13 +21,16 @@ async function readStatus() {
   const lastSeenAt = values['nmc-data-hub-last-seen-at'] || '';
   const seenMs = lastSeenAt ? Date.parse(lastSeenAt) : Number.NaN;
   const dataHubOnline = source === 'data-hub' && Number.isFinite(seenMs) && Date.now() - seenMs < 90_000;
+  const lastSyncAt = source === 'google'
+    ? (values['nmc-google-last-sync-at'] || '')
+    : (values['nmc-data-hub-last-sync-at'] || '');
   return {
     source,
     googleEnabled: source === 'google',
     dataHubEnabled: source === 'data-hub',
     dataHubOnline,
     lastSeenAt,
-    lastSyncAt: values['nmc-data-hub-last-sync-at'] || '',
+    lastSyncAt,
     lastResult: values['nmc-data-hub-last-result'] || '',
     sourceUpdatedAt: values['nmc-sync-source-updated-at'] || '',
     sourceReason: values['nmc-sync-source-reason'] || '',

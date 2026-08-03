@@ -2089,6 +2089,7 @@ export default function QuanLyPage() {
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [syncSource, setSyncSource] = useState<'data-hub' | 'google'>('data-hub');
   const [dataHubOnline, setDataHubOnline] = useState(false);
+  const [syncLastAt, setSyncLastAt] = useState('');
   const [syncSourceSwitching, setSyncSourceSwitching] = useState(false);
   const googleSyncEnabled = syncSource === 'google';
 
@@ -2112,6 +2113,7 @@ export default function QuanLyPage() {
         if (!mounted) return;
         if (status.source === 'google' || status.source === 'data-hub') setSyncSource(status.source);
         setDataHubOnline(status.dataHubOnline === true);
+        setSyncLastAt(status.lastSyncAt || '');
         setSyncEnabled(true);
       } catch {
         // Giữ trạng thái đang hiển thị nếu mạng tạm thời gián đoạn.
@@ -2194,7 +2196,10 @@ export default function QuanLyPage() {
         if (r.ok) {
           const result = await r.json();
           console.log('[Auto-sync] Đã đồng bộ:', result);
-          setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
+          const syncedAt = new Date();
+          setLastSyncTime(syncedAt.toLocaleTimeString('vi-VN'));
+          setSyncLastAt(syncedAt.toISOString());
+          void saveSetting('nmc-google-last-sync-at', syncedAt.toISOString());
           // Backfill: fix existing contracts with missing tinhLuot3tr/maBanNhom/maDL
           try {
             const bf = await fetch('/api/backfill', { method: 'POST' });
@@ -2218,7 +2223,7 @@ export default function QuanLyPage() {
         toast({ title: 'Lỗi đồng bộ', description: syncErrors.join('; '), variant: 'destructive' });
       }
     }
-  }, [googleSyncEnabled, onlineSettings]);
+  }, [googleSyncEnabled, onlineSettings, saveSetting]);
 
   // Track which links have been synced to avoid re-syncing on every render
   const syncedLinksRef = useRef<string>('');
@@ -3718,6 +3723,7 @@ export default function QuanLyPage() {
       if (!response.ok) throw new Error(result?.error || 'Không đổi được nguồn đồng bộ');
       setSyncSource(nextSource);
       setDataHubOnline(result.dataHubOnline === true);
+      setSyncLastAt(result.lastSyncAt || '');
       syncedLinksRef.current = '';
       toast({
         title: nextSource === 'google' ? 'Google Sheets đã bật' : 'Excel trên máy tính đã bật',
@@ -12412,6 +12418,35 @@ export default function QuanLyPage() {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 relative">
+          {['revenue', 'structure', 'saoviet', 'leaders', 'recruiters', 'tuyen-ngang'].includes(activeSheet) && (
+            <div
+              className={`mb-2 min-h-7 px-2.5 py-1 rounded-md border flex items-center gap-2 text-[10px] sm:text-[11px] ${
+                googleSyncEnabled || dataHubOnline
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+              }`}
+              title={syncLastAt ? `Lần đồng bộ gần nhất: ${new Date(syncLastAt).toLocaleString('vi-VN')}` : 'Chưa ghi nhận lần đồng bộ nào'}
+            >
+              <span className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                googleSyncEnabled || dataHubOnline
+                  ? 'bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,0.8)]'
+                  : 'bg-amber-400 shadow-[0_0_7px_rgba(251,191,36,0.7)]'
+              }`} />
+              <span className="font-bold whitespace-nowrap">
+                {googleSyncEnabled
+                  ? 'Google Sheets đang bật'
+                  : dataHubOnline
+                    ? 'Excel trên máy tính đang kết nối'
+                    : 'Excel trên máy tính chưa kết nối'}
+              </span>
+              <span className="opacity-50">•</span>
+              <span className="truncate opacity-90">
+                Lần gần nhất: {syncLastAt
+                  ? new Date(syncLastAt).toLocaleString('vi-VN', { hour12: false })
+                  : 'chưa có dữ liệu'}
+              </span>
+            </div>
+          )}
           {renderSheet()}
         </main>
       </div>
