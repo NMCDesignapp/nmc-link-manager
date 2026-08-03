@@ -248,8 +248,13 @@ export function norm(s: string): string {
 }
 
 function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
-  const text = norm(`${nhom || ''} ${maNhom || ''}`).toUpperCase();
-  return /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(text);
+  const values = [nhom, maNhom]
+    .map(value => norm(value || '').toUpperCase().trim())
+    .filter(Boolean);
+  return values.some(value =>
+    value === 'U104101014' ||
+    /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(value)
+  );
 }
 
 // ===== Bonus computation =====

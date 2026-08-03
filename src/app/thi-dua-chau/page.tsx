@@ -218,8 +218,13 @@ function norm(s: string): string { return s.normalize('NFC'); }
 
 // Nhóm PA chỉ bị đẩy xuống cuối khi các TVV cùng có kết quả 0.
 function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
-  const text = norm(`${nhom || ''} ${maNhom || ''}`).toUpperCase();
-  return /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(text);
+  const values = [nhom, maNhom]
+    .map(value => norm(value || '').toUpperCase().trim())
+    .filter(Boolean);
+  return values.some(value =>
+    value === 'U104101014' ||
+    /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(value)
+  );
 }
 
 function formatCurrency(amount: number): string {
