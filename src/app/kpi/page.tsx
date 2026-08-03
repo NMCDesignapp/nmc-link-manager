@@ -3351,6 +3351,78 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .split-center .afyp-chart { height: 350px !important; }
 }
 
+
+/* ============= KPI CONTROL ROW + SOFT NOTICE BAND (2026-08-03) ============= */
+.kpi-app .ctrl-sync-placeholder { width: 36px; height: 36px; flex: 0 0 36px; }
+.kpi-app .ctrl-bar.has-notice {
+  width: calc(50vw + 50%);
+  max-width: none;
+  padding-right: 0;
+  overflow: visible;
+}
+.kpi-app .ctrl-bar.has-notice .ctrl-select-wrap {
+  position: relative !important;
+  z-index: 36;
+  flex: 0 0 auto;
+}
+.kpi-app .ctrl-bar.has-notice .ctrl-select-popup {
+  left: 0 !important;
+  right: auto !important;
+  width: min(420px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+}
+.kpi-app .ctrl-bar.has-notice .kpi-notice-banner {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 36px;
+  margin: 0;
+  padding-right: 52px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 168, 67, .34);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  background: rgba(255, 244, 190, .68);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  backdrop-filter: blur(10px) saturate(115%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.58), 0 5px 16px rgba(181,139,31,.14);
+  display: flex;
+  align-items: center;
+}
+.kpi-app .ctrl-bar.has-notice .kpi-notice-marquee {
+  display: inline-block;
+  min-width: max-content;
+  padding-left: 100%;
+  white-space: nowrap;
+  color: #36552c;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .015em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  animation: kpiNoticeControlScroll 20s linear infinite;
+  will-change: transform;
+}
+@keyframes kpiNoticeControlScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.kpi-app .ctrl-bar.has-notice .kpi-notice-banner:hover .kpi-notice-marquee { animation-play-state: paused; }
+.kpi-app .ctrl-bar.has-notice .ctrl-sync-slot {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  z-index: 38;
+  transform: translateY(-50%);
+}
+@media (max-width: 720px) {
+  .kpi-app .ctrl-bar.has-notice { gap: 6px; }
+  .kpi-app .ctrl-bar.has-notice .ctrl-hint { display: none; }
+  .kpi-app .ctrl-bar.has-notice .kpi-notice-banner { height: 34px; padding-right: 46px; border-radius: 8px 0 0 8px; }
+  .kpi-app .ctrl-bar.has-notice .kpi-notice-marquee { font-size: 11px; animation-duration: 18s; }
+  .kpi-app .ctrl-bar.has-notice .ctrl-sync-slot { right: 5px; }
+}
+
 `;
 
 /* ================= TYPES ================= */
@@ -3809,6 +3881,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [tamthuNameFilter, setTamthuNameFilter] = useState('');
   const [tamthuDetailRows, setTamthuDetailRows] = useState<TamthuDetailRow[]>([]);
   const [tamthuDetailLoading, setTamthuDetailLoading] = useState(false);
+  const tamthuDetailRowsRef = useRef<TamthuDetailRow[]>([]);
+  const tamthuDetailFetchedAtRef = useRef(0);
+  const tamthuDetailRequestRef = useRef<Promise<TamthuDetailRow[]> | null>(null);
   // ===== KPI EMBEDDED SHEET =====
   // Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt) — nội dung
   // sẽ được mở NGAY TRONG KPI app bằng iframe overlay đến /quan-ly?sheet=xxx&from=kpi.
@@ -4402,23 +4477,52 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
   // Sheet2 của Tamthu.xlsx là nguồn RIÊNG, chỉ dùng để xem bảng chi tiết tạm thu.
   // Không trộn vào rawData nên không ảnh hưởng bất kỳ phép tính KPI/thi đua nào.
-  const fetchTamthuDetail = useCallback(async () => {
-    setTamthuDetailLoading(true);
+  // Dữ liệu được tải nền một lần và giữ cache 90 giây để mở bảng gần như tức thì.
+  const fetchTamthuDetail = useCallback(async (force = false): Promise<TamthuDetailRow[]> => {
+    const cacheFresh = !force
+      && tamthuDetailRowsRef.current.length > 0
+      && Date.now() - tamthuDetailFetchedAtRef.current < 90_000;
+    if (cacheFresh) return tamthuDetailRowsRef.current;
+    if (!force && tamthuDetailRequestRef.current) return tamthuDetailRequestRef.current;
+
+    if (force || tamthuDetailRowsRef.current.length === 0) setTamthuDetailLoading(true);
+    const request = (async () => {
+      try {
+        const response = await fetch('/api/tamthu-detail', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data?.rows)) throw new Error('load failed');
+        const rows = data.rows as TamthuDetailRow[];
+        tamthuDetailRowsRef.current = rows;
+        tamthuDetailFetchedAtRef.current = Date.now();
+        setTamthuDetailRows(rows);
+        return rows;
+      } catch {
+        // Nếu làm mới tạm thời thất bại, giữ dữ liệu cũ thay vì làm trắng bảng.
+        if (tamthuDetailRowsRef.current.length === 0) setTamthuDetailRows([]);
+        return tamthuDetailRowsRef.current;
+      } finally {
+        setTamthuDetailLoading(false);
+      }
+    })();
+
+    tamthuDetailRequestRef.current = request;
     try {
-      const response = await fetch('/api/tamthu-detail', { cache: 'no-store' });
-      const data = await response.json();
-      if (!response.ok || !Array.isArray(data?.rows)) throw new Error('load failed');
-      setTamthuDetailRows(data.rows);
-    } catch {
-      setTamthuDetailRows([]);
+      return await request;
     } finally {
-      setTamthuDetailLoading(false);
+      if (tamthuDetailRequestRef.current === request) tamthuDetailRequestRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    if (view === 'tamthu-detail') fetchTamthuDetail();
+    if (view === 'tamthu-detail') void fetchTamthuDetail(false);
   }, [view, fetchTamthuDetail]);
+
+  // Prefetch sau khi dữ liệu KPI chính hoàn tất để người dùng mở Chi tiết tạm thu không phải chờ.
+  useEffect(() => {
+    if (appDataLoading || tamthuDetailRowsRef.current.length > 0) return;
+    const timer = window.setTimeout(() => { void fetchTamthuDetail(false); }, 350);
+    return () => window.clearTimeout(timer);
+  }, [appDataLoading, fetchTamthuDetail]);
 
   /* Online settings (KPI targets) — đọc từ context */
   useEffect(() => {
@@ -5462,15 +5566,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       <div className="app-wrap">
         {/* ===== MAIN VIEW ===== */}
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
-          {/* ===== NOTIFICATION BANNER (yellow-gold gradient, green text, scrolls continuously; auto-hidden when empty) ===== */}
-          {noticeEnabled && noticeContent && (
-            <div className="kpi-notice-banner" role="marquee" aria-live="polite">
-              <span
-                className="kpi-notice-marquee"
-                dangerouslySetInnerHTML={{ __html: noticeContent }}
-              />
-            </div>
-          )}
           <header>
             <div className="main-header">
               {/* Nút back:
@@ -5496,7 +5591,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
               </div>
             </div>
-            <div className="ctrl-bar">
+            <div className={`ctrl-bar${noticeEnabled && noticeContent ? ' has-notice' : ''}`}>
               <span className="ctrl-hint">Chọn thời gian xem</span>
               <div className={`ctrl-select-wrap ${periodDropdownOpen ? 'open' : ''}`}>
                 <button type="button" className="ctrl-select ctrl-select-period" onClick={() => setPeriodDropdownOpen(!periodDropdownOpen)}>
@@ -5532,12 +5627,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     onClick={() => { setOverviewPeriod('year'); setPeriodDropdownOpen(false); }}>Cả năm</button>
                 </div>
               </div>
+              {noticeEnabled && noticeContent && (
+                <div className="kpi-notice-banner" role="marquee" aria-live="polite" aria-label="Thông báo KPI">
+                  <span
+                    className="kpi-notice-marquee"
+                    dangerouslySetInnerHTML={{ __html: noticeContent }}
+                  />
+                </div>
+              )}
               {!standalone && adminAuthed ? (
-                <button className={`sync-status ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
+                <button className={`sync-status ctrl-sync-slot ${syncing ? 'syncing' : ''}`} onClick={fetchData} title="Đồng bộ" aria-label="Đồng bộ dữ liệu">
                   <span className="sync-check"><Check size={16} /></span>
                   <span className="sync-spinner"><RotateCw size={14} /></span>
                 </button>
-              ) : <div style={{ width: 36, height: 36, flexShrink: 0 }} />}
+              ) : <div className="ctrl-sync-slot ctrl-sync-placeholder" />}
             </div>
           </header>
 
@@ -5609,7 +5712,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                   <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
                 </button>
-                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); fetchData(); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
                 </button>
               </nav>
@@ -5889,7 +5992,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </button>
-                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); fetchData(); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
+                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
                       <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
                     </button>
                   </nav>
@@ -6852,11 +6955,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <span className="sub-title">Chi Tiết Tạm Thu — {tamthuMonthLabel}</span>
             <button
               type="button"
-              onClick={() => { fetchData(); fetchTamthuDetail(); }}
-              title="Làm mới dữ liệu"
+              onClick={() => { void fetchTamthuDetail(true); }}
+              title="Làm mới dữ liệu tạm thu"
               style={{ width: 32, height: 32, display: 'grid', placeItems: 'center', color: '#7ce5ff', border: '1px solid rgba(124,229,255,.32)', borderRadius: 7, background: 'rgba(16,91,120,.2)' }}
             >
-              <RotateCw size={15} className={syncing ? 'spin' : ''} />
+              <RotateCw size={15} className={tamthuDetailLoading ? 'spin' : ''} />
             </button>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
@@ -6932,10 +7035,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <div className="tgr-list-heading-copy">
               <div className="tgr-list-heading-top">Danh sách</div>
               <div className="tgr-list-heading-bottom">
-                {(() => {
-                  const nextMonth = new Date(NOW.getFullYear(), NOW.getMonth() + 1, 1);
-                  return `Đăng ký mục tiêu tháng ${nextMonth.getMonth() + 1}/${nextMonth.getFullYear()}`;
-                })()}
+                {`Đăng ký mục tiêu tháng ${NOW.getMonth() + 1}/${NOW.getFullYear()}`}
               </div>
             </div>
             {/* Export Excel button — admin only */}

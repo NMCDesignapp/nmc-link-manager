@@ -1,0 +1,3 @@
+{
+  "/api/contracts/delete-by-range/route": "app/api/contracts/delete-by-range/route.js"
+}

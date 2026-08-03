@@ -1,0 +1,3 @@
+{
+  "/api/clb-members/[id]/route": "app/api/clb-members/[id]/route.js"
+}

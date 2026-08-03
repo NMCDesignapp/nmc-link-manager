@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Nâng cấp an toàn các bảng được tạo từ phiên bản KPI cũ trước khi đọc hoặc ghi.
-async function ensureTargetRegistrationSchema() {
-  const columns: Array<[string, string]> = [
-    ['role', `TEXT NOT NULL DEFAULT 'tn'`], ['nhom', `TEXT NOT NULL DEFAULT ''`],
-    ['maNhom', `TEXT NOT NULL DEFAULT ''`], ['agentCode', `TEXT NOT NULL DEFAULT ''`],
-    ['agentName', `TEXT NOT NULL DEFAULT ''`], ['position', `TEXT NOT NULL DEFAULT ''`],
-    ['afypTarget', 'DOUBLE PRECISION NOT NULL DEFAULT 0'], ['luotHDTarget', 'DOUBLE PRECISION NOT NULL DEFAULT 0'],
-    ['note', `TEXT NOT NULL DEFAULT ''`], ['createdAt', 'TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP'],
-    ['updatedAt', 'TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP'],
-  ]
-  for (const [name, definition] of columns) {
-    await db.$executeRawUnsafe(`ALTER TABLE "KpiTargetRegistration" ADD COLUMN IF NOT EXISTS "${name}" ${definition}`)
-  }
-}
-
 // ---------- GET /api/kpi-target-registrations ----------
 // Query params:
 //   - month (optional): "YYYY-MM" format. If omitted, returns all.
@@ -30,30 +15,9 @@ export async function GET(req: NextRequest) {
     const month = searchParams.get('month')
     const role = searchParams.get('role')
 
-    // Ensure table exists (idempotent)
-    try {
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "KpiTargetRegistration" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "month" TEXT NOT NULL,
-          "role" TEXT NOT NULL DEFAULT 'tn',
-          "nhom" TEXT NOT NULL DEFAULT '',
-          "maNhom" TEXT NOT NULL DEFAULT '',
-          "agentCode" TEXT NOT NULL DEFAULT '',
-          "agentName" TEXT NOT NULL DEFAULT '',
-          "position" TEXT NOT NULL DEFAULT '',
-          "afypTarget" DOUBLE PRECISION NOT NULL DEFAULT 0,
-          "luotHDTarget" DOUBLE PRECISION NOT NULL DEFAULT 0,
-          "note" TEXT NOT NULL DEFAULT '',
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `)
-    } catch (tableErr: any) {
-      console.error('[kpi-target-registrations] CREATE TABLE failed (may already exist):', tableErr?.message || tableErr)
-    }
-
-    await ensureTargetRegistrationSchema()
+    // Schema is provisioned during deployment.  Do not run DDL on every user
+    // request: Supabase serialises these ALTER statements and it made an empty
+    // registration list take tens of seconds to open on mobile.
 
     // Build query
     const conditions: string[] = []
@@ -108,38 +72,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'afypTarget and luotHDTarget must be numbers' }, { status: 400 })
     }
 
-    // Ensure table exists
-    try {
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "KpiTargetRegistration" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "month" TEXT NOT NULL,
-          "role" TEXT NOT NULL DEFAULT 'tn',
-          "nhom" TEXT NOT NULL DEFAULT '',
-          "maNhom" TEXT NOT NULL DEFAULT '',
-          "agentCode" TEXT NOT NULL DEFAULT '',
-          "agentName" TEXT NOT NULL DEFAULT '',
-          "position" TEXT NOT NULL DEFAULT '',
-          "afypTarget" DOUBLE PRECISION NOT NULL DEFAULT 0,
-          "luotHDTarget" DOUBLE PRECISION NOT NULL DEFAULT 0,
-          "note" TEXT NOT NULL DEFAULT '',
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `)
-    } catch (tableErr: any) {
-      console.error('[kpi-target-registrations] CREATE TABLE failed (may already exist):', tableErr?.message || tableErr)
-    }
-
-    await ensureTargetRegistrationSchema()
+    // See GET: the deployed schema is stable, so request handlers must only
+    // read/write data and never execute schema migrations.
 
     // Generate UUID
     const id = (crypto as any).randomUUID ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
     await db.$executeRawUnsafe(
-      `INSERT INTO "KpiTargetRegistration" ("id", "month", "role", "nhom", "maNhom", "agentCode", "agentName", "position", "afypTarget", "luotHDTarget", "note", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
-      id, month, role, nhom, maNhom, agentCode, agentName, position, afypTarget, luotHDTarget, note
+      `INSERT INTO "KpiTargetRegistration" (
+        "id", "month", "role", "nhom", "maNhom", "agentCode", "agentName", "position", "afypTarget", "luotHDTarget", "note",
+        "maSo", "hoTen", "chucVu", "vaiTro", "afyp", "luotHD", "ghiChu", "createdAt", "updatedAt"
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+      )`,
+      id, month, role, nhom, maNhom, agentCode, agentName, position, afypTarget, luotHDTarget, note,
+      agentCode, agentName, position, role, afypTarget, luotHDTarget, note
     )
 
     return NextResponse.json({ id, month, role, nhom, maNhom, agentCode, agentName, position, afypTarget, luotHDTarget, note }, { status: 201 })

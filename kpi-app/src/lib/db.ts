@@ -4,9 +4,8 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Resolve the database injected by the Supabase ↔ Vercel integration first.
-// Legacy DATABASE_URL / DIRECT_URL values may still point at the retired Neon
-// project, so they are only compatibility fallbacks.
+// Resolve the production connection managed by the Supabase ↔ Vercel
+// integration. Legacy Neon variables remain only as a local-development fallback.
 function resolveDatabaseUrl(): string {
   const supabasePrismaUrl = process.env.POSTGRES_PRISMA_URL || ''
   const databaseUrl = process.env.DATABASE_URL || ''
@@ -28,7 +27,7 @@ function resolveDatabaseUrl(): string {
   }
   
   // Last resort: use DATABASE_URL as-is (will error but at least try)
-  console.error('[DB] No PostgreSQL URL found! DATABASE_URL:', databaseUrl.substring(0, 30), 'DIRECT_URL:', directUrl.substring(0, 30))
+  console.error('[DB] No PostgreSQL connection URL is configured')
   return databaseUrl
 }
 
