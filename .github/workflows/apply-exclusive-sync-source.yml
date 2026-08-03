@@ -42,3 +42,5 @@ jobs:
           git diff --cached --quiet && { echo "No changes"; exit 1; }
           git commit -m "Enforce exclusive Excel or Google synchronization"
           git push origin HEAD:feature/exclusive-sync-source-20260803
+
+# Triggered after workflow creation so GitHub Actions sees the file on this branch.
