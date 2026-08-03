@@ -22,6 +22,11 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
 
 /* Chỉ mobile: ghim tiêu đề, chọn kỳ và băng thông báo khi cuộn. */
 @media (max-width: 720px) {
+  /* overflow: hidden ở phần thân có thể chặn position: sticky trên trình duyệt mobile. */
+  .kpi-app {
+    overflow-x: clip !important;
+  }
+
   .kpi-app #view-main > header {
     position: sticky !important;
     top: 0;
