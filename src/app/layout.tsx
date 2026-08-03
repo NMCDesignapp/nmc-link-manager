@@ -96,16 +96,8 @@ export default function RootLayout({
                       if (registration.waiting) {
                         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                       }
-                      // Lắng nghe SW mới install → reload 1 lần để dùng bản mới
-                      registration.addEventListener('updatefound', function() {
-                        var newWorker = registration.installing;
-                        if (!newWorker) return;
-                        newWorker.addEventListener('statechange', function() {
-                          // 'installed' + controller tồn tại = có bản mới → reload
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            window.location.reload();
-                          }
-                        });
+                      // Service worker mới tự skipWaiting; controllerchange bên dưới
+                      // thực hiện đúng một lần tải lại để tránh vòng lặp/trang trắng.
                       });
                     },
                     function(err) {
