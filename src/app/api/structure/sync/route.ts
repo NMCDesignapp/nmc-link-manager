@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSyncSource } from '@/lib/sync-source';
 
 type Collection = 'tvv' | 'leaders' | 'recruiters' | 'clb-members' | 'tuyen-ngang';
 type Row = Record<string, unknown>;
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     if (!isDataHubImport(body) || !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (await getSyncSource() !== 'data-hub') {
+      return NextResponse.json({ error: 'Data Hub đã tắt vì Google Sheets đang là nguồn đồng bộ' }, { status: 409 });
     }
 
     const collection = body?.collection as Collection;

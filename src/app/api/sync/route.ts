@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
+import { isAuthorizedDataHubRequest, isDataHubImport, isGoogleSyncImport } from '@/lib/data-hub-auth';
+import { getSyncSource } from '@/lib/sync-source';
 
 // Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO) - UTC safe
 function parseDate(dateStr: string): Date | null {
@@ -117,20 +118,35 @@ function isInMonth(date: Date | null, from: Date, until: Date) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    if (isDataHubImport(body) && !isAuthorizedDataHubRequest(request)) {
+    const fromDataHub = isDataHubImport(body);
+    const fromGoogleSync = isGoogleSyncImport(body);
+    if (fromDataHub && !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
     }
-    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths } = body as {
+    const activeSource = await getSyncSource();
+    if (fromDataHub && activeSource !== 'data-hub') {
+      return NextResponse.json({ error: 'Data Hub đã tắt vì Google Sheets đang là nguồn đồng bộ' }, { status: 409 });
+    }
+    if (fromGoogleSync && activeSource !== 'google') {
+      return NextResponse.json({ error: 'Google Sheets đã tắt vì Data Hub trên máy tính đang là nguồn đồng bộ' }, { status: 409 });
+    }
+    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths, replaceRevenueMonths } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
       replaceCurrentRevenueMonth?: boolean;
       replaceHistoricalRevenueMonths?: string[];
+      replaceRevenueMonths?: string[];
     };
-    const replaceDataHubCurrentRevenueMonth = isDataHubImport(body) && replaceCurrentRevenueMonth === true;
-    const historicalRevenueMonths = isDataHubImport(body) && Array.isArray(replaceHistoricalRevenueMonths)
-      ? replaceHistoricalRevenueMonths.filter((month): month is string => typeof month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+    const validMonth = (month: unknown): month is string => typeof month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+    const replaceDataHubCurrentRevenueMonth = fromDataHub && replaceCurrentRevenueMonth === true;
+    const historicalRevenueMonths = fromDataHub && Array.isArray(replaceHistoricalRevenueMonths)
+      ? replaceHistoricalRevenueMonths.filter(validMonth)
       : [];
+    const googleRevenueMonths = fromGoogleSync && Array.isArray(replaceRevenueMonths)
+      ? replaceRevenueMonths.filter(validMonth)
+      : [];
+    const replacementRevenueMonths = historicalRevenueMonths.length > 0 ? historicalRevenueMonths : googleRevenueMonths;
 
     const results = { contracts: 0, deletedContracts: 0, currentMonth: '', historicalMonths: [] as string[], staff: 0, recruiters: 0, errors: [] as string[] };
 
@@ -141,7 +157,7 @@ export async function POST(request: NextRequest) {
         const records = csvToObjects(rows);
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
-        const authoritativeReplacement = replaceDataHubCurrentRevenueMonth || historicalRevenueMonths.length > 0;
+        const authoritativeReplacement = replaceDataHubCurrentRevenueMonth || replacementRevenueMonths.length > 0;
         const contractsToCreate: any[] = [];
         let currentMonthWindow: ReturnType<typeof getCurrentBangkokMonth> | null = null;
 
@@ -187,11 +203,11 @@ export async function POST(request: NextRequest) {
 
         // Doanhso.xlsx is the authoritative source for completed months.
         // The Data Hub never sends the current month here (Tamthu owns it).
-        if (historicalRevenueMonths.length > 0) {
-          const requestedMonths = [...new Set(historicalRevenueMonths)];
+        if (replacementRevenueMonths.length > 0) {
+          const requestedMonths = [...new Set(replacementRevenueMonths)];
           const requestedSet = new Set(requestedMonths);
           const activeMonth = getCurrentBangkokMonth().label;
-          if (requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
+          if (fromDataHub && requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
           importRows = importRows.filter(({ row }) => {
             const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
             const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
@@ -200,7 +216,7 @@ export async function POST(request: NextRequest) {
             const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
             return requestedSet.has(month);
           });
-          if (importRows.length === 0) throw new Error('Doanhso không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
+          if (importRows.length === 0) throw new Error('Nguồn đồng bộ không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
           const numbers = new Set<string>();
           const duplicates = new Set<string>();
           for (const { row } of importRows) {
@@ -209,7 +225,7 @@ export async function POST(request: NextRequest) {
             if (numbers.has(number)) duplicates.add(number);
             numbers.add(number);
           }
-          if (duplicates.size > 0) throw new Error(`Số HĐ trùng trong Doanhso: ${[...duplicates].slice(0, 10).join(', ')}. Không cập nhật dữ liệu.`);
+          if (duplicates.size > 0) throw new Error(`Số HĐ trùng trong nguồn đồng bộ: ${[...duplicates].slice(0, 10).join(', ')}. Không cập nhật dữ liệu.`);
           for (const month of requestedMonths) {
             const from = new Date(`${month}-01T00:00:00.000Z`);
             const until = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
@@ -424,8 +440,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        const validRecords = records.filter(row =>
+          !!getVal(row, 'Mã số', 'Mã TN', 'Mã trưởng nhóm', 'agentCode') &&
+          !!getVal(row, 'Họ tên', 'Họ tên TN', 'agentName')
+        );
+        if (fromGoogleSync && validRecords.length === 0) {
+          throw new Error('Google Sheets không có dòng nhân sự hợp lệ; dữ liệu cũ không bị xóa.');
+        }
+        if (fromGoogleSync) await db.staff.deleteMany({});
+
         let upserted = 0;
-        for (const row of records) {
+        for (const row of validRecords) {
           const nhom = getVal(row, 'Nhóm', 'nhom');
           let maNhom = getVal(row, 'Mã nhóm', 'Mã Ban/Nhóm', 'maNhom');
           const agentCode = getVal(row, 'Mã số', 'Mã TN', 'Mã trưởng nhóm', 'agentCode');
@@ -488,6 +513,7 @@ export async function POST(request: NextRequest) {
 
         let synced = 0;
         if (recruitersData.length > 0) {
+          if (fromGoogleSync) await db.recruiter.deleteMany({});
           try {
             const result = await db.recruiter.createMany({
               data: recruitersData,

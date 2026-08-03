@@ -154,7 +154,7 @@ async function importOne(config, source, state, force) {
 }
 
 async function activate(config) {
-  const result = await postJson(config, '/api/data-hub/activate', { enabled: true, source: config.activationSource || 'saoviet' });
+  const result = await postJson(config, '/api/data-hub/activate', { enabled: true, source: config.activationSource || 'all' });
   console.log(result.enabled ? '✓ Data Hub đã được bật trên Main App.' : 'Data Hub chưa được bật.');
 }
 
@@ -165,6 +165,13 @@ async function run(force = false) {
   }
 
   if (activateOnly) return activate(config);
+
+  const sourceStatus = await postJson(config, '/api/data-hub/status', { phase: 'heartbeat' });
+  if (!sourceStatus.enabled || sourceStatus.source !== 'data-hub') {
+    console.log('⏸ Data Hub tạm dừng vì Google Sheets đang là nguồn đồng bộ.');
+    return [{ id: 'data-hub', ok: true, changed: false, skipped: true, reason: 'google-active' }];
+  }
+
   const state = await readJson(statePath, { sources: {} });
   const results = [];
   for (const source of config.sources) {
@@ -176,6 +183,7 @@ async function run(force = false) {
     }
   }
   await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf8');
+  await postJson(config, '/api/data-hub/status', { phase: 'sync-complete', results });
 
   if (config.activateAfterAllSourcesSynced && results.length && results.every(result => result.ok)) {
     await activate(config);
@@ -184,7 +192,7 @@ async function run(force = false) {
 }
 
 async function main() {
-  console.log('NMC Data Hub — nguồn dữ liệu giai đoạn 1');
+  console.log('NMC Data Hub — đồng bộ Excel độc quyền với Main App');
   console.log('Cấu hình:', configPath);
   if (once) {
     const results = await run(true);

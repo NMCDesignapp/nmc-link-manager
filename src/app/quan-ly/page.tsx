@@ -2084,14 +2084,43 @@ export default function QuanLyPage() {
     }
   }, []); // STABLE - no dependency on onlineSettings
 
-  // syncEnabled now derived from onlineSettings
+  // Chỉ một nguồn tự động được hoạt động: Data Hub trên máy tính hoặc Google Sheets.
+  // syncEnabled giữ true để dữ liệu nguồn tự động luôn ở chế độ chỉ xem.
   const [syncEnabled, setSyncEnabled] = useState(true);
+  const [syncSource, setSyncSource] = useState<'data-hub' | 'google'>('data-hub');
+  const [dataHubOnline, setDataHubOnline] = useState(false);
+  const [syncSourceSwitching, setSyncSourceSwitching] = useState(false);
+  const googleSyncEnabled = syncSource === 'google';
 
-  // Update syncEnabled when onlineSettings loads
   useEffect(() => {
-    const saved = onlineSettings['nmc-sync-enabled'];
-    if (saved !== undefined && saved !== '') setSyncEnabled(saved === 'true');
-  }, [onlineSettings['nmc-sync-enabled']]); // eslint-disable-line react-hooks/exhaustive-deps
+    const savedSource = onlineSettings['nmc-sync-source'];
+    if (savedSource === 'google' || savedSource === 'data-hub') {
+      setSyncSource(savedSource);
+    } else if (onlineSettings['nmc-sync-enabled'] !== undefined) {
+      setSyncSource(onlineSettings['nmc-sync-enabled'] === 'true' ? 'google' : 'data-hub');
+    }
+    setSyncEnabled(true);
+  }, [onlineSettings['nmc-sync-source'], onlineSettings['nmc-sync-enabled']]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let mounted = true;
+    const refreshSyncSource = async () => {
+      try {
+        const response = await fetch('/api/sync-source', { cache: 'no-store' });
+        if (!response.ok) return;
+        const status = await response.json();
+        if (!mounted) return;
+        if (status.source === 'google' || status.source === 'data-hub') setSyncSource(status.source);
+        setDataHubOnline(status.dataHubOnline === true);
+        setSyncEnabled(true);
+      } catch {
+        // Giữ trạng thái đang hiển thị nếu mạng tạm thời gián đoạn.
+      }
+    };
+    void refreshSyncSource();
+    const intervalId = window.setInterval(refreshSyncSource, 10_000);
+    return () => { mounted = false; window.clearInterval(intervalId); };
+  }, []);
 
   // Ref to fetchAllData to avoid circular dependency issues
   const fetchAllDataRef = useRef<() => Promise<void>>(async () => {});
@@ -2101,7 +2130,7 @@ export default function QuanLyPage() {
   const [syncSuccessCount, setSyncSuccessCount] = useState<number>(0);
   const [syncSuccessVisible, setSyncSuccessVisible] = useState<boolean>(false);
   const autoSyncFromLinks = useCallback(async () => {
-    if (!syncEnabled) return;
+    if (!googleSyncEnabled) return;
     const monthKeys = ['revenue-01','revenue-02','revenue-03','revenue-04','revenue-05','revenue-06',
       'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
     // Thu thập CSV từ các link đã lưu
@@ -2111,6 +2140,7 @@ export default function QuanLyPage() {
     let recruiterCsv = '';
     let syncedCount = 0;
     const syncErrors: string[] = [];
+    const syncedRevenueMonths: string[] = [];
     for (const key of ['leaders', 'recruiters', ...monthKeys]) {
       const link = onlineSettings[`nmc-link-${key}`];
       const autoOn = onlineSettings[`nmc-sync-${key}`];
@@ -2139,6 +2169,8 @@ export default function QuanLyPage() {
           if (dataOnly.trim()) {
             contractCsvData += (contractCsvData ? '\n' : '') + dataOnly;
             syncedCount++;
+            const monthNumber = key.replace('revenue-', '');
+            syncedRevenueMonths.push(`${new Date().getFullYear()}-${monthNumber}`);
           }
         }
       } catch (e) {
@@ -2153,7 +2185,11 @@ export default function QuanLyPage() {
         const r = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contractCsv, staffCsv, recruiterCsv }),
+          body: JSON.stringify({
+            source: 'google-sync',
+            contractCsv, staffCsv, recruiterCsv,
+            replaceRevenueMonths: [...new Set(syncedRevenueMonths)],
+          }),
         });
         if (r.ok) {
           const result = await r.json();
@@ -2182,7 +2218,7 @@ export default function QuanLyPage() {
         toast({ title: 'Lỗi đồng bộ', description: syncErrors.join('; '), variant: 'destructive' });
       }
     }
-  }, [syncEnabled, onlineSettings]);
+  }, [googleSyncEnabled, onlineSettings]);
 
   // Track which links have been synced to avoid re-syncing on every render
   const syncedLinksRef = useRef<string>('');
@@ -2193,19 +2229,11 @@ export default function QuanLyPage() {
       'revenue-07','revenue-08','revenue-09','revenue-10','revenue-11','revenue-12'];
     const fingerprint = linkKeys.map(k => `${k}:${onlineSettings[`nmc-link-${k}`] || ''}`).join('|');
     
-    if (Object.keys(onlineSettings).length > 0 && syncEnabled && fingerprint !== syncedLinksRef.current) {
+    if (Object.keys(onlineSettings).length > 0 && googleSyncEnabled && fingerprint !== syncedLinksRef.current) {
       syncedLinksRef.current = fingerprint;
       autoSyncFromLinks();
     }
-  }, [syncEnabled, onlineSettings, autoSyncFromLinks]);
-
-  // Persist sync preference online
-  useEffect(() => {
-    // Only save after initial load (skip the default true)
-    if (onlineSettings['nmc-sync-enabled'] !== undefined || syncEnabled !== true) {
-      saveSetting('nmc-sync-enabled', String(syncEnabled));
-    }
-  }, [syncEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [googleSyncEnabled, onlineSettings, autoSyncFromLinks]);
 
   // Data
   const [leaders, setLeaders] = useState<LeaderInfo[]>([]);
@@ -3673,10 +3701,36 @@ export default function QuanLyPage() {
     <ArrowUpDown className={`w-3 h-3 inline ml-1 ${sortField === field ? 'text-amber-400' : 'text-emerald-200'}`} />
   );
 
-  const handleSyncToggle = useCallback(() => {
-    if (syncEnabled) { if (!confirm('Tắt đồng bộ?\nBảng Hợp đồng & Nhân sự sẽ chuyển sang chế độ thủ công.')) return; setSyncEnabled(false); toast({ title: 'Đã tắt đồng bộ', description: 'Có thể chỉnh sửa HĐ & Nhân sự' }); }
-    else { setSyncEnabled(true); toast({ title: 'Đã bật đồng bộ', description: 'Tự động cập nhật từ Google Sheets' }); }
-  }, [syncEnabled]);
+  const handleSyncToggle = useCallback(async () => {
+    const nextSource = googleSyncEnabled ? 'data-hub' : 'google';
+    const message = nextSource === 'google'
+      ? 'Bật đồng bộ Google Sheets?\nData Hub trên máy tính sẽ bị tắt ngay để tránh ghi đè và dư dữ liệu.'
+      : 'Chuyển về đồng bộ Excel trên máy tính?\nGoogle Sheets sẽ bị tắt ngay để tránh ghi đè và dư dữ liệu.';
+    if (!confirm(message)) return;
+    setSyncSourceSwitching(true);
+    try {
+      const response = await fetch('/api/sync-source', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: nextSource }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error || 'Không đổi được nguồn đồng bộ');
+      setSyncSource(nextSource);
+      setDataHubOnline(result.dataHubOnline === true);
+      syncedLinksRef.current = '';
+      toast({
+        title: nextSource === 'google' ? 'Google Sheets đã bật' : 'Excel trên máy tính đã bật',
+        description: nextSource === 'google'
+          ? 'Data Hub đã tắt. Google Sheets là nguồn duy nhất được phép ghi dữ liệu.'
+          : 'Google Sheets đã tắt. Data Hub là nguồn duy nhất được phép ghi dữ liệu.',
+      });
+    } catch (error) {
+      toast({ title: 'Không đổi được nguồn đồng bộ', description: error instanceof Error ? error.message : 'Lỗi không xác định', variant: 'destructive' });
+    } finally {
+      setSyncSourceSwitching(false);
+    }
+  }, [googleSyncEnabled]);
 
   // ========== RENDER: Overview ==========
   const totalLeaders = leaders.length;
@@ -12715,20 +12769,23 @@ export default function QuanLyPage() {
               <div className={`rounded-lg p-3 border-2 ${syncEnabled ? 'bg-emerald-700/50 border-emerald-500/30' : 'bg-amber-700/50 border-amber-500/30'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {syncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <AlertTriangle className="w-5 h-5 text-amber-300" />}
+                    {googleSyncEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-300" /> : <Database className="w-5 h-5 text-sky-300" />}
                     <div>
-                      <h3 className={`text-sm font-bold ${syncEnabled ? 'text-emerald-300' : 'text-amber-300'}`}>{syncEnabled ? 'Đồng bộ tự động: BẬT' : 'Đồng bộ tự động: TẮT'}</h3>
-                      <p className="text-gray-300 text-xs">{syncEnabled ? 'HĐ & Nhân sự tự động từ Google Sheets (chỉ xem)' : 'Chế độ thủ công: chỉnh sửa, thêm, xóa, import'}{lastSyncTime ? ` — Cập nhật ${lastSyncTime}` : ''}</p>
+                      <h3 className={`text-sm font-bold ${googleSyncEnabled ? 'text-emerald-300' : 'text-sky-300'}`}>{googleSyncEnabled ? 'Google Sheets: BẬT' : 'Excel trên máy tính: BẬT'}</h3>
+                      <p className="text-gray-300 text-xs">{googleSyncEnabled
+                        ? 'Excel trên máy tính: TẮT — Google Sheets là nguồn duy nhất'
+                        : `Google Sheets: TẮT — Data Hub ${dataHubOnline ? 'đang kết nối' : 'đang chờ kết nối từ máy tính'}`}
+                        {lastSyncTime ? ` — Cập nhật ${lastSyncTime}` : ''}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {syncEnabled && (
-                      <Button variant="ghost" size="sm" onClick={() => { syncedLinksRef.current = ''; autoSyncFromLinks(); }} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300" title="Đồng bộ ngay">
+                    {googleSyncEnabled && (
+                      <Button variant="ghost" size="sm" onClick={() => { syncedLinksRef.current = ''; autoSyncFromLinks(); }} className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300" title="Đồng bộ Google ngay">
                         <RefreshCw className="w-3 h-3 mr-1" /> Sync
                       </Button>
                     )}
-                    <button onClick={handleSyncToggle}>
-                      {syncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-amber-400 cursor-pointer" />}
+                    <button onClick={handleSyncToggle} disabled={syncSourceSwitching} title={googleSyncEnabled ? 'Tắt Google và chuyển về Excel trên máy tính' : 'Bật Google và tắt Data Hub trên máy tính'}>
+                      {googleSyncEnabled ? <ToggleRight className="w-8 h-8 text-emerald-400 cursor-pointer" /> : <ToggleLeft className="w-8 h-8 text-sky-400 cursor-pointer" />}
                     </button>
                   </div>
                 </div>

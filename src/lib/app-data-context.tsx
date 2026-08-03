@@ -96,7 +96,7 @@ const fetchJson = async (url: string): Promise<any> => {
  * trên bản ghi cũ. Lỗi từng nguồn được bỏ qua để ứng dụng vẫn mở được.
  */
 const syncPrimaryGoogleSources = async (settings: Record<string, string> | null): Promise<void> => {
-  if (!settings) return
+  if (!settings || settings['nmc-sync-source'] !== 'google') return
   // Doanh số/Tạm thu đã chuyển hẳn sang Data Hub từ Tamthu.xlsx trên máy tính.
   // Không giữ fallback Google để tránh import trùng khi cấu hình bị thay đổi.
   const useDataHubSaoViet = settings['nmc-data-hub-saoviet-enabled'] === 'true'

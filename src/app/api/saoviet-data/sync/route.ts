@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { db, withRetry } from '@/lib/db';
+import { getSyncSource } from '@/lib/sync-source';
 
 // ---------- Constants ----------
 const VALID_PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
@@ -262,6 +263,13 @@ export async function POST(req: NextRequest) {
 
     if (fromDataHub && !isAuthorizedDataHubRequest(req)) {
       return NextResponse.json({ error: 'Không được phép ghi dữ liệu Data Hub' }, { status: 401 });
+    }
+    const activeSource = await getSyncSource();
+    if (fromDataHub && activeSource !== 'data-hub') {
+      return NextResponse.json({ error: 'Data Hub đã tắt vì Google Sheets đang là nguồn đồng bộ' }, { status: 409 });
+    }
+    if (!fromDataHub && activeSource !== 'google') {
+      return NextResponse.json({ error: 'Google Sheets đã tắt vì Data Hub trên máy tính đang là nguồn đồng bộ' }, { status: 409 });
     }
     if (!isValidProgram(program)) {
       return NextResponse.json({ error: 'program không hợp lệ (ca-nhan | tn-ktm | tn-td)' }, { status: 400 });

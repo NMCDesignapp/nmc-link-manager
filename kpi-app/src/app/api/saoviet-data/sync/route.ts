@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, withRetry } from '@/lib/db';
+import { getSyncSource } from '@/lib/sync-source';
 
 // ---------- Constants ----------
 const VALID_PROGRAMS = ['ca-nhan', 'tn-ktm', 'tn-td'] as const;
@@ -188,6 +189,9 @@ async function fetchCsv(spreadsheetId: string, gid: string): Promise<{ csv?: str
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    if (await getSyncSource() !== 'google') {
+      return NextResponse.json({ error: 'Google Sheets đã tắt vì Data Hub trên máy tính đang là nguồn đồng bộ' }, { status: 409 });
+    }
     const program = body?.program;
     const link = String(body?.link || '').trim();
 
