@@ -1,0 +1,51 @@
+name: Apply THI DUA result fix
+
+on:
+  push:
+    branches:
+      - fix/thi-dua-show-all-tvv-20260803
+    paths:
+      - scripts/apply-thi-dua-show-all-tvv-fix.cjs
+      - .github/workflows/apply-thi-dua-show-all-tvv-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/thi-dua-show-all-tvv-20260803
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply guarded source patch
+        run: node scripts/apply-thi-dua-show-all-tvv-fix.cjs
+
+      - name: Verify patched source markers
+        run: |
+          grep -q "const perContractDisplayContracts = useMemo<Contract\[\]>" src/app/thi-dua-chau/page.tsx
+          grep -q "isActivityMode ? agent.activityRounds : agent.totalFYP" src/app/thi-dua-chau/page.tsx
+          grep -q "computeTVVPerContractRows(displayContracts, config, tvvStructList)" src/components/saved-contest-inline.tsx
+          grep -q "const structMember = tvvStructList?.find" src/lib/contest-calculator.ts
+
+      - name: Remove one-time patch files
+        run: |
+          rm scripts/apply-thi-dua-show-all-tvv-fix.cjs
+          rm .github/workflows/apply-thi-dua-show-all-tvv-fix.yml
+
+      - name: Commit patched sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "No source changes produced"; exit 1; }
+          git commit -m "Fix contest results to include all eligible TVV"
+          git push origin HEAD:fix/thi-dua-show-all-tvv-20260803
