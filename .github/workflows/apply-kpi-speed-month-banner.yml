@@ -24,8 +24,21 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: Apply KPI patch
-        run: node scripts/apply-kpi-speed-month-banner.cjs
+      - name: Apply KPI patch with diagnostics
+        run: |
+          set +e
+          node scripts/apply-kpi-speed-month-banner.cjs > /tmp/kpi-patch.log 2>&1
+          code=$?
+          cat /tmp/kpi-patch.log
+          if [ "$code" -ne 0 ]; then
+            cp /tmp/kpi-patch.log kpi-patch-debug.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add kpi-patch-debug.log
+            git commit -m "Record KPI patch failure diagnostics" || true
+            git push origin HEAD:feature/kpi-speed-month-banner-20260803 || true
+            exit "$code"
+          fi
       - name: Sync standalone KPI
         run: bash scripts/sync-kpi-app.sh
       - name: Verify source changes
@@ -48,10 +61,11 @@ jobs:
       - name: Build standalone KPI
         working-directory: kpi-app
         run: npm run build
-      - name: Remove one-time patch files
+      - name: Remove one-time files
         run: |
           rm scripts/apply-kpi-speed-month-banner.cjs
           rm .github/workflows/apply-kpi-speed-month-banner.yml
+          rm -f kpi-patch-debug.log
       - name: Commit generated changes
         run: |
           git config user.name "github-actions[bot]"
