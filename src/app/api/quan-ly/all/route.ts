@@ -1,6 +1,43 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
 
+const contractSelect = {
+  id: true, stt: true, contractNumber: true, agentCode: true, agentName: true,
+  position: true, ban: true, maTruongBan: true, nhom: true, maBanNhom: true,
+  maTruongBanNhom: true, maDL: true, maNhom: true, leaderAgentCode: true,
+  ngayBatDauLamViec: true, effectiveDate: true, issueDate: true,
+  pdt10DT: true, fyp: true, nguonDuLieu: true, hopDongToChuc: true,
+  dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
+  ad: true, nhom2: true, ngayBatDauLamViec2: true,
+  thangTD: true, namTD: true, thangHL: true,
+  tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
+  chucVu2: true, recruiterCode: true, startDate: true,
+} as const
+
+function isMissingContractStatusColumn(error: unknown) {
+  const prismaError = error as { code?: string; meta?: { column?: string } }
+  return prismaError?.code === 'P2022'
+    && String(prismaError.meta?.column || '').includes('contractStatus')
+}
+
+async function fetchContracts() {
+  try {
+    return await db.contract.findMany({
+      select: { ...contractSelect, contractStatus: true },
+      orderBy: { effectiveDate: 'asc' },
+    })
+  } catch (error) {
+    if (!isMissingContractStatusColumn(error)) throw error
+
+    console.warn('[quan-ly/all] Contract.contractStatus is not migrated; using empty values')
+    const contracts = await db.contract.findMany({
+      select: contractSelect,
+      orderBy: { effectiveDate: 'asc' },
+    })
+    return contracts.map(contract => ({ ...contract, contractStatus: '' }))
+  }
+}
+
 // GET /api/quan-ly/all - Fetch all data in one request for faster page load
 export async function GET() {
   try {
@@ -8,21 +45,7 @@ export async function GET() {
       Promise.all([
         db.leaderInfo.findMany({ orderBy: { agentName: 'asc' } }),
         db.monthlyRevenue.findMany({ orderBy: [{ month: 'desc' }, { nhom: 'asc' }] }),
-        db.contract.findMany({
-          select: {
-            id: true, stt: true, contractNumber: true, agentCode: true, agentName: true,
-            position: true, ban: true, maTruongBan: true, nhom: true, maBanNhom: true,
-            maTruongBanNhom: true, maDL: true, maNhom: true, leaderAgentCode: true,
-            ngayBatDauLamViec: true, effectiveDate: true, issueDate: true, contractStatus: true,
-            pdt10DT: true, fyp: true, nguonDuLieu: true, hopDongToChuc: true,
-            dkDongPhi: true, phiDongThem: true, afypChuaTru10DT: true, afyp: true,
-            ad: true, nhom2: true, ngayBatDauLamViec2: true,
-            thangTD: true, namTD: true, thangHL: true,
-            tinhLuot3tr: true, maDaiLyTD: true, danhDauTVV: true,
-            chucVu2: true, recruiterCode: true, startDate: true,
-          },
-          orderBy: { effectiveDate: 'asc' },
-        }),
+        fetchContracts(),
         db.staff.findMany({
           select: {
             id: true, nhom: true, maNhom: true, agentCode: true, agentName: true,
