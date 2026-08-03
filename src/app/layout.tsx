@@ -89,28 +89,24 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('ServiceWorker registration successful');
-                      // Nếu có SW mới đang chờ activate → force skipWaiting + reload
-                      if (registration.waiting) {
-                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                      }
-                      // Service worker mới tự skipWaiting; controllerchange bên dưới
-                      // thực hiện đúng một lần tải lại để tránh vòng lặp/trang trắng.
-                      });
-                    },
-                    function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    }
-                  );
-                  // Khi controller đổi (SW mới đã take over) → reload 1 lần
                   var refreshing = false;
                   navigator.serviceWorker.addEventListener('controllerchange', function() {
                     if (refreshing) return;
                     refreshing = true;
                     window.location.reload();
                   });
+
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('ServiceWorker registration successful');
+                      if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                      }
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
                 });
               }
             `,
