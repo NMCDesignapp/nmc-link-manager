@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/$/, '');
+
 // KPI tách dùng cùng snapshot Sheet2 đã được Data Hub đồng bộ vào main app.
 // Endpoint chỉ đọc/proxy, tuyệt đối không chạy tính toán hay ghi dữ liệu.
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const response = await fetch('https://nc-link.vercel.app/api/tamthu-detail', { cache: 'no-store' });
+    const response = await fetch(`${MAIN_APP_URL}/api/tamthu-detail`, { cache: 'no-store' });
     const body = await response.text();
     return new NextResponse(body, {
       status: response.status,

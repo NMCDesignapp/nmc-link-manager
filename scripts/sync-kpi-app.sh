@@ -68,7 +68,8 @@ fi
 
 # 4. API routes
 echo "[4/8] Syncing API routes"
-for route in quan-ly/all settings calendar structure/ad structure/phong structure/bannhom structure/tvv poster-image kpi-target-registrations; do
+# quan-ly/all is a standalone read-only proxy and must not be overwritten.
+for route in settings calendar structure/ad structure/phong structure/bannhom structure/tvv poster-image kpi-target-registrations; do
   if [ -f "$ROOT/src/app/api/$route/route.ts" ]; then
     if [ $CHECK_ONLY -eq 0 ]; then
       mkdir -p "$KPI_APP/src/app/api/$route"

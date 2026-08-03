@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 // giữa hai Vercel project. Endpoint này chỉ proxy dữ liệu, không ghi database.
 export const dynamic = 'force-dynamic'
 
-const MAIN_APP_URL = 'https://nc-link.vercel.app'
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/$/, '')
 
 export async function GET() {
   try {
