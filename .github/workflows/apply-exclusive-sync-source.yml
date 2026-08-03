@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/apply-exclusive-sync-source.cjs
       - scripts/fix-exclusive-sync-patcher.cjs
+      - scripts/fix-exclusive-sync-verification.cjs
       - .github/workflows/apply-exclusive-sync-source.yml
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - scripts/apply-exclusive-sync-source.cjs
       - scripts/fix-exclusive-sync-patcher.cjs
+      - scripts/fix-exclusive-sync-verification.cjs
       - .github/workflows/apply-exclusive-sync-source.yml
 
 permissions:
@@ -31,7 +33,9 @@ jobs:
         with:
           node-version: 20
       - name: Make patcher tolerant
-        run: node scripts/fix-exclusive-sync-patcher.cjs
+        run: |
+          node scripts/fix-exclusive-sync-patcher.cjs
+          node scripts/fix-exclusive-sync-verification.cjs
       - name: Apply patch
         run: node scripts/apply-exclusive-sync-source.cjs
       - name: Verify source locks
@@ -44,6 +48,7 @@ jobs:
         run: |
           rm scripts/apply-exclusive-sync-source.cjs
           rm scripts/fix-exclusive-sync-patcher.cjs
+          rm scripts/fix-exclusive-sync-verification.cjs
           rm .github/workflows/apply-exclusive-sync-source.yml
       - name: Commit generated changes
         run: |
