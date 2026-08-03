@@ -216,11 +216,21 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
 // Chuẩn hóa Unicode NFC để so sánh tiếng Việt (NFD vs NFC, vd: "ề" vs "ề")
 function norm(s: string): string { return s.normalize('NFC'); }
 
+// Nhóm PA chỉ bị đẩy xuống cuối khi các TVV cùng có kết quả 0.
+function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
+  const text = norm(`${nhom || ''} ${maNhom || ''}`).toUpperCase();
+  return /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(text);
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
 }
 function formatNumber(amount: number): string { return new Intl.NumberFormat('vi-VN').format(amount); }
-function formatDate(dateStr: string): string { return new Date(dateStr).toLocaleDateString('vi-VN'); }
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
+}
 function nganToVnd(val: number): number { return val * 1_000; }
 function vndToNgan(val: number): number { return val / 1_000; }
 
@@ -1217,6 +1227,69 @@ function ThiDuaPageInner() {
     };
   }, [tvvStructList, staffList, leadersList, banNhomStructList]);
 
+  // Theo-HĐ vẫn phải hiện đủ TVV thuộc đối tượng chương trình. Dòng giữ chỗ
+  // chỉ phục vụ bảng kết quả; không được đưa vào bảng chi tiết hợp đồng hay
+  // làm tăng số lượng hợp đồng thực tế.
+  const perContractDisplayContracts = useMemo<Contract[]>(() => {
+    if (targetType !== 'tvv' || !isPerContractMode(conditionType)) return displayContracts;
+
+    const rows = [...displayContracts];
+    if (!tvvStructList.length) return rows;
+
+    const candidates = subjectCodes.length === 0
+      ? tvvStructList.filter(member => !isBancaPosition(member.chucVu))
+      : tvvStructList.filter(member =>
+          subjectCodes.includes(member.agentCode) || subjectCodes.includes(member.agentName)
+        );
+
+    const uniqueCandidates = new Map<string, TVVStructItem>();
+    for (const member of candidates) {
+      const key = norm(member.agentCode || '').toLowerCase();
+      if (key && !uniqueCandidates.has(key)) uniqueCandidates.set(key, member);
+    }
+
+    const existingCodes = new Set(rows.map(row => norm(row.agentCode || '').toLowerCase()));
+    for (const [key, member] of uniqueCandidates) {
+      if (existingCodes.has(key)) continue;
+      const group = resolveTvvGroup(member.agentCode, member.maBanNhom || '');
+      if (norm(`${group.nhom} ${group.maNhom}`).toLowerCase().includes('dso')) continue;
+      rows.push({
+        id: `zero-sales-${member.agentCode}`,
+        contractNumber: '',
+        agentCode: member.agentCode,
+        agentName: member.agentName || member.agentCode,
+        position: member.chucVu || '',
+        ban: '',
+        nhom: group.nhom === '—' ? '' : group.nhom,
+        maNhom: group.maNhom,
+        leaderAgentCode: '',
+        recruiterCode: '',
+        startDate: member.ngayBatDau || null,
+        effectiveDate: '',
+        issueDate: '',
+        fyp: 0,
+        afyp: 0,
+        pdt10DT: 0,
+        tinhLuot3tr: 0,
+        maDaiLyTD: member.maTVVTuyendung || '',
+        ngayBatDauLamViec: member.ngayBatDau || null,
+        ad: '',
+      });
+    }
+
+    const valueOf = (row: Contract) => conditionType === 'per_contract_afyp' ? row.afyp : row.pdt10DT;
+    return rows.sort((a, b) => {
+      const valueDiff = valueOf(b) - valueOf(a);
+      if (valueDiff !== 0) return valueDiff;
+      if (valueOf(a) === 0) {
+        const aPA = isPAGroup(a.nhom, a.maNhom);
+        const bPA = isPAGroup(b.nhom, b.maNhom);
+        if (aPA !== bPA) return aPA ? 1 : -1;
+      }
+      return (a.agentName || a.agentCode).localeCompare(b.agentName || b.agentCode, 'vi');
+    });
+  }, [displayContracts, targetType, conditionType, tvvStructList, subjectCodes, resolveTvvGroup]);
+
   // TVV total mode result rows - bao gồm TẤT CẢ TVV trong DS áp dụng, kể cả không có doanh thu (giá trị 0)
   // Dùng Contracts (bảng HĐ) làm nguồn duy nhất cho TẤT CẢ chế độ
   // Top N mode: nếu KHÔNG có DS đối tượng → thêm TẤT CẢ TVV từ DS TVV (Cấu trúc) để hiển thị hết danh sách
@@ -1331,7 +1404,7 @@ function ThiDuaPageInner() {
       // Top N mode: chọn giá trị theo topNValueType ('ip' hoặc 'afyp')
       const value = isTopN
         ? (topNValueType === 'afyp' ? agent.totalAFYP : agent.totalFYP)
-        : (isAFYP ? agent.totalAFYP : (isActivityMode ? agent.totalFYP : agent.totalFYP));
+        : (isAFYP ? agent.totalAFYP : (isActivityMode ? agent.activityRounds : agent.totalFYP));
       let tier: BonusTier | null = null;
       let remaining: number | null = null;
       if (isTopN) {
@@ -1367,6 +1440,11 @@ function ThiDuaPageInner() {
     }).sort((a, b) => {
       const valueDiff = b.value - a.value;
       if (valueDiff !== 0) return valueDiff;
+      if (a.value === 0) {
+        const aPA = isPAGroup(a.agent.nhom, a.agent.maNhom);
+        const bPA = isPAGroup(b.agent.nhom, b.agent.maNhom);
+        if (aPA !== bPA) return aPA ? 1 : -1;
+      }
       const aPriority = priorityTvvCodes.has(a.agent.agentCode) ? 1 : 0;
       const bPriority = priorityTvvCodes.has(b.agent.agentCode) ? 1 : 0;
       if (aPriority !== bPriority) return bPriority - aPriority;
@@ -2085,7 +2163,7 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = () => {
-    if (displayContracts.length === 0 && nydData.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
+    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
     sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} lượt` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
@@ -2126,7 +2204,7 @@ function ThiDuaPageInner() {
       });
     } else if (isPerContractMode(conditionType)) {
       const mainColLabel = isAFYP ? 'AFYP' : 'IP';
-      [...displayContracts].map((c) => {
+      perContractDisplayContracts.map((c) => {
         const cValue = getContractValue(c);
         const tier = calculateBonus(cValue).tier;
         const phaseInfo = getRowPhaseBonus(cValue, c.effectiveDate);
@@ -2151,7 +2229,7 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
-    if (displayContracts.length === 0 && nydData.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
+    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
     let merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
@@ -2411,7 +2489,7 @@ function ThiDuaPageInner() {
         const mainColLabel = isAFYP ? 'AFYP' : 'IP';
         if (usePhase2) {
           headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', mainColLabel, ...(useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP ? ['AFYP'] : []), ...(useSecondaryCondition && secondaryIPMin > 0 && isAFYP ? ['IP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => {
+          rows = perContractDisplayContracts.map((c) => {
             const cValue = getContractValue(c);
             const { tier } = calculateBonus(cValue);
             const phaseInfo = getRowPhaseBonus(cValue, c.effectiveDate);
@@ -2431,7 +2509,7 @@ function ThiDuaPageInner() {
           });
         } else {
           headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', mainColLabel, ...(useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP ? ['AFYP'] : []), ...(useSecondaryCondition && secondaryIPMin > 0 && isAFYP ? ['IP'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
-          rows = [...displayContracts].map((c) => {
+          rows = perContractDisplayContracts.map((c) => {
             const cValue = getContractValue(c);
             const { tier } = calculateBonus(cValue);
             const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
@@ -2862,16 +2940,20 @@ function ThiDuaPageInner() {
     // Tổng IP/AFYP: dùng displayContracts (nguồn duy nhất) cho TẤT CẢ chế độ
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
 
-    // TVV stats - use tvvTotalRows for total mode (includes TVV with 0 revenue)
+    // TVV stats: theo-HĐ dùng đủ danh sách đối tượng; các chế độ tổng/lượt/Top N
+    // dùng tvvTotalRows, vốn đã bao gồm TVV có kết quả 0.
     let tvvAchievedCount: number;
     let tvvTotalBonus: number;
-    if (isTotalMode(conditionType) && targetType === 'tvv') {
+    if (targetType === 'tvv' && !isPerContractMode(conditionType)) {
       tvvAchievedCount = tvvTotalRows.filter(r => r.tier).length;
-      tvvTotalBonus = tvvTotalRows.reduce((sum, r) => sum + (r.tier ? computeBonusFromTier(r.tier, r.value) : 0), 0);
+      tvvTotalBonus = tvvTotalRows.reduce((sum, r) => {
+        if (!r.tier) return sum;
+        return sum + computeBonusFromTier(r.tier, r.value, isActivityRoundMode(conditionType) ? r.value : undefined);
+      }, 0);
     } else {
-      // Per-contract mode: still use displayContracts for per-HD stats
-      tvvAchievedCount = displayContracts.filter(c => calculateBonus(c.pdt10DT).tier).length;
-      tvvTotalBonus = displayContracts.reduce((sum, c) => sum + getBonusAmount(c.pdt10DT), 0);
+      const contractValue = (c: Contract) => conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
+      tvvAchievedCount = perContractDisplayContracts.filter(c => calculateBonus(contractValue(c)).tier).length;
+      tvvTotalBonus = perContractDisplayContracts.reduce((sum, c) => sum + getBonusAmount(contractValue(c)), 0);
     }
 
     // Nhóm stats
@@ -2908,14 +2990,25 @@ function ThiDuaPageInner() {
       return sum + computeBonusFromTier(tier, value, n.recruitCount);
     }, 0) : 0;
 
-    // For TVV total mode, count from tvvTotalRows (includes TVV with 0 revenue)
-    const tvvAgentCount = isTotalMode(conditionType) && targetType === 'tvv'
-      ? tvvTotalRows.length
+    const tvvAgentCount = targetType === 'tvv'
+      ? (isPerContractMode(conditionType) ? perContractDisplayContracts.length : tvvTotalRows.length)
       : displayContracts.length;
-    const achievedCount = targetType === 'nyd' ? nydAchievedCount : isActivityRoundMode(conditionType) ? arAchievedCount : targetType === 'nhom' ? nhomAchievedCount : tvvAchievedCount;
-    const notAchievedCount = targetType === 'nyd' ? nydNotAchievedCount : isActivityRoundMode(conditionType) ? arNotAchievedCount : targetType === 'nhom' ? groupedData.length - nhomAchievedCount : tvvAgentCount - tvvAchievedCount;
+    const achievedCount = targetType === 'nyd'
+      ? nydAchievedCount
+      : targetType === 'nhom'
+      ? (isActivityRoundMode(conditionType) ? arAchievedCount : nhomAchievedCount)
+      : tvvAchievedCount;
+    const notAchievedCount = targetType === 'nyd'
+      ? nydNotAchievedCount
+      : targetType === 'nhom'
+      ? (isActivityRoundMode(conditionType) ? arNotAchievedCount : groupedData.length - nhomAchievedCount)
+      : tvvAgentCount - tvvAchievedCount;
 
-    const baseTotalBonus = targetType === 'nyd' ? nydTotalBonus : isActivityRoundMode(conditionType) ? arTotalBonus : targetType === 'nhom' ? nhomTotalBonus : tvvTotalBonus;
+    const baseTotalBonus = targetType === 'nyd'
+      ? nydTotalBonus
+      : targetType === 'nhom'
+      ? (isActivityRoundMode(conditionType) ? arTotalBonus : nhomTotalBonus)
+      : tvvTotalBonus;
     const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
     const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
 
@@ -2937,7 +3030,7 @@ function ThiDuaPageInner() {
       baseTotalBonus, totalBonusDisplay, displayTotalFYP,
       totalFYPValue, totalValue, matchedTotalTier, totalRemaining
     };
-  }, [displayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier]);
+  }, [displayContracts, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier]);
 
   const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
 
@@ -3670,7 +3763,7 @@ function ThiDuaPageInner() {
         </div>
 
         {/* Summary Cards - below buttons, visible when results exist */}
-        {(displayContracts.length > 0 || nydData.length > 0) && (
+        {(perContractDisplayContracts.length > 0 || nydData.length > 0 || tvvTotalRows.length > 0 || groupedData.length > 0) && (
           <div className="space-y-2">
             <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />
 
@@ -4163,7 +4256,7 @@ function ThiDuaPageInner() {
                           <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : isPerContractMode(conditionType) ? [...displayContracts].map((c) => {
+                    }) : isPerContractMode(conditionType) ? perContractDisplayContracts.map((c) => {
                       const cValue = getContractValue(c);
                       const { tier } = calculateBonus(cValue);
                       const remaining = getRemainingToNextTier(cValue);

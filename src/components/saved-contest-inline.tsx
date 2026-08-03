@@ -156,8 +156,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes]
   );
   const tvvPerContractRows = useMemo(
-    () => computeTVVPerContractRows(displayContracts, config),
-    [displayContracts, config]
+    () => computeTVVPerContractRows(displayContracts, config, tvvStructList),
+    [displayContracts, config, tvvStructList]
   );
   // NYD data — tính cho targetType='nyd' (trước đây báo "chưa hỗ trợ")
   const nydData = useMemo(

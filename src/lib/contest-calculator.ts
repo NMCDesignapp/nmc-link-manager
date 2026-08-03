@@ -247,6 +247,11 @@ export function norm(s: string): string {
   return s.normalize('NFC');
 }
 
+function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
+  const text = norm(`${nhom || ''} ${maNhom || ''}`).toUpperCase();
+  return /(^|[\s._\/-])PA(?:$|[\s._\/-]|\d)/.test(text);
+}
+
 // ===== Bonus computation =====
 export function computeBonusFromTier(
   tier: BonusTier,
@@ -328,7 +333,9 @@ export function formatNumber(amount: number): string {
 }
 
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('vi-VN');
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
 }
 
 export function formatBonusAmount(
@@ -922,6 +929,11 @@ export function computeTVVTotalRows(
         (k) => norm(k).toLowerCase() === codeLower
       );
       if (!found) {
+        const structMember = tvvStructList?.find(
+          (t) =>
+            t.agentCode.toLowerCase() === codeLower ||
+            norm(t.agentName || '').toLowerCase() === codeLower
+        );
         const staff = staffList.find(
           (s) =>
             s.agentCode.toLowerCase() === codeLower ||
@@ -934,12 +946,13 @@ export function computeTVVTotalRows(
                 norm(r.agentName || '').toLowerCase() === codeLower
             )
           : null;
-        const info = staff || recruiter;
-        agentMap.set(code, {
-          agentCode: info?.agentCode || code,
+        const info = structMember || staff || recruiter;
+        const resolvedCode = info?.agentCode || code;
+        agentMap.set(resolvedCode, {
+          agentCode: resolvedCode,
           agentName: info?.agentName || code,
-          nhom: info?.nhom || '',
-          maNhom: (info as StaffMember)?.maNhom || '',
+          nhom: (info as StaffMember | RecruiterMember)?.nhom || '',
+          maNhom: structMember?.maBanNhom || (info as StaffMember)?.maNhom || '',
           totalFYP: 0,
           totalAFYP: 0,
           contractCount: 0,
@@ -1057,6 +1070,11 @@ export function computeTVVTotalRows(
     .sort((a, b) => {
       const valueDiff = b.value - a.value;
       if (valueDiff !== 0) return valueDiff;
+      if (a.value === 0) {
+        const aPA = isPAGroup(a.agent.nhom, a.agent.maNhom);
+        const bPA = isPAGroup(b.agent.nhom, b.agent.maNhom);
+        if (aPA !== bPA) return aPA ? 1 : -1;
+      }
       const aPriority = priorityAgentCodes?.has(a.agent.agentCode) ? 1 : 0;
       const bPriority = priorityAgentCodes?.has(b.agent.agentCode) ? 1 : 0;
       if (aPriority !== bPriority) return bPriority - aPriority;
@@ -1116,7 +1134,8 @@ export interface TVVPerContractRow {
 
 export function computeTVVPerContractRows(
   displayContracts: Contract[],
-  config: ContestConfig
+  config: ContestConfig,
+  tvvStructList?: TVVStructMember[]
 ): TVVPerContractRow[] {
   if (config.targetType !== 'tvv' || !isPerContractMode(config.conditionType)) {
     return [];
@@ -1143,7 +1162,48 @@ export function computeTVVPerContractRows(
     return { passed, totalAFYP, totalIP };
   };
 
-  return [...displayContracts]
+  const contractsForRows = [...displayContracts];
+  if (tvvStructList && tvvStructList.length > 0) {
+    const participants = config.participants;
+    const candidates = participants.length === 0
+      ? tvvStructList
+      : tvvStructList.filter((member) =>
+          participants.includes(member.agentCode) || participants.includes(member.agentName)
+        );
+    const existingCodes = new Set(contractsForRows.map((row) => norm(row.agentCode || '').toLowerCase()));
+    const uniqueCandidates = new Map<string, TVVStructMember>();
+    for (const member of candidates) {
+      const key = norm(member.agentCode || '').toLowerCase();
+      if (key && !uniqueCandidates.has(key)) uniqueCandidates.set(key, member);
+    }
+    for (const [key, member] of uniqueCandidates) {
+      if (existingCodes.has(key)) continue;
+      contractsForRows.push({
+        id: `zero-sales-${member.agentCode}`,
+        contractNumber: '',
+        agentCode: member.agentCode,
+        agentName: member.agentName || member.agentCode,
+        position: member.chucVu || '',
+        ban: '',
+        nhom: '',
+        maNhom: member.maBanNhom || '',
+        leaderAgentCode: '',
+        recruiterCode: '',
+        startDate: member.ngayBatDau || null,
+        effectiveDate: '',
+        issueDate: '',
+        fyp: 0,
+        afyp: 0,
+        pdt10DT: 0,
+        tinhLuot3tr: 0,
+        maDaiLyTD: member.maTVVTuyendung || '',
+        ngayBatDauLamViec: member.ngayBatDau || null,
+        ad: '',
+      });
+    }
+  }
+
+  return contractsForRows
     .map((c) => {
       const cValue = getContractValue(c);
       const { tier } = calculateBonusWithTiers(cValue, bonusTiers);
@@ -1189,7 +1249,16 @@ export function computeTVVPerContractRows(
         effectiveTier,
       };
     })
-    .sort((a, b) => b.cValue - a.cValue);
+    .sort((a, b) => {
+      const valueDiff = b.cValue - a.cValue;
+      if (valueDiff !== 0) return valueDiff;
+      if (a.cValue === 0) {
+        const aPA = isPAGroup(a.contract.nhom, a.contract.maNhom);
+        const bPA = isPAGroup(b.contract.nhom, b.contract.maNhom);
+        if (aPA !== bPA) return aPA ? 1 : -1;
+      }
+      return (a.contract.agentName || a.contract.agentCode).localeCompare(b.contract.agentName || b.contract.agentCode, 'vi');
+    });
 }
 
 // ===== Stats summary =====
