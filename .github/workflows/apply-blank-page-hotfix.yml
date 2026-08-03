@@ -1,0 +1,43 @@
+name: Apply blank page recovery hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/blank-kpi-management-20260803
+    paths:
+      - scripts/apply-blank-page-hotfix.cjs
+      - .github/workflows/apply-blank-page-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/blank-kpi-management-20260803
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply recovery patch
+        run: node scripts/apply-blank-page-hotfix.cjs
+      - name: Verify
+        run: |
+          grep -q "nmc-links-v25" public/sw.js
+          grep -q "nmc-app-data-v3" src/lib/app-data-context.tsx
+          grep -q "thực hiện đúng một lần tải lại" src/app/layout.tsx
+      - name: Remove one-time files
+        run: |
+          rm scripts/apply-blank-page-hotfix.cjs
+          rm .github/workflows/apply-blank-page-hotfix.yml
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "No changes"; exit 1; }
+          git commit -m "Recover KPI and management pages from stale PWA cache"
+          git push origin HEAD:hotfix/blank-kpi-management-20260803
