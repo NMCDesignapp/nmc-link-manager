@@ -141,7 +141,7 @@ export function PwaInstallPrompt() {
                 }}
               >
                 <img
-                  src="/icon/icon-192x192.png"
+                  src="/icon/nc-link-192.png"
                   alt="NMC"
                   className="w-9 h-9 rounded-lg"
                 />
@@ -245,7 +245,7 @@ export function PwaInstallPrompt() {
                   }}
                 >
                   <img
-                    src="/icon/icon-192x192.png"
+                    src="/icon/nc-link-192.png"
                     alt="NMC"
                     className="w-11 h-11 rounded-xl"
                   />

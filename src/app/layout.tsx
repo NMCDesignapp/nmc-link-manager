@@ -22,10 +22,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon/nc-link-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon/nc-link-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/icon/nc-link-180.png', sizes: '180x180', type: 'image/png' }],
   },
 }
 
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
