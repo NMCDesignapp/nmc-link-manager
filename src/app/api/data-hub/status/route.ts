@@ -15,10 +15,19 @@ export async function POST(request: NextRequest) {
     const updates: Record<string, string> = {
       'nmc-data-hub-last-seen-at': now.toISOString(),
     };
+    let successful = false;
 
     if (phase === 'sync-complete') {
-      updates['nmc-data-hub-last-sync-at'] = now.toISOString();
-      updates['nmc-data-hub-last-result'] = JSON.stringify(body?.results || []);
+      const results = Array.isArray(body?.results) ? body.results : [];
+      successful = results.length > 0 && results.every((result: unknown) => {
+        if (!result || typeof result !== 'object') return false;
+        return (result as { ok?: unknown }).ok === true;
+      });
+
+      // Luôn lưu kết quả gần nhất để chẩn đoán, nhưng chỉ dịch chuyển mốc thời
+      // gian hiển thị khi toàn bộ nguồn của lượt đồng bộ đều thành công.
+      updates['nmc-data-hub-last-result'] = JSON.stringify(results);
+      if (successful) updates['nmc-data-hub-last-sync-at'] = now.toISOString();
     }
 
     await withRetry(() => db.$transaction(
@@ -33,6 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       source,
       enabled: source === 'data-hub',
+      successful,
       serverTime: now.toISOString(),
     });
   } catch (error) {
