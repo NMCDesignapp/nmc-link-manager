@@ -20,6 +20,23 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
   text-shadow: 0 1px 0 rgba(255, 255, 255, .58) !important;
 }
 
+/* Popup chi tiết AD/Nhóm: dùng xanh navy theo màu nhận diện được yêu cầu. */
+.kpi-app .adp-header {
+  background: #103667 !important;
+  border-bottom-color: #0a2447 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .13),
+    0 3px 9px rgba(0, 0, 0, .26) !important;
+}
+
+.kpi-app .adp-nhom-btn.on {
+  background: #103667 !important;
+  border-color: #0a2447 !important;
+  box-shadow:
+    0 3px 8px rgba(16, 54, 103, .42),
+    inset 0 1px 0 rgba(255, 255, 255, .24) !important;
+}
+
 /* Chỉ mobile: ghim tiêu đề, chọn kỳ và băng thông báo khi cuộn. */
 @media (max-width: 720px) {
   /* overflow: hidden ở phần thân có thể chặn position: sticky trên trình duyệt mobile. */
@@ -72,6 +89,48 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
   .kpi-app #view-main > header .ctrl-bar {
     margin-top: 8px !important;
     margin-bottom: 0;
+  }
+
+  /* Chi tiết Ban Nhóm và Kế hoạch Khung: có nền và ghim giống tiêu đề KPI chính. */
+  .kpi-app #view-detail.active > .detail-shell > .sub-header,
+  .kpi-app #view-calendar.active > .sub-header {
+    position: sticky !important;
+    top: 0;
+    z-index: 120;
+    isolation: isolate;
+    width: calc(100% + 32px);
+    min-height: 58px;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 10px 16px !important;
+    background: linear-gradient(
+      180deg,
+      rgba(29, 35, 44, .98) 0%,
+      rgba(29, 35, 44, .94) 72%,
+      rgba(29, 35, 44, .90) 100%
+    ) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    backdrop-filter: blur(14px) saturate(120%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, .06) inset,
+      0 8px 20px rgba(0, 0, 0, .34) !important;
+  }
+
+  .kpi-app #view-detail.active > .detail-shell > .sub-header::after,
+  .kpi-app #view-calendar.active > .sub-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(248, 195, 64, .42),
+      transparent
+    );
+    pointer-events: none;
   }
 }
 `
