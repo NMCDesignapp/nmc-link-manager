@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
+import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
@@ -79,6 +80,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AppDataProvider>
             {children}
+            <EmbeddedProgramDataLoader />
             <PwaInstallPrompt />
             <Toaster />
           </AppDataProvider>
