@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
+import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
+        <ProgramTableStickyHeaders />
         <SpaceBackground />
         <AppDataProvider>
           {children}
