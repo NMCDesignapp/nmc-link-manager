@@ -11,7 +11,11 @@ const DETAIL_SELECTOR = [
 const OVERLAY_ID = 'nmc-program-data-loader';
 const STYLE_ID = 'nmc-program-data-loader-style';
 const MIN_VISIBLE_MS = 420;
+const EMPTY_STATE_GRACE_MS = 3_500;
 const MAX_VISIBLE_MS = 15_000;
+const EMPTY_STATE_PATTERN = /(chưa có|không có dữ liệu|không tìm thấy|dữ liệu trống|đang tải|vui lòng nhập|vui lòng cập nhật)/i;
+
+type TableState = 'data' | 'empty' | 'none';
 
 function isVisible(element: Element): boolean {
   if (!(element instanceof HTMLElement)) return false;
@@ -22,7 +26,7 @@ function isVisible(element: Element): boolean {
 
 function findActiveDetail(): HTMLElement | null {
   const candidates = Array.from(document.querySelectorAll<HTMLElement>(DETAIL_SELECTOR));
-  return candidates.find(isVisible) || candidates.at(-1) || null;
+  return candidates.find(isVisible) || null;
 }
 
 function detailKey(element: HTMLElement): string {
@@ -32,18 +36,36 @@ function detailKey(element: HTMLElement): string {
     || '';
 }
 
-function hasRenderedTableData(detail: HTMLElement): boolean {
+function getTableState(detail: HTMLElement): TableState {
   const tables = Array.from(detail.querySelectorAll<HTMLTableElement>('table'));
   const visibleTables = tables.filter(isVisible);
   const tablesToCheck = visibleTables.length > 0 ? visibleTables : tables;
+  let sawEmptyState = false;
 
-  return tablesToCheck.some((table) => {
+  for (const table of tablesToCheck) {
     const bodyRows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody tr'));
-    return bodyRows.some((row) => {
+    for (const row of bodyRows) {
       const text = (row.textContent || '').replace(/\s+/g, ' ').trim();
-      return text.length > 0;
-    });
-  });
+      if (!text) continue;
+
+      const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>('td'));
+      const onlyCell = cells.length === 1 ? cells[0] : null;
+      const isPlaceholderRow = Boolean(
+        onlyCell
+        && (onlyCell.colSpan > 1 || onlyCell.hasAttribute('colspan'))
+        && EMPTY_STATE_PATTERN.test(text),
+      );
+
+      if (isPlaceholderRow) {
+        sawEmptyState = true;
+        continue;
+      }
+
+      return 'data';
+    }
+  }
+
+  return sawEmptyState ? 'empty' : 'none';
 }
 
 function ensureStyle(): void {
@@ -136,26 +158,54 @@ export function EmbeddedProgramDataLoader(): null {
   useEffect(() => {
     if (window.location.pathname !== '/quan-ly') return;
 
+    let isIframe = false;
+    try {
+      isIframe = window.self !== window.top;
+    } catch {
+      isIframe = true;
+    }
+
+    let openedFromKpi = false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      openedFromKpi = params.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1';
+    } catch {}
+
+    if (!isIframe && !openedFromKpi) return;
+
     let activeDetail: HTMLElement | null = null;
     let activeKey = '';
+    let detailStartedAt = 0;
     let shownAt = 0;
+    let dismissedKey = '';
     let hideTimer: number | null = null;
+    let emptyGraceTimer: number | null = null;
     let fallbackTimer: number | null = null;
     let frameOne: number | null = null;
     let frameTwo: number | null = null;
 
+    const clearTimer = (timer: number | null) => {
+      if (timer !== null) window.clearTimeout(timer);
+    };
+
     const clearHideTimer = () => {
-      if (hideTimer !== null) window.clearTimeout(hideTimer);
+      clearTimer(hideTimer);
       hideTimer = null;
     };
 
+    const clearEmptyGraceTimer = () => {
+      clearTimer(emptyGraceTimer);
+      emptyGraceTimer = null;
+    };
+
     const clearFallbackTimer = () => {
-      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      clearTimer(fallbackTimer);
       fallbackTimer = null;
     };
 
     const removeOverlay = () => {
       clearHideTimer();
+      clearEmptyGraceTimer();
       clearFallbackTimer();
       document.getElementById(OVERLAY_ID)?.remove();
       shownAt = 0;
@@ -169,13 +219,19 @@ export function EmbeddedProgramDataLoader(): null {
       hideTimer = window.setTimeout(removeOverlay, remaining);
     };
 
+    const dismissCurrentDetail = () => {
+      dismissedKey = activeKey;
+      hideAfterMinimumDuration();
+    };
+
     const showOverlay = () => {
       if (!document.getElementById(OVERLAY_ID)) {
         createOverlay();
         shownAt = Date.now();
       }
-      clearFallbackTimer();
-      fallbackTimer = window.setTimeout(removeOverlay, MAX_VISIBLE_MS);
+      if (fallbackTimer === null) {
+        fallbackTimer = window.setTimeout(dismissCurrentDetail, MAX_VISIBLE_MS);
+      }
     };
 
     const evaluate = () => {
@@ -183,22 +239,53 @@ export function EmbeddedProgramDataLoader(): null {
       if (!nextDetail) {
         activeDetail = null;
         activeKey = '';
+        detailStartedAt = 0;
+        dismissedKey = '';
         removeOverlay();
         return;
       }
 
       const nextKey = detailKey(nextDetail);
       const detailChanged = nextDetail !== activeDetail || nextKey !== activeKey;
-      activeDetail = nextDetail;
-      activeKey = nextKey;
+      if (detailChanged) {
+        activeDetail = nextDetail;
+        activeKey = nextKey;
+        detailStartedAt = Date.now();
+        dismissedKey = '';
+        clearEmptyGraceTimer();
+        clearFallbackTimer();
+      }
 
-      if (hasRenderedTableData(nextDetail)) {
+      const tableState = getTableState(nextDetail);
+      if (tableState === 'data') {
+        dismissedKey = '';
         hideAfterMinimumDuration();
         return;
       }
 
-      if (detailChanged || !document.getElementById(OVERLAY_ID)) {
-        showOverlay();
+      if (dismissedKey === nextKey) {
+        removeOverlay();
+        return;
+      }
+
+      showOverlay();
+
+      if (tableState === 'empty') {
+        const elapsed = Date.now() - detailStartedAt;
+        const remaining = Math.max(0, EMPTY_STATE_GRACE_MS - elapsed);
+        if (remaining === 0) {
+          dismissCurrentDetail();
+        } else if (emptyGraceTimer === null) {
+          emptyGraceTimer = window.setTimeout(() => {
+            emptyGraceTimer = null;
+            const currentDetail = findActiveDetail();
+            if (currentDetail && detailKey(currentDetail) === activeKey && getTableState(currentDetail) === 'empty') {
+              dismissCurrentDetail();
+            }
+          }, remaining);
+        }
+      } else {
+        clearEmptyGraceTimer();
       }
     };
 
@@ -206,7 +293,11 @@ export function EmbeddedProgramDataLoader(): null {
       if (frameOne !== null) window.cancelAnimationFrame(frameOne);
       if (frameTwo !== null) window.cancelAnimationFrame(frameTwo);
       frameOne = window.requestAnimationFrame(() => {
-        frameTwo = window.requestAnimationFrame(evaluate);
+        frameOne = null;
+        frameTwo = window.requestAnimationFrame(() => {
+          frameTwo = null;
+          evaluate();
+        });
       });
     };
 
@@ -216,6 +307,7 @@ export function EmbeddedProgramDataLoader(): null {
       subtree: true,
       characterData: true,
       attributes: true,
+      attributeFilter: ['data-policy-table', 'data-saoviet-table', 'data-clb-saoviet-table'],
     });
 
     scheduleEvaluate();
