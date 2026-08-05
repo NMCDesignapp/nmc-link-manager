@@ -278,45 +278,142 @@ function detailByAgent(details: DetailRecord[]): Map<string, DetailRecord> {
 
 function buildTVVResult(matrix: Matrix, details: DetailRecord[]) {
   const headers = matrix[0] || [];
-  const rows = matrix.slice(1);
+  const sourceRows = matrix.slice(1);
+  const sttIdx = findHeader(headers, ['STT']);
   const groupIdx = findHeader(headers, ['Nhóm']);
   const codeIdx = findHeader(headers, ['Mã ĐL', 'Mã số']);
   const nameIdx = findHeader(headers, ['Họ tên']);
+  const positionIdx = findHeader(headers, ['Chức vụ']);
   const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);
+  const effectiveDateIdx = findHeader(headers, ['Ngày hiệu lực']);
+  const issueDateIdx = findHeader(headers, ['Ngày phát hành']);
+  const ipIdx = findHeader(headers, ['PĐT + 10% ĐT', 'IP']);
+  const afypIdx = findHeader(headers, ['AFYP']);
   const rewardIdx = rewardIndex(headers);
-  const byAgent = detailByAgent(details);
   const perContract = contractIdx >= 0;
-  const metricIdx = perContract ? contractIdx + 3 : Math.max(nameIdx + 1, 0);
-  const metricHeader = perContract
-    ? (normalized(headers[metricIdx]).includes('AFYP') ? 'AFYP' : 'IP')
-    : metricLabelFromHeader(headers[metricIdx] || headers.find(h => normalized(h).includes('LUOT')));
+  const metricIdx = perContract ? -1 : Math.max(nameIdx + 1, 0);
+  const metricHeader = metricLabelFromHeader(
+    headers[metricIdx] || headers.find(header => normalized(header).includes('LUOT')),
+  );
+  const contractMap = detailByContract(details);
+
+  const byAgent = new Map<string, DetailRecord[]>();
+  const byName = new Map<string, DetailRecord[]>();
+  for (const detail of details) {
+    const codeKey = normalized(detail.agentCode);
+    if (codeKey) {
+      const list = byAgent.get(codeKey) || [];
+      list.push(detail);
+      byAgent.set(codeKey, list);
+    }
+    const nameKey = normalized(detail.agentName);
+    if (nameKey) {
+      const list = byName.get(nameKey) || [];
+      list.push(detail);
+      byName.set(nameKey, list);
+    }
+  }
 
   const outputHeaders: CellValue[] = [
     'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', 'CHỨC VỤ',
-    ...(perContract ? ['SỐ HĐ'] : []),
-    metricHeader,
+    ...contractResultHeaders(),
+    ...(!perContract ? [metricHeader] : []),
     'TIỀN THƯỞNG',
   ];
-
   const outputRows: Matrix = [];
-  for (const row of rows) {
+  const merges: MergeRange[] = [];
+
+  if (perContract) {
+    let currentGroup = '';
+    let currentCode = '';
+    let currentName = '';
+    let currentPosition = '';
+
+    for (const row of sourceRows) {
+      const rowCode = codeIdx >= 0 ? text(row[codeIdx]) : '';
+      const rowName = nameIdx >= 0 ? text(row[nameIdx]) : '';
+      const rowGroup = groupIdx >= 0 ? text(row[groupIdx]) : '';
+      const rowPosition = positionIdx >= 0 ? text(row[positionIdx]) : '';
+
+      if (rowCode || rowName) {
+        currentCode = rowCode || currentCode;
+        currentName = rowName || currentName;
+        currentGroup = rowGroup || currentGroup;
+        currentPosition = rowPosition || currentPosition;
+      }
+
+      const contract = text(row[contractIdx]);
+      if (!contract && !currentCode && !currentName) continue;
+
+      const detail = contractMap.get(normalized(contract));
+      const group = rowGroup || currentGroup || detail?.group || '';
+      const code = rowCode || currentCode || detail?.agentCode || '';
+      const name = rowName || currentName || detail?.agentName || '';
+      const position = rowPosition || currentPosition || detail?.position || '';
+      const contractValues: CellValue[] = [
+        contract || detail?.contractNumber || '',
+        detail?.effectiveDate ?? (effectiveDateIdx >= 0 ? row[effectiveDateIdx] : ''),
+        detail?.issueDate ?? (issueDateIdx >= 0 ? row[issueDateIdx] : ''),
+        detail?.ip ?? (ipIdx >= 0 ? row[ipIdx] : ''),
+        detail?.afyp ?? (afypIdx >= 0 ? row[afypIdx] : ''),
+      ];
+
+      outputRows.push([
+        outputRows.length + 1,
+        group,
+        code,
+        name,
+        position,
+        ...contractValues,
+        rewardIdx >= 0 ? row[rewardIdx] : '',
+      ]);
+    }
+
+    return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
+  }
+
+  let resultIndex = 0;
+  for (const row of sourceRows) {
     const code = codeIdx >= 0 ? text(row[codeIdx]) : '';
     const name = nameIdx >= 0 ? text(row[nameIdx]) : '';
     if (!code && !name) continue;
-    const detail = byAgent.get(normalized(code));
-    outputRows.push([
-      outputRows.length + 1,
-      groupIdx >= 0 ? text(row[groupIdx]) : detail?.group || '',
-      code,
-      name,
-      detail?.position || '',
-      ...(perContract ? [text(row[contractIdx])] : []),
-      metricIdx >= 0 ? row[metricIdx] : '',
-      rewardIdx >= 0 ? row[rewardIdx] : '',
-    ]);
+
+    const codeKey = normalized(code);
+    const nameKey = normalized(name);
+    const personDetails = (codeKey ? byAgent.get(codeKey) : undefined)
+      || (nameKey ? byName.get(nameKey) : undefined)
+      || [];
+    const contracts: Array<DetailRecord | undefined> = personDetails.length
+      ? personDetails.filter(detail => Boolean(detail.contractNumber))
+      : [undefined];
+    if (!contracts.length) contracts.push(undefined);
+
+    resultIndex += 1;
+    const start = outputRows.length + 1;
+    contracts.forEach((detail, contractIndex) => {
+      outputRows.push([
+        contractIndex === 0 ? resultIndex : '',
+        contractIndex === 0 ? (groupIdx >= 0 ? text(row[groupIdx]) : detail?.group || '') : '',
+        contractIndex === 0 ? code : '',
+        contractIndex === 0 ? name : '',
+        contractIndex === 0 ? (positionIdx >= 0 ? text(row[positionIdx]) : detail?.position || '') : '',
+        ...contractResultValues(detail?.contractNumber || '', detail),
+        contractIndex === 0 && metricIdx >= 0 ? row[metricIdx] : '',
+        contractIndex === 0 && rewardIdx >= 0 ? row[rewardIdx] : '',
+      ]);
+    });
+
+    const end = outputRows.length;
+    if (end > start) {
+      const metricCol = outputHeaders.length - 2;
+      const rewardCol = outputHeaders.length - 1;
+      for (const col of [0, 1, 2, 3, 4, metricCol, rewardCol]) {
+        merges.push({ s: { r: start, c: col }, e: { r: end, c: col } });
+      }
+    }
   }
 
-  return { headers: outputHeaders, rows: outputRows, merges: [] as MergeRange[], leaderRows: [] as number[] };
+  return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
 }
 
 function buildNTDResult(matrix: Matrix, details: DetailRecord[]) {
