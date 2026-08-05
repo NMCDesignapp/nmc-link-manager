@@ -1,73 +1,67 @@
 export function ProgramTableStickyHeaders() {
   return (
     <style>{`
+      /*
+       * Table của shadcn tự bọc thêm [data-slot="table-container"] với
+       * overflow-x:auto. Trên Android WebView, lớp này trở thành scroll ancestor
+       * gần nhất của sticky header, trong khi cuộn dọc thực tế nằm ở wrapper bên
+       * ngoài. Vì vậy header bị kéo đi. Cho lớp trong overflow visible để cả
+       * cuộn ngang và dọc đều do wrapper thật quản lý.
+       */
       .policy-detail-table-wrapper,
       .saoviet-detail-table-wrapper,
       .clbsv-detail-table-wrapper {
         position: relative !important;
-        min-height: 0 !important;
-        overflow-x: auto !important;
-        overflow-y: auto !important;
+        overflow: auto !important;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
         isolation: isolate;
       }
 
-      [data-policy-table] table,
-      [data-saoviet-table] table,
-      [data-clb-saoviet-table] table,
+      .policy-detail-table-wrapper [data-slot="table-container"],
+      .saoviet-detail-table-wrapper [data-slot="table-container"],
+      .clbsv-detail-table-wrapper [data-slot="table-container"] {
+        position: static !important;
+        width: max-content !important;
+        min-width: 100% !important;
+        overflow: visible !important;
+      }
+
       .policy-detail-table-wrapper table,
       .saoviet-detail-table-wrapper table,
       .clbsv-detail-table-wrapper table {
+        width: 100% !important;
+        min-width: 100% !important;
         border-collapse: separate !important;
         border-spacing: 0 !important;
       }
 
-      [data-policy-table] thead,
-      [data-saoviet-table] thead,
-      [data-clb-saoviet-table] thead,
+      /* Giữ nguyên toàn bộ các tầng tiêu đề như một khối, kể cả bảng 2 dòng. */
       .policy-detail-table-wrapper thead,
       .saoviet-detail-table-wrapper thead,
       .clbsv-detail-table-wrapper thead {
+        position: -webkit-sticky !important;
         position: sticky !important;
         top: 0 !important;
-        z-index: 60 !important;
+        z-index: 80 !important;
+        transform: translateZ(0);
+        box-shadow: 0 2px 5px rgba(15, 23, 42, 0.28);
       }
 
-      [data-policy-table] thead tr,
-      [data-saoviet-table] thead tr,
-      [data-clb-saoviet-table] thead tr,
-      .policy-detail-table-wrapper thead tr,
-      .saoviet-detail-table-wrapper thead tr,
-      .clbsv-detail-table-wrapper thead tr {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 60 !important;
-      }
-
-      [data-policy-table] thead th,
-      [data-saoviet-table] thead th,
-      [data-clb-saoviet-table] thead th,
+      /* Không để sticky riêng từng ô làm hai tầng tiêu đề chồng lên nhau. */
       .policy-detail-table-wrapper thead th,
       .saoviet-detail-table-wrapper thead th,
       .clbsv-detail-table-wrapper thead th {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 61 !important;
-        background-clip: padding-box !important;
-        transform: translateZ(0);
-        box-shadow: 0 2px 0 rgba(15, 23, 42, 0.28) !important;
+        position: static !important;
+        z-index: auto !important;
+        background-clip: padding-box;
       }
 
-      @media (max-width: 767px) {
-        .policy-detail-table-wrapper,
-        .saoviet-detail-table-wrapper,
-        .clbsv-detail-table-wrapper {
-          flex: 1 1 0 !important;
-          height: 0 !important;
-          min-height: 210px !important;
-          max-height: calc(100dvh - 285px) !important;
-        }
+      .policy-detail-table-wrapper tbody,
+      .saoviet-detail-table-wrapper tbody,
+      .clbsv-detail-table-wrapper tbody {
+        position: relative;
+        z-index: 1;
       }
     `}</style>
   );
