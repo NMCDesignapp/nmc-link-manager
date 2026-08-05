@@ -2,14 +2,10 @@ import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { createDefaultContestPoster } from '@/lib/contest-poster';
 
-// Contest cards are edited from the Thi Đua screen and read again in Sao Việt
-// toàn chặng. Never let a CDN/browser keep an old list after a delete.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 const noStore = { 'Cache-Control': 'no-store, max-age=0, must-revalidate' };
 
-// The dashboard only needs contest configuration. Posters are large base64 data
-// and must be requested only when a user opens a specific contest.
 const contestSummarySelect = {
   id: true, title: true, startDate: true, endDate: true, issueDate: true,
   conditionType: true, targetType: true, bonusTiers: true, participants: true,
@@ -25,27 +21,87 @@ const contestSummarySelect = {
   createdAt: true, updatedAt: true,
 } as const;
 
-const withPoster = <T extends { posterUrl?: string | null; title?: string; startDate?: Date; endDate?: Date; targetType?: string }>(contest: T) => ({
+type PosterContest = {
+  id: string;
+  posterUrl?: string | null;
+  updatedAt?: Date;
+  title?: string;
+  startDate?: Date;
+  endDate?: Date;
+  targetType?: string;
+};
+
+const posterKey = (id: string) => `contest-poster-${id}`;
+const posterPublicUrl = (contest: Pick<PosterContest, 'id' | 'updatedAt'>) =>
+  `/api/poster-image/${encodeURIComponent(posterKey(contest.id))}?v=${contest.updatedAt ? new Date(contest.updatedAt).getTime() : Date.now()}`;
+
+async function ensurePosterTable(): Promise<void> {
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "PosterImage" (
+      "key" TEXT NOT NULL PRIMARY KEY,
+      "data" BYTEA NOT NULL,
+      "contentType" TEXT NOT NULL DEFAULT 'image/jpeg',
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+function parsePosterDataUrl(value: string): { data: Buffer; contentType: string } | null {
+  const match = value.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) return null;
+  try {
+    const data = Buffer.from(match[2], 'base64');
+    if (!data.length) return null;
+    return { data, contentType: match[1] || 'image/jpeg' };
+  } catch {
+    return null;
+  }
+}
+
+async function persistContestPoster(id: string, value: string): Promise<string> {
+  if (!value.startsWith('data:')) return value;
+  const parsed = parsePosterDataUrl(value);
+  if (!parsed) return value;
+  await ensurePosterTable();
+  await db.$executeRawUnsafe(
+    `INSERT INTO "PosterImage" ("key", "data", "contentType", "updatedAt")
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT ("key") DO UPDATE
+     SET "data" = EXCLUDED."data", "contentType" = EXCLUDED."contentType", "updatedAt" = NOW()`,
+    posterKey(id), parsed.data, parsed.contentType,
+  );
+  return `/api/poster-image/${encodeURIComponent(posterKey(id))}`;
+}
+
+async function normalizePoster<T extends PosterContest>(contest: T): Promise<T & { posterUrl: string }> {
+  const source = contest.posterUrl || createDefaultContestPoster(contest);
+  if (!source.startsWith('data:')) return { ...contest, posterUrl: source };
+  try {
+    const storedUrl = await persistContestPoster(contest.id, source);
+    if (storedUrl !== source) {
+      const updated = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl } });
+      return { ...contest, ...updated, posterUrl: posterPublicUrl(updated) } as T & { posterUrl: string };
+    }
+  } catch (error) {
+    console.error('[contest-poster] migrate failed:', error);
+  }
+  return { ...contest, posterUrl: source };
+}
+
+const summaryWithPosterUrl = <T extends PosterContest>(contest: T) => ({
   ...contest,
-  posterUrl: contest.posterUrl || createDefaultContestPoster(contest),
+  posterUrl: posterPublicUrl(contest),
 });
 
-// Self-healing migration helper:
-// Vercel chỉ chạy `prisma generate` (postinstall), KHÔNG tự chạy `prisma migrate deploy`.
-// Khi schema.prisma có column mới nhưng production DB chưa được migrate,
-// `findMany`/`create` sẽ fail với lỗi "column does not exist".
-// Helper này chạy ALTER TABLE IF NOT EXISTS để đảm bảo schema đồng bộ.
 async function ensureTopNColumns(): Promise<void> {
   try {
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topN" INTEGER NOT NULL DEFAULT 3');
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topNMinIP" DOUBLE PRECISION NOT NULL DEFAULT 50000000');
   } catch (e) {
-    // Bỏ qua — có thể DB đã có cột rồi, hoặc DB không phải Postgres (local SQLite)
     console.warn('[ensureTopNColumns] Skipped:', (e as Error)?.message);
   }
 }
 
-// Self-heal cho filterByEffectiveDate (boolean column mới)
 async function ensureFilterByEffectiveDateColumn(): Promise<void> {
   try {
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "filterByEffectiveDate" BOOLEAN NOT NULL DEFAULT false');
@@ -54,7 +110,6 @@ async function ensureFilterByEffectiveDateColumn(): Promise<void> {
   }
 }
 
-// Self-heal cho topNValueType (text column mới — 'ip' | 'afyp')
 async function ensureTopNValueTypeColumn(): Promise<void> {
   try {
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topNValueType" TEXT NOT NULL DEFAULT \'ip\'');
@@ -63,36 +118,33 @@ async function ensureTopNValueTypeColumn(): Promise<void> {
   }
 }
 
-// GET /api/contests?summary=1 - small list for app startup (without poster blobs)
-// GET /api/contests?id=... - one complete contest, including its poster, on demand
+async function readContests(request: NextRequest) {
+  const id = request.nextUrl.searchParams.get('id');
+  const summary = request.nextUrl.searchParams.get('summary') === '1';
+  if (id) {
+    const contest = await db.contest.findUnique({ where: { id } });
+    if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
+    return NextResponse.json(await normalizePoster(contest), { headers: noStore });
+  }
+  const contests = await db.contest.findMany({
+    orderBy: { createdAt: 'desc' },
+    ...(summary ? { select: contestSummarySelect } : {}),
+  });
+  if (summary) {
+    return NextResponse.json(contests.map(summaryWithPosterUrl), { headers: noStore });
+  }
+  const normalized = await Promise.all(contests.map((contest: any) => normalizePoster(contest)));
+  return NextResponse.json(normalized, { headers: noStore });
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
-    const summary = request.nextUrl.searchParams.get('summary') === '1';
-    if (id) {
-      const contest = await db.contest.findUnique({ where: { id } });
-      if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
-      return NextResponse.json(withPoster(contest), { headers: noStore });
-    }
-    const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
-    // Summary cards intentionally omit poster data. The Sao Việt viewer then
-    // requests each poster by ID on demand, avoiding a multi-megabyte initial
-    // response while still showing the real poster (not a generic fallback).
-    return NextResponse.json(summary ? contests : contests.map(withPoster), { headers: noStore });
+    return await readContests(request);
   } catch (error) {
-    // Có thể do thiếu column topN/topNMinIP/filterByEffectiveDate (DB chưa migrate) — thử self-heal rồi retry 1 lần
-    console.warn('[GET /api/contests] First attempt failed, trying self-heal migration:', (error as Error)?.message);
+    console.warn('[GET /api/contests] First attempt failed, trying self-heal:', (error as Error)?.message);
     await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
     try {
-      const id = request.nextUrl.searchParams.get('id');
-      const summary = request.nextUrl.searchParams.get('summary') === '1';
-      if (id) {
-        const contest = await db.contest.findUnique({ where: { id } });
-        if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
-      return NextResponse.json(withPoster(contest), { headers: noStore });
-      }
-      const contests = await db.contest.findMany({ orderBy: { createdAt: 'desc' }, ...(summary ? { select: contestSummarySelect } : {}) });
-      return NextResponse.json(summary ? contests : contests.map(withPoster), { headers: noStore });
+      return await readContests(request);
     } catch (retryError) {
       console.error('Error fetching contests after self-heal:', retryError);
       return NextResponse.json({ error: 'Không thể tải danh sách chương trình thi đua', details: (retryError as Error)?.message }, { status: 500 });
@@ -100,19 +152,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/contests - Save a new contest
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
     const body = await request.json();
-    const bodySize = JSON.stringify(body).length;
-    console.log('[POST /api/contests] Start', {
-      title: body.title,
-      bodySize,
-      hasParticipants: !!body.participants,
-      participantsLength: body.participants?.length || 0,
-    });
-
     const {
       title, startDate, endDate, issueDate, conditionType, targetType,
       bonusTiers, posterUrl, participants,
@@ -125,62 +168,24 @@ export async function POST(request: NextRequest) {
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
       topN, topNMinIP, topNValueType, filterByEffectiveDate,
-    } = body as {
-      title: string;
-      startDate: string;
-      endDate: string;
-      issueDate?: string;
-      conditionType: string;
-      targetType: string;
-      bonusTiers: string;
-      posterUrl?: string;
-      participants?: string;
-      usePhase2?: boolean;
-      phase2StartDate?: string;
-      phase2EndDate?: string;
-      bonusTiers2?: string;
-      useSecondaryCondition?: boolean;
-      secondaryAFYPMin?: number;
-      secondaryIPMin?: number;
-      secondaryLuotHDMin?: number;
-      secondaryLuotHDCMin?: number;
-      secondaryLuotHDFilter?: string;
-      secondaryLuotHDCFilter?: string;
-      secondaryTotalAFYPMin?: number;
-      secondaryTotalIPMin?: number;
-      hideNotAchieved?: boolean;
-      includeIndividualNTD?: boolean;
-      includeIndividualTN?: boolean;
-      luotHDThreshold?: number;
-      luotHDCTThreshold?: number;
-      tvv90MaxMonths?: number;
-      tvv90MinIP?: number;
-      referenceContestId?: string;
-      includeTNInPassCount?: boolean;
-      topN?: number;
-      topNMinIP?: number;
-      topNValueType?: string;
-      filterByEffectiveDate?: boolean;
-    };
+    } = body as any;
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
-    // Đảm bảo DB có các cột mới trước khi query/create (self-heal)
     await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
-
-    // Validate dates - Prisma will throw if invalid, but we want a clearer message
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
     if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
-      return NextResponse.json({ error: 'Ngày bắt đầu/kết thúc không hợp lệ', details: `startDate=${startDate}, endDate=${endDate}` }, { status: 400 });
+      return NextResponse.json({ error: 'Ngày bắt đầu/kết thúc không hợp lệ' }, { status: 400 });
     }
 
-    // Check if contest with same title exists, update it
-    console.log('[POST /api/contests] Checking existing contest with title:', title);
     const existing = await db.contest.findFirst({ where: { title } });
-    console.log('[POST /api/contests] Existing contest found:', !!existing, `(${Date.now() - startTime}ms)`);
+    const rawPoster = posterUrl || createDefaultContestPoster({ title, startDate: parsedStart, endDate: parsedEnd, targetType });
+    const temporaryPoster = rawPoster.startsWith('data:')
+      ? (existing?.posterUrl && !existing.posterUrl.startsWith('data:') ? existing.posterUrl : '')
+      : rawPoster;
 
     const data = {
       title,
@@ -190,7 +195,7 @@ export async function POST(request: NextRequest) {
       conditionType,
       targetType: targetType || 'tvv',
       bonusTiers,
-      posterUrl: posterUrl || createDefaultContestPoster({ title, startDate: parsedStart, endDate: parsedEnd, targetType }),
+      posterUrl: temporaryPoster,
       participants: participants || '[]',
       usePhase2: usePhase2 ?? false,
       phase2StartDate: phase2StartDate ? new Date(phase2StartDate) : null,
@@ -220,92 +225,51 @@ export async function POST(request: NextRequest) {
       filterByEffectiveDate: filterByEffectiveDate ?? false,
     };
 
-    if (existing) {
-      const updated = await db.contest.update({
-        where: { id: existing.id },
-        data,
-      });
-      console.log('[POST /api/contests] Updated contest', existing.id, `(${Date.now() - startTime}ms total)`);
-      return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: updated });
+    let contest = existing
+      ? await db.contest.update({ where: { id: existing.id }, data })
+      : await db.contest.create({ data });
+
+    if (rawPoster.startsWith('data:')) {
+      const storedUrl = await persistContestPoster(contest.id, rawPoster);
+      contest = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl } });
     }
 
-    const contest = await db.contest.create({ data });
-    console.log('[POST /api/contests] Created contest', contest.id, `(${Date.now() - startTime}ms total)`);
-
-    return NextResponse.json({ message: 'Đã lưu chương trình thi đua', contest });
+    console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
+    return NextResponse.json({
+      message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
+      contest: { ...contest, posterUrl: posterPublicUrl(contest) },
+    });
   } catch (error: any) {
-    console.error('[POST /api/contests] Error after', Date.now() - startTime, 'ms:', error);
-    // Trả về chi tiết lỗi Prisma để client hiển thị được lỗi cụ thể
-    // (giúp diagnose: thiếu column, NULL constraint, connection, v.v.)
-    const details = error?.message || String(error);
-    const errorCode = error?.code || undefined;
-    return NextResponse.json(
-      { error: 'Không thể lưu chương trình thi đua', details, code: errorCode },
-      { status: 500 }
-    );
+    console.error('[POST /api/contests] Error:', error);
+    return NextResponse.json({ error: 'Không thể lưu chương trình thi đua', details: error?.message || String(error), code: error?.code }, { status: 500 });
   }
 }
 
-// DELETE /api/contests?id=xxx - Delete a contest
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
-    }
-
-    // DELETE must be idempotent: repeated clicks and stale cached cards are
-    // already in the desired state when the database row no longer exists.
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     const result = await db.contest.deleteMany({ where: { id } });
-    console.log('[DELETE /api/contests] Completed', {
-      id,
-      deletedCount: result.count,
-      alreadyDeleted: result.count === 0,
-    });
-    return NextResponse.json(
-      {
-        message: 'Đã xóa chương trình thi đua',
-        deleted: result.count > 0,
-        alreadyDeleted: result.count === 0,
-      },
-      { headers: noStore }
-    );
+    try {
+      await db.$executeRawUnsafe('DELETE FROM "PosterImage" WHERE "key" = $1', posterKey(id));
+    } catch {}
+    return NextResponse.json({ message: 'Đã xóa chương trình thi đua', deleted: result.count > 0, alreadyDeleted: result.count === 0 }, { headers: noStore });
   } catch (error: any) {
-    console.error('[DELETE /api/contests] Failed', {
-      error: error?.message || String(error),
-      code: error?.code,
-    });
-    return NextResponse.json(
-      {
-        error: 'Không thể xóa chương trình thi đua',
-        details: error?.message || String(error),
-        code: error?.code,
-      },
-      { status: 500, headers: noStore }
-    );
+    return NextResponse.json({ error: 'Không thể xóa chương trình thi đua', details: error?.message || String(error), code: error?.code }, { status: 500, headers: noStore });
   }
 }
 
-// PATCH /api/contests - Update specific fields by id
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, ...updates } = body as { id: string; [key: string]: any };
-
-    if (!id) {
-      return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
+    if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
+      updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
-
-    const contest = await db.contest.update({
-      where: { id },
-      data: updates,
-    });
-
-    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest });
+    const contest = await db.contest.update({ where: { id }, data: updates });
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...contest, posterUrl: posterPublicUrl(contest) } });
   } catch (error: any) {
-    console.error('Error updating contest:', error);
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }
 }
