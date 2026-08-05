@@ -5,6 +5,7 @@ import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
+import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
@@ -51,13 +52,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
-        {/*
-          Early inline script — chạy NGAY khi HTML parse, trước khi React hydrate.
-          Nếu URL có ?from=kpi (iframe từ KPI app) hoặc sessionStorage có kpi_embed=1
-          → set data-kpi-embed="1" trên <html>.
-          CSS (xem globals.css) sẽ ẩn sidebar nav ngay từ initial render,
-          tránh flash/sidebar hiện thoáng qua trước khi useEffect chạy.
-        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -76,6 +70,7 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
+        <ProgramTableStickyHeaders />
         <SpaceBackground />
         <ErrorBoundary>
           <AppDataProvider>
