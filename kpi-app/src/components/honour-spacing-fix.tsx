@@ -3,7 +3,7 @@ export function HonourSpacingFix() {
     <style
       dangerouslySetInnerHTML={{
         __html: `
-          /* Mobile: khoảng cách từ viền khung tới ảnh đầu/cuối bằng khoảng cách giữa các ảnh. */
+          /* Mobile: hàng ngoài cùng có khoảng cách viền–ảnh bằng khoảng cách ảnh–ảnh. */
           @media (max-width: 640px) {
             .kpi-app .banca-imgs-wall,
             .kpi-app .desktop-honour-layout .banca-imgs-wall {
@@ -20,8 +20,7 @@ export function HonourSpacingFix() {
               max-width: none !important;
             }
 
-            .kpi-app .honour-platinum-row,
-            .kpi-app .honour-gold-row {
+            .kpi-app .honour-tier.gold .honour-gold-row-5 {
               width: 100% !important;
               padding-left: 0 !important;
               padding-right: 0 !important;
