@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build",
+    "dev": "node scripts/apply-ntd-effective-date-rule.js && next dev -p 3000 2>&1 | tee dev.log",
+    "build": "node scripts/apply-ntd-effective-date-rule.js && next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate"
