@@ -3,6 +3,7 @@ import './globals.css'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
+import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -49,6 +50,7 @@ export default function RootLayout({
         <SpaceBackground />
         <AppDataProvider>
           {children}
+          <HonourSpacingFix />
           <EmbeddedProgramDataLoader />
         </AppDataProvider>
       </body>
