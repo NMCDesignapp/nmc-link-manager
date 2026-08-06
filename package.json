@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && next dev -p 3000 2>&1 | tee dev.log",
-    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && next build",
+    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && next dev -p 3000 2>&1 | tee dev.log",
+    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate"
@@ -45,7 +45,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
-    "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-toast": "^1.1.14",
     "@radix-ui/react-toggle": "^1.1.9",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
@@ -88,7 +88,7 @@
     "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0",
     "z-ai-web-dev-sdk": "^0.0.17",
-    "zod": "^4.0.2",
+    "zod": "^4.2.1",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
