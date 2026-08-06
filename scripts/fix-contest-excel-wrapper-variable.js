@@ -16,3 +16,5 @@ if (source.includes(to)) {
 } else {
   throw new Error('[Contest Excel] Không tìm thấy đoạn biến tiêu đề chi tiết cần sửa');
 }
+
+require('./apply-contest-excel-ntd-date-layout.js');
