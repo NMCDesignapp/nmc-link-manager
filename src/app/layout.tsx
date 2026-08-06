@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
+import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
@@ -75,6 +76,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AppDataProvider>
             {children}
+            <HonourSpacingFix />
             <EmbeddedProgramDataLoader />
             <PwaInstallPrompt />
             <Toaster />
