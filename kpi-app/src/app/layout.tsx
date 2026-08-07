@@ -42,6 +42,7 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="/kpi-ui-overrides.css?v=20260807-1815" />
         <link rel="stylesheet" href="/kpi-circuit-v3.css?v=20260807-1815" />
+        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-1914" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
