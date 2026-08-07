@@ -63,6 +63,11 @@ const sharedCopies = [
     target: path.join(root, 'kpi-app', 'public', 'kpi-loader-fix-v1.css'),
     label: 'kpi-app/public/kpi-loader-fix-v1.css',
   },
+  {
+    source: path.join(root, 'public', 'kpi-performance-v1.css'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-performance-v1.css'),
+    label: 'kpi-app/public/kpi-performance-v1.css',
+  },
 ]
 
 function fail(message) {
