@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
@@ -41,14 +40,14 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
-        <link rel="stylesheet" href="/kpi-ui-overrides.css" />
+        <link rel="stylesheet" href="/kpi-ui-overrides.css?v=20260807-1815" />
+        <link rel="stylesheet" href="/kpi-circuit-v3.css?v=20260807-1815" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
         <ProgramTableStickyHeaders />
-        <SpaceBackground />
         <AppDataProvider>
           {children}
           <HonourSpacingFix />
