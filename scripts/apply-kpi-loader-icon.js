@@ -4,13 +4,12 @@ const path = require('path');
 const targets = [
   {
     filePath: path.resolve(__dirname, '../src/components/app-loader.tsx'),
-    // Main App không có tệp icon KPI trong public, dùng đúng icon từ bản KPI tách.
-    imageSrc: 'https://angiang2026.vercel.app/icon/kpi-192.png',
+    imageSrc: '/kpi-tech-logo.webp',
     label: 'Main App',
   },
   {
     filePath: path.resolve(__dirname, '../kpi-app/src/components/app-loader.tsx'),
-    imageSrc: '/icon/kpi-192.png',
+    imageSrc: '/kpi-tech-logo.webp',
     label: 'KPI tách',
   },
 ];

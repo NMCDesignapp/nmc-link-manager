@@ -3,6 +3,9 @@
 /**
  * Portable build-time sync for the KPI source shared by Main and kpi-app.
  * Standalone-only navigation stays in apply-standalone-patches.js.
+ *
+ * Shared visual assets/components are copied here as well so the standalone KPI
+ * always receives the same background and linked-page loading experience as Main.
  */
 
 const fs = require('fs')
@@ -18,12 +21,35 @@ const standalonePage = path.join(root, 'kpi-app', 'src', 'app', 'page.tsx')
 const standaloneTemplate = path.join(root, 'kpi-app', 'src', 'app', 'template.tsx')
 const patchScript = path.join(root, 'scripts', 'apply-standalone-patches.js')
 
+const sharedCopies = [
+  {
+    source: mainTemplate,
+    target: standaloneTemplate,
+    label: 'kpi-app/src/app/template.tsx',
+  },
+  {
+    source: path.join(root, 'src', 'components', 'embedded-program-data-loader.tsx'),
+    target: path.join(root, 'kpi-app', 'src', 'components', 'embedded-program-data-loader.tsx'),
+    label: 'kpi-app/src/components/embedded-program-data-loader.tsx',
+  },
+  {
+    source: path.join(root, 'public', 'kpi-tech-bg.webp'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-tech-bg.webp'),
+    label: 'kpi-app/public/kpi-tech-bg.webp',
+  },
+  {
+    source: path.join(root, 'public', 'kpi-tech-logo.webp'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-tech-logo.webp'),
+    label: 'kpi-app/public/kpi-tech-logo.webp',
+  },
+]
+
 function fail(message) {
   console.error(`ERROR: ${message}`)
   process.exit(1)
 }
 
-for (const required of [mainPage, mainTemplate, standalonePage, standaloneTemplate, patchScript]) {
+for (const required of [mainPage, patchScript, ...sharedCopies.map((item) => item.source)]) {
   if (!fs.existsSync(required)) fail(`Missing required file: ${required}`)
 }
 
@@ -39,25 +65,41 @@ function expectedStandalonePage() {
   }
 }
 
+function sameFile(source, target) {
+  return fs.existsSync(target) && fs.readFileSync(source).equals(fs.readFileSync(target))
+}
+
 function verify() {
   const mismatches = []
-  if (fs.readFileSync(standalonePage, 'utf8') !== expectedStandalonePage()) {
+
+  if (!fs.existsSync(standalonePage) || fs.readFileSync(standalonePage, 'utf8') !== expectedStandalonePage()) {
     mismatches.push('kpi-app/src/app/page.tsx')
   }
-  if (!fs.readFileSync(standaloneTemplate).equals(fs.readFileSync(mainTemplate))) {
-    mismatches.push('kpi-app/src/app/template.tsx')
+
+  for (const item of sharedCopies) {
+    if (!sameFile(item.source, item.target)) {
+      mismatches.push(item.label)
+    }
   }
+
   if (mismatches.length) {
     fail(`KPI standalone is out of sync: ${mismatches.join(', ')}`)
   }
-  console.log('KPI page and template are synced with Main App.')
+
+  console.log('KPI page, template, loader and visual assets are synced with Main App.')
 }
 
 if (checkOnly) {
   verify()
 } else {
+  fs.mkdirSync(path.dirname(standalonePage), { recursive: true })
   fs.copyFileSync(mainPage, standalonePage)
   execFileSync(process.execPath, [patchScript, standalonePage], { stdio: 'inherit' })
-  fs.copyFileSync(mainTemplate, standaloneTemplate)
+
+  for (const item of sharedCopies) {
+    fs.mkdirSync(path.dirname(item.target), { recursive: true })
+    fs.copyFileSync(item.source, item.target)
+  }
+
   verify()
 }
