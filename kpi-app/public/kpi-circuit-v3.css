@@ -1,0 +1,96 @@
+/* Cache-busted KPI circuit layer.
+ * Loaded after kpi-ui-overrides.css so the circuit decoration always sits
+ * above the supplied background image and below KPI content.
+ */
+.kpi-app::before,
+.kpi-app::after {
+  content: '';
+  position: fixed;
+  z-index: 2 !important;
+  pointer-events: none;
+  opacity: .68;
+  filter:
+    drop-shadow(0 0 3px rgba(75, 210, 255, .40))
+    drop-shadow(0 0 8px rgba(18, 120, 255, .24));
+}
+
+.kpi-app > .app-wrap {
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+.kpi-app::before {
+  top: 0;
+  right: 0;
+  width: min(58vw, 640px);
+  height: min(46vh, 440px);
+  background:
+    radial-gradient(circle, #ffffff 0 1px, #42e8ff 2px, rgba(15,124,255,.92) 3px, transparent 5px) 91% 12% / 11px 11px no-repeat,
+    radial-gradient(circle, #eaffff 0 1px, #27d9ff 2px, rgba(20,107,255,.86) 3px, transparent 5px) 76% 24% / 10px 10px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.92) 0 1px, #32dfff 2px, rgba(18,105,255,.78) 3px, transparent 5px) 61% 35% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.88) 0 1px, #2fd8ff 2px, rgba(18,103,255,.74) 3px, transparent 5px) 84% 49% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.84) 0 1px, #28caff 2px, rgba(20,90,235,.72) 3px, transparent 5px) 69% 64% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.80) 0 1px, #27c6ff 2px, rgba(14,87,225,.68) 3px, transparent 5px) 95% 76% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.66) 0 1px, #2196ff 2px, transparent 4px) 56% 57% / 7px 7px no-repeat,
+    linear-gradient(90deg, transparent, rgba(68,205,255,.50), rgba(235,252,255,.96)) 61% 12% / 31% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(53,195,255,.82) 49.3%, rgba(224,249,255,.74) 49.8%, transparent 50.4%) 67% 18% / 130px 130px no-repeat,
+    linear-gradient(180deg, rgba(213,248,255,.72), rgba(42,176,255,.72)) 76% 23% / 1px 18% no-repeat,
+    linear-gradient(90deg, rgba(42,166,255,.74), rgba(232,251,255,.62)) 61% 35% / 16% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(40,164,255,.74) 49.3%, rgba(219,248,255,.62) 49.8%, transparent 50.4%) 73% 43% / 118px 118px no-repeat,
+    linear-gradient(90deg, rgba(38,151,255,.68), rgba(255,255,255,.46)) 72% 49% / 13% 1px no-repeat,
+    linear-gradient(180deg, rgba(39,152,255,.66), rgba(229,250,255,.45)) 84% 49% / 1px 18% no-repeat,
+    linear-gradient(90deg, rgba(235,252,255,.42), rgba(37,150,255,.64)) 69% 64% / 17% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(34,139,255,.66) 49.3%, rgba(213,246,255,.45) 49.8%, transparent 50.4%) 82% 67% / 104px 104px no-repeat,
+    linear-gradient(180deg, rgba(33,132,244,.62), rgba(228,249,255,.36)) 95% 67% / 1px 14% no-repeat,
+    linear-gradient(90deg, rgba(44,157,255,.48), rgba(219,247,255,.34)) 52% 57% / 18% 1px no-repeat,
+    linear-gradient(180deg, rgba(28,122,226,.34), rgba(48,185,255,.54), rgba(255,255,255,.28)) 99% 18% / 1px 56% no-repeat,
+    linear-gradient(180deg, rgba(24,104,205,.26), rgba(38,150,255,.44), transparent) 96% 23% / 1px 48% no-repeat,
+    linear-gradient(180deg, rgba(20,87,186,.20), rgba(34,126,232,.38), transparent) 92% 29% / 1px 40% no-repeat;
+  -webkit-mask-image: linear-gradient(135deg, transparent 0%, #000 18%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(135deg, transparent 0%, #000 18%, #000 84%, transparent 100%);
+}
+
+.kpi-app::after {
+  left: 0;
+  bottom: 0;
+  width: min(60vw, 660px);
+  height: min(48vh, 460px);
+  background:
+    radial-gradient(circle, #ffffff 0 1px, #42e8ff 2px, rgba(15,124,255,.92) 3px, transparent 5px) 10% 86% / 11px 11px no-repeat,
+    radial-gradient(circle, #eaffff 0 1px, #27d9ff 2px, rgba(20,107,255,.86) 3px, transparent 5px) 25% 73% / 10px 10px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.92) 0 1px, #32dfff 2px, rgba(18,105,255,.78) 3px, transparent 5px) 41% 61% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.88) 0 1px, #2fd8ff 2px, rgba(18,103,255,.74) 3px, transparent 5px) 17% 49% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.84) 0 1px, #28caff 2px, rgba(20,90,235,.72) 3px, transparent 5px) 32% 35% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.80) 0 1px, #27c6ff 2px, rgba(14,87,225,.68) 3px, transparent 5px) 5% 23% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.66) 0 1px, #2196ff 2px, transparent 4px) 47% 43% / 7px 7px no-repeat,
+    linear-gradient(90deg, rgba(235,252,255,.96), rgba(68,205,255,.50), transparent) 9% 86% / 32% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(224,249,255,.74) 49.3%, rgba(53,195,255,.82) 49.8%, transparent 50.4%) 23% 79% / 130px 130px no-repeat,
+    linear-gradient(180deg, rgba(42,176,255,.72), rgba(213,248,255,.72)) 25% 63% / 1px 11% no-repeat,
+    linear-gradient(90deg, rgba(232,251,255,.62), rgba(42,166,255,.74)) 25% 61% / 17% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(219,248,255,.62) 49.3%, rgba(40,164,255,.74) 49.8%, transparent 50.4%) 27% 48% / 118px 118px no-repeat,
+    linear-gradient(90deg, rgba(255,255,255,.46), rgba(38,151,255,.68)) 17% 49% / 14% 1px no-repeat,
+    linear-gradient(180deg, rgba(229,250,255,.45), rgba(39,152,255,.66)) 17% 49% / 1px 18% no-repeat,
+    linear-gradient(90deg, rgba(37,150,255,.64), rgba(235,252,255,.42)) 31% 35% / 17% 1px no-repeat,
+    linear-gradient(135deg, transparent 48.8%, rgba(213,246,255,.45) 49.3%, rgba(34,139,255,.66) 49.8%, transparent 50.4%) 18% 31% / 104px 104px no-repeat,
+    linear-gradient(180deg, rgba(228,249,255,.36), rgba(33,132,244,.62)) 5% 23% / 1px 15% no-repeat,
+    linear-gradient(90deg, rgba(219,247,255,.34), rgba(44,157,255,.48)) 46% 43% / 18% 1px no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(48,185,255,.54), rgba(28,122,226,.34)) 1% 24% / 1px 57% no-repeat,
+    linear-gradient(180deg, transparent, rgba(38,150,255,.44), rgba(24,104,205,.26)) 4% 30% / 1px 48% no-repeat,
+    linear-gradient(180deg, transparent, rgba(34,126,232,.38), rgba(20,87,186,.20)) 8% 36% / 1px 40% no-repeat;
+  -webkit-mask-image: linear-gradient(315deg, transparent 0%, #000 18%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(315deg, transparent 0%, #000 18%, #000 84%, transparent 100%);
+}
+
+@media (max-width: 720px) {
+  .kpi-app::before {
+    width: min(78vw, 430px);
+    height: 300px;
+    opacity: .58;
+  }
+
+  .kpi-app::after {
+    width: min(80vw, 440px);
+    height: 310px;
+    opacity: .58;
+  }
+}
