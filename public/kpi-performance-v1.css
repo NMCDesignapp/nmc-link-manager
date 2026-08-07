@@ -1,0 +1,78 @@
+/* KPI performance layer — 2026-08-07
+ * Mục tiêu: giảm repaint/compositing trên mobile mà không đổi bố cục, dữ liệu hay phong cách nền.
+ * Loaded after cyber-room + loader CSS.
+ */
+
+/* Initial KPI loader: never blur the whole already-rendered dashboard underneath. */
+html body [aria-label="Đang tải dữ liệu KPI"],
+html body [aria-label="Tải dữ liệu gặp lỗi"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  /* Fixed 3D room planes are expensive with drop-shadow filters on Android GPUs. */
+  html body .kpi-app.kpi-app::before,
+  html body .kpi-app.kpi-app::after,
+  html body [aria-label="Đang tải dữ liệu KPI"]::before,
+  html body [aria-label="Đang tải dữ liệu KPI"]::after,
+  html body [aria-label="Tải dữ liệu gặp lỗi"]::before,
+  html body [aria-label="Tải dữ liệu gặp lỗi"]::after {
+    filter: none !important;
+  }
+
+  /* Keep the glass appearance with an opaque gradient instead of live backdrop blur. */
+  html body [aria-label="Đang tải dữ liệu KPI"] > div,
+  html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background:
+      linear-gradient(145deg, rgba(5, 30, 60, .97), rgba(2, 12, 29, .985)),
+      radial-gradient(circle at 84% 12%, rgba(17, 174, 255, .12), transparent 38%) !important;
+  }
+
+  html body .kpi-app .kpi-embed-loader,
+  html body #nmc-program-data-loader.nmc-program-loader-overlay {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Centre PCB decoration adds another full-screen fixed paint layer; mobile already has room grid + ceiling/floor. */
+  html body .kpi-app.kpi-app > .app-wrap::before {
+    display: none !important;
+  }
+
+  /* Avoid many simultaneous entrance/progress animations when data becomes ready. */
+  html body .kpi-app .view,
+  html body .kpi-app .rg-card,
+  html body .kpi-app .rg-card.glow-full,
+  html body .kpi-app .rg-ad-checkmark,
+  html body .kpi-app .rg-ad-table tbody tr.rg-ad-glow {
+    animation: none !important;
+  }
+
+  html body .kpi-app .rg-prog-fill,
+  html body .kpi-app .rg-ad-mini-prog-fill,
+  html body .kpi-app .rg-ad-circle-fg {
+    transition: none !important;
+  }
+
+  /* Static glow preserves status emphasis without continuous box-shadow animation. */
+  html body .kpi-app .rg-card.glow-full {
+    box-shadow: 0 0 0 2px #86efacaa, 0 16px 36px rgba(10,30,60,.26), 0 0 24px #86efac66 !important;
+  }
+  html body .kpi-app .rg-ad-table tbody tr.rg-ad-glow {
+    box-shadow: inset 0 0 0 1px #4ade80aa, inset 0 0 10px #4ade8022 !important;
+  }
+  html body .kpi-app .rg-ad-checkmark {
+    box-shadow: 0 0 0 2px #4ade8044, 0 0 12px #4ade8066, inset 0 1px 2px #ffffff44 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .kpi-app *,
+  html body [aria-label="Đang tải dữ liệu KPI"] *,
+  html body [aria-label="Tải dữ liệu gặp lỗi"] * {
+    scroll-behavior: auto !important;
+  }
+}
