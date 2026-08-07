@@ -32,14 +32,38 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
   }
 
   html body .kpi-app .kpi-embed-loader,
-  html body #nmc-program-data-loader.nmc-program-loader-overlay {
+  html body #nmc-program-data-loader.nmc-program-loader-overlay,
+  html body .kpi-app #view-main > header,
+  html body .kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app #view-calendar.active > .sub-header,
+  html body .kpi-app .ctrl-bar.has-notice .kpi-notice-banner,
+  html body .kpi-app .ctrl-select-popup,
+  html body .kpi-app .detail-ad-filter-popup {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+  }
+
+  /* Sticky headers stay visually identical but use an opaque surface instead of live blur. */
+  html body .kpi-app #view-main > header,
+  html body .kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app #view-calendar.active > .sub-header {
+    background: linear-gradient(
+      180deg,
+      rgba(2, 16, 34, .995) 0%,
+      rgba(2, 16, 34, .99) 72%,
+      rgba(2, 16, 34, .97) 100%
+    ) !important;
   }
 
   /* Centre PCB decoration adds another full-screen fixed paint layer; mobile already has room grid + ceiling/floor. */
   html body .kpi-app.kpi-app > .app-wrap::before {
     display: none !important;
+  }
+
+  /* Skeleton is hidden behind the fullscreen loader, so shimmering only wastes paint time. */
+  html body .kpi-app .skel,
+  html body .kpi-app .kpi-notice-banner {
+    animation: none !important;
   }
 
   /* Avoid many simultaneous entrance/progress animations when data becomes ready. */
@@ -53,7 +77,13 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
 
   html body .kpi-app .rg-prog-fill,
   html body .kpi-app .rg-ad-mini-prog-fill,
-  html body .kpi-app .rg-ad-circle-fg {
+  html body .kpi-app .rg-ad-circle-fg,
+  html body .kpi-app .mob-phong-circle-fill,
+  html body .kpi-app .mob-ad-circle-fill,
+  html body .kpi-app .grp-fill,
+  html body .kpi-app .grp-prog-fill,
+  html body .kpi-app .cty-progress-fill,
+  html body .kpi-app .cty-progress-bar-fill {
     transition: none !important;
   }
 
