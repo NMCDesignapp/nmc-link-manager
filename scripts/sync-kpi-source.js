@@ -20,6 +20,7 @@ const mainTemplate = path.join(root, 'src', 'app', 'kpi', 'template.tsx')
 const standalonePage = path.join(root, 'kpi-app', 'src', 'app', 'page.tsx')
 const standaloneTemplate = path.join(root, 'kpi-app', 'src', 'app', 'template.tsx')
 const patchScript = path.join(root, 'scripts', 'apply-standalone-patches.js')
+const tableUiPatchScript = path.join(root, 'scripts', 'apply-kpi-table-ui-fixes.js')
 
 const sharedCopies = [
   {
@@ -57,6 +58,11 @@ const sharedCopies = [
     target: path.join(root, 'kpi-app', 'public', 'kpi-cyber-room-v4.css'),
     label: 'kpi-app/public/kpi-cyber-room-v4.css',
   },
+  {
+    source: path.join(root, 'public', 'kpi-loader-fix-v1.css'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-loader-fix-v1.css'),
+    label: 'kpi-app/public/kpi-loader-fix-v1.css',
+  },
 ]
 
 function fail(message) {
@@ -64,7 +70,7 @@ function fail(message) {
   process.exit(1)
 }
 
-for (const required of [mainPage, patchScript, ...sharedCopies.map((item) => item.source)]) {
+for (const required of [mainPage, patchScript, tableUiPatchScript, ...sharedCopies.map((item) => item.source)]) {
   if (!fs.existsSync(required)) fail(`Missing required file: ${required}`)
 }
 
@@ -107,6 +113,10 @@ function verify() {
 if (checkOnly) {
   verify()
 } else {
+  // Apply presentation-only table fixes to the canonical KPI source first.
+  // Then copy that exact source to standalone, preserving the one-source model.
+  execFileSync(process.execPath, [tableUiPatchScript], { stdio: 'inherit' })
+
   fs.mkdirSync(path.dirname(standalonePage), { recursive: true })
   fs.copyFileSync(mainPage, standalonePage)
   execFileSync(process.execPath, [patchScript, standalonePage], { stdio: 'inherit' })
