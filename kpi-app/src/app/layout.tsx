@@ -41,6 +41,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
+        <link rel="stylesheet" href="/kpi-ui-overrides.css" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
