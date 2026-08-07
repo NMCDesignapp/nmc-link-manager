@@ -60,7 +60,8 @@ export default function RootLayout({
               (function() {
                 try {
                   var p = new URLSearchParams(window.location.search);
-                  if (p.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1') {
+                  var isKpiQuanLyFrame = window.location.pathname === '/quan-ly' && window.self !== window.top;
+                  if (p.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1' || isKpiQuanLyFrame) {
                     document.documentElement.setAttribute('data-kpi-embed', '1');
                   } else {
                     document.documentElement.removeAttribute('data-kpi-embed');
