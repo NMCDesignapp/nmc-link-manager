@@ -199,6 +199,8 @@ export function EmbeddedProgramDataLoader(): null {
         dismissedKey = '';
         clearEmptyGraceTimer();
         clearFallbackTimer();
+        // Luôn cho user thấy phản hồi ngắn khi vừa bấm một chương trình,
+        // kể cả dữ liệu đã có sẵn trong cache.
         showOverlay();
       }
 
