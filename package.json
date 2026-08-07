@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-loader-icon.js && next dev -p 3000 2>&1 | tee dev.log",
-    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-loader-icon.js && next build",
+    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && next dev -p 3000 2>&1 | tee dev.log",
+    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-contest-excel-export-rules.js && node scripts/fix-contest-excel-wrapper-variable.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate"
@@ -77,7 +77,6 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.3",
     "react-syntax-highlighter": "^15.6.1",
-    "recharts": "^2.15.4",
     "sharp": "^0.34.3",
     "sonner": "^2.0.6",
     "swr": "^2.4.1",
