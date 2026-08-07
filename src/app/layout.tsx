@@ -50,6 +50,7 @@ export default function RootLayout({
     <html lang="vi" className="dark h-full">
       <head>
         <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
+        <link rel="stylesheet" href="/kpi-ui-overrides.css" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
