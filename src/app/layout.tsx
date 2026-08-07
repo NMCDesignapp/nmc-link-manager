@@ -51,8 +51,9 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
         <link rel="stylesheet" href="/kpi-ui-overrides.css" />
-        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-2005" />
-        <link rel="stylesheet" href="/kpi-loader-fix-v1.css?v=20260807-2005" />
+        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-2053" />
+        <link rel="stylesheet" href="/kpi-loader-fix-v1.css?v=20260807-2053" />
+        <link rel="stylesheet" href="/kpi-performance-v1.css?v=20260807-2053" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
