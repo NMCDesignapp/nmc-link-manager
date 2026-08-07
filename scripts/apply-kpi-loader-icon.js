@@ -4,6 +4,8 @@ const path = require('path');
 // Main App build already invokes this script. Apply the canonical KPI table UI
 // patch here as well so Vercel Main and standalone builds use the same source.
 require('./apply-kpi-table-ui-fixes.js');
+// Keep the Sao Việt auto-card rule in the same build chain used by both apps.
+require('./apply-sao-viet-contest-filter.js');
 
 const targets = [
   {
