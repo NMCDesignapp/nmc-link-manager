@@ -1,8 +1,104 @@
-/* KPI linked-program loader fix — 2026-08-07
- * Màn loading KPI chính không còn bị can thiệp tại đây.
- * File này chỉ xử lý popup loading của 3 liên kết Thi đua / Chính sách / CLB Sao Việt.
+/* KPI loading gates — 2026-08-07
+ * - Initial KPI loader: one fullscreen opaque gate + compact card, no vh-sized card.
+ * - Linked category loader: compact horizontal card for Thi đua / Chính sách / CLB Sao Việt.
  */
 
+/* ================= INITIAL KPI LOADER ================= */
+html body [aria-label="Đang tải dữ liệu KPI"],
+html body [aria-label="Tải dữ liệu gặp lỗi"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  z-index: 2147483600 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) !important;
+  background-color: #020817 !important;
+  pointer-events: auto !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] > div,
+html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
+  position: relative !important;
+  z-index: 5 !important;
+  width: min(86vw, 360px) !important;
+  max-width: 360px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 32px) !important;
+  padding: 27px 22px 24px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+html body .nmc-kpi-loader-logo-safe {
+  width: 104px !important;
+  height: 104px !important;
+  margin-bottom: 15px !important;
+}
+
+html body .nmc-kpi-loader-logo-safe > .relative {
+  width: 92px !important;
+  height: 92px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background: #031127 !important;
+  box-shadow:
+    0 0 0 2px rgba(64, 217, 255, .62),
+    0 0 18px rgba(31, 207, 255, .44),
+    0 0 30px rgba(18, 99, 255, .20) !important;
+}
+
+html body .nmc-kpi-loader-logo-safe img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+html body .nmc-kpi-loader-logo-safe-halo {
+  inset: -15px !important;
+  opacity: .68 !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] h2,
+html body [aria-label="Tải dữ liệu gặp lỗi"] h2 {
+  margin: 0 !important;
+  font-size: clamp(22px, 6vw, 27px) !important;
+  font-weight: 600 !important;
+  line-height: 1.16 !important;
+  white-space: nowrap !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] h2 + p,
+html body [aria-label="Tải dữ liệu gặp lỗi"] h2 + p {
+  margin-top: 6px !important;
+  font-size: clamp(11px, 3.2vw, 14px) !important;
+  line-height: 1.25 !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .mt-7.flex.flex-col {
+  margin-top: 22px !important;
+  gap: 10px !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .h-10.w-10 {
+  width: 44px !important;
+  height: 44px !important;
+  border-width: 5px !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .mt-7.flex.flex-col > p {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+/* ================= 3 LINKED CATEGORY BUTTONS ================= */
 html body .kpi-app .kpi-embed-loader > span {
   position: relative !important;
   display: grid !important;
@@ -85,6 +181,20 @@ html body .kpi-app .kpi-embed-loader > span::after {
 }
 
 @media (max-width: 720px) {
+  html body [aria-label="Đang tải dữ liệu KPI"],
+  html body [aria-label="Tải dữ liệu gặp lỗi"] {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  html body [aria-label="Đang tải dữ liệu KPI"] > div,
+  html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
+    width: min(88vw, 345px) !important;
+    max-width: 345px !important;
+    padding: 25px 20px 22px !important;
+    border-radius: 22px !important;
+  }
+
   html body .kpi-app .kpi-embed-loader {
     padding: 14px !important;
   }
