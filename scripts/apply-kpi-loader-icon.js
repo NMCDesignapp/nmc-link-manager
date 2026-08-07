@@ -86,4 +86,31 @@ for (const target of targets) {
   console.log(`✓ KPI loader an toàn: ${target.label}`);
 }
 
+// Khi /quan-ly được mở bên trong iframe KPI, popup ngang ở parent là loader duy nhất
+// cho bước vào Thi đua / Chính sách / CLB Sao Việt. Hai spinner nội bộ của /quan-ly
+// (mounted guard + data-sheet guard) chỉ tạo thêm lớp loading chồng và tốn animation.
+// Gắn class ổn định cho đúng hai guard này; template /quan-ly sẽ ẩn chúng CHỈ ở KPI embed.
+const linkedPagePath = path.resolve(__dirname, '../src/app/quan-ly/page.tsx');
+if (fs.existsSync(linkedPagePath)) {
+  let linkedSource = fs.readFileSync(linkedPagePath, 'utf8');
+  const internalLoaderClass = 'nmc-kpi-embedded-internal-loader';
+
+  if (!linkedSource.includes(`${internalLoaderClass} flex items-center justify-center py-20`)) {
+    linkedSource = linkedSource.replaceAll(
+      'className="flex items-center justify-center py-20"',
+      `className="${internalLoaderClass} flex items-center justify-center py-20"`,
+    );
+  }
+
+  if (!linkedSource.includes(`${internalLoaderClass} h-screen flex flex-col fixed inset-0 z-50`)) {
+    linkedSource = linkedSource.replace(
+      'className="h-screen flex flex-col fixed inset-0 z-50 items-center justify-center"',
+      `className="${internalLoaderClass} h-screen flex flex-col fixed inset-0 z-50 items-center justify-center"`,
+    );
+  }
+
+  fs.writeFileSync(linkedPagePath, linkedSource, 'utf8');
+  console.log('✓ KPI linked pages: đã đánh dấu 2 loader nội bộ để ẩn khi embed.');
+}
+
 console.log('✓ Đã đồng bộ icon tải KPI cho Main App và KPI tách.');
