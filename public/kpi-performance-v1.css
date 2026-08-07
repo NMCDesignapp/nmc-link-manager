@@ -31,6 +31,21 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
       radial-gradient(circle at 84% 12%, rgba(17, 174, 255, .12), transparent 38%) !important;
   }
 
+  /* Keep only the spinner moving during startup. Static logo glow is much cheaper on Android. */
+  html body .nmc-kpi-loader-logo-safe,
+  html body .nmc-kpi-loader-logo-safe-halo,
+  html body .nmc-kpi-loader-logo-safe-shine {
+    animation: none !important;
+  }
+  html body .nmc-kpi-loader-logo-safe-halo {
+    filter: none !important;
+    opacity: .58 !important;
+    transform: scale(1) !important;
+  }
+  html body .nmc-kpi-loader-logo-safe-shine {
+    display: none !important;
+  }
+
   html body .kpi-app .kpi-embed-loader,
   html body #nmc-program-data-loader.nmc-program-loader-overlay,
   html body .kpi-app #view-main > header,
@@ -66,12 +81,15 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
     animation: none !important;
   }
 
-  /* Avoid many simultaneous entrance/progress animations when data becomes ready. */
+  /* Avoid many simultaneous entrance/progress animations when data becomes ready or a KPI subview opens. */
   html body .kpi-app .view,
   html body .kpi-app .rg-card,
   html body .kpi-app .rg-card.glow-full,
   html body .kpi-app .rg-ad-checkmark,
-  html body .kpi-app .rg-ad-table tbody tr.rg-ad-glow {
+  html body .kpi-app .rg-ad-table tbody tr.rg-ad-glow,
+  html body .kpi-app .grp-item,
+  html body .kpi-app .top3-card,
+  html body .kpi-app .cal-row {
     animation: none !important;
   }
 
