@@ -42,6 +42,11 @@ const sharedCopies = [
     target: path.join(root, 'kpi-app', 'public', 'kpi-tech-logo.webp'),
     label: 'kpi-app/public/kpi-tech-logo.webp',
   },
+  {
+    source: path.join(root, 'public', 'kpi-ui-overrides.css'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-ui-overrides.css'),
+    label: 'kpi-app/public/kpi-ui-overrides.css',
+  },
 ]
 
 function fail(message) {
@@ -86,7 +91,7 @@ function verify() {
     fail(`KPI standalone is out of sync: ${mismatches.join(', ')}`)
   }
 
-  console.log('KPI page, template, loader and visual assets are synced with Main App.')
+  console.log('KPI page, template, loaders and shared visual assets are synced with Main App.')
 }
 
 if (checkOnly) {
