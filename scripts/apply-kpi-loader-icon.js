@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
+// Main App build already invokes this script. Apply the canonical KPI table UI
+// patch here as well so Vercel Main and standalone builds use the same source.
+require('./apply-kpi-table-ui-fixes.js');
+
 const targets = [
   {
     filePath: path.resolve(__dirname, '../src/components/app-loader.tsx'),
