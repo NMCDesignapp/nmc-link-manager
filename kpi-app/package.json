@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3100",
-    "prebuild": "node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-loader-icon.js",
+    "prebuild": "node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate",
-    "sync": "node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-loader-icon.js",
+    "sync": "node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js",
     "sync:check": "node ../scripts/sync-kpi-source.js --check"
   },
   "dependencies": {
