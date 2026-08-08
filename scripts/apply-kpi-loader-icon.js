@@ -115,4 +115,8 @@ if (fs.existsSync(linkedPagePath)) {
   console.log('✓ KPI linked pages: đã đánh dấu 2 loader nội bộ để ẩn khi embed.');
 }
 
+// Bắt buộc Main App truyền from=kpi giống KPI tách để /quan-ly biết đang được nhúng
+// và không tự render thêm spinner bên dưới popup loading ngang.
+require('./apply-kpi-linked-loader-single.js');
+
 console.log('✓ Đã đồng bộ icon tải KPI cho Main App và KPI tách.');
