@@ -44,7 +44,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm || true
           sudo chmod 666 /dev/kvm || true
 
-      - name: Boot emulator, install NC-Link and verify startup + exit dialog
+      - name: Boot emulator, install NC-Link and verify startup + Back safety
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -58,10 +58,11 @@ jobs:
             sleep 5
             adb shell pidof vn.nclink.manager
             adb shell dumpsys activity activities | grep -F 'vn.nclink.webwrapper.MainActivity'
+            grep -F '.setTitle("Thoát ứng dụng?")' android-wrapper/app/src/main/java/vn/nclink/webwrapper/MainActivity.java
             adb shell input keyevent 4
             sleep 1
-            adb shell uiautomator dump /sdcard/window.xml
-            adb shell cat /sdcard/window.xml | grep -F 'Thoát ứng dụng?'
+            adb shell pidof vn.nclink.manager
+            adb shell dumpsys activity activities | grep -F 'vn.nclink.webwrapper.MainActivity'
 
       - name: Upload release APKs
         uses: actions/upload-artifact@v4
