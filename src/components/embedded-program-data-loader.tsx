@@ -8,6 +8,7 @@ const DETAIL_SELECTOR = [
   '[data-clb-saoviet-table]',
 ].join(',');
 
+const INTERACTIVE_TRIGGER_SELECTOR = 'button, a, [role="button"]';
 const OVERLAY_ID = 'nmc-program-data-loader';
 const PAGE_CLASS = 'nmc-kpi-linked-page';
 const MIN_VISIBLE_MS = 420;
@@ -88,7 +89,7 @@ function createOverlay(): HTMLElement {
 
   const text = document.createElement('span');
   text.className = 'nmc-program-loader-text';
-  text.textContent = 'Đang tải dữ liệu';
+  text.textContent = 'Đang tải dữ liệu...';
 
   simple.append(spinner, text);
   overlay.appendChild(simple);
@@ -123,6 +124,11 @@ export function EmbeddedProgramDataLoader(): null {
     let detailStartedAt = 0;
     let shownAt = 0;
     let dismissedKey = '';
+    // Initial entry into Chính sách / Thi đua / CLB is handled by the parent KPI
+    // progress popup. Only a real user click that opens/switches an individual
+    // program is allowed to arm this level-2 spinner.
+    let interactionArmed = false;
+    let detailEligibleForLoader = false;
     let hideTimer: number | null = null;
     let emptyGraceTimer: number | null = null;
     let fallbackTimer: number | null = null;
@@ -170,6 +176,7 @@ export function EmbeddedProgramDataLoader(): null {
     };
 
     const showOverlay = () => {
+      if (!detailEligibleForLoader) return;
       if (!document.getElementById(OVERLAY_ID)) {
         createOverlay();
         shownAt = Date.now();
@@ -186,6 +193,8 @@ export function EmbeddedProgramDataLoader(): null {
         activeKey = '';
         detailStartedAt = 0;
         dismissedKey = '';
+        interactionArmed = false;
+        detailEligibleForLoader = false;
         removeOverlay();
         return;
       }
@@ -199,9 +208,25 @@ export function EmbeddedProgramDataLoader(): null {
         dismissedKey = '';
         clearEmptyGraceTimer();
         clearFallbackTimer();
-        // Luôn cho user thấy phản hồi ngắn khi vừa bấm một chương trình,
-        // kể cả dữ liệu đã có sẵn trong cache.
-        showOverlay();
+
+        // Do not show a second spinner during the initial category entry. The
+        // iframe is already hidden behind the parent 0→100% progress popup.
+        // Once the user clicks a program card/menu item, interactionArmed=true;
+        // the newly mounted/switched detail then receives the simple spinner.
+        detailEligibleForLoader = interactionArmed;
+        interactionArmed = false;
+
+        if (detailEligibleForLoader) {
+          showOverlay();
+        } else {
+          removeOverlay();
+          return;
+        }
+      }
+
+      if (!detailEligibleForLoader) {
+        removeOverlay();
+        return;
       }
 
       const tableState = getTableState(nextDetail);
@@ -249,6 +274,19 @@ export function EmbeddedProgramDataLoader(): null {
       });
     };
 
+    const handlePotentialProgramClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(`#${OVERLAY_ID}`)) return;
+      // Buttons/links inside an already-open detail (download, filter, row action...)
+      // are not program navigation and must not re-trigger the loader.
+      if (target.closest(DETAIL_SELECTOR)) return;
+      if (!target.closest(INTERACTIVE_TRIGGER_SELECTOR)) return;
+      interactionArmed = true;
+    };
+
+    document.addEventListener('click', handlePotentialProgramClick, true);
+
     const observer = new MutationObserver(scheduleEvaluate);
     observer.observe(document.body, {
       childList: true,
@@ -261,6 +299,7 @@ export function EmbeddedProgramDataLoader(): null {
     scheduleEvaluate();
 
     return () => {
+      document.removeEventListener('click', handlePotentialProgramClick, true);
       observer.disconnect();
       if (frameOne !== null) window.cancelAnimationFrame(frameOne);
       if (frameTwo !== null) window.cancelAnimationFrame(frameTwo);
