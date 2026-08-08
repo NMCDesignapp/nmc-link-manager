@@ -8,6 +8,12 @@ on:
     paths:
       - 'android-wrapper/**'
       - '.github/workflows/build-android-wrapper-clean.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'android-wrapper/**'
+      - '.github/workflows/build-android-wrapper-clean.yml'
 
 jobs:
   build-and-smoke-test:
