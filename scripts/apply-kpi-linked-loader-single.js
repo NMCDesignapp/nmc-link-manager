@@ -17,7 +17,7 @@ for (const kpiPagePath of kpiPagePaths) {
   let source = fs.readFileSync(kpiPagePath, 'utf8');
 
   // Main App must pass from=kpi just like the standalone KPI so /quan-ly knows it
-  // is embedded and can suppress its internal loading layers.
+  // is embedded and can suppress its own initial loading layers.
   const oldMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1`';
   const newMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`';
   if (source.includes(oldMainIframe)) {
@@ -28,8 +28,8 @@ for (const kpiPagePath of kpiPagePaths) {
 
   // Keep the linked iframe completely invisible while the category popup is active.
   // The progress bar reaches 100% at ~2.6s; we keep the popup for at least 3.0s,
-  // and also wait for the iframe onLoad event. Therefore the user never sees the
-  // child page's own spinner underneath the popup.
+  // and also wait for the iframe onLoad event. Therefore the user never sees any
+  // child-page startup state underneath the parent popup.
   const loadingStateLine = '  const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);';
   const refMarker = 'kpiEmbedStartedAtRef';
   if (!source.includes(refMarker)) {
@@ -69,10 +69,11 @@ for (const kpiPagePath of kpiPagePaths) {
   console.log(`✓ KPI linked pages: popup đủ 100% rồi mới hiện iframe (${path.relative(path.resolve(__dirname, '..'), kpiPagePath)}).`);
 }
 
-// The remaining circular loader comes from a global layout component, not from
-// /quan-ly/page.tsx. When opened with from=kpi, the parent KPI category popup is
-// the only loader we want. Remove/suppress this global circular overlay for the
-// whole embedded session. (Opening /quan-ly normally remains unchanged.)
+// Level 2 loader is intentionally kept for individual program clicks. The
+// EmbeddedProgramDataLoader itself now ignores the initial category entry and
+// only arms after a real user interaction outside an already-open detail table.
+// This gives feedback for the white-table gap without reintroducing the second
+// spinner underneath the parent category popup.
 const embeddedLoaderPaths = [
   path.resolve(__dirname, '../src/components/embedded-program-data-loader.tsx'),
   path.resolve(__dirname, '../kpi-app/src/components/embedded-program-data-loader.tsx'),
@@ -80,24 +81,14 @@ const embeddedLoaderPaths = [
 
 for (const embeddedLoaderPath of embeddedLoaderPaths) {
   if (!fs.existsSync(embeddedLoaderPath)) continue;
-
-  let source = fs.readFileSync(embeddedLoaderPath, 'utf8');
-  const suppressMarker = 'nmc-kpi-parent-loader-only';
-
-  if (!source.includes(suppressMarker)) {
-    const anchor = `    document.documentElement.classList.add(PAGE_CLASS);\n    document.body.classList.add(PAGE_CLASS);`;
-    if (!source.includes(anchor)) {
-      throw new Error(`[KPI linked loader] Không tìm thấy điểm gắn PAGE_CLASS trong ${embeddedLoaderPath}`);
-    }
-
-    source = source.replace(
-      anchor,
-      `${anchor}\n\n    // ${suppressMarker}: when /quan-ly is embedded from KPI, the parent horizontal\n    // popup is the single loading surface. Do not create the global circular\n    // EmbeddedProgramDataLoader overlay underneath it.\n    if (openedFromKpi) {\n      document.getElementById(OVERLAY_ID)?.remove();\n      return () => {\n        document.getElementById(OVERLAY_ID)?.remove();\n        document.documentElement.classList.remove(PAGE_CLASS);\n        document.body.classList.remove(PAGE_CLASS);\n      };\n    }`,
-    );
+  const source = fs.readFileSync(embeddedLoaderPath, 'utf8');
+  if (!source.includes('interactionArmed') || !source.includes('detailEligibleForLoader')) {
+    throw new Error(`[KPI linked loader] Loader chi tiết chưa có cơ chế chỉ kích hoạt sau click: ${embeddedLoaderPath}`);
   }
-
-  fs.writeFileSync(embeddedLoaderPath, source, 'utf8');
-  console.log(`✓ KPI linked pages: đã tắt vòng loading toàn cục khi from=kpi (${path.relative(path.resolve(__dirname, '..'), embeddedLoaderPath)}).`);
+  if (source.includes('nmc-kpi-parent-loader-only')) {
+    throw new Error(`[KPI linked loader] Phát hiện rule cũ đang tắt toàn bộ loader chi tiết: ${embeddedLoaderPath}`);
+  }
+  console.log(`✓ KPI linked pages: giữ spinner + “Đang tải dữ liệu...” cho từng chương trình (${path.relative(path.resolve(__dirname, '..'), embeddedLoaderPath)}).`);
 }
 
-console.log('✓ KPI linked pages: chỉ giữ popup ngang; đầy 100% mới vào trang.');
+console.log('✓ KPI linked pages: popup ngang cho cấp trang; spinner đơn cho cấp chương trình.');
