@@ -45,7 +45,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euxo pipefail
+            set -eu
             APK="android-wrapper/app/build/outputs/apk/nclink/debug/app-nclink-debug.apk"
             adb install -r "$APK"
             adb shell am force-stop vn.nclink.manager
