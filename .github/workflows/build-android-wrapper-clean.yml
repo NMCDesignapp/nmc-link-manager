@@ -37,6 +37,13 @@ jobs:
       - name: List APK outputs
         run: find android-wrapper/app/build/outputs/apk -type f -name '*.apk' -print
 
+      - name: Enable KVM for emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+          sudo chmod 666 /dev/kvm || true
+
       - name: Boot emulator, install NC-Link and verify startup + exit dialog
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -45,9 +52,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -eu
-            APK="android-wrapper/app/build/outputs/apk/nclink/debug/app-nclink-debug.apk"
-            adb install -r "$APK"
+            adb install -r android-wrapper/app/build/outputs/apk/nclink/debug/app-nclink-debug.apk
             adb shell am force-stop vn.nclink.manager
             adb shell am start -n vn.nclink.manager/vn.nclink.webwrapper.SplashActivity
             sleep 5
