@@ -8,12 +8,15 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
+import android.webkit.WebBackForwardList;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -26,8 +29,20 @@ import java.io.OutputStream;
 
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 9001;
+    private static final long INITIAL_HISTORY_SETTLE_MS = 1500L;
+
     private WebView webView;
     private ValueCallback<Uri[]> chooser;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int rootHistoryIndex = -1;
+    private boolean rootHistoryLocked = false;
+
+    private final Runnable lockRootHistory = () -> {
+        if (webView == null || rootHistoryLocked) return;
+        WebBackForwardList list = webView.copyBackForwardList();
+        rootHistoryIndex = list.getCurrentIndex();
+        rootHistoryLocked = true;
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +62,7 @@ public class MainActivity extends Activity {
 
         setupWebView();
         if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) {
+            scheduleRootHistoryLock();
             return;
         }
         webView.loadUrl(BuildConfig.START_URL);
@@ -88,6 +104,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectDownloadHook();
+                if (!rootHistoryLocked) scheduleRootHistoryLock();
             }
         });
 
@@ -132,6 +149,24 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void scheduleRootHistoryLock() {
+        mainHandler.removeCallbacks(lockRootHistory);
+        mainHandler.postDelayed(lockRootHistory, INITIAL_HISTORY_SETTLE_MS);
+    }
+
+    private boolean hasUserNavigationHistory() {
+        if (webView == null) return false;
+        WebBackForwardList list = webView.copyBackForwardList();
+        int currentIndex = list.getCurrentIndex();
+        if (!rootHistoryLocked) {
+            rootHistoryIndex = currentIndex;
+            rootHistoryLocked = true;
+            mainHandler.removeCallbacks(lockRootHistory);
+            return false;
+        }
+        return webView.canGoBack() && currentIndex > rootHistoryIndex;
+    }
+
     private void injectDownloadHook() {
         String js = "(()=>{if(window.__ncdl)return;window.__ncdl=1;document.addEventListener('click',e=>{let a=e.target.closest&&e.target.closest('a[download]');if(!a||!a.href||(!a.href.startsWith('blob:')&&!a.href.startsWith('data:')))return;e.preventDefault();let n=a.download||'download';if(a.href.startsWith('data:'))NCLinkAndroid.saveBase64(a.href,n,'');else fetch(a.href).then(r=>r.blob()).then(b=>{let f=new FileReader();f.onloadend=()=>NCLinkAndroid.saveBase64(f.result,n,b.type||'');f.readAsDataURL(b)})},true)})()";
         webView.evaluateJavascript(js, null);
@@ -174,7 +209,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
+        if (hasUserNavigationHistory()) {
             webView.goBack();
             return;
         }
@@ -190,6 +225,12 @@ public class MainActivity extends Activity {
     protected void onSaveInstanceState(Bundle outState) {
         if (webView != null) webView.saveState(outState);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     @Override
