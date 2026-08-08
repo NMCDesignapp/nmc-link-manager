@@ -1,6 +1,7 @@
-/* KPI loading gates — 2026-08-07
+/* KPI loading gates — 2026-08-08
  * - Initial KPI loader: one fullscreen opaque gate + compact card, no vh-sized card.
  * - Linked category loader: compact horizontal card for Thi đua / Chính sách / CLB Sao Việt.
+ * - Linked category loader has only one progress surface: no extra circular spinner.
  */
 
 /* ================= INITIAL KPI LOADER ================= */
@@ -99,6 +100,27 @@ html body [aria-label="Đang tải dữ liệu KPI"] .mt-7.flex.flex-col > p {
 }
 
 /* ================= 3 LINKED CATEGORY BUTTONS ================= */
+/* The progress card is the only loading indicator. Force the parent loading
+ * surface to a single centered grid item and remove the legacy circular ::after
+ * spinner that otherwise appears below the card. */
+html body .kpi-app .kpi-embed-loader {
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+html body .kpi-app .kpi-embed-loader::after {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
 html body .kpi-app .kpi-embed-loader > span {
   position: relative !important;
   display: grid !important;
