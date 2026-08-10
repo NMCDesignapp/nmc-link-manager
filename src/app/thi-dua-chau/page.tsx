@@ -3872,11 +3872,22 @@ function ThiDuaPageInner() {
           <style dangerouslySetInnerHTML={{ __html: `
             .contest-result-table-wrapper {
               width: 100%;
+              max-width: 100%;
+              min-width: 0;
               overflow-x: hidden;
             }
             .contest-result-table-wrapper [data-slot="table-container"] {
               width: 100%;
+              max-width: 100%;
+              min-width: 0;
               overflow: hidden;
+            }
+            .contest-result-content,
+            .contest-result-content > div,
+            .contest-result-toolbar {
+              width: 100%;
+              max-width: 100%;
+              min-width: 0;
             }
             .contest-result-table {
               width: max-content;
