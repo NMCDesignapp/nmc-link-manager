@@ -615,40 +615,6 @@ function ThiDuaPageInner() {
   // revenueData removed — all data now sourced from Contracts table only
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
-  const resultTableWrapperRef = useRef<HTMLDivElement>(null);
-
-  // The quick-result popup keeps every cell on one line, then scales the
-  // complete table just enough to fit its available width. This is deliberately
-  // disabled for embed mode so other contest result surfaces stay unchanged.
-  useEffect(() => {
-    if (isEmbedMode || !isResultDialogOpen) return;
-
-    const wrapper = resultTableWrapperRef.current;
-    const table = wrapper?.querySelector('table');
-    if (!wrapper || !table) return;
-
-    let animationFrame = 0;
-    const fitTable = () => {
-      table.style.zoom = '1';
-      const availableWidth = wrapper.clientWidth;
-      const naturalWidth = table.scrollWidth;
-      const scale = naturalWidth > 0 ? Math.min(1, availableWidth / naturalWidth) : 1;
-      table.style.zoom = String(scale);
-    };
-    const scheduleFit = () => {
-      window.cancelAnimationFrame(animationFrame);
-      animationFrame = window.requestAnimationFrame(fitTable);
-    };
-
-    scheduleFit();
-    const resizeObserver = new ResizeObserver(scheduleFit);
-    resizeObserver.observe(wrapper);
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-      table.style.zoom = '';
-    };
-  }, [isEmbedMode, isResultDialogOpen, isResultExpanded]);
 
   const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2837,7 +2803,7 @@ function ThiDuaPageInner() {
           }
 
           const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
-          const liveScale = Number.parseFloat(sourceTable.style.zoom || '1') || 1;
+          const liveScale = Number.parseFloat(window.getComputedStyle(sourceTable).zoom || '1') || 1;
           tableClone.style.zoom = String(
             Math.min(1, liveScale * (captureWidth / Math.max(1, el.clientWidth))),
           );
@@ -3894,7 +3860,14 @@ function ThiDuaPageInner() {
               table-layout: auto;
               font-size: 10px;
               transform-origin: top left;
+              zoom: .76;
             }
+            .contest-result-table:has(th:nth-child(9)) { zoom: .68; }
+            .contest-result-table:has(th:nth-child(10)) { zoom: .61; }
+            .contest-result-table:has(th:nth-child(11)) { zoom: .55; }
+            .contest-result-table:has(th:nth-child(12)) { zoom: .50; }
+            .contest-result-table:has(th:nth-child(13)) { zoom: .46; }
+            .contest-result-table:has(th:nth-child(14)) { zoom: .42; }
             .contest-result-table th,
             .contest-result-table td {
               padding: 4px 3px !important;
@@ -3938,7 +3911,14 @@ function ThiDuaPageInner() {
               }
               .contest-result-table {
                 font-size: 8px !important;
+                zoom: .65;
               }
+              .contest-result-table:has(th:nth-child(9)) { zoom: .58; }
+              .contest-result-table:has(th:nth-child(10)) { zoom: .52; }
+              .contest-result-table:has(th:nth-child(11)) { zoom: .47; }
+              .contest-result-table:has(th:nth-child(12)) { zoom: .43; }
+              .contest-result-table:has(th:nth-child(13)) { zoom: .39; }
+              .contest-result-table:has(th:nth-child(14)) { zoom: .36; }
               .contest-result-table th,
               .contest-result-table td {
                 padding: 3px 1px !important;
@@ -3991,7 +3971,7 @@ function ThiDuaPageInner() {
               )}
 
               {/* Result Table - slightly larger */}
-              <div ref={resultTableWrapperRef} className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
+              <div className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
                 <Table className={isEmbedMode ? 'text-sm' : 'contest-result-table'}>
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
