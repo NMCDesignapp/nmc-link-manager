@@ -2786,6 +2786,8 @@ function ThiDuaPageInner() {
         const captureWidth = Math.min(640, Math.max(560, el.clientWidth));
         clone.style.width = `${captureWidth}px`;
         clone.style.overflow = 'hidden';
+        clone.style.boxSizing = 'border-box';
+        clone.style.padding = '2px';
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
 
         const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
@@ -2793,9 +2795,9 @@ function ThiDuaPageInner() {
           if (child.id !== 'result-table-container') {
             const contentClone = child.cloneNode(true) as HTMLElement;
             if (contentClone.querySelector('img[alt="Poster"]')) {
-              contentClone.style.width = '94%';
-              contentClone.style.marginLeft = 'auto';
-              contentClone.style.marginRight = 'auto';
+              contentClone.style.width = '100%';
+              contentClone.style.marginLeft = '0';
+              contentClone.style.marginRight = '0';
               contentClone.style.marginBottom = '8px';
             }
             printClone.appendChild(contentClone);
@@ -2834,10 +2836,13 @@ function ThiDuaPageInner() {
           // resolve to about 18 px body text and 17 px headers in the 2x PNG.
           const exportBodyFontSize = Math.min(24, Math.max(12.5, 9 / exportScale));
           const exportHeaderFontSize = Math.min(22, Math.max(12, 8.5 / exportScale));
+          const exportHeaderVerticalPadding = Math.min(10, Math.max(4, 3.5 / exportScale));
           const exportVerticalPadding = Math.min(4, Math.max(2, 1.5 / exportScale));
           tableClone.querySelectorAll<HTMLTableCellElement>('thead th').forEach((cell) => {
             cell.style.setProperty('font-size', `${exportHeaderFontSize}px`, 'important');
             cell.style.setProperty('line-height', '1.05', 'important');
+            cell.style.setProperty('padding-top', `${exportHeaderVerticalPadding}px`, 'important');
+            cell.style.setProperty('padding-bottom', `${exportHeaderVerticalPadding}px`, 'important');
           });
           tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
             cell.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
@@ -2845,6 +2850,20 @@ function ThiDuaPageInner() {
             cell.style.setProperty('padding-top', `${exportVerticalPadding}px`, 'important');
             cell.style.setProperty('padding-bottom', `${exportVerticalPadding}px`, 'important');
           });
+          const headerCells = Array.from(tableClone.querySelectorAll<HTMLTableCellElement>('thead th'));
+          const groupColumnIndex = headerCells.findIndex(
+            cell => cell.textContent?.trim().toLocaleUpperCase('vi-VN') === 'NHÓM',
+          );
+          if (groupColumnIndex >= 0) {
+            tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
+              const groupCell = row.cells.item(groupColumnIndex);
+              if (!groupCell) return;
+              groupCell.style.setProperty('color', '#111827', 'important');
+              groupCell.querySelectorAll<HTMLElement>('*').forEach((element) => {
+                element.style.setProperty('color', '#111827', 'important');
+              });
+            });
+          }
           tableContainerClone.appendChild(tableClone);
           printClone.appendChild(tableContainerClone);
         });
