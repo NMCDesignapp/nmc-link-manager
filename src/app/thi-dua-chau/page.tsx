@@ -2853,7 +2853,8 @@ function ThiDuaPageInner() {
       }
 
       const dateStr = new Date().toISOString().slice(0, 10);
-      blobs.forEach((blob, index) => {
+      for (let index = 0; index < blobs.length; index += 1) {
+        const blob = blobs[index];
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = blobs.length === 1
@@ -2862,7 +2863,10 @@ function ThiDuaPageInner() {
         link.href = url;
         link.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      });
+        if (index + 1 < blobs.length) {
+          await new Promise<void>(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       const capturedRows = Math.min(tableRows.length, maxRowsThisDownload);
       toast({
