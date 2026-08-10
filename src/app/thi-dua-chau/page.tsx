@@ -2748,7 +2748,9 @@ function ThiDuaPageInner() {
     if (style) style.remove();
   };
 
-  // Download image function - using html-to-image
+  // Download at most two lightweight snapshots. Removing unused rows from a
+  // detached clone is important: hiding them in the live table still makes
+  // html-to-image walk every row, which can freeze the tab for large contests.
   const handleDownloadImage = async () => {
     setIsDownloadingImage(true);
     try {
@@ -2759,122 +2761,122 @@ function ThiDuaPageInner() {
       }
 
       const el = resultContentRef.current;
-      const origWidth = el.style.width;
-      const origOverflow = el.style.overflow;
-
-      // Count result rows to determine if splitting is needed
-      const tableRows = el.querySelectorAll('tbody tr');
+      const tableRows = el.querySelectorAll('#result-table-container tbody > tr');
       const MAX_ROWS_PER_IMAGE = 20;
       const MAX_IMAGES_PER_DOWNLOAD = 2;
       const maxRowsThisDownload = MAX_ROWS_PER_IMAGE * MAX_IMAGES_PER_DOWNLOAD;
-      const needsSplit = tableRows.length > MAX_ROWS_PER_IMAGE;
+      const imageCount = Math.max(
+        1,
+        Math.min(MAX_IMAGES_PER_DOWNLOAD, Math.ceil(tableRows.length / MAX_ROWS_PER_IMAGE)),
+      );
 
-      if (!needsSplit) {
-        // Single image — no split needed
-        el.style.width = 'fit-content';
-        el.style.overflow = 'hidden';
-        hideAllScrollbars();
-        const blob = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
+      const captureRows = async (startRow: number) => {
+        const captureRoot = document.createElement('div');
+        captureRoot.setAttribute('aria-hidden', 'true');
+        captureRoot.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;background:#fff;';
+
+        const sourcePrintContent = el.firstElementChild;
+        if (!sourcePrintContent) throw new Error('Không tìm thấy nội dung kết quả');
+
+        // Build the table clone from its shell instead of cloneNode(true) on
+        // the whole result. This keeps even the cloning step bounded to 20 rows.
+        const clone = el.cloneNode(false) as HTMLDivElement;
+        clone.style.width = 'fit-content';
+        clone.style.overflow = 'hidden';
+        const endRow = startRow + MAX_ROWS_PER_IMAGE;
+
+        const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
+        Array.from(sourcePrintContent.children).forEach((child) => {
+          if (child.id !== 'result-table-container') {
+            printClone.appendChild(child.cloneNode(true));
+            return;
+          }
+
+          const tableContainerClone = child.cloneNode(false) as HTMLElement;
+          const sourceTable = child.querySelector('table');
+          if (!sourceTable) {
+            printClone.appendChild(child.cloneNode(true));
+            return;
+          }
+
+          const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
+          Array.from(sourceTable.children).forEach((section) => {
+            if (section.tagName !== 'TBODY') {
+              tableClone.appendChild(section.cloneNode(true));
+              return;
+            }
+
+            const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
+            Array.from(section.children)
+              .slice(startRow, endRow)
+              .forEach(row => bodyClone.appendChild(row.cloneNode(true)));
+            tableClone.appendChild(bodyClone);
+          });
+          tableContainerClone.appendChild(tableClone);
+          printClone.appendChild(tableContainerClone);
         });
-        el.style.width = origWidth;
-        el.style.overflow = origOverflow;
-        restoreAllScrollbars();
-        if (!blob) {
-          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-          return;
+        clone.appendChild(printClone);
+
+        captureRoot.appendChild(clone);
+        document.body.appendChild(captureRoot);
+        try {
+          // Give the clone one paint frame so fonts, images and table width settle.
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          return await toBlob(clone, {
+            quality: 1,
+            pixelRatio: 2,
+            backgroundColor: '#ffffff',
+          });
+        } finally {
+          captureRoot.remove();
         }
+      };
+
+      hideAllScrollbars();
+      const blobs: Blob[] = [];
+      try {
+        for (let imageIndex = 0; imageIndex < imageCount; imageIndex += 1) {
+          const blob = await captureRows(imageIndex * MAX_ROWS_PER_IMAGE);
+          if (blob) blobs.push(blob);
+          // Yield between images so the browser can process input and repaint.
+          if (imageIndex + 1 < imageCount) {
+            await new Promise<void>(resolve => setTimeout(resolve, 100));
+          }
+        }
+      } finally {
+        restoreAllScrollbars();
+      }
+
+      if (blobs.length === 0) {
+        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+        return;
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      for (let index = 0; index < blobs.length; index += 1) {
+        const blob = blobs[index];
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
+        link.download = blobs.length === 1
+          ? `ket_qua_thi_dua_${dateStr}.png`
+          : `ket_qua_thi_dua_${index + 1}_${dateStr}.png`;
         link.href = url;
         link.click();
-        URL.revokeObjectURL(url);
-        toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
-      } else {
-        // Capture at most two images, 20 result rows each. Older code put all
-        // remaining rows into image 2, causing slow or failed captures.
-        const dateStr = new Date().toISOString().slice(0, 10);
-
-        // === IMAGE 1: Poster + first half of rows ===
-        el.style.width = 'fit-content';
-        el.style.overflow = 'hidden';
-
-        // Hide rows after MAX_ROWS_PER_IMAGE
-        const allRows = Array.from(tableRows) as HTMLTableRowElement[];
-        const hiddenRows2: HTMLTableRowElement[] = [];
-        allRows.forEach((row, idx) => {
-          if (idx >= MAX_ROWS_PER_IMAGE) {
-            row.style.display = 'none';
-            hiddenRows2.push(row);
-          }
-        });
-
-        hideAllScrollbars();
-        const blob1 = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
-        });
-
-        // Restore hidden rows
-        hiddenRows2.forEach(row => { row.style.display = ''; });
-
-        // === IMAGE 2: Poster + title + rows 21–40 ===
-        const hiddenRows1: HTMLTableRowElement[] = [];
-        allRows.forEach((row, idx) => {
-          if (idx < MAX_ROWS_PER_IMAGE || idx >= maxRowsThisDownload) {
-            row.style.display = 'none';
-            hiddenRows1.push(row);
-          }
-        });
-
-        const blob2 = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
-        });
-
-        // Restore all rows
-        hiddenRows1.forEach(row => { row.style.display = ''; });
-        el.style.width = origWidth;
-        el.style.overflow = origOverflow;
-        restoreAllScrollbars();
-
-        // Download both images
-        if (blob1) {
-          const url1 = URL.createObjectURL(blob1);
-          const link1 = document.createElement('a');
-          link1.download = `ket_qua_thi_dua_1_${dateStr}.png`;
-          link1.href = url1;
-          link1.click();
-          URL.revokeObjectURL(url1);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (index + 1 < blobs.length) {
+          await new Promise<void>(resolve => setTimeout(resolve, 500));
         }
-        if (blob2) {
-          // Slight delay to avoid browser blocking second download
-          await new Promise(r => setTimeout(r, 500));
-          const url2 = URL.createObjectURL(blob2);
-          const link2 = document.createElement('a');
-          link2.download = `ket_qua_thi_dua_2_${dateStr}.png`;
-          link2.href = url2;
-          link2.click();
-          URL.revokeObjectURL(url2);
-        }
-
-        if (!blob1 && !blob2) {
-          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-          return;
-        }
-        const capturedRows = Math.min(allRows.length, maxRowsThisDownload);
-        toast({
-          title: 'Thành công',
-          description: allRows.length > capturedRows
-            ? `Đã tải 2 ảnh, 20 dòng/ảnh (40/${allRows.length} dòng đầu).`
-            : `Đã tải 2 ảnh, 20 dòng/ảnh (${capturedRows} dòng).`,
-        });
       }
+
+      const capturedRows = Math.min(tableRows.length, maxRowsThisDownload);
+      toast({
+        title: 'Thành công',
+        description: tableRows.length > capturedRows
+          ? `Đã tải 2 ảnh, tối đa 20 dòng/ảnh (${capturedRows}/${tableRows.length} dòng đầu).`
+          : blobs.length === 1
+            ? `Đã tải 1 ảnh (${capturedRows} dòng).`
+            : `Đã tải 2 ảnh, tối đa 20 dòng/ảnh (${capturedRows} dòng).`,
+      });
     } catch (error) {
       console.error('Download image error:', error);
       toast({ title: 'Lỗi', description: 'Không thể tải ảnh', variant: 'destructive' });
