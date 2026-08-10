@@ -2836,13 +2836,21 @@ function ThiDuaPageInner() {
           // resolve to about 18 px body text and 17 px headers in the 2x PNG.
           const exportBodyFontSize = Math.min(24, Math.max(12.5, 9 / exportScale));
           const exportHeaderFontSize = Math.min(22, Math.max(12, 8.5 / exportScale));
-          const exportHeaderVerticalPadding = Math.min(10, Math.max(4, 3.5 / exportScale));
+          // Use the natural two-line heading as the fixed row-height standard.
+          // Single-line headings grow to this height; two-line headings do not
+          // receive extra padding and therefore keep their established size.
+          const exportHeaderHeight = Math.min(44, Math.max(24, 17 / exportScale));
           const exportVerticalPadding = Math.min(4, Math.max(2, 1.5 / exportScale));
+          tableClone.querySelectorAll<HTMLTableRowElement>('thead tr').forEach((row) => {
+            row.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
+          });
           tableClone.querySelectorAll<HTMLTableCellElement>('thead th').forEach((cell) => {
             cell.style.setProperty('font-size', `${exportHeaderFontSize}px`, 'important');
             cell.style.setProperty('line-height', '1.05', 'important');
-            cell.style.setProperty('padding-top', `${exportHeaderVerticalPadding}px`, 'important');
-            cell.style.setProperty('padding-bottom', `${exportHeaderVerticalPadding}px`, 'important');
+            cell.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
+            cell.style.setProperty('padding-top', '0', 'important');
+            cell.style.setProperty('padding-bottom', '0', 'important');
+            cell.style.setProperty('vertical-align', 'middle', 'important');
           });
           tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
             cell.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
