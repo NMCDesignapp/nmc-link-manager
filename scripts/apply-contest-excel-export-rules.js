@@ -6,17 +6,33 @@ const root = path.resolve(__dirname, '..');
 function updateFile(relativePath, transform) {
   const filePath = path.join(root, relativePath);
   const source = fs.readFileSync(filePath, 'utf8');
-  const next = transform(source);
-  if (next === source) {
+  const newline = source.includes('\r\n') ? '\r\n' : '\n';
+  const normalizedSource = source.replace(/\r\n/g, '\n');
+  const next = transform(normalizedSource);
+  if (next === normalizedSource) {
     console.log(`• ${relativePath} đã đúng quy tắc Excel, không cần sửa lại`);
     return;
   }
-  fs.writeFileSync(filePath, next, 'utf8');
+  fs.writeFileSync(filePath, next.replace(/\n/g, newline), 'utf8');
   console.log(`✓ Đã cập nhật ${relativePath}`);
 }
 
 function replaceRequired(source, from, to, label) {
   if (source.includes(to)) return source;
+  // A later build step renames this local to avoid a duplicate declaration.
+  // Treat that final form as already applied so repeated builds stay idempotent.
+  const postProcessedTo = to.replaceAll('detailHeaders', 'sourceDetailHeaders');
+  if (postProcessedTo !== to && source.includes(postProcessedTo)) return source;
+  const ntdDateLayoutApplied = source.includes(
+    "...(includeEligibilityDates ? [itemIndex === 0 ? (item.detail?.recruiterEffectiveDate ?? '') : ''] : [])",
+  ) && source.includes(
+    "...(includeEligibilityDates ? [item.detail?.startDate ?? ''] : [])",
+  );
+  const isPreLayoutNtdDateBlock = to.includes('includeEligibilityDates') && (
+    to.includes("item.detail?.recruiterEffectiveDate ?? '', item.detail?.startDate")
+    || (to.includes("'TVV'") && !to.includes('item.tvv'))
+  );
+  if (ntdDateLayoutApplied && isPreLayoutNtdDateBlock) return source;
   if (!source.includes(from)) {
     throw new Error(`[Contest Excel] Không tìm thấy đoạn cần sửa: ${label}`);
   }

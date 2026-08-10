@@ -105,15 +105,17 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
             className="pointer-events-none absolute inset-x-8 top-0 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, #66d8ff, transparent)' }}
           />
-          <div
-            className="mx-auto mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-full"
-            style={{
-              color: '#fff4cf',
-              background: 'radial-gradient(circle at 35% 30%, #ffd978, #d79726 62%, #9c5c11)',
-              boxShadow: '0 0 0 7px rgba(244, 189, 70, .08), 0 10px 26px rgba(220, 149, 26, .34)',
-            }}
-          >
-            <Trophy size={43} strokeWidth={2.2} />
+          {/* nmc-kpi-loader-icon-safe */}
+          <div className="nmc-kpi-loader-logo-safe relative mx-auto mb-5 flex h-[104px] w-[104px] items-center justify-center">
+            <div className="nmc-kpi-loader-logo-safe-halo pointer-events-none absolute inset-[-17px] rounded-full" />
+            <div
+              className="relative z-10 h-[92px] w-[92px] overflow-hidden rounded-[23px]"
+              style={{ boxShadow: '0 0 0 3px rgba(255,255,255,.14), 0 0 28px rgba(95,214,255,.42), 0 0 48px rgba(78,230,169,.22)' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/kpi-tech-logo.webp" alt="KPI An Giang" className="block h-full w-full object-cover" />
+              <span className="nmc-kpi-loader-logo-safe-shine pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[34%]" />
+            </div>
           </div>
           <h2 className="text-[24px] font-black tracking-tight text-white">Tiến Độ Kinh Doanh</h2>
           <p className="mt-1 text-[11px] font-extrabold uppercase tracking-[.2em]" style={{ color: '#f4ca62' }}>
@@ -148,7 +150,33 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
               <p className="text-sm italic text-slate-300">Đang tải dữ liệu...</p>
             </div>
           )}
-          <style>{`@keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }`}</style>
+          <style>{`
+            @keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }
+            @keyframes nmc-kpi-loader-logo-pulse {
+              0%, 100% { transform: scale(1); filter: brightness(1); }
+              50% { transform: scale(1.035); filter: brightness(1.1); }
+            }
+            @keyframes nmc-kpi-loader-logo-halo {
+              0%, 100% { opacity: .4; transform: scale(.94); }
+              50% { opacity: .82; transform: scale(1.06); }
+            }
+            @keyframes nmc-kpi-loader-logo-shine {
+              0%, 20% { transform: translateX(0) rotate(18deg); opacity: 0; }
+              32% { opacity: .86; }
+              58%, 100% { transform: translateX(520%) rotate(18deg); opacity: 0; }
+            }
+            .nmc-kpi-loader-logo-safe { animation: nmc-kpi-loader-logo-pulse 2.2s ease-in-out infinite; }
+            .nmc-kpi-loader-logo-safe-halo {
+              background: radial-gradient(circle, rgba(105,225,255,.64) 0%, rgba(70,229,171,.3) 42%, transparent 72%);
+              filter: blur(9px);
+              animation: nmc-kpi-loader-logo-halo 1.9s ease-in-out infinite;
+            }
+            .nmc-kpi-loader-logo-safe-shine {
+              background: linear-gradient(90deg, transparent, rgba(255,255,255,.92), transparent);
+              filter: blur(1px);
+              animation: nmc-kpi-loader-logo-shine 2.6s ease-in-out infinite;
+            }
+          `}</style>
         </div>
       </div>
     );

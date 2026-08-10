@@ -871,8 +871,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .tgr-list-table .tgr-col-nhom { width: 15%; }
 .kpi-app .tgr-list-table .tgr-col-name { width: 18%; }
 .kpi-app .tgr-list-table .tgr-col-cv { width: 6%; text-align: center; }
-.kpi-app .tgr-list-table .tgr-col-afyp { width: 17%; text-align: right; }
-.kpi-app .tgr-list-table .tgr-col-luot { width: 7%; text-align: right; }
+.kpi-app .tgr-list-table .tgr-col-afyp { width: 17%; text-align: center; }
+.kpi-app .tgr-list-table .tgr-col-luot { width: 7%; text-align: center; }
 .kpi-app .tgr-list-table .tgr-col-note { width: 20%; }
 .kpi-app .tgr-list-empty {
   text-align: center; padding: 30px 16px; color: #668274; font-size: 12px; font-style: italic; background: #fff;
@@ -3148,6 +3148,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-color: #8ae8ff !important;
 }
 .kpi-app .tamthu-detail-shell { max-width: 1380px; margin: 0 auto; }
+/* nmc-kpi-table-surface-v1: giữ nền công nghệ ở dưới, bảng luôn ở lớp nội dung. */
+.kpi-app #view-tamthu-detail,
+.kpi-app #view-target-reg-list { position: relative; z-index: 6; isolation: isolate; }
+.kpi-app .tamthu-detail-shell,
+.kpi-app .tamthu-detail-card,
+.kpi-app .tgr-list-shell,
+.kpi-app .tgr-list-table-wrap { position: relative; z-index: 7; }
+.kpi-app .tamthu-table-wrap,
+.kpi-app .tgr-list-table-wrap { isolation: isolate; background: #fff !important; }
+.kpi-app .tamthu-table,
+.kpi-app .tgr-list-table { position: relative; z-index: 1; background: #fff !important; }
+.kpi-app .tamthu-detail-title { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.kpi-app .tamthu-detail-title > span { display: block; }
+.kpi-app .tamthu-detail-title > em { display: block; color: #8fd9ff; font-size: .56em; font-style: italic; font-weight: 600; line-height: 1.15; letter-spacing: .035em; text-transform: none; }
 .kpi-app .tamthu-detail-card { overflow: visible; background: transparent; border: 0; box-shadow: none; }
 .kpi-app .tamthu-detail-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -3895,11 +3909,18 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiIframeRef = useRef<HTMLIFrameElement>(null);
   const [kpiEmbeddedCanGoBack, setKpiEmbeddedCanGoBack] = useState(false);
   const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);
+  const kpiEmbedStartedAtRef = useRef(0);
+  const kpiEmbedReadyTimerRef = useRef<number | null>(null);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
   const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet') => {
     setKpiEmbeddedCanGoBack(false);
     setKpiEmbedLoading(true);
+    kpiEmbedStartedAtRef.current = Date.now();
+    if (kpiEmbedReadyTimerRef.current !== null && typeof window !== 'undefined') {
+      window.clearTimeout(kpiEmbedReadyTimerRef.current);
+      kpiEmbedReadyTimerRef.current = null;
+    }
     setKpiSheet(sheet);
     if (typeof window !== 'undefined') {
       window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
@@ -5168,12 +5189,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 3-9) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
+    // IP per month per TVV (months 6-12) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
     // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
     // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
     // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
     // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
-    const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const months37 = [6, 7, 8, 9, 10, 11, 12];
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
@@ -5552,12 +5573,29 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               key={kpiSheet}
               src={standalone
                 ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi')}`
-                : `/quan-ly?sheet=${kpiSheet}&admin=1`}
+                : `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`}
               title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
-              onLoad={() => setKpiEmbedLoading(false)}
+              onLoad={() => {
+                const elapsed = Date.now() - kpiEmbedStartedAtRef.current;
+                const KPI_LINKED_MIN_VISIBLE_MS = 3000;
+                const remaining = Math.max(0, KPI_LINKED_MIN_VISIBLE_MS - elapsed);
+                if (kpiEmbedReadyTimerRef.current !== null) {
+                  window.clearTimeout(kpiEmbedReadyTimerRef.current);
+                }
+                kpiEmbedReadyTimerRef.current = window.setTimeout(() => {
+                  kpiEmbedReadyTimerRef.current = null;
+                  setKpiEmbedLoading(false);
+                }, remaining);
+              }}
+              style={{
+                visibility: kpiEmbedLoading ? 'hidden' : 'visible',
+                opacity: kpiEmbedLoading ? 0 : 1,
+                pointerEvents: kpiEmbedLoading ? 'none' : 'auto',
+                transition: 'opacity .16s ease-out',
+              }}
             />
           </div>
         </div>
@@ -6834,7 +6872,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key" title="% hoàn thành">%HT</span>
+                        <span className="adp-info-key" title="Tỷ trọng IP">TỶ TRỌNG IP</span>
                         <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
                       </div>
                       <div className="adp-info-row">
@@ -6952,7 +6990,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <div className="tamthu-detail-shell">
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-            <span className="sub-title">Chi Tiết Tạm Thu — {tamthuMonthLabel}</span>
+            <span className="sub-title tamthu-detail-title"><span>Chi Tiết Tạm Thu</span><em>{tamthuMonthLabel}</em></span>
             <button
               type="button"
               onClick={() => { void fetchTamthuDetail(true); }}
@@ -7113,7 +7151,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <td className="tgr-col-afyp">
                             <input
                               className="tgr-field-input"
-                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'right' }}
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'center' }}
                               value={targetRegEditForm.afypTrieu || ''}
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, afypTrieu: e.target.value }))}
                             />
@@ -7121,7 +7159,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <td className="tgr-col-luot">
                             <input
                               className="tgr-field-input"
-                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'right' }}
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'center' }}
                               value={targetRegEditForm.luotHD || ''}
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, luotHD: e.target.value }))}
                             />

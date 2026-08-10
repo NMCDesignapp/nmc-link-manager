@@ -10,10 +10,8 @@ export async function GET() {
     env: {
       hasDatabaseUrl: !!databaseUrl,
       databaseUrlProtocol: databaseUrl.split('://')[0] || 'NOT SET',
-      databaseUrlPrefix: databaseUrl.substring(0, 40) + '...' || 'NOT SET',
       hasDirectUrl: !!directUrl,
       directUrlProtocol: directUrl.split('://')[0] || 'NOT SET',
-      directUrlPrefix: directUrl.substring(0, 40) + '...' || 'NOT SET',
       nodeEnv: process.env.NODE_ENV,
     },
   }

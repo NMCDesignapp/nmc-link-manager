@@ -2938,7 +2938,8 @@ export default function QuanLyPage() {
     if (appData.clbMembers) setClbMembers(appData.clbMembers);
     if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
     if (appData.settings) setOnlineSettings(appData.settings);
-    if (appData.contests) setSavedContestsList(appData.contests);
+    // nmc-sao-viet-exclude-chot-v1
+    if (appData.contests) setSavedContestsList(appData.contests.filter((contest: any) => !String(contest?.title || '').trimStart().normalize('NFC').toLocaleUpperCase('vi-VN').startsWith('CHỐT')));
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
@@ -5475,7 +5476,9 @@ export default function QuanLyPage() {
         });
         if (!response.ok || cancelled) return;
         const contests = await response.json();
-        if (!cancelled && Array.isArray(contests)) setSavedContestsList(contests);
+        if (!cancelled && Array.isArray(contests)) {
+          setSavedContestsList(contests.filter((contest: any) => !String(contest?.title || '').trimStart().normalize('NFC').toLocaleUpperCase('vi-VN').startsWith('CHỐT')));
+        }
       } catch {
         // Keep the current list during a temporary network interruption.
       }
@@ -12104,10 +12107,10 @@ export default function QuanLyPage() {
   };
 
   const renderSheet = () => {
-    if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    if (isLoading) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     // Mounted guard: khi chưa mounted (SSR hoặc hydration đầu tiên) → render skeleton
     // tránh flash bug hiện overview rồi mới switch sang sheet từ URL (?sheet=xxx)
-    if (!mounted) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    if (!mounted) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
       case 'overview': return renderOverview();
       case 'leaders': return renderLeaders();
@@ -12137,7 +12140,7 @@ export default function QuanLyPage() {
     // SSR + first client render: chỉ loading spinner, không render header/sidebar/content
     // để tránh hydration mismatch (SSR không biết sheet/isEmbedded → render khác client).
     return (
-      <div className="h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+      <div className="nmc-kpi-embedded-internal-loader h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
         <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
         <span className="ml-3 text-emerald-300 text-sm mt-3">Đang tải...</span>
       </div>

@@ -16,7 +16,7 @@
  * để kết quả khớp 100% với popup "Kết quả chi tiết" trên trang đó.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -134,6 +134,56 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return new Set(tvvStructList.filter((tvv: any) => banNhomCodes.has(tvv.maBanNhom)).map((tvv: any) => tvv.agentCode).filter(Boolean));
   }, [appData.structurePhong, appData.structureAd, appData.structureBanNhom, tvvStructList]);
 
+  // Dùng cùng nguồn Cấu trúc như trang Thi đua để mọi TVV luôn có đúng nhóm.
+  // Ưu tiên DS TVV → DS TB/TN → Nhân sự/NTD → dữ liệu hợp đồng.
+  const resolveTvvGroup = useCallback((agentCode: string, fallbackNhom = '', fallbackMaNhom = '') => {
+    const normalizedCode = norm(agentCode || '').toLowerCase();
+    const clean = (value: unknown) => String(value ?? '').trim();
+    const structureMember = tvvStructList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const leaderMember = leadersList.find(
+      (item: any) => norm(item?.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const staffMember = staffList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const recruiterMember = recruiterList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+
+    const groupCode = clean(
+      structureMember?.maBanNhom
+      || leaderMember?.maNhom
+      || leaderMember?.maBanNhom
+      || leaderMember?.maDonVi
+      || leaderMember?.maDV
+      || staffMember?.maNhom
+      || fallbackMaNhom,
+    );
+    const groupRecord = (appData.structureBanNhom || []).find(
+      (item: any) => norm(item?.maBanNhom || '').toLowerCase() === norm(groupCode).toLowerCase(),
+    );
+    const groupName = clean(
+      groupRecord?.tenBanNhom
+      || leaderMember?.nhom
+      || leaderMember?.tenBanNhom
+      || leaderMember?.tenNhom
+      || staffMember?.nhom
+      || recruiterMember?.nhom
+      || fallbackNhom
+      || groupCode
+      || 'CHƯA XÁC ĐỊNH',
+    );
+
+    return { groupName, groupCode: groupCode || groupName };
+  }, [appData.structureBanNhom, leadersList, recruiterList, staffList, tvvStructList]);
+
+  const isPAGroupLabel = useCallback((groupName: string, groupCode: string) => {
+    const value = norm(`${groupName || ''} ${groupCode || ''}`).toUpperCase();
+    return /(^|[\s_-])PA(?:[\s_-]|\d|$)/.test(value);
+  }, []);
+
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
     () => filterContractsByContest(allContracts, config),
@@ -151,14 +201,64 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     () => computeGroupedData(displayContracts, config, staffList, recruiterList, leadersList),
     [displayContracts, config, staffList, recruiterList, leadersList]
   );
-  const tvvTotalRows = useMemo(
-    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes),
-    [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes]
-  );
-  const tvvPerContractRows = useMemo(
-    () => computeTVVPerContractRows(displayContracts, config, tvvStructList),
-    [displayContracts, config, tvvStructList]
-  );
+  const tvvTotalRows = useMemo(() => {
+    const rows = computeTVVTotalRows(
+      displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes,
+    );
+    return rows
+      .map((row) => {
+        const resolved = resolveTvvGroup(row.agent.agentCode, row.agent.nhom, row.agent.maNhom);
+        return {
+          ...row,
+          agent: { ...row.agent, nhom: resolved.groupName, maNhom: resolved.groupCode },
+        };
+      })
+      .sort((a, b) => {
+        const valueDiff = b.value - a.value;
+        if (valueDiff !== 0) return valueDiff;
+        if (a.value === 0) {
+          const aPA = isPAGroupLabel(a.agent.nhom, a.agent.maNhom);
+          const bPA = isPAGroupLabel(b.agent.nhom, b.agent.maNhom);
+          if (aPA !== bPA) return aPA ? 1 : -1;
+        }
+        const aPriority = priorityTvvCodes.has(a.agent.agentCode) ? 1 : 0;
+        const bPriority = priorityTvvCodes.has(b.agent.agentCode) ? 1 : 0;
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        return (a.agent.agentName || a.agent.agentCode).localeCompare(
+          b.agent.agentName || b.agent.agentCode, 'vi',
+        );
+      });
+  }, [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes, resolveTvvGroup, isPAGroupLabel]);
+
+  const tvvPerContractRows = useMemo(() => {
+    const rows = computeTVVPerContractRows(displayContracts, config, tvvStructList);
+    return rows
+      .map((row) => {
+        const resolved = resolveTvvGroup(
+          row.contract.agentCode, row.contract.nhom, row.contract.maNhom,
+        );
+        return {
+          ...row,
+          contract: {
+            ...row.contract,
+            nhom: resolved.groupName,
+            maNhom: resolved.groupCode,
+          },
+        };
+      })
+      .sort((a, b) => {
+        const valueDiff = b.cValue - a.cValue;
+        if (valueDiff !== 0) return valueDiff;
+        if (a.cValue === 0) {
+          const aPA = isPAGroupLabel(a.contract.nhom, a.contract.maNhom);
+          const bPA = isPAGroupLabel(b.contract.nhom, b.contract.maNhom);
+          if (aPA !== bPA) return aPA ? 1 : -1;
+        }
+        return (a.contract.agentName || a.contract.agentCode).localeCompare(
+          b.contract.agentName || b.contract.agentCode, 'vi',
+        );
+      });
+  }, [displayContracts, config, tvvStructList, resolveTvvGroup, isPAGroupLabel]);
   // NYD data — tính cho targetType='nyd' (trước đây báo "chưa hỗ trợ")
   const nydData = useMemo(
     () => computeNYDData(displayContracts, config, recruiterList, staffList, tvvStructList),
@@ -200,14 +300,15 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       for (const g of groupedData) if (g.nhom) set.add(g.nhom);
     } else if (config.targetType === 'tvv') {
       for (const c of displayContracts) if (c.nhom) set.add(c.nhom);
-      // Also from tvvTotalRows
+      // Also from both result modes after resolving group from Cấu trúc.
       for (const r of tvvTotalRows) if (r.agent.nhom) set.add(r.agent.nhom);
+      for (const r of tvvPerContractRows) if (r.contract.nhom) set.add(r.contract.nhom);
     } else if (config.targetType === 'nyd') {
       // NYD uses nydData — collect nhom from NTD records
       for (const n of nydData) if (n.nhom) set.add(n.nhom);
     }
     return Array.from(set).sort();
-  }, [groupedData, displayContracts, tvvTotalRows, nydData, config.targetType]);
+  }, [groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType]);
 
   // ===== Build table header + body based on targetType × conditionType =====
   // Hỗ trợ TẤT CẢ target: tvv (per-contract + total) / nhom (total/activity/pass-count) / nyd (NTD)

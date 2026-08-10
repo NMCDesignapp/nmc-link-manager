@@ -124,6 +124,9 @@ export function EmbeddedProgramDataLoader(): null {
     let detailStartedAt = 0;
     let shownAt = 0;
     let dismissedKey = '';
+    // Initial entry into Chính sách / Thi đua / CLB is handled by the parent KPI
+    // progress popup. Only a real user click that opens/switches an individual
+    // program is allowed to arm this level-2 spinner.
     let interactionArmed = false;
     let detailEligibleForLoader = false;
     let hideTimer: number | null = null;
@@ -205,6 +208,11 @@ export function EmbeddedProgramDataLoader(): null {
         dismissedKey = '';
         clearEmptyGraceTimer();
         clearFallbackTimer();
+
+        // Do not show a second spinner during the initial category entry. The
+        // iframe is already hidden behind the parent 0→100% progress popup.
+        // Once the user clicks a program card/menu item, interactionArmed=true;
+        // the newly mounted/switched detail then receives the simple spinner.
         detailEligibleForLoader = interactionArmed;
         interactionArmed = false;
 
@@ -270,6 +278,8 @@ export function EmbeddedProgramDataLoader(): null {
       const target = event.target;
       if (!(target instanceof Element)) return;
       if (target.closest(`#${OVERLAY_ID}`)) return;
+      // Buttons/links inside an already-open detail (download, filter, row action...)
+      // are not program navigation and must not re-trigger the loader.
       if (target.closest(DETAIL_SELECTOR)) return;
       if (!target.closest(INTERACTIVE_TRIGGER_SELECTOR)) return;
       interactionArmed = true;

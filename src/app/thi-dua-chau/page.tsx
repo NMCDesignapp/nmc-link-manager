@@ -576,7 +576,7 @@ function ThiDuaPageInner() {
   const [topNMinIP, setTopNMinIP] = useState(50_000_000);
   // Top N value type: 'ip' (default) hoặc 'afyp' — cho phép user chọn chỉ tiêu xét Top N
   const [topNValueType, setTopNValueType] = useState<'ip' | 'afyp'>('ip');
-  // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
   const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
 
   const [posterUrl, setPosterUrl] = useState<string>('');
@@ -967,7 +967,7 @@ function ThiDuaPageInner() {
     // Luôn loại trừ hợp đồng thuộc nhóm DSO (không tham gia thi đua)
     const contractsNoDSO = filteredContracts.filter(c => !norm(c.nhom || '').toLowerCase().includes('dso') && !norm(c.maNhom || '').toLowerCase().includes('dso'));
     // Áp dụng filter "ngày hiệu lực chức vụ" nếu tích chọn (chỉ cho NTD và Nhóm)
-    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
     let contractsFiltered = contractsNoDSO;
     if (filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom')) {
       // Build map: agentCode → ngayHieuLuc (NTD recruiter)
@@ -993,7 +993,7 @@ function ThiDuaPageInner() {
         if (!ngayHieuLucTs) return true; // NTD không có ngày hiệu lực → không ràng buộc → giữ
         const ngayBatDauTs = ngayBatDauMap.get(c.agentCode || '');
         if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
-        return ngayBatDauTs > ngayHieuLucTs;
+        return ngayBatDauTs >= ngayHieuLucTs;
       });
     }
     if (targetType === 'tvv') {
@@ -2243,6 +2243,20 @@ function ThiDuaPageInner() {
     const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
 
+    // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
+    // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
+    const includeEligibilityDateColumns = filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom');
+    const recruiterEffectiveDateMap = new Map<string, string>();
+    for (const recruiter of ntdCandidates) {
+      if (recruiter.agentCode && recruiter.ngayHieuLuc) {
+        recruiterEffectiveDateMap.set(recruiter.agentCode, recruiter.ngayHieuLuc);
+      }
+    }
+    const recruiterEffectiveDateFor = (recruiterCode: string): string => {
+      const date = recruiterEffectiveDateMap.get(recruiterCode);
+      return date ? formatDate(date) : '';
+    };
+
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
       headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualNTD ? ['IP cá nhân'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
@@ -2594,7 +2608,7 @@ function ThiDuaPageInner() {
 
     // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', ...(includeEligibilityDateColumns ? ['Ngày hiệu lực chức vụ NTD'] : []), 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
       // Build detail rows with bonus values for merging
       const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
 
@@ -2664,6 +2678,7 @@ function ThiDuaPageInner() {
             c.agentName || '',
             c.position || '',
             c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),
             c.contractNumber || '',
             c.effectiveDate ? formatDate(c.effectiveDate) : '',
             c.issueDate ? formatDate(c.issueDate) : '',
@@ -2722,7 +2737,17 @@ function ThiDuaPageInner() {
       XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
     }
 
-    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const safeContestFileName = (contestTitle || '')
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/\s+/g, ' ')
+      .replace(/[. ]+$/g, '')
+      .slice(0, 120)
+      .trim();
+    const exportFileName = safeContestFileName
+      ? `${safeContestFileName}.xlsx`
+      : `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, exportFileName);
     } catch (err) {
       console.error('[handleExport] Error:', err);
       toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
@@ -3726,19 +3751,19 @@ function ThiDuaPageInner() {
                       </Label>
                     </div>
                   )}
-                  {/* Filter by effective date — chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
+                  {/* Filter by effective date — chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
                   {(targetType === 'nhom' || targetType === 'nyd') && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
                       <Checkbox id="filterByEffectiveDate" checked={filterByEffectiveDate} onCheckedChange={(v) => setFilterByEffectiveDate(!!v)} />
                       <Label htmlFor="filterByEffectiveDate" className="text-xs text-amber-200/90 cursor-pointer flex items-center gap-1">
-                        <CalendarClock className="w-3 h-3 text-amber-400" /> Chỉ tính TVV có ngày LV sau ngày hiệu lực CV gần nhất
+                        <CalendarClock className="w-3 h-3 text-amber-400" /> Chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực CV gần nhất
                       </Label>
                     </div>
                   )}
                 </div>
                 {filterByEffectiveDate && (targetType === 'nhom' || targetType === 'nyd') && (
                   <p className="text-[10px] text-amber-300/80 italic leading-snug">
-                    Khi tích: chỉ giữ HĐ của TVV có <b>ngày bắt đầu LV</b> (lấy từ DS TVV — Cấu trúc) <b>sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ (lấy từ DS TTN — Cấu trúc). TVV không có ngày LV sẽ bị bỏ qua. Độc lập với điều kiện "Tính cá nhân NTD/TN".
+                    Khi tích: chỉ giữ HĐ của TVV có <b>ngày bắt đầu LV</b> (lấy từ DS TVV — Cấu trúc) <b>bằng hoặc sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ (lấy từ DS TTN — Cấu trúc). TVV không có ngày LV sẽ bị bỏ qua. Độc lập với điều kiện "Tính cá nhân NTD/TN".
                   </p>
                 )}
               </div>

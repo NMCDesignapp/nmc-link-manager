@@ -156,7 +156,7 @@ export interface ContestConfig {
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
-  filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV > ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV >= ngày hiệu lực chức vụ gần nhất của NTD recruiter
 }
 
 // ===== Helpers — mode detection =====
@@ -487,8 +487,8 @@ export function filterContractsByContest(
  * - Mỗi contract có TVV (c.agentCode) được tuyển bởi NTD (c.maDaiLyTD).
  * - Lấy ngày bắt đầu LV của TVV từ tvvStructList (TVVStruct.ngayBatDau).
  * - Lấy ngày hiệu lực chức vụ gần nhất của NTD từ recruiterList (Recruiter.ngayHieuLuc).
- * - Chỉ giữ contract nếu: TVV.ngayBatDau > NTD.ngayHieuLuc
- *   (tức là TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
+ * - Chỉ giữ contract nếu: TVV.ngayBatDau >= NTD.ngayHieuLuc
+ *   (tức là TVV bắt đầu làm việc BẰNG HOẶC SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
  * - Nếu TVV không có ngày bắt đầu LV → bỏ qua (không tính, do data thiếu).
  * - Nếu NTD không có ngày hiệu lực chức vụ → vẫn giữ contract (không có ràng buộc để loại).
  *
@@ -528,8 +528,8 @@ export function filterByEffectiveDateRule(
     const ngayBatDauTs = ngayBatDauMap.get(tvvCode);
     if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
 
-    // Chỉ giữ nếu TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ
-    return ngayBatDauTs > ngayHieuLucTs;
+    // Giữ nếu TVV bắt đầu làm việc BẰNG HOẶC SAU ngày NTD được bổ nhiệm chức vụ
+    return ngayBatDauTs >= ngayHieuLucTs;
   });
 }
 

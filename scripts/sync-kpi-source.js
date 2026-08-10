@@ -24,6 +24,11 @@ const tableUiPatchScript = path.join(root, 'scripts', 'apply-kpi-table-ui-fixes.
 
 const sharedCopies = [
   {
+    source: path.join(root, 'src', 'app', 'api', 'health', 'route.ts'),
+    target: path.join(root, 'kpi-app', 'src', 'app', 'api', 'health', 'route.ts'),
+    label: 'kpi-app/src/app/api/health/route.ts',
+  },
+  {
     source: mainTemplate,
     target: standaloneTemplate,
     label: 'kpi-app/src/app/template.tsx',
@@ -92,13 +97,27 @@ function expectedStandalonePage() {
 }
 
 function sameFile(source, target) {
-  return fs.existsSync(target) && fs.readFileSync(source).equals(fs.readFileSync(target))
+  if (!fs.existsSync(target)) return false
+
+  const binaryExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico'])
+  if (binaryExtensions.has(path.extname(source).toLowerCase())) {
+    return fs.readFileSync(source).equals(fs.readFileSync(target))
+  }
+
+  return normalizeText(fs.readFileSync(source, 'utf8')) === normalizeText(fs.readFileSync(target, 'utf8'))
+}
+
+function normalizeText(value) {
+  return value.replace(/\r\n/g, '\n')
 }
 
 function verify() {
   const mismatches = []
 
-  if (!fs.existsSync(standalonePage) || fs.readFileSync(standalonePage, 'utf8') !== expectedStandalonePage()) {
+  if (
+    !fs.existsSync(standalonePage)
+    || normalizeText(fs.readFileSync(standalonePage, 'utf8')) !== normalizeText(expectedStandalonePage())
+  ) {
     mismatches.push('kpi-app/src/app/page.tsx')
   }
 

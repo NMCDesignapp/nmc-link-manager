@@ -36,13 +36,15 @@ for (const filePath of targets) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`[KPI perf] Missing ${filePath}`)
   }
-  let source = fs.readFileSync(filePath, 'utf8')
-  if (source.includes(newBlock)) continue
-  if (!source.includes(oldBlock)) {
+  const source = fs.readFileSync(filePath, 'utf8')
+  const newline = source.includes('\r\n') ? '\r\n' : '\n'
+  let normalizedSource = source.replace(/\r\n/g, '\n')
+  if (normalizedSource.includes(newBlock)) continue
+  if (!normalizedSource.includes(oldBlock)) {
     throw new Error(`[KPI perf] AppData hydration anchor not found in ${filePath}`)
   }
-  source = source.replace(oldBlock, newBlock)
-  fs.writeFileSync(filePath, source, 'utf8')
+  normalizedSource = normalizedSource.replace(oldBlock, newBlock)
+  fs.writeFileSync(filePath, normalizedSource.replace(/\n/g, newline), 'utf8')
   changed += 1
 }
 

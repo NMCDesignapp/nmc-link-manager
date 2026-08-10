@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const filePath = path.resolve(__dirname, '../src/lib/xlsx-contest-wrapper.ts');
-let source = fs.readFileSync(filePath, 'utf8');
+const originalSource = fs.readFileSync(filePath, 'utf8');
+const newline = originalSource.includes('\r\n') ? '\r\n' : '\n';
+let source = originalSource.replace(/\r\n/g, '\n');
 
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
@@ -30,5 +32,5 @@ replaceRequired(
   'gộp ngày hiệu lực chức vụ theo NTD',
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ Excel NTD: gộp ngày hiệu lực chức vụ và đặt ngày bắt đầu làm việc sau tên TVV.');

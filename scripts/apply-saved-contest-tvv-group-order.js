@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const filePath = path.resolve(__dirname, '../src/components/saved-contest-inline.tsx');
-let source = fs.readFileSync(filePath, 'utf8');
+const originalSource = fs.readFileSync(filePath, 'utf8');
+const newline = originalSource.includes('\r\n') ? '\r\n' : '\n';
+let source = originalSource.replace(/\r\n/g, '\n');
 
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
@@ -42,5 +44,5 @@ replaceRequired(
   'dependency danh sách nhóm',
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ Sao Việt toàn chặng: đã bổ sung nhóm cho TVV và đồng bộ thứ tự với trang Thi đua.');

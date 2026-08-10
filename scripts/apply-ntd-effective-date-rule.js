@@ -5,7 +5,9 @@ const root = path.resolve(__dirname, '..');
 
 function applyReplacements(relativePath, replacements) {
   const filePath = path.join(root, relativePath);
-  let source = fs.readFileSync(filePath, 'utf8');
+  const originalSource = fs.readFileSync(filePath, 'utf8');
+  const newline = originalSource.includes('\r\n') ? '\r\n' : '\n';
+  let source = originalSource.replace(/\r\n/g, '\n');
   let changed = false;
 
   for (const { from, to, label } of replacements) {
@@ -18,7 +20,7 @@ function applyReplacements(relativePath, replacements) {
   }
 
   if (changed) {
-    fs.writeFileSync(filePath, source, 'utf8');
+    fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
     console.log(`✓ Đã cập nhật ${relativePath}`);
   } else {
     console.log(`• ${relativePath} đã đúng quy tắc >=, không cần sửa lại`);

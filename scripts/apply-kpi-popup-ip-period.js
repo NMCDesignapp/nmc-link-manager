@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const filePath = path.resolve(__dirname, '../src/app/kpi/page.tsx');
-let source = fs.readFileSync(filePath, 'utf8');
+const originalSource = fs.readFileSync(filePath, 'utf8');
+const newline = originalSource.includes('\r\n') ? '\r\n' : '\n';
+let source = originalSource.replace(/\r\n/g, '\n');
 
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
@@ -34,5 +36,5 @@ replaceRequired(
   'đổi kỳ IP chi tiết nhóm/AD từ tháng 3-9 sang tháng 6-12',
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ KPI popup: đã đổi %HT thành Tỷ trọng IP và hiển thị IP tháng 6-12.');

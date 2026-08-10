@@ -69,7 +69,7 @@ fi
 # 4. API routes
 echo "[4/8] Syncing API routes"
 # quan-ly/all is a standalone read-only proxy and must not be overwritten.
-for route in settings calendar structure/ad structure/phong structure/bannhom structure/tvv poster-image kpi-target-registrations; do
+for route in health settings calendar structure/ad structure/phong structure/bannhom structure/tvv poster-image kpi-target-registrations; do
   if [ -f "$ROOT/src/app/api/$route/route.ts" ]; then
     if [ $CHECK_ONLY -eq 0 ]; then
       mkdir -p "$KPI_APP/src/app/api/$route"
@@ -193,16 +193,16 @@ EXPECTED_PAGE=$(mktemp)
 trap 'rm -f "$EXPECTED_PAGE"' EXIT
 cp "$ROOT/src/app/kpi/page.tsx" "$EXPECTED_PAGE"
 node "$ROOT/scripts/apply-standalone-patches.js" "$EXPECTED_PAGE" >/dev/null
-DIFF_COUNT=$(diff "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" | wc -l)
+DIFF_COUNT=$(diff --strip-trailing-cr "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" | wc -l)
 if [ $DIFF_COUNT -ne 0 ]; then
   echo "ERROR: kpi-app/src/app/page.tsx differs from Main source + standalone patch"
-  diff -u "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" || true
+  diff --strip-trailing-cr -u "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" || true
   exit 1
 fi
 
-if ! diff -q "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" >/dev/null; then
+if ! diff --strip-trailing-cr -q "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" >/dev/null; then
   echo "ERROR: kpi-app/src/app/template.tsx differs from Main KPI template"
-  diff -u "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" || true
+  diff --strip-trailing-cr -u "$ROOT/src/app/kpi/template.tsx" "$KPI_APP/src/app/template.tsx" || true
   exit 1
 fi
 echo "  OK: KPI template is synced (including notice banner position)"
