@@ -615,6 +615,41 @@ function ThiDuaPageInner() {
   // revenueData removed — all data now sourced from Contracts table only
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
+  const resultTableWrapperRef = useRef<HTMLDivElement>(null);
+  const resultTableRef = useRef<HTMLTableElement>(null);
+
+  // The quick-result popup keeps every cell on one line, then scales the
+  // complete table just enough to fit its available width. This is deliberately
+  // disabled for embed mode so other contest result surfaces stay unchanged.
+  useEffect(() => {
+    if (isEmbedMode || !isResultDialogOpen) return;
+
+    const wrapper = resultTableWrapperRef.current;
+    const table = resultTableRef.current;
+    if (!wrapper || !table) return;
+
+    let animationFrame = 0;
+    const fitTable = () => {
+      table.style.zoom = '1';
+      const availableWidth = wrapper.clientWidth;
+      const naturalWidth = table.scrollWidth;
+      const scale = naturalWidth > 0 ? Math.min(1, availableWidth / naturalWidth) : 1;
+      table.style.zoom = String(scale);
+    };
+    const scheduleFit = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(fitTable);
+    };
+
+    scheduleFit();
+    const resizeObserver = new ResizeObserver(scheduleFit);
+    resizeObserver.observe(wrapper);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+      table.style.zoom = '';
+    };
+  }, [isEmbedMode, isResultDialogOpen, isResultExpanded]);
 
   const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2781,7 +2816,10 @@ function ThiDuaPageInner() {
         // Build the table clone from its shell instead of cloneNode(true) on
         // the whole result. This keeps even the cloning step bounded to 20 rows.
         const clone = el.cloneNode(false) as HTMLDivElement;
-        clone.style.width = 'fit-content';
+        // Keep exported images compact and predictable even when the live
+        // popup is opened on a narrow phone or in expanded desktop mode.
+        const captureWidth = Math.min(640, Math.max(560, el.clientWidth));
+        clone.style.width = `${captureWidth}px`;
         clone.style.overflow = 'hidden';
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
 
@@ -2800,6 +2838,10 @@ function ThiDuaPageInner() {
           }
 
           const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
+          const liveScale = Number.parseFloat(sourceTable.style.zoom || '1') || 1;
+          tableClone.style.zoom = String(
+            Math.min(1, liveScale * (captureWidth / Math.max(1, el.clientWidth))),
+          );
           Array.from(sourceTable.children).forEach((section) => {
             if (section.tagName !== 'TBODY') {
               tableClone.appendChild(section.cloneNode(true));
@@ -3826,14 +3868,91 @@ function ThiDuaPageInner() {
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
-        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : `${isResultExpanded ? 'sm:max-w-5xl max-h-[95dvh]' : 'sm:max-w-xl max-h-[92dvh] sm:max-h-[76vh]'} contest-result-dialog overflow-x-hidden`} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+          <style dangerouslySetInnerHTML={{ __html: `
+            .contest-result-table-wrapper {
+              width: 100%;
+              overflow-x: hidden;
+            }
+            .contest-result-table-wrapper [data-slot="table-container"] {
+              width: 100%;
+              overflow: hidden;
+            }
+            .contest-result-table {
+              width: max-content;
+              min-width: 100%;
+              table-layout: auto;
+              font-size: 10px;
+              transform-origin: top left;
+            }
+            .contest-result-table th,
+            .contest-result-table td {
+              padding: 4px 3px !important;
+              white-space: nowrap !important;
+              line-height: 1.15;
+            }
+            .contest-result-table th:first-child,
+            .contest-result-table td:first-child {
+              width: 28px !important;
+            }
+            @media (max-width: 639px) {
+              .contest-result-dialog {
+                width: calc(100vw - 12px) !important;
+                max-width: calc(100vw - 12px) !important;
+              }
+              .contest-result-toolbar {
+                gap: 4px;
+                padding: 6px 34px 6px 8px;
+              }
+              .contest-result-toolbar-title {
+                min-width: 0;
+                gap: 4px;
+                font-size: 12px;
+                line-height: 1.15;
+              }
+              .contest-result-toolbar-title svg {
+                width: 14px;
+                height: 14px;
+              }
+              .contest-result-toolbar-actions {
+                gap: 2px;
+              }
+              .contest-result-toolbar-actions button {
+                height: 26px;
+                padding-left: 6px;
+                padding-right: 6px;
+                font-size: 10px;
+              }
+              .contest-result-content {
+                padding: 6px;
+              }
+              .contest-result-table {
+                font-size: 8px !important;
+              }
+              .contest-result-table th,
+              .contest-result-table td {
+                padding: 3px 1px !important;
+                font-size: 8px !important;
+                line-height: 1.1;
+              }
+              .contest-result-table th *,
+              .contest-result-table td * {
+                font-size: inherit !important;
+                line-height: inherit !important;
+              }
+              .contest-result-table svg {
+                width: 9px !important;
+                height: 9px !important;
+              }
+            }
+          `}} />
           {/* Action bar */}
-          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-            <DialogTitle className="text-emerald-600 text-base font-bold flex items-center gap-2">
+          <div className={`${isEmbedMode ? '' : 'contest-result-toolbar'} sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between`}>
+            <DialogTitle className={`${isEmbedMode ? '' : 'contest-result-toolbar-title'} text-emerald-600 text-base font-bold flex items-center gap-2`}>
               <Trophy className="w-5 h-5 text-emerald-600" />
               {isEmbedMode ? (contestTitle || 'Kết quả chi tiết') : 'Kết quả chi tiết'}
             </DialogTitle>
-            <div className="flex items-center gap-1">
+            <div className={`${isEmbedMode ? '' : 'contest-result-toolbar-actions'} flex shrink-0 items-center gap-1`}>
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
                   {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -3841,19 +3960,19 @@ function ThiDuaPageInner() {
               )}
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Chia sẻ ảnh</span>
                 </Button>
               )}
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <Camera className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Tải ảnh</span>
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><Download className="w-3 h-3 mr-1" />XLSX</Button>
             </div>
           </div>
 
-          <div ref={resultContentRef} className="px-3 py-2">
+          <div ref={resultContentRef} className={`${isEmbedMode ? '' : 'contest-result-content'} px-3 py-2`}>
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
@@ -3862,8 +3981,8 @@ function ThiDuaPageInner() {
               )}
 
               {/* Result Table - slightly larger */}
-              <div className="overflow-x-auto border border-emerald-600 shadow-sm mt-3" id="result-table-container">
-                <Table className="text-sm">
+              <div ref={resultTableWrapperRef} className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
+                <Table ref={resultTableRef} className={isEmbedMode ? 'text-sm' : 'contest-result-table'}>
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
                       <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
