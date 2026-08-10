@@ -2791,7 +2791,14 @@ function ThiDuaPageInner() {
         const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
         Array.from(sourcePrintContent.children).forEach((child) => {
           if (child.id !== 'result-table-container') {
-            printClone.appendChild(child.cloneNode(true));
+            const contentClone = child.cloneNode(true) as HTMLElement;
+            if (contentClone.querySelector('img[alt="Poster"]')) {
+              contentClone.style.width = '94%';
+              contentClone.style.marginLeft = 'auto';
+              contentClone.style.marginRight = 'auto';
+              contentClone.style.marginBottom = '8px';
+            }
+            printClone.appendChild(contentClone);
             return;
           }
 
@@ -2825,10 +2832,10 @@ function ThiDuaPageInner() {
           // pixels available, so enlarge body text only in this detached clone.
           // Tighter vertical rhythm keeps each result row at its current height.
           tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
-            cell.style.setProperty('font-size', '9.5px', 'important');
-            cell.style.setProperty('line-height', '1', 'important');
-            cell.style.setProperty('padding-top', '1px', 'important');
-            cell.style.setProperty('padding-bottom', '1px', 'important');
+            cell.style.setProperty('font-size', '10px', 'important');
+            cell.style.setProperty('line-height', '1.1', 'important');
+            cell.style.setProperty('padding-top', '2px', 'important');
+            cell.style.setProperty('padding-bottom', '2px', 'important');
           });
           tableContainerClone.appendChild(tableClone);
           printClone.appendChild(tableContainerClone);
