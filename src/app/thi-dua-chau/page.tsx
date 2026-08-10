@@ -2811,9 +2811,11 @@ function ThiDuaPageInner() {
 
           const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
           const liveScale = Number.parseFloat(window.getComputedStyle(sourceTable).zoom || '1') || 1;
-          tableClone.style.zoom = String(
-            Math.min(1, liveScale * (captureWidth / Math.max(1, el.clientWidth))),
+          const exportScale = Math.min(
+            1,
+            liveScale * (captureWidth / Math.max(1, el.clientWidth)),
           );
+          tableClone.style.zoom = String(exportScale);
           Array.from(sourceTable.children).forEach((section) => {
             if (section.tagName !== 'TBODY') {
               tableClone.appendChild(section.cloneNode(true));
@@ -2827,15 +2829,21 @@ function ThiDuaPageInner() {
             tableClone.appendChild(bodyClone);
           });
 
-          // The on-screen popup uses very small mobile type so every column
-          // remains visible. The downloaded communication image has more
-          // pixels available, so enlarge body text only in this detached clone.
-          // Tighter vertical rhythm keeps each result row at its current height.
+          // Normalize the exported type against the table zoom so downloads from
+          // the compact and expanded popup stay equally readable. These values
+          // resolve to about 18 px body text and 17 px headers in the 2x PNG.
+          const exportBodyFontSize = Math.min(24, Math.max(12.5, 9 / exportScale));
+          const exportHeaderFontSize = Math.min(22, Math.max(12, 8.5 / exportScale));
+          const exportVerticalPadding = Math.min(4, Math.max(2, 1.5 / exportScale));
+          tableClone.querySelectorAll<HTMLTableCellElement>('thead th').forEach((cell) => {
+            cell.style.setProperty('font-size', `${exportHeaderFontSize}px`, 'important');
+            cell.style.setProperty('line-height', '1.05', 'important');
+          });
           tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
-            cell.style.setProperty('font-size', '10px', 'important');
+            cell.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
             cell.style.setProperty('line-height', '1.1', 'important');
-            cell.style.setProperty('padding-top', '2px', 'important');
-            cell.style.setProperty('padding-bottom', '2px', 'important');
+            cell.style.setProperty('padding-top', `${exportVerticalPadding}px`, 'important');
+            cell.style.setProperty('padding-bottom', `${exportVerticalPadding}px`, 'important');
           });
           tableContainerClone.appendChild(tableClone);
           printClone.appendChild(tableContainerClone);
