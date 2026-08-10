@@ -5121,16 +5121,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
     // Group metrics
     const afyp = finalContracts.reduce((s, c) => s + num(c.afyp), 0);
-    const ip = finalContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
     const lhd = finalContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
     const hdChuan = finalContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
     const slHD = finalContracts.length;
-    const tyTrongIP = afyp > 0 ? (ip / afyp * 100) : 0;
     const nangSuat = lhd > 0 ? slHD / lhd : 0;
     const doLonHD = slHD > 0 ? afyp / slHD : 0;
 
     // Annual KH 2026
     const annualKh = parseFloat(onlineSettings[`nmc-kh-nhom-${selectedBN.maBanNhom}`] || '0') || 0;
+    const tlht = annualKh > 0 ? (afyp / annualKh * 100) : 0;
 
     // TVV of nhóm
     const allTvv = tvvStructList.filter(t => t.maBanNhom === selectedBN.maBanNhom);
@@ -5202,7 +5201,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       groupInfo: {
         annualKh,
         afyp,
-        tyTrongIP,
+        tlht,
         lhd,
         hdChuan,
         td: tvvMoi,
@@ -6834,8 +6833,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key" title="% hoàn thành">%HT</span>
-                        <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+                        <span className="adp-info-key" title="Tỷ lệ hoàn thành">TLHT %</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.tlht.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key" title="Lượt hợp đồng">LƯỢT HĐ</span>

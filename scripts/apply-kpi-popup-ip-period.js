@@ -3,6 +3,8 @@ const path = require('path');
 
 const filePath = path.resolve(__dirname, '../src/app/kpi/page.tsx');
 let source = fs.readFileSync(filePath, 'utf8');
+const eol = source.includes('\r\n') ? '\r\n' : '\n';
+source = source.replace(/\r\n/g, '\n');
 
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
@@ -11,12 +13,6 @@ function replaceRequired(from, to, label) {
   }
   source = source.replace(from, to);
 }
-
-replaceRequired(
-  `<span className="adp-info-key" title="% hoàn thành">%HT</span>`,
-  `<span className="adp-info-key" title="Tỷ trọng IP">TỶ TRỌNG IP</span>`,
-  'đổi nhãn %HT thành Tỷ trọng IP',
-);
 
 replaceRequired(
   `    // IP per month per TVV (months 3-9) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
@@ -34,5 +30,5 @@ replaceRequired(
   'đổi kỳ IP chi tiết nhóm/AD từ tháng 3-9 sang tháng 6-12',
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
-console.log('✓ KPI popup: đã đổi %HT thành Tỷ trọng IP và hiển thị IP tháng 6-12.');
+fs.writeFileSync(filePath, eol === '\r\n' ? source.replace(/\n/g, '\r\n') : source, 'utf8');
+console.log('✓ KPI popup: giữ TLHT = AFYP/KH và hiển thị IP tháng 6-12.');
