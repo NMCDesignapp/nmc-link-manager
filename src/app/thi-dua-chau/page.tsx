@@ -616,7 +616,6 @@ function ThiDuaPageInner() {
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
   const resultTableWrapperRef = useRef<HTMLDivElement>(null);
-  const resultTableRef = useRef<HTMLTableElement>(null);
 
   // The quick-result popup keeps every cell on one line, then scales the
   // complete table just enough to fit its available width. This is deliberately
@@ -625,7 +624,7 @@ function ThiDuaPageInner() {
     if (isEmbedMode || !isResultDialogOpen) return;
 
     const wrapper = resultTableWrapperRef.current;
-    const table = resultTableRef.current;
+    const table = wrapper?.querySelector('table');
     if (!wrapper || !table) return;
 
     let animationFrame = 0;
@@ -3993,7 +3992,7 @@ function ThiDuaPageInner() {
 
               {/* Result Table - slightly larger */}
               <div ref={resultTableWrapperRef} className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
-                <Table ref={resultTableRef} className={isEmbedMode ? 'text-sm' : 'contest-result-table'}>
+                <Table className={isEmbedMode ? 'text-sm' : 'contest-result-table'}>
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
                       <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
