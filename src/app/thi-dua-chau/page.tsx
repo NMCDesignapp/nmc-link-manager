@@ -2775,13 +2775,47 @@ function ThiDuaPageInner() {
         captureRoot.setAttribute('aria-hidden', 'true');
         captureRoot.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;background:#fff;';
 
-        const clone = el.cloneNode(true) as HTMLDivElement;
+        const sourcePrintContent = el.firstElementChild;
+        if (!sourcePrintContent) throw new Error('Không tìm thấy nội dung kết quả');
+
+        // Build the table clone from its shell instead of cloneNode(true) on
+        // the whole result. This keeps even the cloning step bounded to 20 rows.
+        const clone = el.cloneNode(false) as HTMLDivElement;
         clone.style.width = 'fit-content';
         clone.style.overflow = 'hidden';
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
-        clone.querySelectorAll('#result-table-container tbody > tr').forEach((row, index) => {
-          if (index < startRow || index >= endRow) row.remove();
+
+        const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
+        Array.from(sourcePrintContent.children).forEach((child) => {
+          if (child.id !== 'result-table-container') {
+            printClone.appendChild(child.cloneNode(true));
+            return;
+          }
+
+          const tableContainerClone = child.cloneNode(false) as HTMLElement;
+          const sourceTable = child.querySelector('table');
+          if (!sourceTable) {
+            printClone.appendChild(child.cloneNode(true));
+            return;
+          }
+
+          const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
+          Array.from(sourceTable.children).forEach((section) => {
+            if (section.tagName !== 'TBODY') {
+              tableClone.appendChild(section.cloneNode(true));
+              return;
+            }
+
+            const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
+            Array.from(section.children)
+              .slice(startRow, endRow)
+              .forEach(row => bodyClone.appendChild(row.cloneNode(true)));
+            tableClone.appendChild(bodyClone);
+          });
+          tableContainerClone.appendChild(tableClone);
+          printClone.appendChild(tableContainerClone);
         });
+        clone.appendChild(printClone);
 
         captureRoot.appendChild(clone);
         document.body.appendChild(captureRoot);
