@@ -5451,21 +5451,60 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const cp = Math.min(pct, 100);
   const currentMonthKey = `${CUR_YEAR}-${CUR_MONTH}`;
   const tamthuMonthLabel = `Tháng ${Number(CUR_MONTH)}/${CUR_YEAR}`;
+  const tamthuRowsWithResolvedGroup = useMemo(() => {
+    const codeKey = (value: string | null | undefined) => String(value || '').trim().toUpperCase();
+    const groupNameByCode = new Map<string, string>();
+    banNhomStructList.forEach((group) => {
+      const code = codeKey(group.maBanNhom);
+      const name = String(group.tenBanNhom || '').trim();
+      if (code && name) groupNameByCode.set(code, name);
+    });
+
+    const groupCodeByAgent = new Map<string, string>();
+    tvvStructList.forEach((tvv) => {
+      const agentCode = codeKey(tvv.agentCode);
+      const groupCode = codeKey(tvv.maBanNhom);
+      if (agentCode && groupCode && !groupCodeByAgent.has(agentCode)) {
+        groupCodeByAgent.set(agentCode, groupCode);
+      }
+    });
+
+    const usableGroupName = (groupCode: string) => {
+      if (!groupCode) return '';
+      const name = groupNameByCode.get(groupCode) || '';
+      // Some auto-created structure rows use the machine code as the name.
+      // Do not present such codes as if they were a real group name.
+      if (codeKey(name) === groupCode && /\d/.test(groupCode)) return '';
+      return name;
+    };
+
+    return tamthuDetailRows.map((contract) => {
+      const sourceGroupName = String(contract.nhom || '').trim();
+      if (sourceGroupName) return { ...contract, resolvedNhom: sourceGroupName };
+
+      const agentGroupCode = groupCodeByAgent.get(codeKey(contract.agentCode)) || '';
+      const sourceGroupCode = codeKey(contract.maNhom);
+      const resolvedNhom = usableGroupName(agentGroupCode)
+        || usableGroupName(sourceGroupCode)
+        || 'Chưa phân nhóm';
+      return { ...contract, resolvedNhom };
+    });
+  }, [tamthuDetailRows, banNhomStructList, tvvStructList]);
   const tamthuContracts = useMemo(() => {
     // Chỉ dùng snapshot Sheet2 (bảng xem), tuyệt đối không dùng dữ liệu tính KPI Sheet4.
-    const records = tamthuDetailRows;
+    const records = tamthuRowsWithResolvedGroup;
     const query = tamthuNameFilter.trim().toLocaleLowerCase('vi-VN');
     return records.filter((contract) => {
-      const nhom = contract.nhom || contract.maNhom || 'Chưa phân nhóm';
+      const nhom = contract.resolvedNhom;
       if (tamthuNhomFilter && nhom !== tamthuNhomFilter) return false;
       if (!query) return true;
       return [contract.agentName, contract.agentCode]
         .some((value) => String(value || '').toLocaleLowerCase('vi-VN').includes(query));
     });
-  }, [tamthuDetailRows, tamthuNhomFilter, tamthuNameFilter]);
+  }, [tamthuRowsWithResolvedGroup, tamthuNhomFilter, tamthuNameFilter]);
   const tamthuNhomOptions = useMemo(() => Array.from(new Set(
-    tamthuDetailRows.map((contract) => contract.nhom || contract.maNhom || 'Chưa phân nhóm')
-  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuDetailRows]);
+    tamthuRowsWithResolvedGroup.map((contract) => contract.resolvedNhom)
+  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuRowsWithResolvedGroup]);
   const tamthuAfypTotal = useMemo(() => tamthuContracts.reduce((sum, contract) => sum + num(contract.afyp), 0), [tamthuContracts]);
 
   /* Detail top 3 */
@@ -7008,7 +7047,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     {tamthuContracts.map((contract, index) => (
                       <tr key={`${contract.rowNo}-${contract.agentCode}-${index}`}>
                         <td className="stt">{contract.rowNo || index + 1}</td>
-                        <td className="text-left" title={contract.nhom || contract.maNhom || ''}>{contract.nhom || contract.maNhom || '—'}</td>
+                        <td className="text-left" title={contract.resolvedNhom}>{contract.resolvedNhom}</td>
                         <td className="code">{contract.agentCode || '—'}</td>
                         <td className="text-left" title={contract.agentName || ''}>{contract.agentName || '—'}</td>
                         <td className={`date ${contract.effectiveDate ? '' : 'muted'}`}>{contract.effectiveDate || '—'}</td>
