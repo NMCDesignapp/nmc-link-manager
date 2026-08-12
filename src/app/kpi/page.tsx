@@ -538,7 +538,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .region-lock-cancel { color: #c4d5df; background: transparent; border: 1px solid #426078; }
 .kpi-app .region-lock-submit { color: #062232; background: linear-gradient(135deg,#8de2f7,#3fb5db); border: 1px solid #a5edff; }
 
-/* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
+/* ============= VINH DANH (17 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
    Nền dark, ảnh chèn lên có hiệu ứng bắt mắt. 50% ô trống phía trên chứa ảnh,
    50% phía dưới để trống. */
@@ -693,7 +693,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-admin-modal .banca-imgs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
 }
 
-/* ============= BANCA ADMIN MODAL (upload 15 ảnh) ============= */
+/* ============= BANCA ADMIN MODAL (upload 17 ảnh) ============= */
 .kpi-app .banca-admin-modal {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
@@ -3862,9 +3862,8 @@ const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: n
 ];
 
 function getGoldHonourRows(indices: number[]): number[][] {
-  // Lấp theo thứ tự từ trên xuống: dòng 1 tối đa 5, dòng 2 tối đa 4,
-  // dòng 3 tối đa 3. Không chia lại để lấp các dòng dưới khi dòng trên còn trống.
-  return [indices.slice(0, 5), indices.slice(5, 9), indices.slice(9, 12)]
+  // Hạng Vàng có 15 vị trí, chia cố định thành 3 dòng, mỗi dòng tối đa 5 ảnh.
+  return [indices.slice(0, 5), indices.slice(5, 10), indices.slice(10, 15)]
     .filter((row) => row.length > 0);
 }
 
@@ -4031,11 +4030,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setRegionLockError(true);
   }, [regionLockCode]);
 
-  // ===== BANCA GOLD CIRCLES (15 ô tròn để admin upload ảnh) =====
-  // User request: dưới card BANCA, thêm 1 khoảng trống (cao cỡ 50% viewport) chứa 15 hình tròn nhỏ
-  // (gold border) bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì (không hiển thị khung trống).
-  // 15 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-15`.
-  const BANCA_IMG_COUNT = 15;
+  // ===== VINH DANH (2 Bạch Kim + 15 Hạng Vàng) =====
+  // 17 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-17`.
+  const BANCA_IMG_COUNT = 17;
   const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> cacheable image URL
   const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null);
   const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false);
@@ -5919,9 +5916,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               </div>
               </div>{/* end khuvuc-region mobile — chỉ chứa cards (incl banca) */}
 
-              {/* === BANCA IMAGES (15 gold circles) — ADMIN ONLY ===
+              {/* === VINH DANH (2 Bạch Kim + 15 Hạng Vàng) ===
                   User request: sau card BANCA, thêm 1 khoảng trống cỡ 50% màn hình
-                  chứa 15 hình tròn nhỏ (gold border). Chỉ admin thấy & upload.
+                  chứa 17 hình tròn nhỏ. Chỉ admin thấy ô trống để upload.
                   Non-admin không thấy gì (không hiển thị khung trống).
                   User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
                   50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
@@ -5940,11 +5937,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       ⚙ Cài đặt ảnh
                     </button>
                   </div>
-                  {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
+                  {/* Wall of fame: 2 Bạch Kim, 15 Hạng Vàng chia 3 dòng x 5 ảnh. */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -6100,8 +6097,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -7396,12 +7393,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         </div>
       )}
 
-      {/* ===== BANCA ADMIN MODAL (upload 15 ảnh) ===== */}
+      {/* ===== BANCA ADMIN MODAL (upload 17 ảnh) ===== */}
       {bancaImgAdminOpen && (
         <div className="banca-admin-modal" onClick={() => setBancaImgAdminOpen(false)}>
           <div className="banca-admin-modal-inner" onClick={(e) => e.stopPropagation()}>
             <div className="banca-admin-modal-title">
-              <span>★ Cài đặt 15 ảnh đặc biệt</span>
+              <span>★ Cài đặt 17 ảnh đặc biệt</span>
               <button
                 onClick={() => setBancaImgAdminOpen(false)}
                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}
@@ -7460,7 +7457,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               return (
                 <div className="banca-profile-editor">
                   <div className="banca-profile-editor-head">
-                    <span>{Number(selectedIdx) <= 3 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <span>{Number(selectedIdx) <= 2 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
                     <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
                   </div>
                   <div className="banca-profile-editor-grid">
