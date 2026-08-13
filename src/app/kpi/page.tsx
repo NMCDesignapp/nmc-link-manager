@@ -4408,6 +4408,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [phongStructList, setPhongStructList] = useState<PhongStructure[]>([]);
   const [banNhomStructList, setBanNhomStructList] = useState<BanNhomStructure[]>([]);
   const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
+  const activeTvvCount = useMemo(
+    () => tvvStructList.filter((tvv) => normKey(tvv.note) === 'HOATDONG').length,
+    [tvvStructList],
+  );
 
   /* AD detail popup state */
   const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
@@ -5721,7 +5725,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
                       <div className="cty-stat dl"><div className="cty-stat-label">ĐLHĐ <span className="cty-stat-sub">(TRĐ)</span></div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
-                      <div className="cty-stat tbtn"><div className="cty-stat-label">SL TB/TN</div><div className="cty-stat-val">{rawData?.leaders?.length ?? 0}</div></div>
+                      <div className="cty-stat tbtn"><div className="cty-stat-label">SL TVV HĐ</div><div className="cty-stat-val">{activeTvvCount}</div></div>
                     </div>
 
                   </div>
@@ -6054,7 +6058,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></div>
                           <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ <span className="dsk-cty-kpi-sub">(TRĐ)</span></span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div></div>
                           <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
-                          <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
+                          <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TVV HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{activeTvvCount}</div></div></div>
                         </div>
                       </div>
                     </div>
