@@ -313,7 +313,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Phong summary row (4 stats) */
 .kpi-app .rg-summary {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
   background: #c0d4e8;
   border-bottom: 1px solid #c0d4e8;
 }
@@ -330,6 +330,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-sum-val.td { color: #9333ea; }
 .kpi-app .rg-sum-val.chuan { color: #0891b2; }
 .kpi-app .rg-sum-val.ip { color: #ea580c; }
+.kpi-app .rg-sum-val.active-tvv { color: #047857; }
 .kpi-app .rg-sum-val.afyp { color: #1a4a7a; }
 .kpi-app .rg-sum-val.kh { color: #6a8aaa; }
 
@@ -341,8 +342,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 /* Banca-PA summary: only 2 columns (Lượt + HĐC) */
-.kpi-app .rg-summary.rg-summary-2col {
-  grid-template-columns: repeat(2, 1fr);
+.kpi-app .rg-summary.rg-summary-banca {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* AFYP + KH row */
@@ -404,7 +405,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-table tbody td {
   padding: 8px 4px; text-align: center;
   border-top: 1px solid #d0deec;
-  font-weight: 700; color: #2a4a6a; white-space: nowrap;
+  font-weight: 700; color: #2a4a6a; white-space: nowrap; overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 100%);
 }
 .kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
@@ -903,8 +904,22 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-afyp { font-size: 1.2rem; }
   .kpi-app .rg-sum-val { font-size: 14px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-ad-table thead th:nth-child(1) { width: 25%; }
+  .kpi-app .rg-ad-table thead th:nth-child(2) { width: 27%; }
+  .kpi-app .rg-ad-table thead th:nth-child(n+3) { width: 9.6%; }
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 5px 2px; }
-  .kpi-app .rg-ad-table tbody td { font-size: 10px; padding: 6px 2px; }
+  .kpi-app .rg-ad-table tbody td { font-size: 9px; padding: 6px 1px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 5px; }
+  .kpi-app .rg-ad-name-cell,
+  .kpi-app .rg-ad-name-line,
+  .kpi-app .rg-ad-afyp { min-width: 0; max-width: 100%; overflow: hidden; }
+  .kpi-app .rg-ad-name { font-size: 8.5px; }
+  .kpi-app .rg-ad-name-pct { font-size: 7px; }
+  .kpi-app .rg-ad-sub { font-size: 6.5px; }
+  .kpi-app .rg-ad-afyp { display: block; font-size: 8px; letter-spacing: -.02em; }
+  .kpi-app .rg-ad-val { font-size: 8.5px; }
   .kpi-app .rg-ad-mini-prog { width: 36px; }
   /* Đảm bảo bảng AD căn cùng lề 12px với header/AFYP row trên mobile */
   .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; }
@@ -1678,11 +1693,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-kh { font-size: 8px; }
   .kpi-app .rg-prog { height: 4px; margin: 0 10px 4px; border-radius: 99px; }
   /* Summary: 1 row 4-col trên desktop để tiết kiệm chiều dọc cho AD table */
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; gap: 1px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 1px; }
   .kpi-app .rg-sum-cell { padding: 3px 2px; min-height: 26px; }
   .kpi-app .rg-sum-label { font-size: 7.5px; margin-bottom: 1px; }
   .kpi-app .rg-sum-val { font-size: 11px; }
-  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
@@ -1800,11 +1815,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-kh { font-size: 9px; }
   .kpi-app .rg-prog { margin: 0 11px 5px; }
   /* Summary: 1 row 4-col trên desktop lớn */
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
   .kpi-app .rg-sum-cell { padding: 4px 3px; min-height: 30px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
   .kpi-app .rg-sum-val { font-size: 12px; }
-  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
@@ -2041,7 +2056,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-head-name { font-size: 12px; }
   .kpi-app .rg-head-pct { font-size: 17px; }
   .kpi-app .rg-afyp-row { padding: 8px 14px; }
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-sum-cell { padding: 7px 4px; min-height: 38px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
   .kpi-app .rg-sum-val { font-size: 13px; }
@@ -3442,7 +3458,7 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
 }
 
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; }
-interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
+interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
 interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
 
@@ -4798,8 +4814,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
     // Số TVV đang hoạt động theo AD: TVV → Mã Ban/Nhóm → Mã AD.
     const activeTvvByAD = new Map<string, number>();
+    let activeTvvTotal = 0;
     tvvStructList.forEach(tvv => {
       if (normKey(tvv.note) !== 'HOATDONG') return;
+      activeTvvTotal++;
       const adInfo = bnToAdMap.get(String(tvv.maBanNhom || '').trim());
       if (!adInfo) return;
       activeTvvByAD.set(adInfo.maAD, (activeTvvByAD.get(adInfo.maAD) || 0) + 1);
@@ -4869,7 +4887,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       // PA or Banca → merge into Banca - PA
       if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
         if (!bancaPaPhong) {
-          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, activeTvv: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         // NOTE: normKey() lowercases + strips accents/punctuation, so the substring
@@ -4907,7 +4925,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
 
       // Regular phong with ADs
-      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: false };
+      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, activeTvv: 0, ads: [], noAds: false };
       let pIpSum = 0;
 
       const phongADs = adStructList.filter(a => a.maPhong === phongStruct.maPhong);
@@ -4950,7 +4968,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
         const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong, activeTvv: activeTvvByAD.get(adStruct.maAD) || 0 };
         p.ads.push(d);
-        p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
+        p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan; p.activeTvv += d.activeTvv;
         pIpSum += ip;
       });
 
@@ -4959,6 +4977,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     }
 
     if (bancaPaPhong) {
+      // Phần còn lại ngoài các AD thuộc Phòng kinh doanh được gom vào Banca - PA
+      // để tổng SL TVV HĐ của các card luôn khớp chính xác với ô Công ty.
+      const regularPhongActiveTvv = phongs.reduce((sum, p) => sum + p.activeTvv, 0);
+      bancaPaPhong.activeTvv = Math.max(0, activeTvvTotal - regularPhongActiveTvv);
       phongs.push(bancaPaPhong);
     }
 
@@ -5810,7 +5832,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
-                      <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
+                      <div className={`rg-summary${phong.noAds ? ' rg-summary-banca' : ''}`}>
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">Lượt</div>
                           <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -5831,6 +5853,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                         </div>
                         )}
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">SL TVV HĐ</div>
+                          <div className="rg-sum-val active-tvv"><AnimNum value={phong.activeTvv} /></div>
+                        </div>
                       </div>
                       {/* Thin separator (thay cho dòng Tỷ trọng IP riêng) */}
                       <div className="rg-divider" />
@@ -6271,7 +6297,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
-                            <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
+                            <div className={`rg-summary${phong.noAds ? ' rg-summary-banca' : ''}`}>
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">Lượt</div>
                                 <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -6292,6 +6318,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                               </div>
                               )}
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">SL TVV HĐ</div>
+                                <div className="rg-sum-val active-tvv"><AnimNum value={phong.activeTvv} /></div>
+                              </div>
                             </div>
                             {/* Thin separator */}
                             <div className="rg-divider" />
