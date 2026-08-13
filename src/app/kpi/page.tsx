@@ -3956,6 +3956,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const calendarEventsCacheRef = useRef<Map<string, CalendarEvent[]>>(new Map());
+  const calendarRequestRef = useRef<Map<string, Promise<CalendarEvent[]>>>(new Map());
+  const calMonthRef = useRef(calMonth);
+  useEffect(() => { calMonthRef.current = calMonth; }, [calMonth]);
   // Calendar edit popup state (settings button locked with password)
   const [calAuthed, setCalAuthed] = useState(false);
   const [calPwdOpen, setCalPwdOpen] = useState(false);
@@ -4610,16 +4614,63 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setTvvStructList(appData.structureTvv || []);
   }, [appData.structureAd, appData.structurePhong, appData.structureBanNhom, appData.structureTvv, dataVersion]);
 
-  /* Fetch calendar events */
-  const refreshCalendarEvents = useCallback(() => {
-    const year = CUR_YEAR;
-    const month = `${year}-${calMonth}`;
-    fetch(`/api/calendar?month=${month}`).then(r => r.ok ? r.json() : []).then(setCalendarEvents).catch(() => setCalendarEvents([]));
-  }, [calMonth, CUR_YEAR]);
+  /* Fetch calendar events — cache theo tháng, chỉ prefetch tháng hiện tại. */
+  const loadCalendarMonth = useCallback((month: string, force = false): Promise<CalendarEvent[]> => {
+    if (!force) {
+      const cached = calendarEventsCacheRef.current.get(month);
+      if (cached) return Promise.resolve(cached);
 
+      const pending = calendarRequestRef.current.get(month);
+      if (pending) return pending;
+    }
+
+    const request = fetch(`/api/calendar?month=${month}`, { cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Calendar request failed');
+        const data = await response.json();
+        return Array.isArray(data) ? data as CalendarEvent[] : [];
+      })
+      .then(events => {
+        calendarEventsCacheRef.current.set(month, events);
+        return events;
+      })
+      .catch(() => [] as CalendarEvent[])
+      .finally(() => {
+        if (calendarRequestRef.current.get(month) === request) {
+          calendarRequestRef.current.delete(month);
+        }
+      });
+
+    calendarRequestRef.current.set(month, request);
+    return request;
+  }, []);
+
+  const refreshCalendarEvents = useCallback(async (force = false) => {
+    const month = `${CUR_YEAR}-${calMonth}`;
+    const events = await loadCalendarMonth(month, force);
+    if (`${CUR_YEAR}-${calMonthRef.current}` === month) setCalendarEvents(events);
+    return events;
+  }, [calMonth, CUR_YEAR, loadCalendarMonth]);
+
+  // Tải nền riêng tháng hiện tại ngay khi KPI mount để mở Kế hoạch khung gần như tức thì.
+  useEffect(() => {
+    const month = `${CUR_YEAR}-${CUR_MONTH}`;
+    void loadCalendarMonth(month).then(events => {
+      if (`${CUR_YEAR}-${calMonthRef.current}` === month) setCalendarEvents(events);
+    });
+  }, [CUR_YEAR, CUR_MONTH, loadCalendarMonth]);
+
+  // Các tháng khác chỉ được tải khi người dùng đang xem và chọn đúng tháng đó.
   useEffect(() => {
     if (view !== 'calendar') return;
-    refreshCalendarEvents();
+    const month = `${CUR_YEAR}-${calMonth}`;
+    const cached = calendarEventsCacheRef.current.get(month);
+    if (cached) {
+      setCalendarEvents(cached);
+      return;
+    }
+    setCalendarEvents([]);
+    void refreshCalendarEvents();
   }, [view, calMonth, CUR_YEAR, refreshCalendarEvents]);
 
   /* Calendar edit handlers */
@@ -4722,7 +4773,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed');
-      await refreshCalendarEvents();
+      await refreshCalendarEvents(true);
       setCalEditOpen(false);
     } catch (e) {
       setCalEditError('Lỗi khi lưu. Vui lòng thử lại.');
@@ -4738,7 +4789,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     try {
       const res = await fetch(`/api/calendar?id=${calEditForm.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed');
-      await refreshCalendarEvents();
+      await refreshCalendarEvents(true);
       setCalEditOpen(false);
     } catch (e) {
       setCalEditError('Lỗi khi xóa. Vui lòng thử lại.');
@@ -5777,8 +5828,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><CalendarDays size={14} /></span> <span className="nav-label">Kế hoạch khung</span>
                 </button>
-                <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
-                  <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
                 </button>
                 <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                   <span className="nav-icon"><BookOpen size={14} /></span> <span className="nav-label">Chính sách 2026</span>
@@ -5786,8 +5837,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                   <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
                 </button>
-                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                  <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
+                <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
+                  <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
                 </button>
               </nav>
 
@@ -6053,8 +6104,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
-                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
+                      <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
                     </button>
                     <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
@@ -6062,8 +6113,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </button>
-                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
-                      <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
+                    <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
+                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
