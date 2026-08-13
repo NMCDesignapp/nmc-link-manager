@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         .map(row => ({
           agentCode: text(row, 'Mã TVV'), agentName: text(row, 'Tên TVV'), maBanNhom: text(row, 'Mã Ban/Nhóm'),
           chucVu: text(row, 'Chức vụ'), ngayBatDau: date(row['Ngày bắt đầu làm việc']),
-          maTVVTuyendung: text(row, 'Mã TVV TD'), note: text(row, 'Ghi chú'),
+          maTVVTuyendung: text(row, 'Mã TVV TD'), note: text(row, 'Trạng thái'),
         }))
         .filter(row => row.agentCode && row.agentName);
       if (!rows.length) return NextResponse.json({ error: 'Không có TVV hợp lệ' }, { status: 400 });

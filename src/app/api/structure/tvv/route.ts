@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         chucVu: getValFlex(r, 'chucVu', 'Chức vụ', 'chuc vu') || '',
         ngayBatDau: safeDate(getValFlex(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lam viec', 'ngay bd', 'ngay bat dau lv')),
         maTVVTuyendung: getValFlex(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'manguoituyendung', 'ma nguoi td', 'ma dl td', 'nguoi tuyen dung', 'nguoi td') || '',
-        note: getValFlex(r, 'note', 'Ghi chú', 'ghi chu') || '',
+        note: getValFlex(r, 'note', 'Trạng thái', 'trang thai', 'Ghi chú', 'ghi chu') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
 
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     const chucVu = getValFlex(body, 'chucVu', 'Chức vụ', 'chuc vu');
     const ngayBatDau = getValFlex(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lv');
     const maTVVTuyendung = getValFlex(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma dl td');
-    const note = getValFlex(body, 'note', 'Ghi chú', 'ghi chu');
+    const note = getValFlex(body, 'note', 'Trạng thái', 'trang thai', 'Ghi chú', 'ghi chu');
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({
