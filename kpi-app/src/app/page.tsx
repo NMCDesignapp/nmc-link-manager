@@ -1002,8 +1002,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* ============= AD DETAIL POPUP ============= */
 .kpi-app .adp-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(4, 24, 40, 0.72);
-  backdrop-filter: blur(3px);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(46, 112, 168, .22) 0%, rgba(10, 36, 60, .08) 38%, transparent 64%),
+    rgba(2, 15, 28, .80);
+  backdrop-filter: blur(7px) saturate(.82);
   display: flex; align-items: center; justify-content: center;
   padding: 12px;
   animation: adpFadeIn .2s ease-out;
@@ -1014,9 +1016,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   width: 100%; max-width: 1080px;
   /* Chiều cao = 3× kích thước đã thu nhỏ (1/4 → 3/4 so với ban đầu) */
   height: calc(75vh - 18px); min-height: 450px; max-height: 570px;
-  background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
-  border-radius: 8px; overflow: hidden;
-  box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
+  position: relative;
+  background: linear-gradient(145deg, #ffffff 0%, #f5f9fd 48%, #e7eff7 100%);
+  border: 2px solid #8eabc5;
+  border-radius: 0; overflow: hidden;
+  outline: 1px solid rgba(255,255,255,.70); outline-offset: -3px;
+  box-shadow:
+    0 34px 86px rgba(0, 8, 20, .62),
+    0 14px 30px rgba(5, 36, 68, .34),
+    0 0 0 1px rgba(10, 54, 92, .45),
+    0 0 34px rgba(58, 124, 200, .16),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 0 rgba(42, 86, 126, .16);
   display: flex; flex-direction: column;
   transform: scale(.9);
   transform-origin: center center;
@@ -1031,9 +1042,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 12px;
-  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
-  border-bottom: 2px solid #1a4a7a;
-  box-shadow: 0 2px 0 #ffffff22 inset, 0 2px 6px #00000022;
+  background: linear-gradient(180deg, #4388d2 0%, #2f73bf 48%, #245d9e 100%);
+  border-bottom: 3px solid #173f6d;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(0,0,0,.22),
+    0 5px 14px rgba(10, 48, 82, .30);
   flex-shrink: 0;
 }
 .kpi-app .adp-header-name {
@@ -1056,6 +1070,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   display: grid; grid-template-rows: auto 1fr; gap: 4px;
   padding: 6px 8px 8px;
   overflow: auto;
+  box-shadow: inset 0 10px 18px rgba(35, 76, 112, .08);
 }
 
 .kpi-app .adp-top {
@@ -1229,7 +1244,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
     max-width: 100%; height: 75vh; min-height: 390px; max-height: 570px;
-    border-radius: 5px;
+    border-radius: 0;
+    border-width: 1.5px;
+    box-shadow:
+      0 24px 58px rgba(0, 8, 20, .65),
+      0 10px 24px rgba(5, 36, 68, .38),
+      0 0 0 1px rgba(10, 54, 92, .42),
+      inset 0 1px 0 rgba(255,255,255,.92);
   }
   .kpi-app .adp-header { padding: 5px 9px; }
   .kpi-app .adp-header-name { font-size: 11px; }
