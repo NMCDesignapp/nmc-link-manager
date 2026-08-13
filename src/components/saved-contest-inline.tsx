@@ -66,7 +66,6 @@ import {
   formatBonusAmount,
   formatRate,
   getConditionLabel,
-  getIndividualMetricLabel,
   getTargetLabel,
   norm,
   type TVVTotalRow,
@@ -632,7 +631,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       })
       .sort((a, b) => b.value - a.value);
 
-    const valueLabel = isPassCountIPAFYP
+    const valueLabel = config.includeIndividualTN && !isPassCount
+      ? 'TỔNG CỘNG'
+      : isPassCountIPAFYP
       ? 'SL TVV ĐẠT'
       : isPassCount
       ? 'SL TVV ĐẠT CTĐK'
@@ -744,9 +745,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       : config.conditionType === 'total_afyp'
         ? 'TỔNG AFYP TUYỂN'
         : 'TỔNG IP TUYỂN';
-    const valueLabel = includeIndividualNTD
-      ? `${baseValueLabel} + ${getIndividualMetricLabel(config.conditionType)}`
-      : baseValueLabel;
+    const valueLabel = includeIndividualNTD ? 'TỔNG CỘNG' : baseValueLabel;
 
     return (
       <Table className="saved-contest-nyd-table">

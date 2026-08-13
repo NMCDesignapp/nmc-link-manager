@@ -2208,9 +2208,8 @@ function ThiDuaPageInner() {
         const { tier } = calculateBonus(value);
         return { nyd: n, tier, value };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value }, idx) => {
-        const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} Lượt` : formatNumber(value);
-        const individualValue = isActivityRoundMode(conditionType) ? n.ownActivityRounds : n.ownFYP;
-        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualNTD ? ` | ${getIndividualMetricLabel(conditionType)}: ${formatNumber(individualValue)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount)}` : 'Chưa đạt'}\n`;
+        const displayVal = isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value);
+        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal} | ${tier ? `Thưởng: ${formatBonus(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
       [...groupedData].map((g) => {
@@ -2275,7 +2274,7 @@ function ThiDuaPageInner() {
 
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP', ...(includeIndividualNTD ? [getIndividualMetricLabel(conditionType)] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', includeIndividualNTD ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
       rows = [];
       merges = [];
       let currentRow = 1; // row 0 = header
@@ -2296,7 +2295,6 @@ function ThiDuaPageInner() {
         if (contracts.length === 0) {
           // NTD không có HĐ, vẫn ghi 1 dòng
           const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName, n.position || '', value];
-          if (includeIndividualNTD) row.push(isActivityRoundMode(conditionType) ? n.ownActivityRounds : n.ownFYP);
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
           row.push('', '', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
@@ -2315,7 +2313,6 @@ function ThiDuaPageInner() {
               cIdx === 0 ? (n.position || '') : '',
               cIdx === 0 ? value : '',
             ];
-            if (includeIndividualNTD) row.push(cIdx === 0 ? (isActivityRoundMode(conditionType) ? n.ownActivityRounds : n.ownFYP) : '');
             if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             row.push(
@@ -2350,9 +2347,8 @@ function ThiDuaPageInner() {
             merges.push({ s: { r: startRow, c: 4 }, e: { r: endRow, c: 4 } });
             // Điều kiện col 5
             merges.push({ s: { r: startRow, c: 5 }, e: { r: endRow, c: 5 } });
-            let mergeOffset = 0;
-            if (includeIndividualNTD) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
-            // Supplementary cols (6 + mergeOffset ... 6 + mergeOffset + secOffset - 1)
+            const mergeOffset = 0;
+            // Supplementary cols (6 ... 6 + secOffset - 1)
             for (let ci = 0; ci < secOffset; ci++) {
               merges.push({ s: { r: startRow, c: 6 + mergeOffset + ci }, e: { r: endRow, c: 6 + mergeOffset + ci } });
             }
@@ -2410,7 +2406,7 @@ function ThiDuaPageInner() {
         merges = [];
       } else {
         // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-        const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+        const condHeader = includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
         if (usePhase2) {
           headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         } else {
@@ -4066,16 +4062,13 @@ function ThiDuaPageInner() {
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">Họ tên</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center whitespace-nowrap">Chức vụ</TableHead>
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
-                            {isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                            {includeIndividualNTD ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                           </TableHead>
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
-                          )}
-                          {includeIndividualNTD && (
-                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">{getIndividualMetricLabel(conditionType)}</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
@@ -4131,7 +4124,7 @@ function ThiDuaPageInner() {
                             <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
                             <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
                             <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
-                              {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                              {includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                               {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                             </TableHead>
                             {showSecondaryPerContractColumn && (
@@ -4336,9 +4329,6 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
-                          {includeIndividualNTD && (
-                            <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(isActivityRoundMode(conditionType) ? nyd.ownActivityRounds : nyd.ownFYP)}</TableCell>
-                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
