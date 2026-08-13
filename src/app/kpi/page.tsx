@@ -365,7 +365,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   /* căn trái-phải bằng 0 để bảng AD dùng margin 12px — cùng lề với rg-head/rg-afyp-row */
 }
 .kpi-app .rg-ad-table {
-  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
   border-radius: 3px; overflow: hidden;
   border: 1px solid #c8d8ea;
@@ -384,7 +384,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 .kpi-app .rg-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .rg-ad-table thead th:nth-child(1) { width: 21%; }
+.kpi-app .rg-ad-table thead th:nth-child(2) { width: 26%; }
+.kpi-app .rg-ad-table thead th:nth-child(n+3) { width: 10.6%; white-space: normal; line-height: 1.05; }
 .kpi-app .rg-ad-table tbody tr { transition: background .15s, box-shadow .15s; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-progress-track td {
+  height: 3px; padding: 0 !important; border: 0; background: rgba(226, 232, 240, .46);
+}
+.kpi-app .rg-ad-progress-fill {
+  display: block; height: 3px; border-radius: 0 99px 99px 0; opacity: .48;
+  transition: width 1s cubic-bezier(.22,1,.36,1), background .4s ease;
+}
 .kpi-app .rg-ad-table tbody tr:hover {
   background: linear-gradient(180deg, #f0f8ff 0%, #e0ecfa 100%);
   box-shadow: 0 1px 0 #ffffff inset;
@@ -403,6 +413,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-val.td { color: #DB2777; }      /* pink - TD */
 .kpi-app .rg-ad-val.hdc { color: #65A30D; }     /* lime - HĐC */
 .kpi-app .rg-ad-val.ip { color: #B45309; }      /* dark amber - IP% */
+.kpi-app .rg-ad-val.active-tvv { color: #047857; }
 .kpi-app .rg-ad-pct { font-weight: 900; }
 .kpi-app .rg-ad-pct.green { color: #16a34a; }
 .kpi-app .rg-ad-pct.gold { color: #d97706; }
@@ -410,30 +421,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-mini-prog { width: 44px; height: 5px; border-radius: 99px; background: #e0e8f0; display: inline-block; vertical-align: middle; overflow: hidden; }
 .kpi-app .rg-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
 .kpi-app .rg-ad-empty { padding: 14px 10px; text-align: center; font-size: 10px; color: #8aa0b8; font-style: italic; }
-
-/* Circular progress for AD row */
-.kpi-app .rg-ad-circle { display: inline-block; vertical-align: middle; }
-.kpi-app .rg-ad-circle-bg { fill: none; stroke: #e0e8f0; stroke-width: 3; }
-.kpi-app .rg-ad-circle-fg { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.22,1,.36,1), stroke 0.4s ease; }
-.kpi-app .rg-ad-circle-text { font-size: 9px; font-weight: 900; fill: #1a4a7a; text-anchor: middle; dominant-baseline: central; }
-.kpi-app .rg-ad-circle-text.green { fill: #166534; }
-.kpi-app .rg-ad-circle-text.gold { fill: #b45309; }
-.kpi-app .rg-ad-circle-text.red { fill: #b91c1c; }
-
-/* Green checkmark when AD %KH >= 100% */
-.kpi-app .rg-ad-checkmark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
-  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
-  box-shadow: 0 0 0 2px #4ade8044, 0 0 14px #4ade8088, inset 0 1px 2px #ffffff44;
-  animation: rgCheckPulse 2s ease-in-out infinite;
-  vertical-align: middle;
-}
-.kpi-app .rg-ad-checkmark svg { color: #fff; filter: drop-shadow(0 1px 2px #16653444); }
-@keyframes rgCheckPulse {
-  0%, 100% { box-shadow: 0 0 0 2px #4ade8044, 0 0 12px #4ade8066, inset 0 1px 2px #ffffff44; }
-  50% { box-shadow: 0 0 0 4px #4ade8066, 0 0 22px #4ade80aa, inset 0 1px 2px #ffffff66; }
-}
 
 /* Banca TVV count (right side of AFYP row) */
 .kpi-app .rg-banca-tvv-count {
@@ -464,13 +451,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* AD name cell: name + small KH under */
 .kpi-app .rg-ad-name-cell { display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
+.kpi-app .rg-ad-name-line { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
+.kpi-app .rg-ad-name-pct { flex: 0 0 auto; font-size: 8px; font-weight: 900; }
+.kpi-app .rg-ad-name-pct.green { color: #16a34a; }
+.kpi-app .rg-ad-name-pct.gold { color: #d97706; }
+.kpi-app .rg-ad-name-pct.red { color: #dc2626; }
 .kpi-app .rg-ad-sub { font-size: 7px; color: #9aa8be; font-weight: 600; white-space: nowrap; opacity: 0.85; }
 .kpi-app .rg-ad-afyp { color: #1a4a7a; font-weight: 900; white-space: nowrap; }
 .kpi-app .rg-ad-afyp-unit { font-size: 0.7em; color: #6a8aaa; font-weight: 700; margin-left: 2px; }
 
 /* %KH on progress bar (overlay) */
-.kpi-app .rg-ad-prog-cell { position: relative; min-width: 60px; }
 .kpi-app .rg-ad-prog-wrap { position: relative; width: 100%; min-width: 50px; }
 .kpi-app .rg-ad-pct-on-prog {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -1703,10 +1694,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-afyp { font-size: 9px; }
   .kpi-app .rg-ad-afyp-unit { font-size: .6em; }
   .kpi-app .rg-ad-val { font-size: 9px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 20px; height: 20px; }
-  .kpi-app .rg-ad-circle-text { font-size: 7px; }
-  .kpi-app .rg-ad-checkmark { width: 20px; height: 20px; }
-  .kpi-app .rg-ad-checkmark svg { width: 12px; height: 12px; }
   .kpi-app .rg-banca-tvv-count { font-size: 9px; padding: 3px 6px; }
 
   /* --- Hidden legacy desktop blocks --- */
@@ -1828,10 +1815,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-sub { font-size: 8px; }
   .kpi-app .rg-ad-afyp { font-size: 10px; }
   .kpi-app .rg-ad-val { font-size: 10px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 22px; height: 22px; }
-  .kpi-app .rg-ad-circle-text { font-size: 8px; }
-  .kpi-app .rg-ad-checkmark { width: 22px; height: 22px; }
-  .kpi-app .rg-ad-checkmark svg { width: 14px; height: 14px; }
   .kpi-app .sub-title { font-size: 28px; }
   .kpi-app .top3-grid { max-width: 980px; gap: 22px; }
   .kpi-app .top3-card { padding: 22px 18px 18px; }
@@ -3457,7 +3440,7 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
   return tokens.includes('tb') || tokens.includes('tn');
 }
 
-interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
+interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; }
 interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
 interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
@@ -4812,6 +4795,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
     });
 
+    // Số TVV đang hoạt động theo AD: TVV → Mã Ban/Nhóm → Mã AD.
+    const activeTvvByAD = new Map<string, number>();
+    tvvStructList.forEach(tvv => {
+      if (normKey(tvv.note) !== 'HOATDONG') return;
+      const adInfo = bnToAdMap.get(String(tvv.maBanNhom || '').trim());
+      if (!adInfo) return;
+      activeTvvByAD.set(adInfo.maAD, (activeTvvByAD.get(adInfo.maAD) || 0) + 1);
+    });
+
     // ========== TVV tuyển dụng trong period — theo AD/Phong ==========
     const tvvInPeriodByAD = new Map<string, number>();
     const tvvInPeriodByPhong = new Map<string, number>();
@@ -4955,7 +4947,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         // (AD now uses 12 monthly inputs directly; ratio only applies to Nhóm)
         const adPeriodKh = periodMonths.reduce((s, m) => s + readAdMonthlyPlan(adStruct.maAD, m), 0);
 
-        const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
+        const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong, activeTvv: activeTvvByAD.get(adStruct.maAD) || 0 };
         p.ads.push(d);
         p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
         pIpSum += ip;
@@ -5853,7 +5845,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 <th>TD</th>
                                 <th>HĐC</th>
                                 <th>IP%</th>
-                                <th></th>
+                                <th>SL TVV HĐ</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5861,8 +5853,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
                                 const aCp = Math.min(aPct, 100);
                                 const aPctCls = pctClass(aPct);
-                                const aProgStart = progressColor(Math.max(aPct - 24, 0));
-                                const aProgEnd = progressColor(aPct);
                                 const aGlow = aPct >= 100 ? 'rg-ad-glow' : '';
                                 const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                 const canOpenPopup = !!adStructForPopup;
@@ -5879,10 +5869,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                   });
                                 };
                                 return (
-                                  <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} onClick={openAdPopup}>
+                                  <Fragment key={ai}>
+                                  <tr className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} onClick={openAdPopup}>
                                     <td>
                                       <div className="rg-ad-name-cell">
-                                        <span className="rg-ad-name">{ad.ten}</span>
+                                        <span className="rg-ad-name-line">
+                                          <span className="rg-ad-name">{ad.ten}</span>
+                                          <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                        </span>
                                         {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
                                       </div>
                                     </td>
@@ -5891,22 +5885,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                     <td className="rg-ad-val td">{ad.td}</td>
                                     <td className="rg-ad-val hdc">{ad.hdChuan}</td>
                                     <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
-                                    <td className="rg-ad-prog-cell">
-                                      {aPct >= 100 ? (
-                                        <div className="rg-ad-checkmark"><Check size={18} strokeWidth={3.5} /></div>
-                                      ) : (
-                                        <svg width="32" height="32" viewBox="0 0 32 32" className="rg-ad-circle">
-                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                            stroke={progressColor(aPct)}
-                                            strokeDasharray={2 * Math.PI * 13}
-                                            strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                            transform="rotate(-90 16 16)" />
-                                          <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                        </svg>
-                                      )}
-                                    </td>
+                                    <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                   </tr>
+                                  <tr className="rg-ad-progress-track" aria-hidden="true">
+                                    <td colSpan={7}><span className="rg-ad-progress-fill" style={{ width: `${aCp}%`, background: progressColor(aPct) }} /></td>
+                                  </tr>
+                                  </Fragment>
                                 );
                               })}
                             </tbody>
@@ -6322,7 +6306,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                       <th>TD</th>
                                       <th>HĐC</th>
                                       <th>IP%</th>
-                                      <th></th>
+                                      <th>SL TVV HĐ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -6330,8 +6314,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                       const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
                                       const aCp = Math.min(aPct, 100);
                                       const aPctCls = pctClass(aPct);
-                                      const aProgStart = progressColor(Math.max(aPct - 24, 0));
-                                      const aProgEnd = progressColor(aPct);
                                       const aGlow = aPct >= 100 ? 'rg-ad-glow anim-in' : 'anim-in';
                                       const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                       const canOpenPopup = !!adStructForPopup;
@@ -6348,10 +6330,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                         });
                                       };
                                       return (
-                                        <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }} onClick={openAdPopup}>
+                                        <Fragment key={ai}>
+                                        <tr className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }} onClick={openAdPopup}>
                                           <td>
                                             <div className="rg-ad-name-cell">
-                                              <span className="rg-ad-name">{ad.ten}</span>
+                                              <span className="rg-ad-name-line">
+                                                <span className="rg-ad-name">{ad.ten}</span>
+                                                <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                              </span>
                                               {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
                                             </div>
                                           </td>
@@ -6360,22 +6346,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                           <td className="rg-ad-val td">{ad.td}</td>
                                           <td className="rg-ad-val hdc">{ad.hdChuan}</td>
                                           <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
-                                          <td className="rg-ad-prog-cell">
-                                            {aPct >= 100 ? (
-                                              <div className="rg-ad-checkmark"><Check size={20} strokeWidth={3.5} /></div>
-                                            ) : (
-                                              <svg width="34" height="34" viewBox="0 0 32 32" className="rg-ad-circle">
-                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                                  stroke={progressColor(aPct)}
-                                                  strokeDasharray={2 * Math.PI * 13}
-                                                  strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                                  transform="rotate(-90 16 16)" />
-                                                <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                              </svg>
-                                            )}
-                                          </td>
+                                          <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                         </tr>
+                                        <tr className="rg-ad-progress-track" aria-hidden="true">
+                                          <td colSpan={7}><span className="rg-ad-progress-fill" style={{ width: `${aCp}%`, background: progressColor(aPct) }} /></td>
+                                        </tr>
+                                        </Fragment>
                                       );
                                     })}
                                   </tbody>
