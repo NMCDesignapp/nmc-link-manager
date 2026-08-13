@@ -66,6 +66,7 @@ import {
   formatBonusAmount,
   formatRate,
   getConditionLabel,
+  getIndividualMetricLabel,
   getTargetLabel,
   norm,
   type TVVTotalRow,
@@ -730,7 +731,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   //   - pass_count_*: recruitCount (số TVV do NTD tuyển có FYP ≥ luotHDThreshold)
   const renderNYDTable = () => {
     const isActivity = isActivityRoundMode(config.conditionType);
-    const includeIndividualTN = config.includeIndividualNTD ?? false;
+    const includeIndividualNTD = config.includeIndividualNTD ?? false;
     const filteredRows = nydResultRows.filter((row) => {
       if (hideNotAchieved && !row.tier) return false;
       if (!row.nyd.nhom) return false;
@@ -738,7 +739,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       if (q && !((row.nyd.nydName || '').toLowerCase().includes(q) || (row.nyd.nydCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
-    const valueLabel = isActivity ? 'LƯỢT HĐ CHUẨN' : 'TỔNG FYP TUYỂN';
+    const baseValueLabel = isActivity
+      ? getConditionLabel(config.conditionType)
+      : config.conditionType === 'total_afyp'
+        ? 'TỔNG AFYP TUYỂN'
+        : 'TỔNG IP TUYỂN';
+    const valueLabel = includeIndividualNTD
+      ? `${baseValueLabel} + ${getIndividualMetricLabel(config.conditionType)}`
+      : baseValueLabel;
 
     return (
       <Table className="saved-contest-nyd-table">

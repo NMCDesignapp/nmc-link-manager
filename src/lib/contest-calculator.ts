@@ -67,6 +67,7 @@ export interface NYDData {
   recruitCount: number;
   recruitFYP: number;
   ownFYP: number;
+  ownActivityRounds: number;
   contracts: Contract[];
 }
 
@@ -375,6 +376,12 @@ export function getConditionLabel(ct: ConditionType): string {
     case 'pass_count_ip_afyp': return 'Đếm TVV đạt IP+AFYP';
     case 'top_n_ip': return 'Xét Top N IP';
   }
+}
+
+export function getIndividualMetricLabel(ct: ConditionType): string {
+  if (isActivityRoundMode(ct)) return `${getConditionLabel(ct)} cá nhân`;
+  if (ct === 'total_afyp' || ct === 'per_contract_afyp') return 'AFYP cá nhân';
+  return 'IP cá nhân';
 }
 
 export function getTargetLabel(tt: TargetType): string {
@@ -1433,6 +1440,7 @@ export function computeNYDData(
           recruitCount: 0,
           recruitFYP: 0,
           ownFYP: 0,
+          ownActivityRounds: 0,
           contracts: [],
         });
       }
@@ -1456,6 +1464,7 @@ export function computeNYDData(
           recruitCount: 0,
           recruitFYP: 0,
           ownFYP: 0,
+          ownActivityRounds: 0,
           contracts: [],
         });
       }
@@ -1472,6 +1481,7 @@ export function computeNYDData(
         recruitCount: 0,
         recruitFYP: 0,
         ownFYP: 0,
+        ownActivityRounds: 0,
         contracts: [],
       });
     }
@@ -1577,6 +1587,7 @@ export function computeNYDData(
     // NTD's own FYP
     const ownRevenue = agentFYPLookup.get(nydCode);
     nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
+    nyd.ownActivityRounds = ownRevenue?.activityRounds ?? 0;
     nyd.contracts = [
       ...recruitedContracts,
       ...displayContracts.filter((c) => c.agentCode === nydCode),
@@ -1602,14 +1613,14 @@ export function computeNYDResultRows(
   if (config.targetType !== 'nyd') return [];
   const conditionType = config.conditionType;
   const isActivityMode = isActivityRoundMode(conditionType);
-  const includeIndividualTN = config.includeIndividualNTD ?? false;
+  const includeIndividualNTD = config.includeIndividualNTD ?? false;
   const bonusTiers = config.bonusTiers;
 
   return nydData
     .map((n) => {
       const value = isActivityMode
-        ? n.recruitCount
-        : n.recruitFYP + (includeIndividualTN ? n.ownFYP : 0);
+        ? n.recruitCount + (includeIndividualNTD ? n.ownActivityRounds : 0)
+        : n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0);
       const { tier, tierIndex } = calculateBonusWithTiers(value, bonusTiers);
       const remaining = getRemainingToNextTier(value, bonusTiers);
       return { nyd: n, value, tier, tierIndex, remaining };
