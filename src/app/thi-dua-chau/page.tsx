@@ -676,7 +676,9 @@ function ThiDuaPageInner() {
   }, [fetchFresh]);
 
   const fetchSavedContests = useCallback(async () => {
-    try { const res = await fetchFresh('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+    // Danh sách chỉ lấy cấu hình tóm tắt, không kéo dữ liệu ảnh poster nặng.
+    // Chi tiết/poster của chương trình được tải riêng khi người dùng mở chương trình đó.
+    try { const res = await fetchFresh('/api/contests?summary=1'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
   }, [fetchFresh]);
 
   // Fetch staff list for group membership reference

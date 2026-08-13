@@ -93,6 +93,15 @@ const summaryWithPosterUrl = <T extends PosterContest>(contest: T) => ({
   posterUrl: posterPublicUrl(contest),
 });
 
+const isSaoVietTrackingContest = (contest: { title?: string | null }) => {
+  const normalizedTitle = String(contest.title || '')
+    .trimStart()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('vi-VN');
+  return !normalizedTitle.startsWith('chot');
+};
+
 async function ensureTopNColumns(): Promise<void> {
   try {
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topN" INTEGER NOT NULL DEFAULT 3');
@@ -121,6 +130,7 @@ async function ensureTopNValueTypeColumn(): Promise<void> {
 async function readContests(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   const summary = request.nextUrl.searchParams.get('summary') === '1';
+  const saoVietView = request.nextUrl.searchParams.get('view') === 'saoviet';
   if (id) {
     const contest = await db.contest.findUnique({ where: { id } });
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
@@ -131,7 +141,8 @@ async function readContests(request: NextRequest) {
     ...(summary ? { select: contestSummarySelect } : {}),
   });
   if (summary) {
-    return NextResponse.json(contests.map(summaryWithPosterUrl), { headers: noStore });
+    const visibleContests = saoVietView ? contests.filter(isSaoVietTrackingContest) : contests;
+    return NextResponse.json(visibleContests.map(summaryWithPosterUrl), { headers: noStore });
   }
   const normalized = await Promise.all(contests.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });

@@ -27,6 +27,17 @@ import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type Contra
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 import { useAppData } from '@/lib/app-data-context';
 
+// nmc-sao-viet-exclude-chot-v1
+// Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
+const isSaoVietTrackingContest = (contest: any) => {
+  const normalizedTitle = String(contest?.title || '')
+    .trimStart()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('vi-VN');
+  return !normalizedTitle.startsWith('chot');
+};
+
 // ==================== TYPES ====================
 interface LeaderInfo {
   id: string; agentCode: string; agentName: string; position: string;
@@ -2938,7 +2949,7 @@ export default function QuanLyPage() {
     if (appData.clbMembers) setClbMembers(appData.clbMembers);
     if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
     if (appData.settings) setOnlineSettings(appData.settings);
-    if (appData.contests) setSavedContestsList(appData.contests);
+    if (appData.contests) setSavedContestsList(appData.contests.filter(isSaoVietTrackingContest));
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
@@ -5469,13 +5480,16 @@ export default function QuanLyPage() {
     let cancelled = false;
     const refreshSavedContests = async () => {
       try {
-        const response = await fetch(`/api/contests?summary=1&_t=${Date.now()}`, {
+        const response = await fetch(`/api/contests?summary=1&view=saoviet&_t=${Date.now()}`, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         });
         if (!response.ok || cancelled) return;
         const contests = await response.json();
-        if (!cancelled && Array.isArray(contests)) setSavedContestsList(contests);
+        if (!cancelled && Array.isArray(contests)) {
+          // Phòng vệ thêm ở giao diện để dữ liệu cache cũ cũng không tạo card Sao Việt.
+          setSavedContestsList(contests.filter(isSaoVietTrackingContest));
+        }
       } catch {
         // Keep the current list during a temporary network interruption.
       }

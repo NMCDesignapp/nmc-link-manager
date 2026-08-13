@@ -144,7 +144,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/structure/tvv'),
           fetchJson('/api/clb-members'),
           fetchJson('/api/pending-members'),
-          fetchJson('/api/contests'),
+          fetchJson('/api/contests?summary=1'),
         ])
         const quanLyAll = await fetchJson('/api/quan-ly/all')
 
