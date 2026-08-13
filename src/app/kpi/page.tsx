@@ -1034,6 +1034,21 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
   will-change: transform, opacity;
 }
+/* Popup AD/nhóm ôm sát nội dung khi ít TVV; danh sách dài mới cuộn bên trong. */
+.kpi-app .adp-modal.is-member-detail {
+  height: auto;
+  min-height: 0;
+  max-height: min(570px, calc(100vh - 24px));
+}
+.kpi-app .adp-modal.is-member-detail .adp-body {
+  flex: 0 1 auto;
+  grid-template-rows: auto minmax(0, auto);
+  overflow: hidden;
+}
+.kpi-app .adp-modal.is-member-detail .adp-table-wrap {
+  flex: 0 1 auto;
+  max-height: 330px;
+}
 @keyframes adpIn {
   from { opacity: 0; transform: scale(.18); }
   to   { opacity: 1; transform: scale(.9); }
@@ -1252,6 +1267,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
       0 0 0 1px rgba(10, 54, 92, .42),
       inset 0 1px 0 rgba(255,255,255,.92);
   }
+  .kpi-app .adp-modal.is-member-detail {
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 8px);
+  }
+  .kpi-app .adp-modal.is-member-detail .adp-table-wrap { max-height: 48dvh; }
   .kpi-app .adp-header { padding: 5px 9px; }
   .kpi-app .adp-header-name { font-size: 11px; }
   .kpi-app .adp-close { width: 22px; height: 22px; }
@@ -6906,7 +6927,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       {adPopupData && (
         <div className="adp-overlay" onClick={() => { setAdPopup(null); setAdPopupGroupOnly(false); }}>
           <div
-            className="adp-modal"
+            className="adp-modal is-member-detail"
             onClick={e => e.stopPropagation()}
           >
             {/* Slim header: AD name + close */}
