@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Fragment, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
@@ -388,13 +388,14 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-table thead th:nth-child(2) { width: 26%; }
 .kpi-app .rg-ad-table thead th:nth-child(n+3) { width: 10.6%; white-space: normal; line-height: 1.05; }
 .kpi-app .rg-ad-table tbody tr { transition: background .15s, box-shadow .15s; }
-.kpi-app .rg-ad-table tbody tr.rg-ad-progress-track td {
-  height: 3px; padding: 0 !important; border: 0; background: rgba(226, 232, 240, .46);
-}
-.kpi-app .rg-ad-progress-fill {
-  display: block; height: 3px; border-radius: 0 99px 99px 0; opacity: .48;
+.kpi-app .rg-ad-table tbody tr.rg-ad-data-row { position: relative; isolation: isolate; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-data-row::before {
+  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 0;
+  width: var(--ad-progress, 0%); background: var(--ad-progress-color, transparent);
+  opacity: .14; pointer-events: none;
   transition: width 1s cubic-bezier(.22,1,.36,1), background .4s ease;
 }
+.kpi-app .rg-ad-table tbody tr.rg-ad-data-row > td { position: relative; z-index: 1; background: transparent; }
 .kpi-app .rg-ad-table tbody tr:hover {
   background: linear-gradient(180deg, #f0f8ff 0%, #e0ecfa 100%);
   box-shadow: 0 1px 0 #ffffff inset;
@@ -5869,8 +5870,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                   });
                                 };
                                 return (
-                                  <Fragment key={ai}>
-                                  <tr className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} onClick={openAdPopup}>
+                                  <tr
+                                    key={ai}
+                                    className={`rg-ad-data-row ${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`}
+                                    style={{ '--ad-progress': `${aCp}%`, '--ad-progress-color': progressColor(aPct) } as CSSProperties}
+                                    onClick={openAdPopup}
+                                  >
                                     <td>
                                       <div className="rg-ad-name-cell">
                                         <span className="rg-ad-name-line">
@@ -5887,10 +5892,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                     <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
                                     <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                   </tr>
-                                  <tr className="rg-ad-progress-track" aria-hidden="true">
-                                    <td colSpan={7}><span className="rg-ad-progress-fill" style={{ width: `${aCp}%`, background: progressColor(aPct) }} /></td>
-                                  </tr>
-                                  </Fragment>
                                 );
                               })}
                             </tbody>
@@ -6330,8 +6331,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                         });
                                       };
                                       return (
-                                        <Fragment key={ai}>
-                                        <tr className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }} onClick={openAdPopup}>
+                                        <tr
+                                          key={ai}
+                                          className={`rg-ad-data-row ${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`}
+                                          style={{ '--ad-progress': `${aCp}%`, '--ad-progress-color': progressColor(aPct), animationDelay: `${(pi * 60) + (ai * 30)}ms` } as CSSProperties}
+                                          onClick={openAdPopup}
+                                        >
                                           <td>
                                             <div className="rg-ad-name-cell">
                                               <span className="rg-ad-name-line">
@@ -6348,10 +6353,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                           <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
                                           <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                         </tr>
-                                        <tr className="rg-ad-progress-track" aria-hidden="true">
-                                          <td colSpan={7}><span className="rg-ad-progress-fill" style={{ width: `${aCp}%`, background: progressColor(aPct) }} /></td>
-                                        </tr>
-                                        </Fragment>
                                       );
                                     })}
                                   </tbody>
