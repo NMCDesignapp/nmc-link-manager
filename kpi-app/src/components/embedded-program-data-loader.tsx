@@ -97,6 +97,11 @@ function createOverlay(): HTMLElement {
   return overlay;
 }
 
+/**
+ * Manages loading feedback for embedded or KPI-launched program details.
+ *
+ * @returns `null`
+ */
 export function EmbeddedProgramDataLoader(): null {
   useEffect(() => {
     if (window.location.pathname !== '/quan-ly') return;

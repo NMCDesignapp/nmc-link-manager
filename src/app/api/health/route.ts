@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+/**
+ * Performs a health check for the application and database connection.
+ *
+ * @returns A JSON response containing environment details and database status, with HTTP status `200` when the database check succeeds or `503` when it fails.
+ */
 export async function GET() {
   const databaseUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''

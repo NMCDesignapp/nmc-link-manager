@@ -520,6 +520,13 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   );
 });
 
+/**
+ * Renders the configurable Thi đua contest calculator and its results.
+ *
+ * Loads contest and organizational data, filters contracts, calculates bonuses for TVVs,
+ * groups, and recruiters, and provides contest persistence and result export actions.
+ * Supports embedded mode for loading and automatically calculating a saved contest.
+ */
 function ThiDuaPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -3,6 +3,11 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 
+/**
+ * Applies a transformation to a file while preserving its newline style.
+ * @param {string} relativePath - The file path relative to the project root.
+ * @param {Function} transform - A function that receives the file content and returns the transformed content.
+ */
 function updateFile(relativePath, transform) {
   const filePath = path.join(root, relativePath);
   const source = fs.readFileSync(filePath, 'utf8');
@@ -17,6 +22,15 @@ function updateFile(relativePath, transform) {
   console.log(`✓ Đã cập nhật ${relativePath}`);
 }
 
+/**
+ * Applies a required text replacement while preserving already-applied transformations.
+ * @param {string} source - The source text to update.
+ * @param {string} from - The expected text fragment.
+ * @param {string} to - The replacement text.
+ * @param {string} label - A label identifying the replacement for error messages.
+ * @return {string} The source text with the replacement applied.
+ * @throws {Error} If the expected source fragment is not found.
+ */
 function replaceRequired(source, from, to, label) {
   if (source.includes(to)) return source;
   // A later build step renames this local to avoid a duplicate declaration.

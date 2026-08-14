@@ -3,6 +3,12 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 
+/**
+ * Applies text replacements to a project file while preserving its newline style.
+ * @param {string} relativePath - The file path relative to the project root.
+ * @param {Array<{from: string, to: string, label: string}>} replacements - Replacement definitions to apply.
+ * @throws {Error} If a replacement's source text is missing and its target text is not already present.
+ */
 function applyReplacements(relativePath, replacements) {
   const filePath = path.join(root, relativePath);
   const originalSource = fs.readFileSync(filePath, 'utf8');

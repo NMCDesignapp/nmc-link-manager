@@ -3882,6 +3882,11 @@ function getGoldHonourRows(indices: number[]): number[][] {
     .filter((row) => row.length > 0);
 }
 
+/**
+ * Renders the responsive KPI dashboard and its supporting detail views.
+ *
+ * @param standalone - Whether to render in standalone mode without navigation to the main application or external sheet controls.
+ */
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
   const router = useRouter();
   const [rawData, setRawData] = useState<{

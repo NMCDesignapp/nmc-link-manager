@@ -3882,6 +3882,11 @@ function getGoldHonourRows(indices: number[]): number[][] {
     .filter((row) => row.length > 0);
 }
 
+/**
+ * Renders the KPI dashboard with overview, detail, calendar, temporary-collection, target-registration, and embedded-sheet views.
+ *
+ * @param standalone - Whether to render the dashboard as an independent application without main-app navigation.
+ */
 export function KPIDashboard({ standalone = false }: { standalone?: boolean } = {}) {
   const router = useRouter();
   const [rawData, setRawData] = useState<{

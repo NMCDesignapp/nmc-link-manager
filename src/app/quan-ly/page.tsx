@@ -1688,7 +1688,11 @@ function VinhDanhTable({
   );
 }
 
-// ==================== MAIN PAGE ====================
+/**
+ * Renders the data management dashboard with navigable sheets, reports, and administrative tools.
+ *
+ * @returns The data management dashboard page.
+ */
 export default function QuanLyPage() {
   const router = useRouter();
   // Lazy init from URL ?sheet=xxx — tránh render 'overview' trước rồi mới switch (causing flash)

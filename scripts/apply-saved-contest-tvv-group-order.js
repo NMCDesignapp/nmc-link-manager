@@ -6,6 +6,12 @@ const originalSource = fs.readFileSync(filePath, 'utf8');
 const newline = originalSource.includes('\r\n') ? '\r\n' : '\n';
 let source = originalSource.replace(/\r\n/g, '\n');
 
+/**
+ * Replaces a required source fragment and throws an error when the expected fragment is missing.
+ * @param {string} from - The source fragment to replace.
+ * @param {string} to - The replacement fragment.
+ * @param {string} label - A label identifying the expected source fragment in error messages.
+ */
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
   if (!source.includes(from)) {

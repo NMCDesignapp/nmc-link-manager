@@ -33,6 +33,14 @@ export interface AppLoaderProps {
   variant?: 'default' | 'kpi';
 }
 
+/**
+ * Displays a loading overlay that transitions out when data loading completes and optionally presents an error with a retry action.
+ *
+ * @param show - Whether the loading overlay should remain visible
+ * @param error - Error message to display instead of the loading state
+ * @param onRetry - Optional callback invoked when the user requests a retry
+ * @param variant - Visual presentation variant for the loader
+ */
 export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoaderProps) {
   // 'loading' → 'complete' → 'zooming' → unmount
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');

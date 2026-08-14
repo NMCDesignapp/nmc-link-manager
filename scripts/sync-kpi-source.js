@@ -84,6 +84,10 @@ for (const required of [mainPage, patchScript, tableUiPatchScript, ...sharedCopi
   if (!fs.existsSync(required)) fail(`Missing required file: ${required}`)
 }
 
+/**
+ * Generates the expected standalone KPI page after applying standalone patches.
+ * @return {string} The patched standalone page source.
+ */
 function expectedStandalonePage() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nmc-kpi-sync-'))
   const tempPage = path.join(tempDir, 'page.tsx')
@@ -96,6 +100,12 @@ function expectedStandalonePage() {
   }
 }
 
+/**
+ * Compares two files for equivalent content.
+ * @param {string} source - Path to the source file.
+ * @param {string} target - Path to the file being compared.
+ * @return {boolean} `true` if both files have equivalent content, `false` if the target is missing or the contents differ.
+ */
 function sameFile(source, target) {
   if (!fs.existsSync(target)) return false
 
@@ -107,10 +117,18 @@ function sameFile(source, target) {
   return normalizeText(fs.readFileSync(source, 'utf8')) === normalizeText(fs.readFileSync(target, 'utf8'))
 }
 
+/**
+ * Normalizes Windows-style line endings to Unix-style line endings.
+ * @param {string} value - The text to normalize.
+ * @return {string} The text with CRLF line endings replaced by LF line endings.
+ */
 function normalizeText(value) {
   return value.replace(/\r\n/g, '\n')
 }
 
+/**
+ * Verifies that the standalone KPI app matches the synchronized Main App sources and assets.
+ */
 function verify() {
   const mismatches = []
 

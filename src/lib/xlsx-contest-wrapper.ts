@@ -118,6 +118,12 @@ function existingSheet(workbook: any, names: string[]): any {
   return undefined;
 }
 
+/**
+ * Parses worksheet rows into detail records using recognized headers and removes empty records.
+ *
+ * @param matrix - The worksheet data represented as a two-dimensional array, with headers in the first row
+ * @returns The parsed detail records
+ */
 function parseDetails(matrix: Matrix): DetailRecord[] {
   if (matrix.length < 2) return [];
   const headers = matrix[0] || [];
@@ -282,6 +288,13 @@ function detailByAgent(details: DetailRecord[]): Map<string, DetailRecord> {
   return map;
 }
 
+/**
+ * Builds normalized agent or contract-level results for TVV contest data.
+ *
+ * @param matrix - Source result rows and their headers
+ * @param details - Parsed detail records used to populate contract information
+ * @returns The output headers, rows, merged-cell ranges, and leader row indexes
+ */
 function buildTVVResult(matrix: Matrix, details: DetailRecord[]) {
   const headers = matrix[0] || [];
   const sourceRows = matrix.slice(1);
@@ -422,6 +435,14 @@ function buildTVVResult(matrix: Matrix, details: DetailRecord[]) {
   return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
 }
 
+/**
+ * Builds normalized recruiter results from source rows and detail records.
+ *
+ * @param matrix - Source worksheet data containing recruiter results.
+ * @param details - Parsed detail records used to match agents and contracts.
+ * @param includeEligibilityDates - Whether to include recruiter effective and agent start dates.
+ * @returns The output headers, rows, merged-cell ranges, and empty leader-row metadata.
+ */
 function buildNTDResult(matrix: Matrix, details: DetailRecord[], includeEligibilityDates = false) {
   const headers = matrix[0] || [];
   const sourceRows = matrix.slice(1);
@@ -542,6 +563,12 @@ function parsePassThreshold(header: CellValue, label: 'IP' | 'AFYP'): number | n
   return Number.isFinite(value) ? value * 1_000 : null;
 }
 
+/**
+ * Groups detail records by agent and aggregates their IP and AFYP totals.
+ *
+ * @param details - The detail records to aggregate
+ * @returns The first record for each agent with aggregated totals and associated contracts
+ */
 function aggregateAgents(details: DetailRecord[]) {
   const map = new Map<string, DetailRecord & { totalIP: number; totalAFYP: number; contracts: DetailRecord[] }>();
   for (const detail of details) {
@@ -559,6 +586,14 @@ function aggregateAgents(details: DetailRecord[]) {
   return Array.from(map.values());
 }
 
+/**
+ * Builds normalized group-leader results with qualifying agents or contracts as child rows.
+ *
+ * @param matrix - Source group-leader result data arranged as a header row followed by data rows
+ * @param details - Parsed detail records used to identify and aggregate group members
+ * @param includeEligibilityDates - Whether to include recruiter effective and start dates in the output
+ * @returns The output headers, rows, merge ranges, and leader-row indexes
+ */
 function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligibilityDates = false) {
   const headers = matrix[0] || [];
   const sourceRows = matrix.slice(1);
@@ -708,6 +743,9 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
   return { headers: outputHeaders, rows: outputRows, merges, leaderRows };
 }
 
+/**
+ * Normalizes a contest workbook into standardized result and detail worksheets.
+ */
 function normalizeContestWorkbook(workbook: any): void {
   const resultSheet = existingSheet(workbook, ['Kết quả thi đua', 'Kết quả']);
   const detailSheet = existingSheet(workbook, ['Chi tiết HĐ', 'Chi tiết']);
@@ -749,6 +787,14 @@ function normalizeContestWorkbook(workbook: any): void {
   workbook.SheetNames = ['Kết_quả', 'Chi_tiết'];
 }
 
+/**
+ * Saves a workbook, normalizing contest workbooks before writing when applicable.
+ *
+ * @param workbook - The workbook to save.
+ * @param filename - The output filename used to identify contest workbooks.
+ * @param options - Options passed to the workbook writer.
+ * @returns The result produced by the workbook writer.
+ */
 export function writeFile(workbook: any, filename: string, options?: any): any {
   const isContestWorkbook = Boolean(
     existingSheet(workbook, ['Kết quả thi đua', 'Kết quả'])

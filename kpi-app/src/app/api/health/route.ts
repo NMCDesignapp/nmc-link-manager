@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+/**
+ * Provides database connectivity and environment diagnostics.
+ *
+ * @returns A JSON response containing diagnostic details, with status `200` when the database query succeeds or `503` when it fails.
+ */
 export async function GET() {
   const databaseUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''

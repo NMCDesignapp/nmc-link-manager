@@ -105,6 +105,11 @@ const writeSessionCache = (data: AppData) => {
   }
 }
 
+/**
+ * Provides application datasets and synchronization state to descendant components through context.
+ *
+ * @param children - The components rendered within the provider
+ */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(initialData)
   const [isLoading, setIsLoading] = useState(true)

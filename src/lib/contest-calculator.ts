@@ -481,18 +481,16 @@ export function filterContractsByContest(
 // ===== Phase 2: filter by target (TVV / Nhóm / NTD) + DSO exclusion =====
 
 /**
- * Filter contracts theo "Ngày hiệu lực chức vụ" của NTD recruiter.
+ * Filters contracts based on the effective appointment date of each contract's recruiter.
  *
- * Quy tắc (khi config.filterByEffectiveDate === true):
- * - Mỗi contract có TVV (c.agentCode) được tuyển bởi NTD (c.maDaiLyTD).
- * - Lấy ngày bắt đầu LV của TVV từ tvvStructList (TVVStruct.ngayBatDau).
- * - Lấy ngày hiệu lực chức vụ gần nhất của NTD từ recruiterList (Recruiter.ngayHieuLuc).
- * - Chỉ giữ contract nếu: TVV.ngayBatDau >= NTD.ngayHieuLuc
- *   (tức là TVV bắt đầu làm việc BẰNG HOẶC SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
- * - Nếu TVV không có ngày bắt đầu LV → bỏ qua (không tính, do data thiếu).
- * - Nếu NTD không có ngày hiệu lực chức vụ → vẫn giữ contract (không có ràng buộc để loại).
+ * Contracts are retained when the TVV's start date is on or after the recruiter's
+ * effective date. Contracts remain included when the recruiter has no effective
+ * date or no recruiter is specified; contracts are excluded when the TVV's start
+ * date is missing.
  *
- * @param tvvStructList DS TVV từ /api/structure/tvv — chứa agentCode + ngayBatDau
+ * @param recruiterList - Recruiter records containing effective appointment dates
+ * @param tvvStructList - TVV structure records containing start dates
+ * @returns Contracts that satisfy the effective-date rule
  */
 export function filterByEffectiveDateRule(
   contracts: Contract[],

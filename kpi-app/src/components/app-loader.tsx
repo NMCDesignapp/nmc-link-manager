@@ -33,6 +33,14 @@ export interface AppLoaderProps {
   variant?: 'default' | 'kpi';
 }
 
+/**
+ * Displays a full-screen loading overlay until data loading completes, then fades it out.
+ *
+ * @param show - Whether loading is still in progress.
+ * @param error - Optional error message to display.
+ * @param onRetry - Optional callback invoked when the retry button is selected.
+ * @param variant - Loader presentation style.
+ */
 export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoaderProps) {
   // 'loading' → 'complete' → 'zooming' → unmount
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');
