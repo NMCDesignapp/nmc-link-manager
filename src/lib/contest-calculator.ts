@@ -195,6 +195,7 @@ export function isTVVm(startDate: string | null, maxMonths: number = 12): boolea
   const start = new Date(startDate);
   if (Number.isNaN(start.getTime())) return false;
   const now = new Date();
+  if (start.getTime() > now.getTime()) return false;
   const diffMonths =
     (now.getFullYear() - start.getFullYear()) * 12 +
     (now.getMonth() - start.getMonth());
