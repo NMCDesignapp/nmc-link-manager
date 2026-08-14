@@ -2276,6 +2276,20 @@ function ThiDuaPageInner() {
     const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
 
+    // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
+    // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
+    const includeEligibilityDateColumns = filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom');
+    const recruiterEffectiveDateMap = new Map<string, string>();
+    for (const recruiter of ntdCandidates) {
+      if (recruiter.agentCode && recruiter.ngayHieuLuc) {
+        recruiterEffectiveDateMap.set(recruiter.agentCode, recruiter.ngayHieuLuc);
+      }
+    }
+    const recruiterEffectiveDateFor = (recruiterCode: string): string => {
+      const date = recruiterEffectiveDateMap.get(recruiterCode);
+      return date ? formatDate(date) : '';
+    };
+
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
       headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', includeIndividualNTD ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
@@ -2410,7 +2424,7 @@ function ThiDuaPageInner() {
         merges = [];
       } else {
         // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-        const condHeader = includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+        const condHeader = includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
         if (usePhase2) {
           headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         } else {
@@ -2624,7 +2638,7 @@ function ThiDuaPageInner() {
 
     // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', ...(includeEligibilityDateColumns ? ['Ngày hiệu lực chức vụ NTD'] : []), 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
       // Build detail rows with bonus values for merging
       const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
 
@@ -2693,7 +2707,13 @@ function ThiDuaPageInner() {
             c.agentCode || '',
             c.agentName || '',
             c.position || '',
-            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+            (() => {
+              const startDate = isTVVmMode(conditionType)
+                ? structureStartDateByCode.get(c.agentCode.trim().toUpperCase())
+                : c.ngayBatDauLamViec;
+              return startDate ? formatDate(startDate) : '';
+            })(),
+            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),
             c.contractNumber || '',
             c.effectiveDate ? formatDate(c.effectiveDate) : '',
             c.issueDate ? formatDate(c.issueDate) : '',
@@ -2752,7 +2772,17 @@ function ThiDuaPageInner() {
       XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
     }
 
-    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const safeContestFileName = (contestTitle || '')
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/\s+/g, ' ')
+      .replace(/[. ]+$/g, '')
+      .slice(0, 120)
+      .trim();
+    const exportFileName = safeContestFileName
+      ? `${safeContestFileName}.xlsx`
+      : `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, exportFileName);
     } catch (err) {
       console.error('[handleExport] Error:', err);
       toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
