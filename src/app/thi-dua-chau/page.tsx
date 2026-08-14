@@ -162,9 +162,11 @@ function isTopNMode(ct: ConditionType): boolean {
 function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   if (!startDate) return false;
   const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return false;
   const now = new Date();
+  if (start.getTime() > now.getTime()) return false;
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return diffMonths >= 0 && diffMonths <= maxMonths;
 }
 
 // Helper: kiểm tra chức vụ TTN (Tiền/Tổ Trưởng Nhóm) — để loại khỏi "TVV cũ"
@@ -201,10 +203,7 @@ function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: numbe
   const agentContract = contracts.find(c => c.agentCode === agentCode);
   const startDate = structureStartDate || agentContract?.ngayBatDauLamViec || agentContract?.startDate;
   if (!startDate) return false;
-  const start = new Date(startDate);
-  const now = new Date();
-  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return isTVVm(startDate, maxMonths);
 }
 
 // Helper: calculate lượt for a group of contracts based on tinhLuot3tr
@@ -213,15 +212,17 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
   let count = 0;
   for (const c of contracts) {
     // Thâm niên lấy từ DS TVV Cấu trúc; dữ liệu dòng hợp đồng chỉ là fallback cũ.
-    const structureStartDate = structureStartDates?.get(c.agentCode);
+    const structureStartDate = structureStartDates?.get(c.agentCode.trim().toUpperCase());
     if (isTVVmMode(conditionType)) {
-      if (!isTVVm(structureStartDate || c.ngayBatDauLamViec || c.startDate)) continue;
+      const startDate = structureStartDates
+        ? structureStartDate || null
+        : c.ngayBatDauLamViec || c.startDate;
+      if (!isTVVm(startDate)) continue;
     }
     if (conditionType === 'activity_round_tvv90') {
       if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDate)) continue;
     }
-    // Dùng pdt10DT (IP thực tế) so với luotThreshold — ĐỒNG BỘ với contest-calculator
-    // (Trước đây dùng c.tinhLuot3tr — field cố định trong DB, không đổi theo thời gian)
+    // Chỉ đếm giá trị đã xử lý sẵn tại cột TÍNH LƯỢT 3tr; không cộng IP/AFYP.
     if (c.tinhLuot3tr >= luotThreshold) {
       count++;
     }
@@ -817,7 +818,8 @@ function ThiDuaPageInner() {
   const structureStartDateByCode = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const member of tvvStructList) {
-      if (member.agentCode && !map.has(member.agentCode)) map.set(member.agentCode, member.ngayBatDau || null);
+      const key = member.agentCode?.trim().toUpperCase();
+      if (key && !map.has(key)) map.set(key, member.ngayBatDau || null);
     }
     return map;
   }, [tvvStructList]);
@@ -1168,7 +1170,7 @@ function ThiDuaPageInner() {
         if (isTVVmMode(conditionType)) {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              return isTVVm(structureStartDateByCode.get(agentCode) || null);
+              return isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null);
             })
           );
         }
@@ -1176,7 +1178,7 @@ function ThiDuaPageInner() {
         if (conditionType === 'activity_round_tvv90') {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode));
+              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase()));
             })
           );
         }
@@ -1766,8 +1768,8 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
@@ -1806,8 +1808,8 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
@@ -3519,7 +3521,7 @@ function ThiDuaPageInner() {
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Lượt hoạt động</p>
                   <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_tvvm' ? 'activity_round_tvvm' : 'activity_round')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round' || conditionType === 'activity_round_tvvm' ? 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-amber-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt HĐ</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDThreshold)}kđ/tháng)</span></button>
+                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt HĐ</span><span className="text-[9px] opacity-60">(TÍNH LƯỢT 3tr≥{vndToNgan(luotHDThreshold)}kđ/tháng)</span></button>
                   {(conditionType === 'activity_round' || conditionType === 'activity_round_tvvm') && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-amber-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3543,7 +3545,7 @@ function ThiDuaPageInner() {
                 <div className="space-y-1.5">
                   <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_standard_tvvm' ? 'activity_round_standard_tvvm' : 'activity_round_standard')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-orange-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Award className="w-3 h-3 shrink-0" /><span>Lượt HĐ Chuẩn</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDCTThreshold)}kđ/tháng)</span></button>
+                  ><Award className="w-3 h-3 shrink-0" /><span>Lượt HĐ Chuẩn</span><span className="text-[9px] opacity-60">(TÍNH LƯỢT 3tr≥{vndToNgan(luotHDCTThreshold)}kđ/tháng)</span></button>
                   {(conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm') && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-orange-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3567,7 +3569,7 @@ function ThiDuaPageInner() {
                 <div className="space-y-1.5">
                   <button type="button" onClick={() => setConditionType('activity_round_tvv90')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_tvv90' ? 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-rose-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt TVV90</span><span className="text-[9px] opacity-60">(≤{tvv90MaxMonths}t + IP≥{vndToNgan(tvv90MinIP)}kđ)</span></button>
+                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt TVV90</span><span className="text-[9px] opacity-60">(≤{tvv90MaxMonths}t + TÍNH LƯỢT 3tr≥{vndToNgan(tvv90MinIP)}kđ)</span></button>
                   {conditionType === 'activity_round_tvv90' && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-rose-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3870,7 +3872,7 @@ function ThiDuaPageInner() {
 
             {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-orange-900/40 to-amber-900/40 border border-orange-500/30 p-3">
-                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt TVV90' : 'Lượt HĐ'}: IP ≥ {formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt{conditionType === 'activity_round_tvv90' ? ` (TVV90 ≤${tvv90MaxMonths}T)` : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt TVV90' : 'Lượt HĐ'}: TÍNH LƯỢT 3tr ≥ {formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt{conditionType === 'activity_round_tvv90' ? ` (TVV90 ≤${tvv90MaxMonths}T)` : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
               </div>
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
@@ -3880,7 +3882,7 @@ function ThiDuaPageInner() {
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
-                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}` : `${conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có TÍNH LƯỢT 3tr ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}` : `${conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
             )}
           </div>
