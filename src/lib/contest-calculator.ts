@@ -193,29 +193,40 @@ export function isTopNMode(ct: ConditionType): boolean {
 export function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   if (!startDate) return false;
   const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return false;
   const now = new Date();
   const diffMonths =
     (now.getFullYear() - start.getFullYear()) * 12 +
     (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return diffMonths >= 0 && diffMonths <= maxMonths;
+}
+
+const normalizeAgentCode = (value: string | null | undefined) =>
+  String(value || '').trim().toUpperCase();
+
+/** Ngày BĐLV chuẩn luôn lấy từ DS TVV Cấu trúc, không suy ra từ dòng hợp đồng. */
+export function buildStructureStartDateMap(
+  tvvStructList: TVVStructMember[] = []
+): Map<string, string | null> {
+  const map = new Map<string, string | null>();
+  for (const member of tvvStructList) {
+    const key = normalizeAgentCode(member.agentCode);
+    if (key && !map.has(key)) map.set(key, member.ngayBatDau || null);
+  }
+  return map;
 }
 
 export function isTVV90Agent(
   contracts: Contract[],
   agentCode: string,
   maxMonths: number = 3,
-  _minIP?: number
+  _minIP?: number,
+  structureStartDate?: string | null
 ): boolean {
   const agentContract = contracts.find((c) => c.agentCode === agentCode);
-  if (!agentContract) return false;
-  const startDate = agentContract.ngayBatDauLamViec || agentContract.startDate;
+  const startDate = structureStartDate || agentContract?.ngayBatDauLamViec || agentContract?.startDate;
   if (!startDate) return false;
-  const start = new Date(startDate);
-  const now = new Date();
-  const diffMonths =
-    (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return isTVVm(startDate, maxMonths);
 }
 
 /** Count rows with tinhLuot3tr >= threshold. Applies TVVm/TVV90 filters per row. */
@@ -224,20 +235,23 @@ export function calculateLuot(
   luotThreshold: number,
   conditionType: ConditionType,
   tvv90MaxMonths?: number,
-  tvv90MinIP?: number
+  tvv90MinIP?: number,
+  structureStartDates?: ReadonlyMap<string, string | null>
 ): number {
   let count = 0;
   for (const c of contracts) {
+    const structureStartDate = structureStartDates?.get(normalizeAgentCode(c.agentCode));
     if (isTVVmMode(conditionType)) {
-      if (!isTVVm(c.ngayBatDauLamViec || c.startDate)) continue;
+      const startDate = structureStartDates
+        ? structureStartDate || null
+        : c.ngayBatDauLamViec || c.startDate;
+      if (!isTVVm(startDate)) continue;
     }
     if (conditionType === 'activity_round_tvv90') {
-      if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP)) continue;
+      if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDate)) continue;
     }
-    // Dùng pdt10DT (IP thực tế của HĐ) so với luotThreshold (do user cấu hình)
-    // Trước đây dùng c.tinhLuot3tr — đây là field cố định trong DB (đã được pre-compute
-    // với ngưỡng 3M khi import Excel), nên khi user đổi luotHDThreshold (vd 6M) thì
-    // kết quả vẫn sai. Dùng pdt10DT đảm bảo so sánh động theo luotThreshold.
+    // Không cộng IP/AFYP: ngưỡng được so trực tiếp với giá trị đã xử lý trong TÍNH LƯỢT 3tr.
+    // Đếm trực tiếp cột TÍNH LƯỢT 3tr; file nguồn đã khống chế tối đa 1 dòng dương/TVV/tháng.
     if (c.tinhLuot3tr >= luotThreshold) count++;
   }
   return count;
@@ -637,11 +651,13 @@ export function computeGroupedData(
   config: ContestConfig,
   staffList: StaffMember[],
   recruiterList: RecruiterMember[],
-  leadersList?: any[]
+  leadersList?: any[],
+  tvvStructList?: TVVStructMember[]
 ): GroupData[] {
   if (config.targetType !== 'nhom') return [];
   const subjectCodes = config.participants;
   const conditionType = config.conditionType;
+  const structureStartDates = buildStructureStartDateMap(tvvStructList);
   const map = new Map<string, GroupData>();
 
   // NGUỒN ĐÚNG: DS TB/TN (leadersList) — 30 nhóm, mỗi nhóm có 1 TB hoặc TN
@@ -833,7 +849,8 @@ export function computeGroupedData(
       luotThreshold,
       conditionType,
       config.tvv90MaxMonths,
-      config.tvv90MinIP
+      config.tvv90MinIP,
+      structureStartDates
     );
   }
   for (const g of Array.from(map.values())) {
@@ -886,6 +903,7 @@ export function computeTVVTotalRows(
   const luotThreshold = isStandardMode(conditionType)
     ? config.luotHDCTThreshold
     : config.luotHDThreshold;
+  const structureStartDates = buildStructureStartDateMap(tvvStructList);
 
   const agentMap = new Map<
     string,
@@ -930,7 +948,8 @@ export function computeTVVTotalRows(
       luotThreshold,
       conditionType,
       config.tvv90MaxMonths,
-      config.tvv90MinIP
+      config.tvv90MinIP,
+      structureStartDates
     );
   }
   // Add TVV from subjectCodes that have no contracts (value 0)
@@ -1424,6 +1443,7 @@ export function computeNYDData(
   const isAFYP = conditionType === 'total_afyp';
   const isActivityMode = isActivityRoundMode(conditionType);
   const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+  const structureStartDates = buildStructureStartDateMap(tvvStructList);
 
   const nydMap = new Map<string, NYDData>();
 
@@ -1523,7 +1543,8 @@ export function computeNYDData(
         luotThreshold,
         conditionType,
         tvv90MaxMonths,
-        tvv90MinIP
+        tvv90MinIP,
+        structureStartDates
       );
   }
 
@@ -1541,11 +1562,8 @@ export function computeNYDData(
       if (isTVVmMode(conditionType)) {
         recruitedAgents = new Set(
           [...recruitedAgents].filter((agentCode) => {
-            const staff = staffList.find((s) => s.agentCode === agentCode);
-            if (staff?.startDate) return isTVVm(staff.startDate);
-            const contract = recruitedContracts.find((c) => c.agentCode === agentCode);
-            if (contract) return isTVVm(contract.ngayBatDauLamViec || contract.startDate);
-            return false;
+            const structureStartDate = structureStartDates.get(normalizeAgentCode(agentCode));
+            return isTVVm(structureStartDate || null);
           })
         );
       }
@@ -1555,7 +1573,7 @@ export function computeNYDData(
           [...recruitedAgents].filter((agentCode) => {
             const contract = recruitedContracts.find((c) => c.agentCode === agentCode);
             return contract
-              ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP)
+              ? isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDates.get(normalizeAgentCode(agentCode)))
               : false;
           })
         );
