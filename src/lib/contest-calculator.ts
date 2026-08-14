@@ -1692,4 +1692,3 @@ export function getGroupTVVPassCountIPAFYP(
   }
   return count;
 }
-

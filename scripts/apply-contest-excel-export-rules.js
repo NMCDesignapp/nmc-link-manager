@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 
 function updateFile(relativePath, transform) {
   const filePath = path.join(root, relativePath);
-  const source = fs.readFileSync(filePath, 'utf8');
+  const source = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
   const next = transform(source);
   if (next === source) {
     console.log(`• ${relativePath} đã đúng quy tắc Excel, không cần sửa lại`);
@@ -42,8 +42,8 @@ updateFile('src/app/thi-dua-chau/page.tsx', (initial) => {
 
   source = replaceRequired(
     source,
-    `            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',\n            c.contractNumber || '',`,
-    `            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',\n            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),\n            c.contractNumber || '',`,
+    `            (() => {\n              const startDate = isTVVmMode(conditionType)\n                ? structureStartDateByCode.get(c.agentCode.trim().toUpperCase())\n                : c.ngayBatDauLamViec;\n              return startDate ? formatDate(startDate) : '';\n            })(),\n            c.contractNumber || '',`,
+    `            (() => {\n              const startDate = isTVVmMode(conditionType)\n                ? structureStartDateByCode.get(c.agentCode.trim().toUpperCase())\n                : c.ngayBatDauLamViec;\n              return startDate ? formatDate(startDate) : '';\n            })(),\n            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),\n            c.contractNumber || '',`,
     'giá trị ngày hiệu lực chức vụ trong sheet chi tiết',
   );
 
@@ -62,22 +62,22 @@ updateFile('src/lib/xlsx-contest-wrapper.ts', (initial) => {
 
   source = replaceRequired(
     source,
-    `  position: string;\n  contractNumber: string;\n  effectiveDate: CellValue;`,
-    `  position: string;\n  startDate: CellValue;\n  recruiterEffectiveDate: CellValue;\n  contractNumber: string;\n  effectiveDate: CellValue;`,
+    `  agentName: string;\n  startDate: CellValue;\n  position: string;\n  contractNumber: string;`,
+    `  agentName: string;\n  startDate: CellValue;\n  recruiterEffectiveDate: CellValue;\n  position: string;\n  contractNumber: string;`,
     'kiểu dữ liệu ngày xét điều kiện',
   );
 
   source = replaceRequired(
     source,
-    `  const positionIdx = findHeader(headers, ['Chức vụ']);\n  const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);`,
-    `  const positionIdx = findHeader(headers, ['Chức vụ']);\n  const startDateIdx = findHeader(headers, ['Ngày bắt đầu làm việc', 'Ngày BĐLV']);\n  const recruiterEffectiveDateIdx = findHeader(headers, ['Ngày hiệu lực chức vụ NTD', 'Ngày hiệu lực chức vụ']);\n  const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);`,
+    `  const startDateIdx = findHeader(headers, ['Ngày bắt đầu làm việc', 'Ngày BĐLV']);\n  const positionIdx = findHeader(headers, ['Chức vụ']);\n  const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);`,
+    `  const startDateIdx = findHeader(headers, ['Ngày bắt đầu làm việc', 'Ngày BĐLV']);\n  const recruiterEffectiveDateIdx = findHeader(headers, ['Ngày hiệu lực chức vụ NTD', 'Ngày hiệu lực chức vụ']);\n  const positionIdx = findHeader(headers, ['Chức vụ']);\n  const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);`,
     'đọc cột ngày từ sheet chi tiết',
   );
 
   source = replaceRequired(
     source,
-    `    position: positionIdx >= 0 ? text(row[positionIdx]) : '',\n    contractNumber: contractIdx >= 0 ? text(row[contractIdx]) : '',`,
-    `    position: positionIdx >= 0 ? text(row[positionIdx]) : '',\n    startDate: startDateIdx >= 0 ? row[startDateIdx] : '',\n    recruiterEffectiveDate: recruiterEffectiveDateIdx >= 0 ? row[recruiterEffectiveDateIdx] : '',\n    contractNumber: contractIdx >= 0 ? text(row[contractIdx]) : '',`,
+    `    agentName: nameIdx >= 0 ? text(row[nameIdx]) : '',\n    startDate: startDateIdx >= 0 ? row[startDateIdx] : '',\n    position: positionIdx >= 0 ? text(row[positionIdx]) : '',`,
+    `    agentName: nameIdx >= 0 ? text(row[nameIdx]) : '',\n    startDate: startDateIdx >= 0 ? row[startDateIdx] : '',\n    recruiterEffectiveDate: recruiterEffectiveDateIdx >= 0 ? row[recruiterEffectiveDateIdx] : '',\n    position: positionIdx >= 0 ? text(row[positionIdx]) : '',`,
     'lưu giá trị ngày từ sheet chi tiết',
   );
 
@@ -111,22 +111,22 @@ updateFile('src/lib/xlsx-contest-wrapper.ts', (initial) => {
 
   source = replaceRequired(
     source,
-    `    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', 'CHỨC VỤ',\n    ...(includeContract ? contractResultHeaders() : []),`,
-    `    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN',\n    ...(includeEligibilityDates ? ['NGÀY HIỆU LỰC CHỨC VỤ', 'NGÀY BẮT ĐẦU LÀM VIỆC'] : []),\n    'CHỨC VỤ',\n    ...(includeContract ? contractResultHeaders() : []),`,
+    `    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN',\n    ...(tvvmActivityMode ? ['NGÀY BẮT ĐẦU LÀM VIỆC'] : []),\n    'CHỨC VỤ',`,
+    `    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN',\n    ...(includeEligibilityDates ? ['NGÀY HIỆU LỰC CHỨC VỤ'] : []),\n    ...(includeEligibilityDates || tvvmActivityMode ? ['NGÀY BẮT ĐẦU LÀM VIỆC'] : []),\n    'CHỨC VỤ',`,
     'tiêu đề ngày trong kết quả nhóm',
   );
 
   source = replaceRequired(
     source,
-    `      group.name,\n      group.position || 'Trưởng nhóm',\n      ...(includeContract ? ['', '', '', '', ''] : []),`,
-    `      group.name,\n      ...(includeEligibilityDates ? ['', ''] : []),\n      group.position || 'Trưởng nhóm',\n      ...(includeContract ? ['', '', '', '', ''] : []),`,
+    `      group.name,\n      ...(tvvmActivityMode ? [''] : []),\n      group.position || 'Trưởng nhóm',`,
+    `      group.name,\n      ...(includeEligibilityDates ? [''] : []),\n      ...(includeEligibilityDates || tvvmActivityMode ? [''] : []),\n      group.position || 'Trưởng nhóm',`,
     'dòng trưởng nhóm có hai cột ngày',
   );
 
   source = replaceRequired(
     source,
-    `        child.detail.agentName,\n        child.detail.position,\n        ...(includeContract ? contractResultValues(child.contract, child.detail) : []),`,
-    `        child.detail.agentName,\n        ...(includeEligibilityDates ? [child.detail.recruiterEffectiveDate ?? '', child.detail.startDate ?? ''] : []),\n        child.detail.position,\n        ...(includeContract ? contractResultValues(child.contract, child.detail) : []),`,
+    `        child.detail.agentName,\n        ...(tvvmActivityMode ? [child.detail.startDate] : []),\n        child.detail.position,`,
+    `        child.detail.agentName,\n        ...(includeEligibilityDates ? [child.detail.recruiterEffectiveDate ?? ''] : []),\n        ...(includeEligibilityDates || tvvmActivityMode ? [child.detail.startDate] : []),\n        child.detail.position,`,
     'dòng TVV nhóm có hai cột ngày',
   );
 
