@@ -5,7 +5,7 @@ export const utils = XLSXCore.utils;
 export const read = XLSXCore.read;
 export const write = XLSXCore.write;
 
-// This wrapper is used only for browser-side Excel exports. It leaves every
+// This wrapper is used only for browser-side Excel exports.  It leaves every
 // workbook unchanged except the Thi đua result workbook, whose two sheets are
 // normalized to the business template requested by the user.
 
@@ -18,12 +18,8 @@ type DetailRecord = {
   groupCode: string;
   agentCode: string;
   agentName: string;
-  startDate: CellValue;
-  recruiterEffectiveDate: CellValue;
   position: string;
   contractNumber: string;
-  effectiveDate: CellValue;
-  issueDate: CellValue;
   ip: number;
   afyp: number;
   recruiterCode: string;
@@ -125,12 +121,8 @@ function parseDetails(matrix: Matrix): DetailRecord[] {
   const groupCodeIdx = findHeader(headers, ['Mã Ban/Nhóm']);
   const codeIdx = findHeader(headers, ['Mã ĐL', 'Mã số']);
   const nameIdx = findHeader(headers, ['Tên', 'Họ tên']);
-  const startDateIdx = findHeader(headers, ['Ngày bắt đầu làm việc', 'Ngày BĐLV']);
-  const recruiterEffectiveDateIdx = findHeader(headers, ['Ngày hiệu lực chức vụ NTD', 'Ngày hiệu lực chức vụ']);
   const positionIdx = findHeader(headers, ['Chức vụ']);
   const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);
-  const effectiveDateIdx = findHeader(headers, ['Ngày hiệu lực']);
-  const issueDateIdx = findHeader(headers, ['Ngày phát hành']);
   const ipIdx = findHeader(headers, ['PĐT + 10% ĐT', 'IP']);
   const afypIdx = findHeader(headers, ['AFYP']);
   const recruiterIdx = findHeader(headers, ['MÃ ĐL TD', 'Mã NTD', 'Mã số NTD']);
@@ -141,12 +133,8 @@ function parseDetails(matrix: Matrix): DetailRecord[] {
     groupCode: groupCodeIdx >= 0 ? text(row[groupCodeIdx]) : '',
     agentCode: codeIdx >= 0 ? text(row[codeIdx]) : '',
     agentName: nameIdx >= 0 ? text(row[nameIdx]) : '',
-    startDate: startDateIdx >= 0 ? row[startDateIdx] : '',
-    recruiterEffectiveDate: recruiterEffectiveDateIdx >= 0 ? row[recruiterEffectiveDateIdx] : '',
     position: positionIdx >= 0 ? text(row[positionIdx]) : '',
     contractNumber: contractIdx >= 0 ? text(row[contractIdx]) : '',
-    effectiveDate: effectiveDateIdx >= 0 ? row[effectiveDateIdx] : '',
-    issueDate: issueDateIdx >= 0 ? row[issueDateIdx] : '',
     ip: ipIdx >= 0 ? numberValue(row[ipIdx]) : 0,
     afyp: afypIdx >= 0 ? numberValue(row[afypIdx]) : 0,
     recruiterCode: recruiterIdx >= 0 ? text(row[recruiterIdx]) : '',
@@ -168,78 +156,6 @@ function metricLabelFromHeader(value: CellValue): 'TỔNG IP' | 'TỔNG AFYP' | 
   return 'TỔNG IP';
 }
 
-function isDateHeader(value: CellValue): boolean {
-  const label = normalized(value);
-  return label.includes('NGAY HIEU LUC')
-    || label.includes('NGAY PHAT HANH')
-    || label.includes('NGAY BAT DAU');
-}
-
-function parsedDate(value: CellValue): Date | null {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value === 'number') {
-    const decoded = XLSXCore.SSF.parse_date_code(value);
-    if (!decoded) return null;
-    return new Date(decoded.y, decoded.m - 1, decoded.d);
-  }
-  const raw = text(value);
-  if (!raw) return null;
-  const viDate = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  const date = viDate
-    ? new Date(Number(viDate[3]), Number(viDate[2]) - 1, Number(viDate[1]))
-    : new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isTVVmStartDate(value: CellValue, maxMonths: number = 12): boolean {
-  const start = parsedDate(value);
-  if (!start) return false;
-  const now = new Date();
-  if (start.getTime() > now.getTime()) return false;
-  const diffMonths =
-    (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth());
-  return diffMonths >= 0 && diffMonths <= maxMonths;
-}
-
-function isCountedReward(value: CellValue): boolean {
-  const raw = text(value);
-  if (!raw) return false;
-  if (numberValue(value) > 0) return true;
-
-  const label = normalized(value);
-  if (!label || label === '0' || label === '-' || label === '0 D' || label === '0D') return false;
-  if (label.includes('KHONG DAT') || label.includes('KHONG TINH') || label === 'KHONG') return false;
-
-  // Keep non-cash reward descriptions such as gifts or vouchers.
-  return /[A-Z]/.test(label.replace(/[DĐ]/g, ''));
-}
-
-function shouldKeepResultPerson(
-  reward: CellValue,
-  hasRewardColumn: boolean,
-  contributingRows: number,
-  stt: CellValue,
-): boolean {
-  if (hasRewardColumn) return isCountedReward(reward) && contributingRows > 0;
-  if (contributingRows > 0) return true;
-  return text(stt) !== '';
-}
-
-function contractResultHeaders(): CellValue[] {
-  return ['SỐ HĐ', 'NGÀY HIỆU LỰC', 'NGÀY PHÁT HÀNH', 'IP', 'AFYP'];
-}
-
-function contractResultValues(contract: string, detail?: DetailRecord): CellValue[] {
-  return [
-    contract || detail?.contractNumber || '',
-    detail?.effectiveDate ?? '',
-    detail?.issueDate ?? '',
-    detail?.ip ?? '',
-    detail?.afyp ?? '',
-  ];
-}
-
 function styleSheet(
   headers: CellValue[],
   rows: Matrix,
@@ -256,11 +172,7 @@ function styleSheet(
       const cell = sheet[address];
       if (!cell) continue;
       cell.s = r === 0 ? HEADER_STYLE : leaderSet.has(r) ? LEADER_STYLE : BODY_STYLE;
-      if (r > 0 && isDateHeader(headers[c])) {
-        cell.z = 'dd/mm/yyyy';
-      } else if (r > 0 && typeof cell.v === 'number') {
-        cell.z = '#,##0';
-      }
+      if (r > 0 && typeof cell.v === 'number') cell.z = '#,##0';
     }
   }
 
@@ -276,9 +188,7 @@ function styleSheet(
       : headerNorm.includes('CHUC VU') ? 20
       : headerNorm.includes('THUONG') ? 20
       : headerNorm.includes('NHOM') ? 18
-      : headerNorm.includes('SO HD') || headerNorm.includes('SO HOP DONG') ? 17
-      : isDateHeader(header) ? 15
-      : headerNorm === 'IP' || headerNorm === 'AFYP' || headerNorm.includes('TONG IP') || headerNorm.includes('TONG AFYP') ? 14
+      : headerNorm.includes('SO HD') ? 17
       : headerNorm.includes('MA SO') ? 14
       : 12;
     return { wch: Math.min(Math.max(max + 2, floor), 38) };
@@ -311,145 +221,48 @@ function detailByAgent(details: DetailRecord[]): Map<string, DetailRecord> {
 
 function buildTVVResult(matrix: Matrix, details: DetailRecord[]) {
   const headers = matrix[0] || [];
-  const sourceRows = matrix.slice(1);
-  const sttIdx = findHeader(headers, ['STT']);
+  const rows = matrix.slice(1);
   const groupIdx = findHeader(headers, ['Nhóm']);
   const codeIdx = findHeader(headers, ['Mã ĐL', 'Mã số']);
   const nameIdx = findHeader(headers, ['Họ tên']);
-  const positionIdx = findHeader(headers, ['Chức vụ']);
   const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);
-  const effectiveDateIdx = findHeader(headers, ['Ngày hiệu lực']);
-  const issueDateIdx = findHeader(headers, ['Ngày phát hành']);
-  const ipIdx = findHeader(headers, ['PĐT + 10% ĐT', 'IP']);
-  const afypIdx = findHeader(headers, ['AFYP']);
   const rewardIdx = rewardIndex(headers);
+  const byAgent = detailByAgent(details);
   const perContract = contractIdx >= 0;
-  const metricIdx = perContract ? -1 : Math.max(nameIdx + 1, 0);
-  const metricHeader = metricLabelFromHeader(
-    headers[metricIdx] || headers.find(header => normalized(header).includes('LUOT')),
-  );
-  const contractMap = detailByContract(details);
-
-  const byAgent = new Map<string, DetailRecord[]>();
-  const byName = new Map<string, DetailRecord[]>();
-  for (const detail of details) {
-    const codeKey = normalized(detail.agentCode);
-    if (codeKey) {
-      const list = byAgent.get(codeKey) || [];
-      list.push(detail);
-      byAgent.set(codeKey, list);
-    }
-    const nameKey = normalized(detail.agentName);
-    if (nameKey) {
-      const list = byName.get(nameKey) || [];
-      list.push(detail);
-      byName.set(nameKey, list);
-    }
-  }
+  const metricIdx = perContract ? contractIdx + 3 : Math.max(nameIdx + 1, 0);
+  const metricHeader = perContract
+    ? (normalized(headers[metricIdx]).includes('AFYP') ? 'AFYP' : 'IP')
+    : metricLabelFromHeader(headers[metricIdx] || headers.find(h => normalized(h).includes('LUOT')));
 
   const outputHeaders: CellValue[] = [
     'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', 'CHỨC VỤ',
-    ...contractResultHeaders(),
-    ...(!perContract ? [metricHeader] : []),
+    ...(perContract ? ['SỐ HĐ'] : []),
+    metricHeader,
     'TIỀN THƯỞNG',
   ];
+
   const outputRows: Matrix = [];
-  const merges: MergeRange[] = [];
-
-  if (perContract) {
-    let currentGroup = '';
-    let currentCode = '';
-    let currentName = '';
-    let currentPosition = '';
-
-    for (const row of sourceRows) {
-      const rowCode = codeIdx >= 0 ? text(row[codeIdx]) : '';
-      const rowName = nameIdx >= 0 ? text(row[nameIdx]) : '';
-      const rowGroup = groupIdx >= 0 ? text(row[groupIdx]) : '';
-      const rowPosition = positionIdx >= 0 ? text(row[positionIdx]) : '';
-
-      if (rowCode || rowName) {
-        currentCode = rowCode || currentCode;
-        currentName = rowName || currentName;
-        currentGroup = rowGroup || currentGroup;
-        currentPosition = rowPosition || currentPosition;
-      }
-
-      const contract = text(row[contractIdx]);
-      if (!contract && !currentCode && !currentName) continue;
-
-      const detail = contractMap.get(normalized(contract));
-      const group = rowGroup || currentGroup || detail?.group || '';
-      const code = rowCode || currentCode || detail?.agentCode || '';
-      const name = rowName || currentName || detail?.agentName || '';
-      const position = rowPosition || currentPosition || detail?.position || '';
-      const contractValues: CellValue[] = [
-        contract || detail?.contractNumber || '',
-        detail?.effectiveDate ?? (effectiveDateIdx >= 0 ? row[effectiveDateIdx] : ''),
-        detail?.issueDate ?? (issueDateIdx >= 0 ? row[issueDateIdx] : ''),
-        detail?.ip ?? (ipIdx >= 0 ? row[ipIdx] : ''),
-        detail?.afyp ?? (afypIdx >= 0 ? row[afypIdx] : ''),
-      ];
-
-      outputRows.push([
-        outputRows.length + 1,
-        group,
-        code,
-        name,
-        position,
-        ...contractValues,
-        rewardIdx >= 0 ? row[rewardIdx] : '',
-      ]);
-    }
-
-    return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
-  }
-
-  let resultIndex = 0;
-  for (const row of sourceRows) {
+  for (const row of rows) {
     const code = codeIdx >= 0 ? text(row[codeIdx]) : '';
     const name = nameIdx >= 0 ? text(row[nameIdx]) : '';
     if (!code && !name) continue;
-
-    const codeKey = normalized(code);
-    const nameKey = normalized(name);
-    const personDetails = (codeKey ? byAgent.get(codeKey) : undefined)
-      || (nameKey ? byName.get(nameKey) : undefined)
-      || [];
-    const contracts: Array<DetailRecord | undefined> = personDetails.length
-      ? personDetails.filter(detail => Boolean(detail.contractNumber))
-      : [undefined];
-    if (!contracts.length) contracts.push(undefined);
-
-    resultIndex += 1;
-    const start = outputRows.length + 1;
-    contracts.forEach((detail, contractIndex) => {
-      outputRows.push([
-        contractIndex === 0 ? resultIndex : '',
-        contractIndex === 0 ? (groupIdx >= 0 ? text(row[groupIdx]) : detail?.group || '') : '',
-        contractIndex === 0 ? code : '',
-        contractIndex === 0 ? name : '',
-        contractIndex === 0 ? (positionIdx >= 0 ? text(row[positionIdx]) : detail?.position || '') : '',
-        ...contractResultValues(detail?.contractNumber || '', detail),
-        contractIndex === 0 && metricIdx >= 0 ? row[metricIdx] : '',
-        contractIndex === 0 && rewardIdx >= 0 ? row[rewardIdx] : '',
-      ]);
-    });
-
-    const end = outputRows.length;
-    if (end > start) {
-      const metricCol = outputHeaders.length - 2;
-      const rewardCol = outputHeaders.length - 1;
-      for (const col of [0, 1, 2, 3, 4, metricCol, rewardCol]) {
-        merges.push({ s: { r: start, c: col }, e: { r: end, c: col } });
-      }
-    }
+    const detail = byAgent.get(normalized(code));
+    outputRows.push([
+      outputRows.length + 1,
+      groupIdx >= 0 ? text(row[groupIdx]) : detail?.group || '',
+      code,
+      name,
+      detail?.position || '',
+      ...(perContract ? [text(row[contractIdx])] : []),
+      metricIdx >= 0 ? row[metricIdx] : '',
+      rewardIdx >= 0 ? row[rewardIdx] : '',
+    ]);
   }
 
-  return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
+  return { headers: outputHeaders, rows: outputRows, merges: [] as MergeRange[], leaderRows: [] as number[] };
 }
 
-function buildNTDResult(matrix: Matrix, details: DetailRecord[], includeEligibilityDates = false) {
+function buildNTDResult(matrix: Matrix, details: DetailRecord[]) {
   const headers = matrix[0] || [];
   const sourceRows = matrix.slice(1);
   const sttIdx = findHeader(headers, ['STT']);
@@ -461,10 +274,10 @@ function buildNTDResult(matrix: Matrix, details: DetailRecord[], includeEligibil
   const rewardIdx = rewardIndex(headers);
   const conditionIdx = 5;
   const conditionLabel = normalized(headers[conditionIdx]);
-  const includeContract = contractIdx >= 0 && (conditionLabel.includes('LUOT') || conditionLabel.includes('/HD'));
+  const includeContract = conditionLabel.includes('LUOT') || conditionLabel.includes('/HD');
   const contractMap = detailByContract(details);
 
-  type Item = { tvv: string; contract: string; key: string; detail?: DetailRecord };
+  type Item = { tvv: string; contract: string; key: string };
   type Group = { stt: CellValue; nhom: string; code: string; name: string; reward: CellValue; items: Item[] };
   const groups: Group[] = [];
   let current: Group | null = null;
@@ -494,31 +307,21 @@ function buildNTDResult(matrix: Matrix, details: DetailRecord[], includeEligibil
         tvv: tvv || detail?.agentName || '',
         contract,
         key: detail?.agentCode || tvv || contract,
-        detail,
       });
     }
   }
 
   const outputHeaders: CellValue[] = [
-    'STT', 'NHÓM', 'MÃ SỐ NTD', 'HỌ TÊN NTD',
-    ...(includeEligibilityDates ? ['NGÀY HIỆU LỰC CHỨC VỤ'] : []),
-    'TVV',
-    ...(includeEligibilityDates ? ['NGÀY BẮT ĐẦU LÀM VIỆC'] : []),
-    ...(includeContract ? contractResultHeaders() : []),
+    'STT', 'NHÓM', 'MÃ SỐ NTD', 'HỌ TÊN NTD', 'TVV',
+    ...(includeContract ? ['SỐ HĐ'] : []),
     'THƯỞNG',
   ];
   const outputRows: Matrix = [];
   const merges: MergeRange[] = [];
-  let resultIndex = 0;
 
-  for (const group of groups) {
+  groups.forEach((group, groupIndex) => {
     let items = group.items;
-    if (includeContract) {
-      // The result sheet only contains the contracts actually counted in the
-      // contest. Every contract must also exist in the detail sheet produced by
-      // the selected effective-date / issue-date filters.
-      items = items.filter(item => Boolean(item.contract && item.detail));
-    } else {
+    if (!includeContract) {
       const seen = new Set<string>();
       items = items.filter(item => {
         const key = normalized(item.key);
@@ -527,36 +330,26 @@ function buildNTDResult(matrix: Matrix, details: DetailRecord[], includeEligibil
         return true;
       });
     }
-
-    if (!shouldKeepResultPerson(group.reward, rewardIdx >= 0, items.length, group.stt)) continue;
-
-    resultIndex += 1;
+    if (!items.length) items = [{ tvv: '', contract: '', key: '' }];
     const start = outputRows.length + 1;
     items.forEach((item, itemIndex) => {
       outputRows.push([
-        itemIndex === 0 ? resultIndex : '',
+        itemIndex === 0 ? (group.stt || groupIndex + 1) : '',
         itemIndex === 0 ? group.nhom : '',
         itemIndex === 0 ? group.code : '',
         itemIndex === 0 ? group.name : '',
-        ...(includeEligibilityDates ? [itemIndex === 0 ? (item.detail?.recruiterEffectiveDate ?? '') : ''] : []),
         item.tvv,
-        ...(includeEligibilityDates ? [item.detail?.startDate ?? ''] : []),
-        ...(includeContract ? contractResultValues(item.contract, item.detail) : []),
+        ...(includeContract ? [item.contract] : []),
         itemIndex === 0 ? group.reward : '',
       ]);
     });
     const end = outputRows.length;
     if (end > start) {
-      const ntdLevelColumns = [
-        0, 1, 2, 3,
-        ...(includeEligibilityDates ? [4] : []),
-        outputHeaders.length - 1,
-      ];
-      for (const col of ntdLevelColumns) {
+      for (const col of [0, 1, 2, 3, outputHeaders.length - 1]) {
         merges.push({ s: { r: start, c: col }, e: { r: end, c: col } });
       }
     }
-  }
+  });
 
   return { headers: outputHeaders, rows: outputRows, merges, leaderRows: [] as number[] };
 }
@@ -586,7 +379,7 @@ function aggregateAgents(details: DetailRecord[]) {
   return Array.from(map.values());
 }
 
-function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligibilityDates = false) {
+function buildGroupResult(matrix: Matrix, details: DetailRecord[]) {
   const headers = matrix[0] || [];
   const sourceRows = matrix.slice(1);
   const sttIdx = findHeader(headers, ['STT']);
@@ -603,11 +396,7 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
   const metricHeader = metricLabelFromHeader(metricHeaderSource);
   const activityMode = normalized(metricHeaderSource).includes('LUOT') && passMetricIdx < 0;
   const passMode = passMetricIdx >= 0;
-  const includeContract = activityMode && contractIdx >= 0;
-  const activityLabel = normalized(metricHeaderSource);
-  const tvvmActivityMode = activityMode && activityLabel.includes('TVVM');
-  const standardActivityMode = activityMode && (activityLabel.includes('CHUAN') || activityLabel.includes('HDC'));
-  const activityThreshold = standardActivityMode ? 12_000_000 : 3_000_000;
+  const includeContract = activityMode;
   const contractMap = detailByContract(details);
 
   type Child = { tvv: string; contract: string; detail?: DetailRecord };
@@ -649,20 +438,16 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
   }
 
   const outputHeaders: CellValue[] = [
-    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN',
-    ...(includeEligibilityDates ? ['NGÀY HIỆU LỰC CHỨC VỤ'] : []),
-    ...(includeEligibilityDates || tvvmActivityMode ? ['NGÀY BẮT ĐẦU LÀM VIỆC'] : []),
-    'CHỨC VỤ',
-    ...(includeContract ? contractResultHeaders() : []),
+    'STT', 'NHÓM', 'MÃ SỐ', 'HỌ TÊN', 'CHỨC VỤ',
+    ...(includeContract ? ['SỐ HĐ'] : []),
     metricHeader,
     'TIỀN THƯỞNG',
   ];
   const outputRows: Matrix = [];
   const merges: MergeRange[] = [];
   const leaderRows: number[] = [];
-  let resultIndex = 0;
 
-  for (const group of groups) {
+  groups.forEach((group, groupIndex) => {
     const normalizedGroup = normalized(group.nhom);
     let groupDetails = group.children
       .map(child => child.detail)
@@ -683,12 +468,9 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
     } else if (activityMode) {
       const expectedRounds = Math.max(0, Math.round(numberValue(group.metric)));
       const candidates = groupDetails
-        .filter(detail => Boolean(detail.contractNumber))
-        .filter(detail => detail.roundValue >= activityThreshold)
-        .filter(detail => !tvvmActivityMode || isTVVmStartDate(detail.startDate))
         .slice()
-        .sort((a, b) => b.roundValue - a.roundValue);
-      const selected = expectedRounds > 0 ? candidates.slice(0, expectedRounds) : [];
+        .sort((a, b) => (b.roundValue || b.ip) - (a.roundValue || a.ip));
+      const selected = expectedRounds > 0 ? candidates.slice(0, expectedRounds) : candidates;
       childRows = selected.map(detail => ({ detail, metric: 1, contract: detail.contractNumber }));
     } else {
       const isAFYP = metricHeader === 'TỔNG AFYP';
@@ -701,20 +483,14 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
         }));
     }
 
-    if (!shouldKeepResultPerson(group.reward, rewardIdx >= 0, childRows.length, group.stt)) continue;
-
-    resultIndex += 1;
-    const start = outputRows.length + 1;
-    leaderRows.push(start);
+    leaderRows.push(outputRows.length + 1);
     outputRows.push([
-      resultIndex,
+      group.stt || groupIndex + 1,
       group.nhom,
       group.code,
       group.name,
-      ...(includeEligibilityDates ? [''] : []),
-      ...(includeEligibilityDates || tvvmActivityMode ? [''] : []),
       group.position || 'Trưởng nhóm',
-      ...(includeContract ? ['', '', '', '', ''] : []),
+      ...(includeContract ? [''] : []),
       group.metric,
       group.reward,
     ]);
@@ -724,27 +500,26 @@ function buildGroupResult(matrix: Matrix, details: DetailRecord[], includeEligib
         '', '',
         child.detail.agentCode,
         child.detail.agentName,
-        ...(includeEligibilityDates ? [child.detail.recruiterEffectiveDate ?? ''] : []),
-        ...(includeEligibilityDates || tvvmActivityMode ? [child.detail.startDate] : []),
         child.detail.position,
-        ...(includeContract ? contractResultValues(child.contract, child.detail) : []),
+        ...(includeContract ? [child.contract] : []),
         child.metric,
         '',
       ]);
     }
 
+    const start = leaderRows[leaderRows.length - 1];
     const end = outputRows.length;
     if (end > start) {
       merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
       merges.push({ s: { r: start, c: 1 }, e: { r: end, c: 1 } });
       merges.push({ s: { r: start, c: outputHeaders.length - 1 }, e: { r: end, c: outputHeaders.length - 1 } });
     }
-  }
+  });
 
   return { headers: outputHeaders, rows: outputRows, merges, leaderRows };
 }
 
-export function normalizeContestWorkbook(workbook: any): void {
+function normalizeContestWorkbook(workbook: any): void {
   const resultSheet = existingSheet(workbook, ['Kết quả thi đua', 'Kết quả']);
   const detailSheet = existingSheet(workbook, ['Chi tiết HĐ', 'Chi tiết']);
   const resultMatrix = sheetMatrix(resultSheet);
@@ -752,16 +527,14 @@ export function normalizeContestWorkbook(workbook: any): void {
   if (!resultMatrix.length) return;
 
   const details = parseDetails(detailMatrix);
-  const sourceDetailHeaders = detailMatrix[0] || [];
-  const includeEligibilityDates = findHeader(sourceDetailHeaders, ['Ngày hiệu lực chức vụ NTD']) >= 0;
   const headers = resultMatrix[0] || [];
   const isNTD = findHeader(headers, ['Họ tên NTD']) >= 0;
   const isGroup = findHeader(headers, ['Mã TTN', 'Mã TN']) >= 0;
 
   const result = isNTD
-    ? buildNTDResult(resultMatrix, details, includeEligibilityDates)
+    ? buildNTDResult(resultMatrix, details)
     : isGroup
-      ? buildGroupResult(resultMatrix, details, includeEligibilityDates)
+      ? buildGroupResult(resultMatrix, details)
       : buildTVVResult(resultMatrix, details);
 
   const normalizedResultSheet = styleSheet(result.headers, result.rows, result.merges, result.leaderRows);
@@ -772,9 +545,6 @@ export function normalizeContestWorkbook(workbook: any): void {
     'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 TR', 'MÃ ĐL TD', 'THƯỞNG',
   ];
   const detailHeaders = detailMatrix.length ? detailMatrix[0] : defaultDetailHeaders;
-  // Keep every contract from the original detail sheet. That original sheet is
-  // already restricted by the user's effective-date and issue-date filters;
-  // no contest eligibility filtering is applied here.
   const detailRows = detailMatrix.length ? detailMatrix.slice(1) : [];
   const normalizedDetailSheet = styleSheet(detailHeaders, detailRows);
 
@@ -786,15 +556,11 @@ export function normalizeContestWorkbook(workbook: any): void {
 }
 
 export function writeFile(workbook: any, filename: string, options?: any): any {
-  const isContestWorkbook = Boolean(
-    existingSheet(workbook, ['Kết quả thi đua', 'Kết quả'])
-    && existingSheet(workbook, ['Chi tiết HĐ', 'Chi tiết']),
-  );
-  if (isContestWorkbook || /^ket_qua_thi_dua_/i.test(filename || '')) {
+  if (/^ket_qua_thi_dua_/i.test(filename || '')) {
     try {
       normalizeContestWorkbook(workbook);
     } catch (error) {
-      // Never block the user's download. If template normalization fails,
+      // Never block the user's download.  If template normalization fails,
       // preserve the workbook produced by the page and still save it.
       console.error('[contest-excel-template] Không thể chuẩn hóa file:', error);
     }
