@@ -1,0 +1,244 @@
+/* KPI loading gates — 2026-08-08
+ * - Initial KPI loader: one fullscreen opaque gate + compact card, no vh-sized card.
+ * - Linked category loader: compact horizontal card for Thi đua / Chính sách / CLB Sao Việt.
+ * - Linked category loader has only one progress surface: no extra circular spinner.
+ */
+
+/* ================= INITIAL KPI LOADER ================= */
+html body [aria-label="Đang tải dữ liệu KPI"],
+html body [aria-label="Tải dữ liệu gặp lỗi"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  z-index: 2147483600 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) !important;
+  background-color: #020817 !important;
+  pointer-events: auto !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] > div,
+html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
+  position: relative !important;
+  z-index: 5 !important;
+  width: min(86vw, 360px) !important;
+  max-width: 360px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 32px) !important;
+  padding: 27px 22px 24px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+html body .nmc-kpi-loader-logo-safe {
+  width: 104px !important;
+  height: 104px !important;
+  margin-bottom: 15px !important;
+}
+
+html body .nmc-kpi-loader-logo-safe > .relative {
+  width: 92px !important;
+  height: 92px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background: #031127 !important;
+  box-shadow:
+    0 0 0 2px rgba(64, 217, 255, .62),
+    0 0 18px rgba(31, 207, 255, .44),
+    0 0 30px rgba(18, 99, 255, .20) !important;
+}
+
+html body .nmc-kpi-loader-logo-safe img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+html body .nmc-kpi-loader-logo-safe-halo {
+  inset: -15px !important;
+  opacity: .68 !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] h2,
+html body [aria-label="Tải dữ liệu gặp lỗi"] h2 {
+  margin: 0 !important;
+  font-size: clamp(22px, 6vw, 27px) !important;
+  font-weight: 600 !important;
+  line-height: 1.16 !important;
+  white-space: nowrap !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] h2 + p,
+html body [aria-label="Tải dữ liệu gặp lỗi"] h2 + p {
+  margin-top: 6px !important;
+  font-size: clamp(11px, 3.2vw, 14px) !important;
+  line-height: 1.25 !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .mt-7.flex.flex-col {
+  margin-top: 22px !important;
+  gap: 10px !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .h-10.w-10 {
+  width: 44px !important;
+  height: 44px !important;
+  border-width: 5px !important;
+}
+
+html body [aria-label="Đang tải dữ liệu KPI"] .mt-7.flex.flex-col > p {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+/* ================= 3 LINKED CATEGORY BUTTONS ================= */
+/* The progress card is the only loading indicator. Force the parent loading
+ * surface to a single centered grid item and remove the legacy circular ::after
+ * spinner that otherwise appears below the card. */
+html body .kpi-app .kpi-embed-loader {
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+html body .kpi-app .kpi-embed-loader::after {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+html body .kpi-app .kpi-embed-loader > span {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 82px minmax(0, 1fr) !important;
+  grid-template-rows: auto 7px !important;
+  align-items: center !important;
+  align-content: center !important;
+  column-gap: 18px !important;
+  row-gap: 13px !important;
+  width: min(88vw, 480px) !important;
+  min-height: 118px !important;
+  margin: 0 !important;
+  padding: 18px 22px !important;
+  overflow: hidden !important;
+  border: 1.5px solid rgba(45, 211, 255, .82) !important;
+  border-radius: 22px !important;
+  color: #f3f7ff !important;
+  font-family: Tahoma, Arial, Helvetica, sans-serif !important;
+  font-size: clamp(18px, 3.2vw, 23px) !important;
+  font-weight: 500 !important;
+  line-height: 1.18 !important;
+  letter-spacing: .01em !important;
+  text-shadow: 0 0 14px rgba(70, 180, 255, .18) !important;
+  background:
+    radial-gradient(circle at 16% 50%, rgba(20, 213, 255, .10), transparent 31%),
+    linear-gradient(112deg, rgba(7, 29, 54, .94), rgba(0, 6, 16, .97)) !important;
+  box-shadow:
+    0 0 0 1px rgba(70, 136, 199, .18),
+    0 12px 36px rgba(0, 0, 0, .38),
+    0 0 22px rgba(14, 175, 255, .20),
+    inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+
+html body .kpi-app .kpi-embed-loader > span::before {
+  content: '' !important;
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  display: block !important;
+  width: 82px !important;
+  height: 82px !important;
+  padding: 0 !important;
+  border: 2px solid rgba(65, 217, 255, .72) !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background-color: #031127 !important;
+  background-image: url('/kpi-tech-logo.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 116% 116% !important;
+  box-shadow:
+    0 0 0 4px rgba(25, 164, 255, .10),
+    0 0 18px rgba(26, 208, 255, .34),
+    0 0 32px rgba(20, 111, 255, .16) !important;
+}
+
+html body .kpi-app .kpi-embed-loader > span::after {
+  content: '' !important;
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 17px, rgba(1, 10, 22, .94) 17px 21px),
+    linear-gradient(90deg,
+      #ef4444 0%,
+      #f97316 25%,
+      #facc15 49%,
+      #84cc16 70%,
+      #22c55e 84%,
+      #06b6d4 100%) !important;
+  box-shadow: 0 0 10px rgba(52, 211, 153, .24) !important;
+  clip-path: inset(0 100% 0 0);
+  animation: nmc-kpi-category-progress 2.6s cubic-bezier(.22,.74,.25,1) forwards !important;
+}
+
+@media (max-width: 720px) {
+  html body [aria-label="Đang tải dữ liệu KPI"],
+  html body [aria-label="Tải dữ liệu gặp lỗi"] {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  html body [aria-label="Đang tải dữ liệu KPI"] > div,
+  html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
+    width: min(88vw, 345px) !important;
+    max-width: 345px !important;
+    padding: 25px 20px 22px !important;
+    border-radius: 22px !important;
+  }
+
+  html body .kpi-app .kpi-embed-loader {
+    padding: 14px !important;
+  }
+
+  html body .kpi-app .kpi-embed-loader > span {
+    grid-template-columns: 70px minmax(0, 1fr) !important;
+    grid-template-rows: auto 6px !important;
+    column-gap: 14px !important;
+    row-gap: 11px !important;
+    width: min(91vw, 390px) !important;
+    min-height: 104px !important;
+    padding: 16px 17px !important;
+    border-radius: 18px !important;
+    font-size: clamp(17px, 4.8vw, 20px) !important;
+  }
+
+  html body .kpi-app .kpi-embed-loader > span::before {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  html body .kpi-app .kpi-embed-loader > span::after {
+    height: 6px !important;
+  }
+}

@@ -6,12 +6,15 @@ import { usePathname } from 'next/navigation'
  * SpaceBackground — nền xám với vân tổ ong (hexagon pattern).
  *
  * Theo yêu cầu user: nền xám + pattern tổ ong, không phải hình Phật hay binary rain.
- * Áp dụng cho tất cả trang (render ở layout.tsx).
- *
- * Hexagon pattern: SVG tile 60x60, vẽ 1 tổ ong (6 cạnh) ở giữa.
+ * Áp dụng cho các trang Main App; KPI có nền công nghệ riêng nên không render
+ * thêm lớp fixed background này để tránh compositing/repaint dư trên mobile.
  */
 export function SpaceBackground() {
   const pathname = usePathname()
+
+  if (pathname === '/kpi' || pathname === '/kpi-standalone' || pathname.startsWith('/kpi/')) {
+    return null
+  }
 
   // SVG hexagon tile — vân tổ ong (honeycomb)
   // Hexagon kích thước 40px, viền mảnh, lặp đều tạo vân tổ ong

@@ -64,6 +64,7 @@ interface NYDData {
   recruitCount: number;
   recruitFYP: number;
   ownFYP: number;
+  ownActivityRounds: number;
   contracts: Contract[];
 }
 
@@ -122,6 +123,23 @@ type TargetType = 'tvv' | 'nhom' | 'nyd';
 function isActivityRoundMode(ct: ConditionType): boolean {
   return ct === 'activity_round' || ct === 'activity_round_tvvm' || ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm' || ct === 'activity_round_tvv90';
 }
+
+function getIndividualMetricLabel(ct: ConditionType): string {
+  if (isActivityRoundMode(ct)) return `${getConditionLabel(ct)} cá nhân`;
+  if (ct === 'total_afyp' || ct === 'per_contract_afyp') return 'AFYP cá nhân';
+  return 'IP cá nhân';
+}
+
+function getNYDContestValue(
+  ct: ConditionType,
+  recruitValue: number,
+  ownRevenue: number,
+  ownActivityRounds: number,
+  includeIndividual: boolean
+): number {
+  if (!includeIndividual) return recruitValue;
+  return recruitValue + (isActivityRoundMode(ct) ? ownActivityRounds : ownRevenue);
+}
 function isTVVPassCountMode(ct: ConditionType): boolean {
   return ct === 'tvv_pass_count' || ct === 'pass_count_ip_afyp';
 }
@@ -144,9 +162,11 @@ function isTopNMode(ct: ConditionType): boolean {
 function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   if (!startDate) return false;
   const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return false;
   const now = new Date();
+  if (start.getTime() > now.getTime()) return false;
   const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return diffMonths >= 0 && diffMonths <= maxMonths;
 }
 
 // Helper: kiểm tra chức vụ TTN (Tiền/Tổ Trưởng Nhóm) — để loại khỏi "TVV cũ"
@@ -183,10 +203,7 @@ function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: numbe
   const agentContract = contracts.find(c => c.agentCode === agentCode);
   const startDate = structureStartDate || agentContract?.ngayBatDauLamViec || agentContract?.startDate;
   if (!startDate) return false;
-  const start = new Date(startDate);
-  const now = new Date();
-  const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return diffMonths <= maxMonths;
+  return isTVVm(startDate, maxMonths);
 }
 
 // Helper: calculate lượt for a group of contracts based on tinhLuot3tr
@@ -195,15 +212,17 @@ function calculateLuot(contracts: Contract[], luotThreshold: number, conditionTy
   let count = 0;
   for (const c of contracts) {
     // Thâm niên lấy từ DS TVV Cấu trúc; dữ liệu dòng hợp đồng chỉ là fallback cũ.
-    const structureStartDate = structureStartDates?.get(c.agentCode);
+    const structureStartDate = structureStartDates?.get(c.agentCode.trim().toUpperCase());
     if (isTVVmMode(conditionType)) {
-      if (!isTVVm(structureStartDate || c.ngayBatDauLamViec || c.startDate)) continue;
+      const startDate = structureStartDates
+        ? structureStartDate || null
+        : c.ngayBatDauLamViec || c.startDate;
+      if (!isTVVm(startDate)) continue;
     }
     if (conditionType === 'activity_round_tvv90') {
       if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDate)) continue;
     }
-    // Dùng pdt10DT (IP thực tế) so với luotThreshold — ĐỒNG BỘ với contest-calculator
-    // (Trước đây dùng c.tinhLuot3tr — field cố định trong DB, không đổi theo thời gian)
+    // Chỉ đếm giá trị đã xử lý sẵn tại cột TÍNH LƯỢT 3tr; không cộng IP/AFYP.
     if (c.tinhLuot3tr >= luotThreshold) {
       count++;
     }
@@ -658,7 +677,9 @@ function ThiDuaPageInner() {
   }, [fetchFresh]);
 
   const fetchSavedContests = useCallback(async () => {
-    try { const res = await fetchFresh('/api/contests'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+    // Danh sách chỉ lấy cấu hình tóm tắt, không kéo dữ liệu ảnh poster nặng.
+    // Chi tiết/poster của chương trình được tải riêng khi người dùng mở chương trình đó.
+    try { const res = await fetchFresh('/api/contests?summary=1'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
   }, [fetchFresh]);
 
   // Fetch staff list for group membership reference
@@ -797,7 +818,8 @@ function ThiDuaPageInner() {
   const structureStartDateByCode = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const member of tvvStructList) {
-      if (member.agentCode && !map.has(member.agentCode)) map.set(member.agentCode, member.ngayBatDau || null);
+      const key = member.agentCode?.trim().toUpperCase();
+      if (key && !map.has(key)) map.set(key, member.ngayBatDau || null);
     }
     return map;
   }, [tvvStructList]);
@@ -1082,6 +1104,7 @@ function ThiDuaPageInner() {
             recruitCount: 0,
             recruitFYP: 0,
             ownFYP: 0,
+            ownActivityRounds: 0,
             contracts: [],
           });
         }
@@ -1099,6 +1122,7 @@ function ThiDuaPageInner() {
           recruitCount: 0,
           recruitFYP: 0,
           ownFYP: 0,
+          ownActivityRounds: 0,
           contracts: [],
         });
       }
@@ -1146,7 +1170,7 @@ function ThiDuaPageInner() {
         if (isTVVmMode(conditionType)) {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              return isTVVm(structureStartDateByCode.get(agentCode) || null);
+              return isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null);
             })
           );
         }
@@ -1154,7 +1178,7 @@ function ThiDuaPageInner() {
         if (conditionType === 'activity_round_tvv90') {
           recruitedAgents = new Set(
             [...recruitedAgents].filter(agentCode => {
-              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode));
+              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase()));
             })
           );
         }
@@ -1185,6 +1209,7 @@ function ThiDuaPageInner() {
       // Also add NTD's own FYP from agentFYPLookup
       const ownRevenue = agentFYPLookup.get(nydCode);
       nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
+      nyd.ownActivityRounds = ownRevenue?.activityRounds ?? 0;
       nyd.contracts = [...recruitedContracts, ...displayContracts.filter(c => c.agentCode === nydCode)];
     }
 
@@ -1743,15 +1768,19 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
             recruitCount += calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
           }
-          const { tier } = calculateBonusWithTiers(recruitCount, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, recruitCount, recruitCount);
+          const ownRounds = includeIndividualNTD
+            ? calculateLuotWithStructure(phase1Contracts.filter(c => c.agentCode === r.agentCode), luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
+            : 0;
+          const value = recruitCount + ownRounds;
+          const { tier } = calculateBonusWithTiers(value, bonusTiers);
+          if (tier) phase1Bonus += computeBonusFromTier(tier, value, value);
         } else {
           let recruitFYP = 0;
           for (const agentCode of recruitedAgents) {
@@ -1779,15 +1808,19 @@ function ThiDuaPageInner() {
         const recruitedAgents = new Set(recruited.map(c => c.agentCode));
         if (isActivityRoundMode(conditionType)) {
           let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode)))); }
+          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
+        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
           let recruitCount = 0;
           for (const agentCode of filteredAgents) {
             const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
             recruitCount += calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
           }
-          const { tier } = calculateBonusWithTiers(recruitCount, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, recruitCount, recruitCount);
+          const ownRounds = includeIndividualNTD
+            ? calculateLuotWithStructure(phase2Contracts.filter(c => c.agentCode === r.agentCode), luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
+            : 0;
+          const value = recruitCount + ownRounds;
+          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
+          if (tier) phase2Bonus += computeBonusFromTier(tier, value, value);
         } else {
           let recruitFYP = 0;
           for (const agentCode of recruitedAgents) {
@@ -2175,12 +2208,12 @@ function ThiDuaPageInner() {
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     if (targetType === 'nyd') {
       nydData.map(n => {
-        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+        const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);
         return { nyd: n, tier, value };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value }, idx) => {
-        const displayVal = isActivityRoundMode(conditionType) ? `${n.recruitCount} Lượt` : formatNumber(value);
-        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal}${includeIndividualNTD ? ` | IP cá nhân: ${formatNumber(n.ownFYP)}` : ''} | ${tier ? `Thưởng: ${formatBonus(tier, value, n.recruitCount)}` : 'Chưa đạt'}\n`;
+        const displayVal = isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value);
+        text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal} | ${tier ? `Thưởng: ${formatBonus(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
       [...groupedData].map((g) => {
@@ -2243,19 +2276,33 @@ function ThiDuaPageInner() {
     const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
 
+    // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
+    // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
+    const includeEligibilityDateColumns = filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom');
+    const recruiterEffectiveDateMap = new Map<string, string>();
+    for (const recruiter of ntdCandidates) {
+      if (recruiter.agentCode && recruiter.ngayHieuLuc) {
+        recruiterEffectiveDateMap.set(recruiter.agentCode, recruiter.ngayHieuLuc);
+      }
+    }
+    const recruiterEffectiveDateFor = (recruiterCode: string): string => {
+      const date = recruiterEffectiveDateMap.get(recruiterCode);
+      return date ? formatDate(date) : '';
+    };
+
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : 'Tổng IP', ...(includeIndividualNTD ? ['IP cá nhân'] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+      headers = ['STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD', 'Chức vụ', includeIndividualNTD ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP', ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Ngày BĐLV', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
       rows = [];
       merges = [];
       let currentRow = 1; // row 0 = header
       const sortedNYD = [...nydData].sort((a, b) => {
-        const aVal = isActivityRoundMode(conditionType) ? a.recruitCount : (a.recruitFYP + (includeIndividualNTD ? a.ownFYP : 0));
-        const bVal = isActivityRoundMode(conditionType) ? b.recruitCount : (b.recruitFYP + (includeIndividualNTD ? b.ownFYP : 0));
+        const aVal = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? a.recruitCount : a.recruitFYP, a.ownFYP, a.ownActivityRounds, includeIndividualNTD);
+        const bVal = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? b.recruitCount : b.recruitFYP, b.ownFYP, b.ownActivityRounds, includeIndividualNTD);
         return bVal - aVal;
       });
       sortedNYD.forEach((n, nIdx) => {
-        const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+        const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);
         // Check supplementary total condition
         const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
@@ -2265,13 +2312,12 @@ function ThiDuaPageInner() {
         const contracts = n.contracts || [];
         if (contracts.length === 0) {
           // NTD không có HĐ, vẫn ghi 1 dòng
-          const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName, n.position || '', isActivityRoundMode(conditionType) ? n.recruitCount : value];
-          if (includeIndividualNTD) row.push(n.ownFYP);
+          const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName, n.position || '', value];
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
           row.push('', '', '', '', '', '', value, n.startDate ? formatDate(n.startDate) : '');
           if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
-          row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+          row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
           rows.push(row);
           currentRow++;
         } else {
@@ -2283,9 +2329,8 @@ function ThiDuaPageInner() {
               cIdx === 0 ? n.nydCode : '',
               cIdx === 0 ? n.nydName : '',
               cIdx === 0 ? (n.position || '') : '',
-              cIdx === 0 ? (isActivityRoundMode(conditionType) ? n.recruitCount : value) : '',
+              cIdx === 0 ? value : '',
             ];
-            if (includeIndividualNTD) row.push(cIdx === 0 ? n.ownFYP : '');
             if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             row.push(
@@ -2299,7 +2344,7 @@ function ThiDuaPageInner() {
               c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
             );
             if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
-            row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '') : '');
+            row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '') : '');
             row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
             rows.push(row);
             currentRow++;
@@ -2320,9 +2365,8 @@ function ThiDuaPageInner() {
             merges.push({ s: { r: startRow, c: 4 }, e: { r: endRow, c: 4 } });
             // Điều kiện col 5
             merges.push({ s: { r: startRow, c: 5 }, e: { r: endRow, c: 5 } });
-            let mergeOffset = 0;
-            if (includeIndividualNTD) { merges.push({ s: { r: startRow, c: 6 }, e: { r: endRow, c: 6 } }); mergeOffset = 1; }
-            // Supplementary cols (6 + mergeOffset ... 6 + mergeOffset + secOffset - 1)
+            const mergeOffset = 0;
+            // Supplementary cols (6 ... 6 + secOffset - 1)
             for (let ci = 0; ci < secOffset; ci++) {
               merges.push({ s: { r: startRow, c: 6 + mergeOffset + ci }, e: { r: endRow, c: 6 + mergeOffset + ci } });
             }
@@ -2380,7 +2424,7 @@ function ThiDuaPageInner() {
         merges = [];
       } else {
         // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-        const condHeader = isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
+        const condHeader = includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP';
         if (usePhase2) {
           headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), 'Họ tên TVV', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP', 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         } else {
@@ -2594,7 +2638,7 @@ function ThiDuaPageInner() {
 
     // Sheet 2: Chi tiết hợp đồng — thống nhất tên cột theo trang Quản Lý + cột THƯỞNG (gộp ô khi tính tổng)
     if (displayContracts.length > 0) {
-      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
+      const detailHeaders = ['STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ', 'Ngày bắt đầu làm việc', ...(includeEligibilityDateColumns ? ['Ngày hiệu lực chức vụ NTD'] : []), 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD', 'THƯỞNG'];
       // Build detail rows with bonus values for merging
       const needMerge = targetType === 'nhom' || targetType === 'nyd' || (targetType === 'tvv' && isTotalMode(conditionType));
 
@@ -2613,12 +2657,12 @@ function ThiDuaPageInner() {
         if (targetType === 'nyd') {
           const n = nydData.find(n => n.nydCode === groupKey);
           if (!n) return '';
-          const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+          const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
           const { tier } = calculateBonus(value);
           const nydContracts = n.contracts || displayContracts.filter(c => c.maDaiLyTD === n.nydCode);
           const sc = checkSecondaryTotalCondition(nydContracts);
           const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
-          return effectiveTier ? formatBonusAmount(effectiveTier, value, n.recruitCount) : '';
+          return effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '';
         }
         // TVV total mode
         if (targetType === 'tvv' && isTotalMode(conditionType)) {
@@ -2663,7 +2707,13 @@ function ThiDuaPageInner() {
             c.agentCode || '',
             c.agentName || '',
             c.position || '',
-            c.ngayBatDauLamViec ? formatDate(c.ngayBatDauLamViec) : '',
+            (() => {
+              const startDate = isTVVmMode(conditionType)
+                ? structureStartDateByCode.get(c.agentCode.trim().toUpperCase())
+                : c.ngayBatDauLamViec;
+              return startDate ? formatDate(startDate) : '';
+            })(),
+            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),
             c.contractNumber || '',
             c.effectiveDate ? formatDate(c.effectiveDate) : '',
             c.issueDate ? formatDate(c.issueDate) : '',
@@ -2722,7 +2772,17 @@ function ThiDuaPageInner() {
       XLSX.utils.book_append_sheet(wb, wsDetail, 'Chi tiết HĐ');
     }
 
-    XLSX.writeFile(wb, `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const safeContestFileName = (contestTitle || '')
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/\s+/g, ' ')
+      .replace(/[. ]+$/g, '')
+      .slice(0, 120)
+      .trim();
+    const exportFileName = safeContestFileName
+      ? `${safeContestFileName}.xlsx`
+      : `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, exportFileName);
     } catch (err) {
       console.error('[handleExport] Error:', err);
       toast({ title: 'Lỗi xuất Excel', description: String(err), variant: 'destructive' });
@@ -2748,7 +2808,9 @@ function ThiDuaPageInner() {
     if (style) style.remove();
   };
 
-  // Download image function - using html-to-image
+  // Download at most two lightweight snapshots. Removing unused rows from a
+  // detached clone is important: hiding them in the live table still makes
+  // html-to-image walk every row, which can freeze the tab for large contests.
   const handleDownloadImage = async () => {
     setIsDownloadingImage(true);
     try {
@@ -2759,122 +2821,182 @@ function ThiDuaPageInner() {
       }
 
       const el = resultContentRef.current;
-      const origWidth = el.style.width;
-      const origOverflow = el.style.overflow;
-
-      // Count result rows to determine if splitting is needed
-      const tableRows = el.querySelectorAll('tbody tr');
+      const tableRows = el.querySelectorAll('#result-table-container tbody > tr');
       const MAX_ROWS_PER_IMAGE = 20;
       const MAX_IMAGES_PER_DOWNLOAD = 2;
       const maxRowsThisDownload = MAX_ROWS_PER_IMAGE * MAX_IMAGES_PER_DOWNLOAD;
-      const needsSplit = tableRows.length > MAX_ROWS_PER_IMAGE;
+      const imageCount = Math.max(
+        1,
+        Math.min(MAX_IMAGES_PER_DOWNLOAD, Math.ceil(tableRows.length / MAX_ROWS_PER_IMAGE)),
+      );
 
-      if (!needsSplit) {
-        // Single image — no split needed
-        el.style.width = 'fit-content';
-        el.style.overflow = 'hidden';
-        hideAllScrollbars();
-        const blob = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
+      const captureRows = async (startRow: number) => {
+        const captureRoot = document.createElement('div');
+        captureRoot.setAttribute('aria-hidden', 'true');
+        captureRoot.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;background:#fff;';
+
+        const sourcePrintContent = el.firstElementChild;
+        if (!sourcePrintContent) throw new Error('Không tìm thấy nội dung kết quả');
+
+        // Build the table clone from its shell instead of cloneNode(true) on
+        // the whole result. This keeps even the cloning step bounded to 20 rows.
+        const clone = el.cloneNode(false) as HTMLDivElement;
+        // Keep exported images compact and predictable even when the live
+        // popup is opened on a narrow phone or in expanded desktop mode.
+        const captureWidth = Math.min(640, Math.max(560, el.clientWidth));
+        clone.style.width = `${captureWidth}px`;
+        clone.style.overflow = 'hidden';
+        clone.style.boxSizing = 'border-box';
+        clone.style.padding = '2px';
+        const endRow = startRow + MAX_ROWS_PER_IMAGE;
+
+        const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
+        Array.from(sourcePrintContent.children).forEach((child) => {
+          if (child.id !== 'result-table-container') {
+            const contentClone = child.cloneNode(true) as HTMLElement;
+            if (contentClone.querySelector('img[alt="Poster"]')) {
+              contentClone.style.width = '100%';
+              contentClone.style.marginLeft = '0';
+              contentClone.style.marginRight = '0';
+              contentClone.style.marginBottom = '8px';
+            }
+            printClone.appendChild(contentClone);
+            return;
+          }
+
+          const tableContainerClone = child.cloneNode(false) as HTMLElement;
+          const sourceTable = child.querySelector('table');
+          if (!sourceTable) {
+            printClone.appendChild(child.cloneNode(true));
+            return;
+          }
+
+          const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
+          const liveScale = Number.parseFloat(window.getComputedStyle(sourceTable).zoom || '1') || 1;
+          const exportScale = Math.min(
+            1,
+            liveScale * (captureWidth / Math.max(1, el.clientWidth)),
+          );
+          tableClone.style.zoom = String(exportScale);
+          Array.from(sourceTable.children).forEach((section) => {
+            if (section.tagName !== 'TBODY') {
+              tableClone.appendChild(section.cloneNode(true));
+              return;
+            }
+
+            const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
+            Array.from(section.children)
+              .slice(startRow, endRow)
+              .forEach(row => bodyClone.appendChild(row.cloneNode(true)));
+            tableClone.appendChild(bodyClone);
+          });
+
+          // Normalize the exported type against the table zoom so downloads from
+          // the compact and expanded popup stay equally readable. These values
+          // resolve to about 18 px body text and 17 px headers in the 2x PNG.
+          const exportBodyFontSize = Math.min(24, Math.max(12.5, 9 / exportScale));
+          const exportHeaderFontSize = Math.min(22, Math.max(12, 8.5 / exportScale));
+          // Use the natural two-line heading as the fixed row-height standard.
+          // Single-line headings grow to this height; two-line headings do not
+          // receive extra padding and therefore keep their established size.
+          const exportHeaderHeight = Math.min(44, Math.max(24, 17 / exportScale));
+          const exportVerticalPadding = Math.min(4, Math.max(2, 1.5 / exportScale));
+          tableClone.querySelectorAll<HTMLTableRowElement>('thead tr').forEach((row) => {
+            row.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
+          });
+          tableClone.querySelectorAll<HTMLTableCellElement>('thead th').forEach((cell) => {
+            cell.style.setProperty('font-size', `${exportHeaderFontSize}px`, 'important');
+            cell.style.setProperty('line-height', '1.05', 'important');
+            cell.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
+            cell.style.setProperty('padding-top', '0', 'important');
+            cell.style.setProperty('padding-bottom', '0', 'important');
+            cell.style.setProperty('vertical-align', 'middle', 'important');
+          });
+          tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
+            cell.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
+            cell.style.setProperty('line-height', '1.1', 'important');
+            cell.style.setProperty('padding-top', `${exportVerticalPadding}px`, 'important');
+            cell.style.setProperty('padding-bottom', `${exportVerticalPadding}px`, 'important');
+          });
+          const headerCells = Array.from(tableClone.querySelectorAll<HTMLTableCellElement>('thead th'));
+          const groupColumnIndex = headerCells.findIndex(
+            cell => cell.textContent?.trim().toLocaleUpperCase('vi-VN') === 'NHÓM',
+          );
+          if (groupColumnIndex >= 0) {
+            tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
+              const groupCell = row.cells.item(groupColumnIndex);
+              if (!groupCell) return;
+              groupCell.style.setProperty('color', '#111827', 'important');
+              groupCell.querySelectorAll<HTMLElement>('*').forEach((element) => {
+                element.style.setProperty('color', '#111827', 'important');
+              });
+            });
+          }
+          tableContainerClone.appendChild(tableClone);
+          printClone.appendChild(tableContainerClone);
         });
-        el.style.width = origWidth;
-        el.style.overflow = origOverflow;
-        restoreAllScrollbars();
-        if (!blob) {
-          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-          return;
+        clone.appendChild(printClone);
+
+        captureRoot.appendChild(clone);
+        document.body.appendChild(captureRoot);
+        try {
+          // Give the clone one paint frame so fonts, images and table width settle.
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          return await toBlob(clone, {
+            quality: 1,
+            pixelRatio: 2,
+            backgroundColor: '#ffffff',
+          });
+        } finally {
+          captureRoot.remove();
         }
+      };
+
+      hideAllScrollbars();
+      const blobs: Blob[] = [];
+      try {
+        for (let imageIndex = 0; imageIndex < imageCount; imageIndex += 1) {
+          const blob = await captureRows(imageIndex * MAX_ROWS_PER_IMAGE);
+          if (blob) blobs.push(blob);
+          // Yield between images so the browser can process input and repaint.
+          if (imageIndex + 1 < imageCount) {
+            await new Promise<void>(resolve => setTimeout(resolve, 100));
+          }
+        }
+      } finally {
+        restoreAllScrollbars();
+      }
+
+      if (blobs.length === 0) {
+        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
+        return;
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      for (let index = 0; index < blobs.length; index += 1) {
+        const blob = blobs[index];
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
+        link.download = blobs.length === 1
+          ? `ket_qua_thi_dua_${dateStr}.png`
+          : `ket_qua_thi_dua_${index + 1}_${dateStr}.png`;
         link.href = url;
         link.click();
-        URL.revokeObjectURL(url);
-        toast({ title: 'Thành công', description: 'Đã tải ảnh xuống' });
-      } else {
-        // Capture at most two images, 20 result rows each. Older code put all
-        // remaining rows into image 2, causing slow or failed captures.
-        const dateStr = new Date().toISOString().slice(0, 10);
-
-        // === IMAGE 1: Poster + first half of rows ===
-        el.style.width = 'fit-content';
-        el.style.overflow = 'hidden';
-
-        // Hide rows after MAX_ROWS_PER_IMAGE
-        const allRows = Array.from(tableRows) as HTMLTableRowElement[];
-        const hiddenRows2: HTMLTableRowElement[] = [];
-        allRows.forEach((row, idx) => {
-          if (idx >= MAX_ROWS_PER_IMAGE) {
-            row.style.display = 'none';
-            hiddenRows2.push(row);
-          }
-        });
-
-        hideAllScrollbars();
-        const blob1 = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
-        });
-
-        // Restore hidden rows
-        hiddenRows2.forEach(row => { row.style.display = ''; });
-
-        // === IMAGE 2: Poster + title + rows 21–40 ===
-        const hiddenRows1: HTMLTableRowElement[] = [];
-        allRows.forEach((row, idx) => {
-          if (idx < MAX_ROWS_PER_IMAGE || idx >= maxRowsThisDownload) {
-            row.style.display = 'none';
-            hiddenRows1.push(row);
-          }
-        });
-
-        const blob2 = await toBlob(el, {
-          quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#ffffff',
-        });
-
-        // Restore all rows
-        hiddenRows1.forEach(row => { row.style.display = ''; });
-        el.style.width = origWidth;
-        el.style.overflow = origOverflow;
-        restoreAllScrollbars();
-
-        // Download both images
-        if (blob1) {
-          const url1 = URL.createObjectURL(blob1);
-          const link1 = document.createElement('a');
-          link1.download = `ket_qua_thi_dua_1_${dateStr}.png`;
-          link1.href = url1;
-          link1.click();
-          URL.revokeObjectURL(url1);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (index + 1 < blobs.length) {
+          await new Promise<void>(resolve => setTimeout(resolve, 500));
         }
-        if (blob2) {
-          // Slight delay to avoid browser blocking second download
-          await new Promise(r => setTimeout(r, 500));
-          const url2 = URL.createObjectURL(blob2);
-          const link2 = document.createElement('a');
-          link2.download = `ket_qua_thi_dua_2_${dateStr}.png`;
-          link2.href = url2;
-          link2.click();
-          URL.revokeObjectURL(url2);
-        }
-
-        if (!blob1 && !blob2) {
-          toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-          return;
-        }
-        const capturedRows = Math.min(allRows.length, maxRowsThisDownload);
-        toast({
-          title: 'Thành công',
-          description: allRows.length > capturedRows
-            ? `Đã tải 2 ảnh, 20 dòng/ảnh (40/${allRows.length} dòng đầu).`
-            : `Đã tải 2 ảnh, 20 dòng/ảnh (${capturedRows} dòng).`,
-        });
       }
+
+      const capturedRows = Math.min(tableRows.length, maxRowsThisDownload);
+      toast({
+        title: 'Thành công',
+        description: tableRows.length > capturedRows
+          ? `Đã tải 2 ảnh, tối đa 20 dòng/ảnh (${capturedRows}/${tableRows.length} dòng đầu).`
+          : blobs.length === 1
+            ? `Đã tải 1 ảnh (${capturedRows} dòng).`
+            : `Đã tải 2 ảnh, tối đa 20 dòng/ảnh (${capturedRows} dòng).`,
+      });
     } catch (error) {
       console.error('Download image error:', error);
       toast({ title: 'Lỗi', description: 'Không thể tải ảnh', variant: 'destructive' });
@@ -2984,15 +3106,15 @@ function ThiDuaPageInner() {
 
     // NYD stats
     const nydAchievedCount = targetType === 'nyd' ? nydData.filter(n => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+      const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       return calculateBonus(value).tier;
     }).length : 0;
     const nydNotAchievedCount = targetType === 'nyd' ? nydData.length - nydAchievedCount : 0;
     const nydTotalBonus = targetType === 'nyd' ? nydData.reduce((sum, n) => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+      const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier } = calculateBonus(value);
       if (!tier) return sum;
-      return sum + computeBonusFromTier(tier, value, n.recruitCount);
+      return sum + computeBonusFromTier(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount);
     }, 0) : 0;
 
     const tvvAgentCount = targetType === 'tvv'
@@ -3186,7 +3308,7 @@ function ThiDuaPageInner() {
   const nydResultRows = useMemo(() => {
     if (targetType !== 'nyd') return [];
     return nydData.map(n => {
-      const value = isActivityRoundMode(conditionType) ? n.recruitCount : (n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0));
+      const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier, tierIndex } = calculateBonus(value);
       return { nyd: n, tier, tierIndex, value };
     }).sort((a, b) => b.value - a.value);
@@ -3429,7 +3551,7 @@ function ThiDuaPageInner() {
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Lượt hoạt động</p>
                   <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_tvvm' ? 'activity_round_tvvm' : 'activity_round')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round' || conditionType === 'activity_round_tvvm' ? 'bg-amber-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-amber-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt HĐ</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDThreshold)}kđ/tháng)</span></button>
+                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt HĐ</span><span className="text-[9px] opacity-60">(TÍNH LƯỢT 3tr≥{vndToNgan(luotHDThreshold)}kđ/tháng)</span></button>
                   {(conditionType === 'activity_round' || conditionType === 'activity_round_tvvm') && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-amber-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3453,7 +3575,7 @@ function ThiDuaPageInner() {
                 <div className="space-y-1.5">
                   <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_standard_tvvm' ? 'activity_round_standard_tvvm' : 'activity_round_standard')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm' ? 'bg-orange-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-orange-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Award className="w-3 h-3 shrink-0" /><span>Lượt HĐ Chuẩn</span><span className="text-[9px] opacity-60">(IP≥{vndToNgan(luotHDCTThreshold)}kđ/tháng)</span></button>
+                  ><Award className="w-3 h-3 shrink-0" /><span>Lượt HĐ Chuẩn</span><span className="text-[9px] opacity-60">(TÍNH LƯỢT 3tr≥{vndToNgan(luotHDCTThreshold)}kđ/tháng)</span></button>
                   {(conditionType === 'activity_round_standard' || conditionType === 'activity_round_standard_tvvm') && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-orange-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3477,7 +3599,7 @@ function ThiDuaPageInner() {
                 <div className="space-y-1.5">
                   <button type="button" onClick={() => setConditionType('activity_round_tvv90')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'activity_round_tvv90' ? 'bg-rose-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-rose-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
-                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt TVV90</span><span className="text-[9px] opacity-60">(≤{tvv90MaxMonths}t + IP≥{vndToNgan(tvv90MinIP)}kđ)</span></button>
+                  ><Users className="w-3 h-3 shrink-0" /><span>Lượt TVV90</span><span className="text-[9px] opacity-60">(≤{tvv90MaxMonths}t + TÍNH LƯỢT 3tr≥{vndToNgan(tvv90MinIP)}kđ)</span></button>
                   {conditionType === 'activity_round_tvv90' && (
                     <div className="space-y-1.5 pl-3 border-l-2 border-rose-500/30">
                       <div className="grid grid-cols-2 gap-1.5">
@@ -3780,7 +3902,7 @@ function ThiDuaPageInner() {
 
             {isActivityRoundMode(conditionType) && targetType === 'nhom' && groupedData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-orange-900/40 to-amber-900/40 border border-orange-500/30 p-3">
-                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt TVV90' : 'Lượt HĐ'}: IP ≥ {formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt{conditionType === 'activity_round_tvv90' ? ` (TVV90 ≤${tvv90MaxMonths}T)` : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><Users className="w-4 h-4 text-orange-400" /><div className="flex-1"><p className="text-xs font-bold text-orange-300">{conditionType === 'activity_round' ? 'Lượt HĐ' : conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt TVV90' : 'Lượt HĐ'}: TÍNH LƯỢT 3tr ≥ {formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt{conditionType === 'activity_round_tvv90' ? ` (TVV90 ≤${tvv90MaxMonths}T)` : ''}</p></div><div className="text-right"><p className="text-[10px] text-orange-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-orange-400">{formatCurrency(arTotalBonus)}</p></div></div>
               </div>
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
@@ -3790,7 +3912,7 @@ function ThiDuaPageInner() {
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
-                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có IP ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}` : `Tổng FYP${includeIndividualNTD ? ' + IP cá nhân' : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
+                <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có TÍNH LƯỢT 3tr ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}` : `${conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
             )}
           </div>
@@ -3824,14 +3946,116 @@ function ThiDuaPageInner() {
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
-        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : isResultExpanded ? 'sm:max-w-5xl max-h-[95vh]' : 'sm:max-w-2xl max-h-[67vh]'} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : `${isResultExpanded ? 'sm:max-w-5xl max-h-[95dvh]' : 'sm:max-w-xl max-h-[92dvh] sm:max-h-[76vh]'} contest-result-dialog overflow-x-hidden`} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+          <style dangerouslySetInnerHTML={{ __html: `
+            .contest-result-table-wrapper {
+              width: 100%;
+              max-width: 100%;
+              min-width: 0;
+              overflow-x: hidden;
+            }
+            .contest-result-table-wrapper [data-slot="table-container"] {
+              width: 100%;
+              max-width: 100%;
+              min-width: 0;
+              overflow: hidden;
+            }
+            .contest-result-content,
+            .contest-result-content > div,
+            .contest-result-toolbar {
+              width: 100%;
+              max-width: 100%;
+              min-width: 0;
+            }
+            .contest-result-table {
+              width: max-content;
+              min-width: 100%;
+              table-layout: auto;
+              font-size: 10px;
+              transform-origin: top left;
+              zoom: .76;
+            }
+            .contest-result-table:has(th:nth-child(9)) { zoom: .68; }
+            .contest-result-table:has(th:nth-child(10)) { zoom: .61; }
+            .contest-result-table:has(th:nth-child(11)) { zoom: .55; }
+            .contest-result-table:has(th:nth-child(12)) { zoom: .50; }
+            .contest-result-table:has(th:nth-child(13)) { zoom: .46; }
+            .contest-result-table:has(th:nth-child(14)) { zoom: .42; }
+            .contest-result-table th,
+            .contest-result-table td {
+              padding: 4px 3px !important;
+              white-space: nowrap !important;
+              line-height: 1.15;
+            }
+            .contest-result-table th:first-child,
+            .contest-result-table td:first-child {
+              width: 28px !important;
+            }
+            @media (max-width: 639px) {
+              .contest-result-dialog {
+                width: calc(100vw - 12px) !important;
+                max-width: calc(100vw - 12px) !important;
+              }
+              .contest-result-toolbar {
+                gap: 4px;
+                padding: 6px 34px 6px 8px;
+              }
+              .contest-result-toolbar-title {
+                min-width: 0;
+                gap: 4px;
+                font-size: 12px;
+                line-height: 1.15;
+              }
+              .contest-result-toolbar-title svg {
+                width: 14px;
+                height: 14px;
+              }
+              .contest-result-toolbar-actions {
+                gap: 2px;
+              }
+              .contest-result-toolbar-actions button {
+                height: 26px;
+                padding-left: 6px;
+                padding-right: 6px;
+                font-size: 10px;
+              }
+              .contest-result-content {
+                padding: 6px;
+              }
+              .contest-result-table {
+                font-size: 8px !important;
+                zoom: .65;
+              }
+              .contest-result-table:has(th:nth-child(9)) { zoom: .58; }
+              .contest-result-table:has(th:nth-child(10)) { zoom: .52; }
+              .contest-result-table:has(th:nth-child(11)) { zoom: .47; }
+              .contest-result-table:has(th:nth-child(12)) { zoom: .43; }
+              .contest-result-table:has(th:nth-child(13)) { zoom: .39; }
+              .contest-result-table:has(th:nth-child(14)) { zoom: .36; }
+              .contest-result-table th,
+              .contest-result-table td {
+                padding: 3px 1px !important;
+                font-size: 8px !important;
+                line-height: 1.1;
+              }
+              .contest-result-table th *,
+              .contest-result-table td * {
+                font-size: inherit !important;
+                line-height: inherit !important;
+              }
+              .contest-result-table svg {
+                width: 9px !important;
+                height: 9px !important;
+              }
+            }
+          `}} />
           {/* Action bar */}
-          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
-            <DialogTitle className="text-emerald-600 text-base font-bold flex items-center gap-2">
+          <div className={`${isEmbedMode ? '' : 'contest-result-toolbar'} sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between`}>
+            <DialogTitle className={`${isEmbedMode ? '' : 'contest-result-toolbar-title'} text-emerald-600 text-base font-bold flex items-center gap-2`}>
               <Trophy className="w-5 h-5 text-emerald-600" />
               {isEmbedMode ? (contestTitle || 'Kết quả chi tiết') : 'Kết quả chi tiết'}
             </DialogTitle>
-            <div className="flex items-center gap-1">
+            <div className={`${isEmbedMode ? '' : 'contest-result-toolbar-actions'} flex shrink-0 items-center gap-1`}>
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
                   {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -3839,19 +4063,19 @@ function ThiDuaPageInner() {
               )}
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 mr-1" />}Chia sẻ ảnh
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Chia sẻ ảnh</span>
                 </Button>
               )}
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Camera className="w-3 h-3 mr-1" />}Tải ảnh
+                  {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <Camera className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Tải ảnh</span>
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><Download className="w-3 h-3 mr-1" />XLSX</Button>
             </div>
           </div>
 
-          <div ref={resultContentRef} className="px-3 py-2">
+          <div ref={resultContentRef} className={`${isEmbedMode ? '' : 'contest-result-content'} px-3 py-2`}>
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
@@ -3860,8 +4084,8 @@ function ThiDuaPageInner() {
               )}
 
               {/* Result Table - slightly larger */}
-              <div className="overflow-x-auto border border-emerald-600 shadow-sm mt-3" id="result-table-container">
-                <Table className="text-sm">
+              <div className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
+                <Table className={isEmbedMode ? 'text-sm' : 'contest-result-table'}>
                   <TableHeader>
                     <TableRow className="bg-emerald-800 hover:bg-emerald-800 [&>th]:whitespace-nowrap">
                       <TableHead className="text-yellow-100 text-center w-[40px] font-bold uppercase">STT</TableHead>
@@ -3872,16 +4096,13 @@ function ThiDuaPageInner() {
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">Họ tên</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center whitespace-nowrap">Chức vụ</TableHead>
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
-                            {isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                            {includeIndividualNTD ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? getConditionLabel(conditionType) : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                           </TableHead>
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
-                          )}
-                          {includeIndividualNTD && (
-                            <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">IP cá nhân</TableHead>
                           )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
@@ -3937,7 +4158,7 @@ function ThiDuaPageInner() {
                             <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center">Tên Trưởng Nhóm</TableHead>
                             <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center">Chức vụ</TableHead>
                             <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">
-                              {isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
+                              {includeIndividualTN ? 'Tổng cộng' : isActivityRoundMode(conditionType) ? (conditionType === 'activity_round_standard' ? 'Lượt HĐ Chuẩn' : conditionType === 'activity_round_tvv90' ? 'Lượt HĐ TVV90' : 'Lượt HĐ') : conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}
                               {startDate && endDate && !isActivityRoundMode(conditionType) && <div className="text-[9px] font-bold text-red-500 italic">{formatDate(startDate)} - {formatDate(endDate)}</div>}
                             </TableHead>
                             {showSecondaryPerContractColumn && (
@@ -4078,16 +4299,18 @@ function ThiDuaPageInner() {
                         let p1RecruitFYP = 0;
                         if (isActivityRoundMode(conditionType)) {
                           p1RecruitCount = calculateLuotWithStructure(p1Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                          p1RecruitFYP = p1Recruited.reduce((s, c) => s + c.pdt10DT, 0);
+                          p1RecruitFYP = p1Recruited.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
                         } else {
                           const p1RecruitedMap = new Map<string, number>();
-                          for (const rc of p1Recruited) { p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + rc.pdt10DT); }
+                          for (const rc of p1Recruited) { p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + (conditionType === 'total_afyp' ? rc.afyp : rc.pdt10DT)); }
                           for (const [, af] of p1RecruitedMap) { if (af >= luotHDThreshold) p1RecruitCount++; p1RecruitFYP += af; }
                         }
-                        const p1OwnFYP = p1Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
-                        const p1Value = isActivityRoundMode(conditionType) ? p1RecruitCount : (p1RecruitFYP + (includeIndividualNTD ? p1OwnFYP : 0));
+                        const p1OwnContracts = p1Contracts.filter(c => c.agentCode === nyd.nydCode);
+                        const p1OwnFYP = p1OwnContracts.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
+                        const p1OwnRounds = calculateLuotWithStructure(p1OwnContracts, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+                        const p1Value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? p1RecruitCount : p1RecruitFYP, p1OwnFYP, p1OwnRounds, includeIndividualNTD);
                         const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
-                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, p1RecruitCount) : 0;
+                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, isActivityRoundMode(conditionType) ? p1Value : p1RecruitCount) : 0;
 
                         // Phase 2
                         const p2Recruited = p2Contracts.filter(c => c.maDaiLyTD === nyd.nydCode && c.agentCode !== nyd.nydCode);
@@ -4095,16 +4318,18 @@ function ThiDuaPageInner() {
                         let p2RecruitFYP = 0;
                         if (isActivityRoundMode(conditionType)) {
                           p2RecruitCount = calculateLuotWithStructure(p2Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                          p2RecruitFYP = p2Recruited.reduce((s, c) => s + c.pdt10DT, 0);
+                          p2RecruitFYP = p2Recruited.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
                         } else {
                           const p2RecruitedMap = new Map<string, number>();
-                          for (const rc of p2Recruited) { p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + rc.pdt10DT); }
+                          for (const rc of p2Recruited) { p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + (conditionType === 'total_afyp' ? rc.afyp : rc.pdt10DT)); }
                           for (const [, af] of p2RecruitedMap) { if (af >= luotHDThreshold) p2RecruitCount++; p2RecruitFYP += af; }
                         }
-                        const p2OwnFYP = p2Contracts.filter(c => c.agentCode === nyd.nydCode).reduce((s, c) => s + c.pdt10DT, 0);
-                        const p2Value = isActivityRoundMode(conditionType) ? p2RecruitCount : (p2RecruitFYP + (includeIndividualNTD ? p2OwnFYP : 0));
+                        const p2OwnContracts = p2Contracts.filter(c => c.agentCode === nyd.nydCode);
+                        const p2OwnFYP = p2OwnContracts.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
+                        const p2OwnRounds = calculateLuotWithStructure(p2OwnContracts, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
+                        const p2Value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? p2RecruitCount : p2RecruitFYP, p2OwnFYP, p2OwnRounds, includeIndividualNTD);
                         const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
-                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, p2RecruitCount) : 0;
+                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, isActivityRoundMode(conditionType) ? p2Value : p2RecruitCount) : 0;
 
                         return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
                       })() : null;
@@ -4116,7 +4341,7 @@ function ThiDuaPageInner() {
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap">{nyd.nydName}</TableCell>
                           <TableCell className="text-xs text-gray-600 whitespace-nowrap">{nyd.position || '—'}</TableCell>
                           <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">
-                            {isActivityRoundMode(conditionType) ? `${nyd.recruitCount} Lượt` : formatNumber(value)}
+                            {isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value)}
                           </TableCell>
                           {showSecondaryTotalColumn && (() => {
                             const nydContracts = nyd.contracts || displayContracts.filter(c => c.maDaiLyTD === nyd.nydCode);
@@ -4138,9 +4363,6 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
-                          {includeIndividualNTD && (
-                            <TableCell className="text-right text-xs text-gray-600 whitespace-nowrap">{formatNumber(nyd.ownFYP)}</TableCell>
-                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
@@ -4151,7 +4373,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value, nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value, isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                         </TableRow>

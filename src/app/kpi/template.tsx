@@ -1,6 +1,36 @@
 import type { ReactNode } from 'react'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
+/* Nền công nghệ xanh đen dùng chung cho toàn bộ KPI. */
+html,
+body {
+  background: #020914;
+}
+
+.kpi-app {
+  min-height: 100vh;
+  isolation: isolate;
+  background-color: #020914 !important;
+  background-image:
+    linear-gradient(180deg, rgba(1, 7, 17, .06), rgba(1, 8, 20, .15)),
+    url('/kpi-tech-bg.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  background-attachment: fixed !important;
+}
+
+.kpi-app .bg-scene,
+.kpi-app .bg-orb {
+  display: none !important;
+}
+
+/*
+ * Không đặt CSS cho màn loading tại đây.
+ * Loading KPI được quản lý duy nhất bởi AppLoader + kpi-cyber-room-v4.css.
+ * Tránh xung đột kích thước / min-height khiến mobile bị phóng card và lộ skeleton.
+ */
+
 /* Nền băng thông báo vàng rõ hơn trên cả desktop và mobile. */
 .kpi-app .ctrl-bar.has-notice .kpi-notice-banner {
   background: linear-gradient(
@@ -39,9 +69,15 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
 
 /* Chỉ mobile: ghim tiêu đề, chọn kỳ và băng thông báo khi cuộn. */
 @media (max-width: 720px) {
-  /* overflow: hidden ở phần thân có thể chặn position: sticky trên trình duyệt mobile. */
+  html,
+  body {
+    background: #020914 !important;
+  }
+
   .kpi-app {
     overflow-x: clip !important;
+    background-size: cover !important;
+    background-position: center top !important;
   }
 
   .kpi-app #view-main > header {
@@ -55,9 +91,9 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
     padding: 10px 16px 8px;
     background: linear-gradient(
       180deg,
-      rgba(29, 35, 44, .98) 0%,
-      rgba(29, 35, 44, .94) 72%,
-      rgba(29, 35, 44, .90) 100%
+      rgba(2, 16, 34, .98) 0%,
+      rgba(2, 16, 34, .94) 72%,
+      rgba(2, 16, 34, .90) 100%
     );
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     backdrop-filter: blur(14px) saturate(120%);
@@ -76,7 +112,7 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(248, 195, 64, .42),
+      rgba(47, 183, 255, .48),
       transparent
     );
     pointer-events: none;
@@ -105,9 +141,9 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
     padding: 10px 16px !important;
     background: linear-gradient(
       180deg,
-      rgba(29, 35, 44, .98) 0%,
-      rgba(29, 35, 44, .94) 72%,
-      rgba(29, 35, 44, .90) 100%
+      rgba(2, 16, 34, .98) 0%,
+      rgba(2, 16, 34, .94) 72%,
+      rgba(2, 16, 34, .90) 100%
     ) !important;
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     backdrop-filter: blur(14px) saturate(120%);
@@ -127,7 +163,7 @@ const KPI_MOBILE_HEADER_OVERRIDES = `
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(248, 195, 64, .42),
+      rgba(47, 183, 255, .48),
       transparent
     );
     pointer-events: none;

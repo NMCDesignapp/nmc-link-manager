@@ -1,0 +1,316 @@
+/* KPI UI refinements shared by Main App and standalone KPI.
+ * - Category loader: compact NC horizontal panel, segmented red -> green progress.
+ * - Program detail loader: simple spinner + text only.
+ * - Linked program pages: same technology background as KPI.
+ * - KPI background: extra circuit traces in top-right and bottom-left corners.
+ */
+
+@keyframes nmc-kpi-category-progress {
+  0% { clip-path: inset(0 100% 0 0); opacity: .78; }
+  18% { clip-path: inset(0 78% 0 0); opacity: .92; }
+  52% { clip-path: inset(0 43% 0 0); opacity: 1; }
+  82% { clip-path: inset(0 15% 0 0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes nmc-program-detail-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+ * KPI background: add subtle electric-circuit traces without replacing the
+ * supplied background image. Content remains above these decorative layers.
+ * -------------------------------------------------------------------------- */
+.kpi-app::before,
+.kpi-app::after {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .72;
+  filter: drop-shadow(0 0 5px rgba(35, 188, 255, .45));
+}
+
+.kpi-app::before {
+  top: 0;
+  right: 0;
+  width: min(46vw, 520px);
+  height: min(34vh, 330px);
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0 1px, rgba(51,210,255,.95) 2px, transparent 4px) 88% 17% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.82) 0 1px, rgba(28,152,255,.88) 2px, transparent 4px) 61% 47% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.70) 0 1px, rgba(25,129,255,.82) 2px, transparent 4px) 75% 72% / 7px 7px no-repeat,
+    linear-gradient(90deg, rgba(52,194,255,.10), rgba(88,218,255,.95), rgba(255,255,255,.70)) 50% 17% / 40% 1px no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.62), rgba(50,189,255,.82)) 50% 17% / 1px 30% no-repeat,
+    linear-gradient(135deg, transparent 48%, rgba(76,208,255,.90) 49%, rgba(255,255,255,.56) 50%, transparent 51%) 57% 45% / 112px 112px no-repeat,
+    linear-gradient(90deg, rgba(45,172,255,.84), rgba(255,255,255,.48)) 67% 63% / 24% 1px no-repeat,
+    linear-gradient(180deg, rgba(44,166,255,.75), rgba(255,255,255,.36)) 84% 63% / 1px 22% no-repeat;
+  -webkit-mask-image: linear-gradient(135deg, transparent 1%, #000 30%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(135deg, transparent 1%, #000 30%, #000 82%, transparent 100%);
+}
+
+.kpi-app::after {
+  left: 0;
+  bottom: 0;
+  width: min(48vw, 540px);
+  height: min(36vh, 350px);
+  background:
+    radial-gradient(circle, rgba(255,255,255,.94) 0 1px, rgba(42,202,255,.95) 2px, transparent 4px) 14% 82% / 9px 9px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.76) 0 1px, rgba(31,155,255,.88) 2px, transparent 4px) 42% 54% / 8px 8px no-repeat,
+    radial-gradient(circle, rgba(255,255,255,.68) 0 1px, rgba(25,126,255,.82) 2px, transparent 4px) 28% 28% / 7px 7px no-repeat,
+    linear-gradient(90deg, rgba(255,255,255,.62), rgba(59,198,255,.90), rgba(46,153,255,.10)) 14% 82% / 42% 1px no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.52), rgba(48,184,255,.84)) 56% 60% / 1px 22% no-repeat,
+    linear-gradient(135deg, transparent 48%, rgba(255,255,255,.54) 49%, rgba(64,199,255,.88) 50%, transparent 51%) 44% 48% / 112px 112px no-repeat,
+    linear-gradient(90deg, rgba(255,255,255,.42), rgba(50,175,255,.80)) 18% 36% / 25% 1px no-repeat,
+    linear-gradient(180deg, rgba(38,150,255,.72), rgba(255,255,255,.34)) 18% 36% / 1px 22% no-repeat;
+  -webkit-mask-image: linear-gradient(315deg, transparent 1%, #000 30%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(315deg, transparent 1%, #000 30%, #000 82%, transparent 100%);
+}
+
+/* --------------------------------------------------------------------------
+ * Level 1 loader: entering Thi đua / Chính sách / CLB Sao Việt.
+ * Existing React lifecycle remains unchanged; only visual treatment is replaced.
+ * -------------------------------------------------------------------------- */
+.kpi-app .kpi-embed-body {
+  position: relative !important;
+}
+
+.kpi-app .kpi-embed-loader {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 40 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px !important;
+  background: rgba(0, 5, 15, .58) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.kpi-app .kpi-embed-loader > span {
+  position: relative !important;
+  display: block !important;
+  width: min(88vw, 640px) !important;
+  min-height: 132px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1.5px solid rgba(45, 211, 255, .92) !important;
+  border-radius: 24px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  background:
+    linear-gradient(rgba(8, 24, 40, .92), rgba(8, 24, 40, .92)) 132px 86px / calc(100% - 160px) 7px no-repeat,
+    linear-gradient(112deg, rgba(7, 29, 54, .92), rgba(0, 6, 16, .97)) !important;
+  box-shadow:
+    0 0 0 1px rgba(70, 136, 199, .24),
+    0 0 22px rgba(14, 175, 255, .26),
+    inset 0 0 32px rgba(15, 127, 223, .10) !important;
+}
+
+.kpi-app .kpi-embed-loader > span::before {
+  content: 'Đang tải dữ liệu';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 28px 30px 132px;
+  color: #f3f7ff;
+  font-family: Tahoma, Arial, Helvetica, sans-serif;
+  font-size: clamp(21px, 3.2vw, 29px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: .01em;
+  text-shadow: 0 0 16px rgba(70, 180, 255, .20);
+  background:
+    radial-gradient(circle at 67px 66px, rgba(20, 213, 255, .18), transparent 50px),
+    url('/kpi-tech-logo.webp') 25px center / 82px 82px no-repeat;
+}
+
+.kpi-app .kpi-embed-loader > span::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  left: 132px;
+  right: 28px;
+  top: 86px;
+  height: 7px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 17px, rgba(1, 10, 22, .94) 17px 21px),
+    linear-gradient(90deg,
+      #ef4444 0%,
+      #f97316 25%,
+      #facc15 49%,
+      #84cc16 70%,
+      #22c55e 84%,
+      #06b6d4 100%);
+  box-shadow: 0 0 10px rgba(52, 211, 153, .28);
+  clip-path: inset(0 100% 0 0);
+  animation: nmc-kpi-category-progress 2.6s cubic-bezier(.22,.74,.25,1) forwards;
+}
+
+/* --------------------------------------------------------------------------
+ * Linked program pages: use the exact KPI background and suppress the global
+ * grey honeycomb SpaceBackground ONLY while opened from/inside KPI.
+ * -------------------------------------------------------------------------- */
+html.nmc-kpi-linked-page,
+html[data-kpi-embed='1'] {
+  background: #020914 !important;
+}
+
+body.nmc-kpi-linked-page,
+html[data-kpi-embed='1'] body {
+  background-color: #020914 !important;
+  background-image:
+    linear-gradient(180deg, rgba(1, 7, 17, .06), rgba(1, 8, 20, .15)),
+    url('/kpi-tech-bg.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center top !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+
+body.nmc-kpi-linked-page > .pointer-events-none.fixed.inset-0.z-0,
+html[data-kpi-embed='1'] body > .pointer-events-none.fixed.inset-0.z-0 {
+  display: none !important;
+}
+
+body.nmc-kpi-linked-page > .h-screen.flex.flex-col.fixed.inset-0,
+body.nmc-kpi-linked-page main,
+html[data-kpi-embed='1'] body > .h-screen.flex.flex-col.fixed.inset-0,
+html[data-kpi-embed='1'] body main {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Level 2 loader: after selecting one individual program.
+ * No card / no logo / no progress popup — spinner and one line of text only.
+ * -------------------------------------------------------------------------- */
+#nmc-program-data-loader.nmc-program-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 6, 16, .34);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  pointer-events: auto;
+}
+
+#nmc-program-data-loader .nmc-program-loader-simple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 150px;
+  color: #eaf6ff;
+  font-family: Tahoma, Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(40, 185, 255, .25);
+}
+
+#nmc-program-data-loader .nmc-program-loader-spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 4px solid rgba(52, 119, 181, .34);
+  border-top-color: #21e6f3;
+  border-right-color: #2497ff;
+  box-shadow:
+    0 0 14px rgba(27, 202, 255, .18),
+    inset 0 0 8px rgba(27, 202, 255, .08);
+  animation: nmc-program-detail-spin .82s linear infinite;
+}
+
+#nmc-program-data-loader .nmc-program-loader-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .kpi-app::before {
+    width: min(68vw, 360px);
+    height: 240px;
+    opacity: .58;
+  }
+
+  .kpi-app::after {
+    width: min(72vw, 380px);
+    height: 250px;
+    opacity: .58;
+  }
+
+  .kpi-app .kpi-embed-loader {
+    padding: 14px !important;
+  }
+
+  .kpi-app .kpi-embed-loader > span {
+    width: min(94vw, 520px) !important;
+    min-height: 112px !important;
+    border-radius: 20px !important;
+    background:
+      linear-gradient(rgba(8, 24, 40, .92), rgba(8, 24, 40, .92)) 104px 74px / calc(100% - 126px) 6px no-repeat,
+      linear-gradient(112deg, rgba(7, 29, 54, .92), rgba(0, 6, 16, .97)) !important;
+  }
+
+  .kpi-app .kpi-embed-loader > span::before {
+    padding: 0 18px 26px 104px;
+    font-size: clamp(18px, 5.4vw, 23px);
+    background:
+      radial-gradient(circle at 53px 56px, rgba(20, 213, 255, .16), transparent 41px),
+      url('/kpi-tech-logo.webp') 18px center / 68px 68px no-repeat;
+  }
+
+  .kpi-app .kpi-embed-loader > span::after {
+    left: 104px;
+    right: 22px;
+    top: 74px;
+    height: 6px;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 13px, rgba(1, 10, 22, .94) 13px 16px),
+      linear-gradient(90deg,
+        #ef4444 0%,
+        #f97316 25%,
+        #facc15 49%,
+        #84cc16 70%,
+        #22c55e 84%,
+        #06b6d4 100%);
+  }
+
+  body.nmc-kpi-linked-page,
+  html[data-kpi-embed='1'] body {
+    background-position: center top !important;
+    background-size: cover !important;
+  }
+
+  #nmc-program-data-loader .nmc-program-loader-spinner {
+    width: 42px;
+    height: 42px;
+    border-width: 4px;
+  }
+
+  #nmc-program-data-loader .nmc-program-loader-simple {
+    gap: 10px;
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-app .kpi-embed-loader > span::after {
+    animation-duration: 4.2s;
+  }
+
+  #nmc-program-data-loader .nmc-program-loader-spinner {
+    animation-duration: 1.5s;
+  }
+}

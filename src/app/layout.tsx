@@ -4,6 +4,9 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
+import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
+import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
+import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
@@ -47,23 +50,21 @@ export default function RootLayout({
     <html lang="vi" className="dark h-full">
       <head>
         <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
+        <link rel="stylesheet" href="/kpi-ui-overrides.css" />
+        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-2053" />
+        <link rel="stylesheet" href="/kpi-loader-fix-v1.css?v=20260808-1017" />
+        <link rel="stylesheet" href="/kpi-performance-v1.css?v=20260807-2110" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
-        {/*
-          Early inline script — chạy NGAY khi HTML parse, trước khi React hydrate.
-          Nếu URL có ?from=kpi (iframe từ KPI app) hoặc sessionStorage có kpi_embed=1
-          → set data-kpi-embed="1" trên <html>.
-          CSS (xem globals.css) sẽ ẩn sidebar nav ngay từ initial render,
-          tránh flash/sidebar hiện thoáng qua trước khi useEffect chạy.
-        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
                   var p = new URLSearchParams(window.location.search);
-                  if (p.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1') {
+                  var isKpiQuanLyFrame = window.location.pathname === '/quan-ly' && window.self !== window.top;
+                  if (p.get('from') === 'kpi' || sessionStorage.getItem('kpi_embed') === '1' || isKpiQuanLyFrame) {
                     document.documentElement.setAttribute('data-kpi-embed', '1');
                   } else {
                     document.documentElement.removeAttribute('data-kpi-embed');
@@ -75,10 +76,13 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
+        <ProgramTableStickyHeaders />
         <SpaceBackground />
         <ErrorBoundary>
           <AppDataProvider>
             {children}
+            <HonourSpacingFix />
+            <EmbeddedProgramDataLoader />
             <PwaInstallPrompt />
             <Toaster />
           </AppDataProvider>

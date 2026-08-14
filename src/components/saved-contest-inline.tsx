@@ -51,6 +51,7 @@ import {
   getRemainingToNextTier,
   calculateActivityRoundBonusWithTiers,
   calculateLuot,
+  buildStructureStartDateMap,
   computeBonusFromTier,
   isActivityRoundMode,
   isPerContractMode,
@@ -124,6 +125,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const recruiterList = (appData.recruiters || []) as RecruiterMember[];
   // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode và TopN mode
   const tvvStructList = (appData.structureTvv || []) as TVVStructMember[];
+  const structureStartDates = useMemo(
+    () => buildStructureStartDateMap(tvvStructList),
+    [tvvStructList]
+  );
   // DS TB/TN (Cấu trúc) — nguồn ĐÚNG cho danh sách nhóm thi đua
   const leadersList = (appData.leaders || []) as any[];
   // Ưu tiên TVV thuộc các Phòng đã khai báo trong Cấu trúc khi đồng điểm.
@@ -148,8 +153,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   // Step 3: compute groupedData / tvvTotalRows / tvvPerContractRows / nydData
   const groupedData = useMemo(
-    () => computeGroupedData(displayContracts, config, staffList, recruiterList, leadersList),
-    [displayContracts, config, staffList, recruiterList, leadersList]
+    () => computeGroupedData(displayContracts, config, staffList, recruiterList, leadersList, tvvStructList),
+    [displayContracts, config, staffList, recruiterList, leadersList, tvvStructList]
   );
   const tvvTotalRows = useMemo(
     () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes),
@@ -601,8 +606,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           const p1Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) < p2Start);
           const p2Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) >= p2Start);
           if (isActivity) {
-            const p1Rounds = calculateLuot(p1Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP);
-            const p2Rounds = calculateLuot(p2Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP);
+            const p1Rounds = calculateLuot(p1Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, structureStartDates);
+            const p2Rounds = calculateLuot(p2Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, structureStartDates);
             const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, config.bonusTiers);
             const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, config.bonusTiers2);
             phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Contracts.reduce((s, c) => s + c.pdt10DT, 0), p1Rounds) : 0;
@@ -631,7 +636,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       })
       .sort((a, b) => b.value - a.value);
 
-    const valueLabel = isPassCountIPAFYP
+    const valueLabel = config.includeIndividualTN && !isPassCount
+      ? 'TỔNG CỘNG'
+      : isPassCountIPAFYP
       ? 'SL TVV ĐẠT'
       : isPassCount
       ? 'SL TVV ĐẠT CTĐK'
@@ -730,7 +737,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   //   - pass_count_*: recruitCount (số TVV do NTD tuyển có FYP ≥ luotHDThreshold)
   const renderNYDTable = () => {
     const isActivity = isActivityRoundMode(config.conditionType);
-    const includeIndividualTN = config.includeIndividualNTD ?? false;
+    const includeIndividualNTD = config.includeIndividualNTD ?? false;
     const filteredRows = nydResultRows.filter((row) => {
       if (hideNotAchieved && !row.tier) return false;
       if (!row.nyd.nhom) return false;
@@ -738,7 +745,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       if (q && !((row.nyd.nydName || '').toLowerCase().includes(q) || (row.nyd.nydCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
-    const valueLabel = isActivity ? 'LƯỢT HĐ CHUẨN' : 'TỔNG FYP TUYỂN';
+    const baseValueLabel = isActivity
+      ? getConditionLabel(config.conditionType)
+      : config.conditionType === 'total_afyp'
+        ? 'TỔNG AFYP TUYỂN'
+        : 'TỔNG IP TUYỂN';
+    const valueLabel = includeIndividualNTD ? 'TỔNG CỘNG' : baseValueLabel;
 
     return (
       <Table className="saved-contest-nyd-table">

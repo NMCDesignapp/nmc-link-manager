@@ -27,6 +27,17 @@ import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type Contra
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 import { useAppData } from '@/lib/app-data-context';
 
+// nmc-sao-viet-exclude-chot-v1
+// Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
+const isSaoVietTrackingContest = (contest: any) => {
+  const normalizedTitle = String(contest?.title || '')
+    .trimStart()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('vi-VN');
+  return !normalizedTitle.startsWith('chot');
+};
+
 // ==================== TYPES ====================
 interface LeaderInfo {
   id: string; agentCode: string; agentName: string; position: string;
@@ -397,10 +408,10 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   // QUAN TRỌNG: cột 'Mã TVV TD' phải khớp CHÍNH XÁC với getVal() trong /api/structure/tvv/route.ts
   // API chấp nhận: 'maTVVTuyendung' | 'Mã TVV tuyển dụng' | 'Mã TVV TD' (case-sensitive)
   'structure-tvv': {
-    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Ghi chú'],
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái'],
     sampleData: [
-      { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Ghi chú': '' },
-      { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Ghi chú': '' },
+      { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Trạng thái': 'Hoạt động' },
+      { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Trạng thái': 'PA' },
     ],
   },
   'tuyen-ngang': {
@@ -2938,7 +2949,7 @@ export default function QuanLyPage() {
     if (appData.clbMembers) setClbMembers(appData.clbMembers);
     if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
     if (appData.settings) setOnlineSettings(appData.settings);
-    if (appData.contests) setSavedContestsList(appData.contests);
+    if (appData.contests) setSavedContestsList(appData.contests.filter(isSaoVietTrackingContest));
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
@@ -3364,7 +3375,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
-      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Ghi chú': t.note }));
+      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Trạng thái': t.note }));
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
@@ -4989,7 +5000,7 @@ export default function QuanLyPage() {
   // ========== RENDER: DS TVV (Tổng) ==========
   // Danh sách TVV tổng của công ty — bao gồm tất cả chức vụ (TVV, TB, TN, TTN)
   // Đây là nguồn đối tượng CHÍNH cho các chính sách TVV (TVVm, NS-TVV, Quý-TVV)
-  // Columns: Mã TVV - Tên TVV - Mã Ban/Nhóm - Tên Ban/Nhóm - Chức vụ - Ngày bắt đầu LV - Mã TVV Tuyển dụng - Tên TVV Tuyển dụng - Ghi chú
+  // Columns: Mã TVV - Tên TVV - Mã Ban/Nhóm - Tên Ban/Nhóm - Chức vụ - Ngày bắt đầu LV - Mã TVV Tuyển dụng - Tên TVV Tuyển dụng - Trạng thái
   const renderTvvList = () => {
     const filtered = getFiltered(getSorted(tvvStructList), ['agentCode', 'agentName', 'maBanNhom', 'chucVu', 'maTVVTuyendung', 'note']);
     // Resolve tên Ban/Nhóm + tên TVV Tuyển dụng từ mã
@@ -5072,7 +5083,7 @@ export default function QuanLyPage() {
                 { f: 'ngayBatDau', l: 'Ngày bắt đầu LV' },
                 { f: 'maTVVTuyendung', l: 'Mã TVV TD' },
                 { f: '_tenTVVTuyendung', l: 'Tên TVV TD' },
-                { f: 'note', l: 'Ghi chú' },
+                { f: 'note', l: 'Trạng thái' },
               ].map(col => (
                 <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -5469,13 +5480,16 @@ export default function QuanLyPage() {
     let cancelled = false;
     const refreshSavedContests = async () => {
       try {
-        const response = await fetch(`/api/contests?summary=1&_t=${Date.now()}`, {
+        const response = await fetch(`/api/contests?summary=1&view=saoviet&_t=${Date.now()}`, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         });
         if (!response.ok || cancelled) return;
         const contests = await response.json();
-        if (!cancelled && Array.isArray(contests)) setSavedContestsList(contests);
+        if (!cancelled && Array.isArray(contests)) {
+          // Phòng vệ thêm ở giao diện để dữ liệu cache cũ cũng không tạo card Sao Việt.
+          setSavedContestsList(contests.filter(isSaoVietTrackingContest));
+        }
       } catch {
         // Keep the current list during a temporary network interruption.
       }
@@ -9729,6 +9743,7 @@ export default function QuanLyPage() {
                                         <span className="w-[60px] flex-shrink-0 hidden sm:inline">NGÀY BĐ</span>
                                         <span className="w-[70px] flex-shrink-0 hidden md:inline">CHỨC VỤ</span>
                                         <span className="w-[70px] flex-shrink-0 hidden lg:inline">MÃ TVV TD</span>
+                                        <span className="w-[70px] flex-shrink-0">TRẠNG THÁI</span>
                                         <span className="w-[28px] flex-shrink-0"></span>
                                       </div>
                                       {bnTVVs.map((t, idx) => (
@@ -9747,6 +9762,7 @@ export default function QuanLyPage() {
                                           <span className="text-gray-500 text-[10px] w-[60px] flex-shrink-0 hidden sm:inline">{t.ngayBatDau ? safeFormatDate(t.ngayBatDau) : '—'}</span>
                                           <span className="text-emerald-700 text-[10px] font-semibold w-[70px] flex-shrink-0 truncate hidden md:inline">{t.chucVu || '—'}</span>
                                           <span className="text-violet-600 text-[10px] font-mono w-[70px] flex-shrink-0 truncate hidden lg:inline">{t.maTVVTuyendung || '—'}</span>
+                                          <span className="text-gray-700 text-[10px] font-semibold w-[70px] flex-shrink-0 truncate">{t.note || '—'}</span>
                                           <div className="flex items-center gap-0.5 w-[28px] flex-shrink-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditingTvv(t); }} className="h-4 w-4 p-0 text-gray-300 hover:text-emerald-500"><Edit2 className="w-2.5 h-2.5" /></Button>
                                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteTvv(t.id); }} className="h-4 w-4 p-0 text-gray-300 hover:text-red-500"><Trash2 className="w-2.5 h-2.5" /></Button>
@@ -9827,7 +9843,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={newTvv.chucVu} onChange={e => setNewTvv(p => ({ ...p, chucVu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={newTvv.maTVVTuyendung} onChange={e => setNewTvv(p => ({ ...p, maTVVTuyendung: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
-            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Trạng thái</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: Hoạt động, PA" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -9893,7 +9909,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Chức vụ</Label><Input value={editingTvv.chucVu} onChange={e => setEditingTvv(t => t ? { ...t, chucVu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? toInputDate(editingTvv.ngayBatDau) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={editingTvv.maTVVTuyendung || ''} onChange={e => setEditingTvv(t => t ? { ...t, maTVVTuyendung: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
-              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Trạng thái</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: Hoạt động, PA" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Lưu</Button></DialogFooter>
@@ -9967,7 +9983,7 @@ export default function QuanLyPage() {
                 importTier === 'phong' ? 'maPhong\ttenPhong\tnote\nP001\tPhòng KD\tGhi chú'
                 : importTier === 'ad' ? 'maAD\ttenAD\tmaPhong\tnote\nAD001\tNguyễn Văn A\tP001\tGhi chú'
                 : importTier === 'bannhom' ? 'maBanNhom\ttenBanNhom\tmaAD\tnote\nBN001\tBan 1\tAD001\tGhi chú'
-                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tmaTVVTuyendung\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tTV099\tGhi chú'
+                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tmaTVVTuyendung\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tTV099\tHoạt động'
               } />
             </details>
           </div>

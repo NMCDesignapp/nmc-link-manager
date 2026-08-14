@@ -313,7 +313,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* Phong summary row (4 stats) */
 .kpi-app .rg-summary {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
   background: #c0d4e8;
   border-bottom: 1px solid #c0d4e8;
 }
@@ -330,6 +330,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-sum-val.td { color: #9333ea; }
 .kpi-app .rg-sum-val.chuan { color: #0891b2; }
 .kpi-app .rg-sum-val.ip { color: #ea580c; }
+.kpi-app .rg-sum-val.active-tvv { color: #047857; }
 .kpi-app .rg-sum-val.afyp { color: #1a4a7a; }
 .kpi-app .rg-sum-val.kh { color: #6a8aaa; }
 
@@ -341,8 +342,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 
 /* Banca-PA summary: only 2 columns (Lượt + HĐC) */
-.kpi-app .rg-summary.rg-summary-2col {
-  grid-template-columns: repeat(2, 1fr);
+.kpi-app .rg-summary.rg-summary-banca {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* AFYP + KH row */
@@ -365,7 +366,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   /* căn trái-phải bằng 0 để bảng AD dùng margin 12px — cùng lề với rg-head/rg-afyp-row */
 }
 .kpi-app .rg-ad-table {
-  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; font-size: 11px;
+  width: calc(100% - 24px); margin: 0 12px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #eef4fa 100%);
   border-radius: 3px; overflow: hidden;
   border: 1px solid #c8d8ea;
@@ -384,7 +385,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 .kpi-app .rg-ad-table thead th:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .rg-ad-table thead th:nth-child(1) { width: 21%; }
+.kpi-app .rg-ad-table thead th:nth-child(2) { width: 26%; }
+.kpi-app .rg-ad-table thead th:nth-child(n+3) { width: 10.6%; white-space: normal; line-height: 1.05; }
 .kpi-app .rg-ad-table tbody tr { transition: background .15s, box-shadow .15s; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-data-row { transition: background .4s ease; }
+.kpi-app .rg-ad-table tbody tr.rg-ad-data-row > td { background: transparent; }
 .kpi-app .rg-ad-table tbody tr:hover {
   background: linear-gradient(180deg, #f0f8ff 0%, #e0ecfa 100%);
   box-shadow: 0 1px 0 #ffffff inset;
@@ -393,7 +399,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-table tbody td {
   padding: 8px 4px; text-align: center;
   border-top: 1px solid #d0deec;
-  font-weight: 700; color: #2a4a6a; white-space: nowrap;
+  font-weight: 700; color: #2a4a6a; white-space: nowrap; overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 100%);
 }
 .kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
@@ -403,6 +409,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-val.td { color: #DB2777; }      /* pink - TD */
 .kpi-app .rg-ad-val.hdc { color: #65A30D; }     /* lime - HĐC */
 .kpi-app .rg-ad-val.ip { color: #B45309; }      /* dark amber - IP% */
+.kpi-app .rg-ad-val.active-tvv { color: #047857; }
 .kpi-app .rg-ad-pct { font-weight: 900; }
 .kpi-app .rg-ad-pct.green { color: #16a34a; }
 .kpi-app .rg-ad-pct.gold { color: #d97706; }
@@ -410,30 +417,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-mini-prog { width: 44px; height: 5px; border-radius: 99px; background: #e0e8f0; display: inline-block; vertical-align: middle; overflow: hidden; }
 .kpi-app .rg-ad-mini-prog-fill { height: 100%; border-radius: inherit; transition: width .8s cubic-bezier(.22,1,.36,1); }
 .kpi-app .rg-ad-empty { padding: 14px 10px; text-align: center; font-size: 10px; color: #8aa0b8; font-style: italic; }
-
-/* Circular progress for AD row */
-.kpi-app .rg-ad-circle { display: inline-block; vertical-align: middle; }
-.kpi-app .rg-ad-circle-bg { fill: none; stroke: #e0e8f0; stroke-width: 3; }
-.kpi-app .rg-ad-circle-fg { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.22,1,.36,1), stroke 0.4s ease; }
-.kpi-app .rg-ad-circle-text { font-size: 9px; font-weight: 900; fill: #1a4a7a; text-anchor: middle; dominant-baseline: central; }
-.kpi-app .rg-ad-circle-text.green { fill: #166534; }
-.kpi-app .rg-ad-circle-text.gold { fill: #b45309; }
-.kpi-app .rg-ad-circle-text.red { fill: #b91c1c; }
-
-/* Green checkmark when AD %KH >= 100% */
-.kpi-app .rg-ad-checkmark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
-  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
-  box-shadow: 0 0 0 2px #4ade8044, 0 0 14px #4ade8088, inset 0 1px 2px #ffffff44;
-  animation: rgCheckPulse 2s ease-in-out infinite;
-  vertical-align: middle;
-}
-.kpi-app .rg-ad-checkmark svg { color: #fff; filter: drop-shadow(0 1px 2px #16653444); }
-@keyframes rgCheckPulse {
-  0%, 100% { box-shadow: 0 0 0 2px #4ade8044, 0 0 12px #4ade8066, inset 0 1px 2px #ffffff44; }
-  50% { box-shadow: 0 0 0 4px #4ade8066, 0 0 22px #4ade80aa, inset 0 1px 2px #ffffff66; }
-}
 
 /* Banca TVV count (right side of AFYP row) */
 .kpi-app .rg-banca-tvv-count {
@@ -464,13 +447,17 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 
 /* AD name cell: name + small KH under */
 .kpi-app .rg-ad-name-cell { display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
+.kpi-app .rg-ad-name-line { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
+.kpi-app .rg-ad-name-pct { flex: 0 0 auto; font-size: 8px; font-weight: 900; }
+.kpi-app .rg-ad-name-pct.green { color: #16a34a; }
+.kpi-app .rg-ad-name-pct.gold { color: #d97706; }
+.kpi-app .rg-ad-name-pct.red { color: #dc2626; }
 .kpi-app .rg-ad-sub { font-size: 7px; color: #9aa8be; font-weight: 600; white-space: nowrap; opacity: 0.85; }
 .kpi-app .rg-ad-afyp { color: #1a4a7a; font-weight: 900; white-space: nowrap; }
 .kpi-app .rg-ad-afyp-unit { font-size: 0.7em; color: #6a8aaa; font-weight: 700; margin-left: 2px; }
 
 /* %KH on progress bar (overlay) */
-.kpi-app .rg-ad-prog-cell { position: relative; min-width: 60px; }
 .kpi-app .rg-ad-prog-wrap { position: relative; width: 100%; min-width: 50px; }
 .kpi-app .rg-ad-pct-on-prog {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -538,7 +525,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .region-lock-cancel { color: #c4d5df; background: transparent; border: 1px solid #426078; }
 .kpi-app .region-lock-submit { color: #062232; background: linear-gradient(135deg,#8de2f7,#3fb5db); border: 1px solid #a5edff; }
 
-/* ============= BANCA GOLD CIRCLES (15 ô tròn) — Wall of Fame style ============= */
+/* ============= VINH DANH (17 ô tròn) — Wall of Fame style ============= */
 /* User request (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
    Nền dark, ảnh chèn lên có hiệu ứng bắt mắt. 50% ô trống phía trên chứa ảnh,
    50% phía dưới để trống. */
@@ -693,7 +680,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .banca-admin-modal .banca-imgs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
 }
 
-/* ============= BANCA ADMIN MODAL (upload 15 ảnh) ============= */
+/* ============= BANCA ADMIN MODAL (upload 17 ảnh) ============= */
 .kpi-app .banca-admin-modal {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
@@ -911,8 +898,22 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-afyp { font-size: 1.2rem; }
   .kpi-app .rg-sum-val { font-size: 14px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-ad-table thead th:nth-child(1) { width: 25%; }
+  .kpi-app .rg-ad-table thead th:nth-child(2) { width: 27%; }
+  .kpi-app .rg-ad-table thead th:nth-child(n+3) { width: 9.6%; }
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 5px 2px; }
-  .kpi-app .rg-ad-table tbody td { font-size: 10px; padding: 6px 2px; }
+  .kpi-app .rg-ad-table tbody td { font-size: 9px; padding: 6px 1px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 5px; }
+  .kpi-app .rg-ad-name-cell,
+  .kpi-app .rg-ad-name-line,
+  .kpi-app .rg-ad-afyp { min-width: 0; max-width: 100%; overflow: hidden; }
+  .kpi-app .rg-ad-name { font-size: 8.5px; }
+  .kpi-app .rg-ad-name-pct { font-size: 7px; }
+  .kpi-app .rg-ad-sub { font-size: 6.5px; }
+  .kpi-app .rg-ad-afyp { display: block; font-size: 8px; letter-spacing: -.02em; }
+  .kpi-app .rg-ad-val { font-size: 8.5px; }
   .kpi-app .rg-ad-mini-prog { width: 36px; }
   /* Đảm bảo bảng AD căn cùng lề 12px với header/AFYP row trên mobile */
   .kpi-app .rg-ad-table { width: calc(100% - 24px); margin: 0 12px; }
@@ -1001,8 +1002,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* ============= AD DETAIL POPUP ============= */
 .kpi-app .adp-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(4, 24, 40, 0.72);
-  backdrop-filter: blur(3px);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(46, 112, 168, .22) 0%, rgba(10, 36, 60, .08) 38%, transparent 64%),
+    rgba(2, 15, 28, .80);
+  backdrop-filter: blur(7px) saturate(.82);
   display: flex; align-items: center; justify-content: center;
   padding: 12px;
   animation: adpFadeIn .2s ease-out;
@@ -1013,14 +1016,38 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   width: 100%; max-width: 1080px;
   /* Chiều cao = 3× kích thước đã thu nhỏ (1/4 → 3/4 so với ban đầu) */
   height: calc(75vh - 18px); min-height: 450px; max-height: 570px;
-  background: linear-gradient(180deg, #ffffff 0%, #f0f5fa 100%);
-  border-radius: 8px; overflow: hidden;
-  box-shadow: 0 16px 40px #00000066, 0 0 0 1px #c8d8ea;
+  position: relative;
+  background: linear-gradient(145deg, #ffffff 0%, #f5f9fd 48%, #e7eff7 100%);
+  border: 2px solid #8eabc5;
+  border-radius: 0; overflow: hidden;
+  outline: 1px solid rgba(255,255,255,.70); outline-offset: -3px;
+  box-shadow:
+    0 34px 86px rgba(0, 8, 20, .62),
+    0 14px 30px rgba(5, 36, 68, .34),
+    0 0 0 1px rgba(10, 54, 92, .45),
+    0 0 34px rgba(58, 124, 200, .16),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 0 rgba(42, 86, 126, .16);
   display: flex; flex-direction: column;
   transform: scale(.9);
   transform-origin: center center;
   animation: adpIn .24s cubic-bezier(.22, 1, .36, 1);
   will-change: transform, opacity;
+}
+/* Popup AD/nhóm ôm sát nội dung khi ít TVV; danh sách dài mới cuộn bên trong. */
+.kpi-app .adp-modal.is-member-detail {
+  height: auto;
+  min-height: 0;
+  max-height: min(570px, calc(100vh - 24px));
+}
+.kpi-app .adp-modal.is-member-detail .adp-body {
+  flex: 0 1 auto;
+  grid-template-rows: auto minmax(0, auto);
+  overflow: hidden;
+}
+.kpi-app .adp-modal.is-member-detail .adp-table-wrap {
+  flex: 0 1 auto;
+  max-height: 330px;
 }
 @keyframes adpIn {
   from { opacity: 0; transform: scale(.18); }
@@ -1030,9 +1057,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .adp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 12px;
-  background: linear-gradient(135deg, #3a7cc8 0%, #2a6ab8 100%);
-  border-bottom: 2px solid #1a4a7a;
-  box-shadow: 0 2px 0 #ffffff22 inset, 0 2px 6px #00000022;
+  background: linear-gradient(180deg, #4388d2 0%, #2f73bf 48%, #245d9e 100%);
+  border-bottom: 3px solid #173f6d;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(0,0,0,.22),
+    0 5px 14px rgba(10, 48, 82, .30);
   flex-shrink: 0;
 }
 .kpi-app .adp-header-name {
@@ -1055,6 +1085,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   display: grid; grid-template-rows: auto 1fr; gap: 4px;
   padding: 6px 8px 8px;
   overflow: auto;
+  box-shadow: inset 0 10px 18px rgba(35, 76, 112, .08);
 }
 
 .kpi-app .adp-top {
@@ -1228,8 +1259,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .adp-overlay { padding: 4px; }
   .kpi-app .adp-modal {
     max-width: 100%; height: 75vh; min-height: 390px; max-height: 570px;
-    border-radius: 5px;
+    border-radius: 0;
+    border-width: 1.5px;
+    box-shadow:
+      0 24px 58px rgba(0, 8, 20, .65),
+      0 10px 24px rgba(5, 36, 68, .38),
+      0 0 0 1px rgba(10, 54, 92, .42),
+      inset 0 1px 0 rgba(255,255,255,.92);
   }
+  .kpi-app .adp-modal.is-member-detail {
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 8px);
+  }
+  .kpi-app .adp-modal.is-member-detail .adp-table-wrap { max-height: 48dvh; }
   .kpi-app .adp-header { padding: 5px 9px; }
   .kpi-app .adp-header-name { font-size: 11px; }
   .kpi-app .adp-close { width: 22px; height: 22px; }
@@ -1686,11 +1729,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-kh { font-size: 8px; }
   .kpi-app .rg-prog { height: 4px; margin: 0 10px 4px; border-radius: 99px; }
   /* Summary: 1 row 4-col trên desktop để tiết kiệm chiều dọc cho AD table */
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; gap: 1px; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 1px; }
   .kpi-app .rg-sum-cell { padding: 3px 2px; min-height: 26px; }
   .kpi-app .rg-sum-label { font-size: 7.5px; margin-bottom: 1px; }
   .kpi-app .rg-sum-val { font-size: 11px; }
-  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 20px); margin: 0 10px; font-size: 9px; border-radius: 4px; }
@@ -1703,10 +1746,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-afyp { font-size: 9px; }
   .kpi-app .rg-ad-afyp-unit { font-size: .6em; }
   .kpi-app .rg-ad-val { font-size: 9px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 20px; height: 20px; }
-  .kpi-app .rg-ad-circle-text { font-size: 7px; }
-  .kpi-app .rg-ad-checkmark { width: 20px; height: 20px; }
-  .kpi-app .rg-ad-checkmark svg { width: 12px; height: 12px; }
   .kpi-app .rg-banca-tvv-count { font-size: 9px; padding: 3px 6px; }
 
   /* --- Hidden legacy desktop blocks --- */
@@ -1812,11 +1851,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-kh { font-size: 9px; }
   .kpi-app .rg-prog { margin: 0 11px 5px; }
   /* Summary: 1 row 4-col trên desktop lớn */
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
   .kpi-app .rg-sum-cell { padding: 4px 3px; min-height: 30px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
   .kpi-app .rg-sum-val { font-size: 12px; }
-  .kpi-app .rg-summary.rg-summary-2col { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-divider { display: none; }
   .kpi-app .rg-ad-wrap { padding: 2px 0 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .kpi-app .rg-ad-table { width: calc(100% - 22px); margin: 0 11px; font-size: 10px; }
@@ -1828,10 +1867,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-sub { font-size: 8px; }
   .kpi-app .rg-ad-afyp { font-size: 10px; }
   .kpi-app .rg-ad-val { font-size: 10px; }
-  .kpi-app .rg-ad-circle svg, .kpi-app .rg-ad-circle { width: 22px; height: 22px; }
-  .kpi-app .rg-ad-circle-text { font-size: 8px; }
-  .kpi-app .rg-ad-checkmark { width: 22px; height: 22px; }
-  .kpi-app .rg-ad-checkmark svg { width: 14px; height: 14px; }
   .kpi-app .sub-title { font-size: 28px; }
   .kpi-app .top3-grid { max-width: 980px; gap: 22px; }
   .kpi-app .top3-card { padding: 22px 18px 18px; }
@@ -2057,7 +2092,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-head-name { font-size: 12px; }
   .kpi-app .rg-head-pct { font-size: 17px; }
   .kpi-app .rg-afyp-row { padding: 8px 14px; }
-  .kpi-app .rg-summary { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-app .rg-summary { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+  .kpi-app .rg-summary.rg-summary-banca { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .kpi-app .rg-sum-cell { padding: 7px 4px; min-height: 38px; }
   .kpi-app .rg-sum-label { font-size: 8px; }
   .kpi-app .rg-sum-val { font-size: 13px; }
@@ -3457,8 +3493,8 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
   return tokens.includes('tb') || tokens.includes('tn');
 }
 
-interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; }
-interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
+interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; }
+interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
 interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
 
@@ -3722,6 +3758,11 @@ function progressColor(pct: number): string {
   const hue = 0 + (120 * (p / 100));
   return `hsl(${hue}, 68%, 52%)`;
 }
+function progressTint(pct: number): string {
+  const p = Math.max(0, Math.min(100, pct || 0));
+  const hue = 120 * (p / 100);
+  return `hsla(${hue}, 68%, 52%, .14)`;
+}
 /* 7-color gradient for circular progress: red → orange → yellow → lime → green → cyan → blue */
 function circleColor(pct: number): string {
   const p = Math.max(0, Math.min(pct || 0, 150));
@@ -3862,9 +3903,8 @@ const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: n
 ];
 
 function getGoldHonourRows(indices: number[]): number[][] {
-  // Lấp theo thứ tự từ trên xuống: dòng 1 tối đa 5, dòng 2 tối đa 4,
-  // dòng 3 tối đa 3. Không chia lại để lấp các dòng dưới khi dòng trên còn trống.
-  return [indices.slice(0, 5), indices.slice(5, 9), indices.slice(9, 12)]
+  // Hạng Vàng có 15 vị trí, chia cố định thành 3 dòng, mỗi dòng tối đa 5 ảnh.
+  return [indices.slice(0, 5), indices.slice(5, 10), indices.slice(10, 15)]
     .filter((row) => row.length > 0);
 }
 
@@ -3937,6 +3977,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const calendarEventsCacheRef = useRef<Map<string, CalendarEvent[]>>(new Map());
+  const calendarRequestRef = useRef<Map<string, Promise<CalendarEvent[]>>>(new Map());
+  const calMonthRef = useRef(calMonth);
+  useEffect(() => { calMonthRef.current = calMonth; }, [calMonth]);
   // Calendar edit popup state (settings button locked with password)
   const [calAuthed, setCalAuthed] = useState(false);
   const [calPwdOpen, setCalPwdOpen] = useState(false);
@@ -4031,11 +4075,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setRegionLockError(true);
   }, [regionLockCode]);
 
-  // ===== BANCA GOLD CIRCLES (15 ô tròn để admin upload ảnh) =====
-  // User request: dưới card BANCA, thêm 1 khoảng trống (cao cỡ 50% viewport) chứa 15 hình tròn nhỏ
-  // (gold border) bố trí đều. Chỉ ADMIN mới thấy & upload. Non-admin không thấy gì (không hiển thị khung trống).
-  // 15 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-15`.
-  const BANCA_IMG_COUNT = 15;
+  // ===== VINH DANH (2 Bạch Kim + 15 Hạng Vàng) =====
+  // 17 ảnh lưu trong PosterImage với key `kpi-banca-img-01` ... `kpi-banca-img-17`.
+  const BANCA_IMG_COUNT = 17;
   const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> cacheable image URL
   const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null);
   const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false);
@@ -4411,6 +4453,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [phongStructList, setPhongStructList] = useState<PhongStructure[]>([]);
   const [banNhomStructList, setBanNhomStructList] = useState<BanNhomStructure[]>([]);
   const [tvvStructList, setTvvStructList] = useState<TVVStructItem[]>([]);
+  const activeTvvCount = useMemo(
+    () => tvvStructList.filter((tvv) => normKey(tvv.note) === 'HOATDONG').length,
+    [tvvStructList],
+  );
 
   /* AD detail popup state */
   const [adPopup, setAdPopup] = useState<{ maAD: string; tenAD: string; originX: number; originY: number } | null>(null);
@@ -4589,16 +4635,63 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setTvvStructList(appData.structureTvv || []);
   }, [appData.structureAd, appData.structurePhong, appData.structureBanNhom, appData.structureTvv, dataVersion]);
 
-  /* Fetch calendar events */
-  const refreshCalendarEvents = useCallback(() => {
-    const year = CUR_YEAR;
-    const month = `${year}-${calMonth}`;
-    fetch(`/api/calendar?month=${month}`).then(r => r.ok ? r.json() : []).then(setCalendarEvents).catch(() => setCalendarEvents([]));
-  }, [calMonth, CUR_YEAR]);
+  /* Fetch calendar events — cache theo tháng, chỉ prefetch tháng hiện tại. */
+  const loadCalendarMonth = useCallback((month: string, force = false): Promise<CalendarEvent[]> => {
+    if (!force) {
+      const cached = calendarEventsCacheRef.current.get(month);
+      if (cached) return Promise.resolve(cached);
 
+      const pending = calendarRequestRef.current.get(month);
+      if (pending) return pending;
+    }
+
+    const request = fetch(`/api/calendar?month=${month}`, { cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Calendar request failed');
+        const data = await response.json();
+        return Array.isArray(data) ? data as CalendarEvent[] : [];
+      })
+      .then(events => {
+        calendarEventsCacheRef.current.set(month, events);
+        return events;
+      })
+      .catch(() => [] as CalendarEvent[])
+      .finally(() => {
+        if (calendarRequestRef.current.get(month) === request) {
+          calendarRequestRef.current.delete(month);
+        }
+      });
+
+    calendarRequestRef.current.set(month, request);
+    return request;
+  }, []);
+
+  const refreshCalendarEvents = useCallback(async (force = false) => {
+    const month = `${CUR_YEAR}-${calMonth}`;
+    const events = await loadCalendarMonth(month, force);
+    if (`${CUR_YEAR}-${calMonthRef.current}` === month) setCalendarEvents(events);
+    return events;
+  }, [calMonth, CUR_YEAR, loadCalendarMonth]);
+
+  // Tải nền riêng tháng hiện tại ngay khi KPI mount để mở Kế hoạch khung gần như tức thì.
+  useEffect(() => {
+    const month = `${CUR_YEAR}-${CUR_MONTH}`;
+    void loadCalendarMonth(month).then(events => {
+      if (`${CUR_YEAR}-${calMonthRef.current}` === month) setCalendarEvents(events);
+    });
+  }, [CUR_YEAR, CUR_MONTH, loadCalendarMonth]);
+
+  // Các tháng khác chỉ được tải khi người dùng đang xem và chọn đúng tháng đó.
   useEffect(() => {
     if (view !== 'calendar') return;
-    refreshCalendarEvents();
+    const month = `${CUR_YEAR}-${calMonth}`;
+    const cached = calendarEventsCacheRef.current.get(month);
+    if (cached) {
+      setCalendarEvents(cached);
+      return;
+    }
+    setCalendarEvents([]);
+    void refreshCalendarEvents();
   }, [view, calMonth, CUR_YEAR, refreshCalendarEvents]);
 
   /* Calendar edit handlers */
@@ -4701,7 +4794,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed');
-      await refreshCalendarEvents();
+      await refreshCalendarEvents(true);
       setCalEditOpen(false);
     } catch (e) {
       setCalEditError('Lỗi khi lưu. Vui lòng thử lại.');
@@ -4717,7 +4810,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     try {
       const res = await fetch(`/api/calendar?id=${calEditForm.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed');
-      await refreshCalendarEvents();
+      await refreshCalendarEvents(true);
       setCalEditOpen(false);
     } catch (e) {
       setCalEditError('Lỗi khi xóa. Vui lòng thử lại.');
@@ -4811,6 +4904,17 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
     });
 
+    // Số TVV đang hoạt động theo AD: TVV → Mã Ban/Nhóm → Mã AD.
+    const activeTvvByAD = new Map<string, number>();
+    let activeTvvTotal = 0;
+    tvvStructList.forEach(tvv => {
+      if (normKey(tvv.note) !== 'HOATDONG') return;
+      activeTvvTotal++;
+      const adInfo = bnToAdMap.get(String(tvv.maBanNhom || '').trim());
+      if (!adInfo) return;
+      activeTvvByAD.set(adInfo.maAD, (activeTvvByAD.get(adInfo.maAD) || 0) + 1);
+    });
+
     // ========== TVV tuyển dụng trong period — theo AD/Phong ==========
     const tvvInPeriodByAD = new Map<string, number>();
     const tvvInPeriodByPhong = new Map<string, number>();
@@ -4875,7 +4979,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       // PA or Banca → merge into Banca - PA
       if (isPaOrBanca(phongStruct.maPhong) || isPaOrBanca(pName)) {
         if (!bancaPaPhong) {
-          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
+          bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, activeTvv: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
         // NOTE: normKey() lowercases + strips accents/punctuation, so the substring
@@ -4913,7 +5017,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       }
 
       // Regular phong with ADs
-      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, ads: [], noAds: false };
+      const p: PhongData = { ten: pName, afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, activeTvv: 0, ads: [], noAds: false };
       let pIpSum = 0;
 
       const phongADs = adStructList.filter(a => a.maPhong === phongStruct.maPhong);
@@ -4954,9 +5058,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         // (AD now uses 12 monthly inputs directly; ratio only applies to Nhóm)
         const adPeriodKh = periodMonths.reduce((s, m) => s + readAdMonthlyPlan(adStruct.maAD, m), 0);
 
-        const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong };
+        const d: ADData = { ten: displayName, managerKey: adKey, afyp, kh: adPeriodKh, lhd, td, hdChuan, tyTrong, activeTvv: activeTvvByAD.get(adStruct.maAD) || 0 };
         p.ads.push(d);
-        p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan;
+        p.afyp += afyp; p.kh += adPeriodKh; p.lhd += lhd; p.td += td; p.hdChuan += hdChuan; p.activeTvv += d.activeTvv;
         pIpSum += ip;
       });
 
@@ -4965,6 +5069,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     }
 
     if (bancaPaPhong) {
+      // Phần còn lại ngoài các AD thuộc Phòng kinh doanh được gom vào Banca - PA
+      // để tổng SL TVV HĐ của các card luôn khớp chính xác với ô Công ty.
+      const regularPhongActiveTvv = phongs.reduce((sum, p) => sum + p.activeTvv, 0);
+      bancaPaPhong.activeTvv = Math.max(0, activeTvvTotal - regularPhongActiveTvv);
       phongs.push(bancaPaPhong);
     }
 
@@ -5121,16 +5229,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
     // Group metrics
     const afyp = finalContracts.reduce((s, c) => s + num(c.afyp), 0);
-    const ip = finalContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
     const lhd = finalContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
     const hdChuan = finalContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
     const slHD = finalContracts.length;
-    const tyTrongIP = afyp > 0 ? (ip / afyp * 100) : 0;
     const nangSuat = lhd > 0 ? slHD / lhd : 0;
     const doLonHD = slHD > 0 ? afyp / slHD : 0;
 
     // Annual KH 2026
     const annualKh = parseFloat(onlineSettings[`nmc-kh-nhom-${selectedBN.maBanNhom}`] || '0') || 0;
+    const tlht = annualKh > 0 ? (afyp / annualKh * 100) : 0;
 
     // TVV of nhóm
     const allTvv = tvvStructList.filter(t => t.maBanNhom === selectedBN.maBanNhom);
@@ -5202,7 +5309,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       groupInfo: {
         annualKh,
         afyp,
-        tyTrongIP,
+        tlht,
         lhd,
         hdChuan,
         td: tvvMoi,
@@ -5452,21 +5559,60 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const cp = Math.min(pct, 100);
   const currentMonthKey = `${CUR_YEAR}-${CUR_MONTH}`;
   const tamthuMonthLabel = `Tháng ${Number(CUR_MONTH)}/${CUR_YEAR}`;
+  const tamthuRowsWithResolvedGroup = useMemo(() => {
+    const codeKey = (value: string | null | undefined) => String(value || '').trim().toUpperCase();
+    const groupNameByCode = new Map<string, string>();
+    banNhomStructList.forEach((group) => {
+      const code = codeKey(group.maBanNhom);
+      const name = String(group.tenBanNhom || '').trim();
+      if (code && name) groupNameByCode.set(code, name);
+    });
+
+    const groupCodeByAgent = new Map<string, string>();
+    tvvStructList.forEach((tvv) => {
+      const agentCode = codeKey(tvv.agentCode);
+      const groupCode = codeKey(tvv.maBanNhom);
+      if (agentCode && groupCode && !groupCodeByAgent.has(agentCode)) {
+        groupCodeByAgent.set(agentCode, groupCode);
+      }
+    });
+
+    const usableGroupName = (groupCode: string) => {
+      if (!groupCode) return '';
+      const name = groupNameByCode.get(groupCode) || '';
+      // Some auto-created structure rows use the machine code as the name.
+      // Do not present such codes as if they were a real group name.
+      if (codeKey(name) === groupCode && /\d/.test(groupCode)) return '';
+      return name;
+    };
+
+    return tamthuDetailRows.map((contract) => {
+      const sourceGroupName = String(contract.nhom || '').trim();
+      if (sourceGroupName) return { ...contract, resolvedNhom: sourceGroupName };
+
+      const agentGroupCode = groupCodeByAgent.get(codeKey(contract.agentCode)) || '';
+      const sourceGroupCode = codeKey(contract.maNhom);
+      const resolvedNhom = usableGroupName(agentGroupCode)
+        || usableGroupName(sourceGroupCode)
+        || 'Chưa phân nhóm';
+      return { ...contract, resolvedNhom };
+    });
+  }, [tamthuDetailRows, banNhomStructList, tvvStructList]);
   const tamthuContracts = useMemo(() => {
     // Chỉ dùng snapshot Sheet2 (bảng xem), tuyệt đối không dùng dữ liệu tính KPI Sheet4.
-    const records = tamthuDetailRows;
+    const records = tamthuRowsWithResolvedGroup;
     const query = tamthuNameFilter.trim().toLocaleLowerCase('vi-VN');
     return records.filter((contract) => {
-      const nhom = contract.nhom || contract.maNhom || 'Chưa phân nhóm';
+      const nhom = contract.resolvedNhom;
       if (tamthuNhomFilter && nhom !== tamthuNhomFilter) return false;
       if (!query) return true;
       return [contract.agentName, contract.agentCode]
         .some((value) => String(value || '').toLocaleLowerCase('vi-VN').includes(query));
     });
-  }, [tamthuDetailRows, tamthuNhomFilter, tamthuNameFilter]);
+  }, [tamthuRowsWithResolvedGroup, tamthuNhomFilter, tamthuNameFilter]);
   const tamthuNhomOptions = useMemo(() => Array.from(new Set(
-    tamthuDetailRows.map((contract) => contract.nhom || contract.maNhom || 'Chưa phân nhóm')
-  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuDetailRows]);
+    tamthuRowsWithResolvedGroup.map((contract) => contract.resolvedNhom)
+  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuRowsWithResolvedGroup]);
   const tamthuAfypTotal = useMemo(() => tamthuContracts.reduce((sum, contract) => sum + num(contract.afyp), 0), [tamthuContracts]);
 
   /* Detail top 3 */
@@ -5686,7 +5832,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <div className="cty-stat ns"><div className="cty-stat-label">NĂNG SUẤT</div><div className="cty-stat-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
                       <div className="cty-stat dl"><div className="cty-stat-label">ĐLHĐ <span className="cty-stat-sub">(TRĐ)</span></div><div className="cty-stat-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div>
                       <div className="cty-stat sl"><div className="cty-stat-label">SỐ LƯỢNG HĐ</div><div className="cty-stat-val"><AnimNum value={dashboard.total.slHD} /></div></div>
-                      <div className="cty-stat tbtn"><div className="cty-stat-label">SL TB/TN</div><div className="cty-stat-val">{rawData?.leaders?.length ?? 0}</div></div>
+                      <div className="cty-stat tbtn"><div className="cty-stat-label">SL TVV HĐ</div><div className="cty-stat-val">{activeTvvCount}</div></div>
                     </div>
 
                   </div>
@@ -5703,8 +5849,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                   <span className="nav-icon"><CalendarDays size={14} /></span> <span className="nav-label">Kế hoạch khung</span>
                 </button>
-                <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
-                  <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
+                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
                 </button>
                 <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                   <span className="nav-icon"><BookOpen size={14} /></span> <span className="nav-label">Chính sách 2026</span>
@@ -5712,8 +5858,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                   <span className="nav-icon"><Star size={14} /></span> <span className="nav-label">CLB Sao Việt</span>
                 </button>
-                <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
-                  <span className="nav-icon"><Clipboard size={14} /></span> <span className="nav-label">Chi Tiết Tạm Thu</span>
+                <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
+                  <span className="nav-icon"><Flag size={14} /></span> <span className="nav-label">Thi đua</span>
                 </button>
               </nav>
 
@@ -5778,7 +5924,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${pProgStart},${pProgEnd})` }} /></div>
                       )}
                       {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP — đã có ở dòng trên) */}
-                      <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
+                      <div className={`rg-summary${phong.noAds ? ' rg-summary-banca' : ''}`}>
                         <div className="rg-sum-cell">
                           <div className="rg-sum-label">Lượt</div>
                           <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -5799,6 +5945,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                         </div>
                         )}
+                        <div className="rg-sum-cell">
+                          <div className="rg-sum-label">SL TVV HĐ</div>
+                          <div className="rg-sum-val active-tvv"><AnimNum value={phong.activeTvv} /></div>
+                        </div>
                       </div>
                       {/* Thin separator (thay cho dòng Tỷ trọng IP riêng) */}
                       <div className="rg-divider" />
@@ -5814,7 +5964,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 <th>TD</th>
                                 <th>HĐC</th>
                                 <th>IP%</th>
-                                <th></th>
+                                <th>SL TVV HĐ</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5822,8 +5972,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
                                 const aCp = Math.min(aPct, 100);
                                 const aPctCls = pctClass(aPct);
-                                const aProgStart = progressColor(Math.max(aPct - 24, 0));
-                                const aProgEnd = progressColor(aPct);
                                 const aGlow = aPct >= 100 ? 'rg-ad-glow' : '';
                                 const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                 const canOpenPopup = !!adStructForPopup;
@@ -5840,10 +5988,18 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                   });
                                 };
                                 return (
-                                  <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} onClick={openAdPopup}>
+                                  <tr
+                                    key={ai}
+                                    className={`rg-ad-data-row ${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`}
+                                    style={{ background: `linear-gradient(90deg, ${progressTint(aPct)} 0%, ${progressTint(aPct)} ${aCp}%, transparent ${aCp}%, transparent 100%)` }}
+                                    onClick={openAdPopup}
+                                  >
                                     <td>
                                       <div className="rg-ad-name-cell">
-                                        <span className="rg-ad-name">{ad.ten}</span>
+                                        <span className="rg-ad-name-line">
+                                          <span className="rg-ad-name">{ad.ten}</span>
+                                          <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                        </span>
                                         {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
                                       </div>
                                     </td>
@@ -5852,21 +6008,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                     <td className="rg-ad-val td">{ad.td}</td>
                                     <td className="rg-ad-val hdc">{ad.hdChuan}</td>
                                     <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
-                                    <td className="rg-ad-prog-cell">
-                                      {aPct >= 100 ? (
-                                        <div className="rg-ad-checkmark"><Check size={18} strokeWidth={3.5} /></div>
-                                      ) : (
-                                        <svg width="32" height="32" viewBox="0 0 32 32" className="rg-ad-circle">
-                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                          <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                            stroke={progressColor(aPct)}
-                                            strokeDasharray={2 * Math.PI * 13}
-                                            strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                            transform="rotate(-90 16 16)" />
-                                          <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                        </svg>
-                                      )}
-                                    </td>
+                                    <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                   </tr>
                                 );
                               })}
@@ -5881,9 +6023,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               </div>
               </div>{/* end khuvuc-region mobile — chỉ chứa cards (incl banca) */}
 
-              {/* === BANCA IMAGES (15 gold circles) — ADMIN ONLY ===
+              {/* === VINH DANH (2 Bạch Kim + 15 Hạng Vàng) ===
                   User request: sau card BANCA, thêm 1 khoảng trống cỡ 50% màn hình
-                  chứa 15 hình tròn nhỏ (gold border). Chỉ admin thấy & upload.
+                  chứa 17 hình tròn nhỏ. Chỉ admin thấy ô trống để upload.
                   Non-admin không thấy gì (không hiển thị khung trống).
                   User fix (v2): bố trí so le, to nhỏ ngẫu hứng như bức tường vinh danh.
                   50% ô trống phía trên chứa ảnh, 50% phía dưới để trống. */}
@@ -5902,11 +6044,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       ⚙ Cài đặt ảnh
                     </button>
                   </div>
-                  {/* Wall of fame: 50% top — 15 ảnh tròn so le, to nhỏ ngẫu hứng */}
+                  {/* Wall of fame: 2 Bạch Kim, 15 Hạng Vàng chia 3 dòng x 5 ảnh. */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -5983,8 +6125,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button className="nav-btn nav-plan" onClick={() => { setView('calendar'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                       <span className="nav-icon"><CalendarDays size={14} /></span> Kế hoạch khung
                     </button>
-                    <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
-                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
+                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
+                      <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
                     </button>
                     <button type="button" className="nav-btn nav-policy" onClick={() => openKpiSheet('report')}>
                       <span className="nav-icon"><BookOpen size={14} /></span> Chính sách 2026
@@ -5992,8 +6134,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <button type="button" className="nav-btn nav-clb" onClick={() => openKpiSheet('clb-saoviet')}>
                       <span className="nav-icon"><Star size={14} /></span> CLB Sao Việt
                     </button>
-                    <button type="button" className="nav-btn nav-target-reg" onClick={() => { setView('tamthu-detail'); window.scrollTo({ top: 0, behavior: 'auto' }); }} style={{ background: 'linear-gradient(135deg,#0e6988,#0a405f)', color: '#fff' }}>
-                      <span className="nav-icon"><Clipboard size={14} /></span> Chi Tiết Tạm Thu
+                    <button type="button" className="nav-btn nav-race" onClick={() => openKpiSheet('saoviet')}>
+                      <span className="nav-icon"><Flag size={14} /></span> Thi đua
                     </button>
                   </nav>
                   {/* Company strip (đã bỏ nền tổng, các ô tách biệt) */}
@@ -6019,7 +6161,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <div className="dsk-cty-kpi ns"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">NĂNG SUẤT</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{dashboard.total.nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></div>
                           <div className="dsk-cty-kpi dl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">ĐỘ LỚN HĐ <span className="dsk-cty-kpi-sub">(TRĐ)</span></span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{(dashboard.total.doLonHD / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</div></div></div>
                           <div className="dsk-cty-kpi sl"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SỐ LƯỢNG HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val"><AnimNum value={dashboard.total.slHD} /></div></div></div>
-                          <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TB/TN</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{rawData?.leaders?.length ?? 0}</div></div></div>
+                          <div className="dsk-cty-kpi tbtn"><div className="dsk-cty-kpi-head"><span className="dsk-cty-kpi-label">SL TVV HĐ</span></div><div className="dsk-cty-kpi-body"><div className="dsk-cty-kpi-val">{activeTvvCount}</div></div></div>
                         </div>
                       </div>
                     </div>
@@ -6062,8 +6204,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 3 },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 3, count: BANCA_IMG_COUNT - 3 },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
   const indices = Array.from({ length: count }, (_, offset) => start + offset)
     .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
@@ -6247,7 +6389,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                               <div className="rg-prog"><div className="rg-prog-fill" style={{ width: `${pCp}%`, background: `linear-gradient(90deg,${progStart},${progEnd})` }} /></div>
                             )}
                             {/* Summary 4 stats: Lượt HĐ / Tuyển dụng / HĐ chuẩn / Tỷ trọng IP (BỎ AFYP) */}
-                            <div className={`rg-summary${phong.noAds ? ' rg-summary-2col' : ''}`}>
+                            <div className={`rg-summary${phong.noAds ? ' rg-summary-banca' : ''}`}>
                               <div className="rg-sum-cell">
                                 <div className="rg-sum-label">Lượt</div>
                                 <div className="rg-sum-val hd"><AnimNum value={phong.lhd} /></div>
@@ -6268,6 +6410,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 <div className="rg-sum-val ip">{fmtTyTrong(phong.tyTrong)}</div>
                               </div>
                               )}
+                              <div className="rg-sum-cell">
+                                <div className="rg-sum-label">SL TVV HĐ</div>
+                                <div className="rg-sum-val active-tvv"><AnimNum value={phong.activeTvv} /></div>
+                              </div>
                             </div>
                             {/* Thin separator */}
                             <div className="rg-divider" />
@@ -6283,7 +6429,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                       <th>TD</th>
                                       <th>HĐC</th>
                                       <th>IP%</th>
-                                      <th></th>
+                                      <th>SL TVV HĐ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -6291,8 +6437,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                       const aPct = ad.kh ? (ad.afyp / ad.kh * 100) : 0;
                                       const aCp = Math.min(aPct, 100);
                                       const aPctCls = pctClass(aPct);
-                                      const aProgStart = progressColor(Math.max(aPct - 24, 0));
-                                      const aProgEnd = progressColor(aPct);
                                       const aGlow = aPct >= 100 ? 'rg-ad-glow anim-in' : 'anim-in';
                                       const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
                                       const canOpenPopup = !!adStructForPopup;
@@ -6309,10 +6453,18 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                         });
                                       };
                                       return (
-                                        <tr key={ai} className={`${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`} style={{ animationDelay: `${(pi * 60) + (ai * 30)}ms` }} onClick={openAdPopup}>
+                                        <tr
+                                          key={ai}
+                                          className={`rg-ad-data-row ${aGlow}${canOpenPopup ? ' rg-ad-row-clickable' : ''}`}
+                                          style={{ background: `linear-gradient(90deg, ${progressTint(aPct)} 0%, ${progressTint(aPct)} ${aCp}%, transparent ${aCp}%, transparent 100%)`, animationDelay: `${(pi * 60) + (ai * 30)}ms` }}
+                                          onClick={openAdPopup}
+                                        >
                                           <td>
                                             <div className="rg-ad-name-cell">
-                                              <span className="rg-ad-name">{ad.ten}</span>
+                                              <span className="rg-ad-name-line">
+                                                <span className="rg-ad-name">{ad.ten}</span>
+                                                <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                              </span>
                                               {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
                                             </div>
                                           </td>
@@ -6321,21 +6473,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                           <td className="rg-ad-val td">{ad.td}</td>
                                           <td className="rg-ad-val hdc">{ad.hdChuan}</td>
                                           <td className="rg-ad-val ip">{Math.round(ad.tyTrong)}%</td>
-                                          <td className="rg-ad-prog-cell">
-                                            {aPct >= 100 ? (
-                                              <div className="rg-ad-checkmark"><Check size={20} strokeWidth={3.5} /></div>
-                                            ) : (
-                                              <svg width="34" height="34" viewBox="0 0 32 32" className="rg-ad-circle">
-                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-bg" />
-                                                <circle cx="16" cy="16" r="13" className="rg-ad-circle-fg"
-                                                  stroke={progressColor(aPct)}
-                                                  strokeDasharray={2 * Math.PI * 13}
-                                                  strokeDashoffset={2 * Math.PI * 13 - (Math.min(aPct, 100) / 100) * 2 * Math.PI * 13}
-                                                  transform="rotate(-90 16 16)" />
-                                                <text x="16" y="16" className={`rg-ad-circle-text ${aPctCls}`}>{Math.round(aPct)}%</text>
-                                              </svg>
-                                            )}
-                                          </td>
+                                          <td className="rg-ad-val active-tvv">{ad.activeTvv}</td>
                                         </tr>
                                       );
                                     })}
@@ -6789,7 +6927,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       {adPopupData && (
         <div className="adp-overlay" onClick={() => { setAdPopup(null); setAdPopupGroupOnly(false); }}>
           <div
-            className="adp-modal"
+            className="adp-modal is-member-detail"
             onClick={e => e.stopPropagation()}
           >
             {/* Slim header: AD name + close */}
@@ -6834,8 +6972,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         <span className="adp-info-val">{(adPopupData.groupInfo.afyp / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
-                        <span className="adp-info-key" title="% hoàn thành">%HT</span>
-                        <span className="adp-info-val">{adPopupData.groupInfo.tyTrongIP.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+                        <span className="adp-info-key" title="Tỷ lệ hoàn thành">TLHT %</span>
+                        <span className="adp-info-val">{adPopupData.groupInfo.tlht.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key" title="Lượt hợp đồng">LƯỢT HĐ</span>
@@ -7009,7 +7147,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     {tamthuContracts.map((contract, index) => (
                       <tr key={`${contract.rowNo}-${contract.agentCode}-${index}`}>
                         <td className="stt">{contract.rowNo || index + 1}</td>
-                        <td className="text-left" title={contract.nhom || contract.maNhom || ''}>{contract.nhom || contract.maNhom || '—'}</td>
+                        <td className="text-left" title={contract.resolvedNhom}>{contract.resolvedNhom}</td>
                         <td className="code">{contract.agentCode || '—'}</td>
                         <td className="text-left" title={contract.agentName || ''}>{contract.agentName || '—'}</td>
                         <td className={`date ${contract.effectiveDate ? '' : 'muted'}`}>{contract.effectiveDate || '—'}</td>
@@ -7358,12 +7496,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         </div>
       )}
 
-      {/* ===== BANCA ADMIN MODAL (upload 15 ảnh) ===== */}
+      {/* ===== BANCA ADMIN MODAL (upload 17 ảnh) ===== */}
       {bancaImgAdminOpen && (
         <div className="banca-admin-modal" onClick={() => setBancaImgAdminOpen(false)}>
           <div className="banca-admin-modal-inner" onClick={(e) => e.stopPropagation()}>
             <div className="banca-admin-modal-title">
-              <span>★ Cài đặt 15 ảnh đặc biệt</span>
+              <span>★ Cài đặt 17 ảnh đặc biệt</span>
               <button
                 onClick={() => setBancaImgAdminOpen(false)}
                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}
@@ -7422,7 +7560,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               return (
                 <div className="banca-profile-editor">
                   <div className="banca-profile-editor-head">
-                    <span>{Number(selectedIdx) <= 3 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <span>{Number(selectedIdx) <= 2 ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
                     <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
                   </div>
                   <div className="banca-profile-editor-grid">
