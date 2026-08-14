@@ -11,14 +11,14 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ws", "xlsx"],
   turbopack: {
     resolveAlias: {
-      xlsx: "./src/lib/xlsx-contest-wrapper.ts",
+      xlsx: "./src/lib/xlsx-contest-wrapper-v2.ts",
     },
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.alias = {
         ...(config.resolve.alias || {}),
-        xlsx: path.resolve(process.cwd(), "src/lib/xlsx-contest-wrapper.ts"),
+        xlsx: path.resolve(process.cwd(), "src/lib/xlsx-contest-wrapper-v2.ts"),
       };
     }
     return config;
