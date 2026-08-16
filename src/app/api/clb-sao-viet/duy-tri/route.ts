@@ -53,15 +53,30 @@ export async function GET(request: NextRequest) {
       db.contract.findMany({
         where: {
           OR: [
+            // Quy tắc chính: doanh số tháng căn cứ Ngày phát hành.
             {
               issueDate: {
                 gte: windowStart,
                 lt: assessmentStart,
               },
             },
+            // Đồng bộ với quy tắc doanh số hiện hữu: thiếu Ngày phát hành thì dùng Ngày hiệu lực.
             {
               AND: [
                 { issueDate: null },
+                {
+                  effectiveDate: {
+                    gte: windowStart,
+                    lt: assessmentStart,
+                  },
+                },
+              ],
+            },
+            // Dự phòng cuối cùng cho dữ liệu import cũ: dùng tháng/năm của file doanh số.
+            {
+              AND: [
+                { issueDate: null },
+                { effectiveDate: null },
                 {
                   OR: months.map((m) => ({
                     namTD: m.year,
@@ -76,6 +91,7 @@ export async function GET(request: NextRequest) {
           agentCode: true,
           pdt10DT: true,
           issueDate: true,
+          effectiveDate: true,
           namTD: true,
           thangTD: true,
         },
@@ -101,8 +117,9 @@ export async function GET(request: NextRequest) {
       if (!code) continue;
 
       let key = '';
-      if (contract.issueDate) {
-        const date = new Date(contract.issueDate);
+      const dateForRevenue = contract.issueDate || contract.effectiveDate;
+      if (dateForRevenue) {
+        const date = new Date(dateForRevenue);
         key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
       } else if (contract.namTD && contract.thangTD) {
         key = `${contract.namTD}-${String(contract.thangTD).padStart(2, '0')}`;
