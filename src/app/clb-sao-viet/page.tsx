@@ -5,6 +5,7 @@ import { RefreshCw, Star } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { CLBDuyTriTVVSection } from '@/components/clb-sao-viet-retention-tvv';
 import { CLBDuyTriTNSection } from '@/components/clb-sao-viet-retention-tn';
+import { CLBDuyTriTTNSection } from '@/components/clb-sao-viet-retention-ttn';
 
 function getDefaultAssessment() {
   const now = new Date();
@@ -102,6 +103,7 @@ export default function CLBSaoVietPage() {
 
         <CLBDuyTriTVVSection year={assessmentYear} month={assessmentMonth} refreshToken={refreshToken} />
         <CLBDuyTriTNSection year={assessmentYear} month={assessmentMonth} refreshToken={refreshToken} />
+        <CLBDuyTriTTNSection year={assessmentYear} month={assessmentMonth} refreshToken={refreshToken} />
 
         <section className="mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">
           Các mục xét tiếp theo và phần tạo poster chúc mừng sẽ được bổ sung theo tiêu chí anh cung cấp ở bước tiếp theo.
