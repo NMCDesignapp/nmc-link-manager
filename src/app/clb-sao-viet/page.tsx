@@ -398,7 +398,7 @@ export default function CLBSaoVietPage() {
                 </div>
 
                 <p className="mt-3 text-xs leading-5 text-white/40">
-                  IP được tổng hợp theo Ngày phát hành; nếu dữ liệu thiếu Ngày phát hành thì dùng tháng/năm của file doanh số làm dự phòng.
+                  IP từng tháng được tổng hợp duy nhất theo Ngày phát hành của hợp đồng.
                 </p>
               </div>
 
