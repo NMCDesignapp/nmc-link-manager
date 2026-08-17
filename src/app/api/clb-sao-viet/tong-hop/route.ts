@@ -87,6 +87,13 @@ function toAggregateMember(member: MemberLike, permanent = false, year: number |
   };
 }
 
+function buildMemberNote(row: AggregateMember, assessmentLabel: string): string {
+  if (row.sources.some((source) => source.startsWith('Gia nhập '))) {
+    return `Gia nhập mới đợt xét ${assessmentLabel}`;
+  }
+  return row.sources.filter((source) => source.startsWith('Duy trì ')).join(' • ');
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -114,6 +121,12 @@ export async function GET(request: NextRequest) {
       giaNhapTN: await callAssessmentRoute(getGiaNhapTN, '/api/clb-sao-viet/gia-nhap-tn', year, month),
       giaNhapTTN: await callAssessmentRoute(getGiaNhapTTN, '/api/clb-sao-viet/gia-nhap-ttn', year, month),
     };
+
+    const assessmentLabel = `1/${month}/${year}`;
+    const entryMonths = Array.isArray(calculations.giaNhapTVV?.months) ? calculations.giaNhapTVV.months : [];
+    const entryPeriodLabel = entryMonths.length > 0
+      ? entryMonths.map((item: any) => String(item?.label || '')).filter(Boolean).join(' - ')
+      : '3 tháng liền trước';
 
     const memberMap = new Map<string, AggregateMember>();
 
@@ -172,7 +185,7 @@ export async function GET(request: NextRequest) {
     const rows = Array.from(memberMap.values())
       .map((row) => ({
         ...row,
-        note: row.permanent ? row.note : row.sources.join(' • '),
+        note: row.permanent ? row.note : buildMemberNote(row, assessmentLabel),
       }))
       .sort((a, b) => {
         if (a.permanent !== b.permanent) return a.permanent ? -1 : 1;
@@ -183,7 +196,7 @@ export async function GET(request: NextRequest) {
       });
 
     return NextResponse.json({
-      assessment: { year, month, label: `1/${month}/${year}` },
+      assessment: { year, month, label: assessmentLabel, entryPeriodLabel },
       generatedAt: new Date().toISOString(),
       summary: {
         total: rows.length,
