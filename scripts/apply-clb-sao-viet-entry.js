@@ -78,3 +78,5 @@ require('./apply-clb-detail-table-style.js');
 require('./apply-clb-solid-compact-v2.js');
 // Tinh chỉnh lớp hiển thị cuối: viền bảng mảnh/tối, chữ trạng thái đậm, panel chính nổi khối bằng màu đặc.
 require('./apply-clb-visual-depth-v3.js');
+// Tách rõ từng tầng nền: navy / slate / teal / sáng / màu trạng thái; không chồng một họ xanh đen.
+require('./apply-clb-layered-solid-v4.js');
