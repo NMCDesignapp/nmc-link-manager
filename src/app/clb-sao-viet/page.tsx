@@ -29,6 +29,10 @@ const CLBGiaNhapTTNSection = dynamic(
   () => import('@/components/clb-sao-viet-entry-ttn').then((mod) => mod.CLBGiaNhapTTNSection),
   { ssr: false, loading: () => <SectionLoading /> },
 );
+const CLBPostAssessmentMembers = dynamic(
+  () => import('@/components/clb-sao-viet-post-assessment').then((mod) => mod.CLBPostAssessmentMembers),
+  { ssr: false, loading: () => <SectionLoading /> },
+);
 
 function SectionLoading() {
   return <div className="border-t border-white/10 bg-black/10 px-4 py-5 text-center text-xs text-white/40">Đang tải kết quả...</div>;
@@ -99,6 +103,7 @@ export default function CLBSaoVietPage() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [retentionFolderOpen, setRetentionFolderOpen] = useState(true);
   const [entryFolderOpen, setEntryFolderOpen] = useState(true);
+  const [membersFolderOpen, setMembersFolderOpen] = useState(false);
   const [openItem, setOpenItem] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
@@ -157,7 +162,7 @@ export default function CLBSaoVietPage() {
 
         <div className="mt-4 border border-amber-300/15 bg-amber-300/[0.035] px-4 py-3 text-xs leading-5 text-white/50">
           <strong className="text-amber-100">Kỳ xét dùng chung:</strong>{' '}
-          tất cả mục Xét duy trì và Xét gia nhập đều sử dụng Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn phía trên và lấy 3 tháng liền trước.
+          tất cả mục Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét đều sử dụng Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn phía trên và lấy 3 tháng liền trước.
         </div>
 
         <AssessmentFolder title="Xét duy trì" open={retentionFolderOpen} onToggle={() => setRetentionFolderOpen((value) => !value)}>
@@ -182,6 +187,14 @@ export default function CLBSaoVietPage() {
           <AssessmentItem title="Xét gia nhập - TTN" open={openItem === 'entry-ttn'} onToggle={() => toggleItem('entry-ttn')}>
             {openItem === 'entry-ttn' ? <CLBGiaNhapTTNSection {...sharedProps} /> : null}
           </AssessmentItem>
+        </AssessmentFolder>
+
+        <AssessmentFolder
+          title={`DS thành viên CLB Sao Việt sau đợt xét ngày 1/${assessmentMonth}/${assessmentYear}`}
+          open={membersFolderOpen}
+          onToggle={() => setMembersFolderOpen((value) => !value)}
+        >
+          {membersFolderOpen ? <CLBPostAssessmentMembers {...sharedProps} /> : null}
         </AssessmentFolder>
 
         <section className="mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">
