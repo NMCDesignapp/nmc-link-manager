@@ -71,3 +71,6 @@ if (changed) {
 } else {
   console.log('✓ Main App: nút CLB Sao Việt đã tồn tại, không cần thay đổi.');
 }
+
+// Đồng bộ giao diện popup bảng chi tiết CLB theo bảng Chi tiết Tạm thu.
+require('./apply-clb-detail-table-style.js');
