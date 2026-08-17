@@ -113,12 +113,9 @@ export async function GET(request: NextRequest) {
       result: index === 0 ? 'QUÁN QUÂN' : 'Á QUÂN',
     }));
 
-    const winnerByCode = new Map(winners.map((row) => [normalizeCode(row.agentCode), row]));
-    const rankedRows = rows.map((row) => {
-      const winner = winnerByCode.get(normalizeCode(row.agentCode));
-      if (winner) return winner;
-      return row;
-    });
+    // Ánh xạ theo ID thành viên Mục 3 để không phụ thuộc mã TVV khi dữ liệu lịch sử có dòng thiếu mã.
+    const winnerById = new Map(winners.map((row) => [row.id, row]));
+    const rankedRows = rows.map((row) => winnerById.get(row.id) || row);
 
     return NextResponse.json({
       assessment: { year, month, label: `1/${month}/${year}` },
