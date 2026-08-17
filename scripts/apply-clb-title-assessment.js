@@ -7,6 +7,7 @@ if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
 let source = fs.readFileSync(filePath, 'utf8');
 if (source.includes(marker)) {
   console.log('✓ CLB title assessment already applied.');
+  require('./apply-clb-top-ip.js');
   process.exit(0);
 }
 
@@ -32,3 +33,4 @@ source = source.replace(folderAnchor, folderInsert);
 
 fs.writeFileSync(filePath, source, 'utf8');
 console.log('✓ CLB title assessment applied: Mục 4 + 3 chương trình.');
+require('./apply-clb-top-ip.js');
