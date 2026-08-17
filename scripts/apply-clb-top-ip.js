@@ -25,10 +25,12 @@ const periodInsert = `          Xét duy trì, Xét gia nhập và DS thành vi�
 if (!source.includes(periodAnchor)) throw new Error('Không tìm thấy anchor mô tả kỳ xét sau Mục 4');
 source = source.replace(periodAnchor, periodInsert);
 
-const posterAnchor = `        <section className="mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">\n          Phần tạo poster chúc mừng sẽ được nối vào kết quả từng mục sau khi hoàn tất các tiêu chí xét.\n        </section>`;
-const topFolder = `        <AssessmentFolder\n          title="Xét Top IP"\n          open={topIpFolderOpen}\n          onToggle={() => setTopIpFolderOpen((value) => !value)}\n        >\n          {topIpFolderOpen ? <CLBTopIPSection {...sharedProps} /> : null}\n        </AssessmentFolder>\n\n${posterAnchor}`;
-if (!source.includes(posterAnchor)) throw new Error('Không tìm thấy anchor poster cuối trang CLB');
-source = source.replace(posterAnchor, topFolder);
+// Mục 4 được apply ngay trước script này, nên dùng chính block Mục 4 làm anchor.
+// Không bám vào class giao diện cuối trang vì các patch solid/depth đã đổi class trước đó.
+const titleFolderAnchor = `        <AssessmentFolder\n          title="Xét danh hiệu CLB"\n          open={titleFolderOpen}\n          onToggle={() => setTitleFolderOpen((value) => !value)}\n        >\n          <AssessmentItem title="Xét danh hiệu - TVV" open={openItem === 'title-tvv'} onToggle={() => toggleItem('title-tvv')}>\n            {openItem === 'title-tvv' ? <CLBTitleAssessmentSection {...sharedProps} program="tvv" /> : null}\n          </AssessmentItem>\n          <AssessmentItem title="Xét danh hiệu - TN KTM" open={openItem === 'title-tn-ktm'} onToggle={() => toggleItem('title-tn-ktm')}>\n            {openItem === 'title-tn-ktm' ? <CLBTitleAssessmentSection {...sharedProps} program="tnKtm" /> : null}\n          </AssessmentItem>\n          <AssessmentItem title="Xét danh hiệu - TN TD" open={openItem === 'title-tn-td'} onToggle={() => toggleItem('title-tn-td')}>\n            {openItem === 'title-tn-td' ? <CLBTitleAssessmentSection {...sharedProps} program="tnTd" /> : null}\n          </AssessmentItem>\n        </AssessmentFolder>`;
+const topFolder = `${titleFolderAnchor}\n\n        <AssessmentFolder\n          title="Xét Top IP"\n          open={topIpFolderOpen}\n          onToggle={() => setTopIpFolderOpen((value) => !value)}\n        >\n          {topIpFolderOpen ? <CLBTopIPSection {...sharedProps} /> : null}\n        </AssessmentFolder>`;
+if (!source.includes(titleFolderAnchor)) throw new Error('Không tìm thấy anchor Mục 4 Xét danh hiệu CLB');
+source = source.replace(titleFolderAnchor, topFolder);
 
 fs.writeFileSync(filePath, source, 'utf8');
 console.log('✓ CLB Top IP applied: Mục 5, tháng liền trước, Ngày PH, ngưỡng 80 triệu, Top 3.');
