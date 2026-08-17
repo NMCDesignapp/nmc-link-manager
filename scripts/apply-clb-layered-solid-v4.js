@@ -7,6 +7,7 @@ const TARGETS = [
   'src/components/clb-sao-viet-retention-ttn.tsx',
   'src/components/clb-sao-viet-entry-simple.tsx',
   'src/components/clb-sao-viet-entry-ttn.tsx',
+  'src/components/clb-sao-viet-post-assessment.tsx',
 ];
 
 function replaceAll(source, from, to) {
