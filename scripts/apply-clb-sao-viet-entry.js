@@ -76,3 +76,5 @@ if (changed) {
 require('./apply-clb-detail-table-style.js');
 // Chuẩn hóa toàn trang CLB: màu đặc, chữ dễ đọc và bảng chi tiết mật độ cao.
 require('./apply-clb-solid-compact-v2.js');
+// Tinh chỉnh lớp hiển thị cuối: viền bảng mảnh/tối, chữ trạng thái đậm, panel chính nổi khối bằng màu đặc.
+require('./apply-clb-visual-depth-v3.js');
