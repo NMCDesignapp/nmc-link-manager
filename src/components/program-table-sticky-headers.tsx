@@ -19,33 +19,53 @@ export function ProgramTableStickyHeaders() {
       }
 
       .policy-detail-table-wrapper [data-slot="table-container"],
-      .saoviet-detail-table-wrapper [data-slot="table-container"],
-      .clbsv-detail-table-wrapper [data-slot="table-container"] {
+      .saoviet-detail-table-wrapper [data-slot="table-container"] {
         position: static !important;
         width: max-content !important;
         min-width: 100% !important;
         overflow: visible !important;
       }
 
+      /* CLB dùng bảng mật độ cao: không ép container/table giãn hết chiều rộng popup. */
+      .clbsv-detail-table-wrapper [data-slot="table-container"] {
+        position: static !important;
+        width: max-content !important;
+        overflow: visible !important;
+      }
+
       .policy-detail-table-wrapper table,
-      .saoviet-detail-table-wrapper table,
-      .clbsv-detail-table-wrapper table {
+      .saoviet-detail-table-wrapper table {
         width: 100% !important;
         min-width: 100% !important;
         border-collapse: separate !important;
         border-spacing: 0 !important;
       }
 
+      .clbsv-detail-table-wrapper table {
+        width: max-content !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+      }
+
       /* Giữ nguyên toàn bộ các tầng tiêu đề như một khối, kể cả bảng 2 dòng. */
       .policy-detail-table-wrapper thead,
-      .saoviet-detail-table-wrapper thead,
-      .clbsv-detail-table-wrapper thead {
+      .saoviet-detail-table-wrapper thead {
         position: -webkit-sticky !important;
         position: sticky !important;
         top: 0 !important;
         z-index: 80 !important;
         transform: translateZ(0);
         box-shadow: 0 2px 5px rgba(15, 23, 42, 0.28);
+      }
+
+      /* CLB: dùng đường đổ bóng màu đặc, không alpha. */
+      .clbsv-detail-table-wrapper thead {
+        position: -webkit-sticky !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 80 !important;
+        transform: translateZ(0);
+        box-shadow: 0 2px 0 #9dbdaf;
       }
 
       /* Không để sticky riêng từng ô làm hai tầng tiêu đề chồng lên nhau. */

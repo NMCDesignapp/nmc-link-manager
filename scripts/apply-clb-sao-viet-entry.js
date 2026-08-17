@@ -74,3 +74,5 @@ if (changed) {
 
 // Đồng bộ giao diện popup bảng chi tiết CLB theo bảng Chi tiết Tạm thu.
 require('./apply-clb-detail-table-style.js');
+// Chuẩn hóa toàn trang CLB: màu đặc, chữ dễ đọc và bảng chi tiết mật độ cao.
+require('./apply-clb-solid-compact-v2.js');
