@@ -103,14 +103,17 @@ function compactTables(source) {
   // Natural-width tables: columns fit their content instead of being stretched equally by table-fixed/w-full.
   source = replaceAll(source, 'min-w-[1040px] w-full table-fixed', 'min-w-[820px] w-max table-auto');
   source = replaceAll(source, 'min-w-[1120px] w-full table-fixed', 'min-w-[860px] w-max table-auto');
+  source = replaceAll(source, 'min-w-[1180px] w-full border-collapse text-sm', 'min-w-[860px] w-max table-auto border-collapse text-[10px]');
   source = replaceAll(source, 'min-w-[1420px] w-full table-fixed', 'min-w-[1020px] w-max table-auto');
   source = replaceAll(source, 'min-w-[1580px] w-full table-fixed', 'min-w-[1160px] w-max table-auto');
+  source = replaceAll(source, 'min-w-[1650px] w-full border-collapse text-sm', 'min-w-[1040px] w-max table-auto border-collapse text-[10px]');
+  source = replaceAll(source, 'min-w-[1780px] w-full border-collapse text-sm', 'min-w-[1160px] w-max table-auto border-collapse text-[10px]');
 
   // Retention tables patched by apply-clb-detail-table-style.js.
   source = replaceAll(
     source,
     'bg-white text-[11px] [&_th]:!border-[#d2e7dc] [&_th]:!px-2 [&_th]:!py-2 [&_td]:!border-[#d8e7df] [&_td]:!bg-transparent [&_td]:!px-2 [&_td]:!py-1.5 [&_td]:!text-[#183548]',
-    'bg-white text-[10px] [&_th]:!whitespace-nowrap [&_th]:!border-[#b9d4c6] [&_th]:!px-1.5 [&_th]:!py-1.5 [&_td]:!whitespace-nowrap [&_td]:!border-[#c7ddd2] [&_td]:!bg-white [&_td]:!px-1.5 [&_td]:!py-1 [&_td]:!text-[#102a22]'
+    'bg-white text-[10px] [&_th]:!whitespace-nowrap [&_th]:!border-[#b9d4c6] [&_th]:!px-1.5 [&_th]:!py-1.5 [&_th]:!text-center [&_td]:!whitespace-nowrap [&_td]:!border-[#c7ddd2] [&_td]:!bg-white [&_td]:!px-1.5 [&_td]:!py-1 [&_td]:!text-[#102a22]'
   );
 
   // Entry tables are already light/solid but still too roomy.
@@ -127,6 +130,92 @@ function compactTables(source) {
   source = replaceAll(source, 'text-center text-lg font-black', 'text-center text-sm font-black');
   source = replaceAll(source, 'text-center text-base font-black', 'text-center text-sm font-black');
   source = replaceAll(source, 'className="mt-1 text-[10px]"', 'className="mt-0.5 text-[9px]"');
+  return source;
+}
+
+function removeDetailCurrencySuffix(source) {
+  // Detail tables show plain numeric values; Excel already stores these values as numbers.
+  source = replaceAll(source, 'function formatMoney(value: number) { return `${formatNumber(value)}đ`; }', 'function formatMoney(value: number) { return formatNumber(value); }');
+  return source;
+}
+
+function centerDetailHeaders(source) {
+  // Every detail-table heading is centered, including AD / Nhóm / Họ tên / Chức vụ.
+  return source.replace(/<thead\b[\s\S]*?<\/thead>/g, (thead) => thead.replace(/\btext-left\b/g, 'text-center'));
+}
+
+function compactMobileSummaries(source, file) {
+  if (file === 'src/components/clb-sao-viet-retention-tvv.tsx') {
+    source = replaceAll(source, 'mt-5 grid gap-3 sm:grid-cols-3', 'mt-3 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-3');
+    source = replaceAll(source, 'bg-[#102019] p-4 shadow-none', 'bg-[#102019] p-2 sm:p-4 shadow-none');
+    source = replaceAll(source, 'bg-[#0f2b20] p-4 shadow-none', 'bg-[#0f2b20] p-2 sm:p-4 shadow-none');
+    source = replaceAll(source, 'bg-[#2b1718] p-4 shadow-none', 'bg-[#2b1718] p-2 sm:p-4 shadow-none');
+    source = replaceAll(source, 'text-xs font-bold uppercase tracking-[0.12em]', 'text-[9px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-xs sm:tracking-[0.12em]');
+    source = replaceAll(source, 'mt-3 text-3xl font-black', 'mt-1.5 text-xl font-black sm:mt-3 sm:text-3xl');
+    source = replaceAll(source, 'className="h-5 w-5 text-amber-300"', 'className="h-4 w-4 text-amber-300 sm:h-5 sm:w-5"');
+    source = replaceAll(source, 'className="h-5 w-5 text-emerald-300"', 'className="h-4 w-4 text-emerald-300 sm:h-5 sm:w-5"');
+    source = replaceAll(source, 'className="h-5 w-5 text-rose-300"', 'className="h-4 w-4 text-rose-300 sm:h-5 sm:w-5"');
+    source = replaceAll(source, 'mt-1 text-xs text-[#a8b8b0]', 'mt-1 hidden text-xs text-[#a8b8b0] sm:block');
+    source = replaceAll(source, 'mt-1 text-xs text-[#8fc8af]', 'mt-1 hidden text-xs text-[#8fc8af] sm:block');
+    source = replaceAll(source, 'mt-1 text-xs text-[#e8acae]', 'mt-1 hidden text-xs text-[#e8acae] sm:block');
+    source = replaceAll(source, 'grid gap-5 p-5 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6', 'grid gap-3 p-3 sm:gap-4 sm:p-4 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6');
+  }
+
+  if (file === 'src/components/clb-sao-viet-retention-tn.tsx') {
+    source = replaceAll(source, 'mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4', 'mt-3 grid grid-cols-2 gap-1.5 sm:mt-5 sm:gap-2 lg:grid-cols-4');
+    source = replaceAll(source, 'bg-[#09120f] p-3', 'bg-[#09120f] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#0f2b20] p-3', 'bg-[#0f2b20] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#112631] p-3', 'bg-[#112631] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#21192c] p-3', 'bg-[#21192c] p-2 sm:p-3');
+    source = replaceAll(source, 'text-[11px] font-bold uppercase tracking-wider', 'text-[9px] font-bold uppercase leading-tight tracking-normal sm:text-[11px] sm:tracking-wider');
+    source = replaceAll(source, 'mt-2 text-2xl font-black', 'mt-1 text-xl font-black sm:mt-2 sm:text-2xl');
+    source = replaceAll(source, '<div className="p-5 lg:p-6">', '<div className="p-3 sm:p-4 lg:p-6">');
+    source = replaceAll(source, 'grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center', 'grid gap-3 sm:gap-4 lg:grid-cols-[1fr_auto] lg:items-center');
+  }
+
+  if (file === 'src/components/clb-sao-viet-retention-ttn.tsx') {
+    source = replaceAll(source, 'mt-5 grid grid-cols-3 gap-2', 'mt-3 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-2');
+    source = replaceAll(source, 'bg-[#09120f] p-3', 'bg-[#09120f] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#0f2b20] p-3', 'bg-[#0f2b20] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#2b1718] p-3', 'bg-[#2b1718] p-2 sm:p-3');
+    source = replaceAll(source, 'text-[11px] font-bold uppercase tracking-wider', 'text-[9px] font-bold uppercase leading-tight tracking-normal sm:text-[11px] sm:tracking-wider');
+    source = replaceAll(source, 'mt-2 text-2xl font-black', 'mt-1 text-xl font-black sm:mt-2 sm:text-2xl');
+    source = replaceAll(source, '<div className="p-5 lg:p-6">', '<div className="p-3 sm:p-4 lg:p-6">');
+    source = replaceAll(source, 'grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center', 'grid gap-3 sm:gap-4 lg:grid-cols-[1fr_auto] lg:items-center');
+  }
+
+  if (file === 'src/components/clb-sao-viet-entry-simple.tsx') {
+    source = replaceAll(source, 'mt-3 grid gap-2 sm:grid-cols-3', 'mt-2 grid grid-cols-3 gap-1.5 sm:mt-3 sm:gap-2');
+    source = replaceAll(source, 'bg-[#102019] p-3', 'bg-[#102019] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#0f2b20] p-3', 'bg-[#0f2b20] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#2b1718] p-3', 'bg-[#2b1718] p-2 sm:p-3');
+    source = replaceAll(source, 'text-[11px] font-bold uppercase tracking-wider', 'text-[9px] font-bold uppercase leading-tight tracking-normal sm:text-[11px] sm:tracking-wider');
+    source = replaceAll(source, 'mt-2 text-2xl font-black', 'mt-1 text-xl font-black sm:mt-2 sm:text-2xl');
+    source = replaceAll(source, 'mt-3 border border-[#6e5922] bg-[#0b1511] p-4', 'mt-2 border border-[#6e5922] bg-[#0b1511] p-3 sm:mt-3 sm:p-4');
+  }
+
+  if (file === 'src/components/clb-sao-viet-entry-ttn.tsx') {
+    source = replaceAll(source, 'mt-3 grid grid-cols-3 gap-2', 'mt-2 grid grid-cols-3 gap-1.5 sm:mt-3 sm:gap-2');
+    source = replaceAll(source, 'bg-[#102019] p-3', 'bg-[#102019] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#0f2b20] p-3', 'bg-[#0f2b20] p-2 sm:p-3');
+    source = replaceAll(source, 'bg-[#2b1718] p-3', 'bg-[#2b1718] p-2 sm:p-3');
+    source = replaceAll(source, 'text-[11px] font-bold uppercase tracking-wider', 'text-[9px] font-bold uppercase leading-tight tracking-normal sm:text-[11px] sm:tracking-wider');
+    source = replaceAll(source, 'mt-2 text-2xl font-black', 'mt-1 text-xl font-black sm:mt-2 sm:text-2xl');
+    source = replaceAll(source, 'mt-3 border border-[#6e5922] bg-[#0b1511] p-4', 'mt-2 border border-[#6e5922] bg-[#0b1511] p-3 sm:mt-3 sm:p-4');
+  }
+
+  return source;
+}
+
+function solidAndCompactFolderUI(source, file) {
+  if (file !== 'src/app/clb-sao-viet/page.tsx') return source;
+
+  // Keep the CLB page above the global decorative background so no honeycomb/alpha leaks through.
+  source = replaceAll(source, '<main className="min-h-screen bg-[#07100d] text-white">', '<main className="relative z-10 min-h-screen bg-[#07100d] text-white">');
+  source = replaceAll(source, 'hover:bg-white/[0.035]', 'hover:bg-[#153226]');
+  source = replaceAll(source, 'className="flex w-full items-center justify-between bg-[#102019] px-4 py-3 text-left transition hover:bg-[#14271f] sm:px-5"', 'className="flex w-full items-center justify-between bg-[#102019] px-3 py-2.5 text-left transition hover:bg-[#173328] sm:px-5 sm:py-3"');
+  source = replaceAll(source, 'className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-[#153226]"', 'className="flex w-full items-center justify-between bg-[#0e1915] px-3 py-2.5 text-left transition hover:bg-[#153226] sm:px-4 sm:py-3"');
+  source = replaceAll(source, 'className="border-t border-[#2f4a3f] px-3 pb-3 sm:px-4"', 'className="border-t border-[#2f4a3f] bg-[#0a1712] px-2 pb-2 sm:px-4 sm:pb-3"');
   return source;
 }
 
@@ -164,6 +253,10 @@ for (const file of TARGETS) {
 
   source = applySharedSolidPalette(source);
   source = compactTables(source);
+  source = removeDetailCurrencySuffix(source);
+  source = centerDetailHeaders(source);
+  source = compactMobileSummaries(source, file);
+  source = solidAndCompactFolderUI(source, file);
 
   // Solid detail modal shell and slightly tighter outer padding.
   source = replaceAll(source, 'bg-[#020706] p-3 sm:p-5', 'bg-[#020706] p-2 sm:p-3');
@@ -178,4 +271,4 @@ for (const file of TARGETS) {
   console.log(`✓ CLB solid/compact v2 applied: ${file}`);
 }
 
-console.log('✓ CLB Sao Việt: màu đặc + bảng compact đã được áp dụng; chỉ button được phép giữ hiệu ứng alpha.');
+console.log('✓ CLB Sao Việt: số bảng không còn hậu tố đ, header căn giữa, thống kê mobile compact, thư mục dùng màu đặc.');
