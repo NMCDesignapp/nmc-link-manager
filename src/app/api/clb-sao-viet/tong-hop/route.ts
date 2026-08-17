@@ -87,21 +87,11 @@ function toAggregateMember(member: MemberLike, permanent = false, year: number |
   };
 }
 
-function buildEntryNote(row: AggregateMember, assessmentLabel: string, entryPeriodLabel: string): string {
-  const retentionSources = row.sources.filter((source) => source.startsWith('Duy trì '));
-  const entrySources = row.sources.filter((source) => source.startsWith('Gia nhập '));
-  const notes = [...retentionSources];
-
-  if (entrySources.length > 0) {
-    const roles = entrySources
-      .map((source) => source.replace(/^Gia nhập\s+/, '').trim())
-      .filter(Boolean)
-      .join('/');
-    const roleSuffix = roles ? ` - ${roles}` : '';
-    notes.push(`Gia nhập mới đợt xét ${assessmentLabel} - Kỳ chọn ${entryPeriodLabel}${roleSuffix}`);
+function buildMemberNote(row: AggregateMember, assessmentLabel: string): string {
+  if (row.sources.some((source) => source.startsWith('Gia nhập '))) {
+    return `Gia nhập mới đợt xét ${assessmentLabel}`;
   }
-
-  return notes.join(' • ');
+  return row.sources.filter((source) => source.startsWith('Duy trì ')).join(' • ');
 }
 
 export async function GET(request: NextRequest) {
@@ -195,7 +185,7 @@ export async function GET(request: NextRequest) {
     const rows = Array.from(memberMap.values())
       .map((row) => ({
         ...row,
-        note: row.permanent ? row.note : buildEntryNote(row, assessmentLabel, entryPeriodLabel),
+        note: row.permanent ? row.note : buildMemberNote(row, assessmentLabel),
       }))
       .sort((a, b) => {
         if (a.permanent !== b.permanent) return a.permanent ? -1 : 1;
