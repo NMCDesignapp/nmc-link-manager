@@ -38,6 +38,12 @@ for (const file of TARGETS) {
   );
   source = replaceAll(source, '<h3 className="font-black text-amber-100">', '<h3 className="text-sm font-black text-[#174c37]">');
   source = replaceAll(source, 'mt-1 text-xs text-white/45', 'mt-0.5 text-[10px] text-[#6b7f74]');
+  // Dòng mô tả ở thẻ tổng quan Mục 1 dùng cùng class cũ với mô tả popup; giữ nguyên giao diện trang chính.
+  source = replaceAll(
+    source,
+    '<div className="mt-0.5 text-[10px] text-[#6b7f74]">Toàn bộ DS thành viên CLB Sao Việt</div>',
+    '<div className="mt-1 text-xs text-white/45">Toàn bộ DS thành viên CLB Sao Việt</div>'
+  );
   source = replaceAll(source, 'text-white/35" /><input', 'text-[#6b8a79]" /><input');
   source = replaceAll(
     source,
