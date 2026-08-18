@@ -19,7 +19,10 @@ function normalizeRuntimeDatabaseUrl(value: string): string {
     if (isSupabasePooler && url.port === '5432') {
       url.port = '6543'
       url.searchParams.set('pgbouncer', 'true')
-      url.searchParams.set('connection_limit', '1')
+      // A single connection caused P2024 timeouts when heartbeat, KPI and
+      // dashboard requests overlapped in the same Vercel function instance.
+      // Keep this deliberately small while allowing modest concurrency.
+      url.searchParams.set('connection_limit', '3')
       if (!url.searchParams.has('sslmode')) {
         url.searchParams.set('sslmode', 'require')
       }
