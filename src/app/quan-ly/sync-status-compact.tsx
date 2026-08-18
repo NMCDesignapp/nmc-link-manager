@@ -12,6 +12,7 @@ type SyncStatusResponse = {
   googleEnabled?: boolean;
   dataHubOnline?: boolean;
   lastSyncAt?: string;
+  lastSeenAt?: string;
   lastResult?: string;
 };
 
@@ -24,36 +25,36 @@ function isValidSyncTime(value: unknown) {
   return Number.isFinite(Date.parse(value));
 }
 
-function isLatestDataHubRunSuccessful(lastResult: unknown) {
-  if (typeof lastResult !== 'string' || !lastResult.trim()) return false;
-  try {
-    const results = JSON.parse(lastResult) as unknown;
-    return Array.isArray(results)
-      && results.length > 0
-      && results.every((result) => (
-        !!result
-        && typeof result === 'object'
-        && (result as { ok?: unknown }).ok === true
-      ));
-  } catch {
-    return false;
-  }
+function formatStatusTime(value: unknown) {
+  if (!isValidSyncTime(value)) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour12: false,
+  }).format(new Date(value as string)).replace(',', '');
 }
 
 function getSyncHealth(status: SyncStatusResponse) {
-  const hasSuccessfulSyncTime = isValidSyncTime(status.lastSyncAt);
-
   if (status.source === 'google') {
-    return status.googleEnabled === true && hasSuccessfulSyncTime;
+    return status.googleEnabled === true && isValidSyncTime(status.lastSyncAt);
   }
 
-  return status.source === 'data-hub'
-    && status.dataHubOnline === true
-    && hasSuccessfulSyncTime
-    && isLatestDataHubRunSuccessful(status.lastResult);
+  // Với Data Hub, đèn này biểu thị KẾT NỐI Excel trên máy tính.
+  // Heartbeat /api/sync-source là nguồn sự thật; lỗi của một nguồn dữ liệu
+  // trong lượt đồng bộ trước không được làm đèn kết nối chuyển xám.
+  return status.source === 'data-hub' && status.dataHubOnline === true;
 }
 
-function applyCompactSyncStatus(root: ParentNode, syncHealthy: boolean) {
+function applyCompactSyncStatus(
+  root: ParentNode,
+  syncHealthy: boolean,
+  liveStatusTime: string,
+) {
   const spans = root.querySelectorAll<HTMLSpanElement>('main span');
 
   spans.forEach((span) => {
@@ -90,7 +91,8 @@ function applyCompactSyncStatus(root: ParentNode, syncHealthy: boolean) {
 
     if (text.startsWith(LAST_SYNC_PREFIX)) {
       const value = normalizeText(text.slice(LAST_SYNC_PREFIX.length));
-      const displayValue = value && value !== 'chưa có dữ liệu' ? value : '—';
+      const fallbackValue = value && value !== 'chưa có dữ liệu' ? value : '—';
+      const displayValue = liveStatusTime || fallbackValue;
 
       span.classList.remove('nmc-sync-time-only--healthy', 'nmc-sync-time-only--unhealthy');
       span.classList.add(
@@ -101,14 +103,14 @@ function applyCompactSyncStatus(root: ParentNode, syncHealthy: boolean) {
       span.setAttribute(
         'aria-label',
         displayValue !== '—'
-          ? `${syncHealthy ? 'Đồng bộ thành công' : 'Đồng bộ đang mất kết nối hoặc có lỗi'}; lần gần nhất: ${displayValue}`
-          : 'Chưa có lần đồng bộ thành công',
+          ? `${syncHealthy ? 'Đang kết nối' : 'Đang mất kết nối'}; trạng thái gần nhất: ${displayValue}`
+          : 'Chưa có trạng thái kết nối',
       );
       span.setAttribute(
         'title',
         syncHealthy
-          ? `Đã đồng bộ thành công lúc ${displayValue}`
-          : `Mất kết nối hoặc lượt đồng bộ gần nhất có lỗi. Lần thành công gần nhất: ${displayValue}`,
+          ? `Đang kết nối. Tín hiệu gần nhất: ${displayValue}`
+          : `Đang mất kết nối. Tín hiệu gần nhất: ${displayValue}`,
       );
 
       const separator = span.previousElementSibling;
@@ -123,12 +125,13 @@ export function CompactSyncStatus() {
   useEffect(() => {
     let frame = 0;
     let syncHealthy = false;
+    let liveStatusTime = '';
     let stopped = false;
 
     const apply = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        if (!stopped) applyCompactSyncStatus(document, syncHealthy);
+        if (!stopped) applyCompactSyncStatus(document, syncHealthy, liveStatusTime);
       });
     };
 
@@ -141,6 +144,9 @@ export function CompactSyncStatus() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const status = await response.json() as SyncStatusResponse;
         syncHealthy = getSyncHealth(status);
+        liveStatusTime = formatStatusTime(
+          status.source === 'data-hub' ? status.lastSeenAt : status.lastSyncAt,
+        );
       } catch {
         syncHealthy = false;
       }
