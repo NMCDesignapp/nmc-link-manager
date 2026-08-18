@@ -22,11 +22,11 @@ function parseCSV(csv: string): string[][] {
   let currentRow: string[] = [];
   let current = '';
   let inQuotes = false;
-  
+
   for (let i = 0; i < csv.length; i++) {
     const char = csv[i];
     const nextChar = csv[i + 1];
-    
+
     if (inQuotes) {
       if (char === '"') {
         if (nextChar === '"') {
@@ -62,7 +62,7 @@ function parseCSV(csv: string): string[][] {
   if (currentRow.some(c => c !== '')) {
     rows.push(currentRow);
   }
-  
+
   return rows;
 }
 
@@ -161,9 +161,8 @@ export async function POST(request: NextRequest) {
         const contractsToCreate: any[] = [];
         let currentMonthWindow: ReturnType<typeof getCurrentBangkokMonth> | null = null;
 
-        // A blank Số HĐ is a valid business value. PostgreSQL unique indexes
-        // allow many NULLs, so the database can preserve it as truly blank.
-        await db.$executeRawUnsafe('ALTER TABLE "Contract" ALTER COLUMN "contractNumber" DROP NOT NULL');
+        // contractNumber nullability is a schema concern handled by migrations.
+        // Never execute ALTER TABLE from a serverless runtime request.
 
         // The local Tamthu file is authoritative for the current month only.
         // Validate all real HĐ numbers before deleting anything, then remove
