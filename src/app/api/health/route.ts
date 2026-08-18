@@ -4,16 +4,14 @@ import { db } from '@/lib/db'
 export async function GET() {
   const databaseUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''
-  
+  const postgresPrismaUrl = process.env.POSTGRES_PRISMA_URL || ''
+
   const checks: Record<string, any> = {
     timestamp: new Date().toISOString(),
     env: {
       hasDatabaseUrl: !!databaseUrl,
-      databaseUrlProtocol: databaseUrl.split('://')[0] || 'NOT SET',
-      databaseUrlPrefix: databaseUrl.substring(0, 40) + '...' || 'NOT SET',
       hasDirectUrl: !!directUrl,
-      directUrlProtocol: directUrl.split('://')[0] || 'NOT SET',
-      directUrlPrefix: directUrl.substring(0, 40) + '...' || 'NOT SET',
+      hasPostgresPrismaUrl: !!postgresPrismaUrl,
       nodeEnv: process.env.NODE_ENV,
     },
   }
