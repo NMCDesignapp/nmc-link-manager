@@ -5,83 +5,16 @@
   "activationSource": "all",
   "activateAfterAllSourcesSynced": true,
   "sources": [
-    {
-      "id": "revenue-current",
-      "kind": "revenue",
-      "file": "C:\\NMC-Data\\Tamthu.xlsx",
-      "sheet": "4",
-      "replaceCurrentMonth": true,
-      "allowEmpty": false
-    },
-    {
-      "id": "revenue-history",
-      "kind": "revenue-history",
-      "file": "C:\\NMC-Data\\Doanhso.xlsx",
-      "allowEmpty": false
-    },
-    {
-      "id": "structure-tvv",
-      "kind": "structure",
-      "collection": "tvv",
-      "file": "C:\\NMC-Data\\CauTruc.xlsx",
-      "sheet": "DS TVV",
-      "allowEmpty": false
-    },
-    {
-      "id": "structure-leaders",
-      "kind": "structure",
-      "collection": "leaders",
-      "file": "C:\\NMC-Data\\CauTruc.xlsx",
-      "sheet": "DS TN",
-      "allowEmpty": false
-    },
-    {
-      "id": "structure-recruiters",
-      "kind": "structure",
-      "collection": "recruiters",
-      "file": "C:\\NMC-Data\\CauTruc.xlsx",
-      "sheet": "DS TTN",
-      "allowEmpty": false
-    },
-    {
-      "id": "structure-clb-members",
-      "kind": "structure",
-      "collection": "clb-members",
-      "file": "C:\\NMC-Data\\CauTruc.xlsx",
-      "sheet": "DS Thành viên CLB",
-      "allowEmpty": false
-    },
-    {
-      "id": "structure-tuyen-ngang",
-      "kind": "structure",
-      "collection": "tuyen-ngang",
-      "file": "C:\\NMC-Data\\CauTruc.xlsx",
-      "sheet": "DS TTN tuyển ngang",
-      "allowEmpty": false
-    },
-    {
-      "id": "saoviet-ca-nhan",
-      "kind": "saoviet",
-      "program": "ca-nhan",
-      "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx",
-      "sheet": "TVV",
-      "allowEmpty": true
-    },
-    {
-      "id": "saoviet-tn-ktm",
-      "kind": "saoviet",
-      "program": "tn-ktm",
-      "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx",
-      "sheet": "Nhom",
-      "allowEmpty": true
-    },
-    {
-      "id": "saoviet-tn-td",
-      "kind": "saoviet",
-      "program": "tn-td",
-      "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx",
-      "sheet": "NhomTD",
-      "allowEmpty": true
-    }
+    { "id": "structure-tvv", "kind": "structure", "collection": "tvv", "file": "C:\\NMC-Data\\CauTruc.xlsx", "sheet": "DS TVV", "allowEmpty": false },
+    { "id": "structure-leaders", "kind": "structure", "collection": "leaders", "file": "C:\\NMC-Data\\CauTruc.xlsx", "sheet": "DS TN", "allowEmpty": false },
+    { "id": "structure-recruiters", "kind": "structure", "collection": "recruiters", "file": "C:\\NMC-Data\\CauTruc.xlsx", "sheet": "DS TTN", "allowEmpty": false },
+    { "id": "structure-clb-members", "kind": "structure", "collection": "clb-members", "file": "C:\\NMC-Data\\CauTruc.xlsx", "sheet": "DS Thành viên CLB", "allowEmpty": false },
+    { "id": "structure-tuyen-ngang", "kind": "structure", "collection": "tuyen-ngang", "file": "C:\\NMC-Data\\CauTruc.xlsx", "sheet": "DS TTN tuyển ngang", "allowEmpty": false },
+    { "id": "saoviet-ca-nhan", "kind": "saoviet", "program": "ca-nhan", "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "TVV", "allowEmpty": true },
+    { "id": "saoviet-tn-ktm", "kind": "saoviet", "program": "tn-ktm", "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "Nhom", "allowEmpty": true },
+    { "id": "saoviet-tn-td", "kind": "saoviet", "program": "tn-td", "file": "C:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "NhomTD", "allowEmpty": true },
+    { "id": "revenue-completed-months", "kind": "revenue-history", "file": "C:\\NMC-Data\\Doanhso.xlsx", "allowEmpty": false },
+    { "id": "revenue-current-month", "kind": "revenue", "file": "C:\\NMC-Data\\Tamthu.xlsx", "sheet": "4", "replaceCurrentMonth": true, "allowEmpty": false },
+    { "id": "tamthu-detail-view", "kind": "tamthu-detail", "file": "C:\\NMC-Data\\Tamthu.xlsx", "sheet": "Sheet2", "allowEmpty": false }
   ]
 }
