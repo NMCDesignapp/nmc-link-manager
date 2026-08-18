@@ -74,9 +74,11 @@ async function csvFromSource(source) {
   throw new Error(`Định dạng chưa hỗ trợ: ${extension}. Hãy dùng CSV hoặc Excel.`);
 }
 
-function hasData(csv, source) {
-  if (source.kind === 'structure') return Array.isArray(csv) && csv.length > 0;
-  const rows = csv.split(/\r?\n/).filter(line => line.trim() !== '');
+function hasData(input, source) {
+  if (source.kind === 'structure' || source.kind === 'tamthu-detail') {
+    return Array.isArray(input) && input.length > 0;
+  }
+  const rows = input.split(/\r?\n/).filter(line => line.trim() !== '');
   const minimum = (source.kind === 'revenue' || source.kind === 'revenue-history') ? 2 : 1;
   return rows.length >= minimum;
 }
@@ -125,9 +127,11 @@ function validateRevenuePayload(source, input, payload) {
 
 async function importOne(config, source, state, force) {
   const historyInput = source.kind === 'revenue-history' ? historicalRevenueFromWorkbook(source.file) : null;
-  const input = historyInput ? historyInput.csv : source.kind === 'structure'
-    ? rowsFromWorkbook(source.file, source.sheet)
-    : await csvFromSource(source);
+  const input = historyInput
+    ? historyInput.csv
+    : (source.kind === 'structure' || source.kind === 'tamthu-detail')
+      ? rowsFromWorkbook(source.file, source.sheet)
+      : await csvFromSource(source);
   if (!source.allowEmpty && !hasData(input, source)) {
     throw new Error(`Nguồn "${source.id}" không có dữ liệu hợp lệ; không công bố bản rỗng.`);
   }
@@ -165,6 +169,11 @@ async function importOne(config, source, state, force) {
     payload = await postJson(config, '/api/structure/sync', {
       source: 'nmc-data-hub',
       collection: source.collection,
+      rows: input,
+    });
+  } else if (source.kind === 'tamthu-detail') {
+    payload = await postJson(config, '/api/tamthu-detail', {
+      source: 'nmc-data-hub',
       rows: input,
     });
   } else {
