@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
-const AGENT_VERSION = '2.1.0-20260818';
+const AGENT_VERSION = '2.1.1-20260818';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -40,12 +40,23 @@ function readWorkbook(file) {
   }
 }
 
+function compactWorksheetValues(sheet) {
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, blankrows: false })
+    .filter(row => row.some(cell => String(cell ?? '').trim() !== ''));
+}
+
 function csvFromWorkbook(file, sheetName) {
   const workbook = readWorkbook(file);
   const name = sheetName || workbook.SheetNames[0];
   const sheet = workbook.Sheets[name];
   if (!sheet) throw new Error(`Không tìm thấy sheet "${name}" trong ${file}. Có: ${workbook.SheetNames.join(', ')}`);
-  return XLSX.utils.sheet_to_csv(sheet, { FS: ',', RS: '\n', forceQuotes: true });
+
+  // Excel có thể giữ used-range tới hàng nghìn dòng chỉ vì định dạng cũ.
+  // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
+  // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
+  const values = compactWorksheetValues(sheet);
+  if (values.length === 0) return '';
+  return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
 }
 
 function bangkokYearMonth() {
@@ -67,8 +78,7 @@ function historicalRevenueFromWorkbook(file) {
     if (!/^(?:[1-9]|1[0-2])$/.test(name)) continue;
     const month = `${year}-${name.padStart(2, '0')}`;
     if (month === currentMonth) continue;
-    const values = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: false })
-      .filter(row => row.some(cell => String(cell).trim() !== ''));
+    const values = compactWorksheetValues(workbook.Sheets[name]);
     if (values.length < 2) continue;
     const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
     const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
