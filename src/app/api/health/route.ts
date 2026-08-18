@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// Health endpoint intentionally exposes connection status only, never database credentials.
 export async function GET() {
   const databaseUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''
