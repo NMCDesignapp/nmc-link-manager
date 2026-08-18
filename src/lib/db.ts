@@ -19,10 +19,12 @@ function normalizeRuntimeDatabaseUrl(value: string): string {
     if (isSupabasePooler && url.port === '5432') {
       url.port = '6543'
       url.searchParams.set('pgbouncer', 'true')
-      // A single connection caused P2024 timeouts when heartbeat, KPI and
-      // dashboard requests overlapped in the same Vercel function instance.
-      // Keep this deliberately small while allowing modest concurrency.
-      url.searchParams.set('connection_limit', '3')
+      // Keep one logical client per serverless function instance. Supavisor
+      // multiplexes transactions; opening several Prisma clients per instance
+      // can exhaust the shared client ceiling during Vercel scale-out.
+      url.searchParams.set('connection_limit', '1')
+      // Let short bursts queue instead of failing immediately with P2024.
+      url.searchParams.set('pool_timeout', '30')
       if (!url.searchParams.has('sslmode')) {
         url.searchParams.set('sslmode', 'require')
       }
