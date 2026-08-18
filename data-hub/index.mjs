@@ -61,7 +61,7 @@ function rowsFromWorkbook(file, sheetName) {
   const workbook = XLSX.readFile(file, { raw: false, cellDates: false });
   const name = sheetName || workbook.SheetNames[0];
   const sheet = workbook.Sheets[name];
-  if (!sheet) throw new Error(`KhÃ´ng tÃ¬m tháº¥y sheet "${name}" trong ${file}`);
+  if (!sheet) throw new Error(`Không tìm thấy sheet "${name}" trong ${file}`);
   return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 }
 
@@ -81,6 +81,12 @@ function hasData(csv, source) {
   return rows.length >= minimum;
 }
 
+function csvDataRowCount(csv) {
+  if (typeof csv !== 'string') return 0;
+  const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
+  return Math.max(0, lines.length - 1);
+}
+
 async function postJson(config, endpoint, body) {
   const token = config.token || process.env[config.tokenEnv || 'NMC_DATA_HUB_TOKEN'];
   if (!token) throw new Error(`Chưa có khóa kết nối. Thêm token trong cấu hình cục bộ hoặc biến môi trường ${config.tokenEnv || 'NMC_DATA_HUB_TOKEN'}`);
@@ -96,6 +102,25 @@ async function postJson(config, endpoint, body) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error || `Máy chủ trả lỗi HTTP ${response.status}`);
   return payload;
+}
+
+function validateRevenuePayload(source, input, payload) {
+  if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+    throw new Error(`Máy chủ báo lỗi đồng bộ doanh số: ${payload.errors.join('; ')}`);
+  }
+
+  if (source.replaceCurrentMonth === true) {
+    const expectedMonth = bangkokYearMonth();
+    const expectedRows = csvDataRowCount(input);
+    const importedRows = Number(payload?.contracts ?? 0);
+
+    if (payload?.currentMonth !== expectedMonth) {
+      throw new Error(`Máy chủ xác nhận sai tháng hiện tại: cần ${expectedMonth}, nhận ${payload?.currentMonth || 'trống'}.`);
+    }
+    if (importedRows !== expectedRows) {
+      throw new Error(`Sheet ${source.sheet || ''} có ${expectedRows} dòng nhưng máy chủ chỉ nhận ${importedRows}; không ghi nhận checksum để sẽ tự thử lại.`);
+    }
+  }
 }
 
 async function importOne(config, source, state, force) {
@@ -119,13 +144,17 @@ async function importOne(config, source, state, force) {
       contractCsv: input,
       staffCsv: '',
       recruiterCsv: '',
-        replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
+      replaceCurrentRevenueMonth: source.replaceCurrentMonth === true,
     });
+    validateRevenuePayload(source, input, payload);
   } else if (source.kind === 'revenue-history') {
     payload = await postJson(config, '/api/sync', {
       source: 'nmc-data-hub', contractCsv: input, staffCsv: '', recruiterCsv: '',
       replaceHistoricalRevenueMonths: historyInput.months,
     });
+    if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+      throw new Error(`Máy chủ báo lỗi đồng bộ doanh số lịch sử: ${payload.errors.join('; ')}`);
+    }
   } else if (source.kind === 'saoviet') {
     payload = await postJson(config, '/api/saoviet-data/sync', {
       source: 'nmc-data-hub',
