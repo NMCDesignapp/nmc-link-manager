@@ -163,14 +163,22 @@ export function CompactSyncStatus() {
       characterData: true,
     });
 
+    // 30 giây vẫn nhanh hơn ngưỡng offline 90 giây, nhưng giảm mạnh số truy vấn
+    // Setting khi nhiều tab Quản lý đang mở cùng lúc.
     const statusTimer = window.setInterval(() => {
-      void refreshHealth();
-    }, 10_000);
+      if (document.visibilityState === 'visible') void refreshHealth();
+    }, 30_000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshHealth();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       stopped = true;
       observer.disconnect();
       window.clearInterval(statusTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.cancelAnimationFrame(frame);
     };
   }, []);
