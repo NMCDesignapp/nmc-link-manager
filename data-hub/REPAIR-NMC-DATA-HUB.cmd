@@ -21,13 +21,13 @@ echo Thu muc: %TARGET%
 echo ============================================================
 
 echo [1/7] Dung ban Data Hub cu neu con chay...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" ^| Where-Object { $_.CommandLine -match 'index\.mjs' -and ($_.CommandLine -match 'NMCDataHub' -or $_.CommandLine -match 'NMC-DataHub' -or $_.CommandLine -match 'data-hub') } ^| ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Get-CimInstance Win32_Process; $p ^| Where-Object { ($_.Name -eq 'node.exe' -and $_.CommandLine -match 'index\.mjs') -or ($_.Name -eq 'powershell.exe' -and $_.CommandLine -match 'DATA-HUB-WATCHDOG\.ps1') -or ($_.Name -eq 'cmd.exe' -and $_.CommandLine -match 'START-DATA-HUB\.cmd') } ^| ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }" >nul 2>&1
 
 if exist "index.mjs" copy /y "index.mjs" "index.mjs.bak" >nul
 if exist "package.json" copy /y "package.json" "package.json.bak" >nul
 
 echo [2/7] Tai ban Data Hub moi nhat tu GitHub...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; Invoke-WebRequest '%REPO%/index.mjs' -OutFile 'index.mjs'; Invoke-WebRequest '%REPO%/package.json' -OutFile 'package.json'; Invoke-WebRequest '%REPO%/data-hub.config.example.json' -OutFile 'data-hub.config.example.json'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; Invoke-WebRequest '%REPO%/index.mjs' -OutFile 'index.mjs'; Invoke-WebRequest '%REPO%/package.json' -OutFile 'package.json'; Invoke-WebRequest '%REPO%/data-hub.config.example.json' -OutFile 'data-hub.config.example.json'; Invoke-WebRequest '%REPO%/DATA-HUB-WATCHDOG.ps1' -OutFile 'DATA-HUB-WATCHDOG.ps1'; Invoke-WebRequest '%REPO%/RUN-DATA-HUB-HIDDEN.vbs' -OutFile 'RUN-DATA-HUB-HIDDEN.vbs'; Invoke-WebRequest '%REPO%/RESTART-DATA-HUB.cmd' -OutFile 'RESTART-DATA-HUB.cmd'"
 if errorlevel 1 (
   echo.
   echo LOI: Khong tai duoc ban Data Hub moi. Kiem tra Internet roi chay lai file nay.
@@ -91,34 +91,23 @@ if errorlevel 1 (
   echo CANH BAO: Mot hoac nhieu nguon vua dong bo loi. Agent van se duoc khoi dong de tu thu lai.
 )
 
-echo [7/7] Tao che do tu khoi dong cung Windows...
-(
-  echo @echo off
-  echo chcp 65001 ^>nul
-  echo cd /d "%%~dp0"
-  echo :loop
-  echo node index.mjs
-  echo echo Data Hub vua dung. Tu khoi dong lai sau 10 giay...
-  echo timeout /t 10 /nobreak ^>nul
-  echo goto loop
-) > "START-DATA-HUB.cmd"
-
+echo [7/7] Cai che do chay an nen va tu khoi dong cung Windows...
 set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 if not exist "%STARTUP%" mkdir "%STARTUP%"
-(
-  echo @echo off
-  echo start "NMC Data Hub" /min cmd /c ""%TARGET%\START-DATA-HUB.cmd""
-) > "%STARTUP%\NMC Data Hub.cmd"
+if exist "%STARTUP%\NMC Data Hub.cmd" del /q "%STARTUP%\NMC Data Hub.cmd" >nul 2>&1
+copy /y "RUN-DATA-HUB-HIDDEN.vbs" "%STARTUP%\NMC Data Hub.vbs" >nul
+
+start "" wscript.exe "%TARGET%\RUN-DATA-HUB-HIDDEN.vbs"
 
 echo.
 echo ============================================================
 echo DA SUA XONG BO DATA HUB.
-echo Dang khoi dong ket noi lien tuc...
-echo Khong can mo Excel; chi can file ton tai dung duong dan cau hinh.
+echo Data Hub dang chay AN HOAN TOAN duoi nen, khong can giu cua so CMD.
+echo Neu Node bi dung, watchdog se tu khoi dong lai sau 5 giay.
+echo Neu can khoi dong lai thu cong: %TARGET%\RESTART-DATA-HUB.cmd
 echo ============================================================
-start "NMC Data Hub" /min cmd /c ""%TARGET%\START-DATA-HUB.cmd""
 
-timeout /t 3 /nobreak >nul
+timeout /t 8 /nobreak >nul
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r=Invoke-RestMethod 'https://nc-link.vercel.app/api/sync-source' -TimeoutSec 20; Write-Host ('Main App: source=' + $r.source + ', dataHubOnline=' + $r.dataHubOnline + ', lastSeenAt=' + $r.lastSeenAt + ', lastSyncAt=' + $r.lastSyncAt) } catch { Write-Host ('Khong doc duoc trang thai Main App: ' + $_.Exception.Message) }"
 
 echo.
