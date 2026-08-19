@@ -123,9 +123,11 @@ function normalizeRow(program: Program, cells: string[]): NormalizedSaoVietRow {
   };
 }
 
-// Local workbook layout (Data Hub): use Excel columns C,D,E,G,H,I,J,K,L
-// and ignore all rows before row 6. This avoids the title/header rows that
-// differ between the Excel file and the legacy Google Sheet export.
+// Local workbook layout (Data Hub): use Excel columns C,D,E,G,H,I,J,K,L.
+// The three source sheets are fixed as follows:
+//   TVV    -> Sao Việt cá nhân
+//   Nhom   -> Sao Việt nhóm KTM
+//   NhomTD -> Sao Việt nhóm tuyển dụng
 function normalizeDataHubWorkbookRow(program: Program, cells: string[]): NormalizedSaoVietRow {
   const pick = (idx: number) => String(cells[idx] ?? '').trim();
   const nhomKD = pick(2); // C
@@ -142,6 +144,35 @@ function normalizeDataHubWorkbookRow(program: Program, cells: string[]): Normali
     return { agentCode, agentName, nhomKD, fyp: 0, fypTVVm: valueG, slTvvmHDC: valueH, tvvmCount: valueI };
   }
   return { agentCode, agentName, nhomKD, fyp: valueG, fypTVVm: 0, slTvvmHDC: 0, tvvmCount: 0 };
+}
+
+function normalizeLabel(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Data Hub compacts fully blank Excel rows before sending CSV. Therefore a
+// fixed rowsRaw.slice(5) is unsafe: in the real workbook row 1 is blank, so
+// Excel row 6 becomes CSV row 5 and was previously discarded. Identify real
+// records by the source columns instead, which guarantees Excel row 6 is kept.
+function isDataHubWorkbookDataRow(cells: string[]): boolean {
+  const agentCode = String(cells[3] ?? '').trim(); // D
+  const agentName = String(cells[4] ?? '').trim(); // E
+  if (!agentCode && !agentName) return false;
+
+  const codeLabel = normalizeLabel(agentCode);
+  const nameLabel = normalizeLabel(agentName);
+  const isHeaderCode =
+    codeLabel === 'ma so' ||
+    codeLabel.includes('ma sao viet') ||
+    codeLabel.includes('ma truong nhom sao viet');
+  const isHeaderName = nameLabel === 'ten' || nameLabel === 'ho ten' || nameLabel.includes('ho ten tvv');
+
+  return !isHeaderCode && !isHeaderName;
 }
 
 // C can be blank for a leader in the Sao Viet workbook. In that case,
@@ -302,15 +333,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ count: 0, deleted: true, message: 'Sheet rỗng — đã xóa dữ liệu cũ', gidUsed: gid });
     }
 
-    // Local Excel has fixed columns and begins its actual records at row 6.
-    // The Google export retains its existing positional behavior.
+    // Data Hub CSV can omit fully blank Excel rows, so never use a fixed
+    // row-number slice here. The helper keeps the true first data row (Excel 6)
+    // and rejects the title/header rows by their D/E contents.
     const firstRow = rowsRaw[0].map(c => c.toLowerCase().trim());
     const looksLikeHeader = firstRow.some(c =>
       c.includes('nhóm') || c.includes('nhom') ||
       c.includes('mã số') || c.includes('ma so') ||
       c.includes('họ tên') || c.includes('ho ten')
     );
-    const dataRows = fromDataHub ? rowsRaw.slice(5) : (looksLikeHeader ? rowsRaw.slice(1) : rowsRaw);
+    const dataRows = fromDataHub
+      ? rowsRaw.filter(isDataHubWorkbookDataRow)
+      : (looksLikeHeader ? rowsRaw.slice(1) : rowsRaw);
 
     const parsedRows = dataRows
       .map(cells => fromDataHub ? normalizeDataHubWorkbookRow(program, cells) : normalizeRow(program, cells))
