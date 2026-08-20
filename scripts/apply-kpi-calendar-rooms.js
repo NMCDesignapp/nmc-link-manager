@@ -1,22 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 
-// nmc-kpi-calendar-rooms-v1
+// nmc-kpi-calendar-rooms-v2
 // Shared KPI calendar enhancement:
 // - five plan scopes below the month selector
-// - new entries inherit the currently selected scope
+// - selected scope determines where a new plan is saved
+// - password validation is bound to the selected scope
+// - 123456 is the master password for all five scopes
 // - existing legacy owner labels remain visible through compatibility aliases
 // This patch runs against the canonical Main KPI source; kpi-app sync copies it.
 
 const repoRoot = path.resolve(__dirname, '..');
 const filePath = path.join(repoRoot, 'src/app/kpi/page.tsx');
-const MARKER = '// nmc-kpi-calendar-rooms-v1';
+const MARKER = '// nmc-kpi-calendar-rooms-v2';
 
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
 let source = fs.readFileSync(filePath, 'utf8');
 
 if (source.includes(MARKER)) {
-  console.log('✓ KPI Kế hoạch khung: 5 phòng đã được áp dụng.');
+  console.log('✓ KPI Kế hoạch khung: 5 phòng + mật khẩu theo phòng đã được áp dụng.');
   process.exit(0);
 }
 
@@ -32,14 +34,29 @@ replaceOnce(
   'calendar state'
 );
 
-// 2) Canonical five scopes + compatibility aliases for older data.
+// 2) Remember which scope has been authenticated. "*" means master password.
 replaceOnce(
-  `  /* Calendar edit handlers */\n  const CAL_OWNERS = ['Công ty', 'HTKD', 'PTKD', 'DVKH'];\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed', // purple\n    'HTKD':    '#0ea5e9', // sky blue\n    'PTKD':    '#16a34a', // green\n    'DVKH':    '#ea580c', // orange\n  };`,
-  `  /* Calendar edit handlers */\n  const CAL_PLAN_SCOPES = ['Công ty', 'Phòng PTKD 1', 'Phòng PTKD 2', 'Phòng PTKD 3', 'Phòng HTKD'];\n  const CAL_OWNERS = CAL_PLAN_SCOPES;\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed',\n    'Phòng PTKD 1': '#16a34a',\n    'Phòng PTKD 2': '#15803d',\n    'Phòng PTKD 3': '#166534',\n    'Phòng HTKD': '#0ea5e9',\n    // Legacy labels — keep old saved plans visually consistent.\n    'HTKD': '#0ea5e9',\n    'PTKD': '#16a34a',\n    'DVKH': '#ea580c',\n    'Phòng 1': '#16a34a',\n    'Phòng 2': '#15803d',\n    'Phòng 3': '#166534',\n  };`,
-  'calendar owners'
+  `  const [calAuthed, setCalAuthed] = useState(false);\n  const [calPwdOpen, setCalPwdOpen] = useState(false);`,
+  `  const [calAuthed, setCalAuthed] = useState(false);\n  const [calAuthScope, setCalAuthScope] = useState<string | null>(null);\n  const [calPwdOpen, setCalPwdOpen] = useState(false);`,
+  'calendar auth state'
 );
 
-// 3) Scope matcher. Old generic PTKD entries predate room separation, so they
+// 3) Canonical five scopes + compatibility aliases + room passwords.
+replaceOnce(
+  `  /* Calendar edit handlers */\n  const CAL_OWNERS = ['Công ty', 'HTKD', 'PTKD', 'DVKH'];\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed', // purple\n    'HTKD':    '#0ea5e9', // sky blue\n    'PTKD':    '#16a34a', // green\n    'DVKH':    '#ea580c', // orange\n  };`,
+  `  /* Calendar edit handlers */\n  const CAL_PLAN_SCOPES = ['Công ty', 'Phòng PTKD 1', 'Phòng PTKD 2', 'Phòng PTKD 3', 'Phòng HTKD'];\n  const CAL_OWNERS = CAL_PLAN_SCOPES;\n  const CAL_SCOPE_PASSWORDS: Record<string, string> = {\n    'Phòng PTKD 1': 'PTKD@1',\n    'Phòng PTKD 2': 'PTKD#2',\n    'Phòng PTKD 3': 'PTKD!3',\n    'Phòng HTKD': 'HTKD2026',\n  };\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed',\n    'Phòng PTKD 1': '#16a34a',\n    'Phòng PTKD 2': '#15803d',\n    'Phòng PTKD 3': '#166534',\n    'Phòng HTKD': '#0ea5e9',\n    // Legacy labels — keep old saved plans visually consistent.\n    'HTKD': '#0ea5e9',\n    'PTKD': '#16a34a',\n    'DVKH': '#ea580c',\n    'Phòng 1': '#16a34a',\n    'Phòng 2': '#15803d',\n    'Phòng 3': '#166534',\n  };`,
+  'calendar owners and passwords'
+);
+
+// 4) Validate the password against the ROOM THAT IS CURRENTLY SELECTED.
+// A password belonging to another room must fail. The master password works everywhere.
+replaceOnce(
+  `  const submitCalPwd = () => {\n    if (calPwdInput === '123456') {\n      setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);`,
+  `  const submitCalPwd = () => {\n    const isMaster = calPwdInput === '123456';\n    const expectedRoomPassword = CAL_SCOPE_PASSWORDS[calScope];\n    const isSelectedRoomPassword = Boolean(expectedRoomPassword && calPwdInput === expectedRoomPassword);\n    if (isMaster || isSelectedRoomPassword) {\n      setCalAuthed(true); setCalAuthScope(isMaster ? '*' : calScope); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);`,
+  'calendar password validation'
+);
+
+// 5) Scope matcher. Old generic PTKD entries predate room separation, so they
 // appear in all three PTKD views until an editor reclassifies them. Custom/legacy
 // plans without a room assignment otherwise stay in Công ty so nothing disappears.
 replaceOnce(
@@ -48,14 +65,22 @@ replaceOnce(
   'parseOwners'
 );
 
-// 4) New plan starts in the selected room rather than being unassigned.
+// 6) New plan starts in the selected room rather than being unassigned.
 replaceOnce(
   `  const openCalEditForNew = () => {\n    setCalEditForm({ id: null, date: \`${'${'}CUR_YEAR}-${'${'}calMonth}-01\`, title: '', owners: [], ownerCustom: '' });`,
   `  const openCalEditForNew = () => {\n    setCalEditForm({ id: null, date: \`${'${'}CUR_YEAR}-${'${'}calMonth}-01\`, title: '', owners: [calScope], ownerCustom: '' });`,
   'openCalEditForNew'
 );
 
-// 5) Filter each day by the selected plan scope.
+// 7) Even if the legacy owner controls are visible in the modal, a NEW plan is
+// always stored in the room selected by the five scope buttons.
+replaceOnce(
+  `    // Join bằng ", " để hiển thị dạng "Công ty, HTKD"\n    const owner = finalOwners.join(', ');`,
+  `    // New entries always belong to the room selected above the calendar.\n    // Existing entries keep their saved owner list unless explicitly edited.\n    const owner = calEditForm.id ? finalOwners.join(', ') : calScope;`,
+  'calendar save owner'
+);
+
+// 8) Filter each day by the selected plan scope.
 replaceOnce(
   `      const dayEvents = calendarEvents.filter(e => e.date === dateStr);`,
   `      const dayEvents = calendarEvents.filter(e => e.date === dateStr && eventMatchesCalScope(e, calScope));`,
@@ -67,14 +92,22 @@ replaceOnce(
   'calendar memo dependencies'
 );
 
-// 6) Five room buttons directly under the month selector.
+// 9) Five room buttons directly under the month selector. Switching rooms keeps
+// master auth active; room auth is active only when returning to that same room.
 replaceOnce(
   `          <div className="cal-filter">\n            {MONTHS.map(m => (\n              <button key={m} className={\`cal-fbtn ${'${'}calMonth === m ? 'on' : ''}\`} onClick={() => setCalMonth(m)}>T{parseInt(m)}</button>\n            ))}\n          </div>\n          <div className="cal-wrap">`,
-  `          <div className="cal-filter">\n            {MONTHS.map(m => (\n              <button key={m} className={\`cal-fbtn ${'${'}calMonth === m ? 'on' : ''}\`} onClick={() => setCalMonth(m)}>T{parseInt(m)}</button>\n            ))}\n          </div>\n          <div className="cal-scope-filter" aria-label="Chọn phòng kế hoạch">\n            {CAL_PLAN_SCOPES.map(scope => (\n              <button\n                key={scope}\n                type="button"\n                className={\`cal-scope-btn ${'${'}calScope === scope ? 'on' : ''}\`}\n                onClick={() => setCalScope(scope)}\n              >\n                {scope}\n              </button>\n            ))}\n          </div>\n          <div className="cal-wrap">`,
+  `          <div className="cal-filter">\n            {MONTHS.map(m => (\n              <button key={m} className={\`cal-fbtn ${'${'}calMonth === m ? 'on' : ''}\`} onClick={() => setCalMonth(m)}>T{parseInt(m)}</button>\n            ))}\n          </div>\n          <div className="cal-scope-filter" aria-label="Chọn phòng kế hoạch">\n            {CAL_PLAN_SCOPES.map(scope => (\n              <button\n                key={scope}\n                type="button"\n                className={\`cal-scope-btn ${'${'}calScope === scope ? 'on' : ''}\`}\n                onClick={() => {\n                  setCalScope(scope);\n                  setCalAuthed(calAuthScope === '*' || calAuthScope === scope);\n                }}\n              >\n                {scope}\n              </button>\n            ))}\n          </div>\n          <div className="cal-wrap">`,
   'calendar scope buttons'
 );
 
-// 7) Room selector styling — separate from month grid, responsive without changing
+// 10) Password dialog says exactly which room is being unlocked.
+replaceOnce(
+  `                <p className="cal-modal-hint">Nhập mật khẩu để mở khóa cài đặt lịch:</p>`,
+  `                <p className="cal-modal-hint">Nhập mật khẩu của <strong>{calScope}</strong> để nhập/sửa kế hoạch:</p>`,
+  'calendar password hint'
+);
+
+// 11) Room selector styling — separate from month grid, responsive without changing
 // the existing calendar table layout.
 replaceOnce(
   `.kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 10px #0080804d; font-weight: 900; }\n.kpi-app .cal-wrap {`,
@@ -82,7 +115,7 @@ replaceOnce(
   'calendar scope CSS'
 );
 
-// Mobile: allow labels to wrap while keeping all five controls visible and compact.
+// Mobile: keep all five controls visible and compact.
 replaceOnce(
   `  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }\n  .kpi-app .cal-fbtn { padding: 3px 1px; border-radius: 5px; min-height: 20px; font-size: 7px; }`,
   `  .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }\n  .kpi-app .cal-fbtn { padding: 3px 1px; border-radius: 5px; min-height: 20px; font-size: 7px; }\n  .kpi-app .cal-scope-filter { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }\n  .kpi-app .cal-scope-btn { min-height: 32px; padding: 4px 2px; font-size: 7px; border-radius: 5px; }`,
@@ -90,4 +123,4 @@ replaceOnce(
 );
 
 fs.writeFileSync(filePath, source, 'utf8');
-console.log('✓ KPI Kế hoạch khung: thêm 5 phòng Công ty / PTKD 1-3 / HTKD và lọc kế hoạch theo phòng.');
+console.log('✓ KPI Kế hoạch khung: 5 phòng + mật khẩu đúng theo phòng đang chọn; 123456 là mật khẩu tổng.');
