@@ -8,7 +8,8 @@ const path = require('path');
 // - existing legacy owner labels remain visible through compatibility aliases
 // This patch runs against the canonical Main KPI source; kpi-app sync copies it.
 
-const filePath = path.join(process.cwd(), 'src/app/kpi/page.tsx');
+const repoRoot = path.resolve(__dirname, '..');
+const filePath = path.join(repoRoot, 'src/app/kpi/page.tsx');
 const MARKER = '// nmc-kpi-calendar-rooms-v1';
 
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
