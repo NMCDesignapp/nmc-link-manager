@@ -23,6 +23,11 @@ source = source.replace(
   'from { opacity: 0; transform: translateX(8px) scale(.997); }\n          45% { opacity: .72; }\n          to { opacity: 1; transform: translateX(0) scale(1); }',
 );
 source = source.replace('margin: 10px 0 16px;', 'margin: 18px 0 16px;');
+source = source.replace(
+  '          padding: 5px;\n          border: 1px solid rgba(230, 189, 85, .5);',
+  '          padding: 0;\n          border: 1px solid rgba(230, 189, 85, .5);',
+);
+source = source.replace('          object-fit: contain;', '          object-fit: cover;');
 
 if (!source.includes('const ROTATE_MS = 5_000;')) {
   throw new Error('Không áp dụng được chu kỳ 5 giây cho thông báo thi đua.');
@@ -32,6 +37,12 @@ if (!source.includes('animation: kpiContestNoticeIn .96s')) {
 }
 if (!source.includes('margin: 18px 0 16px;')) {
   throw new Error('Không cân được khoảng cách giữa Tiến độ khu vực và ô thông báo.');
+}
+if (!source.includes('object-fit: cover;')) {
+  throw new Error('Không kéo poster phủ đầy khung thông báo.');
+}
+if (!source.includes('padding: 0;\n          border: 1px solid rgba(230, 189, 85, .5);')) {
+  throw new Error('Không bỏ được khoảng đệm bên trong khung poster.');
 }
 
 fs.writeFileSync(sourcePath, source, 'utf8');
@@ -51,4 +62,4 @@ if (!page.includes(UI_MARKER)) {
   fs.writeFileSync(pagePath, page, 'utf8');
 }
 
-console.log('✓ KPI polish: chu kỳ 5 giây giữ nguyên; chuyển cảnh 0.96s mượt hơn; khoảng cách cân 18px; thanh Tiến độ khu vực có badge mũi tên gọn.');
+console.log('✓ KPI polish: chu kỳ 5 giây; chuyển cảnh 0.96s; khoảng cách 18px; poster phủ đầy khung; thanh Tiến độ khu vực dùng badge mũi tên gọn.');
