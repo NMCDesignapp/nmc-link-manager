@@ -39,11 +39,12 @@ replaceOnce(
   'calendar owners'
 );
 
-// 3) Scope matcher. Custom/legacy plans without a room assignment stay in Công ty
-// so no historical item disappears after this UI change.
+// 3) Scope matcher. Old generic PTKD entries predate room separation, so they
+// appear in all three PTKD views until an editor reclassifies them. Custom/legacy
+// plans without a room assignment otherwise stay in Công ty so nothing disappears.
 replaceOnce(
   `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };`,
-  `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };\n\n  const eventMatchesCalScope = (ev: CalendarEvent, scope: string): boolean => {\n    const owners = parseOwners(ev.owner);\n    const aliases: Record<string, string[]> = {\n      'Công ty': ['Công ty'],\n      'Phòng PTKD 1': ['Phòng PTKD 1', 'Phòng 1'],\n      'Phòng PTKD 2': ['Phòng PTKD 2', 'Phòng 2'],\n      'Phòng PTKD 3': ['Phòng PTKD 3', 'Phòng 3'],\n      'Phòng HTKD': ['Phòng HTKD', 'HTKD'],\n    };\n    const selectedAliases = aliases[scope] || [scope];\n    if (owners.some(owner => selectedAliases.includes(owner))) return true;\n\n    if (scope === 'Công ty') {\n      if (owners.length === 0) return true;\n      const assignedToRoom = ['Phòng PTKD 1', 'Phòng 1', 'Phòng PTKD 2', 'Phòng 2', 'Phòng PTKD 3', 'Phòng 3', 'Phòng HTKD', 'HTKD']\n        .some(alias => owners.includes(alias));\n      return !assignedToRoom;\n    }\n    return false;\n  };`,
+  `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };\n\n  const eventMatchesCalScope = (ev: CalendarEvent, scope: string): boolean => {\n    const owners = parseOwners(ev.owner);\n    const aliases: Record<string, string[]> = {\n      'Công ty': ['Công ty'],\n      'Phòng PTKD 1': ['Phòng PTKD 1', 'Phòng 1', 'PTKD'],\n      'Phòng PTKD 2': ['Phòng PTKD 2', 'Phòng 2', 'PTKD'],\n      'Phòng PTKD 3': ['Phòng PTKD 3', 'Phòng 3', 'PTKD'],\n      'Phòng HTKD': ['Phòng HTKD', 'HTKD'],\n    };\n    const selectedAliases = aliases[scope] || [scope];\n    if (owners.some(owner => selectedAliases.includes(owner))) return true;\n\n    if (scope === 'Công ty') {\n      if (owners.length === 0) return true;\n      const assignedToRoom = ['Phòng PTKD 1', 'Phòng 1', 'Phòng PTKD 2', 'Phòng 2', 'Phòng PTKD 3', 'Phòng 3', 'PTKD', 'Phòng HTKD', 'HTKD']\n        .some(alias => owners.includes(alias));\n      return !assignedToRoom;\n    }\n    return false;\n  };`,
   'parseOwners'
 );
 
