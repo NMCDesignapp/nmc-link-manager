@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/sync-kpi-source.js && next dev -p 3100",
-    "prebuild": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js && node ../scripts/prepare-kpi-standalone-api.js",
+    "dev": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/sync-kpi-source.js && next dev -p 3100",
+    "prebuild": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js && node ../scripts/prepare-kpi-standalone-api.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate",
-    "sync": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js",
-    "sync:check": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/sync-kpi-source.js --check"
+    "sync": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js",
+    "sync:check": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/sync-kpi-source.js --check"
   },
   "dependencies": {
     "@fontsource/outfit": "^5.2.8",
