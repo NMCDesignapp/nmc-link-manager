@@ -3,11 +3,10 @@
 /**
  * Prepare the public standalone KPI API surface for deployment.
  *
- * The repository keeps a generated kpi-app tree for parity with Main App, but
- * the public standalone deployment must never expose database write/admin APIs.
- * At build time we replace the generated API tree with one GET/HEAD-only proxy
- * to Main App. This keeps KPI data current without giving the public KPI project
- * database credentials or POST/PUT/PATCH/DELETE handlers.
+ * The standalone project keeps the broad API surface read-only, but Kế hoạch
+ * Khung is an explicit exception: POST/PUT/DELETE are proxied only for
+ * /api/calendar so users can add/edit/delete plans from KPI standalone without
+ * giving the standalone project database credentials or exposing other writes.
  */
 
 const fs = require('fs')
@@ -38,11 +37,16 @@ function copyResponseHeaders(source: Headers) {
   return headers
 }
 
+function buildUpstream(request: NextRequest, path: string[]) {
+  const current = new URL(request.url)
+  const upstream = new URL(\`${'${'}MAIN_APP_URL}/api/${'${'}(path || []).map(encodeURIComponent).join('/')}\`)
+  upstream.search = current.search
+  return upstream
+}
+
 async function proxyRead(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params
-  const current = new URL(request.url)
-  const upstream = new URL(\`\${MAIN_APP_URL}/api/\${(path || []).map(encodeURIComponent).join('/')}\`)
-  upstream.search = current.search
+  const upstream = buildUpstream(request, path || [])
 
   try {
     const response = await fetch(upstream, {
@@ -65,6 +69,42 @@ async function proxyRead(request: NextRequest, context: { params: Promise<{ path
   }
 }
 
+async function proxyCalendarWrite(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const { path } = await context.params
+  const normalizedPath = (path || []).join('/')
+  if (normalizedPath !== 'calendar') {
+    return Response.json(
+      { error: 'KPI standalone chỉ cho phép ghi dữ liệu Kế hoạch khung.' },
+      { status: 405, headers: { Allow: 'GET, HEAD' } },
+    )
+  }
+
+  const upstream = buildUpstream(request, path || [])
+  const body = request.method === 'DELETE' ? undefined : await request.text()
+
+  try {
+    const response = await fetch(upstream, {
+      method: request.method,
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: {
+        accept: request.headers.get('accept') || 'application/json',
+        'content-type': request.headers.get('content-type') || 'application/json',
+      },
+      body,
+    })
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: copyResponseHeaders(response.headers),
+    })
+  } catch (error) {
+    console.error('[KPI standalone] calendar write proxy error:', error)
+    return Response.json({ error: 'Không thể lưu Kế hoạch khung vào Main App.' }, { status: 502 })
+  }
+}
+
 export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   return proxyRead(request, context)
 }
@@ -72,7 +112,19 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
 export async function HEAD(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   return proxyRead(request, context)
 }
+
+export async function POST(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyCalendarWrite(request, context)
+}
+
+export async function PUT(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyCalendarWrite(request, context)
+}
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyCalendarWrite(request, context)
+}
 `
 
 fs.writeFileSync(routeFile, route, 'utf8')
-console.log('Standalone KPI API prepared: GET/HEAD proxy only; write/admin routes removed from build output.')
+console.log('Standalone KPI API prepared: read proxy + calendar-only POST/PUT/DELETE writes.')
