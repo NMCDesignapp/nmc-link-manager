@@ -26,11 +26,13 @@ if (source.includes(FIX_MARKER)) {
   process.exit(0);
 }
 
+// Keep the exact BASE_MARKER + state sequence intact because the following UX
+// patch deliberately validates that anchor before adding click-outside/checkmarks.
 const anchor = `  ${BASE_MARKER}\n  const [nhomFilter, setNhomFilter] = useState<string[]>([]);`;
 if (!source.includes(anchor)) {
   throw new Error('Không tìm thấy state nhomFilter dạng array trong SavedContestInline');
 }
-source = source.replace(anchor, `  ${BASE_MARKER}\n  ${FIX_MARKER}\n  const [nhomFilter, setNhomFilter] = useState<string[]>([]);`);
+source = source.replace(anchor, `${anchor}\n  ${FIX_MARKER}`);
 
 let replaced = 0;
 const oldScalarCondition = /if \(nhomFilter && ([^\n;]+?) !== nhomFilter\) return false;/g;
