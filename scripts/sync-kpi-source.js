@@ -22,6 +22,7 @@ const standaloneTemplate = path.join(root, 'kpi-app', 'src', 'app', 'template.ts
 const patchScript = path.join(root, 'scripts', 'apply-standalone-patches.js')
 const tableUiPatchScript = path.join(root, 'scripts', 'apply-kpi-table-ui-fixes.js')
 const calendarRoomsPatchScript = path.join(root, 'scripts', 'apply-kpi-calendar-rooms.js')
+const mainActionWidthsPatchScript = path.join(root, 'scripts', 'apply-kpi-main-action-widths.js')
 
 const sharedCopies = [
   {
@@ -86,7 +87,7 @@ function fail(message) {
   process.exit(1)
 }
 
-for (const required of [mainPage, patchScript, tableUiPatchScript, calendarRoomsPatchScript, ...sharedCopies.map((item) => item.source)]) {
+for (const required of [mainPage, patchScript, tableUiPatchScript, calendarRoomsPatchScript, mainActionWidthsPatchScript, ...sharedCopies.map((item) => item.source)]) {
   if (!fs.existsSync(required)) fail(`Missing required file: ${required}`)
 }
 
@@ -133,6 +134,7 @@ if (checkOnly) {
   // Then copy that exact source to standalone, preserving the one-source model.
   execFileSync(process.execPath, [tableUiPatchScript], { stdio: 'inherit' })
   execFileSync(process.execPath, [calendarRoomsPatchScript], { stdio: 'inherit' })
+  execFileSync(process.execPath, [mainActionWidthsPatchScript], { stdio: 'inherit' })
 
   fs.mkdirSync(path.dirname(standalonePage), { recursive: true })
   fs.copyFileSync(mainPage, standalonePage)
