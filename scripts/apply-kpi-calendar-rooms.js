@@ -1,24 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 
-// nmc-kpi-calendar-rooms-v2
+// nmc-kpi-calendar-rooms-v3
 // Shared KPI calendar enhancement:
 // - five plan scopes below the month selector
-// - selected scope determines where a new plan is saved
+// - every room plan is automatically visible in the Company aggregate view
+// - Company plans flow into selected room views through their responsible owner(s)
+// - selected scope determines where a room-created plan is saved
 // - password validation is bound to the selected scope
-// - 123456 is the master password for all five scopes
+// - master password works for all five scopes
+// - passwords are compared by SHA-256 hash so plaintext values are not stored here
 // - existing legacy owner labels remain visible through compatibility aliases
 // This patch runs against the canonical Main KPI source; kpi-app sync copies it.
 
 const repoRoot = path.resolve(__dirname, '..');
 const filePath = path.join(repoRoot, 'src/app/kpi/page.tsx');
-const MARKER = '// nmc-kpi-calendar-rooms-v2';
+const MARKER = '// nmc-kpi-calendar-rooms-v3';
 
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
 let source = fs.readFileSync(filePath, 'utf8');
 
 if (source.includes(MARKER)) {
-  console.log('✓ KPI Kế hoạch khung: 5 phòng + mật khẩu theo phòng đã được áp dụng.');
+  console.log('✓ KPI Kế hoạch khung: tổng hợp Công ty + phân luồng phòng + mật khẩu theo phòng đã được áp dụng.');
   process.exit(0);
 }
 
@@ -27,7 +30,7 @@ function replaceOnce(from, to, label) {
   source = source.replace(from, to);
 }
 
-// 1) Scope state — company is the safe/default view for existing plans.
+// 1) Scope state — Company is the aggregate/default view.
 replaceOnce(
   `  const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));\n  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);`,
   `  ${MARKER}\n  const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));\n  const [calScope, setCalScope] = useState<string>('Công ty');\n  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);`,
@@ -41,43 +44,50 @@ replaceOnce(
   'calendar auth state'
 );
 
-// 3) Canonical five scopes + compatibility aliases + room passwords.
+// 3) Canonical five scopes + compatibility aliases + password hashes.
 replaceOnce(
   `  /* Calendar edit handlers */\n  const CAL_OWNERS = ['Công ty', 'HTKD', 'PTKD', 'DVKH'];\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed', // purple\n    'HTKD':    '#0ea5e9', // sky blue\n    'PTKD':    '#16a34a', // green\n    'DVKH':    '#ea580c', // orange\n  };`,
-  `  /* Calendar edit handlers */\n  const CAL_PLAN_SCOPES = ['Công ty', 'Phòng PTKD 1', 'Phòng PTKD 2', 'Phòng PTKD 3', 'Phòng HTKD'];\n  const CAL_OWNERS = CAL_PLAN_SCOPES;\n  const CAL_SCOPE_PASSWORDS: Record<string, string> = {\n    'Phòng PTKD 1': 'PTKD@1',\n    'Phòng PTKD 2': 'PTKD#2',\n    'Phòng PTKD 3': 'PTKD!3',\n    'Phòng HTKD': 'HTKD2026',\n  };\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed',\n    'Phòng PTKD 1': '#16a34a',\n    'Phòng PTKD 2': '#15803d',\n    'Phòng PTKD 3': '#166534',\n    'Phòng HTKD': '#0ea5e9',\n    // Legacy labels — keep old saved plans visually consistent.\n    'HTKD': '#0ea5e9',\n    'PTKD': '#16a34a',\n    'DVKH': '#ea580c',\n    'Phòng 1': '#16a34a',\n    'Phòng 2': '#15803d',\n    'Phòng 3': '#166534',\n  };`,
-  'calendar owners and passwords'
+  `  /* Calendar edit handlers */\n  const CAL_PLAN_SCOPES = ['Công ty', 'Phòng PTKD 1', 'Phòng PTKD 2', 'Phòng PTKD 3', 'Phòng HTKD'];\n  const CAL_OWNERS = CAL_PLAN_SCOPES;\n  const CAL_MASTER_PASSWORD_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';\n  const CAL_SCOPE_PASSWORD_HASHES: Record<string, string> = {\n    'Phòng PTKD 1': '987a0457f57001ca36deffb20f5f255712b3e22fce4ea15e38a88d6d354f4530',\n    'Phòng PTKD 2': 'f7ab5e7d49f38c06dba85147a7c74c79700ba4f7e4b4564a457f6f5eaf953ed6',\n    'Phòng PTKD 3': '99b1159f77be8a32029a0463617aa71935b9e02feb43ecefd9c4959431f067ad',\n    'Phòng HTKD': '5236af15d71903ad5bbdc332c7360d565c57605e2a95fe7a0e82b23ebe287111',\n  };\n  const CAL_OWNER_COLORS: Record<string, string> = {\n    'Công ty': '#7c3aed',\n    'Phòng PTKD 1': '#16a34a',\n    'Phòng PTKD 2': '#15803d',\n    'Phòng PTKD 3': '#166534',\n    'Phòng HTKD': '#0ea5e9',\n    // Legacy labels — keep old saved plans visually consistent.\n    'HTKD': '#0ea5e9',\n    'PTKD': '#16a34a',\n    'DVKH': '#ea580c',\n    'Phòng 1': '#16a34a',\n    'Phòng 2': '#15803d',\n    'Phòng 3': '#166534',\n  };`,
+  'calendar owners and password hashes'
 );
 
-// 4) Validate the password against the ROOM THAT IS CURRENTLY SELECTED.
-// A password belonging to another room must fail. The master password works everywhere.
+// 4) Validate against the ROOM THAT IS CURRENTLY SELECTED.
+// A password belonging to another room must fail. Master works everywhere.
 replaceOnce(
   `  const submitCalPwd = () => {\n    if (calPwdInput === '123456') {\n      setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);`,
-  `  const submitCalPwd = () => {\n    const isMaster = calPwdInput === '123456';\n    const expectedRoomPassword = CAL_SCOPE_PASSWORDS[calScope];\n    const isSelectedRoomPassword = Boolean(expectedRoomPassword && calPwdInput === expectedRoomPassword);\n    if (isMaster || isSelectedRoomPassword) {\n      setCalAuthed(true); setCalAuthScope(isMaster ? '*' : calScope); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);`,
+  `  const sha256Hex = async (value: string): Promise<string> => {\n    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));\n    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');\n  };\n\n  const submitCalPwd = async () => {\n    const enteredHash = await sha256Hex(calPwdInput);\n    const isMaster = enteredHash === CAL_MASTER_PASSWORD_HASH;\n    const expectedRoomHash = CAL_SCOPE_PASSWORD_HASHES[calScope];\n    const isSelectedRoomPassword = Boolean(expectedRoomHash && enteredHash === expectedRoomHash);\n    if (isMaster || isSelectedRoomPassword) {\n      setCalAuthed(true); setCalAuthScope(isMaster ? '*' : calScope); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);`,
   'calendar password validation'
 );
 
-// 5) Scope matcher. Old generic PTKD entries predate room separation, so they
-// appear in all three PTKD views until an editor reclassifies them. Custom/legacy
-// plans without a room assignment otherwise stay in Công ty so nothing disappears.
+// 5) Company is an aggregate view: EVERY calendar entry is shown there.
+// Room views show entries whose responsible owner matches that room. Old generic
+// PTKD entries predate room separation, so they remain visible in all three PTKD
+// views until an editor reclassifies them.
 replaceOnce(
   `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };`,
-  `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };\n\n  const eventMatchesCalScope = (ev: CalendarEvent, scope: string): boolean => {\n    const owners = parseOwners(ev.owner);\n    const aliases: Record<string, string[]> = {\n      'Công ty': ['Công ty'],\n      'Phòng PTKD 1': ['Phòng PTKD 1', 'Phòng 1', 'PTKD'],\n      'Phòng PTKD 2': ['Phòng PTKD 2', 'Phòng 2', 'PTKD'],\n      'Phòng PTKD 3': ['Phòng PTKD 3', 'Phòng 3', 'PTKD'],\n      'Phòng HTKD': ['Phòng HTKD', 'HTKD'],\n    };\n    const selectedAliases = aliases[scope] || [scope];\n    if (owners.some(owner => selectedAliases.includes(owner))) return true;\n\n    if (scope === 'Công ty') {\n      if (owners.length === 0) return true;\n      const assignedToRoom = ['Phòng PTKD 1', 'Phòng 1', 'Phòng PTKD 2', 'Phòng 2', 'Phòng PTKD 3', 'Phòng 3', 'PTKD', 'Phòng HTKD', 'HTKD']\n        .some(alias => owners.includes(alias));\n      return !assignedToRoom;\n    }\n    return false;\n  };`,
+  `  const parseOwners = (owner: string | undefined | null): string[] => {\n    if (!owner) return [];\n    return owner.split(',').map(s => s.trim()).filter(Boolean);\n  };\n\n  const eventMatchesCalScope = (ev: CalendarEvent, scope: string): boolean => {\n    // Công ty là lịch tổng hợp: kế hoạch do bất kỳ phòng nào tạo cũng lên đây.\n    if (scope === 'Công ty') return true;\n\n    const owners = parseOwners(ev.owner);\n    const aliases: Record<string, string[]> = {\n      'Phòng PTKD 1': ['Phòng PTKD 1', 'Phòng 1', 'PTKD'],\n      'Phòng PTKD 2': ['Phòng PTKD 2', 'Phòng 2', 'PTKD'],\n      'Phòng PTKD 3': ['Phòng PTKD 3', 'Phòng 3', 'PTKD'],\n      'Phòng HTKD': ['Phòng HTKD', 'HTKD'],\n    };\n    const selectedAliases = aliases[scope] || [scope];\n    return owners.some(owner => selectedAliases.includes(owner));\n  };`,
   'parseOwners'
 );
 
-// 6) New plan starts in the selected room rather than being unassigned.
+// 6) New room plan starts with that room as responsible owner. Company starts
+// blank so the user can choose one or more responsible rooms; no choice means
+// a Company-only plan.
 replaceOnce(
   `  const openCalEditForNew = () => {\n    setCalEditForm({ id: null, date: \`${'${'}CUR_YEAR}-${'${'}calMonth}-01\`, title: '', owners: [], ownerCustom: '' });`,
-  `  const openCalEditForNew = () => {\n    setCalEditForm({ id: null, date: \`${'${'}CUR_YEAR}-${'${'}calMonth}-01\`, title: '', owners: [calScope], ownerCustom: '' });`,
+  `  const openCalEditForNew = () => {\n    setCalEditForm({ id: null, date: \`${'${'}CUR_YEAR}-${'${'}calMonth}-01\`, title: '', owners: calScope === 'Công ty' ? [] : [calScope], ownerCustom: '' });`,
   'openCalEditForNew'
 );
 
-// 7) Even if the legacy owner controls are visible in the modal, a NEW plan is
-// always stored in the room selected by the five scope buttons.
+// 7) Save routing:
+// - room-created plan => responsible owner is exactly that room; Company sees it
+//   automatically because Company is the aggregate view.
+// - Company-created plan => selected responsible owner(s) determine which room
+//   view(s) also show the plan. If none selected, it stays Company-only.
+// - existing entries preserve the existing editor behavior.
 replaceOnce(
   `    // Join bằng ", " để hiển thị dạng "Công ty, HTKD"\n    const owner = finalOwners.join(', ');`,
-  `    // New entries always belong to the room selected above the calendar.\n    // Existing entries keep their saved owner list unless explicitly edited.\n    const owner = calEditForm.id ? finalOwners.join(', ') : calScope;`,
-  'calendar save owner'
+  `    let owner: string;\n    if (calEditForm.id) {\n      owner = finalOwners.join(', ');\n    } else if (calScope === 'Công ty') {\n      owner = finalOwners.length > 0 ? finalOwners.join(', ') : 'Công ty';\n    } else {\n      owner = calScope;\n    }`,
+  'calendar save owner routing'
 );
 
 // 8) Filter each day by the selected plan scope.
@@ -123,4 +133,4 @@ replaceOnce(
 );
 
 fs.writeFileSync(filePath, source, 'utf8');
-console.log('✓ KPI Kế hoạch khung: 5 phòng + mật khẩu đúng theo phòng đang chọn; 123456 là mật khẩu tổng.');
+console.log('✓ KPI Kế hoạch khung: phòng → Công ty tự tổng hợp; Công ty → phòng theo đối tượng phụ trách; mật khẩu vẫn theo phòng.');
