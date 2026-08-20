@@ -36,6 +36,15 @@ function toggleExpression(item) {
   return `prev => prev.includes(${item}) ? prev.filter(value => value !== ${item}) : [...prev, ${item}]`;
 }
 
+function replaceEmptyVisualState(source, variable) {
+  // IMPORTANT: replace only JSX ternary expressions such as `${!filter ? ...}`.
+  // Never replace every `!filter`, because valid code like
+  // `!filter.includes(row.nhom)` must remain a negated includes() expression.
+  return source
+    .split('${!' + variable + ' ?')
+    .join('${' + variable + '.length === 0 ?');
+}
+
 function patchQuanLy(source) {
   if (source.includes(MARKER)) {
     console.log('✓ Multi-group filters already applied: quan-ly/page.tsx');
@@ -107,10 +116,10 @@ function patchQuanLy(source) {
     // Clearing a group filter means "all groups" -> empty array.
     source = source.split(`${setter}('')`).join(`${setter}([])`);
 
-    // Selected/empty visual states.
+    // Selected visual states.
     source = source.split(`${variable} === nhom`).join(`${variable}.includes(nhom)`);
     source = source.split(`${variable} === n`).join(`${variable}.includes(n)`);
-    source = source.split(`!${variable}`).join(`${variable}.length === 0`);
+    source = replaceEmptyVisualState(source, variable);
 
     // Dropdown labels. Arrays are always truthy, so old `filter || label` is invalid.
     source = source.split(`${variable} || 'Tất cả nhóm'`).join(selectionLabel(variable, 'Tất cả nhóm'));
@@ -121,7 +130,7 @@ function patchQuanLy(source) {
   source = source.split(`setNhomFilter('')`).join(`setNhomFilter([])`);
   source = source.split(`setNhomFilter(n)`).join(`setNhomFilter(${toggleExpression('n')})`);
   source = source.split(`nhomFilter === n`).join(`nhomFilter.includes(n)`);
-  source = source.split(`!nhomFilter`).join(`nhomFilter.length === 0`);
+  source = replaceEmptyVisualState(source, 'nhomFilter');
   source = source.split(`nhomFilter || 'Tất cả nhóm'`).join(selectionLabel('nhomFilter', 'Tất cả nhóm'));
   source = source.split(`nhomFilter || 'Tất cả'`).join(selectionLabel('nhomFilter', 'Tất cả'));
 
@@ -140,6 +149,9 @@ function patchQuanLy(source) {
   }
   if (!source.includes('nhomFilter.includes(n)')) {
     throw new Error('Policy group dropdown chưa được chuyển sang multi-select');
+  }
+  if (source.includes('0.includes(')) {
+    throw new Error('Phát hiện phép thay thế sai: 0.includes(...)');
   }
 
   if (source === original) throw new Error('Multi-group patch không tạo thay đổi nào trong quan-ly/page.tsx');
@@ -171,12 +183,15 @@ function patchSavedContest(source) {
   source = source.split(`setNhomFilter('')`).join(`setNhomFilter([])`);
   source = source.split(`setNhomFilter(n)`).join(`setNhomFilter(${toggleExpression('n')})`);
   source = source.split(`nhomFilter === n`).join(`nhomFilter.includes(n)`);
-  source = source.split(`!nhomFilter`).join(`nhomFilter.length === 0`);
+  source = replaceEmptyVisualState(source, 'nhomFilter');
   source = source.split(`nhomFilter || 'Tất cả nhóm'`).join(selectionLabel('nhomFilter', 'Tất cả nhóm'));
   source = source.split(`nhomFilter || 'Tất cả'`).join(selectionLabel('nhomFilter', 'Tất cả'));
 
   if (!source.includes('nhomFilter.includes(n)') || !source.includes('nhomFilter.length > 0')) {
     throw new Error('SavedContestInline chưa được chuyển đầy đủ sang multi-select');
+  }
+  if (source.includes('0.includes(')) {
+    throw new Error('SavedContestInline có phép thay thế sai: 0.includes(...)');
   }
   if (source === original) throw new Error('Multi-group patch không tạo thay đổi nào trong saved-contest-inline.tsx');
   return source;
