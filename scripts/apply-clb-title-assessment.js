@@ -9,6 +9,7 @@ if (source.includes(marker)) {
   console.log('✓ CLB title assessment already applied.');
   require('./apply-clb-top-ip.js');
   require('./apply-multi-group-filters.js');
+  require('./apply-multi-group-filter-ux.js');
   process.exit(0);
 }
 
@@ -36,3 +37,4 @@ fs.writeFileSync(filePath, source, 'utf8');
 console.log('✓ CLB title assessment applied: Mục 4 + 3 chương trình.');
 require('./apply-clb-top-ip.js');
 require('./apply-multi-group-filters.js');
+require('./apply-multi-group-filter-ux.js');
