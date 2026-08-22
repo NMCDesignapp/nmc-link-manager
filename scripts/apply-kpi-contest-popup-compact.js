@@ -84,4 +84,7 @@ if (!page.includes(LAYOUT_MARKER) && !fs.readFileSync(pagePath, 'utf8').includes
   throw new Error('Không áp dụng được nhịp khoảng cách mobile KPI.');
 }
 
+// Apply the final red end-date surface after all popup/notice styles above are present.
+require('./apply-kpi-contest-end-red.js');
+
 console.log(`✓ KPI contest notice: nền theo Vinh Danh; poster 4:3 giữ nguyên; popup compact giữ nguyên; hạn <=2 ngày pulse; mobile spacing 18px + bo Tiến độ 9px (${patched} component file(s) cập nhật).`);
