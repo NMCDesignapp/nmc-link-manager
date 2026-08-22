@@ -3,6 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 
+// Apply the shared global background first. This script is used by both Main and standalone builds,
+// so the KPI template always matches the Main App theme before sync-kpi-source.js copies it.
+require('./apply-unified-tech-background.js');
+
 // Keep the two prominent KPI actions aligned with the six-button navigation width.
 // Also keep Company calendar responsibility badges compact without changing stored owner data.
 // Shared source only: standalone receives the exact same KPI page via sync-kpi-source.js.
