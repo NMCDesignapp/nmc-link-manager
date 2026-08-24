@@ -63,6 +63,7 @@ const alreadyDesired =
   source.includes('content: none !important;') &&
   source.includes('[aria-label="Đang tải dữ liệu KPI"]') &&
   source.includes('html body .kpi-app.kpi-app {') &&
+  source.includes('html body .kpi-app.kpi-app #view-main > header {') &&
   source.includes('background-size: cover !important;') &&
   source.includes('background-attachment: scroll !important;');
 
@@ -113,6 +114,14 @@ if (!source.includes(CONTINUITY_MARKER)) {
 source = source.replaceAll('rgba(2, 16, 34, .98)', 'rgba(2, 16, 34, .86)');
 source = source.replaceAll('rgba(2, 16, 34, .94)', 'rgba(2, 16, 34, .78)');
 source = source.replaceAll('rgba(2, 16, 34, .90)', 'rgba(2, 16, 34, .70)');
+source = source.replace(
+  '  .kpi-app #view-main > header {',
+  '  html body .kpi-app.kpi-app #view-main > header {',
+);
+source = source.replace(
+  '  .kpi-app #view-detail.active > .detail-shell > .sub-header,\n  .kpi-app #view-calendar.active > .sub-header {',
+  '  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,\n  html body .kpi-app.kpi-app #view-calendar.active > .sub-header {',
+);
 
 if (!source.includes("url('/nmc-tech-bg-v3.webp') !important;")) throw new Error('Không áp dụng được asset nền KPI mới.');
 if (!source.includes('html body .kpi-app.kpi-app {')) throw new Error('Không nâng được độ ưu tiên CSS nền KPI.');

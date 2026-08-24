@@ -123,7 +123,7 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
     background-attachment: scroll !important;
   }
 
-  .kpi-app #view-main > header {
+  html body .kpi-app.kpi-app #view-main > header {
     position: sticky !important;
     top: 0;
     z-index: 120;
@@ -171,8 +171,8 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
   }
 
   /* Chi tiết Ban Nhóm và Kế hoạch Khung: có nền và ghim giống tiêu đề KPI chính. */
-  .kpi-app #view-detail.active > .detail-shell > .sub-header,
-  .kpi-app #view-calendar.active > .sub-header {
+  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-calendar.active > .sub-header {
     position: sticky !important;
     top: 0;
     z-index: 120;
