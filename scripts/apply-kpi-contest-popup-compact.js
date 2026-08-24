@@ -34,7 +34,9 @@ const layoutOverrides = `${LAYOUT_ANCHOR}${LAYOUT_MARKER}\n/* Mobile: giữ mộ
 let patched = 0;
 for (const filePath of targets) {
   if (!fs.existsSync(filePath)) continue;
-  let source = fs.readFileSync(filePath, 'utf8');
+  const original = fs.readFileSync(filePath, 'utf8');
+  const newline = original.includes('\r\n') ? '\r\n' : '\n';
+  let source = original.replace(/\r\n/g, '\n');
   if (!source.includes('data-kpi-contest-popup="true"')) continue;
 
   const before = source;
@@ -66,19 +68,21 @@ for (const filePath of targets) {
   }
 
   if (source !== before) {
-    fs.writeFileSync(filePath, source, 'utf8');
+    fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
     patched += 1;
   }
 }
 
 if (!fs.existsSync(pagePath)) throw new Error(`Không tìm thấy ${pagePath}`);
-let page = fs.readFileSync(pagePath, 'utf8');
+const originalPage = fs.readFileSync(pagePath, 'utf8');
+const pageNewline = originalPage.includes('\r\n') ? '\r\n' : '\n';
+let page = originalPage.replace(/\r\n/g, '\n');
 if (!page.includes(LAYOUT_MARKER)) {
   if (!page.includes(LAYOUT_ANCHOR)) {
     throw new Error('Không tìm thấy anchor main-action-widths để cân nhịp mobile KPI.');
   }
   page = page.replace(LAYOUT_ANCHOR, layoutOverrides);
-  fs.writeFileSync(pagePath, page, 'utf8');
+  fs.writeFileSync(pagePath, page.replace(/\n/g, pageNewline), 'utf8');
 }
 if (!page.includes(LAYOUT_MARKER) && !fs.readFileSync(pagePath, 'utf8').includes(LAYOUT_MARKER)) {
   throw new Error('Không áp dụng được nhịp khoảng cách mobile KPI.');
@@ -86,5 +90,6 @@ if (!page.includes(LAYOUT_MARKER) && !fs.readFileSync(pagePath, 'utf8').includes
 
 // Apply the final red end-date surface after all popup/notice styles above are present.
 require('./apply-kpi-contest-end-red.js');
+require('./apply-kpi-contest-urgent-green.js');
 
 console.log(`✓ KPI contest notice: nền theo Vinh Danh; poster 4:3 giữ nguyên; popup compact giữ nguyên; hạn <=2 ngày pulse; mobile spacing 18px + bo Tiến độ 9px (${patched} component file(s) cập nhật).`);

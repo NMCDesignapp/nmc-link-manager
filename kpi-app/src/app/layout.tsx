@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
-import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
-import { HonourSpacingFix } from '@/components/honour-spacing-fix'
+import { SpaceBackground } from '@/components/space-bg'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -40,21 +38,13 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
-        <link rel="stylesheet" href="/kpi-ui-overrides.css?v=20260807-2053" />
-        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-2053" />
-        <link rel="stylesheet" href="/kpi-loader-fix-v1.css?v=20260808-1017" />
-        <link rel="stylesheet" href="/kpi-performance-v1.css?v=20260807-2110" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
-        <ProgramTableStickyHeaders />
-        <AppDataProvider>
-          {children}
-          <HonourSpacingFix />
-          <EmbeddedProgramDataLoader />
-        </AppDataProvider>
+        <SpaceBackground />
+        <AppDataProvider>{children}</AppDataProvider>
       </body>
     </html>
   )

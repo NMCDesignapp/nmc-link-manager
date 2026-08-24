@@ -15,13 +15,15 @@ const override = `        ${MARKER}\n        .kpi-contest-end {\n          borde
 let patched = 0;
 for (const filePath of targets) {
   if (!fs.existsSync(filePath)) continue;
-  let source = fs.readFileSync(filePath, 'utf8');
+  const original = fs.readFileSync(filePath, 'utf8');
+  const newline = original.includes('\r\n') ? '\r\n' : '\n';
+  let source = original.replace(/\r\n/g, '\n');
   if (!source.includes('data-kpi-contest-popup="true"')) continue;
   if (source.includes(MARKER)) continue;
   if (!source.includes(ANCHOR)) throw new Error(`Không tìm thấy anchor CSS để đổi nền ngày kết thúc tại ${filePath}`);
   source = source.replace(ANCHOR, `${override}${ANCHOR}`);
   if (!source.includes(MARKER)) throw new Error(`Không áp dụng được nền đỏ ngày kết thúc tại ${filePath}`);
-  fs.writeFileSync(filePath, source, 'utf8');
+  fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
   patched += 1;
 }
 

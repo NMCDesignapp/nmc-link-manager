@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
 type ContestNotice = {
   id: string;
@@ -13,7 +13,7 @@ type ContestNotice = {
 };
 
 const DAY_MS = 86_400_000;
-const ROTATE_MS = 7_500;
+const ROTATE_MS = 5_000;
 
 function dayStart(value?: string | null): number {
   if (!value) return 0;
@@ -62,7 +62,7 @@ function endStatus(item: ContestNotice, today: number): { text: string; tone: 'a
   const diff = Math.round((end - today) / DAY_MS);
   if (diff < 0) return { text: 'ĐÃ KẾT THÚC', tone: 'ended' };
   if (diff === 0) return { text: 'HÔM NAY KẾT THÚC', tone: 'today' };
-  return { text: `CÒN ${diff} NGÀY`, tone: diff <= 3 ? 'today' : 'active' };
+  return { text: `CÒN ${diff} NGÀY`, tone: diff <= 2 ? 'today' : 'active' };
 }
 
 export function KpiContestNotice() {
@@ -71,6 +71,10 @@ export function KpiContestNotice() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressPosterClickUntilRef = useRef(0);
+  const [rotationNonce, setRotationNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,17 +112,31 @@ export function KpiContestNotice() {
   }, [items]);
 
   useEffect(() => {
-    if (sorted.length <= 1) return;
+    if (sorted.length <= 1 || popupOpen) return;
     const timer = window.setInterval(() => {
       setIndex((current) => (current + 1) % sorted.length);
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [sorted.length]);
+  }, [sorted.length, popupOpen, rotationNonce]);
 
   useEffect(() => {
     if (index >= sorted.length && sorted.length > 0) setIndex(0);
     setPosterFailed(false);
   }, [index, sorted.length]);
+
+  useEffect(() => {
+    if (!popupOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPopupOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [popupOpen]);
 
   // Preload only the next poster. The image endpoint itself is immutable-cached,
   // so continuous rotation does not repeatedly download the same poster.
@@ -129,6 +147,40 @@ export function KpiContestNotice() {
     const img = new Image();
     img.src = next.posterUrl;
   }, [index, sorted]);
+
+  const moveContest = (direction: -1 | 1) => {
+    if (sorted.length <= 1) return;
+    setIndex((currentIndex) => (currentIndex + direction + sorted.length) % sorted.length);
+    setRotationNonce((value) => value + 1);
+  };
+
+  const handleSwipeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    swipeStartRef.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleSwipeMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    if (!start) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) event.preventDefault();
+  };
+
+  const finishSwipe = (event: ReactPointerEvent<HTMLDivElement>, cancelled = false) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!start || cancelled) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+    suppressPosterClickUntilRef.current = Date.now() + 450;
+    moveContest(deltaX < 0 ? 1 : -1);
+  };
 
   const current = sorted[index] || null;
   const todayDate = new Date();
@@ -144,8 +196,25 @@ export function KpiContestNotice() {
       ) : !current ? (
         <div className="kpi-contest-notice-state">Chưa có chương trình thi đua đã lưu.</div>
       ) : (
-        <div className="kpi-contest-notice-card" key={current.id}>
-          <div className="kpi-contest-poster-wrap">
+        <div
+          className="kpi-contest-notice-card"
+          key={current.id}
+          data-kpi-contest-swipe="true"
+          data-contest-index={index}
+          aria-roledescription="carousel"
+          aria-label={`Chương trình ${index + 1} trên ${sorted.length}. Kéo ngang để xem chương trình khác.`}
+          onPointerDown={handleSwipeStart}
+          onPointerMove={handleSwipeMove}
+          onPointerUp={(event) => finishSwipe(event)}
+          onPointerCancel={(event) => finishSwipe(event, true)}
+        >
+          <button
+            type="button"
+            className="kpi-contest-poster-wrap"
+            onClick={() => { if (Date.now() >= suppressPosterClickUntilRef.current) setPopupOpen(true); }}
+            aria-label={`Xem poster lớn: ${current.title}`}
+            title="Bấm để xem poster lớn"
+          >
             {!posterFailed ? (
               <img
                 src={current.posterUrl}
@@ -160,7 +229,7 @@ export function KpiContestNotice() {
                 <strong>THI ĐUA</strong>
               </div>
             )}
-          </div>
+          </button>
 
           <div className="kpi-contest-copy">
             <div className="kpi-contest-eyebrow">
@@ -189,12 +258,77 @@ export function KpiContestNotice() {
         </div>
       )}
 
+      {popupOpen && current && (
+        <div
+          className="kpi-contest-modal-backdrop"
+          data-kpi-contest-popup="true"
+          role="presentation"
+          onClick={() => setPopupOpen(false)}
+        >
+          <div
+            className="kpi-contest-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Chi tiết chương trình ${current.title}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="kpi-contest-modal-close"
+              onClick={() => setPopupOpen(false)}
+              aria-label="Đóng chi tiết chương trình"
+            >
+              ×
+            </button>
+
+            <div className="kpi-contest-modal-poster-stage">
+              {!posterFailed ? (
+                <img
+                  src={current.posterUrl}
+                  alt={`Poster lớn ${current.title}`}
+                  className="kpi-contest-modal-poster"
+                  onError={() => setPosterFailed(true)}
+                  draggable={false}
+                />
+              ) : (
+                <div className="kpi-contest-modal-poster-fallback">
+                  <span>★</span>
+                  <strong>THI ĐUA</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="kpi-contest-modal-info">
+              <div className="kpi-contest-modal-kicker">THÔNG TIN CHƯƠNG TRÌNH</div>
+              <h3>{current.title}</h3>
+              <div className="kpi-contest-modal-meta">
+                <div>
+                  <span>Bắt đầu</span>
+                  <strong>{formatDate(current.startDate)}</strong>
+                </div>
+                <div>
+                  <span>Đối tượng thi đua</span>
+                  <strong>{targetLabel(current)}</strong>
+                </div>
+              </div>
+              <div className={`kpi-contest-modal-end kpi-contest-modal-end-${status?.tone || 'active'}`}>
+                <div>
+                  <span>KẾT THÚC THI ĐUA</span>
+                  <strong>{formatDate(current.endDate)}</strong>
+                </div>
+                <em>{status?.text}</em>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .kpi-contest-notice {
           width: 100%;
           min-width: 0;
           min-height: 156px;
-          margin: 10px 0 16px;
+          margin: 18px 0 16px;
           padding: 7px;
           border: 1px solid rgba(76, 166, 201, .42);
           border-radius: 13px;
@@ -205,23 +339,30 @@ export function KpiContestNotice() {
         }
         .kpi-contest-notice-card {
           width: 100%;
+          touch-action: pan-y;
+          cursor: grab;
+          user-select: none;
           min-height: 140px;
           display: grid;
           grid-template-columns: minmax(180px, 42%) minmax(0, 1fr);
           gap: 12px;
-          animation: kpiContestNoticeIn .5s cubic-bezier(.22,1,.36,1);
+          animation: kpiContestNoticeIn .96s cubic-bezier(.16,1,.3,1); will-change: opacity, transform;
         }
         @keyframes kpiContestNoticeIn {
-          from { opacity: 0; transform: translateX(10px); }
-          to { opacity: 1; transform: translateX(0); }
+          from { opacity: 0; transform: translateX(8px) scale(.997); }
+          45% { opacity: .72; }
+          to { opacity: 1; transform: translateX(0) scale(1); }
         }
         .kpi-contest-poster-wrap {
+          appearance: none;
+          font: inherit;
+          cursor: zoom-in;
           min-width: 0;
           height: 140px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 5px;
+          padding: 0;
           border: 1px solid rgba(230, 189, 85, .5);
           border-radius: 9px;
           background: #020a12;
@@ -232,7 +373,7 @@ export function KpiContestNotice() {
           display: block;
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: cover;
           border-radius: 5px;
           user-select: none;
           -webkit-user-drag: none;
@@ -251,6 +392,252 @@ export function KpiContestNotice() {
           font-size: 10px;
         }
         .kpi-contest-poster-fallback span { font-size: 24px; }
+        .kpi-contest-poster-wrap:focus-visible {
+          outline: 2px solid rgba(126, 220, 244, .95);
+          outline-offset: 2px;
+        }
+        .kpi-contest-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 10050;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 14px;
+          background: rgba(1, 8, 17, .86);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          animation: kpiContestModalBackdropIn .24s ease-out both;
+        }
+        .kpi-contest-modal {
+          position: relative;
+          width: min(640px, calc(100% - 16px));
+          max-height: calc(100dvh - 44px);
+          overflow: auto;
+          border: 1px solid rgba(96, 191, 220, .58);
+          border-radius: 16px;
+          background: linear-gradient(160deg, #071a2b 0%, #07131f 60%, #0b1d2b 100%);
+          box-shadow: 0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.06);
+          overscroll-behavior: contain;
+          animation: kpiContestModalIn .34s cubic-bezier(.16,1,.3,1) both;
+        }
+        .kpi-contest-modal-close {
+          position: absolute;
+          z-index: 2;
+          top: 10px;
+          right: 10px;
+          width: 36px;
+          height: 36px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255,255,255,.24);
+          border-radius: 999px;
+          background: rgba(2, 10, 18, .78);
+          color: #fff;
+          font: 700 25px/1 Arial, sans-serif;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0,0,0,.34);
+        }
+        .kpi-contest-modal-poster-stage {
+          width: 100%;
+          min-height: 190px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #01070d;
+          border-bottom: 1px solid rgba(230, 189, 85, .35);
+          overflow: hidden;
+        }
+        .kpi-contest-modal-poster {
+          display: block;
+          width: 100%;
+          max-height: 50dvh;
+          object-fit: cover;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        .kpi-contest-modal-poster-fallback {
+          width: 100%;
+          min-height: 190px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: #f4d477;
+          background: radial-gradient(circle at 50% 30%, #143c58, #061724 72%);
+          letter-spacing: .12em;
+        }
+        .kpi-contest-modal-poster-fallback span { font-size: 38px; }
+        .kpi-contest-modal-info {
+          padding: 13px;
+        }
+        .kpi-contest-modal-kicker {
+          color: #79d9ed;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .14em;
+        }
+        .kpi-contest-modal-info h3 {
+          margin: 7px 0 14px;
+          color: #f7fbff;
+          font-size: clamp(16px, 3.4vw, 23px);
+          line-height: 1.18;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .kpi-contest-modal-meta {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px;
+          margin-bottom: 10px;
+        }
+        .kpi-contest-modal-meta > div {
+          min-width: 0;
+          padding: 8px 9px;
+          border: 1px solid rgba(92, 160, 191, .28);
+          border-radius: 10px;
+          background: rgba(20, 57, 79, .62);
+        }
+        .kpi-contest-modal-meta span,
+        .kpi-contest-modal-end span {
+          display: block;
+          margin-bottom: 3px;
+          color: #88aabd;
+          font-size: 9px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+        }
+        .kpi-contest-modal-meta strong {
+          color: #ecfaff;
+          font-size: 14px;
+        }
+        .kpi-contest-modal-end {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid rgba(241, 201, 95, .62);
+          border-radius: 11px;
+          background: linear-gradient(135deg, rgba(120, 77, 15, .62), rgba(66, 41, 8, .46));
+          box-shadow: 0 0 20px rgba(241, 201, 95, .08);
+        }
+        .kpi-contest-modal-end span { color: #f5d788; }
+        .kpi-contest-modal-end strong {
+          display: block;
+          color: #fff2bd;
+          font-size: clamp(18px, 4.5vw, 24px);
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .kpi-contest-modal-end em {
+          flex: 0 0 auto;
+          padding: 7px 9px;
+          border: 1px solid rgba(93, 219, 145, .42);
+          border-radius: 999px;
+          background: rgba(35, 132, 81, .34);
+          color: #c9ffdc;
+          font-size: 10px;
+          line-height: 1;
+          font-weight: 900;
+          font-style: normal;
+          white-space: nowrap;
+        }
+        .kpi-contest-modal-end-today {
+          border-color: rgba(255, 140, 77, .78);
+          background: linear-gradient(135deg, rgba(142, 59, 23, .67), rgba(74, 29, 10, .54));
+        }
+        .kpi-contest-modal-end-today em {
+          color: #ffe1cc;
+          border-color: rgba(255, 137, 85, .58);
+          background: rgba(185, 63, 26, .44);
+        }
+        .kpi-contest-modal-end-ended {
+          border-color: rgba(132, 153, 170, .4);
+          background: rgba(39, 52, 64, .64);
+        }
+        .kpi-contest-modal-end-ended em {
+          color: #c8d5df;
+          border-color: rgba(159, 178, 193, .32);
+          background: rgba(75, 92, 107, .42);
+        }
+        @keyframes kpiContestModalBackdropIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes kpiContestModalIn {
+          from { opacity: 0; transform: translateY(12px) scale(.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        /* nmc-kpi-contest-end-red-v1 */
+        .kpi-contest-end {
+          border-color: rgba(255, 92, 92, .86) !important;
+          background: linear-gradient(135deg, #a51420 0%, #7f0f19 58%, #520911 100%) !important;
+          box-shadow: 0 0 18px rgba(239, 68, 68, .18), inset 0 1px 0 rgba(255,255,255,.08) !important;
+        }
+        .kpi-contest-end span { color: #ffd983 !important; }
+        .kpi-contest-end strong { color: #fff4e8 !important; }
+        .kpi-contest-end-today {
+          background: linear-gradient(135deg, #bb1723 0%, #8e101b 58%, #5b0a12 100%) !important;
+        }
+        /* nmc-kpi-contest-urgent-green-v1 */
+        @keyframes kpiContestUrgentGreenSurface {
+          0%, 100% {
+            box-shadow: 0 0 10px rgba(34,197,94,.18), inset 0 1px 0 rgba(255,255,255,.06);
+            border-color: rgba(255,92,92,.86);
+          }
+          50% {
+            box-shadow: 0 0 24px rgba(34,197,94,.46), 0 0 0 1px rgba(74,222,128,.42), inset 0 1px 0 rgba(255,255,255,.10);
+            border-color: rgba(74,222,128,.92);
+          }
+        }
+        @keyframes kpiContestUrgentGreenDate {
+          0%, 100% {
+            opacity: .88;
+            transform: scale(1);
+            color: #a7f3c1;
+            text-shadow: 0 0 5px rgba(34,197,94,.44);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.045);
+            color: #effff4;
+            text-shadow: 0 0 7px #22c55e, 0 0 16px rgba(74,222,128,.96), 0 0 28px rgba(34,197,94,.68);
+          }
+        }
+        .kpi-contest-end-today,
+        .kpi-contest-modal-end-today {
+          animation: kpiContestUrgentGreenSurface 1.8s ease-in-out infinite !important;
+        }
+        .kpi-contest-end-today strong,
+        .kpi-contest-modal-end-today strong {
+          display: inline-block !important;
+          transform-origin: left center;
+          animation: kpiContestUrgentGreenDate 1.15s ease-in-out infinite !important;
+          color: #a7f3c1 !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kpi-contest-end-today,
+          .kpi-contest-modal-end-today,
+          .kpi-contest-end-today strong,
+          .kpi-contest-modal-end-today strong { animation: none !important; }
+        }
+        @media (max-width: 560px) {
+          .kpi-contest-modal-backdrop { padding: 8px; }
+          .kpi-contest-modal {
+            width: 100%;
+            max-height: calc(100dvh - 16px);
+            border-radius: 13px;
+          }
+          .kpi-contest-modal-poster { max-height: 52dvh; }
+          .kpi-contest-modal-info { padding: 13px; }
+          .kpi-contest-modal-meta { gap: 7px; }
+          .kpi-contest-modal-end { align-items: flex-end; }
+          .kpi-contest-modal-end strong { font-size: 21px; }
+          .kpi-contest-modal-end em { font-size: 9px; padding: 6px 8px; }
+        }
         .kpi-contest-copy {
           min-width: 0;
           height: 140px;
@@ -428,6 +815,115 @@ export function KpiContestNotice() {
           .kpi-contest-end strong { font-size: 11.5px; }
           .kpi-contest-end em { padding: 3px 5px; font-size: 5.8px; }
           .kpi-contest-notice-state { min-height: 142px; font-size: 9px; }
+        }
+        /* nmc-kpi-contest-honour-style-v2 */
+        .kpi-contest-notice {
+          border-color: rgba(255,215,107,.22) !important;
+          background:
+            radial-gradient(ellipse at 20% 20%, rgba(255,215,107,.06) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 60%, rgba(192,132,252,.04) 0%, transparent 50%),
+            linear-gradient(180deg, #0a0e1a 0%, #050810 100%) !important;
+          box-shadow: 0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,215,107,.06), 0 0 18px rgba(255,215,107,.04) !important;
+        }
+        .kpi-contest-eyebrow { color: #ffd76b !important; }
+        .kpi-contest-notice-card { align-items: center; }
+        .kpi-contest-poster-wrap {
+          aspect-ratio: 4 / 3 !important;
+          height: auto !important;
+          padding: 0 !important;
+        }
+        .kpi-contest-poster {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: fill !important;
+        }
+        .kpi-contest-modal {
+          width: min(560px, calc(100% - 40px)) !important;
+          max-height: calc(100dvh - 72px) !important;
+        }
+        .kpi-contest-modal-poster-stage {
+          width: 100% !important;
+          aspect-ratio: 4 / 3 !important;
+          min-height: 0 !important;
+          height: auto !important;
+        }
+        .kpi-contest-modal-poster {
+          width: 100% !important;
+          height: 100% !important;
+          max-height: none !important;
+          object-fit: fill !important;
+        }
+        @keyframes kpiContestDeadlinePulse {
+          0%, 100% {
+            box-shadow: 0 0 12px rgba(255,150,70,.10), inset 0 1px 0 rgba(255,255,255,.06);
+            border-color: rgba(255,140,77,.72);
+          }
+          50% {
+            box-shadow: 0 0 26px rgba(255,128,46,.34), 0 0 0 1px rgba(255,194,92,.18), inset 0 1px 0 rgba(255,255,255,.10);
+            border-color: rgba(255,190,92,.96);
+          }
+        }
+        @keyframes kpiContestDeadlineTextPulse {
+          0%, 100% { opacity: 1; transform: scale(1); text-shadow: 0 0 6px rgba(255,210,110,.16); }
+          50% { opacity: .72; transform: scale(1.035); text-shadow: 0 0 14px rgba(255,190,80,.78); }
+        }
+        .kpi-contest-end-today {
+          animation: kpiContestDeadlinePulse 1.8s ease-in-out infinite !important;
+        }
+        .kpi-contest-end-today strong {
+          display: inline-block !important;
+          transform-origin: left center;
+          animation: kpiContestDeadlineTextPulse 1.35s ease-in-out infinite !important;
+          color: #fff0a8 !important;
+        }
+        @media (max-width: 560px) {
+          .kpi-contest-modal { width: calc(100% - 40px) !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kpi-contest-end-today,
+          .kpi-contest-end-today strong { animation: none !important; }
+        }
+        /* nmc-kpi-contest-urgent-green-v2 */
+        @keyframes kpiContestUrgentGreenSurface {
+          0%, 100% {
+            box-shadow: 0 0 10px rgba(34,197,94,.18), inset 0 1px 0 rgba(255,255,255,.06);
+            border-color: rgba(255,92,92,.86);
+          }
+          50% {
+            box-shadow: 0 0 24px rgba(34,197,94,.46), 0 0 0 1px rgba(74,222,128,.42), inset 0 1px 0 rgba(255,255,255,.10);
+            border-color: rgba(74,222,128,.92);
+          }
+        }
+        @keyframes kpiContestUrgentGreenDate {
+          0%, 100% {
+            opacity: .88;
+            transform: scale(1);
+            color: #a7f3c1;
+            text-shadow: 0 0 5px rgba(34,197,94,.44);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.045);
+            color: #effff4;
+            text-shadow: 0 0 7px #22c55e, 0 0 16px rgba(74,222,128,.96), 0 0 28px rgba(34,197,94,.68);
+          }
+        }
+        .kpi-contest-end-today,
+        .kpi-contest-modal-end-today {
+          animation: kpiContestUrgentGreenSurface 1.8s ease-in-out infinite !important;
+        }
+        .kpi-contest-end-today strong,
+        .kpi-contest-modal-end-today strong {
+          display: inline-block !important;
+          transform-origin: left center;
+          animation: kpiContestUrgentGreenDate 1.15s ease-in-out infinite !important;
+          color: #a7f3c1 !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kpi-contest-end-today,
+          .kpi-contest-modal-end-today,
+          .kpi-contest-end-today strong,
+          .kpi-contest-modal-end-today strong { animation: none !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           .kpi-contest-notice-card { animation: none; }

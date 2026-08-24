@@ -3173,6 +3173,107 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   gap: 10px;
 }
 .kpi-app .target-reg-actions .target-reg-btn { min-width: 0; }
+/* nmc-kpi-main-action-widths-v1 */
+/* Hai cụm hành động chính dùng toàn bộ chiều rộng cùng nhịp với nav-grid 6 nút. */
+.kpi-app .region-divider.is-collapse-btn { width: 100%; padding-left: 0; padding-right: 0; }
+.kpi-app .region-divider.is-collapse-btn::before,
+.kpi-app .region-divider.is-collapse-btn::after { display: none; }
+.kpi-app .region-divider.is-collapse-btn .region-divider-title {
+  width: 100%;
+  flex: 1 1 100%;
+  justify-content: center;
+  text-align: center;
+}
+.kpi-app .target-reg-section {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+}
+.kpi-app .target-reg-section::before,
+.kpi-app .target-reg-section::after { display: none; }
+.kpi-app .target-reg-actions { width: 100%; }
+.kpi-app .target-reg-actions .target-reg-btn { flex: 1 1 0; }
+/* nmc-kpi-mobile-section-rhythm-v1 */
+/* Mobile: giữ một nhịp dọc 18px giữa 6 nút → Tiến độ → Thông báo → Vinh danh. */
+@media (max-width: 899px) {
+  .kpi-app .region-divider.is-collapse-btn {
+    margin: 18px 0 0 !important;
+  }
+  .kpi-app .region-divider.is-collapse-btn .region-divider-title {
+    border-radius: 9px !important;
+  }
+  .kpi-app .kpi-contest-notice {
+    margin: 18px 0 0 !important;
+  }
+  .kpi-app .banca-imgs-section,
+  .kpi-app .desktop-honour-layout .banca-imgs-section {
+    margin-top: 18px !important;
+  }
+}
+/* nmc-kpi-region-notice-polish-v1 */
+/* Cân nhịp dọc với nav 6 nút và đưa mũi tên vào một badge gọn trong thanh. */
+.kpi-app .region-divider.is-collapse-btn {
+  margin-top: 18px !important;
+  margin-bottom: 0 !important;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title {
+  position: relative;
+  min-height: 48px;
+  padding: 0 54px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(88, 192, 224, .72) !important;
+  background: linear-gradient(180deg, #15516f 0%, #103f5a 52%, #0c354d 100%) !important;
+  box-shadow: 0 9px 20px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22) !important;
+  color: #e9f9ff !important;
+  text-shadow: 0 1px 5px rgba(0,0,0,.42) !important;
+}
+.kpi-app .region-divider.is-collapse-btn:hover .region-divider-title {
+  background: linear-gradient(180deg, #1a5c7a 0%, #124963 52%, #0e3b53 100%) !important;
+  border-color: rgba(112, 211, 238, .86) !important;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon {
+  position: absolute !important;
+  left: 12px !important;
+  top: 50% !important;
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  transform: translateY(-50%) !important;
+  border: 1px solid rgba(244, 198, 82, .52) !important;
+  border-radius: 8px !important;
+  background: linear-gradient(145deg, rgba(242, 190, 64, .14), rgba(242, 190, 64, .05)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 3px 9px rgba(0,0,0,.18) !important;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border: solid #ffd66f;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -62%) rotate(45deg);
+  transition: transform .28s ease;
+  filter: drop-shadow(0 0 4px rgba(255,214,111,.22));
+}
+.kpi-app .region-divider.is-collapse-btn.collapsed .region-divider-title .collapse-icon {
+  transform: translateY(-50%) !important;
+}
+.kpi-app .region-divider.is-collapse-btn.collapsed .region-divider-title .collapse-icon::after {
+  transform: translate(-60%, -50%) rotate(-45deg);
+}
+@media (max-width: 899px) {
+  .kpi-app .region-divider.is-collapse-btn .region-divider-title {
+    min-height: 46px;
+    padding-left: 50px !important;
+    padding-right: 50px !important;
+  }
+  .kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon {
+    left: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+}
 .kpi-app .target-reg-list-btn {
   background: linear-gradient(135deg, #105b78, #0c3858) !important;
   border-color: #3bb9df !important;

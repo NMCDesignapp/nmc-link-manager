@@ -9,11 +9,14 @@ const standalonePath = path.join(root, 'kpi-app', 'src', 'components', 'kpi-cont
 const pagePath = path.join(root, 'src', 'app', 'kpi', 'page.tsx');
 const UI_MARKER = '/* nmc-kpi-region-notice-polish-v1 */';
 const POPUP_MARKER = 'data-kpi-contest-popup="true"';
+const SWIPE_MARKER = 'data-kpi-contest-swipe="true"';
 
 if (!fs.existsSync(sourcePath)) throw new Error(`Không tìm thấy ${sourcePath}`);
 if (!fs.existsSync(pagePath)) throw new Error(`Không tìm thấy ${pagePath}`);
 
-let source = fs.readFileSync(sourcePath, 'utf8');
+const originalSource = fs.readFileSync(sourcePath, 'utf8');
+const sourceNewline = originalSource.includes('\r\n') ? '\r\n' : '\n';
+let source = originalSource.replace(/\r\n/g, '\n');
 source = source.replace('const ROTATE_MS = 7_500;', 'const ROTATE_MS = 5_000;');
 source = source.replace(
   'animation: kpiContestNoticeIn .5s cubic-bezier(.22,1,.36,1);',
@@ -79,6 +82,100 @@ if (!source.includes(POPUP_MARKER)) {
   source = source.replace(fallbackCssAnchor, `${fallbackCssAnchor}${popupCss}`);
 }
 
+if (!source.includes(SWIPE_MARKER)) {
+  source = source.replace(
+    "import { useEffect, useMemo, useState } from 'react';",
+    "import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';",
+  );
+
+  const popupStateAnchor = '  const [popupOpen, setPopupOpen] = useState(false);\n';
+  if (!source.includes(popupStateAnchor)) throw new Error('Không tìm thấy popup state để thêm thao tác kéo ngang.');
+  source = source.replace(
+    popupStateAnchor,
+    `${popupStateAnchor}  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);\n  const suppressPosterClickUntilRef = useRef(0);\n  const [rotationNonce, setRotationNonce] = useState(0);\n`,
+  );
+
+  source = source.replace(
+    '  }, [sorted.length, popupOpen]);',
+    '  }, [sorted.length, popupOpen, rotationNonce]);',
+  );
+
+  const currentAnchor = '  const current = sorted[index] || null;\n';
+  if (!source.includes(currentAnchor)) throw new Error('Không tìm thấy chương trình hiện tại để thêm điều hướng kéo ngang.');
+  const swipeHandlers = `  const moveContest = (direction: -1 | 1) => {
+    if (sorted.length <= 1) return;
+    setIndex((currentIndex) => (currentIndex + direction + sorted.length) % sorted.length);
+    setRotationNonce((value) => value + 1);
+  };
+
+  const handleSwipeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    swipeStartRef.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleSwipeMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    if (!start) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) event.preventDefault();
+  };
+
+  const finishSwipe = (event: ReactPointerEvent<HTMLDivElement>, cancelled = false) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!start || cancelled) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+    suppressPosterClickUntilRef.current = Date.now() + 450;
+    moveContest(deltaX < 0 ? 1 : -1);
+  };
+
+`;
+  source = source.replace(currentAnchor, `${swipeHandlers}${currentAnchor}`);
+
+  const cardAnchor = '        <div className="kpi-contest-notice-card" key={current.id}>\n';
+  if (!source.includes(cardAnchor)) throw new Error('Không tìm thấy thẻ thông báo để gắn thao tác kéo ngang.');
+  source = source.replace(
+    cardAnchor,
+    `        <div
+          className="kpi-contest-notice-card"
+          key={current.id}
+          data-kpi-contest-swipe="true"
+          data-contest-index={index}
+          aria-roledescription="carousel"
+          aria-label={\`Chương trình \${index + 1} trên \${sorted.length}. Kéo ngang để xem chương trình khác.\`}
+          onPointerDown={handleSwipeStart}
+          onPointerMove={handleSwipeMove}
+          onPointerUp={(event) => finishSwipe(event)}
+          onPointerCancel={(event) => finishSwipe(event, true)}
+        >
+`,
+  );
+
+  source = source.replace(
+    '            onClick={() => setPopupOpen(true)}',
+    '            onClick={() => { if (Date.now() >= suppressPosterClickUntilRef.current) setPopupOpen(true); }}',
+  );
+
+  const cardCssAnchor = `        .kpi-contest-notice-card {
+          width: 100%;`;
+  if (!source.includes(cardCssAnchor)) throw new Error('Không tìm thấy CSS thẻ thông báo để tối ưu kéo ngang.');
+  source = source.replace(
+    cardCssAnchor,
+    `        .kpi-contest-notice-card {
+          width: 100%;
+          touch-action: pan-y;
+          cursor: grab;
+          user-select: none;`,
+  );
+}
+
 if (!source.includes('const ROTATE_MS = 5_000;')) {
   throw new Error('Không áp dụng được chu kỳ 5 giây cho thông báo thi đua.');
 }
@@ -97,12 +194,18 @@ if (!source.includes('padding: 0;\n          border: 1px solid rgba(230, 189, 85
 if (!source.includes(POPUP_MARKER) || !source.includes('if (sorted.length <= 1 || popupOpen) return;')) {
   throw new Error('Không áp dụng được popup poster hoặc tạm dừng carousel khi popup mở.');
 }
+if (!source.includes(SWIPE_MARKER) || !source.includes('setRotationNonce((value) => value + 1);')) {
+  throw new Error('Không áp dụng được thao tác kéo ngang hoặc đặt lại bộ đếm carousel.');
+}
 
-fs.writeFileSync(sourcePath, source, 'utf8');
+const serializedSource = source.replace(/\n/g, sourceNewline);
+fs.writeFileSync(sourcePath, serializedSource, 'utf8');
 fs.mkdirSync(path.dirname(standalonePath), { recursive: true });
-fs.writeFileSync(standalonePath, source, 'utf8');
+fs.writeFileSync(standalonePath, serializedSource, 'utf8');
 
-let page = fs.readFileSync(pagePath, 'utf8');
+const originalPage = fs.readFileSync(pagePath, 'utf8');
+const pageNewline = originalPage.includes('\r\n') ? '\r\n' : '\n';
+let page = originalPage.replace(/\r\n/g, '\n');
 if (!page.includes(UI_MARKER)) {
   const anchor = `.kpi-app .target-reg-actions .target-reg-btn { flex: 1 1 0; }\n`;
   if (!page.includes(anchor)) {
@@ -112,7 +215,7 @@ if (!page.includes(UI_MARKER)) {
   const polish = `${UI_MARKER}\n/* Cân nhịp dọc với nav 6 nút và đưa mũi tên vào một badge gọn trong thanh. */\n.kpi-app .region-divider.is-collapse-btn {\n  margin-top: 18px !important;\n  margin-bottom: 0 !important;\n}\n.kpi-app .region-divider.is-collapse-btn .region-divider-title {\n  position: relative;\n  min-height: 48px;\n  padding: 0 54px !important;\n  border-radius: 12px !important;\n  border: 1px solid rgba(88, 192, 224, .72) !important;\n  background: linear-gradient(180deg, #15516f 0%, #103f5a 52%, #0c354d 100%) !important;\n  box-shadow: 0 9px 20px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22) !important;\n  color: #e9f9ff !important;\n  text-shadow: 0 1px 5px rgba(0,0,0,.42) !important;\n}\n.kpi-app .region-divider.is-collapse-btn:hover .region-divider-title {\n  background: linear-gradient(180deg, #1a5c7a 0%, #124963 52%, #0e3b53 100%) !important;\n  border-color: rgba(112, 211, 238, .86) !important;\n}\n.kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon {\n  position: absolute !important;\n  left: 12px !important;\n  top: 50% !important;\n  width: 30px !important;\n  height: 30px !important;\n  padding: 0 !important;\n  transform: translateY(-50%) !important;\n  border: 1px solid rgba(244, 198, 82, .52) !important;\n  border-radius: 8px !important;\n  background: linear-gradient(145deg, rgba(242, 190, 64, .14), rgba(242, 190, 64, .05)) !important;\n  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 3px 9px rgba(0,0,0,.18) !important;\n}\n.kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon::after {\n  content: '';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  width: 8px;\n  height: 8px;\n  border: solid #ffd66f;\n  border-width: 0 2px 2px 0;\n  transform: translate(-50%, -62%) rotate(45deg);\n  transition: transform .28s ease;\n  filter: drop-shadow(0 0 4px rgba(255,214,111,.22));\n}\n.kpi-app .region-divider.is-collapse-btn.collapsed .region-divider-title .collapse-icon {\n  transform: translateY(-50%) !important;\n}\n.kpi-app .region-divider.is-collapse-btn.collapsed .region-divider-title .collapse-icon::after {\n  transform: translate(-60%, -50%) rotate(-45deg);\n}\n@media (max-width: 899px) {\n  .kpi-app .region-divider.is-collapse-btn .region-divider-title {\n    min-height: 46px;\n    padding-left: 50px !important;\n    padding-right: 50px !important;\n  }\n  .kpi-app .region-divider.is-collapse-btn .region-divider-title .collapse-icon {\n    left: 10px !important;\n    width: 28px !important;\n    height: 28px !important;\n  }\n}\n`;
 
   page = page.replace(anchor, `${anchor}${polish}`);
-  fs.writeFileSync(pagePath, page, 'utf8');
+  fs.writeFileSync(pagePath, page.replace(/\n/g, pageNewline), 'utf8');
 }
 
-console.log('✓ KPI polish: chu kỳ 5 giây; chuyển cảnh 0.96s; poster phủ đầy khung; bấm poster mở popup lớn + thông tin bên dưới; carousel tạm dừng khi popup mở.');
+console.log('✓ KPI polish: chu kỳ 5 giây; kéo ngang đổi chương trình và đặt lại bộ đếm; poster mở popup; carousel tạm dừng khi popup mở.');
