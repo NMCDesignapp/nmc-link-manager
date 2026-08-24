@@ -8,8 +8,10 @@ const targets = [
   path.join(root, 'src', 'components', 'kpi-contest-notice.tsx'),
   path.join(root, 'kpi-app', 'src', 'components', 'kpi-contest-notice.tsx'),
 ];
-const MARKER = '/* nmc-kpi-contest-urgent-green-v1 */';
-const ANCHOR = '        @media (max-width: 560px) {';
+const MARKER = '/* nmc-kpi-contest-urgent-green-v2 */';
+const ANCHOR = `        @media (prefers-reduced-motion: reduce) {
+          .kpi-contest-notice-card { animation: none; }
+        }`;
 const override = `        ${MARKER}
         @keyframes kpiContestUrgentGreenSurface {
           0%, 100% {
@@ -62,8 +64,9 @@ for (const filePath of targets) {
   let source = original.replace(/\r\n/g, '\n');
   if (!source.includes('data-kpi-contest-popup="true"')) continue;
   if (source.includes(MARKER)) continue;
-  if (!source.includes(ANCHOR)) throw new Error(`Không tìm thấy anchor CSS cảnh báo tại ${filePath}`);
-  source = source.replace(ANCHOR, `${override}${ANCHOR}`);
+  const anchorIndex = source.lastIndexOf(ANCHOR);
+  if (anchorIndex < 0) throw new Error(`Không tìm thấy anchor CSS cuối thông báo tại ${filePath}`);
+  source = `${source.slice(0, anchorIndex)}${override}${source.slice(anchorIndex)}`;
   fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
   patched += 1;
 }

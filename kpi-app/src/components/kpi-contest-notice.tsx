@@ -883,6 +883,48 @@ export function KpiContestNotice() {
           .kpi-contest-end-today,
           .kpi-contest-end-today strong { animation: none !important; }
         }
+        /* nmc-kpi-contest-urgent-green-v2 */
+        @keyframes kpiContestUrgentGreenSurface {
+          0%, 100% {
+            box-shadow: 0 0 10px rgba(34,197,94,.18), inset 0 1px 0 rgba(255,255,255,.06);
+            border-color: rgba(255,92,92,.86);
+          }
+          50% {
+            box-shadow: 0 0 24px rgba(34,197,94,.46), 0 0 0 1px rgba(74,222,128,.42), inset 0 1px 0 rgba(255,255,255,.10);
+            border-color: rgba(74,222,128,.92);
+          }
+        }
+        @keyframes kpiContestUrgentGreenDate {
+          0%, 100% {
+            opacity: .88;
+            transform: scale(1);
+            color: #a7f3c1;
+            text-shadow: 0 0 5px rgba(34,197,94,.44);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.045);
+            color: #effff4;
+            text-shadow: 0 0 7px #22c55e, 0 0 16px rgba(74,222,128,.96), 0 0 28px rgba(34,197,94,.68);
+          }
+        }
+        .kpi-contest-end-today,
+        .kpi-contest-modal-end-today {
+          animation: kpiContestUrgentGreenSurface 1.8s ease-in-out infinite !important;
+        }
+        .kpi-contest-end-today strong,
+        .kpi-contest-modal-end-today strong {
+          display: inline-block !important;
+          transform-origin: left center;
+          animation: kpiContestUrgentGreenDate 1.15s ease-in-out infinite !important;
+          color: #a7f3c1 !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .kpi-contest-end-today,
+          .kpi-contest-modal-end-today,
+          .kpi-contest-end-today strong,
+          .kpi-contest-modal-end-today strong { animation: none !important; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .kpi-contest-notice-card { animation: none; }
         }
