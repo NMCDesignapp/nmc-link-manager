@@ -191,13 +191,17 @@ echo ""
 # Standalone patches: MAIN_APP_URL constant, buildMainUrl helper, STANDALONE_BACK_FALLBACK line,
 #                    3 nav hrefs (target=_blank + rel=noopener)
 EXPECTED_PAGE=$(mktemp)
-trap 'rm -f "$EXPECTED_PAGE"' EXIT
+NORMALIZED_EXPECTED_PAGE=$(mktemp)
+NORMALIZED_STANDALONE_PAGE=$(mktemp)
+trap 'rm -f "$EXPECTED_PAGE" "$NORMALIZED_EXPECTED_PAGE" "$NORMALIZED_STANDALONE_PAGE"' EXIT
 cp "$ROOT/src/app/kpi/page.tsx" "$EXPECTED_PAGE"
 node "$ROOT/scripts/apply-standalone-patches.js" "$EXPECTED_PAGE" >/dev/null
-DIFF_COUNT=$(diff "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" | wc -l)
+sed 's/\r$//' "$EXPECTED_PAGE" > "$NORMALIZED_EXPECTED_PAGE"
+sed 's/\r$//' "$KPI_APP/src/app/page.tsx" > "$NORMALIZED_STANDALONE_PAGE"
+DIFF_COUNT=$(diff "$NORMALIZED_EXPECTED_PAGE" "$NORMALIZED_STANDALONE_PAGE" | wc -l)
 if [ $DIFF_COUNT -ne 0 ]; then
   echo "ERROR: kpi-app/src/app/page.tsx differs from Main source + standalone patch"
-  diff -u "$EXPECTED_PAGE" "$KPI_APP/src/app/page.tsx" || true
+  diff -u "$NORMALIZED_EXPECTED_PAGE" "$NORMALIZED_STANDALONE_PAGE" || true
   exit 1
 fi
 

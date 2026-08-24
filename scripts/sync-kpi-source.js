@@ -56,6 +56,11 @@ const sharedCopies = [
     label: 'kpi-app/public/nmc-tech-bg-v2.webp',
   },
   {
+    source: path.join(root, 'public', 'nmc-tech-bg-v3.webp'),
+    target: path.join(root, 'kpi-app', 'public', 'nmc-tech-bg-v3.webp'),
+    label: 'kpi-app/public/nmc-tech-bg-v3.webp',
+  },
+  {
     source: path.join(root, 'public', 'kpi-tech-logo.webp'),
     target: path.join(root, 'kpi-app', 'public', 'kpi-tech-logo.webp'),
     label: 'kpi-app/public/kpi-tech-logo.webp',

@@ -1,22 +1,57 @@
 import type { ReactNode } from 'react'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
-/* Nền công nghệ xanh đen dùng chung cho toàn bộ KPI. */
+/* nmc-unified-tech-background-v3 */
+/* Nền độ phân giải cao dành riêng cho KPI; giữ nguyên các surface nội dung. */
 html,
 body {
-  background: #020914;
+  min-height: 100%;
+  background-color: #050a12;
+  background-image:
+    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+    url('/nmc-tech-bg-v3.webp');
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  background-attachment: fixed;
 }
 
-.kpi-app {
+html body .kpi-app.kpi-app {
   min-height: 100vh;
   isolation: isolate;
-  background-color: #020914 !important;
+  background-color: #050a12 !important;
   background-image:
-    linear-gradient(180deg, rgba(1, 7, 17, .06), rgba(1, 8, 20, .15)),
-    url('/kpi-tech-bg.webp') !important;
+    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+    url('/nmc-tech-bg-v3.webp') !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
-  background-size: 100% 100% !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+
+/* nmc-kpi-background-continuity-v1 */
+/* Loại bỏ trần/sàn vector cũ để asset v3 chạy liền mạch từ đầu đến cuối màn hình. */
+html body .kpi-app.kpi-app::before,
+html body .kpi-app.kpi-app::after,
+html body [aria-label="Đang tải dữ liệu KPI"]::before,
+html body [aria-label="Đang tải dữ liệu KPI"]::after,
+html body [aria-label="Tải dữ liệu gặp lỗi"]::before,
+html body [aria-label="Tải dữ liệu gặp lỗi"]::after,
+html body .kpi-app.kpi-app > .app-wrap::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Màn khởi động dùng đúng nền v3 thay cho nền cyber/vector cũ. */
+html body [aria-label="Đang tải dữ liệu KPI"],
+html body [aria-label="Tải dữ liệu gặp lỗi"] {
+  background-color: #050a12 !important;
+  background-image:
+    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+    url('/nmc-tech-bg-v3.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center top !important;
+  background-size: cover !important;
   background-attachment: fixed !important;
 }
 
@@ -71,16 +106,24 @@ body {
 @media (max-width: 720px) {
   html,
   body {
-    background: #020914 !important;
+    background-color: #050a12 !important;
+    background-image:
+      linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+      url('/nmc-tech-bg-v3.webp') !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+    background-size: cover !important;
+    background-attachment: scroll !important;
   }
 
-  .kpi-app {
+  html body .kpi-app.kpi-app {
     overflow-x: clip !important;
     background-size: cover !important;
     background-position: center top !important;
+    background-attachment: scroll !important;
   }
 
-  .kpi-app #view-main > header {
+  html body .kpi-app.kpi-app #view-main > header {
     position: sticky !important;
     top: 0;
     z-index: 120;
@@ -91,10 +134,10 @@ body {
     padding: 10px 16px 8px;
     background: linear-gradient(
       180deg,
-      rgba(2, 16, 34, .98) 0%,
-      rgba(2, 16, 34, .94) 72%,
-      rgba(2, 16, 34, .90) 100%
-    );
+      rgba(2, 16, 34, .86) 0%,
+      rgba(2, 16, 34, .78) 72%,
+      rgba(2, 16, 34, .70) 100%
+    ) !important;
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     backdrop-filter: blur(14px) saturate(120%);
     box-shadow:
@@ -128,8 +171,8 @@ body {
   }
 
   /* Chi tiết Ban Nhóm và Kế hoạch Khung: có nền và ghim giống tiêu đề KPI chính. */
-  .kpi-app #view-detail.active > .detail-shell > .sub-header,
-  .kpi-app #view-calendar.active > .sub-header {
+  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-calendar.active > .sub-header {
     position: sticky !important;
     top: 0;
     z-index: 120;
@@ -141,9 +184,9 @@ body {
     padding: 10px 16px !important;
     background: linear-gradient(
       180deg,
-      rgba(2, 16, 34, .98) 0%,
-      rgba(2, 16, 34, .94) 72%,
-      rgba(2, 16, 34, .90) 100%
+      rgba(2, 16, 34, .86) 0%,
+      rgba(2, 16, 34, .78) 72%,
+      rgba(2, 16, 34, .70) 100%
     ) !important;
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     backdrop-filter: blur(14px) saturate(120%);
