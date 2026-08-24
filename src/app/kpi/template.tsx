@@ -1,22 +1,23 @@
 import type { ReactNode } from 'react'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
-/* Nền công nghệ xanh đen dùng chung cho toàn bộ KPI. */
+/* nmc-unified-tech-background-v2 */
+/* Nền độ phân giải cao dành riêng cho KPI; giữ nguyên các surface nội dung. */
 html,
 body {
-  background: #020914;
+  background: #050a12;
 }
 
-.kpi-app {
+html body .kpi-app.kpi-app {
   min-height: 100vh;
   isolation: isolate;
-  background-color: #020914 !important;
+  background-color: #050a12 !important;
   background-image:
-    linear-gradient(180deg, rgba(1, 7, 17, .06), rgba(1, 8, 20, .15)),
-    url('/kpi-tech-bg.webp') !important;
+    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+    url('/nmc-tech-bg-v3.webp') !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
-  background-size: 100% 100% !important;
+  background-size: cover !important;
   background-attachment: fixed !important;
 }
 
@@ -71,13 +72,14 @@ body {
 @media (max-width: 720px) {
   html,
   body {
-    background: #020914 !important;
+    background: #050a12 !important;
   }
 
-  .kpi-app {
+  html body .kpi-app.kpi-app {
     overflow-x: clip !important;
     background-size: cover !important;
     background-position: center top !important;
+    background-attachment: scroll !important;
   }
 
   .kpi-app #view-main > header {
