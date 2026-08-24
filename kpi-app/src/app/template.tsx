@@ -55,6 +55,26 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
   background-attachment: fixed !important;
 }
 
+/* Ba trang nhúng từ KPI dùng liền mạch cùng nền v3, kể cả lúc iframe đang tải. */
+html body .kpi-app.kpi-app .kpi-embed-overlay,
+html body .kpi-app.kpi-app .kpi-embed-body,
+html body .kpi-app.kpi-app .kpi-embed-iframe,
+html body .kpi-app.kpi-app .kpi-embed-loader {
+  background-color: #050a12 !important;
+  background-image:
+    linear-gradient(180deg, rgba(2, 7, 15, .12), rgba(2, 7, 15, .05) 42%, rgba(2, 7, 15, .18)),
+    url('/nmc-tech-bg-v3.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 .kpi-app .bg-scene,
 .kpi-app .bg-orb {
   display: none !important;
@@ -119,6 +139,14 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
   html body .kpi-app.kpi-app {
     overflow-x: clip !important;
     background-size: cover !important;
+    background-position: center top !important;
+    background-attachment: scroll !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-overlay,
+  html body .kpi-app.kpi-app .kpi-embed-body,
+  html body .kpi-app.kpi-app .kpi-embed-iframe,
+  html body .kpi-app.kpi-app .kpi-embed-loader {
     background-position: center top !important;
     background-attachment: scroll !important;
   }

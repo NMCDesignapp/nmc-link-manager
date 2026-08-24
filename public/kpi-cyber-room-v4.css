@@ -157,12 +157,13 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] > div {
 /* Linked pages opened inside KPI: same dark-grid family, without changing logic. */
 html body.nmc-kpi-linked-page,
 html[data-kpi-embed='1'] body {
-  background-color: var(--kpi-room-base) !important;
+  background-color: #050a12 !important;
   background-image:
-    repeating-linear-gradient(90deg, transparent 0 31px, rgba(42,108,218,.08) 32px 33px),
-    repeating-linear-gradient(180deg, transparent 0 31px, rgba(42,108,218,.08) 32px 33px),
-    radial-gradient(ellipse at 50% 35%, rgba(9,49,112,.28), rgba(1,7,20,.91) 76%),
-    linear-gradient(180deg, #06122a, #020817 34%, #020714 80%, #061127) !important;
+    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
+    url('/nmc-tech-bg-v3.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center top !important;
+  background-size: cover !important;
   background-attachment: fixed !important;
 }
 

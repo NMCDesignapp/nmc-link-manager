@@ -8771,10 +8771,9 @@ export default function QuanLyPage() {
                 <button
                   key={item.key}
                   onClick={() => navigateTo({ sheet: 'report', policyOpen: item.key })}
-                  className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                  className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
                   style={{
                     borderColor: `${item.color}AA`,
-                    backgroundColor: '#0e1424',
                   }}
                 >
                   {/* Decorative top glow strip for elevated feel */}
@@ -8784,7 +8783,7 @@ export default function QuanLyPage() {
                   />
                   {/* Top: 16:9 image — click anywhere opens detail */}
                   <div
-                    className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
+                    className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
                     style={{ aspectRatio: '16 / 9' }}
                   >
                     {currentImage ? (
@@ -10254,10 +10253,9 @@ export default function QuanLyPage() {
             <button
               key={item.key}
               onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
-              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: `${item.color}AA`,
-                backgroundColor: '#0e1424',
               }}
             >
               {/* Decorative top glow strip for elevated feel */}
@@ -10267,7 +10265,7 @@ export default function QuanLyPage() {
               />
               {/* Top: 16:9 poster — click anywhere opens detail */}
               <div
-                className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
+                className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
                 style={{ aspectRatio: '16 / 9' }}
               >
                 {posterUrl ? (
@@ -10331,10 +10329,9 @@ export default function QuanLyPage() {
             <button
               key={`saved-${contestId}`}
               onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
-              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: '#10B981AA',
-                backgroundColor: '#0e1424',
               }}
             >
                 {/* Decorative top glow strip */}
@@ -10344,7 +10341,7 @@ export default function QuanLyPage() {
                 />
                 {/* Top: poster 16:9 */}
                 <div
-                  className="relative w-full bg-black/40 flex items-center justify-center overflow-hidden"
+                  className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
                   style={{ aspectRatio: '16 / 9' }}
                 >
                   {posterUrl ? (
@@ -11785,10 +11782,9 @@ export default function QuanLyPage() {
             <button
               key={item.key}
               onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: item.key })}
-              className="group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+              className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: `${item.color}AA`,
-                backgroundColor: '#0e1424',
               }}
             >
               <span
@@ -11797,8 +11793,8 @@ export default function QuanLyPage() {
               />
               {/* Poster — hiển thị ảnh nếu có, fallback gradient + icon */}
               <div
-                className="relative w-full flex items-center justify-center overflow-hidden"
-                style={{ aspectRatio: '16 / 9', background: posterUrl ? '#000' : `linear-gradient(135deg, ${item.color}55, ${item.color}22)` }}
+                className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
+                style={{ aspectRatio: '16 / 9' }}
               >
                 {posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
