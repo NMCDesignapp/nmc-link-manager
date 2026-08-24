@@ -19,7 +19,9 @@ if (!fs.existsSync(filePath)) {
   throw new Error(`Không tìm thấy ${filePath}`);
 }
 
-let source = fs.readFileSync(filePath, 'utf8');
+const original = fs.readFileSync(filePath, 'utf8');
+const newline = original.includes('\r\n') ? '\r\n' : '\n';
+let source = original.replace(/\r\n/g, '\n');
 let changed = false;
 
 if (!source.includes(MARKER)) {
@@ -59,7 +61,7 @@ if (!source.includes(CAL_LABEL_MARKER) && source.includes('const getDisplayOwner
 }
 
 if (changed) {
-  fs.writeFileSync(filePath, source, 'utf8');
+  fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 }
 
 console.log('✓ KPI main actions + calendar responsibility labels: Công ty hiển thị PTKD 1/2/3, HTKD (không đổi dữ liệu lưu).');
