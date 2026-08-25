@@ -1,4 +1,4 @@
-import * as XLSXCore from 'xlsx-js-style';
+import XLSXCore from 'xlsx-js-style';
 
 export * from 'xlsx-js-style';
 export const utils = XLSXCore.utils;
@@ -55,6 +55,7 @@ function normalized(value: CellValue): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
+    .replace(/Đ/g, 'D')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -333,7 +334,7 @@ function styleSheet(
   return sheet;
 }
 
-function normalizeContestWorkbook(workbook: any): void {
+export function normalizeContestWorkbook(workbook: any): void {
   const resultInfo = existingSheet(workbook, ['Kết quả thi đua', 'Kết quả', 'Kết_quả']);
   if (!resultInfo) return;
   const detailInfo = existingSheet(workbook, ['Chi tiết HĐ', 'Chi tiết', 'Chi_tiết']);

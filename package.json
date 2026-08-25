@@ -7,6 +7,7 @@
     "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-calendar-rooms.js && node scripts/apply-kpi-main-action-widths.js && node scripts/apply-kpi-contest-notice.js && node scripts/apply-kpi-contest-notice-timing.js && node scripts/apply-kpi-contest-popup-compact.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && node scripts/apply-clb-sao-viet-entry.js && node scripts/apply-tvvm-stage-reward-once.js && node scripts/apply-clb-post-assessment-entry-title.js && node scripts/apply-clb-title-assessment.js && next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:contest-excel": "node --experimental-strip-types --test tests/contest-excel-matrix.test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
