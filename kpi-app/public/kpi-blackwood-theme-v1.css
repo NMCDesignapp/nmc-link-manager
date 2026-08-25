@@ -1,0 +1,170 @@
+/* NMC KPI black-wood theme v1 — 2026-08-25
+ * Scope: KPI dashboard, KPI startup loader and three linked pages
+ * (Thi dua / Chinh sach / CLB Sao Viet). Keeps existing cards and layout intact.
+ */
+
+@keyframes nmc-blackwood-loader-progress {
+  0% { transform: scaleX(.04); opacity: .55; }
+  45% { transform: scaleX(.58); opacity: .92; }
+  78% { transform: scaleX(.84); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+/* Use the supplied black herringbone wood at a fixed tile size so it never
+ * stretches with page height. Two subtle electric traces sit in opposite corners. */
+html body .kpi-app.kpi-app.kpi-app,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-overlay,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-body {
+  background-color: #08090b !important;
+  background-image:
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI2cpIj48cGF0aCBkPSJNMCA0MCBMNTggNTYgTDQyIDg0IEwxMTIgOTIgTDgyIDEyNCBMMTYyIDEzMCBMMTMyIDE2NSBMMjI0IDE3MCIgc3Ryb2tlPSIjOGRlOWZmIiBzdHJva2Utb3BhY2l0eT0iLjQ2IiBzdHJva2Utd2lkdGg9IjEuNiIvPjxwYXRoIGQ9Ik0xMCAxOCBMODAgMzIgTDY2IDU4IEwxNDIgNjYgTDExOCA5OCBMMjEwIDEwNiIgc3Ryb2tlPSIjZDdmOGZmIiBzdHJva2Utb3BhY2l0eT0iLjI4IiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMCA4MiBMNDYgOTggTDMwIDExOCBMODggMTMwIEw3MiAxNTAgTDE0NCAxNjQiIHN0cm9rZT0iIzVjYWVmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4zMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48Y2lyY2xlIGN4PSIxMTIiIGN5PSI5MiIgcj0iMi40IiBmaWxsPSIjZWFmZmZmIiBmaWxsLW9wYWNpdHk9Ii42OCIvPjxjaXJjbGUgY3g9IjE2MiIgY3k9IjEzMCIgcj0iMiIgZmlsbD0iIzhkZTlmZiIgZmlsbC1vcGFjaXR5PSIuNiIvPjwvZz48L3N2Zz4="),
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwMCAyMjApIHNjYWxlKC0xIC0xKSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWx0ZXI9InVybCgjZykiPjxwYXRoIGQ9Ik0wIDQwIEw1OCA1NiBMNDIgODQgTDExMiA5MiBMODIgMTI0IEwxNjIgMTMwIEwxMzIgMTY1IEwyMjQgMTcwIiBzdHJva2U9IiM4ZGU5ZmYiIHN0cm9rZS1vcGFjaXR5PSIuNDYiIHN0cm9rZS13aWR0aD0iMS42Ii8+PHBhdGggZD0iTTEwIDE4IEw4MCAzMiBMNjYgNTggTDE0MiA2NiBMMTE4IDk4IEwyMTAgMTA2IiBzdHJva2U9IiNkN2Y4ZmYiIHN0cm9rZS1vcGFjaXR5PSIuMjgiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0wIDgyIEw0NiA5OCBMMzAgMTE4IEw4OCAxMzAgTDcyIDE1MCBMMTQ0IDE2NCIgc3Ryb2tlPSIjNWNhZWZmIiBzdHJva2Utb3BhY2l0eT0iLjMwIiBzdHJva2Utd2lkdGg9IjEuMiIvPjxjaXJjbGUgY3g9IjExMiIgY3k9IjkyIiByPSIyLjQiIGZpbGw9IiNlYWZmZmYiIGZpbGwtb3BhY2l0eT0iLjY4Ii8+PGNpcmNsZSBjeD0iMTYyIiBjeT0iMTMwIiByPSIyIiBmaWxsPSIjOGRlOWZmIiBmaWxsLW9wYWNpdHk9Ii42Ii8+PC9nPjwvc3ZnPg=="),
+    radial-gradient(ellipse at center, rgba(0,0,0,.03) 0%, rgba(0,0,0,.34) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.18), rgba(0,0,0,.34)),
+    url('/kpi-blackwood-bg.webp') !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat !important;
+  background-position: left top, right bottom, center, center, center top !important;
+  background-size: min(46vw, 270px) auto, min(46vw, 270px) auto, cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app::before,
+html body .kpi-app.kpi-app.kpi-app::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-kpi-embed='1'] body,
+body.nmc-kpi-linked-page {
+  background-color: #08090b !important;
+  background-image:
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI2cpIj48cGF0aCBkPSJNMCA0MCBMNTggNTYgTDQyIDg0IEwxMTIgOTIgTDgyIDEyNCBMMTYyIDEzMCBMMTMyIDE2NSBMMjI0IDE3MCIgc3Ryb2tlPSIjOGRlOWZmIiBzdHJva2Utb3BhY2l0eT0iLjQ2IiBzdHJva2Utd2lkdGg9IjEuNiIvPjxwYXRoIGQ9Ik0xMCAxOCBMODAgMzIgTDY2IDU4IEwxNDIgNjYgTDExOCA5OCBMMjEwIDEwNiIgc3Ryb2tlPSIjZDdmOGZmIiBzdHJva2Utb3BhY2l0eT0iLjI4IiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMCA4MiBMNDYgOTggTDMwIDExOCBMODggMTMwIEw3MiAxNTAgTDE0NCAxNjQiIHN0cm9rZT0iIzVjYWVmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4zMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48Y2lyY2xlIGN4PSIxMTIiIGN5PSI5MiIgcj0iMi40IiBmaWxsPSIjZWFmZmZmIiBmaWxsLW9wYWNpdHk9Ii42OCIvPjxjaXJjbGUgY3g9IjE2MiIgY3k9IjEzMCIgcj0iMiIgZmlsbD0iIzhkZTlmZiIgZmlsbC1vcGFjaXR5PSIuNiIvPjwvZz48L3N2Zz4="),
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwMCAyMjApIHNjYWxlKC0xIC0xKSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWx0ZXI9InVybCgjZykiPjxwYXRoIGQ9Ik0wIDQwIEw1OCA1NiBMNDIgODQgTDExMiA5MiBMODIgMTI0IEwxNjIgMTMwIEwxMzIgMTY1IEwyMjQgMTcwIiBzdHJva2U9IiM4ZGU5ZmYiIHN0cm9rZS1vcGFjaXR5PSIuNDYiIHN0cm9rZS13aWR0aD0iMS42Ii8+PHBhdGggZD0iTTEwIDE4IEw4MCAzMiBMNjYgNTggTDE0MiA2NiBMMTE4IDk4IEwyMTAgMTA2IiBzdHJva2U9IiNkN2Y4ZmYiIHN0cm9rZS1vcGFjaXR5PSIuMjgiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0wIDgyIEw0NiA5OCBMMzAgMTE4IEw4OCAxMzAgTDcyIDE1MCBMMTQ0IDE2NCIgc3Ryb2tlPSIjNWNhZWZmIiBzdHJva2Utb3BhY2l0eT0iLjMwIiBzdHJva2Utd2lkdGg9IjEuMiIvPjxjaXJjbGUgY3g9IjExMiIgY3k9IjkyIiByPSIyLjQiIGZpbGw9IiNlYWZmZmYiIGZpbGwtb3BhY2l0eT0iLjY4Ii8+PGNpcmNsZSBjeD0iMTYyIiBjeT0iMTMwIiByPSIyIiBmaWxsPSIjOGRlOWZmIiBmaWxsLW9wYWNpdHk9Ii42Ii8+PC9nPjwvc3ZnPg=="),
+    radial-gradient(ellipse at center, rgba(0,0,0,.02) 0%, rgba(0,0,0,.34) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.18), rgba(0,0,0,.34)),
+    url('/kpi-blackwood-bg.webp') !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat !important;
+  background-position: left top, right bottom, center, center, center top !important;
+  background-size: min(46vw, 270px) auto, min(46vw, 270px) auto, cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+
+html body [aria-label='Đang tải dữ liệu KPI'],
+html body [aria-label='Tải dữ liệu gặp lỗi'] {
+  background-color: #08090b !important;
+  background-image:
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI2cpIj48cGF0aCBkPSJNMCA0MCBMNTggNTYgTDQyIDg0IEwxMTIgOTIgTDgyIDEyNCBMMTYyIDEzMCBMMTMyIDE2NSBMMjI0IDE3MCIgc3Ryb2tlPSIjOGRlOWZmIiBzdHJva2Utb3BhY2l0eT0iLjQ2IiBzdHJva2Utd2lkdGg9IjEuNiIvPjxwYXRoIGQ9Ik0xMCAxOCBMODAgMzIgTDY2IDU4IEwxNDIgNjYgTDExOCA5OCBMMjEwIDEwNiIgc3Ryb2tlPSIjZDdmOGZmIiBzdHJva2Utb3BhY2l0eT0iLjI4IiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMCA4MiBMNDYgOTggTDMwIDExOCBMODggMTMwIEw3MiAxNTAgTDE0NCAxNjQiIHN0cm9rZT0iIzVjYWVmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4zMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48Y2lyY2xlIGN4PSIxMTIiIGN5PSI5MiIgcj0iMi40IiBmaWxsPSIjZWFmZmZmIiBmaWxsLW9wYWNpdHk9Ii42OCIvPjxjaXJjbGUgY3g9IjE2MiIgY3k9IjEzMCIgcj0iMiIgZmlsbD0iIzhkZTlmZiIgZmlsbC1vcGFjaXR5PSIuNiIvPjwvZz48L3N2Zz4="),
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMzAwIDIyMCI+PGRlZnM+PGZpbHRlciBpZD0iZyIgeD0iLTUwJSIgeT0iLTUwJSIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwMCAyMjApIHNjYWxlKC0xIC0xKSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWx0ZXI9InVybCgjZykiPjxwYXRoIGQ9Ik0wIDQwIEw1OCA1NiBMNDIgODQgTDExMiA5MiBMODIgMTI0IEwxNjIgMTMwIEwxMzIgMTY1IEwyMjQgMTcwIiBzdHJva2U9IiM4ZGU5ZmYiIHN0cm9rZS1vcGFjaXR5PSIuNDYiIHN0cm9rZS13aWR0aD0iMS42Ii8+PHBhdGggZD0iTTEwIDE4IEw4MCAzMiBMNjYgNTggTDE0MiA2NiBMMTE4IDk4IEwyMTAgMTA2IiBzdHJva2U9IiNkN2Y4ZmYiIHN0cm9rZS1vcGFjaXR5PSIuMjgiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0wIDgyIEw0NiA5OCBMMzAgMTE4IEw4OCAxMzAgTDcyIDE1MCBMMTQ0IDE2NCIgc3Ryb2tlPSIjNWNhZWZmIiBzdHJva2Utb3BhY2l0eT0iLjMwIiBzdHJva2Utd2lkdGg9IjEuMiIvPjxjaXJjbGUgY3g9IjExMiIgY3k9IjkyIiByPSIyLjQiIGZpbGw9IiNlYWZmZmYiIGZpbGwtb3BhY2l0eT0iLjY4Ii8+PGNpcmNsZSBjeD0iMTYyIiBjeT0iMTMwIiByPSIyIiBmaWxsPSIjOGRlOWZmIiBmaWxsLW9wYWNpdHk9Ii42Ii8+PC9nPjwvc3ZnPg=="),
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.44)),
+    url('/kpi-blackwood-bg.webp') !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat !important;
+  background-position: left top, right bottom, center, center top !important;
+  background-size: min(46vw, 250px) auto, min(46vw, 250px) auto, cover, 194px 384px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html body [aria-label='Đang tải dữ liệu KPI'] > div,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div {
+  max-width: 330px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(117, 243, 190, .30) !important;
+  background: linear-gradient(145deg, rgba(13,15,16,.96), rgba(4,5,6,.96)) !important;
+  box-shadow: 0 22px 60px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.05), 0 0 28px rgba(54, 235, 158, .08) !important;
+}
+
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:nth-child(2),
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:nth-child(2) {
+  position: relative !important;
+  width: 92px !important;
+  height: 92px !important;
+  color: transparent !important;
+  background: rgba(7,9,10,.92) !important;
+  border: 1px solid rgba(88, 245, 176, .28) !important;
+  box-shadow: 0 0 0 7px rgba(68, 235, 163, .035), 0 0 30px rgba(68, 235, 163, .10) !important;
+}
+
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:nth-child(2) svg,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:nth-child(2) svg { display: none !important; }
+
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:nth-child(2)::after,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:nth-child(2)::after {
+  content: 'N•M•C';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #58efaa;
+  font: 900 24px/1 'Outfit', system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-shadow: 0 0 10px rgba(88,239,170,.52), 0 0 24px rgba(88,239,170,.22);
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader {
+  background: rgba(0,0,0,.30) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  width: min(88vw, 560px) !important;
+  min-height: 116px !important;
+  border: 1px solid rgba(104, 240, 185, .34) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, rgba(13,15,16,.97), rgba(5,6,7,.97)) !important;
+  box-shadow: 0 20px 54px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.05), 0 0 26px rgba(76, 231, 169, .07) !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before {
+  content: 'N•M•C   Đang tải dữ liệu' !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 22px 24px !important;
+  color: #f4f7f5 !important;
+  background: none !important;
+  font: 800 clamp(18px, 4.4vw, 25px)/1.2 'Outfit', system-ui, sans-serif !important;
+  letter-spacing: .02em !important;
+  text-shadow: 0 0 14px rgba(80, 238, 172, .12) !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+  content: '' !important;
+  left: 24px !important;
+  right: 24px !important;
+  top: auto !important;
+  bottom: 24px !important;
+  height: 5px !important;
+  border-radius: 999px !important;
+  transform-origin: left center !important;
+  background: linear-gradient(90deg, #1f8f64 0%, #46d79d 54%, #92f0c9 100%) !important;
+  box-shadow: 0 0 12px rgba(70,215,157,.26) !important;
+  animation: nmc-blackwood-loader-progress 2.65s cubic-bezier(.2,.7,.2,1) both !important;
+}
+
+html[data-kpi-embed='1'] body > main,
+html[data-kpi-embed='1'] body > div#__next,
+body.nmc-kpi-linked-page > main {
+  background-color: transparent !important;
+}
+
+@media (max-width: 720px) {
+  html body .kpi-app.kpi-app.kpi-app,
+  html[data-kpi-embed='1'] body,
+  body.nmc-kpi-linked-page {
+    background-size: min(58vw, 230px) auto, min(58vw, 230px) auto, cover, cover, 194px 384px !important;
+  }
+
+  html body .kpi-app.kpi-app.kpi-app #view-main > header,
+  html body .kpi-app.kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app.kpi-app #view-calendar.active > .sub-header {
+    background: linear-gradient(180deg, rgba(8,10,11,.92), rgba(7,9,10,.84)) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(105%) !important;
+    backdrop-filter: blur(10px) saturate(105%) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after { animation: none !important; transform: scaleX(.78) !important; }
+}
