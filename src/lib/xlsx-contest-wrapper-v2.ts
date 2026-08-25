@@ -55,14 +55,17 @@ function normalized(value: CellValue): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
-    .replace(/Đ/g, 'D')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+function normalizedHeader(value: CellValue): string {
+  return normalized(value).replace(/Đ/g, 'D');
+}
+
 function findHeader(headers: CellValue[], candidates: string[], partial = false): number {
-  const values = headers.map(normalized);
-  const wanted = candidates.map(normalized);
+  const values = headers.map(normalizedHeader);
+  const wanted = candidates.map(normalizedHeader);
   for (const candidate of wanted) {
     const exact = values.indexOf(candidate);
     if (exact >= 0) return exact;
@@ -108,7 +111,7 @@ function parseDetails(matrix: Matrix): DetailRecord[] {
 
 function isTVVmActivityResult(headers: CellValue[]): boolean {
   return headers.some(header => {
-    const value = normalized(header);
+    const value = normalizedHeader(header);
     return value.includes('LUOT') && value.includes('TVVM');
   });
 }
@@ -218,17 +221,20 @@ function transformTVVmResult(
   let tvvIdx = findHeader(headers, ['Họ tên TVV', 'TVV']);
   if (tvvIdx < 0) return { matrix: next, merges };
 
-  const immediateNext = normalized(headers[tvvIdx + 1]);
+  const immediateNext = normalizedHeader(headers[tvvIdx + 1]);
   const alreadyHasStartDate = immediateNext.includes('NGAY BAT DAU');
   if (!alreadyHasStartDate) {
     const contractIdx = findHeader(headers, ['Số hợp đồng', 'Số HĐ']);
     const byContract = new Map<string, DetailRecord>();
-    const byName = new Map<string, DetailRecord>();
+    const byName = new Map<string, DetailRecord | null>();
     for (const detail of details) {
       const contractKey = normalized(detail.contractNumber);
       const nameKey = normalized(detail.agentName);
       if (contractKey && !byContract.has(contractKey)) byContract.set(contractKey, detail);
-      if (nameKey && !byName.has(nameKey)) byName.set(nameKey, detail);
+      if (nameKey) {
+        const existing = byName.get(nameKey);
+        byName.set(nameKey, existing === undefined ? detail : null);
+      }
     }
 
     const insertAt = tvvIdx + 1;
@@ -237,7 +243,7 @@ function transformTVVmResult(
       const row = next[r] || [];
       const contract = contractIdx >= 0 ? text(row[contractIdx]) : '';
       const tvvName = text(row[tvvIdx]);
-      const detail = byContract.get(normalized(contract)) || byName.get(normalized(tvvName));
+      const detail = byContract.get(normalized(contract)) || byName.get(normalized(tvvName)) || undefined;
       next[r] = [...row.slice(0, insertAt), detail?.startDate ?? '', ...row.slice(insertAt)];
     }
     merges = shiftMergesForInsertedColumn(merges, insertAt);
@@ -250,7 +256,7 @@ function transformTVVmResult(
 }
 
 function isCenterColumn(header: CellValue): boolean {
-  const h = normalized(header);
+  const h = normalizedHeader(header);
   return h === 'STT'
     || h === 'HANG'
     || h.startsWith('MA ')
@@ -269,7 +275,7 @@ function isCenterColumn(header: CellValue): boolean {
 }
 
 function columnFloor(header: CellValue): number {
-  const h = normalized(header);
+  const h = normalizedHeader(header);
   if (h === 'STT' || h === 'HANG') return 7;
   if (h.includes('GHI CHU')) return 28;
   if (h.includes('HO TEN') || h === 'TEN' || h.includes('TVV')) return 24;
@@ -321,7 +327,7 @@ function styleSheet(
       ...rows.map(row => text(row[col]).length),
     );
     const floor = columnFloor(header);
-    const cap = normalized(header).includes('GHI CHU') ? 42 : 36;
+    const cap = normalizedHeader(header).includes('GHI CHU') ? 42 : 36;
     return { wch: Math.min(Math.max(max + 2, floor), cap) };
   });
   if (headers.length) {

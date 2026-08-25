@@ -194,3 +194,31 @@ test('chuẩn hóa workbook không nhân đôi cột ngày bắt đầu TVVm', (
   assert.equal(matrix[1][7], '01/08/2026');
   assert.equal(workbook.Sheets['Kết quả thi đua']['!rows']![0].hpt, 32);
 });
+
+test('ánh xạ ngày bắt đầu giữ Đ/D riêng và bỏ qua tên trùng mơ hồ', () => {
+  const workbook = XLSXUtils.book_new();
+  XLSXUtils.book_append_sheet(workbook, XLSXUtils.aoa_to_sheet([
+    ['STT', 'Lượt TVVm HĐC', 'Họ tên TVV', 'Số hợp đồng'],
+    [1, 1, 'Nguyễn Đạt', ''],
+    [2, 1, 'Nguyen Dat', ''],
+    [3, 1, 'Lê An', ''],
+  ]), 'Kết quả thi đua');
+  XLSXUtils.book_append_sheet(workbook, XLSXUtils.aoa_to_sheet([
+    ['Tên', 'Ngày bắt đầu làm việc', 'Số hợp đồng'],
+    ['Nguyễn Đạt', '01/01/2026', ''],
+    ['Nguyen Dat', '02/01/2026', ''],
+    ['Lê An', '03/01/2026', ''],
+    ['Le An', '04/01/2026', ''],
+  ]), 'Chi tiết HĐ');
+
+  normalizeContestWorkbook(workbook);
+  const matrix = XLSXUtils.sheet_to_json(workbook.Sheets['Kết quả thi đua'], {
+    header: 1,
+    raw: true,
+  }) as unknown[][];
+
+  const startDateByName = new Map(matrix.slice(1).map(row => [row[2], row[3]]));
+  assert.equal(startDateByName.get('Nguyễn Đạt'), '01/01/2026');
+  assert.equal(startDateByName.get('Nguyen Dat'), '02/01/2026');
+  assert.equal(startDateByName.get('Lê An'), '');
+});

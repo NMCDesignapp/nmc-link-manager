@@ -1020,7 +1020,7 @@ function ThiDuaPageInner() {
         if (!ngayHieuLucTs) return true; // NTD không có ngày hiệu lực → không ràng buộc → giữ
         const ngayBatDauTs = ngayBatDauMap.get(c.agentCode || '');
         if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
-        return ngayBatDauTs > ngayHieuLucTs;
+        return ngayBatDauTs >= ngayHieuLucTs;
       });
     }
     if (targetType === 'tvv') {
@@ -2181,8 +2181,8 @@ function ThiDuaPageInner() {
         const tier = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
         return { group: g, tier, groupPhase, tvvPassCount };
       }).sort((a, b) => {
-        const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
-        const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
+        const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : getGroupValue(a.group);
+        const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : getGroupValue(b.group);
         return bValue - aValue;
       }).forEach(({ group: g, tier, groupPhase, tvvPassCount }, idx) => {
         if (isTVVPassCountMode(conditionType)) {
@@ -2295,12 +2295,11 @@ function ThiDuaPageInner() {
 
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-      const ntdMetricHeader = includeIndividualNTD ? 'Tổng cộng' : resultMetricLabel;
       const showTVVStartDate = isTVVmMode(conditionType) || includeEligibilityDateColumns;
       headers = [
         'STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD',
         ...(includeEligibilityDateColumns ? ['Ngày hiệu lực chức vụ NTD'] : []),
-        'Chức vụ', ntdMetricHeader,
+        'Chức vụ', ...(!includeIndividualNTD ? [resultMetricLabel] : []),
         ...(expSecAFYP ? ['Tổng AFYP'] : []),
         ...(expSecIP ? ['Tổng IP'] : []),
         'Họ tên TVV',
@@ -2353,7 +2352,8 @@ function ThiDuaPageInner() {
           // NTD không có HĐ, vẫn ghi 1 dòng
           const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName];
           if (includeEligibilityDateColumns) row.push(recruiterEffectiveDateFor(n.nydCode));
-          row.push(n.position || '', value);
+          row.push(n.position || '');
+          if (!includeIndividualNTD) row.push(value);
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
           row.push('');
@@ -2382,7 +2382,8 @@ function ThiDuaPageInner() {
               cIdx === 0 ? n.nydName : '',
             ];
             if (includeEligibilityDateColumns) row.push(cIdx === 0 ? recruiterEffectiveDateFor(n.nydCode) : '');
-            row.push(cIdx === 0 ? (n.position || '') : '', cIdx === 0 ? value : '');
+            row.push(cIdx === 0 ? (n.position || '') : '');
+            if (!includeIndividualNTD) row.push(cIdx === 0 ? value : '');
             if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             row.push(c.agentName || '');
@@ -2457,7 +2458,6 @@ function ThiDuaPageInner() {
         merges = [];
       } else {
         // NHÓM: mở rộng mỗi nhóm thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
-        const condHeader = includeIndividualTN ? 'Tổng cộng' : resultMetricLabel;
         const showTVVStartDate = isTVVmMode(conditionType) || includeEligibilityDateColumns;
         const groupDetailHeaders = [
           'Họ tên TVV',
@@ -2466,9 +2466,9 @@ function ThiDuaPageInner() {
           'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP',
         ];
         if (usePhase2) {
-          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...groupDetailHeaders, 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', ...(!includeIndividualTN ? [resultMetricLabel] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...groupDetailHeaders, 'Tổng cộng', 'Thưởng GD1', 'Thưởng GD2', 'Tổng Thưởng', 'Ghi chú'];
         } else {
-          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', condHeader, ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...groupDetailHeaders, 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
+          headers = ['STT', 'Nhóm', 'Mã TTN', 'Tên TTN', 'Chức vụ', ...(!includeIndividualTN ? [resultMetricLabel] : []), ...(expSecAFYP ? ['Tổng AFYP'] : []), ...(expSecIP ? ['Tổng IP'] : []), ...groupDetailHeaders, 'Tổng cộng', ...(showRateColumn ? ['Tỷ lệ'] : []), 'Thưởng', 'Ghi chú'];
         }
         rows = [];
         merges = [];
@@ -2505,7 +2505,8 @@ function ThiDuaPageInner() {
             ? ''
             : (!sc.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt mức');
           if (contracts.length === 0) {
-            const row: (string | number)[] = [gIdx + 1, g.nhom || '—', g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || '', condValue];
+            const row: (string | number)[] = [gIdx + 1, g.nhom || '—', g.leader?.agentCode || '', g.leader?.agentName || '', g.leader?.position || ''];
+            if (!includeIndividualTN) row.push(condValue);
             if (expSecAFYP) row.push(sc.totalAFYP);
             if (expSecIP) row.push(sc.totalIP);
             row.push(...groupDetailHeaders.map(() => ''), groupMetricValue);
@@ -2530,8 +2531,8 @@ function ThiDuaPageInner() {
                 cIdx === 0 ? (g.leader?.agentCode || '') : '',
                 cIdx === 0 ? (g.leader?.agentName || '') : '',
                 cIdx === 0 ? (g.leader?.position || '') : '',
-                cIdx === 0 ? condValue : '',
               ];
+              if (!includeIndividualTN) row.push(cIdx === 0 ? condValue : '');
               if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
               if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
               row.push(c.agentName || '');
@@ -4452,8 +4453,8 @@ function ThiDuaPageInner() {
                         : isActivityRoundMode(conditionType) ? getRemainingToNextActivityRoundTier(g.activityRounds) : getRemainingToNextTier(g.totalFYP);
                       return { group: g, tier, remaining, groupPhase, tvvPassCount };
                     }).sort((a, b) => {
-                      const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : a.group.totalFYP;
-                      const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : b.group.totalFYP;
+                      const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : getGroupValue(a.group);
+                      const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : getGroupValue(b.group);
                       return bValue - aValue;
                     }).map(({ group, tier, remaining, groupPhase, tvvPassCount }, idx) => {
                       if (hideNotAchieved && !tier) return null;
@@ -4496,7 +4497,7 @@ function ThiDuaPageInner() {
                           <TableCell className="text-right text-xs whitespace-nowrap">
                             {isActivityRoundMode(conditionType)
                               ? <span className="text-gray-900">{group.activityRounds} {isStandardMode(conditionType) ? 'Lượt chuẩn' : 'Lượt'}</span>
-                              : <span className="text-gray-900">{formatNumber(group.totalFYP)}</span>
+                              : <span className="text-gray-900">{formatNumber(getGroupValue(group))}</span>
                             }
                           </TableCell>
                           {showSecondaryPerContractColumn && (
@@ -4541,7 +4542,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, isActivityRoundMode(conditionType) ? group.totalFYP : getGroupValue(group), group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
