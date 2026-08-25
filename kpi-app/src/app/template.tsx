@@ -18,6 +18,9 @@ body {
 
 html body .kpi-app.kpi-app {
   min-height: 100vh;
+  position: relative;
+  box-sizing: border-box;
+  padding-bottom: 100px;
   isolation: isolate;
   background-color: #080909 !important;
   background-image:
@@ -29,7 +32,7 @@ html body .kpi-app.kpi-app {
   background-attachment: fixed !important;
 }
 
-/* Loại bỏ các lớp vector cũ của loader; tia điện mới được vẽ ở .kpi-app. */
+/* Loại bỏ các lớp vector cũ của loader; nhịp tim NC mới được vẽ ở .kpi-app. */
 html body [aria-label="Đang tải dữ liệu KPI"]::before,
 html body [aria-label="Đang tải dữ liệu KPI"]::after,
 html body [aria-label="Tải dữ liệu gặp lỗi"]::before,
@@ -38,23 +41,39 @@ html body [aria-label="Tải dữ liệu gặp lỗi"]::after {
   display: none !important;
 }
 
-/* Hai cụm tia điện đối xứng, nằm sau nội dung và không nhận thao tác. */
+@keyframes nmc-heartbeat-nc-pulse {
+  0%, 100% { filter: brightness(.94); }
+  50% { filter: brightness(1.16); }
+}
+
+/* Hai đường nhịp tim chạy từ cạnh màn hình vào tâm, tạo chữ NC ở giữa nét. */
 html body .kpi-app.kpi-app::before,
 html body .kpi-app.kpi-app::after {
   content: '' !important;
   display: block !important;
-  position: fixed;
+  position: absolute;
   z-index: 0;
-  width: min(48vw, 620px);
-  height: min(42vh, 420px);
+  width: min(56vw, 860px);
+  height: min(18vh, 180px);
   pointer-events: none;
   opacity: .52;
-  background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 420'%3E%3Cdefs%3E%3Cfilter id='g' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='5' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round' filter='url(%23g)'%3E%3Cpath d='M18 28 118 82 86 132 186 166 155 218 278 246 236 308 382 346' stroke='%2368e7ff' stroke-width='3.2'/%3E%3Cpath d='M52 6 152 62 132 104 228 132 204 184 330 211 294 270 458 306' stroke='%232ea8ff' stroke-width='1.8' opacity='.72'/%3E%3Cpath d='M8 92 83 128 62 174 148 201 120 253 222 278' stroke='%23a8f4ff' stroke-width='1.2' opacity='.58'/%3E%3C/g%3E%3C/svg%3E");
+  background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 760 180'%3E%3Cdefs%3E%3Cfilter id='g' x='-15%25' y='-60%25' width='130%25' height='220%25'%3E%3CfeGaussianBlur stdDeviation='4.5' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round' filter='url(%23g)'%3E%3Cpath d='M0 90 H85 L105 90 L125 70 L145 110 L168 38 L192 138 L216 68 L236 90 H280 L300 125 L300 55 L360 125 L360 55 H388 M470 60 C430 48 398 64 398 90 C398 116 430 132 470 120 L495 90 H760' stroke='%232aa8ff' stroke-width='10' opacity='.16'/%3E%3Cpath d='M0 90 H85 L105 90 L125 70 L145 110 L168 38 L192 138 L216 68 L236 90 H280 L300 125 L300 55 L360 125 L360 55 H388 M470 60 C430 48 398 64 398 90 C398 116 430 132 470 120 L495 90 H760' stroke='%237beaff' stroke-width='2.8'/%3E%3Cpath d='M0 96 H82 M500 96 H760' stroke='%232a9cff' stroke-width='1.2' opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+  animation: nmc-heartbeat-nc-pulse 2.4s ease-in-out infinite;
 }
 
-html body .kpi-app.kpi-app::before { top: 0; right: auto; bottom: auto; left: 0; }
-html body .kpi-app.kpi-app::after { top: auto; right: 0; bottom: 0; left: auto; transform: rotate(180deg); }
+html body .kpi-app.kpi-app::before { top: 10px; right: 0; bottom: auto; left: auto; }
+html body .kpi-app.kpi-app::after {
+  top: auto;
+  right: auto;
+  bottom: 10px;
+  left: 0;
+}
 html body .kpi-app.kpi-app > .app-wrap { position: relative; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  html body .kpi-app.kpi-app::before,
+  html body .kpi-app.kpi-app::after { animation: none; }
+}
 
 /* Màn khởi động dùng cùng nền gỗ, không kéo giãn texture. */
 html body [aria-label="Đang tải dữ liệu KPI"],
@@ -215,6 +234,7 @@ html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
 
   html body .kpi-app.kpi-app {
     overflow-x: clip !important;
+    padding-bottom: 76px !important;
     background-size: 100% auto !important;
     background-position: center top !important;
     background-attachment: scroll !important;
@@ -222,10 +242,18 @@ html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
 
   html body .kpi-app.kpi-app::before,
   html body .kpi-app.kpi-app::after {
-    width: 88vw;
-    height: 250px;
+    width: 94vw;
+    height: 128px;
     opacity: .40;
   }
+
+  html body .kpi-app.kpi-app::before {
+    top: 92px;
+    z-index: 2;
+    height: 72px;
+    opacity: .34;
+  }
+  html body .kpi-app.kpi-app::after { bottom: 4px; }
 
   html body .kpi-app.kpi-app .kpi-embed-loader > span {
     width: min(94vw, 520px) !important;
