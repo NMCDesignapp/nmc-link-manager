@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import {
+  calculateNYDPhaseOutcome,
   filterQualifyingActivityContracts,
   getContestMetricLabel,
 } from '@/lib/contest-calculator';
@@ -1768,85 +1769,29 @@ function ThiDuaPageInner() {
         }
       }
     } else if (targetType === 'nyd') {
-      // NYD Phase 1: tính từ Contracts
-      const agentFYPLookupP1 = new Map<string, { totalFYP: number; totalAFYP: number }>();
-      for (const c of phase1Contracts) {
-        const key = c.agentCode;
-        if (!key) continue;
-        const existing = agentFYPLookupP1.get(key);
-        if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-        else { agentFYPLookupP1.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-      }
-      for (const r of ntdCandidates) {
-        const recruited = phase1Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
-        const recruitedAgents = new Set(recruited.map(c => c.agentCode));
-        if (isActivityRoundMode(conditionType)) {
-          let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
-          let recruitCount = 0;
-          for (const agentCode of filteredAgents) {
-            const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
-            recruitCount += calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          }
-          const ownRounds = includeIndividualNTD
-            ? calculateLuotWithStructure(phase1Contracts.filter(c => c.agentCode === r.agentCode), luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
-            : 0;
-          const value = recruitCount + ownRounds;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, value, value);
-        } else {
-          let recruitFYP = 0;
-          for (const agentCode of recruitedAgents) {
-            const rv = agentFYPLookupP1.get(agentCode);
-            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
-          }
-          const ownRV = agentFYPLookupP1.get(r.agentCode);
-          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
-          const value = recruitFYP + (includeIndividualNTD ? ownFYP : 0);
-          const { tier } = calculateBonusWithTiers(value, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, value);
-        }
-      }
-      // NYD Phase 2
-      const agentFYPLookupP2 = new Map<string, { totalFYP: number; totalAFYP: number }>();
-      for (const c of phase2Contracts) {
-        const key = c.agentCode;
-        if (!key) continue;
-        const existing = agentFYPLookupP2.get(key);
-        if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-        else { agentFYPLookupP2.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-      }
-      for (const r of ntdCandidates) {
-        const recruited = phase2Contracts.filter(c => c.maDaiLyTD === r.agentCode && c.agentCode !== r.agentCode);
-        const recruitedAgents = new Set(recruited.map(c => c.agentCode));
-        if (isActivityRoundMode(conditionType)) {
-          let filteredAgents = recruitedAgents;
-          if (isTVVmMode(conditionType)) { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null))); }
-        if (conditionType === 'activity_round_tvv90') { filteredAgents = new Set([...filteredAgents].filter(agentCode => isTVV90Agent(recruited, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase())))); }
-          let recruitCount = 0;
-          for (const agentCode of filteredAgents) {
-            const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
-            recruitCount += calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          }
-          const ownRounds = includeIndividualNTD
-            ? calculateLuotWithStructure(phase2Contracts.filter(c => c.agentCode === r.agentCode), luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
-            : 0;
-          const value = recruitCount + ownRounds;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, value, value);
-        } else {
-          let recruitFYP = 0;
-          for (const agentCode of recruitedAgents) {
-            const rv = agentFYPLookupP2.get(agentCode);
-            recruitFYP += rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
-          }
-          const ownRV = agentFYPLookupP2.get(r.agentCode);
-          const ownFYP = ownRV ? (isAFYP ? ownRV.totalAFYP : ownRV.totalFYP) : 0;
-          const value = recruitFYP + (includeIndividualNTD ? ownFYP : 0);
-          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, value);
-        }
+      for (const recruiter of ntdCandidates) {
+        phase1Bonus += calculateNYDPhaseOutcome(
+          phase1Contracts,
+          recruiter.agentCode,
+          bonusTiers,
+          conditionType,
+          includeIndividualNTD,
+          luotThreshold,
+          tvv90MaxMonths,
+          tvv90MinIP,
+          structureStartDateByCode,
+        ).bonus;
+        phase2Bonus += calculateNYDPhaseOutcome(
+          phase2Contracts,
+          recruiter.agentCode,
+          bonusTiers2,
+          conditionType,
+          includeIndividualNTD,
+          luotThreshold,
+          tvv90MaxMonths,
+          tvv90MinIP,
+          structureStartDateByCode,
+        ).bonus;
       }
     } else {
       // TVV total mode: aggregate by agentCode from Contracts
@@ -2327,43 +2272,25 @@ function ThiDuaPageInner() {
         || contract.startDate;
       return date ? formatDate(date) : '';
     };
-    const getNYDPhaseBonus = (
+    const getNYDPhaseOutcome = (
       nydCode: string,
       phaseContracts: Contract[],
       tiers: BonusTier[],
-    ): number => {
-      const recruitedContracts = phaseContracts.filter(c => c.maDaiLyTD === nydCode && c.agentCode !== nydCode);
-      const ownContracts = includeIndividualNTD
-        ? phaseContracts.filter(c => c.agentCode === nydCode)
-        : [];
-
-      if (isActivityRoundMode(conditionType)) {
-        const recruitedQualifying = qualifyingActivityContracts(recruitedContracts);
-        const ownQualifying = qualifyingActivityContracts(ownContracts);
-        const value = recruitedQualifying.length + ownQualifying.length;
-        const { tier } = calculateActivityRoundBonusWithTiers(value, tiers);
-        const contributingIP = [...recruitedQualifying, ...ownQualifying]
-          .reduce((sum, contract) => sum + contract.pdt10DT, 0);
-        return tier ? computeBonusFromTier(tier, contributingIP, value) : 0;
-      }
-
-      const useAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-      const metricOf = (contract: Contract) => useAFYP ? contract.afyp : contract.pdt10DT;
-      const recruitedValue = recruitedContracts.reduce((sum, contract) => sum + metricOf(contract), 0);
-      const ownValue = ownContracts.reduce((sum, contract) => sum + metricOf(contract), 0);
-      const value = recruitedValue + ownValue;
-      const recruitedByAgent = new Map<string, number>();
-      for (const contract of recruitedContracts) {
-        recruitedByAgent.set(
-          contract.agentCode,
-          (recruitedByAgent.get(contract.agentCode) || 0) + metricOf(contract),
-        );
-      }
-      const recruitCount = [...recruitedByAgent.values()]
-        .filter(agentValue => agentValue >= luotHDThreshold)
-        .length;
-      const { tier } = calculateBonusWithTiers(value, tiers);
-      return tier ? computeBonusFromTier(tier, value, recruitCount) : 0;
+    ) => calculateNYDPhaseOutcome(
+      phaseContracts,
+      nydCode,
+      tiers,
+      conditionType,
+      includeIndividualNTD,
+      activityThreshold,
+      tvv90MaxMonths,
+      tvv90MinIP,
+      structureStartDateByCode,
+    );
+    const phaseRewardCell = (tier: BonusTier | null, bonus: number): string | number => {
+      if (!tier) return '';
+      if (tier.bonusType === 'gift') return tier.bonusText || 'Quà tặng';
+      return bonus || '';
     };
 
     if (targetType === 'nyd') {
@@ -2404,16 +2331,16 @@ function ThiDuaPageInner() {
         const sc = checkSecondaryTotalCondition(nydContracts);
         const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
         const p2Start = usePhase2 && phase2StartDate ? new Date(phase2StartDate) : null;
-        const phase1Bonus = p2Start
-          ? getNYDPhaseBonus(n.nydCode, displayContracts.filter(c => new Date(c.effectiveDate) < p2Start), bonusTiers)
-          : 0;
-        const phase2Bonus = p2Start
-          ? getNYDPhaseBonus(n.nydCode, displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start), bonusTiers2)
-          : 0;
-        const effectivePhase1Bonus = sc.passed ? phase1Bonus : 0;
-        const effectivePhase2Bonus = sc.passed ? phase2Bonus : 0;
+        const phase1Result = p2Start
+          ? getNYDPhaseOutcome(n.nydCode, displayContracts.filter(c => new Date(c.effectiveDate) < p2Start), bonusTiers)
+          : { bonus: 0, tier: null };
+        const phase2Result = p2Start
+          ? getNYDPhaseOutcome(n.nydCode, displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start), bonusTiers2)
+          : { bonus: 0, tier: null };
+        const effectivePhase1Bonus = sc.passed ? phase1Result.bonus : 0;
+        const effectivePhase2Bonus = sc.passed ? phase2Result.bonus : 0;
         const hasEffectiveReward = usePhase2
-          ? effectivePhase1Bonus + effectivePhase2Bonus > 0
+          ? sc.passed && Boolean(phase1Result.tier || phase2Result.tier)
           : Boolean(effectiveTier);
         const rewardNote = hasEffectiveReward ? '' : (!sc.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt mức');
         const startRow = currentRow;
@@ -2433,7 +2360,11 @@ function ThiDuaPageInner() {
           if (showTVVStartDate) row.push('');
           row.push('', '', '', '', '', value);
           if (usePhase2) {
-            row.push(effectivePhase1Bonus || '', effectivePhase2Bonus || '', effectivePhase1Bonus + effectivePhase2Bonus || '');
+            row.push(
+              sc.passed ? phaseRewardCell(phase1Result.tier, effectivePhase1Bonus) : '',
+              sc.passed ? phaseRewardCell(phase2Result.tier, effectivePhase2Bonus) : '',
+              effectivePhase1Bonus + effectivePhase2Bonus || '',
+            );
           } else {
             if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
             row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '');
@@ -2466,8 +2397,8 @@ function ThiDuaPageInner() {
             );
             if (usePhase2) {
               row.push(
-                cIdx === 0 ? (effectivePhase1Bonus || '') : '',
-                cIdx === 0 ? (effectivePhase2Bonus || '') : '',
+                cIdx === 0 && sc.passed ? phaseRewardCell(phase1Result.tier, effectivePhase1Bonus) : '',
+                cIdx === 0 && sc.passed ? phaseRewardCell(phase2Result.tier, effectivePhase2Bonus) : '',
                 cIdx === 0 ? (effectivePhase1Bonus + effectivePhase2Bonus || '') : '',
               );
             } else {
@@ -2569,7 +2500,8 @@ function ThiDuaPageInner() {
           const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
           const effectiveGroupPhase1Bonus = sc.passed ? groupPhase.phase1Bonus : 0;
           const effectiveGroupPhase2Bonus = sc.passed ? groupPhase.phase2Bonus : 0;
-          const groupPhaseRewardNote = effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus > 0
+          const groupHasEffectivePhaseTier = sc.passed && Boolean(groupPhase.phase1Tier || groupPhase.phase2Tier);
+          const groupPhaseRewardNote = groupHasEffectivePhaseTier
             ? ''
             : (!sc.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt mức');
           if (contracts.length === 0) {
@@ -2578,7 +2510,12 @@ function ThiDuaPageInner() {
             if (expSecIP) row.push(sc.totalIP);
             row.push(...groupDetailHeaders.map(() => ''), groupMetricValue);
             if (usePhase2) {
-              row.push(effectiveGroupPhase1Bonus || '', effectiveGroupPhase2Bonus || '', effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus || '', groupPhaseRewardNote);
+              row.push(
+                sc.passed ? phaseRewardCell(groupPhase.phase1Tier, effectiveGroupPhase1Bonus) : '',
+                sc.passed ? phaseRewardCell(groupPhase.phase2Tier, effectiveGroupPhase2Bonus) : '',
+                effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus || '',
+                groupPhaseRewardNote,
+              );
             } else {
               if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
               row.push(effectiveTier ? formatBonusAmount(effectiveTier, groupMetricValue, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
@@ -2610,8 +2547,8 @@ function ThiDuaPageInner() {
               );
               if (usePhase2) {
                 row.push(
-                  cIdx === 0 ? (effectiveGroupPhase1Bonus || '') : '',
-                  cIdx === 0 ? (effectiveGroupPhase2Bonus || '') : '',
+                  cIdx === 0 && sc.passed ? phaseRewardCell(groupPhase.phase1Tier, effectiveGroupPhase1Bonus) : '',
+                  cIdx === 0 && sc.passed ? phaseRewardCell(groupPhase.phase2Tier, effectiveGroupPhase2Bonus) : '',
                   cIdx === 0 ? (effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus || '') : '',
                   cIdx === 0 ? groupPhaseRewardNote : '',
                 );
@@ -2658,10 +2595,16 @@ function ThiDuaPageInner() {
             if (expSecIP) base.push(sc.totalIP);
             const phase1Bonus = sc.passed ? phaseInfo.phase1Bonus : 0;
             const phase2Bonus = sc.passed ? phaseInfo.phase2Bonus : 0;
-            const phaseRewardNote = phase1Bonus + phase2Bonus > 0
+            const hasEffectivePhaseTier = sc.passed && Boolean(phaseInfo.phase1Tier || phaseInfo.phase2Tier);
+            const phaseRewardNote = hasEffectivePhaseTier
               ? ''
               : (!sc.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt mức');
-            base.push(phase1Bonus || '', phase2Bonus || '', phase1Bonus + phase2Bonus || '', phaseRewardNote);
+            base.push(
+              sc.passed ? phaseRewardCell(phaseInfo.phase1Tier, phase1Bonus) : '',
+              sc.passed ? phaseRewardCell(phaseInfo.phase2Tier, phase2Bonus) : '',
+              phase1Bonus + phase2Bonus || '',
+              phaseRewardNote,
+            );
             return base;
           });
         } else {
@@ -2710,10 +2653,16 @@ function ThiDuaPageInner() {
             row.push(idx === 0 ? grandTotal : '');
             const phase1Bonus = sc.passed ? phaseInfo.phase1Bonus : 0;
             const phase2Bonus = sc.passed ? phaseInfo.phase2Bonus : 0;
-            const phaseRewardNote = phase1Bonus + phase2Bonus > 0
+            const hasEffectivePhaseTier = sc.passed && Boolean(phaseInfo.phase1Tier || phaseInfo.phase2Tier);
+            const phaseRewardNote = hasEffectivePhaseTier
               ? ''
               : (!sc.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt mức');
-            row.push(phase1Bonus || '', phase2Bonus || '', phase1Bonus + phase2Bonus || '', phaseRewardNote);
+            row.push(
+              sc.passed ? phaseRewardCell(phaseInfo.phase1Tier, phase1Bonus) : '',
+              sc.passed ? phaseRewardCell(phaseInfo.phase2Tier, phase2Bonus) : '',
+              phase1Bonus + phase2Bonus || '',
+              phaseRewardNote,
+            );
             return row;
           });
           if (tvvTotalRows.length > 1) {
@@ -3400,8 +3349,11 @@ function ThiDuaPageInner() {
         const bonus = tier ? computeBonusFromTier(tier, group.totalFYP, group.activityRounds) : 0;
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       } else {
-        const { tier } = calculateBonus(group.totalFYP);
-        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP) : 0;
+        const value = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp'
+          ? group.totalAFYP
+          : group.totalFYP;
+        const { tier } = calculateBonus(value);
+        const bonus = tier ? computeBonusFromTier(tier, value) : 0;
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       }
     }
@@ -3429,12 +3381,13 @@ function ThiDuaPageInner() {
       phase2Tier = p2Res.tier;
       if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2FYP, p2Rounds);
     } else {
-      const p1Total = phase1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+      const useAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
+      const p1Total = phase1Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
       const p1Res = calculateBonusWithTiers(p1Total, bonusTiers);
       phase1Tier = p1Res.tier;
       if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1Total);
 
-      const p2Total = phase2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+      const p2Total = phase2Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
       const p2Res = calculateBonusWithTiers(p2Total, bonusTiers2);
       phase2Tier = p2Res.tier;
       if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2Total);
@@ -4430,47 +4383,18 @@ function ThiDuaPageInner() {
                         const p2Start = new Date(phase2StartDate);
                         const p1Contracts = displayContracts.filter(c => new Date(c.effectiveDate) < p2Start);
                         const p2Contracts = displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
-                        const applyTVV90 = conditionType === 'activity_round_tvv90';
-                        
-                        // Phase 1: find recruited TVV for this NYD
-                        const p1Recruited = p1Contracts.filter(c => c.maDaiLyTD === nyd.nydCode && c.agentCode !== nyd.nydCode);
-                        let p1RecruitCount = 0;
-                        let p1RecruitFYP = 0;
-                        if (isActivityRoundMode(conditionType)) {
-                          p1RecruitCount = calculateLuotWithStructure(p1Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                          p1RecruitFYP = p1Recruited.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
-                        } else {
-                          const p1RecruitedMap = new Map<string, number>();
-                          for (const rc of p1Recruited) { p1RecruitedMap.set(rc.agentCode, (p1RecruitedMap.get(rc.agentCode) || 0) + (conditionType === 'total_afyp' ? rc.afyp : rc.pdt10DT)); }
-                          for (const [, af] of p1RecruitedMap) { if (af >= luotHDThreshold) p1RecruitCount++; p1RecruitFYP += af; }
-                        }
-                        const p1OwnContracts = p1Contracts.filter(c => c.agentCode === nyd.nydCode);
-                        const p1OwnFYP = p1OwnContracts.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
-                        const p1OwnRounds = calculateLuotWithStructure(p1OwnContracts, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                        const p1Value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? p1RecruitCount : p1RecruitFYP, p1OwnFYP, p1OwnRounds, includeIndividualNTD);
-                        const p1Res = calculateBonusWithTiers(p1Value, bonusTiers);
-                        const p1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value, isActivityRoundMode(conditionType) ? p1Value : p1RecruitCount) : 0;
-
-                        // Phase 2
-                        const p2Recruited = p2Contracts.filter(c => c.maDaiLyTD === nyd.nydCode && c.agentCode !== nyd.nydCode);
-                        let p2RecruitCount = 0;
-                        let p2RecruitFYP = 0;
-                        if (isActivityRoundMode(conditionType)) {
-                          p2RecruitCount = calculateLuotWithStructure(p2Recruited, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                          p2RecruitFYP = p2Recruited.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
-                        } else {
-                          const p2RecruitedMap = new Map<string, number>();
-                          for (const rc of p2Recruited) { p2RecruitedMap.set(rc.agentCode, (p2RecruitedMap.get(rc.agentCode) || 0) + (conditionType === 'total_afyp' ? rc.afyp : rc.pdt10DT)); }
-                          for (const [, af] of p2RecruitedMap) { if (af >= luotHDThreshold) p2RecruitCount++; p2RecruitFYP += af; }
-                        }
-                        const p2OwnContracts = p2Contracts.filter(c => c.agentCode === nyd.nydCode);
-                        const p2OwnFYP = p2OwnContracts.reduce((s, c) => s + (conditionType === 'total_afyp' ? c.afyp : c.pdt10DT), 0);
-                        const p2OwnRounds = calculateLuotWithStructure(p2OwnContracts, isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-                        const p2Value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? p2RecruitCount : p2RecruitFYP, p2OwnFYP, p2OwnRounds, includeIndividualNTD);
-                        const p2Res = calculateBonusWithTiers(p2Value, bonusTiers2);
-                        const p2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value, isActivityRoundMode(conditionType) ? p2Value : p2RecruitCount) : 0;
-
-                        return { phase1Bonus: p1Bonus, phase2Bonus: p2Bonus };
+                        const threshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
+                        const phase1 = calculateNYDPhaseOutcome(
+                          p1Contracts, nyd.nydCode, bonusTiers, conditionType,
+                          includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
+                          structureStartDateByCode,
+                        );
+                        const phase2 = calculateNYDPhaseOutcome(
+                          p2Contracts, nyd.nydCode, bonusTiers2, conditionType,
+                          includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
+                          structureStartDateByCode,
+                        );
+                        return { phase1Bonus: phase1.bonus, phase2Bonus: phase2.bonus };
                       })() : null;
                       return (
                         <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>

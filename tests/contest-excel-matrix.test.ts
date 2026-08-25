@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  type BonusTier,
   type ConditionType,
   type Contract,
+  calculateNYDPhaseOutcome,
   filterQualifyingActivityContracts,
   getContestMetricLabel,
 } from '../src/lib/contest-calculator.ts';
@@ -120,6 +122,52 @@ test('TVVm và TVV90 áp dụng đúng tuổi nghề trước khi đếm lượt
     structureDates,
   );
   assert.deepEqual(tvv90.map(item => item.agentCode), ['NEW-3M']);
+});
+
+test('NTD theo lượt dùng số lượt để xét mức nhưng dùng toàn bộ IP để tính thưởng', () => {
+  const qualifying = contract('TVV-DAT', 12_000_000, monthOffset(-2));
+  const nonQualifying = contract('TVV-CHUA-DAT', 6_000_000, monthOffset(-2));
+  const percentTier: BonusTier = {
+    id: 'percent',
+    minFYP: 1,
+    maxFYP: null,
+    bonusAmount: 0,
+    bonusType: 'percent',
+    bonusText: '',
+    bonusPercent: 10,
+  };
+  const outcome = calculateNYDPhaseOutcome(
+    [qualifying, nonQualifying],
+    'NTD1',
+    [percentTier],
+    'activity_round_standard',
+    false,
+    12_000_000,
+    3,
+    12_000_000,
+    new Map([
+      [qualifying.agentCode, qualifying.startDate],
+      [nonQualifying.agentCode, nonQualifying.startDate],
+    ]),
+  );
+
+  assert.equal(outcome.value, 1);
+  assert.equal(outcome.baseIP, 18_000_000);
+  assert.equal(outcome.bonus, 1_800_000);
+
+  const giftOutcome = calculateNYDPhaseOutcome(
+    [qualifying],
+    'NTD1',
+    [{ ...percentTier, id: 'gift', bonusType: 'gift', bonusText: 'Quà tặng' }],
+    'activity_round_standard',
+    false,
+    12_000_000,
+    3,
+    12_000_000,
+    new Map([[qualifying.agentCode, qualifying.startDate]]),
+  );
+  assert.ok(giftOutcome.tier);
+  assert.equal(giftOutcome.bonus, 0);
 });
 
 test('chuẩn hóa workbook không nhân đôi cột ngày bắt đầu TVVm', () => {

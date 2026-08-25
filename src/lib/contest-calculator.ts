@@ -71,6 +71,14 @@ export interface NYDData {
   contracts: Contract[];
 }
 
+export interface NYDPhaseOutcome {
+  value: number;
+  recruitCount: number;
+  baseIP: number;
+  bonus: number;
+  tier: BonusTier | null;
+}
+
 export interface StaffMember {
   id: string;
   nhom: string;
@@ -396,6 +404,73 @@ export function calculateActivityRoundBonusWithTiers(
     if (activityRounds >= tier.minFYP) return { tier, tierIndex: i };
   }
   return { tier: null, tierIndex: -1 };
+}
+
+/**
+ * Kết quả một giai đoạn của NTD. Với chỉ tiêu lượt, mức đạt dựa trên số lượt
+ * nhưng thưởng phần trăm luôn dựa trên toàn bộ IP của TVV do NTD tuyển (và IP
+ * cá nhân NTD khi được bật), giống cách tính của TVV/Nhóm.
+ */
+export function calculateNYDPhaseOutcome(
+  contracts: Contract[],
+  nydCode: string,
+  tiers: BonusTier[],
+  conditionType: ConditionType,
+  includeIndividualNTD: boolean,
+  luotThreshold: number,
+  tvv90MaxMonths?: number,
+  tvv90MinIP?: number,
+  structureStartDates?: ReadonlyMap<string, string | null>
+): NYDPhaseOutcome {
+  const recruitedContracts = contracts.filter(
+    contract => contract.maDaiLyTD === nydCode && contract.agentCode !== nydCode
+  );
+  const ownContracts = includeIndividualNTD
+    ? contracts.filter(contract => contract.agentCode === nydCode)
+    : [];
+  const relevantContracts = [...recruitedContracts, ...ownContracts];
+  const baseIP = relevantContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
+
+  if (isActivityRoundMode(conditionType)) {
+    const value = filterQualifyingActivityContracts(
+      relevantContracts,
+      luotThreshold,
+      conditionType,
+      tvv90MaxMonths,
+      tvv90MinIP,
+      structureStartDates
+    ).length;
+    const { tier } = calculateActivityRoundBonusWithTiers(value, tiers);
+    return {
+      value,
+      recruitCount: value,
+      baseIP,
+      bonus: tier ? computeBonusFromTier(tier, baseIP, value) : 0,
+      tier,
+    };
+  }
+
+  const useAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
+  const metricOf = (contract: Contract): number => useAFYP ? contract.afyp : contract.pdt10DT;
+  const value = relevantContracts.reduce((sum, contract) => sum + metricOf(contract), 0);
+  const recruitedByAgent = new Map<string, number>();
+  for (const contract of recruitedContracts) {
+    recruitedByAgent.set(
+      contract.agentCode,
+      (recruitedByAgent.get(contract.agentCode) || 0) + metricOf(contract)
+    );
+  }
+  const recruitCount = [...recruitedByAgent.values()]
+    .filter(agentValue => agentValue >= luotThreshold)
+    .length;
+  const { tier } = calculateBonusWithTiers(value, tiers);
+  return {
+    value,
+    recruitCount,
+    baseIP,
+    bonus: tier ? computeBonusFromTier(tier, value, recruitCount) : 0,
+    tier,
+  };
 }
 
 export function hasPercentBonus(tiers: BonusTier[]): boolean {
