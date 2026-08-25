@@ -1,0 +1,54 @@
+/* NMC KPI black-wood theme v2 */
+html body .kpi-app.kpi-app.kpi-app,
+html[data-kpi-embed='1'] body,
+body.nmc-kpi-linked-page,
+html body [aria-label='Đang tải dữ liệu KPI'],
+html body [aria-label='Tải dữ liệu gặp lỗi'] {
+  background-color:#08090b !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(0,0,0,.03) 0%, rgba(0,0,0,.34) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.18), rgba(0,0,0,.34)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.018) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(135deg, #111315 0 46px, #0b0d0f 46px 92px, #151719 92px 138px, #090b0d 138px 184px) !important;
+  background-repeat:no-repeat,no-repeat,repeat,repeat !important;
+  background-position:center,center,center,center !important;
+  background-size:cover,cover,auto,260px 260px !important;
+  background-attachment:scroll !important;
+}
+html body .kpi-app.kpi-app.kpi-app::before,
+html body .kpi-app.kpi-app.kpi-app::after {
+  content:'' !important;
+  display:block !important;
+  position:fixed !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+  width:min(42vw,260px) !important;
+  height:min(24vh,180px) !important;
+  opacity:.38 !important;
+  filter:drop-shadow(0 0 4px rgba(130,230,255,.32)) !important;
+  background:
+    linear-gradient(150deg, transparent 0 25%, rgba(150,235,255,.70) 25.5% 26%, transparent 26.5% 42%, rgba(80,160,255,.44) 42.5% 43%, transparent 43.5% 100%),
+    linear-gradient(165deg, transparent 0 38%, rgba(210,250,255,.36) 38.5% 39%, transparent 39.5% 58%, rgba(90,190,255,.34) 58.5% 59%, transparent 59.5% 100%) !important;
+}
+html body .kpi-app.kpi-app.kpi-app::before{top:0 !important;left:0 !important;}
+html body .kpi-app.kpi-app.kpi-app::after{right:0 !important;bottom:0 !important;transform:rotate(180deg) !important;}
+html body [aria-label='Đang tải dữ liệu KPI']{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div{
+  max-width:330px !important;border-radius:18px !important;border:1px solid rgba(117,243,190,.30) !important;
+  background:linear-gradient(145deg,rgba(13,15,16,.96),rgba(4,5,6,.96)) !important;
+  box-shadow:0 22px 60px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.05),0 0 28px rgba(54,235,158,.08) !important;
+}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(2),
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>div:nth-child(2){position:relative !important;width:92px !important;height:92px !important;color:transparent !important;background:#080a0b !important;border:1px solid rgba(88,245,176,.28) !important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(2) svg,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>div:nth-child(2) svg{display:none !important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(2)::after,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>div:nth-child(2)::after{content:'N•M•C';position:absolute;inset:0;display:grid;place-items:center;color:#58efaa;font:900 24px/1 'Outfit',system-ui,sans-serif;letter-spacing:.08em;text-shadow:0 0 10px rgba(88,239,170,.52),0 0 24px rgba(88,239,170,.22);}
+@keyframes nmc-blackwood-loader-progress{0%{transform:scaleX(.04);opacity:.55}45%{transform:scaleX(.58);opacity:.92}78%{transform:scaleX(.84);opacity:1}100%{transform:scaleX(1);opacity:1}}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader{background:rgba(0,0,0,.28) !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span{width:min(88vw,560px) !important;min-height:116px !important;border:1px solid rgba(104,240,185,.34) !important;border-radius:16px !important;background:linear-gradient(135deg,rgba(13,15,16,.97),rgba(5,6,7,.97)) !important;box-shadow:0 20px 54px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.05),0 0 26px rgba(76,231,169,.07) !important;}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::before{content:'N•M•C   Đang tải dữ liệu' !important;inset:0 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:0 22px 24px !important;color:#f4f7f5 !important;background:none !important;font:800 clamp(18px,4.4vw,25px)/1.2 'Outfit',system-ui,sans-serif !important;}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::after{content:'' !important;left:24px !important;right:24px !important;top:auto !important;bottom:24px !important;height:5px !important;border-radius:999px !important;transform-origin:left center !important;background:linear-gradient(90deg,#1f8f64 0%,#46d79d 54%,#92f0c9 100%) !important;box-shadow:0 0 12px rgba(70,215,157,.26) !important;animation:nmc-blackwood-loader-progress 2.65s cubic-bezier(.2,.7,.2,1) both !important;}
+html[data-kpi-embed='1'] body>main,body.nmc-kpi-linked-page>main{background-color:transparent !important;}
+@media(max-width:720px){html body .kpi-app.kpi-app.kpi-app #view-main>header,html body .kpi-app.kpi-app.kpi-app #view-detail.active>.detail-shell>.sub-header,html body .kpi-app.kpi-app.kpi-app #view-calendar.active>.sub-header{background:linear-gradient(180deg,rgba(8,10,11,.92),rgba(7,9,10,.84)) !important;backdrop-filter:blur(10px) saturate(105%) !important;-webkit-backdrop-filter:blur(10px) saturate(105%) !important;}}
