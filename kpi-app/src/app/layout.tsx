@@ -38,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
+        <link rel="stylesheet" href="/kpi-blackwood-theme-v3.css?v=20260825-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
