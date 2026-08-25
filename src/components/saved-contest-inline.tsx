@@ -95,26 +95,26 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const [nameFilter, setNameFilter] = useState('');
   // Danh sáº¡ch card táº£i nhanh khÃ´ng kÃ¨m base64 poster. Khi má»Ÿ chi tiáº¿t,
   // láº¥y poster cá»§a Ä‘Ãºng chÆ°Æ¡ng trÃ¬nh nÃ y tá»« server Ä‘á»ƒ khÃ´ng bao giá» máº¥t áº£nh.
-  const [posterUrl, setPosterUrl] = useState<string>(contest?.posterUrl || '');
+  const suppliedPosterUrl = contest?.posterUrl || '';
+  const [fetchedPoster, setFetchedPoster] = useState<{ contestId: string; url: string } | null>(null);
+  const posterUrl = suppliedPosterUrl
+    || (fetchedPoster && fetchedPoster.contestId === contest?.id ? fetchedPoster.url : '');
 
   useEffect(() => {
-    const initialPoster = contest?.posterUrl || '';
-    if (initialPoster) {
-      setPosterUrl(initialPoster);
-      return;
-    }
+    if (suppliedPosterUrl) return;
     if (!contest?.id) return;
+    const contestId = contest.id;
     let cancelled = false;
-    fetch(`/api/contests?id=${encodeURIComponent(contest.id)}`, { cache: 'no-store' })
+    fetch(`/api/contests?id=${encodeURIComponent(contestId)}`, { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
       .then((detail) => {
-        if (!cancelled) setPosterUrl(detail?.posterUrl || '');
+        if (!cancelled) setFetchedPoster({ contestId, url: detail?.posterUrl || '' });
       })
       .catch(() => {
-        if (!cancelled) setPosterUrl('');
+        if (!cancelled) setFetchedPoster({ contestId, url: '' });
       });
     return () => { cancelled = true; };
-  }, [contest?.id, contest?.posterUrl]);
+  }, [contest?.id, suppliedPosterUrl]);
 
   // Parse contest into config
   const config = useMemo<ContestConfig>(() => parseContestConfig(contest), [contest]);
@@ -582,7 +582,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           value = 0;
         } else if (isActivity) {
           value = g.activityRounds;
-        } else if (config.conditionType === 'total_afyp') {
+        } else if (config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp') {
           value = g.totalAFYP;
         } else {
           value = g.totalFYP;
@@ -613,7 +613,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Contracts.reduce((s, c) => s + c.pdt10DT, 0), p1Rounds) : 0;
             phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Contracts.reduce((s, c) => s + c.pdt10DT, 0), p2Rounds) : 0;
           } else {
-            const isAFYPLocal = config.conditionType === 'total_afyp';
+            const isAFYPLocal = config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp';
             const p1Value = isAFYPLocal ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
             const p2Value = isAFYPLocal ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
             const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
@@ -747,7 +747,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     });
     const baseValueLabel = isActivity
       ? getConditionLabel(config.conditionType)
-      : config.conditionType === 'total_afyp'
+      : config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp'
         ? 'TỔNG AFYP TUYỂN'
         : 'TỔNG IP TUYỂN';
     const valueLabel = includeIndividualNTD ? 'TỔNG CỘNG' : baseValueLabel;
