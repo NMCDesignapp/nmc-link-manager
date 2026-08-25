@@ -41,6 +41,11 @@ const sharedCopies = [
     label: 'kpi-app/src/app/template.tsx',
   },
   {
+    source: path.join(root, 'src', 'components', 'app-loader.tsx'),
+    target: path.join(root, 'kpi-app', 'src', 'components', 'app-loader.tsx'),
+    label: 'kpi-app/src/components/app-loader.tsx',
+  },
+  {
     source: path.join(root, 'src', 'components', 'embedded-program-data-loader.tsx'),
     target: path.join(root, 'kpi-app', 'src', 'components', 'embedded-program-data-loader.tsx'),
     label: 'kpi-app/src/components/embedded-program-data-loader.tsx',
@@ -59,6 +64,11 @@ const sharedCopies = [
     source: path.join(root, 'public', 'nmc-tech-bg-v3.webp'),
     target: path.join(root, 'kpi-app', 'public', 'nmc-tech-bg-v3.webp'),
     label: 'kpi-app/public/nmc-tech-bg-v3.webp',
+  },
+  {
+    source: path.join(root, 'public', 'nmc-black-wood-bg.jpg'),
+    target: path.join(root, 'kpi-app', 'public', 'nmc-black-wood-bg.jpg'),
+    label: 'kpi-app/public/nmc-black-wood-bg.jpg',
   },
   {
     source: path.join(root, 'public', 'kpi-tech-logo.webp'),
@@ -117,10 +127,14 @@ function sameFile(source, target) {
   return fs.existsSync(target) && fs.readFileSync(source).equals(fs.readFileSync(target))
 }
 
+function normalizeText(value) {
+  return value.replace(/\r\n/g, '\n')
+}
+
 function verify() {
   const mismatches = []
 
-  if (!fs.existsSync(standalonePage) || fs.readFileSync(standalonePage, 'utf8') !== expectedStandalonePage()) {
+  if (!fs.existsSync(standalonePage) || normalizeText(fs.readFileSync(standalonePage, 'utf8')) !== normalizeText(expectedStandalonePage())) {
     mismatches.push('kpi-app/src/app/page.tsx')
   }
 

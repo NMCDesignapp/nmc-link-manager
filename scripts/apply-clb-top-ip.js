@@ -4,7 +4,9 @@ const path = require('path');
 const filePath = path.join(process.cwd(), 'src/app/clb-sao-viet/page.tsx');
 const marker = '// nmc-clb-top-ip-v1';
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
-let source = fs.readFileSync(filePath, 'utf8');
+const original = fs.readFileSync(filePath, 'utf8');
+const newline = original.includes('\r\n') ? '\r\n' : '\n';
+let source = original.replace(/\r\n/g, '\n');
 if (source.includes(marker)) {
   console.log('✓ CLB Top IP already applied.');
   process.exit(0);
@@ -32,5 +34,5 @@ const topFolder = `${titleFolderAnchor}\n\n        <AssessmentFolder\n          
 if (!source.includes(titleFolderAnchor)) throw new Error('Không tìm thấy anchor Mục 4 Xét danh hiệu CLB');
 source = source.replace(titleFolderAnchor, topFolder);
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ CLB Top IP applied: Mục 5, tháng liền trước, Ngày PH, ngưỡng 80 triệu, Top 3.');

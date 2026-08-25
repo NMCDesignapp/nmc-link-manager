@@ -143,10 +143,14 @@ for (const filePath of [quanLyPath, savedContestPath]) {
   if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
 }
 
-const quanLy = patchQuanLy(fs.readFileSync(quanLyPath, 'utf8'));
-const savedContest = patchSavedContest(fs.readFileSync(savedContestPath, 'utf8'));
+const quanLyOriginal = fs.readFileSync(quanLyPath, 'utf8');
+const savedContestOriginal = fs.readFileSync(savedContestPath, 'utf8');
+const quanLyNewline = quanLyOriginal.includes('\r\n') ? '\r\n' : '\n';
+const savedContestNewline = savedContestOriginal.includes('\r\n') ? '\r\n' : '\n';
+const quanLy = patchQuanLy(quanLyOriginal.replace(/\r\n/g, '\n'));
+const savedContest = patchSavedContest(savedContestOriginal.replace(/\r\n/g, '\n'));
 
-fs.writeFileSync(quanLyPath, quanLy, 'utf8');
-fs.writeFileSync(savedContestPath, savedContest, 'utf8');
+fs.writeFileSync(quanLyPath, quanLy.replace(/\n/g, quanLyNewline), 'utf8');
+fs.writeFileSync(savedContestPath, savedContest.replace(/\n/g, savedContestNewline), 'utf8');
 
 console.log('✓ KPI linked pages: dropdown đa nhóm tự đóng khi bấm ra ngoài + có dấu ✓ cho nhóm đã chọn.');

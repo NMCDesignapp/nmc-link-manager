@@ -13,6 +13,32 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
   display: none !important;
   animation: none !important;
 }
+
+/* Ba trang mở từ KPI dùng nền gỗ đen đã chốt, không ảnh hưởng /quan-ly độc lập. */
+html[data-kpi-embed='1'],
+html[data-kpi-embed='1'] body,
+html.nmc-kpi-linked-page,
+html.nmc-kpi-linked-page body {
+  min-height: 100%;
+  background-color: #080909 !important;
+  background-image:
+    linear-gradient(180deg, rgba(1, 5, 8, .16), rgba(1, 5, 8, .38)),
+    url('/nmc-black-wood-bg.jpg') !important;
+  background-repeat: repeat !important;
+  background-position: center top !important;
+  background-size: 776px auto !important;
+  background-attachment: fixed !important;
+}
+
+@media (max-width: 720px) {
+  html[data-kpi-embed='1'],
+  html[data-kpi-embed='1'] body,
+  html.nmc-kpi-linked-page,
+  html.nmc-kpi-linked-page body {
+    background-size: 100% auto !important;
+    background-attachment: scroll !important;
+  }
+}
 `;
 
 const KPI_EMBED_DETECTOR = `

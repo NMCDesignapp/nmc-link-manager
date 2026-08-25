@@ -41,7 +41,9 @@ for (const filePath of targets) {
     throw new Error(`[KPI perf] Missing ${filePath}`)
   }
 
-  let source = fs.readFileSync(filePath, 'utf8')
+  const original = fs.readFileSync(filePath, 'utf8')
+  const newline = original.includes('\r\n') ? '\r\n' : '\n'
+  let source = original.replace(/\r\n/g, '\n')
   let fileChanged = false
 
   if (!source.includes(newHydrationBlock)) {
@@ -75,7 +77,7 @@ for (const filePath of targets) {
   }
 
   if (fileChanged) {
-    fs.writeFileSync(filePath, source, 'utf8')
+    fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8')
     changed += 1
   }
 }

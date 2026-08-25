@@ -56,6 +56,13 @@ const original = fs.readFileSync(templatePath, 'utf8');
 const newline = original.includes('\r\n') ? '\r\n' : '\n';
 let source = original.replace(/\r\n/g, '\n');
 
+// The black-wood design supersedes the historical v3 technology background.
+// Keep this legacy helper harmless when older operational notes invoke it.
+if (source.includes('/* nmc-black-wood-background-v1 */')) {
+  console.log('✓ Unified background: KPI đang dùng nền gỗ đen mới.');
+  process.exit(0);
+}
+
 const alreadyDesired =
   source.includes(MARKER) &&
   source.includes("url('/nmc-tech-bg-v3.webp') !important;") &&

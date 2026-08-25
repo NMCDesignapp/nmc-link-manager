@@ -241,7 +241,9 @@ function assertNoTransparencyOutsideButtons(source, file) {
 
 for (const file of TARGETS) {
   if (!fs.existsSync(file)) throw new Error(`[CLB solid compact] Không tìm thấy ${file}`);
-  let source = fs.readFileSync(file, 'utf8');
+  const original = fs.readFileSync(file, 'utf8');
+  const newline = original.includes('\r\n') ? '\r\n' : '\n';
+  let source = original.replace(/\r\n/g, '\n');
 
   // Remove the translucent decorative page overlay entirely; the page already has a solid base background.
   if (file === 'src/app/clb-sao-viet/page.tsx') {
@@ -267,7 +269,7 @@ for (const file of TARGETS) {
     source = `${source.trimEnd()}\n\n// ${MARKER}\n`;
   }
 
-  fs.writeFileSync(file, source, 'utf8');
+  fs.writeFileSync(file, source.replace(/\n/g, newline), 'utf8');
   console.log(`✓ CLB solid/compact v2 applied: ${file}`);
 }
 

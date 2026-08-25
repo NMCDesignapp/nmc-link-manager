@@ -8,7 +8,9 @@ if (!fs.existsSync(filePath)) {
   throw new Error(`Không tìm thấy ${filePath}`);
 }
 
-let source = fs.readFileSync(filePath, 'utf8');
+const original = fs.readFileSync(filePath, 'utf8');
+const newline = original.includes('\r\n') ? '\r\n' : '\n';
+let source = original.replace(/\r\n/g, '\n');
 if (source.includes(marker)) {
   console.log('✓ CLB post-assessment entry title already applied.');
   process.exit(0);
@@ -44,5 +46,5 @@ for (const [from, to] of replacements) {
   source = source.replace(from, to);
 }
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ CLB post-assessment Excel title/period applied.');

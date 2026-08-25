@@ -4,7 +4,9 @@ const path = require('path');
 const filePath = path.join(process.cwd(), 'src/app/clb-sao-viet/page.tsx');
 const marker = '// nmc-clb-title-assessment-v1';
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
-let source = fs.readFileSync(filePath, 'utf8');
+const original = fs.readFileSync(filePath, 'utf8');
+const newline = original.includes('\r\n') ? '\r\n' : '\n';
+let source = original.replace(/\r\n/g, '\n');
 if (source.includes(marker)) {
   console.log('✓ CLB title assessment already applied.');
   require('./apply-clb-top-ip.js');
@@ -34,7 +36,7 @@ const folderInsert = `${folderAnchor}\n\n        <AssessmentFolder\n          ti
 if (!source.includes(folderAnchor)) throw new Error('Không tìm thấy anchor DS thành viên Mục 3');
 source = source.replace(folderAnchor, folderInsert);
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ CLB title assessment applied: Mục 4 + 3 chương trình.');
 require('./apply-clb-top-ip.js');
 require('./apply-multi-group-filters.js');

@@ -19,7 +19,9 @@ const filePath = path.join(repoRoot, 'src/app/kpi/page.tsx');
 const MARKER = '// nmc-kpi-calendar-rooms-v4';
 
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
-let source = fs.readFileSync(filePath, 'utf8');
+const original = fs.readFileSync(filePath, 'utf8');
+const newline = original.includes('\r\n') ? '\r\n' : '\n';
+let source = original.replace(/\r\n/g, '\n');
 
 if (source.includes(MARKER)) {
   console.log('✓ KPI Kế hoạch khung: tổng hợp Công ty + chi tiết phụ trách theo từng phòng đã được áp dụng.');
@@ -163,5 +165,5 @@ replaceOnce(
   'calendar mobile scope CSS'
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, newline), 'utf8');
 console.log('✓ KPI Kế hoạch khung: Công ty chỉ hiện cấp phòng; lịch phòng hiện đúng cán bộ phụ trách theo danh sách riêng.');

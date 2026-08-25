@@ -1,78 +1,155 @@
 import type { ReactNode } from 'react'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
-/* nmc-unified-tech-background-v3 */
-/* Nền độ phân giải cao dành riêng cho KPI; giữ nguyên các surface nội dung. */
+/* nmc-black-wood-background-v1 */
+/* Nền gỗ đen do người dùng chọn; giữ nguyên các surface nội dung. */
 html,
 body {
   min-height: 100%;
-  background-color: #050a12;
+  background-color: #080909;
   background-image:
-    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
-    url('/nmc-tech-bg-v3.webp');
-  background-repeat: no-repeat;
+    linear-gradient(180deg, rgba(1, 5, 8, .08), rgba(1, 5, 8, .22) 55%, rgba(1, 5, 8, .42)),
+    url('/nmc-black-wood-bg.jpg');
+  background-repeat: repeat;
   background-position: center top;
-  background-size: cover;
+  background-size: 776px auto;
   background-attachment: fixed;
 }
 
 html body .kpi-app.kpi-app {
   min-height: 100vh;
   isolation: isolate;
-  background-color: #050a12 !important;
+  background-color: #080909 !important;
   background-image:
-    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
-    url('/nmc-tech-bg-v3.webp') !important;
-  background-repeat: no-repeat !important;
-  background-position: center center !important;
-  background-size: cover !important;
+    linear-gradient(180deg, rgba(1, 5, 8, .08), rgba(1, 5, 8, .22) 55%, rgba(1, 5, 8, .42)),
+    url('/nmc-black-wood-bg.jpg') !important;
+  background-repeat: repeat !important;
+  background-position: center top !important;
+  background-size: 776px auto !important;
   background-attachment: fixed !important;
 }
 
-/* nmc-kpi-background-continuity-v1 */
-/* Loại bỏ trần/sàn vector cũ để asset v3 chạy liền mạch từ đầu đến cuối màn hình. */
-html body .kpi-app.kpi-app::before,
-html body .kpi-app.kpi-app::after,
+/* Loại bỏ các lớp vector cũ của loader; tia điện mới được vẽ ở .kpi-app. */
 html body [aria-label="Đang tải dữ liệu KPI"]::before,
 html body [aria-label="Đang tải dữ liệu KPI"]::after,
 html body [aria-label="Tải dữ liệu gặp lỗi"]::before,
-html body [aria-label="Tải dữ liệu gặp lỗi"]::after,
-html body .kpi-app.kpi-app > .app-wrap::before {
+html body [aria-label="Tải dữ liệu gặp lỗi"]::after {
   content: none !important;
   display: none !important;
 }
 
-/* Màn khởi động dùng đúng nền v3 thay cho nền cyber/vector cũ. */
+/* Hai cụm tia điện đối xứng, nằm sau nội dung và không nhận thao tác. */
+html body .kpi-app.kpi-app::before,
+html body .kpi-app.kpi-app::after {
+  content: '' !important;
+  display: block !important;
+  position: fixed;
+  z-index: 0;
+  width: min(48vw, 620px);
+  height: min(42vh, 420px);
+  pointer-events: none;
+  opacity: .52;
+  background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 420'%3E%3Cdefs%3E%3Cfilter id='g' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='5' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round' filter='url(%23g)'%3E%3Cpath d='M18 28 118 82 86 132 186 166 155 218 278 246 236 308 382 346' stroke='%2368e7ff' stroke-width='3.2'/%3E%3Cpath d='M52 6 152 62 132 104 228 132 204 184 330 211 294 270 458 306' stroke='%232ea8ff' stroke-width='1.8' opacity='.72'/%3E%3Cpath d='M8 92 83 128 62 174 148 201 120 253 222 278' stroke='%23a8f4ff' stroke-width='1.2' opacity='.58'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+html body .kpi-app.kpi-app::before { top: 0; right: auto; bottom: auto; left: 0; }
+html body .kpi-app.kpi-app::after { top: auto; right: 0; bottom: 0; left: auto; transform: rotate(180deg); }
+html body .kpi-app.kpi-app > .app-wrap { position: relative; z-index: 1; }
+
+/* Màn khởi động dùng cùng nền gỗ, không kéo giãn texture. */
 html body [aria-label="Đang tải dữ liệu KPI"],
 html body [aria-label="Tải dữ liệu gặp lỗi"] {
-  background-color: #050a12 !important;
+  background-color: #080909 !important;
   background-image:
-    linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
-    url('/nmc-tech-bg-v3.webp') !important;
-  background-repeat: no-repeat !important;
+    linear-gradient(180deg, rgba(1, 5, 8, .18), rgba(1, 5, 8, .38)),
+    url('/nmc-black-wood-bg.jpg') !important;
+  background-repeat: repeat !important;
   background-position: center top !important;
-  background-size: cover !important;
+  background-size: 776px auto !important;
   background-attachment: fixed !important;
 }
 
-/* Ba trang nhúng từ KPI dùng liền mạch cùng nền v3, kể cả lúc iframe đang tải. */
+/* Ba trang nhúng từ KPI dùng liền mạch cùng nền gỗ, kể cả lúc iframe đang tải. */
 html body .kpi-app.kpi-app .kpi-embed-overlay,
 html body .kpi-app.kpi-app .kpi-embed-body,
 html body .kpi-app.kpi-app .kpi-embed-iframe,
 html body .kpi-app.kpi-app .kpi-embed-loader {
-  background-color: #050a12 !important;
+  background-color: #080909 !important;
   background-image:
-    linear-gradient(180deg, rgba(2, 7, 15, .12), rgba(2, 7, 15, .05) 42%, rgba(2, 7, 15, .18)),
-    url('/nmc-tech-bg-v3.webp') !important;
-  background-repeat: no-repeat !important;
-  background-position: center center !important;
-  background-size: cover !important;
+    linear-gradient(180deg, rgba(1, 5, 8, .18), rgba(1, 5, 8, .34)),
+    url('/nmc-black-wood-bg.jpg') !important;
+  background-repeat: repeat !important;
+  background-position: center top !important;
+  background-size: 776px auto !important;
   background-attachment: fixed !important;
 }
 
 html body .kpi-app.kpi-app .kpi-embed-loader {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Loader dùng chung cho Thi đua / Chính sách / CLB, tự chứa để standalone không
+   phải nạp toàn bộ stylesheet Main (tránh làm lộ cả layout mobile trên desktop). */
+@keyframes nmc-black-wood-loader-progress {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader {
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader::before,
+html body .kpi-app.kpi-app .kpi-embed-loader::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader > span {
+  position: relative !important;
+  display: block !important;
+  width: min(88vw, 640px) !important;
+  min-height: 132px !important;
+  overflow: hidden !important;
+  border: 1.5px solid rgba(45, 211, 255, .82) !important;
+  border-radius: 24px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  background:
+    linear-gradient(rgba(12, 25, 30, .92), rgba(12, 25, 30, .92)) 132px 86px / calc(100% - 160px) 7px no-repeat,
+    linear-gradient(112deg, rgba(13, 20, 22, .97), rgba(5, 8, 9, .98)) !important;
+  box-shadow: 0 0 22px rgba(14, 175, 255, .22), inset 0 0 32px rgba(15, 127, 223, .08) !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader > span::before {
+  content: 'Đang tải dữ liệu';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 28px 30px 132px;
+  color: #f3f7ff;
+  font-size: clamp(21px, 3.2vw, 29px);
+  line-height: 1.1;
+  background:
+    radial-gradient(circle at 67px 66px, rgba(20, 213, 255, .18), transparent 50px),
+    url('/kpi-tech-logo.webp') 25px center / 82px 82px no-repeat;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
+  content: '';
+  position: absolute;
+  left: 132px;
+  right: 28px;
+  top: 86px;
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ef4444, #facc15 48%, #22c55e 82%, #06b6d4);
+  box-shadow: 0 0 10px rgba(52, 211, 153, .28);
+  animation: nmc-black-wood-loader-progress 2.6s cubic-bezier(.22,.74,.25,1) forwards;
 }
 
 .kpi-app .bg-scene,
@@ -126,21 +203,52 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
 @media (max-width: 720px) {
   html,
   body {
-    background-color: #050a12 !important;
+    background-color: #080909 !important;
     background-image:
-      linear-gradient(180deg, rgba(2, 7, 15, .10), rgba(2, 7, 15, .04) 42%, rgba(2, 7, 15, .16)),
-      url('/nmc-tech-bg-v3.webp') !important;
-    background-repeat: no-repeat !important;
+      linear-gradient(180deg, rgba(1, 5, 8, .08), rgba(1, 5, 8, .24) 55%, rgba(1, 5, 8, .42)),
+      url('/nmc-black-wood-bg.jpg') !important;
+    background-repeat: repeat !important;
     background-position: center top !important;
-    background-size: cover !important;
+    background-size: 100% auto !important;
     background-attachment: scroll !important;
   }
 
   html body .kpi-app.kpi-app {
     overflow-x: clip !important;
-    background-size: cover !important;
+    background-size: 100% auto !important;
     background-position: center top !important;
     background-attachment: scroll !important;
+  }
+
+  html body .kpi-app.kpi-app::before,
+  html body .kpi-app.kpi-app::after {
+    width: 88vw;
+    height: 250px;
+    opacity: .40;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-loader > span {
+    width: min(94vw, 520px) !important;
+    min-height: 112px !important;
+    border-radius: 20px !important;
+    background:
+      linear-gradient(rgba(12, 25, 30, .92), rgba(12, 25, 30, .92)) 104px 74px / calc(100% - 126px) 6px no-repeat,
+      linear-gradient(112deg, rgba(13, 20, 22, .97), rgba(5, 8, 9, .98)) !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-loader > span::before {
+    padding: 0 18px 26px 104px;
+    font-size: clamp(18px, 5.4vw, 23px);
+    background:
+      radial-gradient(circle at 53px 56px, rgba(20, 213, 255, .16), transparent 41px),
+      url('/kpi-tech-logo.webp') 18px center / 68px 68px no-repeat;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
+    left: 104px;
+    right: 22px;
+    top: 74px;
+    height: 6px;
   }
 
   html body .kpi-app.kpi-app .kpi-embed-overlay,
