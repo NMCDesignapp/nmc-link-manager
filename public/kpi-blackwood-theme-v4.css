@@ -1,0 +1,43 @@
+/* NMC KPI black-wood theme v4 — heartbeat identity + restored round logo */
+@keyframes nmc-heartbeat-reveal{0%{clip-path:inset(0 100% 0 0);opacity:.45}45%{clip-path:inset(0 38% 0 0);opacity:.9}100%{clip-path:inset(0 0 0 0);opacity:1}}
+
+/* Replace lightning corners with ECG lines. Top enters from right; bottom enters from left. */
+html body .kpi-app.kpi-app.kpi-app::before,
+html body .kpi-app.kpi-app.kpi-app::after{
+  content:''!important;display:block!important;position:fixed!important;z-index:0!important;pointer-events:none!important;
+  width:min(62vw,420px)!important;height:100px!important;opacity:.50!important;filter:none!important;background-repeat:no-repeat!important;background-size:100% 100%!important;
+}
+html body .kpi-app.kpi-app.kpi-app::before{
+  top:12px!important;right:0!important;left:auto!important;bottom:auto!important;
+  background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MjAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgNDIwIDEwMCI+PGRlZnM+PGZpbHRlciBpZD0iZyI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMS41IiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxnIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI2cpIj48cGF0aCBkPSJNNDE4IDUxIEgzNTAgTDMzNCA1MSBMMzI0IDM5IEwzMTUgNjggTDMwMiAyMCBMMjg5IDc4IEwyNzggNTEgSDI0MiIgc3Ryb2tlPSIjOGNlZmZmIiBzdHJva2Utb3BhY2l0eT0iLjcyIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjQyIDUxIEgyMTQiIHN0cm9rZT0iIzcyZDlmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48L2c+PHRleHQgeD0iMTc0IiB5PSI2MSIgZmlsbD0iIzljZjNmZiIgZmlsbC1vcGFjaXR5PSIuODIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBsZXR0ZXItc3BhY2luZz0iMiI+TkM8L3RleHQ+PHBhdGggZD0iTTE2NCA1MSBIMTI2IEwxMTYgNDIgTDEwOCA2MSBMOTcgMzEgTDg2IDcwIEw3NiA1MSBIMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY3Y2NmZiIgc3Ryb2tlLW9wYWNpdHk9Ii41MiIgc3Ryb2tlLXdpZHRoPSIxLjYiIGZpbHRlcj0idXJsKCNnKSIvPjwvc3ZnPg==")!important;
+}
+html body .kpi-app.kpi-app.kpi-app::after{
+  left:0!important;bottom:10px!important;right:auto!important;top:auto!important;transform:none!important;
+  background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MjAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgNDIwIDEwMCI+PGRlZnM+PGZpbHRlciBpZD0iZyI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMS41IiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxwYXRoIGQ9Ik0yIDUxIEg3MCBMODYgNTEgTDk2IDM5IEwxMDUgNjggTDExOCAyMCBMMTMxIDc4IEwxNDIgNTEgSDE3OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGNlZmZmIiBzdHJva2Utb3BhY2l0eT0iLjcyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI2cpIi8+PHBhdGggZD0iTTE3OCA1MSBIMjA2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3MmQ5ZmYiIHN0cm9rZS1vcGFjaXR5PSIuNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+PHRleHQgeD0iMjE0IiB5PSI2MSIgZmlsbD0iIzljZjNmZiIgZmlsbC1vcGFjaXR5PSIuODIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBsZXR0ZXItc3BhY2luZz0iMiI+TkM8L3RleHQ+PHBhdGggZD0iTTI2MCA1MSBIMjk4IEwzMDggNDIgTDMxNiA2MSBMMzI3IDMxIEwzMzggNzAgTDM0OCA1MSBINDA2IiBmaWxsPSJub25lIiBzdHJva2U9IiM2N2NjZmYiIHN0cm9rZS1vcGFjaXR5PSIuNTIiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbHRlcj0idXJsKCNnKSIvPjwvc3ZnPg==")!important;
+}
+
+/* KPI initial loader: round logo -> AN GIANG KPI -> heartbeat progress -> loading text. */
+html body [aria-label='Đang tải dữ liệu KPI']>div,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div{padding:26px 24px 24px!important;text-align:center!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(1),
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>div:nth-child(1){display:none!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(2),
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>div:nth-child(2){width:86px!important;height:86px!important;margin:0 auto 14px!important;border-radius:50%!important;border:2px solid rgba(104,240,185,.44)!important;background:#070909 url('/icon/kpi-192.png') center/cover no-repeat!important;box-shadow:0 0 0 5px rgba(79,229,166,.06),0 0 24px rgba(79,229,166,.18)!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:nth-child(2)::after{content:none!important;display:none!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>h2,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>h2{font-size:0!important;margin:0!important;color:transparent!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>h2::after,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>h2::after{content:'AN GIANG KPI';display:block;color:#f4f7f5;font:900 24px/1.1 'Outfit',system-ui,sans-serif;letter-spacing:.07em;text-shadow:0 0 14px rgba(95,235,176,.16);}
+html body [aria-label='Đang tải dữ liệu KPI']>div>h2 + p,
+html body [aria-label='Tải dữ liệu gặp lỗi']>div>h2 + p{display:none!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:last-of-type{margin-top:12px!important;gap:4px!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:last-of-type::before{content:'';display:block;width:min(78vw,280px);height:44px;margin:0 auto 2px;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iNTIiIHZpZXdCb3g9IjAgMCAzMjAgNTIiPjxkZWZzPjxmaWx0ZXIgaWQ9ImciPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjEuMiIgcmVzdWx0PSJiIi8+PGZlTWVyZ2U+PGZlTWVyZ2VOb2RlIGluPSJiIi8+PGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+PC9mZU1lcmdlPjwvZmlsdGVyPjwvZGVmcz48cGF0aCBkPSJNMiAyNyBIODIgTDkyIDE5IEwxMDIgMzQgTDExNCA4IEwxMjYgNDMgTDEzOCAyNyBIMTkwIEwyMDAgMjEgTDIxMCAzMiBMMjIwIDE0IEwyMzIgMzcgTDI0NCAyNyBIMzE4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2M2VjYjAiIHN0cm9rZS13aWR0aD0iMi4zIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbHRlcj0idXJsKCNnKSIvPjwvc3ZnPg==") center/100% 100% no-repeat;transform-origin:left center;animation:nmc-heartbeat-reveal 2.6s cubic-bezier(.2,.7,.2,1) infinite;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:last-of-type>div{display:none!important;}
+html body [aria-label='Đang tải dữ liệu KPI']>div>div:last-of-type>p{margin-top:0!important;color:#d6ddd9!important;font-style:normal!important;font-weight:650!important;letter-spacing:.02em!important;}
+
+/* Linked pages loader: round logo on left, heartbeat to its right, loading text below. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span{min-height:126px!important;padding:0!important;}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::before{content:'Đang tải...'!important;position:absolute!important;inset:0!important;display:block!important;padding:82px 24px 0 118px!important;color:#e7ece9!important;text-align:left!important;font:750 17px/1.2 'Outfit',system-ui,sans-serif!important;letter-spacing:.01em!important;background:url('/icon/kpi-192.png') 24px 25px/72px 72px no-repeat!important;}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::after{content:''!important;position:absolute!important;left:116px!important;right:22px!important;top:28px!important;bottom:auto!important;height:48px!important;border-radius:0!important;background:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iNTIiIHZpZXdCb3g9IjAgMCAzMjAgNTIiPjxkZWZzPjxmaWx0ZXIgaWQ9ImciPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjEuMiIgcmVzdWx0PSJiIi8+PGZlTWVyZ2U+PGZlTWVyZ2VOb2RlIGluPSJiIi8+PGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+PC9mZU1lcmdlPjwvZGVmcz48cGF0aCBkPSJNMiAyNyBIODIgTDkyIDE5IEwxMDIgMzQgTDExNCA4IEwxMjYgNDMgTDEzOCAyNyBIMTkwIEwyMDAgMjEgTDIxMCAzMiBMMjIwIDE0IEwyMzIgMzcgTDI0NCAyNyBIMzE4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2M2VjYjAiIHN0cm9rZS13aWR0aD0iMi4zIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbHRlcj0idXJsKCNnKSIvPjwvc3ZnPg==") center/100% 100% no-repeat!important;box-shadow:none!important;transform-origin:left center!important;animation:nmc-heartbeat-reveal 2.65s cubic-bezier(.2,.7,.2,1) infinite!important;}
+
+@media(max-width:520px){html body .kpi-app.kpi-app.kpi-app::before,html body .kpi-app.kpi-app.kpi-app::after{width:72vw!important;height:82px!important;opacity:.42!important;}html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::before{padding-left:104px!important;background-position:18px 27px!important;background-size:64px 64px!important;}html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader>span::after{left:100px!important;}}
