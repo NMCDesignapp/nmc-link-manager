@@ -108,13 +108,15 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
           {/* nmc-kpi-loader-icon-safe */}
           <div className="nmc-kpi-loader-logo-safe relative mx-auto mb-5 flex h-[104px] w-[104px] items-center justify-center">
             <div className="nmc-kpi-loader-logo-safe-halo pointer-events-none absolute inset-[-17px] rounded-full" />
-            <div
-              className="relative z-10 h-[92px] w-[92px] overflow-hidden rounded-[23px]"
-              style={{ boxShadow: '0 0 0 3px rgba(255,255,255,.14), 0 0 28px rgba(95,214,255,.42), 0 0 48px rgba(78,230,169,.22)' }}
-            >
+            <div className="relative z-10 h-[94px] w-[94px] overflow-hidden rounded-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/kpi-tech-logo.webp" alt="KPI An Giang" className="block h-full w-full object-cover" />
-              <span className="nmc-kpi-loader-logo-safe-shine pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[34%]" />
+              <img
+                src="/kpi-tech-logo.webp"
+                alt="KPI An Giang"
+                className="block h-full w-full rounded-full object-cover"
+                style={{ clipPath: 'circle(48% at 50% 50%)' }}
+              />
+              <span className="nmc-kpi-loader-logo-safe-shine pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[34%] rounded-full" />
             </div>
           </div>
           <h2 className="text-[24px] font-black tracking-tight text-white">Tiến Độ Kinh Doanh</h2>
@@ -138,20 +140,21 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
             </div>
           ) : (
             <div className="mt-7 flex flex-col items-center gap-3">
-              <div
-                className="h-10 w-10 rounded-full"
-                style={{
-                  border: '3px solid rgba(91, 222, 164, .2)',
-                  borderTopColor: '#54e4a3',
-                  borderRightColor: '#86d8ff',
-                  animation: 'nmc-kpi-loader-spin .82s linear infinite',
-                }}
-              />
-              <p className="text-sm italic text-slate-300">Đang tải dữ liệu...</p>
+              <div className={`nmc-kpi-heartbeat-loader ${progress >= 100 ? 'is-complete' : ''}`} aria-hidden="true">
+                <svg viewBox="0 0 280 80" role="presentation">
+                  <path className="nmc-kpi-heartbeat-base" d="M2 40 H48 L62 40 L76 19 L92 64 L110 28 L126 40 H278" pathLength="1" />
+                  <path className="nmc-kpi-heartbeat-active" d="M2 40 H48 L62 40 L76 19 L92 64 L110 28 L126 40 H278" pathLength="1" />
+                </svg>
+              </div>
+              <p className="text-sm italic text-slate-300">{progress >= 100 ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}</p>
             </div>
           )}
           <style>{`
-            @keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }
+            @keyframes nmc-kpi-heartbeat-draw {
+              0% { stroke-dashoffset: 1; opacity: .34; }
+              68% { stroke-dashoffset: 0; opacity: 1; }
+              86%, 100% { stroke-dashoffset: 0; opacity: .28; }
+            }
             @keyframes nmc-kpi-loader-logo-pulse {
               0%, 100% { transform: scale(1); filter: brightness(1); }
               50% { transform: scale(1.035); filter: brightness(1.1); }
@@ -175,6 +178,29 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
               background: linear-gradient(90deg, transparent, rgba(255,255,255,.92), transparent);
               filter: blur(1px);
               animation: nmc-kpi-loader-logo-shine 2.6s ease-in-out infinite;
+            }
+            .nmc-kpi-heartbeat-loader { width: min(72vw, 280px); height: 64px; }
+            .nmc-kpi-heartbeat-loader svg { display: block; width: 100%; height: 100%; overflow: visible; }
+            .nmc-kpi-heartbeat-loader path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+            .nmc-kpi-heartbeat-base { stroke: rgba(77, 183, 221, .22); stroke-width: 3; }
+            .nmc-kpi-heartbeat-active {
+              stroke: #72e9ff;
+              stroke-width: 3.2;
+              stroke-dasharray: 1;
+              stroke-dashoffset: 1;
+              filter: drop-shadow(0 0 5px rgba(70, 220, 255, .88));
+              animation: nmc-kpi-heartbeat-draw 1.65s ease-in-out infinite;
+            }
+            .nmc-kpi-heartbeat-loader.is-complete .nmc-kpi-heartbeat-active {
+              stroke-dashoffset: 0;
+              opacity: 1;
+              animation: none;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .nmc-kpi-heartbeat-active { animation-duration: 3.2s; }
+              .nmc-kpi-loader-logo-safe,
+              .nmc-kpi-loader-logo-safe-halo,
+              .nmc-kpi-loader-logo-safe-shine { animation: none; }
             }
           `}</style>
         </div>

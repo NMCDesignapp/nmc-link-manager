@@ -110,9 +110,10 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
 
 /* Loader dùng chung cho Thi đua / Chính sách / CLB, tự chứa để standalone không
    phải nạp toàn bộ stylesheet Main (tránh làm lộ cả layout mobile trên desktop). */
-@keyframes nmc-black-wood-loader-progress {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+@keyframes nmc-linked-heartbeat-draw {
+  0% { clip-path: inset(0 100% 0 0); opacity: .38; }
+  68% { clip-path: inset(0 0 0 0); opacity: 1; }
+  86%, 100% { clip-path: inset(0 0 0 0); opacity: .28; }
 }
 
 html body .kpi-app.kpi-app .kpi-embed-loader {
@@ -129,46 +130,77 @@ html body .kpi-app.kpi-app .kpi-embed-loader::after {
 
 html body .kpi-app.kpi-app .kpi-embed-loader > span {
   position: relative !important;
-  display: block !important;
-  width: min(88vw, 640px) !important;
-  min-height: 132px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  width: min(88vw, 420px) !important;
+  min-height: 302px !important;
   overflow: hidden !important;
+  padding: 27px 28px 25px !important;
   border: 1.5px solid rgba(45, 211, 255, .82) !important;
   border-radius: 24px !important;
-  color: transparent !important;
-  font-size: 0 !important;
-  background:
-    linear-gradient(rgba(12, 25, 30, .92), rgba(12, 25, 30, .92)) 132px 86px / calc(100% - 160px) 7px no-repeat,
-    linear-gradient(112deg, rgba(13, 20, 22, .97), rgba(5, 8, 9, .98)) !important;
+  color: #f3f7ff !important;
+  font-size: 14px !important;
+  background: linear-gradient(145deg, rgba(9, 16, 20, .97), rgba(9, 12, 14, .98)) !important;
   box-shadow: 0 0 22px rgba(14, 175, 255, .22), inset 0 0 32px rgba(15, 127, 223, .08) !important;
 }
 
-html body .kpi-app.kpi-app .kpi-embed-loader > span::before {
-  content: 'Đang tải dữ liệu';
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  padding: 0 28px 30px 132px;
-  color: #f3f7ff;
-  font-size: clamp(21px, 3.2vw, 29px);
-  line-height: 1.1;
-  background:
-    radial-gradient(circle at 67px 66px, rgba(20, 213, 255, .18), transparent 50px),
-    url('/kpi-tech-logo.webp') 25px center / 82px 82px no-repeat;
+html body .kpi-app.kpi-app .kpi-embed-loader-card::before,
+html body .kpi-app.kpi-app .kpi-embed-loader-card::after {
+  content: none !important;
+  display: none !important;
 }
 
-html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
-  content: '';
-  position: absolute;
-  left: 132px;
-  right: 28px;
-  top: 86px;
-  height: 7px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #ef4444, #facc15 48%, #22c55e 82%, #06b6d4);
-  box-shadow: 0 0 10px rgba(52, 211, 153, .28);
-  animation: nmc-black-wood-loader-progress 2.6s cubic-bezier(.22,.74,.25,1) forwards;
+html body .kpi-app.kpi-app .kpi-embed-loader-logo {
+  display: block !important;
+  width: 96px !important;
+  height: 96px !important;
+  flex: 0 0 96px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  clip-path: circle(48% at 50% 50%);
+  background: url('/kpi-tech-logo.webp') center / 118% 118% no-repeat !important;
+  box-shadow: 0 0 28px rgba(95, 214, 255, .42), 0 0 48px rgba(78, 230, 169, .22) !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader-card > strong {
+  color: #fff !important;
+  font-size: clamp(22px, 3vw, 27px) !important;
+  font-weight: 900 !important;
+  line-height: 1.12 !important;
+  letter-spacing: -.02em !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat {
+  position: relative !important;
+  display: block !important;
+  width: min(72vw, 280px) !important;
+  height: 64px !important;
+  flex: 0 0 64px !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat::before,
+html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 280 80'%3E%3Cpath d='M2 40 H48 L62 40 L76 19 L92 64 L110 28 L126 40 H278' fill='none' stroke='%2372e9ff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat::before { opacity: .2 !important; }
+html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat::after {
+  filter: drop-shadow(0 0 5px rgba(70, 220, 255, .88));
+  animation: nmc-linked-heartbeat-draw 1.65s ease-in-out infinite;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-loader-card > em {
+  color: #cbd5e1 !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  font-style: italic !important;
 }
 
 .kpi-app .bg-scene,
@@ -256,27 +288,26 @@ html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
   html body .kpi-app.kpi-app::after { bottom: 4px; }
 
   html body .kpi-app.kpi-app .kpi-embed-loader > span {
-    width: min(94vw, 520px) !important;
-    min-height: 112px !important;
+    width: min(94vw, 360px) !important;
+    min-height: 276px !important;
+    padding: 23px 20px 21px !important;
     border-radius: 20px !important;
-    background:
-      linear-gradient(rgba(12, 25, 30, .92), rgba(12, 25, 30, .92)) 104px 74px / calc(100% - 126px) 6px no-repeat,
-      linear-gradient(112deg, rgba(13, 20, 22, .97), rgba(5, 8, 9, .98)) !important;
   }
 
-  html body .kpi-app.kpi-app .kpi-embed-loader > span::before {
-    padding: 0 18px 26px 104px;
-    font-size: clamp(18px, 5.4vw, 23px);
-    background:
-      radial-gradient(circle at 53px 56px, rgba(20, 213, 255, .16), transparent 41px),
-      url('/kpi-tech-logo.webp') 18px center / 68px 68px no-repeat;
+  html body .kpi-app.kpi-app .kpi-embed-loader-logo {
+    width: 84px !important;
+    height: 84px !important;
+    flex-basis: 84px !important;
   }
 
-  html body .kpi-app.kpi-app .kpi-embed-loader > span::after {
-    left: 104px;
-    right: 22px;
-    top: 74px;
-    height: 6px;
+  html body .kpi-app.kpi-app .kpi-embed-loader-card > strong {
+    font-size: clamp(20px, 6vw, 24px) !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-loader-heartbeat {
+    width: min(76vw, 248px) !important;
+    height: 58px !important;
+    flex-basis: 58px !important;
   }
 
   html body .kpi-app.kpi-app .kpi-embed-overlay,

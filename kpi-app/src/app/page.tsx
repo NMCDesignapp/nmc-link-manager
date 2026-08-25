@@ -5791,7 +5791,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="kpi-embed-body">
             {kpiEmbedLoading && (
               <div className="kpi-embed-loader" role="status" aria-live="polite">
-                <span>Đang tải nội dung...</span>
+                <span className="kpi-embed-loader-card">
+                  <span className="kpi-embed-loader-logo" aria-hidden="true" />
+                  <strong>Tiến Độ Kinh Doanh</strong>
+                  <span className="kpi-embed-loader-heartbeat" aria-hidden="true" />
+                  <em>Đang tải dữ liệu...</em>
+                </span>
               </div>
             )}
             <iframe
