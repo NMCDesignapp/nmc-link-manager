@@ -7,6 +7,7 @@ import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
+import { MaintenanceGate } from '@/components/maintenance-gate'
 import { AppDataProvider } from '@/lib/app-data-context'
 import './globals.css'
 
@@ -88,6 +89,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AppDataProvider>
             {children}
+            <MaintenanceGate />
             <HonourSpacingFix />
             <EmbeddedProgramDataLoader />
             <PwaInstallPrompt />
