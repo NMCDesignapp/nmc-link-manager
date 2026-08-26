@@ -41,6 +41,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-blackwood-theme-v3.css?v=20260825-1" />
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v4.css?v=20260825-2" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v5.css?v=20260826-1" />
+        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v6.css?v=20260826-2" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
