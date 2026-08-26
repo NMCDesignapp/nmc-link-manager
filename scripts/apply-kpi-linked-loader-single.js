@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const KPI_LINKED_MIN_VISIBLE_MS = 3000;
+const KPI_LINKED_MIN_VISIBLE_MS = 3200;
 
 // Patch both sources because standalone prebuild first syncs the Main KPI page into
 // kpi-app/src/app/page.tsx, then this script runs. Main production builds use
@@ -27,9 +27,10 @@ for (const kpiPagePath of kpiPagePaths) {
   }
 
   // Keep the linked iframe completely invisible while the category popup is active.
-  // The progress bar reaches 100% at ~2.6s; we keep the popup for at least 3.0s,
-  // and also wait for the iframe onLoad event. Therefore the user never sees any
-  // child-page startup state underneath the parent popup.
+  // The bright ECG reaches 100% at ~2.82s (theme v11). We keep the popup for at
+  // least 3.2s and also wait for the iframe onLoad event. This guarantees that the
+  // signal visibly reaches the right endpoint and holds its final gold glow before
+  // the linked page is revealed.
   const loadingStateLine = '  const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);';
   const refMarker = 'kpiEmbedStartedAtRef';
   if (!source.includes(refMarker)) {
@@ -66,7 +67,7 @@ for (const kpiPagePath of kpiPagePaths) {
   }
 
   fs.writeFileSync(kpiPagePath, source, 'utf8');
-  console.log(`✓ KPI linked pages: popup đủ 100% rồi mới hiện iframe (${path.relative(path.resolve(__dirname, '..'), kpiPagePath)}).`);
+  console.log(`✓ KPI linked pages: ECG đủ 100% rồi mới hiện iframe (${path.relative(path.resolve(__dirname, '..'), kpiPagePath)}).`);
 }
 
 // Level 2 loader is intentionally kept for individual program clicks. The
@@ -91,4 +92,4 @@ for (const embeddedLoaderPath of embeddedLoaderPaths) {
   console.log(`✓ KPI linked pages: giữ spinner + “Đang tải dữ liệu...” cho từng chương trình (${path.relative(path.resolve(__dirname, '..'), embeddedLoaderPath)}).`);
 }
 
-console.log('✓ KPI linked pages: popup ngang cho cấp trang; spinner đơn cho cấp chương trình.');
+console.log('✓ KPI linked pages: popup ngang 100% + glow cho cấp trang; spinner đơn cho cấp chương trình.');
