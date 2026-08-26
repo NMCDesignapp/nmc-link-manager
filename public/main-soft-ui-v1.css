@@ -1,0 +1,250 @@
+/* NC-Link Main Home — graphite soft-3D theme inspired by premium finance dashboards.
+ * Scoped strictly to the home command center by the N·M·C logo marker.
+ * KPI, kpi-app and Sao Viet full-route pages are intentionally untouched.
+ */
+
+@supports selector(body:has(*)) {
+  body:has([aria-label='N M C']) {
+    --nmc-bg: #aeb0b5;
+    --nmc-shell: #2f333c;
+    --nmc-shell-2: #343943;
+    --nmc-card: #383d47;
+    --nmc-card-light: #414751;
+    --nmc-inset: #292e36;
+    --nmc-line: rgba(255,255,255,.065);
+    --nmc-text: #f3f5f7;
+    --nmc-muted: #aeb5bf;
+    --nmc-accent: #55d6a8;
+    --nmc-accent-2: #35b98c;
+    --nmc-shadow-dark: rgba(18,21,27,.52);
+    --nmc-shadow-light: rgba(255,255,255,.07);
+    background: #aeb0b5 !important;
+    background-image: none !important;
+  }
+
+  body:has([aria-label='N M C']) > div:first-of-type,
+  body:has([aria-label='N M C']) .honeycomb-bg {
+    background: transparent !important;
+  }
+
+  body:has([aria-label='N M C']) [aria-label='N M C'] {
+    border: 1px solid rgba(255,255,255,.07) !important;
+    border-radius: 20px !important;
+    background: linear-gradient(145deg,#343943,#292e36) !important;
+    box-shadow:
+      12px 12px 24px rgba(73,75,82,.30),
+      -8px -8px 18px rgba(255,255,255,.18),
+      inset 1px 1px 0 rgba(255,255,255,.08),
+      inset -1px -1px 0 rgba(0,0,0,.36) !important;
+  }
+
+  body:has([aria-label='N M C']) [aria-label='N M C'] + h1 {
+    color: #2f333c !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,.45) !important;
+    letter-spacing: -.02em !important;
+  }
+
+  body:has([aria-label='N M C']) header > p {
+    color: #5d626b !important;
+  }
+
+  /* Maintenance pill and top admin controls — inset charcoal controls. */
+  body:has([aria-label='N M C']) header > button[aria-label='Bật hoặc tắt chế độ bảo trì'] {
+    border-color: rgba(255,255,255,.07) !important;
+    background: linear-gradient(145deg,#373c45,#2b3038) !important;
+    color: #d9dde2 !important;
+    box-shadow:
+      6px 6px 13px rgba(62,65,72,.35),
+      -5px -5px 12px rgba(255,255,255,.16),
+      inset 1px 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  body:has([aria-label='N M C']) header > div:last-child button {
+    border-color: rgba(255,255,255,.06) !important;
+    background: linear-gradient(145deg,#383d47,#2b3038) !important;
+    color: #c7cdd4 !important;
+    box-shadow:
+      5px 5px 10px rgba(65,68,75,.30),
+      -4px -4px 9px rgba(255,255,255,.14),
+      inset 1px 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  body:has([aria-label='N M C']) header > div:last-child button:active {
+    transform: translateY(1px) !important;
+    box-shadow: inset 3px 3px 8px rgba(17,20,25,.38), inset -2px -2px 6px rgba(255,255,255,.04) !important;
+  }
+
+  /* Four primary functions: dark raised tiles with restrained solid accents. */
+  body:has([aria-label='N M C']) header + nav {
+    padding: 10px !important;
+    border-radius: 22px !important;
+    background: linear-gradient(145deg,#343943,#2d323a) !important;
+    border: 1px solid rgba(255,255,255,.06) !important;
+    box-shadow:
+      11px 11px 24px rgba(72,74,81,.30),
+      -8px -8px 18px rgba(255,255,255,.16),
+      inset 1px 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  body:has([aria-label='N M C']) header + nav > button {
+    min-height: 72px !important;
+    border: 1px solid rgba(255,255,255,.06) !important;
+    border-radius: 15px !important;
+    background: linear-gradient(145deg,#3d424c,#30353d) !important;
+    color: #edf1f4 !important;
+    box-shadow:
+      7px 7px 14px rgba(20,23,29,.42),
+      -3px -3px 8px rgba(255,255,255,.055),
+      inset 1px 1px 0 rgba(255,255,255,.055) !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  body:has([aria-label='N M C']) header + nav > button::after {
+    content: '';
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 7px;
+    height: 3px;
+    border-radius: 999px;
+    background: #55d6a8;
+    box-shadow: 0 0 9px rgba(85,214,168,.35);
+    opacity: .85;
+  }
+
+  body:has([aria-label='N M C']) header + nav > button:nth-child(1)::after { background:#e2a85b; box-shadow:0 0 9px rgba(226,168,91,.34); }
+  body:has([aria-label='N M C']) header + nav > button:nth-child(2)::after { background:#55d6a8; }
+  body:has([aria-label='N M C']) header + nav > button:nth-child(3)::after { background:#63bfe3; box-shadow:0 0 9px rgba(99,191,227,.34); }
+  body:has([aria-label='N M C']) header + nav > button:nth-child(4)::after { background:#d9bd66; box-shadow:0 0 9px rgba(217,189,102,.34); }
+
+  body:has([aria-label='N M C']) header + nav > button:active {
+    transform: translateY(2px) !important;
+    box-shadow: inset 4px 4px 10px rgba(18,21,27,.44), inset -2px -2px 7px rgba(255,255,255,.04) !important;
+  }
+
+  /* Main content panels */
+  body:has([aria-label='N M C']) main > section {
+    border-color: rgba(255,255,255,.055) !important;
+    background: linear-gradient(145deg,#343943,#2d323a) !important;
+    box-shadow:
+      12px 12px 26px rgba(69,71,78,.31),
+      -8px -8px 18px rgba(255,255,255,.15),
+      inset 1px 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  body:has([aria-label='N M C']) main > section > div:first-child div:first-child > div:first-child {
+    color: #67dcb5 !important;
+  }
+  body:has([aria-label='N M C']) main > section > div:first-child div:first-child > div:last-child {
+    color: #eef1f4 !important;
+  }
+  body:has([aria-label='N M C']) main > section > div:first-child > div:last-child {
+    border-color: rgba(255,255,255,.055) !important;
+    background: #292e36 !important;
+    color: #aeb5bf !important;
+    box-shadow: inset 3px 3px 7px rgba(17,20,25,.32), inset -2px -2px 5px rgba(255,255,255,.035) !important;
+  }
+
+  /* Quick-link cards */
+  body:has([aria-label='N M C']) main > section button.relative {
+    border-color: rgba(255,255,255,.055) !important;
+    background: linear-gradient(145deg,#3b404a,#323740) !important;
+    box-shadow:
+      7px 7px 15px rgba(18,21,27,.38),
+      -3px -3px 8px rgba(255,255,255,.045),
+      inset 1px 1px 0 rgba(255,255,255,.045) !important;
+  }
+  body:has([aria-label='N M C']) main > section button.relative:active {
+    transform: scale(.985) translateY(1px) !important;
+    box-shadow: inset 4px 4px 10px rgba(18,21,27,.42), inset -2px -2px 6px rgba(255,255,255,.035) !important;
+  }
+  body:has([aria-label='N M C']) main > section button.relative .grid.h-9.w-9 {
+    border-color: rgba(255,255,255,.05) !important;
+    background: #2b3038 !important;
+    color: #67dcb5 !important;
+    box-shadow: inset 2px 2px 5px rgba(15,18,22,.38), inset -1px -1px 3px rgba(255,255,255,.035) !important;
+  }
+  body:has([aria-label='N M C']) main > section button.relative .text-white { color:#f2f4f6 !important; }
+  body:has([aria-label='N M C']) main > section button.relative .uppercase { color:#8f98a4 !important; }
+  body:has([aria-label='N M C']) main > section button.relative .leading-4 { color:#b7bdc5 !important; }
+
+  /* Agenda shell */
+  body:has([aria-label='N M C']) main > div:last-child > section {
+    border-color: rgba(255,255,255,.055) !important;
+    background: linear-gradient(145deg,#343943,#2d323a) !important;
+    box-shadow:
+      12px 12px 26px rgba(69,71,78,.31),
+      -8px -8px 18px rgba(255,255,255,.15),
+      inset 1px 1px 0 rgba(255,255,255,.05) !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:first-child {
+    border-bottom-color: rgba(255,255,255,.055) !important;
+    background: #31363f !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:first-child > button:not(:nth-child(2)) {
+    border-color: rgba(255,255,255,.05) !important;
+    background: linear-gradient(145deg,#3d424b,#2c3139) !important;
+    color: #dce1e6 !important;
+    box-shadow: 5px 5px 10px rgba(18,21,27,.38), -2px -2px 6px rgba(255,255,255,.04) !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:first-child > button:nth-child(2) > div:first-child {
+    color:#62d8b1 !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:first-child > button:nth-child(2) > div:last-child {
+    color:#f1f3f5 !important;
+  }
+
+  /* Agenda day cards */
+  body:has([aria-label='N M C']) main > div:last-child > section > div:nth-child(2) > div[class*='grid-cols'] {
+    border-color: rgba(255,255,255,.05) !important;
+    background: linear-gradient(145deg,#3a3f49,#31363f) !important;
+    box-shadow: 6px 6px 13px rgba(18,21,27,.33), -2px -2px 6px rgba(255,255,255,.035) !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:nth-child(2) > div[class*='grid-cols'] > div:first-child {
+    border-right-color: rgba(255,255,255,.05) !important;
+    background: rgba(20,24,29,.12) !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:nth-child(2) button[aria-label^='Thêm ghi chú'] {
+    border-color: rgba(255,255,255,.045) !important;
+    background: #2b3038 !important;
+    color: #65dcb4 !important;
+    box-shadow: inset 2px 2px 5px rgba(15,18,22,.34), inset -1px -1px 3px rgba(255,255,255,.03) !important;
+  }
+  body:has([aria-label='N M C']) main > div:last-child > section > div:nth-child(2) .space-y-1\.5 > div {
+    border-color: rgba(255,255,255,.05) !important;
+    background: #30353e !important;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.025) !important;
+  }
+
+  /* Home-only modal treatment */
+  body:has([aria-label='N M C']) .fixed.inset-0.z-\[6000\] > div {
+    border-color: rgba(255,255,255,.07) !important;
+    background: linear-gradient(145deg,#383d47,#2c3139) !important;
+    box-shadow: 18px 18px 40px rgba(16,19,24,.50), -8px -8px 20px rgba(255,255,255,.05) !important;
+  }
+  body:has([aria-label='N M C']) .fixed.inset-0.z-\[6000\] input,
+  body:has([aria-label='N M C']) .fixed.inset-0.z-\[6000\] textarea {
+    border-color: rgba(255,255,255,.055) !important;
+    background:#292e36 !important;
+    box-shadow: inset 3px 3px 8px rgba(15,18,22,.38), inset -2px -2px 5px rgba(255,255,255,.025) !important;
+  }
+
+  @media (max-width: 720px) {
+    body:has([aria-label='N M C']) {
+      background: #aeb0b5 !important;
+    }
+    body:has([aria-label='N M C']) header + nav {
+      gap: 7px !important;
+      padding: 8px !important;
+    }
+    body:has([aria-label='N M C']) header + nav > button {
+      min-height: 66px !important;
+      border-radius: 13px !important;
+    }
+    body:has([aria-label='N M C']) main > section,
+    body:has([aria-label='N M C']) main > div:last-child > section {
+      border-radius: 19px !important;
+    }
+  }
+}
