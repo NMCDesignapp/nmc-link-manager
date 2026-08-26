@@ -46,6 +46,11 @@ const sharedCopies = [
     label: 'kpi-app/src/components/embedded-program-data-loader.tsx',
   },
   {
+    source: path.join(root, 'src', 'components', 'maintenance-gate.tsx'),
+    target: path.join(root, 'kpi-app', 'src', 'components', 'maintenance-gate.tsx'),
+    label: 'kpi-app/src/components/maintenance-gate.tsx',
+  },
+  {
     source: path.join(root, 'public', 'kpi-tech-bg.webp'),
     target: path.join(root, 'kpi-app', 'public', 'kpi-tech-bg.webp'),
     label: 'kpi-app/public/kpi-tech-bg.webp',
@@ -134,7 +139,7 @@ function verify() {
     fail(`KPI standalone is out of sync: ${mismatches.join(', ')}`)
   }
 
-  console.log('KPI page, template, loaders and shared visual assets are synced with Main App.')
+  console.log('KPI page, template, loaders, maintenance gate and shared visual assets are synced with Main App.')
 }
 
 if (checkOnly) {
