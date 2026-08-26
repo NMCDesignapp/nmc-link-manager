@@ -1,0 +1,118 @@
+/* NMC KPI black-wood theme v8 — final cascade fixes after v7.
+ * Scope is intentionally narrow: loading backdrop, linked loader progress,
+ * sticky headers and back buttons. */
+
+@keyframes nmc-linked-progress-dots {
+  0%, 10% { background-position: 2% 50%, 10% 50%, center; }
+  42% { background-position: 43% 50%, 31% 50%, center; }
+  72% { background-position: 73% 50%, 58% 50%, center; }
+  100% { background-position: 98% 50%, 88% 50%, center; }
+}
+
+html body div[aria-label='Đang tải dữ liệu KPI'],
+html body div[aria-label='Tải dữ liệu gặp lỗi'] {
+  background-color: #070809 !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(18,20,22,.04) 0%, rgba(0,0,0,.52) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.38)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader {
+  background-color: #070809 !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(18,20,22,.04) 0%, rgba(0,0,0,.52) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.38)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+  background-image:
+    radial-gradient(circle, #fff8d7 0 27%, #ffd66f 30% 58%, #9a6d14 72%, transparent 76%),
+    radial-gradient(circle, #fff8d7 0 27%, #ffd66f 30% 58%, #9a6d14 72%, transparent 76%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='52' viewBox='0 0 360 52'%3E%3Cdefs%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='1.1' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M2 27 H86 L97 27 L108 18 L118 35 L130 8 L142 44 L154 27 H214 L224 22 L235 32 L246 14 L258 38 L270 27 H358' fill='none' stroke='%23ffd66f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' filter='url(%23g)'/%3E%3C/svg%3E") !important;
+  background-size: 12px 12px, 9px 9px, 100% 52px !important;
+  background-repeat: no-repeat, no-repeat, no-repeat !important;
+  animation: nmc-linked-progress-dots 1.85s cubic-bezier(.25,.72,.2,1) infinite !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app #view-main > header,
+html body .kpi-app.kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+html body .kpi-app.kpi-app.kpi-app #view-calendar.active > .sub-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 120 !important;
+  isolation: isolate !important;
+  background: linear-gradient(180deg, rgba(9,10,11,.95), rgba(15,16,17,.89)) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(112%) !important;
+  backdrop-filter: blur(12px) saturate(112%) !important;
+  border-bottom: 1px solid rgba(218,177,76,.34) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.32) !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .btn-back-u,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-back,
+html body .kpi-app.kpi-app.kpi-app button[aria-label='Quay lại'],
+html body .kpi-app.kpi-app.kpi-app button[title='Quay lại'],
+html body .kpi-app.kpi-app.kpi-app button[aria-label='Trở về'],
+html body .kpi-app.kpi-app.kpi-app button[title='Trở về'],
+html[data-kpi-embed='1'] body button[aria-label='Quay lại'],
+html[data-kpi-embed='1'] body button[title='Quay lại'],
+html[data-kpi-embed='1'] body button[aria-label='Trở về'],
+html[data-kpi-embed='1'] body button[title='Trở về'] {
+  width: 40px !important; min-width: 40px !important; height: 40px !important; min-height: 40px !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 40px !important;
+  border-radius: 10px !important; border: 1px solid rgba(218,177,76,.62) !important;
+  background: linear-gradient(145deg, rgba(54,57,60,.96), rgba(18,20,22,.98)) !important;
+  color: #f3d77f !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 5px 14px rgba(0,0,0,.30) !important;
+  transform: none !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .btn-back-u:hover,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-back:hover,
+html body .kpi-app.kpi-app.kpi-app button[aria-label='Quay lại']:hover,
+html body .kpi-app.kpi-app.kpi-app button[title='Quay lại']:hover,
+html body .kpi-app.kpi-app.kpi-app button[aria-label='Trở về']:hover,
+html body .kpi-app.kpi-app.kpi-app button[title='Trở về']:hover,
+html[data-kpi-embed='1'] body button[aria-label='Quay lại']:hover,
+html[data-kpi-embed='1'] body button[title='Quay lại']:hover,
+html[data-kpi-embed='1'] body button[aria-label='Trở về']:hover,
+html[data-kpi-embed='1'] body button[title='Trở về']:hover {
+  border-color: rgba(244,207,106,.94) !important;
+  background: linear-gradient(145deg, rgba(70,73,76,.98), rgba(25,27,29,.99)) !important;
+  color: #ffe59a !important;
+  transform: translateY(-1px) !important;
+}
+
+html[data-kpi-embed='1'] body > main header,
+html[data-kpi-embed='1'] body > main > header {
+  position: sticky !important; top: 0 !important; z-index: 120 !important; isolation: isolate !important;
+  background: linear-gradient(180deg, rgba(9,10,11,.96), rgba(15,16,17,.91)) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(112%) !important;
+  backdrop-filter: blur(12px) saturate(112%) !important;
+  border-bottom-color: rgba(218,177,76,.34) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.32) !important;
+}
+
+@media (max-width: 720px) {
+  html body .kpi-app.kpi-app.kpi-app #view-main > header,
+  html body .kpi-app.kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app.kpi-app #view-calendar.active > .sub-header {
+    width: calc(100% + 32px) !important;
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
