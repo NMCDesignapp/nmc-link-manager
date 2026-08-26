@@ -1,0 +1,120 @@
+/* NMC KPI silver loader v7 — final override
+ * Scope: KPI main + three linked pages.
+ * Intent: black-wood loading backdrop, brushed silver plate, two-dot heartbeat progress,
+ * gold notice border, sticky headers and one visual language for back buttons.
+ */
+
+@keyframes nmc-silver-dot-a {
+  0%, 12% { left: 2%; transform: translate(-50%,-50%) scale(.72); opacity: .45; }
+  38% { transform: translate(-50%,-50%) scale(1.35); opacity: 1; }
+  72% { left: 72%; transform: translate(-50%,-50%) scale(.88); opacity: .88; }
+  100% { left: 98%; transform: translate(-50%,-50%) scale(.72); opacity: .35; }
+}
+@keyframes nmc-silver-dot-b {
+  0%, 24% { left: 2%; transform: translate(-50%,-50%) scale(.62); opacity: .22; }
+  50% { transform: translate(-50%,-50%) scale(1.18); opacity: .92; }
+  82% { left: 72%; transform: translate(-50%,-50%) scale(.82); opacity: .72; }
+  100% { left: 98%; transform: translate(-50%,-50%) scale(.62); opacity: .18; }
+}
+@keyframes nmc-silver-track-glow {
+  0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 0 8px rgba(219,229,238,.12); }
+  50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 0 16px rgba(236,243,248,.28); }
+}
+
+html body .kpi-app.kpi-app.kpi-app,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-overlay,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-body,
+html body [aria-label='Đang tải dữ liệu KPI'],
+html body [aria-label='Tải dữ liệu gặp lỗi'],
+html[data-kpi-embed='1'] body,
+body.nmc-kpi-linked-page {
+  background-color: #070809 !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(18,20,22,.04) 0%, rgba(0,0,0,.52) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.38)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+html body [aria-label='Đang tải dữ liệu KPI'],
+html body [aria-label='Tải dữ liệu gặp lỗi'] { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+
+html body [aria-label='Đang tải dữ liệu KPI'] > div,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div {
+  max-width:356px !important; padding:30px 27px 27px !important; border-radius:24px !important;
+  border:1px solid rgba(235,239,242,.78) !important;
+  background-image:
+    radial-gradient(circle at 19px 19px,#24282c 0 3px,#cfd3d6 4px 6px,#646a70 7px 9px,transparent 10px),
+    radial-gradient(circle at calc(100% - 19px) 19px,#24282c 0 3px,#d9dcde 4px 6px,#646a70 7px 9px,transparent 10px),
+    radial-gradient(circle at 19px calc(100% - 19px),#24282c 0 3px,#cfd3d6 4px 6px,#646a70 7px 9px,transparent 10px),
+    radial-gradient(circle at calc(100% - 19px) calc(100% - 19px),#24282c 0 3px,#d9dcde 4px 6px,#646a70 7px 9px,transparent 10px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.025) 1px 3px),
+    linear-gradient(145deg,#1b1e22 0%,#676d74 18%,#d8dadd 35%,#787e85 55%,#e6e7e8 75%,#3b4046 100%) !important;
+  box-shadow:0 26px 76px rgba(0,0,0,.70),inset 0 1px 0 rgba(255,255,255,.62),inset 0 -14px 28px rgba(10,12,14,.38),0 0 30px rgba(218,225,230,.10) !important;
+}
+html body [aria-label='Đang tải dữ liệu KPI'] > div > h2::after,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > h2::after { color:#f7f8f9 !important; text-shadow:0 1px 0 rgba(0,0,0,.82),0 0 12px rgba(255,255,255,.16) !important; }
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:nth-child(2),
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:nth-child(2) { border-color:rgba(239,220,153,.72) !important; background:radial-gradient(circle at 35% 30%,#fff1b7,#cba246 62%,#745514) !important; box-shadow:0 0 0 6px rgba(236,214,135,.08),0 10px 26px rgba(0,0,0,.28) !important; }
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type::before,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type::before { content:none !important; display:none !important; }
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > div,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type > div {
+  display:block !important; position:relative !important; width:min(72vw,246px) !important; height:5px !important; margin:8px auto 7px !important;
+  border:1px solid rgba(255,255,255,.26) !important; border-radius:999px !important; background:linear-gradient(90deg,#34393e,#c7cdd1 48%,#454b50) !important;
+  animation:nmc-silver-track-glow 1.8s ease-in-out infinite !important; overflow:visible !important;
+}
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > div::before,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type > div::before,
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > div::after,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type > div::after {
+  content:'' !important; display:block !important; position:absolute !important; top:50% !important; left:2%; width:12px !important; height:12px !important;
+  border-radius:50% !important; background:radial-gradient(circle at 35% 30%,#fffbe9 0 20%,#f2d77a 42%,#bd8f25 76%,#6b4b10 100%) !important;
+  border:1px solid rgba(255,239,174,.88) !important; box-shadow:0 0 0 3px rgba(227,190,80,.10),0 0 14px rgba(245,213,107,.72) !important; pointer-events:none !important;
+}
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > div::before,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type > div::before { animation:nmc-silver-dot-a 1.8s cubic-bezier(.25,.72,.2,1) infinite !important; }
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > div::after,
+html body [aria-label='Tải dữ liệu gặp lỗi'] > div > div:last-of-type > div::after { width:9px !important; height:9px !important; animation:nmc-silver-dot-b 1.8s .22s cubic-bezier(.25,.72,.2,1) infinite !important; }
+html body [aria-label='Đang tải dữ liệu KPI'] > div > div:last-of-type > p { color:#f5f6f7 !important; font-style:normal !important; font-weight:750 !important; text-shadow:0 1px 0 rgba(0,0,0,.78) !important; }
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader { background:rgba(0,0,0,.22) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  position:relative !important; width:min(91vw,610px) !important; min-height:136px !important; padding:92px 28px 22px 136px !important; overflow:hidden !important;
+  border-radius:20px !important; border:1px solid rgba(235,239,242,.76) !important; color:#f5f6f7 !important; font-size:15px !important; font-weight:750 !important; text-align:left !important;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.032) 0 1px,rgba(0,0,0,.024) 1px 3px),linear-gradient(145deg,#1b1e22 0%,#686e74 20%,#d6d9dc 37%,#737a80 58%,#e2e4e5 77%,#383d42 100%) !important;
+  box-shadow:0 24px 68px rgba(0,0,0,.66),inset 0 1px 0 rgba(255,255,255,.58),inset 0 -12px 26px rgba(12,14,16,.34) !important;
+}
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after { content:'' !important; position:absolute !important; left:30px !important; top:25px !important; width:76px !important; height:76px !important; border-radius:50% !important; border:2px solid rgba(239,220,153,.78) !important; background:#101215 url('/icon/kpi-192.png') center/cover no-repeat !important; box-shadow:0 0 0 5px rgba(239,220,153,.08),0 8px 20px rgba(0,0,0,.30) !important; }
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before { content:'' !important; position:absolute !important; left:136px !important; right:30px !important; top:50px !important; height:8px !important; padding:0 !important; border:1px solid rgba(255,255,255,.28) !important; border-radius:999px !important; color:transparent !important; background:radial-gradient(circle at 8% 50%,#ffe99c 0 5px,transparent 6px),radial-gradient(circle at 34% 50%,#ffe99c 0 4px,transparent 5px),linear-gradient(90deg,#34393e,#c7cdd1 48%,#454b50) !important; background-repeat:no-repeat !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 0 14px rgba(236,220,160,.20) !important; animation:nmc-silver-track-glow 1.8s ease-in-out infinite !important; }
+
+html body .kpi-app.kpi-app.kpi-app .kpi-notice-banner,
+html body .kpi-app.kpi-app.kpi-app .target-registration-lock-notice-card { border:1.5px solid rgba(226,174,55,.92) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 0 1px rgba(125,82,12,.18),0 8px 22px rgba(176,122,25,.20) !important; }
+
+html body .kpi-app.kpi-app.kpi-app #view-main > header,
+html body .kpi-app.kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+html body .kpi-app.kpi-app.kpi-app #view-calendar.active > .sub-header { position:sticky !important; top:0 !important; z-index:120 !important; isolation:isolate !important; background:linear-gradient(180deg,rgba(10,11,12,.94),rgba(14,15,16,.88)) !important; -webkit-backdrop-filter:blur(12px) saturate(112%) !important; backdrop-filter:blur(12px) saturate(112%) !important; border-bottom:1px solid rgba(218,177,76,.34) !important; box-shadow:0 8px 22px rgba(0,0,0,.32) !important; }
+
+html body .kpi-app.kpi-app.kpi-app .btn-back-u,
+html body .kpi-app.kpi-app.kpi-app .sub-back,
+html body .kpi-app.kpi-app.kpi-app .btn-back,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-back,
+html[data-kpi-embed='1'] .btn-back-u,
+html[data-kpi-embed='1'] .sub-back,
+body.nmc-kpi-linked-page .btn-back-u,
+body.nmc-kpi-linked-page .sub-back { width:40px !important; min-width:40px !important; height:40px !important; min-height:40px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:10px !important; border:1px solid rgba(218,177,76,.58) !important; background:linear-gradient(145deg,rgba(50,53,56,.92),rgba(19,21,23,.94)) !important; color:#f3d77f !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 5px 14px rgba(0,0,0,.28) !important; transition:transform .18s ease,border-color .18s ease,background .18s ease !important; }
+html body .kpi-app.kpi-app.kpi-app .btn-back-u:hover,
+html body .kpi-app.kpi-app.kpi-app .sub-back:hover,
+html body .kpi-app.kpi-app.kpi-app .btn-back:hover,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-back:hover { border-color:rgba(244,207,106,.90) !important; background:linear-gradient(145deg,rgba(68,71,74,.96),rgba(26,28,30,.96)) !important; transform:translateY(-1px) !important; }
+
+@media (max-width:720px) {
+  html body .kpi-app.kpi-app.kpi-app #view-main > header,
+  html body .kpi-app.kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app.kpi-app #view-calendar.active > .sub-header { width:calc(100% + 32px) !important; margin-left:-16px !important; margin-right:-16px !important; padding-left:16px !important; padding-right:16px !important; }
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span { min-height:128px !important; padding:87px 22px 20px 116px !important; }
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after { left:24px !important; top:24px !important; width:70px !important; height:70px !important; }
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before { left:116px !important; right:24px !important; top:47px !important; }
+}
