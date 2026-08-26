@@ -1,0 +1,32 @@
+/* KPI linked shell v9 — scoped only when a linked page is opened from KPI. */
+html[data-kpi-embed='1'] body > main header,
+html[data-kpi-embed='1'] body > main > header,
+body.nmc-kpi-linked-page > main header,
+body.nmc-kpi-linked-page > main > header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 120 !important;
+  isolation: isolate !important;
+  background: linear-gradient(180deg,rgba(10,11,12,.96),rgba(14,15,16,.90)) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(112%) !important;
+  backdrop-filter: blur(12px) saturate(112%) !important;
+  border-bottom-color: rgba(218,177,76,.34) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.32) !important;
+}
+html[data-kpi-embed='1'] button[aria-label='Trở về'],
+html[data-kpi-embed='1'] button[title='Trở về'],
+body.nmc-kpi-linked-page button[aria-label='Trở về'],
+body.nmc-kpi-linked-page button[title='Trở về'] {
+  width:40px !important; min-width:40px !important; height:40px !important; min-height:40px !important;
+  border-radius:10px !important; border:1px solid rgba(218,177,76,.58) !important;
+  background:linear-gradient(145deg,rgba(50,53,56,.94),rgba(19,21,23,.96)) !important;
+  color:#f3d77f !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 5px 14px rgba(0,0,0,.28) !important; transform:none !important;
+}
+html[data-kpi-embed='1'] button[aria-label='Trở về']:hover,
+html[data-kpi-embed='1'] button[title='Trở về']:hover,
+body.nmc-kpi-linked-page button[aria-label='Trở về']:hover,
+body.nmc-kpi-linked-page button[title='Trở về']:hover {
+  border-color:rgba(244,207,106,.90) !important;
+  background:linear-gradient(145deg,rgba(68,71,74,.98),rgba(26,28,30,.98)) !important;
+  transform:translateY(-1px) !important;
+}
