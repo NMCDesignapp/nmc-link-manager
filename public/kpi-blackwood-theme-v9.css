@@ -1,0 +1,157 @@
+/* NMC KPI black-wood theme v9
+ * Restore compact circular icon-only controls requested for KPI navigation.
+ * Loaded after v8 so it only changes navigation/control chrome.
+ */
+
+/* Main KPI back button: icon-only circular control. */
+html body .kpi-app.kpi-app .main-header .btn-back-u {
+  box-sizing: border-box !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* All KPI destination Back buttons: circular, icon-only, same visual language. */
+html body .kpi-app.kpi-app .kpi-embed-back,
+html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Quay lại'],
+html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Trở về'],
+html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Quay lại'],
+html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Trở về'],
+html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Quay lại'],
+html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Trở về'],
+html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Quay lại'],
+html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Trở về'] {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(78, 154, 198, .52) !important;
+  background: linear-gradient(180deg, rgba(17, 52, 82, .94), rgba(10, 39, 65, .94)) !important;
+  color: #86dda8 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 3px 10px rgba(0,0,0,.22),
+    0 0 10px rgba(45,145,191,.12) !important;
+  transform: none !important;
+}
+
+html body .kpi-app.kpi-app .kpi-embed-back:hover,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại']:hover,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về']:hover,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại']:hover,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về']:hover {
+  background: linear-gradient(180deg, rgba(22, 66, 99, .98), rgba(12, 47, 75, .98)) !important;
+  border-color: rgba(103, 192, 228, .76) !important;
+  color: #9aebb8 !important;
+  transform: none !important;
+}
+
+/* Remove all text injected by v8 or existing embedded markup. */
+html body .kpi-app.kpi-app .kpi-embed-back span,
+html body .kpi-app.kpi-app .kpi-embed-back::after,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại']::after,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về']::after,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại']::after,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về']::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Keep only a clear left-chevron/arrow icon. */
+html body .kpi-app.kpi-app .kpi-embed-back svg,
+html body .kpi-app.kpi-app .main-header .btn-back-u svg,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại'] svg,
+html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về'] svg,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại'] svg,
+html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về'] svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  flex: 0 0 19px !important;
+  stroke-width: 2.7 !important;
+}
+
+/* Calendar settings: icon-only circular gear button. */
+html body .kpi-app.kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'] {
+  box-sizing: border-box !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body .kpi-app.kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'] > span {
+  display: none !important;
+}
+html body .kpi-app.kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'] svg {
+  width: 18px !important;
+  height: 18px !important;
+  flex: 0 0 18px !important;
+}
+
+/* v8 reserved 104px for the text Back button; release that space now. */
+html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+  grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+  gap: 6px !important;
+}
+html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading-spacer {
+  width: 44px !important;
+}
+
+/* Mobile: keep all icon controls equal and leave maximum room for titles. */
+@media (max-width: 720px) {
+  html body .kpi-app.kpi-app .main-header .btn-back-u,
+  html body .kpi-app.kpi-app .kpi-embed-back,
+  html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'] {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    flex-basis: 36px !important;
+  }
+
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+    grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+  }
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading-spacer {
+    width: 42px !important;
+  }
+}
