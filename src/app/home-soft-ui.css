@@ -1,0 +1,279 @@
+/* Main Home only — graphite soft-3D / neumorphic visual skin.
+   Scoped under .nmc-home-skin so KPI and CLB Sao Việt routes are untouched. */
+
+.nmc-home-skin {
+  --home-bg: #292d35;
+  --home-bg-deep: #24272e;
+  --home-panel: #30343d;
+  --home-panel-hi: #393e48;
+  --home-panel-lo: #2a2e36;
+  --home-card: #343944;
+  --home-card-hi: #3c424e;
+  --home-line: rgba(255,255,255,.055);
+  --home-text: #f1f3f5;
+  --home-muted: #aab0ba;
+  --home-muted-2: #858c98;
+  --home-mint: #47d7a0;
+  --home-mint-hi: #72ebb8;
+  --home-cyan: #5fb5d4;
+  --home-gold: #d8a956;
+  min-height: 100vh;
+  color: var(--home-text);
+  background:
+    radial-gradient(circle at 50% -15%, rgba(255,255,255,.065), transparent 34%),
+    linear-gradient(180deg, #30343d 0%, #2b2f37 44%, #272a31 100%);
+}
+
+.nmc-home-skin > div {
+  background: transparent !important;
+}
+
+/* Main shell: slightly tighter, like the reference mobile banking UI. */
+.nmc-home-skin > div > div {
+  max-width: 1180px !important;
+}
+
+/* Header / brand block */
+.nmc-home-skin header > div:first-child > div:first-child {
+  border: 1px solid rgba(255,255,255,.055) !important;
+  border-radius: 19px !important;
+  background: linear-gradient(145deg, #3a3f49, #2b2f37) !important;
+  box-shadow:
+    10px 10px 22px rgba(18,20,24,.62),
+    -7px -7px 18px rgba(76,82,94,.22),
+    inset 1px 1px 0 rgba(255,255,255,.06),
+    inset -1px -1px 0 rgba(0,0,0,.38) !important;
+}
+
+.nmc-home-skin header > div:first-child > div:first-child > div {
+  color: #f5f6f7 !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.55) !important;
+}
+
+.nmc-home-skin header > div:first-child > div:first-child > div span {
+  color: var(--home-mint) !important;
+  text-shadow: 0 0 14px rgba(71,215,160,.2) !important;
+}
+
+.nmc-home-skin header h1 {
+  color: #f5f6f7 !important;
+  letter-spacing: -.01em !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.42) !important;
+}
+
+.nmc-home-skin header > p {
+  color: var(--home-muted) !important;
+}
+
+/* Maintenance pill and compact admin controls */
+.nmc-home-skin header > button,
+.nmc-home-skin header > div:last-child > button {
+  border-color: rgba(255,255,255,.055) !important;
+  background: linear-gradient(145deg, #393e48, #2a2e36) !important;
+  color: #c9cdd3 !important;
+  box-shadow:
+    6px 6px 14px rgba(17,19,23,.58),
+    -4px -4px 10px rgba(75,81,92,.20),
+    inset 1px 1px 0 rgba(255,255,255,.055) !important;
+}
+
+.nmc-home-skin header > button span span,
+.nmc-home-skin header > button > span:nth-of-type(2) {
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.48), inset -1px -1px 2px rgba(255,255,255,.08) !important;
+}
+
+/* The four primary actions: graphite soft keys with restrained individual accents. */
+.nmc-home-skin nav > button {
+  min-height: 72px !important;
+  border: 1px solid rgba(255,255,255,.055) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, #3b404a, #2b2f37) !important;
+  box-shadow:
+    8px 8px 17px rgba(17,19,23,.62),
+    -5px -5px 13px rgba(78,84,96,.20),
+    inset 1px 1px 0 rgba(255,255,255,.055),
+    inset -1px -1px 0 rgba(0,0,0,.36) !important;
+  transform: none !important;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+
+.nmc-home-skin nav > button:nth-child(1) { color: #e7bc70 !important; }
+.nmc-home-skin nav > button:nth-child(2) { color: #67dbad !important; }
+.nmc-home-skin nav > button:nth-child(3) { color: #70bddd !important; }
+.nmc-home-skin nav > button:nth-child(4) { color: #dfc16e !important; }
+
+.nmc-home-skin nav > button > span:last-child {
+  color: #f0f2f4 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.55) !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .nmc-home-skin nav > button:hover {
+    background: linear-gradient(145deg, #3f4550, #2e323a) !important;
+    box-shadow:
+      10px 10px 20px rgba(17,19,23,.66),
+      -6px -6px 14px rgba(80,87,99,.23),
+      inset 1px 1px 0 rgba(255,255,255,.07) !important;
+    transform: translateY(-1px) !important;
+  }
+}
+
+.nmc-home-skin nav > button:active {
+  transform: translateY(2px) !important;
+  box-shadow:
+    inset 5px 5px 10px rgba(16,18,22,.54),
+    inset -3px -3px 8px rgba(72,79,90,.18) !important;
+}
+
+/* Quick-link panel */
+.nmc-home-skin main > section {
+  border: 1px solid rgba(255,255,255,.05) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg, #333842, #292d35) !important;
+  box-shadow:
+    11px 11px 25px rgba(17,19,23,.57),
+    -7px -7px 18px rgba(74,80,91,.17),
+    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.nmc-home-skin main > section > div:first-child > div:first-child > div:first-child {
+  color: var(--home-mint) !important;
+}
+.nmc-home-skin main > section > div:first-child > div:first-child > div:last-child {
+  color: #f2f3f5 !important;
+}
+.nmc-home-skin main > section > div:first-child > div:last-child {
+  border-color: rgba(255,255,255,.055) !important;
+  background: #2a2e36 !important;
+  color: var(--home-muted) !important;
+  box-shadow: inset 3px 3px 7px rgba(16,18,22,.4), inset -2px -2px 5px rgba(73,79,90,.12) !important;
+}
+
+/* Link tiles: raised graphite cards. Preserve per-link accent only as the top hairline. */
+.nmc-home-skin main > section .grid.grid-cols-2 > button {
+  border-color: rgba(255,255,255,.045) !important;
+  background: linear-gradient(145deg, #3a3f49, #30343d) !important;
+  box-shadow:
+    7px 7px 15px rgba(18,20,24,.58),
+    -4px -4px 10px rgba(76,82,94,.16),
+    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.nmc-home-skin main > section .grid.grid-cols-2 > button > div:nth-child(2) > div:first-child {
+  border-color: rgba(255,255,255,.05) !important;
+  background: linear-gradient(145deg, #414752, #30353e) !important;
+  color: #dce0e5 !important;
+  box-shadow: 4px 4px 8px rgba(17,19,23,.42), -2px -2px 6px rgba(78,85,98,.14) !important;
+}
+
+.nmc-home-skin main > section .grid.grid-cols-2 > button > div:nth-child(2) > div:last-child > div:first-child {
+  color: #f3f4f6 !important;
+}
+.nmc-home-skin main > section .grid.grid-cols-2 > button > div:nth-child(2) > div:last-child > div:last-child,
+.nmc-home-skin main > section .grid.grid-cols-2 > button > div:last-child {
+  color: var(--home-muted) !important;
+}
+
+/* Agenda surface */
+.nmc-home-skin main > div:last-child > section {
+  border: 1px solid rgba(255,255,255,.05) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg, #333842, #292d35) !important;
+  box-shadow:
+    11px 11px 25px rgba(17,19,23,.57),
+    -7px -7px 18px rgba(74,80,91,.17),
+    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:first-child {
+  border-color: rgba(255,255,255,.045) !important;
+  background: linear-gradient(180deg, #353a44, #30343d) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:first-child button {
+  border-color: rgba(255,255,255,.05) !important;
+  background: linear-gradient(145deg, #3d424c, #2b2f37) !important;
+  color: #d9dde2 !important;
+  box-shadow: 5px 5px 11px rgba(16,18,22,.5), -3px -3px 7px rgba(75,81,93,.16) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:first-child button:nth-child(2) div:first-child {
+  color: var(--home-mint) !important;
+}
+.nmc-home-skin main > div:last-child > section > div:first-child button:nth-child(2) div:last-child {
+  color: #f2f4f5 !important;
+}
+
+/* Day cards: override inline blue surfaces without touching their data or layout. */
+.nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] {
+  border-color: rgba(255,255,255,.045) !important;
+  background: linear-gradient(145deg, #373c46, #2e323a) !important;
+  box-shadow:
+    6px 6px 14px rgba(17,19,23,.52),
+    -3px -3px 8px rgba(73,79,91,.13),
+    inset 1px 1px 0 rgba(255,255,255,.04) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:first-child {
+  border-color: rgba(255,255,255,.05) !important;
+  background: rgba(0,0,0,.08) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:first-child > button {
+  border-color: rgba(255,255,255,.05) !important;
+  background: linear-gradient(145deg, #3e444f, #2f343d) !important;
+  color: #cbd0d6 !important;
+  box-shadow: 3px 3px 7px rgba(16,18,22,.45), -2px -2px 5px rgba(76,82,94,.12) !important;
+}
+
+.nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:last-child > div {
+  border-color: rgba(255,255,255,.045) !important;
+  background: #30353f !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.025), 3px 3px 7px rgba(18,20,24,.28) !important;
+}
+
+/* Green is reserved for active/confirm cues, like the reference. */
+.nmc-home-skin button:focus-visible,
+.nmc-home-skin input:focus-visible,
+.nmc-home-skin textarea:focus-visible {
+  outline: 2px solid rgba(71,215,160,.78) !important;
+  outline-offset: 2px !important;
+}
+
+/* Dialogs opened from Home only */
+.nmc-home-skin .fixed > div[class*='max-w-sm'],
+.nmc-home-skin .fixed > div[class*='max-w-lg'] {
+  border-color: rgba(255,255,255,.055) !important;
+  background: linear-gradient(145deg, #363b45, #2a2e36) !important;
+  box-shadow: 16px 16px 35px rgba(10,12,15,.62), -7px -7px 18px rgba(75,81,93,.13) !important;
+}
+
+.nmc-home-skin .fixed input,
+.nmc-home-skin .fixed textarea {
+  border-color: rgba(255,255,255,.055) !important;
+  background: #292d35 !important;
+  color: #f3f4f5 !important;
+  box-shadow: inset 4px 4px 9px rgba(14,16,20,.48), inset -2px -2px 6px rgba(73,79,91,.10) !important;
+}
+
+@media (max-width: 720px) {
+  .nmc-home-skin > div {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .nmc-home-skin nav {
+    gap: 8px !important;
+  }
+  .nmc-home-skin nav > button {
+    min-height: 68px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+  .nmc-home-skin main {
+    gap: 14px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nmc-home-skin * { transition-duration: .001ms !important; }
+}
