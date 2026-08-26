@@ -4,37 +4,48 @@ const fs = require('fs');
 const path = require('path');
 
 const filePath = path.join(process.cwd(), 'src/app/page.tsx');
+const commandCenterPath = path.join(process.cwd(), 'src/components/home-command-center.tsx');
 if (!fs.existsSync(filePath)) {
   console.error('✗ Không tìm thấy src/app/page.tsx');
   process.exit(1);
 }
 
 let source = fs.readFileSync(filePath, 'utf8');
+const commandCenterSource = fs.existsSync(commandCenterPath)
+  ? fs.readFileSync(commandCenterPath, 'utf8')
+  : '';
 let changed = false;
 
-// Thêm icon Star vào import lucide-react của trang Main App.
-if (!/\bStar\b/.test(source.split("from 'lucide-react'")[0].split('\n').slice(-3).join('\n'))) {
-  const oldImport = "Settings, Check, AlertCircle, Link2, Trophy, Database, BarChart3, Lock, Unlock, X, RefreshCw, Bell, Bold, Italic, Underline";
-  if (source.includes(oldImport)) {
-    source = source.replace(oldImport, `${oldImport}, Star`);
+// Home mới tách navigation sang HomeCommandCenter. Nếu route CLB đã tồn tại ở đó,
+// tuyệt đối không chèn lại theo cấu trúc Main App cũ.
+const clbEntryAlreadyExists =
+  source.includes("router.push('/clb-sao-viet')") ||
+  commandCenterSource.includes("router.push('/clb-sao-viet')");
+
+// Các patch dưới đây chỉ dành cho cấu trúc Main App legacy.
+if (!clbEntryAlreadyExists) {
+  // Thêm icon Star vào import lucide-react của trang Main App cũ.
+  if (!/\bStar\b/.test(source.split("from 'lucide-react'")[0].split('\n').slice(-3).join('\n'))) {
+    const oldImport = "Settings, Check, AlertCircle, Link2, Trophy, Database, BarChart3, Lock, Unlock, X, RefreshCw, Bell, Bold, Italic, Underline";
+    if (source.includes(oldImport)) {
+      source = source.replace(oldImport, `${oldImport}, Star`);
+      changed = true;
+    }
+  }
+
+  // 4 chức năng chính trên cùng một hàng: Thi Đua / Quản Lý / KPI / CLB SV.
+  const mobileGrid = 'max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-3 gap-2';
+  if (source.includes(mobileGrid)) {
+    source = source.replace(mobileGrid, 'max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-4 gap-1.5');
     changed = true;
   }
-}
 
-// 4 chức năng chính trên cùng một hàng: Thi Đua / Quản Lý / KPI / CLB SV.
-const mobileGrid = 'max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-3 gap-2';
-if (source.includes(mobileGrid)) {
-  source = source.replace(mobileGrid, 'max-w-lg mx-auto w-full px-4 pb-2 flex-shrink-0 grid grid-cols-4 gap-1.5');
-  changed = true;
-}
+  const desktopGrid = 'w-full px-8 py-3 flex-shrink-0 grid grid-cols-3 gap-2';
+  if (source.includes(desktopGrid)) {
+    source = source.replace(desktopGrid, 'w-full px-8 py-3 flex-shrink-0 grid grid-cols-4 gap-2');
+    changed = true;
+  }
 
-const desktopGrid = 'w-full px-8 py-3 flex-shrink-0 grid grid-cols-3 gap-2';
-if (source.includes(desktopGrid)) {
-  source = source.replace(desktopGrid, 'w-full px-8 py-3 flex-shrink-0 grid grid-cols-4 gap-2');
-  changed = true;
-}
-
-if (!source.includes("router.push('/clb-sao-viet')")) {
   const clbButton = `
           <motion.button
             onClick={() => router.push('/clb-sao-viet')}
@@ -59,7 +70,7 @@ if (!source.includes("router.push('/clb-sao-viet')")) {
   });
 
   if (count !== 2) {
-    console.error(`✗ Dự kiến tìm 2 nút KPI (mobile + desktop), thực tế tìm thấy ${count}. Không ghi file để tránh làm hỏng Main App.`);
+    console.error(`✗ Không tìm thấy cấu trúc Main App legacy để chèn CLB Sao Việt (${count}/2 nút KPI). Không ghi file.`);
     process.exit(1);
   }
   changed = true;
@@ -67,7 +78,9 @@ if (!source.includes("router.push('/clb-sao-viet')")) {
 
 if (changed) {
   fs.writeFileSync(filePath, source, 'utf8');
-  console.log('✓ Main App: đã thêm chức năng CLB Sao Việt vào mobile + desktop.');
+  console.log('✓ Main App legacy: đã thêm chức năng CLB Sao Việt vào mobile + desktop.');
+} else if (clbEntryAlreadyExists) {
+  console.log('✓ Main App: route CLB Sao Việt đã tồn tại trong HomeCommandCenter; không thay đổi trang/route CLB.');
 } else {
   console.log('✓ Main App: nút CLB Sao Việt đã tồn tại, không cần thay đổi.');
 }
