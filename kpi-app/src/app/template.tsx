@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { KpiEntryGate } from '@/components/kpi-entry-gate'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
 /* nmc-unified-tech-background-v3 */
@@ -29,8 +30,6 @@ html body .kpi-app.kpi-app {
   background-attachment: fixed !important;
 }
 
-/* nmc-kpi-background-continuity-v1 */
-/* Loại bỏ trần/sàn vector cũ để asset v3 chạy liền mạch từ đầu đến cuối màn hình. */
 html body .kpi-app.kpi-app::before,
 html body .kpi-app.kpi-app::after,
 html body [aria-label="Đang tải dữ liệu KPI"]::before,
@@ -42,7 +41,6 @@ html body .kpi-app.kpi-app > .app-wrap::before {
   display: none !important;
 }
 
-/* Màn khởi động dùng đúng nền v3 thay cho nền cyber/vector cũ. */
 html body [aria-label="Đang tải dữ liệu KPI"],
 html body [aria-label="Tải dữ liệu gặp lỗi"] {
   background-color: #050a12 !important;
@@ -55,7 +53,6 @@ html body [aria-label="Tải dữ liệu gặp lỗi"] {
   background-attachment: fixed !important;
 }
 
-/* Ba trang nhúng từ KPI dùng liền mạch cùng nền v3, kể cả lúc iframe đang tải. */
 html body .kpi-app.kpi-app .kpi-embed-overlay,
 html body .kpi-app.kpi-app .kpi-embed-body,
 html body .kpi-app.kpi-app .kpi-embed-iframe,
@@ -80,13 +77,6 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
   display: none !important;
 }
 
-/*
- * Không đặt CSS cho màn loading tại đây.
- * Loading KPI được quản lý duy nhất bởi AppLoader + kpi-cyber-room-v4.css.
- * Tránh xung đột kích thước / min-height khiến mobile bị phóng card và lộ skeleton.
- */
-
-/* Nền băng thông báo vàng rõ hơn trên cả desktop và mobile. */
 .kpi-app .ctrl-bar.has-notice .kpi-notice-banner {
   background: linear-gradient(
     90deg,
@@ -105,7 +95,6 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
   text-shadow: 0 1px 0 rgba(255, 255, 255, .58) !important;
 }
 
-/* Popup chi tiết AD/Nhóm: dùng xanh navy theo màu nhận diện được yêu cầu. */
 .kpi-app .adp-header {
   background: #103667 !important;
   border-bottom-color: #0a2447 !important;
@@ -122,7 +111,6 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
     inset 0 1px 0 rgba(255, 255, 255, .24) !important;
 }
 
-/* Chỉ mobile: ghim tiêu đề, chọn kỳ và băng thông báo khi cuộn. */
 @media (max-width: 720px) {
   html,
   body {
@@ -189,16 +177,9 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
     pointer-events: none;
   }
 
-  .kpi-app #view-main > header .main-header {
-    margin: 0;
-  }
+  .kpi-app #view-main > header .main-header { margin: 0; }
+  .kpi-app #view-main > header .ctrl-bar { margin-top: 8px !important; margin-bottom: 0; }
 
-  .kpi-app #view-main > header .ctrl-bar {
-    margin-top: 8px !important;
-    margin-bottom: 0;
-  }
-
-  /* Chi tiết Ban Nhóm và Kế hoạch Khung: có nền và ghim giống tiêu đề KPI chính. */
   html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
   html body .kpi-app.kpi-app #view-calendar.active > .sub-header {
     position: sticky !important;
@@ -231,12 +212,7 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
     right: 0;
     bottom: 0;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(47, 183, 255, .48),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(47, 183, 255, .48), transparent);
     pointer-events: none;
   }
 }
@@ -246,6 +222,7 @@ export default function KpiTemplate({ children }: { children: ReactNode }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: KPI_MOBILE_HEADER_OVERRIDES }} />
+      <KpiEntryGate />
       {children}
     </>
   )
