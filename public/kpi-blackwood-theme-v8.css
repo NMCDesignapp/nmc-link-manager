@@ -1,0 +1,221 @@
+/* NMC KPI black-wood theme v8
+ * - remove legacy outer spinner from the 3 embedded KPI pages
+ * - unify Back/Quay lại controls across all 6 KPI destinations
+ * - make destination header surfaces match the KPI main mobile header
+ */
+
+/* The old .kpi-embed-loader::after spinner still existed outside the silver card.
+   v7 owns the heartbeat inside > span::after, so the outer pseudo-element must be gone. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader::before,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader::after {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* Defensive: the embedded loading surface should contain only the silver card. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > :not(span) {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  /* Same surface as #view-main > header in the KPI template. */
+  html body .kpi-app.kpi-app .kpi-embed-header,
+  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-calendar.active > .sub-header,
+  html body .kpi-app.kpi-app #view-tamthu-detail.active > .tamthu-detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+    isolation: isolate;
+    min-height: 58px !important;
+    padding: 10px 16px !important;
+    background: linear-gradient(
+      180deg,
+      rgba(2, 16, 34, .86) 0%,
+      rgba(2, 16, 34, .78) 72%,
+      rgba(2, 16, 34, .70) 100%
+    ) !important;
+    border: 0 !important;
+    border-bottom: 0 !important;
+    -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
+    backdrop-filter: blur(14px) saturate(120%) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 8px 20px rgba(0,0,0,.34) !important;
+  }
+
+  /* Internal destinations live inside the padded app shell: extend their header like main. */
+  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-calendar.active > .sub-header,
+  html body .kpi-app.kpi-app #view-tamthu-detail.active > .tamthu-detail-shell > .sub-header,
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 120 !important;
+    width: calc(100% + 32px) !important;
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-header {
+    position: relative !important;
+    z-index: 120 !important;
+    height: 58px !important;
+    flex: 0 0 58px !important;
+    gap: 8px !important;
+  }
+
+  /* Bottom light line — identical visual rhythm to the KPI main sticky header. */
+  html body .kpi-app.kpi-app .kpi-embed-header::after,
+  html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header::after,
+  html body .kpi-app.kpi-app #view-calendar.active > .sub-header::after,
+  html body .kpi-app.kpi-app #view-tamthu-detail.active > .tamthu-detail-shell > .sub-header::after,
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading::after {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(47,183,255,.48), transparent) !important;
+    pointer-events: none !important;
+  }
+
+  /* One Back-button language for all 6 destinations. */
+  html body .kpi-app.kpi-app .kpi-embed-back,
+  html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-detail .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-calendar .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-tamthu-detail .sub-header > button[aria-label='Trở về'],
+  html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Quay lại'],
+  html body .kpi-app.kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Trở về'] {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 96px !important;
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 10px 0 8px !important;
+    gap: 4px !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(78, 154, 198, .44) !important;
+    background: linear-gradient(180deg, rgba(17, 52, 82, .90), rgba(10, 39, 65, .90)) !important;
+    color: #86dda8 !important;
+    font-family: inherit !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    white-space: nowrap !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.07),
+      0 3px 10px rgba(0,0,0,.20),
+      0 0 10px rgba(45,145,191,.10) !important;
+    transform: none !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-back:hover,
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại']:hover,
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về']:hover,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại']:hover,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về']:hover {
+    background: linear-gradient(180deg, rgba(22, 66, 99, .96), rgba(12, 47, 75, .96)) !important;
+    border-color: rgba(103, 192, 228, .68) !important;
+    color: #9aebb8 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      0 4px 12px rgba(0,0,0,.24),
+      0 0 12px rgba(45,145,191,.15) !important;
+    transform: none !important;
+  }
+
+  /* BackButton component is icon-only; add the same label used by embedded pages. */
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại']::after,
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về']::after,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại']::after,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về']::after {
+    content: 'Quay lại' !important;
+    display: inline !important;
+    font: inherit !important;
+    color: inherit !important;
+  }
+
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Quay lại'] svg,
+  html body .kpi-app.kpi-app .sub-header > button[aria-label='Trở về'] svg,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Quay lại'] svg,
+  html body .kpi-app.kpi-app .tgr-list-heading > button[aria-label='Trở về'] svg,
+  html body .kpi-app.kpi-app .kpi-embed-back svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 18px !important;
+    stroke-width: 2.6 !important;
+    filter: drop-shadow(0 0 3px rgba(89, 222, 143, .24)) !important;
+  }
+
+  /* Embedded back button already owns a text node/span; normalize mobile behavior. */
+  html body .kpi-app.kpi-app .kpi-embed-back span {
+    display: none !important;
+  }
+  html body .kpi-app.kpi-app .kpi-embed-back::after {
+    content: 'Quay lại' !important;
+    display: inline !important;
+    font: inherit !important;
+    color: inherit !important;
+  }
+
+  /* Keep titles readable after the wider shared back control. */
+  html body .kpi-app.kpi-app .sub-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+  html body .kpi-app.kpi-app .sub-header > .sub-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: clamp(13px, 4.1vw, 18px) !important;
+  }
+
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+    grid-template-columns: 104px minmax(0, 1fr) 104px !important;
+    gap: 4px !important;
+  }
+  html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading-spacer {
+    width: 104px !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-title {
+    min-width: 0 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    font-size: clamp(12px, 3.9vw, 16px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html body .kpi-app.kpi-app .kpi-embed-open {
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    border-color: rgba(78,154,198,.38) !important;
+    background: rgba(12, 44, 72, .78) !important;
+    color: #7ec5e8 !important;
+  }
+}
