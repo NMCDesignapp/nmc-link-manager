@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SpaceBackground } from '@/components/space-bg'
+import { MaintenanceGate } from '@/components/maintenance-gate'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -51,7 +52,10 @@ export default function RootLayout({
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
         <SpaceBackground />
-        <AppDataProvider>{children}</AppDataProvider>
+        <AppDataProvider>
+          {children}
+          <MaintenanceGate standalone />
+        </AppDataProvider>
       </body>
     </html>
   )
