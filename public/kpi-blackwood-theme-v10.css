@@ -1,0 +1,171 @@
+/* NMC KPI black-wood theme v10
+ * Linked Thi đua / Chính sách / CLB horizontal loader
+ * - same silver-metal language as main loader
+ * - perfectly round/crisp logo
+ * - fixed dark ECG groove + bright gold ECG running exactly on it
+ * - one-way, one-pass heartbeat animation (no repeat)
+ * - endpoint dots fixed at both ends
+ */
+
+@keyframes nmc-embed-heartbeat-once {
+  from { clip-path: inset(0 100% 0 0); opacity: .55; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  box-sizing: border-box !important;
+  width: min(92vw, 610px) !important;
+  min-height: 140px !important;
+  padding: 96px 32px 0 136px !important;
+  overflow: hidden !important;
+  border-radius: 20px !important;
+  border: 1.5px solid rgba(244,197,83,.92) !important;
+
+  color: #f7f8fa !important;
+  font-family: 'Outfit', system-ui, sans-serif !important;
+  font-size: 15px !important;
+  font-style: italic !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .012em !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.88) !important;
+
+  /* The first SVG layer is the permanent dark groove/rail.
+     It includes the two gold endpoint dots and never animates. */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='52' viewBox='0 0 360 52'%3E%3Cpath d='M8 27 H76 L88 27 L99 18 L109 35 L121 8 L133 44 L145 27 H183 L194 22 L205 32 L216 14 L228 38 L240 27 H352' fill='none' stroke='%23292219' stroke-width='5.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 27 H76 L88 27 L99 18 L109 35 L121 8 L133 44 L145 27 H183 L194 22 L205 32 L216 14 L228 38 L240 27 H352' fill='none' stroke='%23453b2a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='8' cy='27' r='4.2' fill='%23ffd66f'/%3E%3Ccircle cx='352' cy='27' r='4.2' fill='%23ffd66f'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 17px 17px, #30343a 0 3px, #d9dde2 4px 6px, #767c84 7px 9px, transparent 10px),
+    radial-gradient(circle at calc(100% - 17px) 17px, #30343a 0 3px, #d9dde2 4px 6px, #767c84 7px 9px, transparent 10px),
+    radial-gradient(circle at 17px calc(100% - 17px), #30343a 0 3px, #d9dde2 4px 6px, #767c84 7px 9px, transparent 10px),
+    radial-gradient(circle at calc(100% - 17px) calc(100% - 17px), #30343a 0 3px, #d9dde2 4px 6px, #767c84 7px 9px, transparent 10px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.055) 0 1px, rgba(0,0,0,.045) 1px 3px),
+    linear-gradient(145deg, #dfe3e7 0%, #b9bec4 17%, #858b93 40%, #4a5058 64%, #969da5 82%, #d4d8dc 100%) !important;
+  background-position:
+    right 32px top 25px,
+    left top,
+    left top,
+    left top,
+    left top,
+    left top,
+    left top !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat !important;
+  background-size:
+    calc(100% - 168px) 52px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    auto,
+    100% 100% !important;
+  box-shadow:
+    0 22px 62px rgba(0,0,0,.64),
+    inset 0 1px 0 rgba(255,255,255,.74),
+    inset 0 -10px 24px rgba(22,26,31,.32),
+    0 0 0 1px rgba(255,215,107,.12),
+    0 0 26px rgba(244,197,83,.10) !important;
+}
+
+/* Round, sharp logo — never oval, never stretched. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 32px !important;
+  top: 27px !important;
+  width: 82px !important;
+  height: 82px !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(255,220,142,.88) !important;
+  background-color: #06111b !important;
+  background-image: url('/kpi-tech-logo.webp') !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  box-shadow:
+    0 0 0 3px rgba(247,190,77,.10),
+    0 0 22px rgba(255,191,62,.22),
+    inset 0 0 0 1px rgba(255,255,255,.12) !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+/* Bright ECG runs on top of the permanent dark groove.
+   One single pass only. No looping. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 136px !important;
+  right: 32px !important;
+  top: 25px !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: 52px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  text-shadow: none !important;
+  pointer-events: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='52' viewBox='0 0 360 52'%3E%3Cdefs%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='1.15' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M8 27 H76 L88 27 L99 18 L109 35 L121 8 L133 44 L145 27 H183 L194 22 L205 32 L216 14 L228 38 L240 27 H352' fill='none' stroke='%23ffd66f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' filter='url(%23g)'/%3E%3C/svg%3E") !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  animation: nmc-embed-heartbeat-once 16s linear 1 forwards !important;
+  will-change: clip-path, opacity !important;
+}
+
+/* v8 already hides the old external spinner; keep it impossible to reappear. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader::before,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 520px) {
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+    min-height: 132px !important;
+    padding: 89px 24px 0 119px !important;
+    font-size: 14px !important;
+    background-position:
+      right 25px top 24px,
+      left top,
+      left top,
+      left top,
+      left top,
+      left top,
+      left top !important;
+    background-size:
+      calc(100% - 144px) 48px,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      auto,
+      100% 100% !important;
+  }
+
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before {
+    left: 25px !important;
+    top: 27px !important;
+    width: 76px !important;
+    height: 76px !important;
+  }
+
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+    left: 119px !important;
+    right: 25px !important;
+    top: 24px !important;
+    height: 48px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+    animation-duration: 24s !important;
+  }
+}
