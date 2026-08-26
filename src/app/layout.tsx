@@ -56,6 +56,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-performance-v1.css?v=20260807-2110" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v3.css?v=20260825-1" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v4.css?v=20260825-2" />
+        <link rel="stylesheet" href="/kpi-blackwood-theme-v5.css?v=20260826-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
