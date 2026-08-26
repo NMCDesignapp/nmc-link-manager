@@ -1,0 +1,71 @@
+/* NMC KPI black-wood theme v11
+ * Linked Thi đua / Chính sách / CLB loader completion gate visual.
+ * v10 owns the metal card/groove geometry; v11 synchronizes the bright ECG
+ * with the 3.2s parent gate so it visibly reaches 100% before iframe reveal.
+ */
+
+@keyframes nmc-embed-heartbeat-complete {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: .70;
+    filter:
+      drop-shadow(0 0 2px rgba(255, 214, 111, .78))
+      drop-shadow(0 0 5px rgba(255, 188, 48, .52));
+  }
+  72% {
+    opacity: .98;
+    filter:
+      drop-shadow(0 0 3px rgba(255, 225, 139, .96))
+      drop-shadow(0 0 8px rgba(255, 193, 55, .72))
+      drop-shadow(0 0 14px rgba(255, 167, 18, .30));
+  }
+  94% {
+    clip-path: inset(0 4% 0 0);
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 3px rgba(255, 232, 158, 1))
+      drop-shadow(0 0 9px rgba(255, 201, 73, .82))
+      drop-shadow(0 0 17px rgba(255, 172, 25, .42));
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 4px rgba(255, 238, 176, 1))
+      drop-shadow(0 0 11px rgba(255, 207, 83, .92))
+      drop-shadow(0 0 20px rgba(255, 174, 28, .52));
+  }
+}
+
+/* Bright ECG: one pass, reaches the right endpoint before the 3.2s reveal gate. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+  animation: nmc-embed-heartbeat-complete 2.82s cubic-bezier(.22,.66,.24,1) 1 forwards !important;
+  opacity: 1 !important;
+  will-change: clip-path, opacity, filter !important;
+}
+
+/* Give the permanent groove a little more depth so the glowing ECG reads as
+   a bright signal running inside an existing dark channel. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  background-blend-mode: normal, normal, normal, normal, normal, normal, normal !important;
+}
+
+/* Keep endpoint dots visibly gold; v10 provides their geometry in the groove SVG.
+   A restrained card glow makes the completed signal feel illuminated without
+   changing the approved silver-metal composition. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  box-shadow:
+    0 22px 62px rgba(0,0,0,.64),
+    inset 0 1px 0 rgba(255,255,255,.74),
+    inset 0 -10px 24px rgba(22,26,31,.32),
+    0 0 0 1px rgba(255,215,107,.14),
+    0 0 30px rgba(244,197,83,.14) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Completion semantics are retained: reduced motion shortens movement rather
+     than extending it beyond the parent reveal gate. */
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+    animation-duration: 2.82s !important;
+  }
+}
