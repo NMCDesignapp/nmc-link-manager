@@ -146,6 +146,8 @@ export function VerticalAgenda() {
             <div
               key={dateKey}
               ref={(node) => { dayRefs.current[dateKey] = node }}
+              data-day-tone={day % 2 === 0 ? 'silver' : 'gold'}
+              data-today={isToday ? 'true' : undefined}
               className="mb-2 grid grid-cols-[54px_minmax(0,1fr)] overflow-hidden rounded-2xl border shadow-[0_7px_18px_rgba(0,0,0,.2)] sm:grid-cols-[68px_minmax(0,1fr)]"
               style={{
                 background: isToday ? '#244a58' : '#1a3545',
