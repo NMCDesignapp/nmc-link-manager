@@ -1,0 +1,240 @@
+/* NMC Main Home auxiliary panels soft UI v1
+ * Home-only: every rule is scoped by .nmc-home-skin.
+ * KPI, CLB Sao Viet and KPI embedded routes are intentionally untouched.
+ */
+
+.nmc-home-skin {
+  --nmc-panel-bg-a: #273b4b;
+  --nmc-panel-bg-b: #132532;
+  --nmc-panel-bg-c: #0b1b26;
+  --nmc-panel-border: rgba(150, 187, 211, .30);
+  --nmc-panel-border-soft: rgba(255, 255, 255, .07);
+  --nmc-panel-text: #eef5f8;
+  --nmc-panel-muted: #9eb6c4;
+  --nmc-panel-cyan: #69cfe5;
+  --nmc-panel-mint: #63d5bd;
+  --nmc-panel-gold: #e8c76c;
+  --nmc-panel-silver: #cbd7df;
+}
+
+/* Shared overlay for Settings / Add link / Statistics. */
+.nmc-home-skin .modal-overlay {
+  background: rgba(2, 10, 17, .76) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(118%);
+  backdrop-filter: blur(13px) saturate(118%);
+}
+
+.nmc-home-skin .modal-overlay > div {
+  overflow: hidden;
+  border: 1px solid var(--nmc-panel-border) !important;
+  border-radius: 24px !important;
+  color: var(--nmc-panel-text) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(105, 207, 229, .14), transparent 38%),
+    linear-gradient(145deg, var(--nmc-panel-bg-a), var(--nmc-panel-bg-b) 54%, var(--nmc-panel-bg-c)) !important;
+  box-shadow:
+    18px 22px 55px rgba(0, 0, 0, .52),
+    -8px -8px 24px rgba(84, 115, 135, .08),
+    inset 1px 1px 0 rgba(255,255,255,.09),
+    inset -1px -1px 0 rgba(0,0,0,.32) !important;
+}
+
+.nmc-home-skin .modal-overlay > div::before {
+  content: '';
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 2px;
+  margin: -1px 18% 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--nmc-panel-cyan), var(--nmc-panel-mint), transparent);
+  box-shadow: 0 0 13px rgba(99, 213, 189, .40);
+  pointer-events: none;
+}
+
+.nmc-home-skin .modal-overlay h2,
+.nmc-home-skin .modal-overlay h3 {
+  color: #f3f7f9 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.42);
+}
+
+.nmc-home-skin .modal-overlay .text-muted-foreground,
+.nmc-home-skin .modal-overlay [class*='text-muted'] {
+  color: var(--nmc-panel-muted) !important;
+}
+
+/* Old neon surfaces become inset graphite/steel controls. */
+.nmc-home-skin .modal-overlay [style*='#1a1a2e'],
+.nmc-home-skin .modal-overlay .neon-input {
+  border-color: rgba(145, 181, 204, .23) !important;
+  color: #edf5f8 !important;
+  background: linear-gradient(180deg, #0d202c, #132b39) !important;
+  box-shadow:
+    inset 3px 3px 8px rgba(0,0,0,.34),
+    inset -1px -1px 2px rgba(255,255,255,.04) !important;
+}
+
+.nmc-home-skin .modal-overlay input,
+.nmc-home-skin .modal-overlay textarea,
+.nmc-home-skin .modal-overlay select {
+  border-color: rgba(145, 181, 204, .24) !important;
+  color: #edf5f8 !important;
+  background-color: #102532 !important;
+  outline: none !important;
+}
+
+.nmc-home-skin .modal-overlay input:focus,
+.nmc-home-skin .modal-overlay textarea:focus,
+.nmc-home-skin .modal-overlay select:focus {
+  border-color: var(--nmc-panel-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(105,207,229,.12), inset 2px 2px 6px rgba(0,0,0,.28) !important;
+}
+
+.nmc-home-skin .modal-overlay button,
+.nmc-home-skin .modal-overlay a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nmc-home-skin .modal-overlay .neon-btn,
+.nmc-home-skin .modal-overlay .glow-hover {
+  border: 1px solid rgba(105, 207, 229, .34) !important;
+  color: #e8f7fb !important;
+  background: linear-gradient(145deg, #28566b, #193b4c) !important;
+  box-shadow:
+    5px 6px 13px rgba(0,0,0,.30),
+    inset 1px 1px 0 rgba(255,255,255,.10) !important;
+  text-shadow: none !important;
+}
+
+.nmc-home-skin .modal-overlay .neon-text,
+.nmc-home-skin .modal-overlay .text-primary {
+  color: var(--nmc-panel-cyan) !important;
+  text-shadow: none !important;
+}
+
+/* Quick actions: brighter, differentiated but still one material system. */
+.nmc-home-skin .modal-overlay .grid.grid-cols-4 > button {
+  min-height: 58px;
+  border-radius: 14px !important;
+  border: 1px solid rgba(160,190,210,.20) !important;
+  background: linear-gradient(145deg, #31556a, #1c3545) !important;
+  color: #e9f3f7 !important;
+  box-shadow: 5px 6px 12px rgba(0,0,0,.27), inset 1px 1px 0 rgba(255,255,255,.09) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-4 > button:nth-child(2) {
+  border-color: rgba(99,213,189,.32) !important;
+  background: linear-gradient(145deg, #2c5a53, #1b3c3a) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-4 > button:nth-child(3) {
+  border-color: rgba(232,199,108,.34) !important;
+  background: linear-gradient(145deg, #625630, #3d351f) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-4 > button:nth-child(4) {
+  border-color: rgba(117,169,224,.34) !important;
+  background: linear-gradient(145deg, #345b79, #203c55) !important;
+}
+
+/* Statistics summary: silver / blue / pale gold, matching the agenda language. */
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div:nth-child(1) {
+  border-color: #aabac5 !important;
+  color: #183345 !important;
+  background: linear-gradient(145deg, #edf2f5, #b9c6cf) !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.76), 5px 6px 13px rgba(0,0,0,.25) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div:nth-child(2) {
+  border-color: #7aa9d4 !important;
+  color: #123b63 !important;
+  background: linear-gradient(145deg, #dbeeff, #86b7e5) !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.70), 5px 6px 13px rgba(0,0,0,.25) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div:nth-child(3) {
+  border-color: #d0b762 !important;
+  color: #574617 !important;
+  background: linear-gradient(145deg, #fff1bd, #d9bd69) !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.68), 5px 6px 13px rgba(0,0,0,.25) !important;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div .text-muted-foreground,
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div [class*='text-muted'] {
+  color: currentColor !important;
+  opacity: .70;
+}
+
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div svg,
+.nmc-home-skin .modal-overlay .grid.grid-cols-3 > div .text-primary {
+  color: currentColor !important;
+}
+
+/* List rows and collapsed manager blocks receive a softer raised surface. */
+.nmc-home-skin .modal-overlay .space-y-1\.5 > div,
+.nmc-home-skin .modal-overlay .space-y-2 > div[style],
+.nmc-home-skin .modal-overlay .space-y-3 > div[style] {
+  border-color: rgba(155,185,204,.16) !important;
+  background: linear-gradient(145deg, rgba(38,61,77,.88), rgba(21,39,52,.92)) !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.05), 3px 4px 9px rgba(0,0,0,.20);
+}
+
+/* Full-screen link/file viewer opened from Home. */
+.nmc-home-skin .fixed.inset-0.z-50.flex.flex-col {
+  color: var(--nmc-panel-text);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(105,207,229,.10), transparent 34%),
+    linear-gradient(160deg, #102532, #07131e 64%, #040b12) !important;
+}
+
+.nmc-home-skin .fixed.inset-0.z-50.flex.flex-col [style*='#0a0a0f'] {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(105,207,229,.08), transparent 38%),
+    linear-gradient(160deg, #102532, #07131e 68%, #040b12) !important;
+}
+
+.nmc-home-skin .fixed.inset-0.z-50.flex.flex-col button[style*='rgba(0, 0, 0, 0.5)'] {
+  border-color: rgba(170,200,219,.28) !important;
+  color: #dceaf1 !important;
+  background: linear-gradient(145deg, rgba(48,76,93,.90), rgba(19,39,53,.92)) !important;
+  box-shadow: 5px 6px 14px rgba(0,0,0,.32), inset 1px 1px 0 rgba(255,255,255,.08);
+}
+
+.nmc-home-skin .fixed.inset-0.z-50.flex.flex-col .neon-btn {
+  border: 1px solid rgba(99,213,189,.42) !important;
+  color: #eaf9f5 !important;
+  background: linear-gradient(145deg, #2b6659, #194238) !important;
+  box-shadow: 6px 7px 16px rgba(0,0,0,.30), inset 1px 1px 0 rgba(255,255,255,.11) !important;
+}
+
+@media (max-width: 520px) {
+  .nmc-home-skin .modal-overlay {
+    align-items: flex-end !important;
+    padding: 10px 0 0;
+  }
+
+  .nmc-home-skin .modal-overlay > div {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(88dvh, 760px) !important;
+    margin: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 26px 26px 0 0 !important;
+    padding-bottom: max(22px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .nmc-home-skin .modal-overlay > div::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: rgba(205,221,230,.42);
+  }
+}
