@@ -48,7 +48,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v9.css?v=20260826-5" />
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v10.css?v=20260826-6" />
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v11.css?v=20260826-7" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/nmc-metal-loading-plate-v1.css?v=20260827-1" />
+        <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
