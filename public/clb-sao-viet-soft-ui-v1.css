@@ -1,0 +1,292 @@
+/* CLB Sao Viet soft-3D UI v1
+ * Visual-only layer. All rules are scoped to .nmc-clb-soft-skin.
+ * Business logic, result calculation, exports and detail tables are untouched.
+ */
+
+.nmc-clb-soft-skin {
+  --clb-bg-a: #31363f;
+  --clb-bg-b: #282d35;
+  --clb-bg-c: #20252c;
+  --clb-panel-a: #3a404a;
+  --clb-panel-b: #2c3139;
+  --clb-panel-c: #242931;
+  --clb-text: #eef3f5;
+  --clb-muted: #a8b4bc;
+  --clb-cyan: #6fc5df;
+  --clb-mint: #61d4bc;
+  --clb-gold: #e7c46b;
+  --clb-silver: #d7e0e5;
+  min-height: 100vh;
+  color: var(--clb-text);
+  background:
+    radial-gradient(circle at 16% 4%, rgba(111,197,223,.13), transparent 31%),
+    radial-gradient(circle at 88% 24%, rgba(97,212,188,.08), transparent 30%),
+    linear-gradient(160deg, var(--clb-bg-a) 0%, var(--clb-bg-b) 48%, var(--clb-bg-c) 100%) !important;
+}
+
+.nmc-clb-soft-skin > .fixed.inset-0 {
+  opacity: .42;
+  background:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px) !important;
+  background-size: 30px 30px !important;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+.nmc-clb-soft-skin .nmc-clb-header {
+  overflow: hidden;
+  border: 1px solid rgba(201,215,223,.18) !important;
+  border-radius: 22px;
+  padding: 14px 16px !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(111,197,223,.12), transparent 36%),
+    linear-gradient(145deg, #3d434d, #2c3139 58%, #252a31) !important;
+  box-shadow:
+    12px 14px 30px rgba(10,12,15,.42),
+    -6px -6px 18px rgba(92,100,112,.10),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    inset -1px -1px 0 rgba(0,0,0,.30) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header h1 {
+  color: #f0f3f5 !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,.45) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header h1::after {
+  content: '';
+  display: block;
+  width: 58%;
+  height: 2px;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--clb-gold), var(--clb-mint), transparent);
+  box-shadow: 0 0 10px rgba(97,212,188,.24);
+}
+
+.nmc-clb-soft-skin .nmc-clb-header p,
+.nmc-clb-soft-skin .nmc-clb-header label > span {
+  color: var(--clb-muted) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header label {
+  border: 1px solid rgba(199,214,223,.14) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, #363c45, #292e36) !important;
+  box-shadow:
+    5px 6px 12px rgba(13,15,18,.30),
+    inset 1px 1px 0 rgba(255,255,255,.06) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header select {
+  border-color: rgba(111,197,223,.26) !important;
+  color: #edf3f5 !important;
+  background: linear-gradient(180deg, #26333c, #1f2a32) !important;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.24) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header > div:last-child > button {
+  border: 1px solid rgba(97,212,188,.42) !important;
+  border-radius: 13px !important;
+  color: #eafff9 !important;
+  background: linear-gradient(145deg, #3a7165, #29564d) !important;
+  box-shadow:
+    6px 7px 14px rgba(12,14,17,.30),
+    inset 1px 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-period-note {
+  border: 1px solid rgba(231,196,107,.30) !important;
+  border-radius: 16px;
+  color: #cdd5da !important;
+  background:
+    linear-gradient(145deg, rgba(91,78,43,.80), rgba(48,44,34,.88)) !important;
+  box-shadow:
+    7px 8px 18px rgba(13,15,18,.28),
+    inset 1px 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-period-note strong {
+  color: #ffe6a4 !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder {
+  border: 1px solid rgba(190,207,217,.16) !important;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #383e47, #292e36 62%, #242930) !important;
+  box-shadow:
+    11px 13px 28px rgba(10,12,15,.40),
+    -5px -5px 15px rgba(92,100,112,.08),
+    inset 1px 1px 0 rgba(255,255,255,.07),
+    inset -1px -1px 0 rgba(0,0,0,.28) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-head {
+  min-height: 48px;
+  border-bottom: 1px solid rgba(111,197,223,.18) !important;
+  background:
+    linear-gradient(180deg, #41505b 0%, #303a43 58%, #29333b 100%) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-head span {
+  color: #f5f1df !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.44);
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-head svg:first-child {
+  color: var(--clb-gold) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-head svg:last-child {
+  color: var(--clb-cyan) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-body {
+  border-top-color: rgba(255,255,255,.04) !important;
+  background: linear-gradient(145deg, rgba(44,50,58,.82), rgba(34,39,46,.92)) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item {
+  border: 1px solid rgba(186,204,215,.13) !important;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #353b44, #292e36) !important;
+  box-shadow:
+    5px 6px 12px rgba(11,13,16,.28),
+    inset 1px 1px 0 rgba(255,255,255,.055) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-head {
+  min-height: 44px;
+  background: linear-gradient(145deg, rgba(60,67,77,.72), rgba(43,49,57,.78)) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-head span {
+  color: #e9eef1 !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-head svg {
+  color: var(--clb-mint) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body {
+  border-top-color: rgba(111,197,223,.13) !important;
+  background: linear-gradient(180deg, rgba(37,43,51,.72), rgba(30,35,42,.82));
+}
+
+/* Result summary cards and action panels inside opened items. */
+.nmc-clb-soft-skin .nmc-clb-item-body section > .grid > div,
+.nmc-clb-soft-skin .nmc-clb-item-body section > div[class*='border'] {
+  border-radius: 16px !important;
+  box-shadow:
+    7px 8px 17px rgba(9,11,14,.30),
+    inset 1px 1px 0 rgba(255,255,255,.06) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body section > .grid > div:first-child {
+  border-color: rgba(200,214,223,.20) !important;
+  background: linear-gradient(145deg, #3c434d, #2d333b) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body section > .grid > div:nth-child(2) {
+  border-color: rgba(97,212,188,.30) !important;
+  background: linear-gradient(145deg, #31564f, #283f3b) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body section > .grid > div:nth-child(3) {
+  border-color: rgba(215,139,163,.26) !important;
+  background: linear-gradient(145deg, #59424a, #3d3237) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body button {
+  border-radius: 12px !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body input,
+.nmc-clb-soft-skin .nmc-clb-item-body select,
+.nmc-clb-soft-skin .nmc-clb-item-body textarea {
+  border-color: rgba(185,205,217,.20) !important;
+  color: #edf3f6 !important;
+  background: linear-gradient(180deg, #202a32, #182128) !important;
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,.28) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body input:focus,
+.nmc-clb-soft-skin .nmc-clb-item-body select:focus,
+.nmc-clb-soft-skin .nmc-clb-item-body textarea:focus {
+  border-color: var(--clb-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(111,197,223,.11), inset 2px 2px 6px rgba(0,0,0,.26) !important;
+}
+
+/* Full-screen result dialogs use the same steel shell without touching table semantics. */
+.nmc-clb-soft-skin .nmc-clb-item-body .fixed.inset-0 {
+  background: rgba(16,19,23,.78) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
+  backdrop-filter: blur(8px) saturate(112%);
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body .fixed.inset-0 > div {
+  border-color: rgba(111,197,223,.24) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, #343a43, #252b32) !important;
+  box-shadow: 0 28px 70px rgba(0,0,0,.56), inset 1px 1px 0 rgba(255,255,255,.07) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-footer {
+  border: 1px solid rgba(190,207,217,.17) !important;
+  border-radius: 16px;
+  color: #aebac2 !important;
+  background: linear-gradient(145deg, #353b44, #292e36) !important;
+  box-shadow: 7px 8px 17px rgba(10,12,15,.30), inset 1px 1px 0 rgba(255,255,255,.055) !important;
+}
+
+@media (max-width: 640px) {
+  .nmc-clb-soft-skin > div.relative {
+    padding-inline: 10px !important;
+    padding-top: 10px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-header {
+    gap: 12px !important;
+    border-radius: 18px;
+    padding: 12px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-header > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 7px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-header label {
+    min-width: 0;
+    justify-content: space-between;
+    padding-inline: 8px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-header select {
+    min-width: 70px;
+    padding-inline: 8px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-header > div:last-child > button {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-folder {
+    margin-top: 12px !important;
+    border-radius: 17px;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-folder-head {
+    min-height: 44px;
+    padding: 9px 12px !important;
+  }
+
+  .nmc-clb-soft-skin .nmc-clb-item {
+    border-radius: 13px;
+  }
+}
