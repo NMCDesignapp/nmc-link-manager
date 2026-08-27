@@ -56,11 +56,11 @@ type FolderProps = {
 
 function AssessmentFolder({ title, open, onToggle, children }: FolderProps) {
   return (
-    <section className="mt-5 overflow-hidden border border-amber-300/20 bg-[#0b1511] shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+    <section className="nmc-clb-folder mt-5 overflow-hidden border border-amber-300/20 bg-[#0b1511] shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between bg-[#102019] px-4 py-3 text-left transition hover:bg-[#14271f] sm:px-5"
+        className="nmc-clb-folder-head flex w-full items-center justify-between bg-[#102019] px-4 py-3 text-left transition hover:bg-[#14271f] sm:px-5"
       >
         <span className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-amber-100 sm:text-base">
           <FolderOpen className="h-4 w-4 text-amber-300" />
@@ -68,7 +68,7 @@ function AssessmentFolder({ title, open, onToggle, children }: FolderProps) {
         </span>
         {open ? <ChevronDown className="h-5 w-5 text-amber-200" /> : <ChevronRight className="h-5 w-5 text-amber-200" />}
       </button>
-      {open ? <div className="space-y-2 border-t border-white/10 p-2.5 sm:p-3">{children}</div> : null}
+      {open ? <div className="nmc-clb-folder-body space-y-2 border-t border-white/10 p-2.5 sm:p-3">{children}</div> : null}
     </section>
   );
 }
@@ -82,16 +82,16 @@ type ItemProps = {
 
 function AssessmentItem({ title, open, onToggle, children }: ItemProps) {
   return (
-    <div className="overflow-hidden border border-white/10 bg-[#0e1915]">
+    <div className="nmc-clb-item overflow-hidden border border-white/10 bg-[#0e1915]">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-white/[0.035]"
+        className="nmc-clb-item-head flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-white/[0.035]"
       >
         <span className="text-sm font-bold text-white/85">{title}</span>
         {open ? <ChevronDown className="h-4 w-4 text-emerald-300" /> : <ChevronRight className="h-4 w-4 text-white/45" />}
       </button>
-      {open ? <div className="border-t border-white/10 px-3 pb-3 sm:px-4">{children}</div> : null}
+      {open ? <div className="nmc-clb-item-body border-t border-white/10 px-3 pb-3 sm:px-4">{children}</div> : null}
     </div>
   );
 }
@@ -119,7 +119,7 @@ export default function CLBSaoVietPage() {
   const sharedProps = { year: assessmentYear, month: assessmentMonth, refreshToken };
 
   return (
-    <main className="min-h-screen bg-[#07100d] text-white">
+    <main className="nmc-clb-soft-skin min-h-screen bg-[#07100d] text-white">
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -129,7 +129,7 @@ export default function CLBSaoVietPage() {
       />
 
       <div className="relative mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-8 lg:py-6">
-        <header className="flex flex-col gap-4 border-b border-amber-300/15 pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <header className="nmc-clb-header flex flex-col gap-4 border-b border-amber-300/15 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <BackButton size={36} />
             <div>
@@ -160,7 +160,7 @@ export default function CLBSaoVietPage() {
           </div>
         </header>
 
-        <div className="mt-4 border border-amber-300/15 bg-amber-300/[0.035] px-4 py-3 text-xs leading-5 text-white/50">
+        <div className="nmc-clb-period-note mt-4 border border-amber-300/15 bg-amber-300/[0.035] px-4 py-3 text-xs leading-5 text-white/50">
           <strong className="text-amber-100">Kỳ xét dùng chung:</strong>{' '}
           tất cả mục Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét đều sử dụng Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn phía trên và lấy 3 tháng liền trước.
         </div>
@@ -197,7 +197,7 @@ export default function CLBSaoVietPage() {
           {membersFolderOpen ? <CLBPostAssessmentMembers {...sharedProps} /> : null}
         </AssessmentFolder>
 
-        <section className="mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">
+        <section className="nmc-clb-footer mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">
           Phần tạo poster chúc mừng sẽ được nối vào kết quả từng mục sau khi hoàn tất các tiêu chí xét.
         </section>
       </div>
