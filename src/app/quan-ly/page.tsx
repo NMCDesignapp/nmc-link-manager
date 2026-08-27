@@ -4295,22 +4295,34 @@ export default function QuanLyPage() {
       {/* 12 KPI cards — 3 cột/hàng (mobile) × 4 hàng, 6 cột/hàng (desktop) × 2 hàng — MỞ RỘNG + CHỮ TO */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-6">
         {[
-          { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#2563EB', hasKH: true },
-          { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
-          { label: 'TỶ TRỌNG IP', unit: '%', value: Math.round(ipAfypRatio) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#0891B2', hasKH: false },
-          { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
-          { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: 0, targetFmt: '', bg: '#DC2626', hasKH: false },
-          { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: 0, targetFmt: '', bg: '#D97706', hasKH: false },
-          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#0284C7', hasKH: false },
-          { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#059669', hasKH: false },
-          { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#7C3AED', hasKH: false },
-          { label: 'SL NTD', unit: 'người', value: formatNumber(totalNTD), rawVal: totalNTD, target: 0, targetFmt: '', bg: '#CA8A04', hasKH: false },
-          { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: 0, targetFmt: '', bg: '#0D9488', hasKH: false },
-          { label: 'TỔNG SỐ TVV', unit: 'người', value: formatNumber(tvvStructList.length), rawVal: tvvStructList.length, target: 0, targetFmt: '', bg: '#475569', hasKH: false },
+          { label: 'TỔNG AFYP', unit: 'trđ', value: formatKpiCurrency(totalRevenueAFYP), rawVal: totalRevenueAFYP, target: targetTongAFYP, targetFmt: formatKpiCurrency(targetTongAFYP), bg: '#3277D8', deep: '#2452A2', surfaceA: '#DDEEFF', surfaceB: '#9FC8F7', border: '#75AEE8', ink: '#123B70', hasKH: true },
+          { label: 'TỔNG IP', unit: 'trđ', value: formatKpiCurrency(totalRevenue), rawVal: totalRevenue, target: 0, targetFmt: '', bg: '#159B83', deep: '#0A6B5C', surfaceA: '#D7F4EC', surfaceB: '#97D9C7', border: '#73C6B2', ink: '#0A4E43', hasKH: false },
+          { label: 'TỶ TRỌNG IP', unit: '%', value: Math.round(ipAfypRatio) + '%', rawVal: ipAfypRatio, target: 0, targetFmt: '', bg: '#C6962B', deep: '#8D6412', surfaceA: '#FFF1BC', surfaceB: '#E8C968', border: '#E2BD50', ink: '#5D430E', hasKH: false },
+          { label: 'LƯỢT HĐ', unit: 'lượt', value: formatNumber(luotHoatDong), rawVal: luotHoatDong, target: 0, targetFmt: '', bg: '#8064D6', deep: '#5840A8', surfaceA: '#E8E1FA', surfaceB: '#B6A5EB', border: '#A795E1', ink: '#3C2F73', hasKH: false },
+          { label: 'LƯỢT HĐ CHUẨN', unit: 'lượt', value: formatNumber(luotHDChuan), rawVal: luotHDChuan, target: 0, targetFmt: '', bg: '#D26858', deep: '#98483B', surfaceA: '#F8DFD8', surfaceB: '#DEA094', border: '#D68C7D', ink: '#6B3029', hasKH: false },
+          { label: 'SL HĐ', unit: 'HĐ', value: formatNumber(totalRevenueContractCount), rawVal: totalRevenueContractCount, target: 0, targetFmt: '', bg: '#D88A24', deep: '#9B5A0A', surfaceA: '#FFE9BD', surfaceB: '#EDBD69', border: '#E0AA50', ink: '#603B08', hasKH: false },
+          { label: 'NĂNG SUẤT', unit: 'HĐ/lượt', value: nangSuat.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), rawVal: nangSuat, target: 0, targetFmt: '', bg: '#2F94C8', deep: '#1B668C', surfaceA: '#D9F0FB', surfaceB: '#91CBEA', border: '#74B9DC', ink: '#164C69', hasKH: false },
+          { label: 'ĐL HĐ', unit: 'trđ', value: formatKpiCurrency(doLonHD), rawVal: doLonHD, target: 0, targetFmt: '', bg: '#3B9E68', deep: '#226A43', surfaceA: '#DBF2E1', surfaceB: '#9BD0AA', border: '#7CBD90', ink: '#1C5334', hasKH: false },
+          { label: 'SL TB/TN', unit: 'người', value: formatNumber(totalStaff), rawVal: totalStaff, target: 0, targetFmt: '', bg: '#C95F83', deep: '#913955', surfaceA: '#F8DEE8', surfaceB: '#E4A5BB', border: '#D88CA7', ink: '#6D2C43', hasKH: false },
+          { label: 'SL NTD', unit: 'người', value: formatNumber(totalNTD), rawVal: totalNTD, target: 0, targetFmt: '', bg: '#B27642', deep: '#75471F', surfaceA: '#F3E1CE', surfaceB: '#D6AA7E', border: '#C99767', ink: '#57381D', hasKH: false },
+          { label: 'SL TUYỂN DỤNG', unit: 'người', value: formatNumber(slTuyenDungNam), rawVal: slTuyenDungNam, target: 0, targetFmt: '', bg: '#1E9EA8', deep: '#14646B', surfaceA: '#D5F1F1', surfaceB: '#8DCCCF', border: '#70BCC0', ink: '#104F54', hasKH: false },
+          { label: 'TỔNG SỐ TVV', unit: 'người', value: formatNumber(tvvStructList.length), rawVal: tvvStructList.length, target: 0, targetFmt: '', bg: '#5C6FAF', deep: '#3A477A', surfaceA: '#E1E6F6', surfaceB: '#ABB8DC', border: '#95A4D0', ink: '#2E3964', hasKH: false },
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           return (
-            <div key={i} className="nmc-overview-kpi-card rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div
+              key={i}
+              className="nmc-overview-kpi-card rounded-none overflow-hidden"
+              style={{
+                '--nmc-kpi-accent': kpi.bg,
+                '--nmc-kpi-accent-deep': kpi.deep,
+                '--nmc-kpi-surface-a': kpi.surfaceA,
+                '--nmc-kpi-surface-b': kpi.surfaceB,
+                '--nmc-kpi-border': kpi.border,
+                '--nmc-kpi-ink': kpi.ink,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)',
+              } as React.CSSProperties}
+            >
               <div className="nmc-overview-kpi-head px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
                 <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap truncate">
                   {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}

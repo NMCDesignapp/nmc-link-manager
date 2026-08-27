@@ -34,10 +34,18 @@
 }
 
 /* Header / brand block */
-.nmc-home-skin header > div:first-child > div:first-child {
+.nmc-home-skin .nmc-home-logo {
+  position: relative;
+  display: grid;
+  width: clamp(178px, 48vw, 220px);
+  height: 78px;
+  place-items: center;
+  overflow: hidden;
   border: 1px solid rgba(255,255,255,.055) !important;
-  border-radius: 19px !important;
-  background: linear-gradient(145deg, #3a3f49, #2b2f37) !important;
+  border-radius: 23px !important;
+  background:
+    radial-gradient(circle at 50% 4%, rgba(103,235,210,.13), transparent 46%),
+    linear-gradient(145deg, #3a404a, #292e36) !important;
   box-shadow:
     10px 10px 22px rgba(18,20,24,.62),
     -7px -7px 18px rgba(76,82,94,.22),
@@ -45,14 +53,20 @@
     inset -1px -1px 0 rgba(0,0,0,.38) !important;
 }
 
-.nmc-home-skin header > div:first-child > div:first-child > div {
-  color: #f5f6f7 !important;
-  text-shadow: 0 2px 3px rgba(0,0,0,.55) !important;
+.nmc-home-skin .nmc-home-logo::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 7px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(83,216,194,.78), transparent);
+  box-shadow: 0 0 10px rgba(83,216,194,.4);
 }
 
-.nmc-home-skin header > div:first-child > div:first-child > div span {
-  color: var(--home-mint) !important;
-  text-shadow: 0 0 14px rgba(71,215,160,.2) !important;
+.nmc-home-skin .nmc-home-logo-mark {
+  width: calc(100% - 24px);
+  height: 66px;
 }
 
 .nmc-home-skin header h1 {
@@ -204,32 +218,74 @@
   color: #f2f4f5 !important;
 }
 
-/* Day cards: override inline blue surfaces without touching their data or layout. */
+/* Day cards: alternating silver / pale gold surfaces for quick scanning. */
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] {
-  border-color: rgba(255,255,255,.045) !important;
-  background: linear-gradient(145deg, #373c46, #2e323a) !important;
+  color: #14283a !important;
   box-shadow:
-    6px 6px 14px rgba(17,19,23,.52),
-    -3px -3px 8px rgba(73,79,91,.13),
-    inset 1px 1px 0 rgba(255,255,255,.04) !important;
+    7px 8px 15px rgba(14,18,23,.40),
+    inset 1px 1px 0 rgba(255,255,255,.76),
+    inset -1px -1px 0 rgba(53,67,79,.14) !important;
+}
+
+.nmc-home-skin [data-day-tone='silver'] {
+  border-color: #aebbc6 !important;
+  background: linear-gradient(145deg, #edf1f4, #b9c5cf) !important;
+}
+
+.nmc-home-skin [data-day-tone='gold'] {
+  border-color: #d5b765 !important;
+  background: linear-gradient(145deg, #fff2c4, #ddbd68) !important;
+}
+
+.nmc-home-skin [data-today='true'] {
+  border-color: #4fcab5 !important;
+  box-shadow:
+    0 0 0 1px rgba(79,202,181,.28),
+    0 8px 19px rgba(18,76,70,.28),
+    inset 1px 1px 0 rgba(255,255,255,.78) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:first-child {
-  border-color: rgba(255,255,255,.05) !important;
-  background: rgba(0,0,0,.08) !important;
+  border-color: rgba(25,48,64,.16) !important;
+  background: rgba(255,255,255,.18) !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:first-child div,
+.nmc-home-skin [data-day-tone] > div:last-child > div:first-child > div {
+  color: #274355 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:first-child > div:nth-child(2) {
+  color: #10283a !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child:not(:has(> div)) {
+  color: #637583 !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:first-child > button {
-  border-color: rgba(255,255,255,.05) !important;
-  background: linear-gradient(145deg, #3e444f, #2f343d) !important;
-  color: #cbd0d6 !important;
-  box-shadow: 3px 3px 7px rgba(16,18,22,.45), -2px -2px 5px rgba(76,82,94,.12) !important;
+  border-color: rgba(25,54,70,.19) !important;
+  background: rgba(255,255,255,.24) !important;
+  color: #21455b !important;
+  box-shadow: 2px 3px 6px rgba(35,47,57,.16), inset 1px 1px 0 rgba(255,255,255,.5) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:last-child > div {
-  border-color: rgba(255,255,255,.045) !important;
-  background: #30353f !important;
-  box-shadow: inset 1px 1px 0 rgba(255,255,255,.025), 3px 3px 7px rgba(18,20,24,.28) !important;
+  border-color: rgba(25,54,70,.16) !important;
+  background: rgba(255,255,255,.28) !important;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.42), 2px 3px 6px rgba(35,47,57,.13) !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div div:first-child {
+  color: #162f41 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div div:nth-child(2) {
+  color: #486173 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div button {
+  color: #526b7b !important;
 }
 
 /* Green is reserved for active/confirm cues, like the reference. */

@@ -164,27 +164,17 @@
 
 .nmc-overview-kpi-card {
   overflow: hidden;
-  border: 1px solid rgba(167, 191, 211, .44);
+  border: 1px solid var(--nmc-kpi-border, rgba(167, 191, 211, .44));
   border-radius: 14px !important;
-  background: linear-gradient(145deg, #dfe7ef, #b9c6d2);
+  background: linear-gradient(145deg, var(--nmc-kpi-surface-a, #dfe7ef), var(--nmc-kpi-surface-b, #b9c6d2));
   box-shadow:
     inset 1px 1px 0 rgba(255, 255, 255, .75),
     inset -2px -2px 5px rgba(61, 78, 94, .18),
     0 8px 18px rgba(0, 0, 0, .20) !important;
 }
 
-.nmc-overview-kpi-card:nth-child(3n + 2) {
-  background: linear-gradient(145deg, #bad8f5, #82afe0);
-  border-color: rgba(130, 181, 229, .70);
-}
-
-.nmc-overview-kpi-card:nth-child(3n) {
-  background: linear-gradient(145deg, #f8e7ad, #e6c66e);
-  border-color: rgba(240, 204, 103, .70);
-}
-
 .nmc-overview-kpi-head {
-  background: rgba(16, 36, 54, .86) !important;
+  background: linear-gradient(180deg, var(--nmc-kpi-accent-deep, #17374e), color-mix(in srgb, var(--nmc-kpi-accent-deep, #102436) 78%, #07131e)) !important;
 }
 
 .nmc-overview-kpi-value {
@@ -192,7 +182,7 @@
 }
 
 .nmc-overview-kpi-value p {
-  color: #102439 !important;
+  color: var(--nmc-kpi-ink, #102439) !important;
   text-shadow: 0 1px 0 rgba(255, 255, 255, .56);
 }
 

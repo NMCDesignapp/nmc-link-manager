@@ -41,12 +41,32 @@ function NmcSolidLogo() {
   return (
     <div className="flex flex-col items-center text-center">
       <div
-        className="rounded-[22px] border border-[#3f6074] bg-[#183244] px-6 py-2.5 shadow-[0_14px_34px_rgba(0,0,0,.34),inset_0_1px_0_rgba(255,255,255,.08)]"
-        aria-label="N M C"
+        className="nmc-home-logo"
+        aria-label="Logo NMC"
       >
-        <div className="font-[Outfit] text-[34px] font-black tracking-[.12em] text-[#eef8fb] drop-shadow-[0_2px_0_rgba(0,0,0,.35)] sm:text-[42px]">
-          N<span className="px-1 text-[#54c5b6]">·</span>M<span className="px-1 text-[#54c5b6]">·</span>C
-        </div>
+        <svg className="nmc-home-logo-mark" viewBox="0 0 220 76" role="img" aria-hidden="true">
+          <defs>
+            <linearGradient id="nmc-logo-metal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset=".48" stopColor="#dceaf1" />
+              <stop offset="1" stopColor="#91a8b5" />
+            </linearGradient>
+            <linearGradient id="nmc-logo-mint" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#75f1d4" />
+              <stop offset="1" stopColor="#26b9ae" />
+            </linearGradient>
+            <filter id="nmc-logo-shadow" x="-30%" y="-30%" width="160%" height="170%">
+              <feDropShadow dx="0" dy="3" stdDeviation="2.4" floodColor="#000000" floodOpacity=".52" />
+            </filter>
+          </defs>
+          <g fill="none" stroke="url(#nmc-logo-metal)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" filter="url(#nmc-logo-shadow)">
+            <path d="M24 56V20l35 36V20" />
+            <path d="M82 56V20l22 26 22-26v36" />
+            <path d="M194 28c-6-7-14-10-24-10-19 0-31 12-31 20s12 20 31 20c10 0 18-3 24-10" />
+          </g>
+          <circle cx="70.5" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
+          <circle cx="135" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
+        </svg>
       </div>
       <h1 className="mt-3 text-lg font-black tracking-tight text-white sm:text-xl">Trung tâm điều hành NC-Link</h1>
     </div>
