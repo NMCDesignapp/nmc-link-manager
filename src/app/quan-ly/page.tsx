@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
 import { SavedContestInline } from '@/components/saved-contest-inline';
+import { MainAppBottomNav } from '@/components/main-app-bottom-nav';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -4024,11 +4025,11 @@ export default function QuanLyPage() {
   };
 
   const renderOverview = () => (
-    <div className="space-y-3 relative min-h-full">
+    <div className="nmc-management-overview space-y-3 relative min-h-full">
       {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 =====
           ẨN hoàn toàn khi isEmbedded (user đến từ /kpi-standalone) — không cho xem/click các sheet admin */}
       <div className={`md:hidden ${isEmbedded ? 'hidden' : ''}`}>
-        <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+        <div className="nmc-overview-menu-panel p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
           <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-wider">Menu</p>
           <div className="grid grid-cols-4 gap-1.5">
             {SHEETS.map(sheet => {
@@ -4222,7 +4223,7 @@ export default function QuanLyPage() {
       </div>
 
       {/* ===== PHẦN 2: Tổng quan năm — bọc trong div có nền xám tối + viền + đổ bóng (bằng 2 phần trên/dưới) ===== */}
-      <div className="p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+      <div className="nmc-overview-kpi-panel p-3 border border-white/10 space-y-3" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
       {/* Header with sync status and period filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-extrabold text-emerald-400 neon-text drop-shadow-[0_0_6px_rgba(0,255,136,0.3)]">Tổng quan năm {currentYear}</h2>
@@ -4309,8 +4310,8 @@ export default function QuanLyPage() {
         ].map((kpi, i) => {
           const pct = kpi.target > 0 ? (kpi.rawVal / kpi.target) * 100 : 0;
           return (
-            <div key={i} className="rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div className="px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
+            <div key={i} className="nmc-overview-kpi-card rounded-none overflow-hidden" style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div className="nmc-overview-kpi-head px-2 py-1 sm:px-2.5 sm:py-1.5 flex items-center justify-between gap-1" style={{ backgroundColor: kpi.bg }}>
                 <p className="text-white text-[8px] sm:text-[10px] font-bold leading-tight uppercase tracking-wider whitespace-nowrap truncate">
                   {kpi.label}{!kpi.hasKH && <span className="text-white/60 text-[6px] sm:text-[8px] font-normal italic"> ({kpi.unit})</span>}
                 </p>
@@ -4325,7 +4326,7 @@ export default function QuanLyPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-white px-2 py-1 sm:px-2.5 sm:py-1.5 text-center">
+              <div className="nmc-overview-kpi-value bg-white px-2 py-1 sm:px-2.5 sm:py-1.5 text-center">
                 <p className="text-base sm:text-xl font-black leading-tight" style={{ color: kpi.bg }}>{kpi.value}</p>
               </div>
             </div>
@@ -4335,7 +4336,7 @@ export default function QuanLyPage() {
       </div>{/* end PHẦN 2: Tổng quan năm */}
 
       {/* PHẦN 3: Kế hoạch AFYP từng tháng — list view: T1-T12 cột trái, KH (amber) | TH (sky) 2 cột phải, gọn hơn PHẦN 2 */}
-      <div className="p-2 sm:p-3 border border-white/10 space-y-2" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+      <div className="nmc-overview-plan-panel p-2 sm:p-3 border border-white/10 space-y-2" style={{ backgroundColor: '#374151', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 flex items-center justify-center rounded-none" style={{ backgroundColor: '#0F172A', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.2)' }}>
             <Calendar className="w-3 h-3 text-emerald-400" />
@@ -12149,7 +12150,7 @@ export default function QuanLyPage() {
     // SSR + first client render: chỉ loading spinner, không render header/sidebar/content
     // để tránh hydration mismatch (SSR không biết sheet/isEmbedded → render khác client).
     return (
-      <div className="h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+      <div className="nmc-management-skin h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
         <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
         <span className="ml-3 text-emerald-300 text-sm mt-3">Đang tải...</span>
       </div>
@@ -12157,7 +12158,7 @@ export default function QuanLyPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
+    <div className="nmc-management-skin h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
       {/* Sync success indicator - top right corner */}
       {syncSuccessVisible && (
         <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
@@ -12167,7 +12168,7 @@ export default function QuanLyPage() {
       )}
       {/* Trong iframe, KPI overlay là header duy nhất: tránh trùng tiêu đề và dành thêm chiều cao cho nội dung mobile. */}
       {!isInIframe && (
-      <header className="border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
+      <header className="nmc-section-header border-b border-emerald-700/50 backdrop-blur-md px-2 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-shrink-0" style={{ backgroundColor: 'rgba(26, 35, 50, 0.85)' }}>
         {/* Mobile hamburger — mở sidebar (chỉ hiện trên mobile, KHÔNG embedded, và CHỈ khi đã là admin).
             - End-user trên angiang2026-nhom.vercel.app (đến từ /kpi-standalone iframe hoặc truy cập trực tiếp
               nhưng chưa đăng nhập admin) sẽ không thấy nút này → giữ nguyên UX hiện tại.
@@ -12234,7 +12235,7 @@ export default function QuanLyPage() {
         {sidebarOpen && !isEmbedded && <div className="fixed top-[44px] md:top-auto inset-x-0 bottom-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
         {/* Sidebar — ẩn hoàn toàn khi ở chế độ embedded (đến từ KPI) để user không thấy/click được các menu khác */}
         {!isEmbedded && (
-          <nav className={`fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: 'rgba(26, 35, 50, 0.9)' }}>
+          <nav className={`nmc-management-sidebar fixed md:static top-[44px] md:top-auto bottom-0 md:bottom-auto left-0 z-50 md:z-auto w-[220px] backdrop-blur-md border-r border-emerald-500/30 flex-shrink-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ backgroundColor: 'rgba(26, 35, 50, 0.9)' }}>
           {/* Mobile close button */}
           <div className="flex items-center justify-between p-2 border-b border-emerald-500/20 md:hidden">
             <span className="text-xs font-bold text-emerald-300">Menu</span>
@@ -12429,7 +12430,7 @@ export default function QuanLyPage() {
         )}
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 relative">
+        <main className="nmc-management-content flex-1 overflow-y-auto p-3 sm:p-4 relative">
           {['revenue', 'structure', 'saoviet', 'leaders', 'recruiters', 'tuyen-ngang'].includes(activeSheet) && (
             <div
               className={`mb-2 min-h-7 px-2.5 py-1 rounded-md border flex items-center gap-2 text-[10px] sm:text-[11px] ${
@@ -12955,6 +12956,8 @@ export default function QuanLyPage() {
       </Dialog>
 
       {/* Policy Image settings đã được gộp vào dialog Cài đặt hệ thống ở trên */}
+
+      {!isEmbedded && !isInIframe && <MainAppBottomNav active="management" />}
 
     </div>
   );

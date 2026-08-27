@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
+import { MainAppBottomNav } from '@/components/main-app-bottom-nav';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -3408,7 +3409,7 @@ function ThiDuaPageInner() {
   }, [nydData, conditionType, includeIndividualNTD, calculateBonus]);
 
   return (
-    <div className={`min-h-screen ${isEmbedMode ? 'embed-mode bg-white' : ''}`}>
+    <div className={`min-h-screen ${isEmbedMode ? 'embed-mode bg-white' : 'nmc-contest-skin'}`}>
 
       {/* Data loaded indicator - top right corner (hidden in embed mode) */}
       {!isEmbedMode && dataLoadedVisible && (
@@ -3420,7 +3421,7 @@ function ThiDuaPageInner() {
 
       {/* Header (hidden in embed mode) */}
       {!isEmbedMode && (
-      <header className="border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="nmc-section-header border-b border-emerald-500/20 bg-[#0e0e18]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
           <BackButton href="/" size={20} title="Trở về trang chủ" />
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"><Trophy className="w-4 h-4 text-white" /></div>
@@ -3447,7 +3448,7 @@ function ThiDuaPageInner() {
 
       {/* Main form (hidden in embed mode) */}
       {!isEmbedMode && (
-      <main className="max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
+      <main className="nmc-contest-content max-w-5xl mx-auto px-3 py-4 space-y-4 relative page-transition">
         {/* STEP 1: Info */}
         <Card className={`${neonBorder} bg-[#0e1424]/95`}>
           <CardHeader className="pb-2 pt-3 px-4">
@@ -4035,6 +4036,8 @@ function ThiDuaPageInner() {
         </Card>
       </main>
       )}
+
+      {!isEmbedMode && <MainAppBottomNav active="contest" />}
 
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
@@ -4821,7 +4824,7 @@ function ThiDuaPageInner() {
 // Wrapper với Suspense — useSearchParams yêu cầu Suspense boundary trong Next.js App Router
 export default function ThiDuaPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="text-emerald-600 text-sm">Đang tải...</div></div>}>
+    <Suspense fallback={<div className="nmc-contest-skin min-h-screen flex items-center justify-center"><div className="text-cyan-300 text-sm">Đang tải...</div></div>}>
       <ThiDuaPageInner />
     </Suspense>
   );
