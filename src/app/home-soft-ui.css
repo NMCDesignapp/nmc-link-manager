@@ -69,18 +69,11 @@
   height: 66px;
 }
 
-.nmc-home-skin header h1 {
-  color: #f5f6f7 !important;
-  letter-spacing: -.01em !important;
-  text-shadow: 0 2px 3px rgba(0,0,0,.42) !important;
-}
-
 .nmc-home-skin header > p {
   color: var(--home-muted) !important;
 }
 
 /* Maintenance pill and compact admin controls */
-.nmc-home-skin header > button,
 .nmc-home-skin header > div:last-child > button {
   border-color: rgba(255,255,255,.055) !important;
   background: linear-gradient(145deg, #393e48, #2a2e36) !important;
@@ -91,8 +84,8 @@
     inset 1px 1px 0 rgba(255,255,255,.055) !important;
 }
 
-.nmc-home-skin header > button span span,
-.nmc-home-skin header > button > span:nth-of-type(2) {
+.nmc-home-skin .nmc-maintenance-switch span span,
+.nmc-home-skin .nmc-maintenance-switch > span:nth-of-type(2) {
   box-shadow: inset 2px 2px 5px rgba(0,0,0,.48), inset -1px -1px 2px rgba(255,255,255,.08) !important;
 }
 

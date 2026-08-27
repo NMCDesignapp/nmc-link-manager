@@ -68,7 +68,6 @@ function NmcSolidLogo() {
           <circle cx="135" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
         </svg>
       </div>
-      <h1 className="mt-3 text-lg font-black tracking-tight text-white sm:text-xl">Trung tâm điều hành NC-Link</h1>
     </div>
   )
 }
@@ -289,7 +288,7 @@ export default function HomeCommandCenter() {
     <button
       onClick={requestMaintenanceToggle}
       disabled={maintenanceSaving}
-      className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-[0_6px_16px_rgba(0,0,0,.22)] disabled:opacity-60"
+      className="nmc-maintenance-switch flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 shadow-[0_6px_16px_rgba(0,0,0,.22)] disabled:opacity-60"
       style={{
         background: maintenanceEnabled ? '#7c3d2a' : '#1c3c4d',
         borderColor: maintenanceEnabled ? '#b66c4a' : '#44677a',
@@ -313,10 +312,10 @@ export default function HomeCommandCenter() {
       <div className="mx-auto w-full max-w-[1280px]">
         <header className="flex flex-col items-center">
           <NmcSolidLogo />
-          <p className="mt-1.5 text-center text-[11px] font-semibold text-[#8faab8] sm:text-xs">{settings.profile_bio}</p>
-          {maintenanceSwitch}
+          <p className="mt-2 text-center text-[11px] font-semibold text-[#8faab8] sm:text-xs">{settings.profile_bio}</p>
 
-          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
+          <div className="mt-3 flex flex-nowrap items-center justify-center gap-1.5">
+            {maintenanceSwitch}
             {!adminAuthed ? (
               <button onClick={() => { setPendingMaintenanceToggle(false); setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false) }} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đăng nhập quản trị" title="Đăng nhập quản trị"><Lock className="h-3.5 w-3.5" /></button>
             ) : (
