@@ -113,10 +113,45 @@
   transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
 }
 
-.nmc-home-skin nav > button:nth-child(1) { color: #e7bc70 !important; }
-.nmc-home-skin nav > button:nth-child(2) { color: #67dbad !important; }
-.nmc-home-skin nav > button:nth-child(3) { color: #70bddd !important; }
-.nmc-home-skin nav > button:nth-child(4) { color: #dfc16e !important; }
+.nmc-home-skin nav > button:nth-child(1) {
+  color: #f3c96f !important;
+  border-color: rgba(225,184,91,.31) !important;
+  background:
+    radial-gradient(circle at 7px 7px, #d9c38c 0 1px, #66583a 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #b8a06a 0 1px, #54472f 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.022) 1px 3px),
+    linear-gradient(145deg, #685a3c 0%, #443b2d 48%, #292a29 100%) !important;
+}
+
+.nmc-home-skin nav > button:nth-child(2) {
+  color: #71e1bd !important;
+  border-color: rgba(92,214,176,.29) !important;
+  background:
+    radial-gradient(circle at 7px 7px, #a1d4c5 0 1px, #42695f 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #7eb7a5 0 1px, #36594f 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.022) 1px 3px),
+    linear-gradient(145deg, #3c665d 0%, #2a4944 50%, #1d302f 100%) !important;
+}
+
+.nmc-home-skin nav > button:nth-child(3) {
+  color: #82c9e7 !important;
+  border-color: rgba(105,184,218,.31) !important;
+  background:
+    radial-gradient(circle at 7px 7px, #a7cad9 0 1px, #486a7a 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #82adbf 0 1px, #395b6b 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.022) 1px 3px),
+    linear-gradient(145deg, #426779 0%, #2d4b5b 50%, #1d303b 100%) !important;
+}
+
+.nmc-home-skin nav > button:nth-child(4) {
+  color: #d9b6ef !important;
+  border-color: rgba(190,145,218,.28) !important;
+  background:
+    radial-gradient(circle at 7px 7px, #d0bedb 0 1px, #675773 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #ad91bd 0 1px, #55465f 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.022) 1px 3px),
+    linear-gradient(145deg, #61516d 0%, #44394e 50%, #2b2934 100%) !important;
+}
 
 .nmc-home-skin nav > button > span:last-child {
   color: #f0f2f4 !important;
@@ -132,6 +167,30 @@
       8px 11px 21px rgba(2,8,12,.60),
       inset 0 1px 0 rgba(232,247,252,.22) !important;
     transform: translateY(-1px) !important;
+  }
+
+  .nmc-home-skin nav > button:nth-child(1):hover {
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, rgba(0,0,0,.018) 1px 3px),
+      linear-gradient(145deg, #796a47, #504633 56%, #30302d) !important;
+  }
+
+  .nmc-home-skin nav > button:nth-child(2):hover {
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, rgba(0,0,0,.018) 1px 3px),
+      linear-gradient(145deg, #47766b, #31574f 56%, #213936) !important;
+  }
+
+  .nmc-home-skin nav > button:nth-child(3):hover {
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, rgba(0,0,0,.018) 1px 3px),
+      linear-gradient(145deg, #4d7487, #355766 56%, #223944) !important;
+  }
+
+  .nmc-home-skin nav > button:nth-child(4):hover {
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.024) 0 1px, rgba(0,0,0,.018) 1px 3px),
+      linear-gradient(145deg, #705e7c, #50435b 56%, #34303c) !important;
   }
 }
 
