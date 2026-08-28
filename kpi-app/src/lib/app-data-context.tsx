@@ -73,35 +73,48 @@ const AppDataContext = createContext<AppDataContextValue>({
 })
 
 const APP_DATA_CACHE_KEY = 'nmc-kpi-app-data-v1'
-const APP_DATA_CACHE_TTL_MS = 60 * 1000
+const APP_DATA_CACHE_STALE_MAX_MS = 12 * 60 * 60 * 1000
+
+type CachedAppData = { savedAt: number; data: AppData }
 
 const fetchJson = async (url: string): Promise<any> => {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 15_000)
   try {
-    const r = await fetch(url, { cache: 'no-store' })
+    const r = await fetch(url, { cache: 'no-store', signal: controller.signal })
     if (!r.ok) return null
     return await r.json()
   } catch {
     return null
+  } finally {
+    window.clearTimeout(timeoutId)
   }
 }
 
-const readSessionCache = (): AppData | null => {
+const readWarmCache = (): CachedAppData | null => {
   if (typeof window === 'undefined') return null
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || 'null')
-    if (!cached || Date.now() - cached.savedAt > APP_DATA_CACHE_TTL_MS) return null
-    return cached.data as AppData
-  } catch {
-    return null
+  const entries: CachedAppData[] = []
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      const cached = JSON.parse(storage.getItem(APP_DATA_CACHE_KEY) || 'null') as CachedAppData | null
+      if (!cached?.data || !cached.savedAt) continue
+      if (Date.now() - cached.savedAt > APP_DATA_CACHE_STALE_MAX_MS) continue
+      entries.push(cached)
+    } catch {}
   }
+  entries.sort((a, b) => b.savedAt - a.savedAt)
+  return entries[0] || null
 }
 
-const writeSessionCache = (data: AppData) => {
+const writeWarmCache = (data: AppData) => {
   if (typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }))
-  } catch {
-    // Session storage is only a performance layer; continue normally if it is full.
+  const payload = JSON.stringify({ savedAt: Date.now(), data })
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      storage.setItem(APP_DATA_CACHE_KEY, payload)
+    } catch {
+      // Storage is only a performance layer.
+    }
   }
 }
 
@@ -117,38 +130,29 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadAll = useCallback(async (force = false): Promise<void> => {
     if (inflight.current) return inflight.current
+
+    let usedWarmCache = false
     if (!force) {
-      const cached = readSessionCache()
+      const cached = readWarmCache()
       if (cached) {
-        setData(cached)
-        setLastSync(new Date())
+        usedWarmCache = true
+        setData(cached.data)
+        setLastSync(new Date(cached.savedAt))
         setDataVersion(v => v + 1)
         setLoadError(null)
-        return
+        setIsLoading(false)
       }
     }
-    setLoadError(null) // clear error trước khi load
+    setLoadError(null)
 
     const p = (async () => {
       // KPI chỉ đọc dữ liệu khi mở; không chạy tác vụ sửa schema trong luồng người dùng.
       try {
-        // Hiển thị dữ liệu lõi ngay khi /api/quan-ly/all sẵn sàng. Các nguồn
-        // phụ tiếp tục tải nền để KPI tách có cùng hành vi dữ liệu với KPI Main.
+        // Fetch core first so a cold launch is not delayed by nine secondary calls.
         const settingsPromise = fetchJson('/api/settings') as Promise<Record<string, string> | null>
-        const secondaryDataPromise = Promise.all([
-          fetchJson('/api/recruiters'),
-          fetchJson('/api/tuyen-ngang'),
-          fetchJson('/api/structure/phong'),
-          fetchJson('/api/structure/ad'),
-          fetchJson('/api/structure/bannhom'),
-          fetchJson('/api/structure/tvv'),
-          fetchJson('/api/clb-members'),
-          fetchJson('/api/pending-members'),
-          fetchJson('/api/contests?summary=1'),
-        ])
         const quanLyAll = await fetchJson('/api/quan-ly/all')
 
-        if (!force && quanLyAll) {
+        if (!force && !usedWarmCache && quanLyAll) {
           const coreData: AppData = {
             ...initialData,
             leaders: quanLyAll.leaders || [],
@@ -162,6 +166,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           setDataVersion(v => v + 1)
           setIsLoading(false)
         }
+
+        const secondaryDataPromise = Promise.all([
+          fetchJson('/api/recruiters'),
+          fetchJson('/api/tuyen-ngang'),
+          fetchJson('/api/structure/phong'),
+          fetchJson('/api/structure/ad'),
+          fetchJson('/api/structure/bannhom'),
+          fetchJson('/api/structure/tvv'),
+          fetchJson('/api/clb-members'),
+          fetchJson('/api/pending-members'),
+          fetchJson('/api/contests?summary=1'),
+        ])
 
         const settings = await settingsPromise
         const [
@@ -189,7 +205,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           contests: contests || [],
         }
         setData(nextData)
-        writeSessionCache(nextData)
+        writeWarmCache(nextData)
         setLastSync(new Date())
         setDataVersion(v => v + 1)
         setLoadError(null)
@@ -223,7 +239,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         ...previous,
         settings: { ...(previous.settings || {}), 'kpi-target-registration-open': nextValue },
       }
-      writeSessionCache(next)
+      writeWarmCache(next)
       return next
     })
   }, [])
@@ -259,6 +275,22 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       channel?.close()
     }
   }, [refreshTargetRegistrationSetting])
+
+  // Keep the standalone KPI fresh without showing the startup gate again.
+  useEffect(() => {
+    const refreshInBackground = () => {
+      if (document.visibilityState !== 'visible') return
+      void loadAll(true).catch(() => {})
+    }
+    const intervalId = window.setInterval(refreshInBackground, 60_000)
+    window.addEventListener('focus', refreshInBackground)
+    document.addEventListener('visibilitychange', refreshInBackground)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refreshInBackground)
+      document.removeEventListener('visibilitychange', refreshInBackground)
+    }
+  }, [loadAll])
 
   const reload = useCallback(async () => {
     setIsReloading(true)
