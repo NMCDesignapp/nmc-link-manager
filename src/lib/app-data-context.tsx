@@ -73,7 +73,10 @@ const AppDataContext = createContext<AppDataContextValue>({
 })
 
 const APP_DATA_CACHE_KEY = 'nmc-app-data-v3'
-const APP_DATA_CACHE_TTL_MS = 60 * 1000
+// Warm-start cache is only a visual/performance seed. It is revalidated immediately.
+const APP_DATA_CACHE_STALE_MAX_MS = 12 * 60 * 60 * 1000
+
+type CachedAppData = { savedAt: number; data: AppData }
 
 const fetchJson = async (url: string): Promise<any> => {
   const controller = new AbortController()
@@ -125,23 +128,32 @@ const syncPrimaryGoogleSources = async (settings: Record<string, string> | null)
   await Promise.allSettled(tasks)
 }
 
-const readSessionCache = (): AppData | null => {
+const readWarmCache = (): CachedAppData | null => {
   if (typeof window === 'undefined') return null
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(APP_DATA_CACHE_KEY) || 'null')
-    if (!cached || Date.now() - cached.savedAt > APP_DATA_CACHE_TTL_MS) return null
-    return cached.data as AppData
-  } catch {
-    return null
+  const entries: CachedAppData[] = []
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      const cached = JSON.parse(storage.getItem(APP_DATA_CACHE_KEY) || 'null') as CachedAppData | null
+      if (!cached?.data || !cached.savedAt) continue
+      if (Date.now() - cached.savedAt > APP_DATA_CACHE_STALE_MAX_MS) continue
+      entries.push(cached)
+    } catch {
+      // Cache is optional. Ignore corrupt/blocked storage and continue normally.
+    }
   }
+  entries.sort((a, b) => b.savedAt - a.savedAt)
+  return entries[0] || null
 }
 
-const writeSessionCache = (data: AppData) => {
+const writeWarmCache = (data: AppData) => {
   if (typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(APP_DATA_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }))
-  } catch {
-    // Session storage is only a performance layer; continue normally if it is full.
+  const payload = JSON.stringify({ savedAt: Date.now(), data })
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      storage.setItem(APP_DATA_CACHE_KEY, payload)
+    } catch {
+      // Storage is only a performance layer; continue normally if it is full/blocked.
+    }
   }
 }
 
@@ -157,24 +169,49 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const loadAll = useCallback(async (force = false): Promise<void> => {
     if (inflight.current) return inflight.current
+
+    let usedWarmCache = false
     if (!force) {
-      const cached = readSessionCache()
+      const cached = readWarmCache()
       if (cached) {
-        setData(cached)
-        setLastSync(new Date())
+        usedWarmCache = true
+        setData(cached.data)
+        setLastSync(new Date(cached.savedAt))
         setDataVersion(v => v + 1)
         setLoadError(null)
-        return
+        // Show the interface immediately, then revalidate the cache in background.
+        setIsLoading(false)
       }
     }
     setLoadError(null) // clear error trước khi load
 
     const p = (async () => {
       try {
-        // Khởi động các nguồn phụ song song nhưng không giữ màn hình khởi động
-        // chờ endpoint chậm nhất. KPI và Quản lý chỉ cần /api/quan-ly/all để
-        // hiển thị dữ liệu lõi; cấu trúc/CLB/contest sẽ được ghép vào sau.
+        // Prioritize the single core endpoint before fan-out requests. On mobile
+        // this avoids competing connections/JSON work delaying the first usable UI.
         const settingsPromise = fetchJson('/api/settings') as Promise<Record<string, string> | null>
+        const quanLyAll = await fetchJson('/api/quan-ly/all')
+
+        // Cold start: reveal the UI as soon as the four largest tables are ready.
+        // Warm start already has a complete cached snapshot, so do not replace it
+        // with a temporary core-only object while secondary data is refreshing.
+        if (!force && !usedWarmCache && quanLyAll) {
+          const coreData: AppData = {
+            ...initialData,
+            leaders: quanLyAll.leaders || [],
+            revenue: quanLyAll.revenue || [],
+            contracts: quanLyAll.contracts || [],
+            staff: quanLyAll.staff || [],
+            quanLyAll,
+          }
+          setData(coreData)
+          setLastSync(new Date())
+          setDataVersion(v => v + 1)
+          setIsLoading(false)
+        }
+
+        // Heavy Google sync is background work and starts only after core data had
+        // a chance to reach the screen, so it cannot hold up the startup gate.
         void settingsPromise
           .then(settings => syncPrimaryGoogleSources(settings))
           .catch(() => {
@@ -192,24 +229,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           fetchJson('/api/pending-members'),
           fetchJson('/api/contests?summary=1'),
         ])
-        const quanLyAll = await fetchJson('/api/quan-ly/all')
-
-        // Lần mở app đầu tiên: bỏ loader ngay khi bốn bảng dữ liệu lớn đã có.
-        // Không ghi cache ở bước trung gian để tránh lưu snapshot thiếu dữ liệu phụ.
-        if (!force && quanLyAll) {
-          const coreData: AppData = {
-            ...initialData,
-            leaders: quanLyAll.leaders || [],
-            revenue: quanLyAll.revenue || [],
-            contracts: quanLyAll.contracts || [],
-            staff: quanLyAll.staff || [],
-            quanLyAll,
-          }
-          setData(coreData)
-          setLastSync(new Date())
-          setDataVersion(v => v + 1)
-          setIsLoading(false)
-        }
 
         const settings = await settingsPromise
         const [
@@ -237,7 +256,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           contests: contests || [],
         }
         setData(nextData)
-        writeSessionCache(nextData)
+        writeWarmCache(nextData)
         setLastSync(new Date())
         setDataVersion(v => v + 1)
         setLoadError(null)
@@ -271,7 +290,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         ...previous,
         settings: { ...(previous.settings || {}), 'kpi-target-registration-open': nextValue },
       }
-      writeSessionCache(next)
+      writeWarmCache(next)
       return next
     })
   }, [])
