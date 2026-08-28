@@ -1,18 +1,18 @@
-/* Main Home only — graphite soft-3D / neumorphic visual skin.
+/* Main Home only — dark blue-steel / brushed-metal visual skin.
    Scoped under .nmc-home-skin so KPI and CLB Sao Việt routes are untouched. */
 
 .nmc-home-skin {
-  --home-bg: #292d35;
-  --home-bg-deep: #24272e;
-  --home-panel: #30343d;
-  --home-panel-hi: #393e48;
-  --home-panel-lo: #2a2e36;
-  --home-card: #343944;
-  --home-card-hi: #3c424e;
-  --home-line: rgba(255,255,255,.055);
-  --home-text: #f1f3f5;
-  --home-muted: #aab0ba;
-  --home-muted-2: #858c98;
+  --home-bg: #15232d;
+  --home-bg-deep: #0d1820;
+  --home-panel: #263640;
+  --home-panel-hi: #354954;
+  --home-panel-lo: #1b2a34;
+  --home-card: #2b3c47;
+  --home-card-hi: #3a4d59;
+  --home-line: rgba(177,211,228,.14);
+  --home-text: #f0f6f8;
+  --home-muted: #a9bcc7;
+  --home-muted-2: #8299a6;
   --home-mint: #47d7a0;
   --home-mint-hi: #72ebb8;
   --home-cyan: #5fb5d4;
@@ -20,8 +20,8 @@
   min-height: 100vh;
   color: var(--home-text);
   background:
-    radial-gradient(circle at 50% -15%, rgba(255,255,255,.065), transparent 34%),
-    linear-gradient(180deg, #30343d 0%, #2b2f37 44%, #272a31 100%);
+    radial-gradient(circle at 50% -12%, rgba(112,177,201,.14), transparent 36%),
+    linear-gradient(180deg, #1b2c37 0%, #13232d 48%, #0d1921 100%);
 }
 
 .nmc-home-skin > div {
@@ -41,16 +41,19 @@
   height: 78px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.055) !important;
-  border-radius: 23px !important;
+  border: 1px solid rgba(184,214,228,.22) !important;
+  border-radius: 9px !important;
   background:
-    radial-gradient(circle at 50% 4%, rgba(103,235,210,.13), transparent 46%),
-    linear-gradient(145deg, #3a404a, #292e36) !important;
+    radial-gradient(circle at 8px 8px, #a7b7c0 0 1px, #435664 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #a7b7c0 0 1px, #435664 2px 3px, transparent 4px),
+    radial-gradient(circle at 50% 4%, rgba(103,235,210,.12), transparent 46%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #435763 0%, #2c3e49 42%, #1b2a34 100%) !important;
   box-shadow:
-    10px 10px 22px rgba(18,20,24,.62),
-    -7px -7px 18px rgba(76,82,94,.22),
-    inset 1px 1px 0 rgba(255,255,255,.06),
-    inset -1px -1px 0 rgba(0,0,0,.38) !important;
+    9px 11px 24px rgba(2,8,12,.58),
+    inset 0 1px 0 rgba(226,242,249,.18),
+    inset 0 -8px 18px rgba(4,12,17,.28),
+    0 0 0 1px rgba(79,130,151,.08) !important;
 }
 
 .nmc-home-skin .nmc-home-logo::after {
@@ -75,13 +78,16 @@
 
 /* Maintenance pill and compact admin controls */
 .nmc-home-skin header > div:last-child > button {
-  border-color: rgba(255,255,255,.055) !important;
-  background: linear-gradient(145deg, #393e48, #2a2e36) !important;
-  color: #c9cdd3 !important;
+  border-color: rgba(177,211,228,.16) !important;
+  border-radius: 7px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.02) 1px 3px),
+    linear-gradient(145deg, #3a4d59, #22323d 66%, #192731) !important;
+  color: #d6e3e9 !important;
   box-shadow:
-    6px 6px 14px rgba(17,19,23,.58),
-    -4px -4px 10px rgba(75,81,92,.20),
-    inset 1px 1px 0 rgba(255,255,255,.055) !important;
+    5px 7px 14px rgba(2,8,12,.48),
+    inset 0 1px 0 rgba(225,242,250,.14),
+    inset 0 -4px 8px rgba(5,13,18,.24) !important;
 }
 
 .nmc-home-skin .nmc-maintenance-switch span span,
@@ -89,17 +95,20 @@
   box-shadow: inset 2px 2px 5px rgba(0,0,0,.48), inset -1px -1px 2px rgba(255,255,255,.08) !important;
 }
 
-/* The four primary actions: graphite soft keys with restrained individual accents. */
+/* The four primary actions: compact blue-steel plates with restrained accents. */
 .nmc-home-skin nav > button {
   min-height: 72px !important;
-  border: 1px solid rgba(255,255,255,.055) !important;
-  border-radius: 16px !important;
-  background: linear-gradient(145deg, #3b404a, #2b2f37) !important;
+  border: 1px solid rgba(177,211,228,.17) !important;
+  border-radius: 8px !important;
+  background:
+    radial-gradient(circle at 7px 7px, #96aab5 0 1px, #3b4f5c 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #879ca8 0 1px, #314450 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.02) 1px 3px),
+    linear-gradient(145deg, #40545f 0%, #2a3b46 47%, #1d2b35 100%) !important;
   box-shadow:
-    8px 8px 17px rgba(17,19,23,.62),
-    -5px -5px 13px rgba(78,84,96,.20),
-    inset 1px 1px 0 rgba(255,255,255,.055),
-    inset -1px -1px 0 rgba(0,0,0,.36) !important;
+    7px 9px 18px rgba(2,8,12,.55),
+    inset 0 1px 0 rgba(226,242,249,.18),
+    inset 0 -7px 14px rgba(4,12,17,.28) !important;
   transform: none !important;
   transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
 }
@@ -116,11 +125,12 @@
 
 @media (hover:hover) and (pointer:fine) {
   .nmc-home-skin nav > button:hover {
-    background: linear-gradient(145deg, #3f4550, #2e323a) !important;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.018) 1px 3px),
+      linear-gradient(145deg, #4a626f, #304550 58%, #20313b) !important;
     box-shadow:
-      10px 10px 20px rgba(17,19,23,.66),
-      -6px -6px 14px rgba(80,87,99,.23),
-      inset 1px 1px 0 rgba(255,255,255,.07) !important;
+      8px 11px 21px rgba(2,8,12,.60),
+      inset 0 1px 0 rgba(232,247,252,.22) !important;
     transform: translateY(-1px) !important;
   }
 }
@@ -128,19 +138,23 @@
 .nmc-home-skin nav > button:active {
   transform: translateY(2px) !important;
   box-shadow:
-    inset 5px 5px 10px rgba(16,18,22,.54),
-    inset -3px -3px 8px rgba(72,79,90,.18) !important;
+    inset 5px 6px 11px rgba(3,10,14,.56),
+    inset -2px -2px 7px rgba(97,132,148,.17) !important;
 }
 
 /* Quick-link panel */
 .nmc-home-skin main > section {
-  border: 1px solid rgba(255,255,255,.05) !important;
-  border-radius: 22px !important;
-  background: linear-gradient(145deg, #333842, #292d35) !important;
+  border: 1px solid rgba(177,211,228,.14) !important;
+  border-radius: 10px !important;
+  background:
+    radial-gradient(circle at 8px 8px, #8da2ae 0 1px, #354b58 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #8da2ae 0 1px, #354b58 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #30434e, #22333e 48%, #172630) !important;
   box-shadow:
-    11px 11px 25px rgba(17,19,23,.57),
-    -7px -7px 18px rgba(74,80,91,.17),
-    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+    10px 13px 27px rgba(2,8,12,.56),
+    inset 0 1px 0 rgba(222,241,249,.14),
+    inset 0 -10px 20px rgba(4,12,17,.24) !important;
 }
 
 .nmc-home-skin main > section > div:first-child > div:first-child > div:first-child {
@@ -151,24 +165,29 @@
 }
 .nmc-home-skin main > section > div:first-child > div:last-child {
   border-color: rgba(255,255,255,.055) !important;
-  background: #2a2e36 !important;
+  border-radius: 6px !important;
+  background: #1a2933 !important;
   color: var(--home-muted) !important;
   box-shadow: inset 3px 3px 7px rgba(16,18,22,.4), inset -2px -2px 5px rgba(73,79,90,.12) !important;
 }
 
-/* Link tiles: raised graphite cards. Preserve per-link accent only as the top hairline. */
+/* Link tiles: small brushed-metal plates. Preserve each accent as the side light. */
 .nmc-home-skin main > section .grid.grid-cols-2 > button {
-  border-color: rgba(255,255,255,.045) !important;
-  background: linear-gradient(145deg, #3a3f49, #30343d) !important;
+  border-color: rgba(177,211,228,.14) !important;
+  border-radius: 7px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #3a4e5a, #283a45 52%, #1e2d37) !important;
   box-shadow:
-    7px 7px 15px rgba(18,20,24,.58),
-    -4px -4px 10px rgba(76,82,94,.16),
-    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+    6px 8px 16px rgba(2,8,12,.50),
+    inset 0 1px 0 rgba(224,242,249,.15),
+    inset 0 -5px 10px rgba(4,12,17,.24) !important;
 }
 
 .nmc-home-skin main > section .grid.grid-cols-2 > button > div:nth-child(2) > div:first-child {
-  border-color: rgba(255,255,255,.05) !important;
-  background: linear-gradient(145deg, #414752, #30353e) !important;
+  border-color: rgba(177,211,228,.13) !important;
+  border-radius: 6px !important;
+  background: linear-gradient(145deg, #455b67, #263943) !important;
   color: #dce0e5 !important;
   box-shadow: 4px 4px 8px rgba(17,19,23,.42), -2px -2px 6px rgba(78,85,98,.14) !important;
 }
@@ -183,23 +202,31 @@
 
 /* Agenda surface */
 .nmc-home-skin main > div:last-child > section {
-  border: 1px solid rgba(255,255,255,.05) !important;
-  border-radius: 22px !important;
-  background: linear-gradient(145deg, #333842, #292d35) !important;
+  border: 1px solid rgba(177,211,228,.14) !important;
+  border-radius: 10px !important;
+  background:
+    radial-gradient(circle at 8px 8px, #8da2ae 0 1px, #354b58 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #8da2ae 0 1px, #354b58 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #30434e, #22333e 48%, #172630) !important;
   box-shadow:
-    11px 11px 25px rgba(17,19,23,.57),
-    -7px -7px 18px rgba(74,80,91,.17),
-    inset 1px 1px 0 rgba(255,255,255,.045) !important;
+    10px 13px 27px rgba(2,8,12,.56),
+    inset 0 1px 0 rgba(222,241,249,.14),
+    inset 0 -10px 20px rgba(4,12,17,.24) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:first-child {
-  border-color: rgba(255,255,255,.045) !important;
-  background: linear-gradient(180deg, #353a44, #30343d) !important;
+  border-color: rgba(177,211,228,.12) !important;
+  border-radius: 9px 9px 0 0 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(180deg, #344955, #253742) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:first-child button {
-  border-color: rgba(255,255,255,.05) !important;
-  background: linear-gradient(145deg, #3d424c, #2b2f37) !important;
+  border-color: rgba(177,211,228,.15) !important;
+  border-radius: 7px !important;
+  background: linear-gradient(145deg, #415762, #243640) !important;
   color: #d9dde2 !important;
   box-shadow: 5px 5px 11px rgba(16,18,22,.5), -3px -3px 7px rgba(75,81,93,.16) !important;
 }
@@ -211,23 +238,28 @@
   color: #f2f4f5 !important;
 }
 
-/* Day cards: alternating silver / pale gold surfaces for quick scanning. */
+/* Day cards: alternating blue-steel / warm gunmetal plates for quick scanning. */
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] {
-  color: #14283a !important;
+  border-radius: 8px !important;
+  color: #eef5f7 !important;
   box-shadow:
-    7px 8px 15px rgba(14,18,23,.40),
-    inset 1px 1px 0 rgba(255,255,255,.76),
-    inset -1px -1px 0 rgba(53,67,79,.14) !important;
+    6px 8px 16px rgba(2,8,12,.48),
+    inset 0 1px 0 rgba(225,242,249,.16),
+    inset 0 -6px 12px rgba(4,12,17,.25) !important;
 }
 
 .nmc-home-skin [data-day-tone='silver'] {
-  border-color: #aebbc6 !important;
-  background: linear-gradient(145deg, #edf1f4, #b9c5cf) !important;
+  border-color: rgba(158,196,215,.30) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #405764, #2a3d48 54%, #1d2d37) !important;
 }
 
 .nmc-home-skin [data-day-tone='gold'] {
-  border-color: #d5b765 !important;
-  background: linear-gradient(145deg, #fff2c4, #ddbd68) !important;
+  border-color: rgba(205,174,102,.34) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.017) 0 1px, rgba(0,0,0,.019) 1px 3px),
+    linear-gradient(145deg, #4a4b43, #343c40 48%, #202e35) !important;
 }
 
 .nmc-home-skin [data-today='true'] {
@@ -235,50 +267,52 @@
   box-shadow:
     0 0 0 1px rgba(79,202,181,.28),
     0 8px 19px rgba(18,76,70,.28),
-    inset 1px 1px 0 rgba(255,255,255,.78) !important;
+    inset 0 1px 0 rgba(224,245,247,.20) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:first-child {
-  border-color: rgba(25,48,64,.16) !important;
-  background: rgba(255,255,255,.18) !important;
+  border-color: rgba(180,213,228,.12) !important;
+  background: rgba(8,20,27,.22) !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:first-child div,
 .nmc-home-skin [data-day-tone] > div:last-child > div:first-child > div {
-  color: #274355 !important;
+  color: #b5cbd5 !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:first-child > div:nth-child(2) {
-  color: #10283a !important;
+  color: #f2f7f8 !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:last-child > div:last-child:not(:has(> div)) {
-  color: #637583 !important;
+  color: #91a9b5 !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:first-child > button {
-  border-color: rgba(25,54,70,.19) !important;
-  background: rgba(255,255,255,.24) !important;
-  color: #21455b !important;
-  box-shadow: 2px 3px 6px rgba(35,47,57,.16), inset 1px 1px 0 rgba(255,255,255,.5) !important;
+  border-color: rgba(177,211,228,.16) !important;
+  border-radius: 6px !important;
+  background: linear-gradient(145deg, #435965, #263944) !important;
+  color: #dce9ee !important;
+  box-shadow: 2px 3px 7px rgba(2,8,12,.34), inset 0 1px 0 rgba(230,245,251,.14) !important;
 }
 
 .nmc-home-skin main > div:last-child > section > div:nth-child(2) > div[style] > div:last-child > div:last-child > div {
-  border-color: rgba(25,54,70,.16) !important;
-  background: rgba(255,255,255,.28) !important;
-  box-shadow: inset 1px 1px 0 rgba(255,255,255,.42), 2px 3px 6px rgba(35,47,57,.13) !important;
+  border-color: rgba(177,211,228,.13) !important;
+  border-radius: 6px !important;
+  background: linear-gradient(145deg, rgba(63,83,94,.78), rgba(28,43,52,.86)) !important;
+  box-shadow: inset 0 1px 0 rgba(226,242,249,.12), 2px 3px 7px rgba(2,8,12,.30) !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div div:first-child {
-  color: #162f41 !important;
+  color: #f0f5f7 !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div div:nth-child(2) {
-  color: #486173 !important;
+  color: #a8bcc6 !important;
 }
 
 .nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div button {
-  color: #526b7b !important;
+  color: #a8bdc7 !important;
 }
 
 /* Green is reserved for active/confirm cues, like the reference. */
@@ -292,15 +326,17 @@
 /* Dialogs opened from Home only */
 .nmc-home-skin .fixed > div[class*='max-w-sm'],
 .nmc-home-skin .fixed > div[class*='max-w-lg'] {
-  border-color: rgba(255,255,255,.055) !important;
-  background: linear-gradient(145deg, #363b45, #2a2e36) !important;
+  border-color: rgba(177,211,228,.15) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(145deg, #344955, #1c2c36) !important;
   box-shadow: 16px 16px 35px rgba(10,12,15,.62), -7px -7px 18px rgba(75,81,93,.13) !important;
 }
 
 .nmc-home-skin .fixed input,
 .nmc-home-skin .fixed textarea {
   border-color: rgba(255,255,255,.055) !important;
-  background: #292d35 !important;
+  border-radius: 6px !important;
+  background: #172630 !important;
   color: #f3f4f5 !important;
   box-shadow: inset 4px 4px 9px rgba(14,16,20,.48), inset -2px -2px 6px rgba(73,79,91,.10) !important;
 }
