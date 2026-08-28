@@ -19,13 +19,26 @@ const targets = [
   path.join(root, 'kpi-app', 'src', 'lib', 'app-data-context.tsx'),
 ]
 
-const oldHydrationBlock = `        setData(nextData)
+const hydrationVariants = [
+  {
+    cacheWriter: 'writeSessionCache',
+    old: `        setData(nextData)
         writeSessionCache(nextData)
         setLastSync(new Date())
         setDataVersion(v => v + 1)
-        setLoadError(null)`
+        setLoadError(null)`,
+  },
+  {
+    cacheWriter: 'writeWarmCache',
+    old: `        setData(nextData)
+        writeWarmCache(nextData)
+        setLastSync(new Date())
+        setDataVersion(v => v + 1)
+        setLoadError(null)`,
+  },
+]
 
-const newHydrationBlock = `        writeSessionCache(nextData)
+const optimizedHydrationBlock = (cacheWriter) => `        ${cacheWriter}(nextData)
         // Secondary datasets can arrive while the KPI loader is fading. Mark the
         // large context update as non-urgent so it does not steal an animation frame.
         React.startTransition(() => {
@@ -44,11 +57,13 @@ for (const filePath of targets) {
   let source = fs.readFileSync(filePath, 'utf8')
   let fileChanged = false
 
-  if (!source.includes(newHydrationBlock)) {
-    if (!source.includes(oldHydrationBlock)) {
+  const alreadyOptimized = hydrationVariants.some(({ cacheWriter }) => source.includes(optimizedHydrationBlock(cacheWriter)))
+  if (!alreadyOptimized) {
+    const variant = hydrationVariants.find(({ old }) => source.includes(old))
+    if (!variant) {
       throw new Error(`[KPI perf] AppData hydration anchor not found in ${filePath}`)
     }
-    source = source.replace(oldHydrationBlock, newHydrationBlock)
+    source = source.replace(variant.old, optimizedHydrationBlock(variant.cacheWriter))
     fileChanged = true
   }
 
