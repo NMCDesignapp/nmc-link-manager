@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useSWR, { mutate } from 'swr'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, RotateCw } from 'lucide-react'
 import { useAppData } from '@/lib/app-data-context'
 
@@ -11,23 +10,12 @@ type Point = { x: number; y: number }
 
 const ECG_PATH = 'M10 32H72l10-8 9 14 12-27 15 40 14-19h52l10-9 10 16 13-27 15 39 13-19h50l10-8 10 14 14-26 15 38 13-18h48'
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url, { cache: 'no-store' })
-  if (!response.ok) throw new Error('Không thể tải dữ liệu')
-  return response.json()
-}
-
 function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3)
 }
 
 export function MainSplashGate() {
   const { isLoading, loadError, reload } = useAppData()
-  const { data: links = [], isLoading: linksLoading, error: linksError } = useSWR('/api/links', fetcher, {
-    fallbackData: [],
-    revalidateOnFocus: false,
-    dedupingInterval: 30000,
-  })
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [progress, setProgress] = useState(4)
@@ -40,13 +28,10 @@ export function MainSplashGate() {
     mountedAtRef.current = performance.now()
   }, [])
 
-  const ready = !isLoading && !linksLoading
-  const errorMessage = useMemo(() => {
-    if (loadError) return loadError
-    if (linksError instanceof Error) return linksError.message
-    if (linksError) return 'Không thể tải danh sách liên kết'
-    return null
-  }, [loadError, linksError])
+  // The startup gate only waits for the shared core dataset. Home links and
+  // secondary panels hydrate independently after the main interface is visible.
+  const ready = !isLoading
+  const errorMessage = loadError
 
   /* Smooth pseudo-progress while actual data is still loading. It never reaches
      100 on its own; completion is only allowed after the real data is ready. */
@@ -72,7 +57,7 @@ export function MainSplashGate() {
     completionQueuedRef.current = true
 
     const elapsed = performance.now() - mountedAtRef.current
-    const wait = Math.max(0, 520 - elapsed)
+    const wait = Math.max(0, 420 - elapsed)
     const timer = window.setTimeout(() => setPhase('finishing'), wait)
     return () => window.clearTimeout(timer)
   }, [ready, errorMessage, phase])
@@ -82,7 +67,7 @@ export function MainSplashGate() {
 
     const from = progress
     const started = performance.now()
-    const duration = Math.max(560, Math.min(760, (100 - from) * 26))
+    const duration = Math.max(480, Math.min(680, (100 - from) * 23))
     let frame = 0
 
     const tick = (now: number) => {
@@ -104,13 +89,13 @@ export function MainSplashGate() {
 
   useEffect(() => {
     if (phase !== 'holding') return
-    const timer = window.setTimeout(() => setPhase('fading'), 280)
+    const timer = window.setTimeout(() => setPhase('fading'), 220)
     return () => window.clearTimeout(timer)
   }, [phase])
 
   useEffect(() => {
     if (phase !== 'fading') return
-    const timer = window.setTimeout(() => setPhase('done'), 560)
+    const timer = window.setTimeout(() => setPhase('done'), 480)
     return () => window.clearTimeout(timer)
   }, [phase])
 
@@ -127,7 +112,7 @@ export function MainSplashGate() {
     mountedAtRef.current = performance.now()
     setProgress(4)
     setPhase('loading')
-    await Promise.allSettled([reload(), mutate('/api/links')])
+    await reload()
   }, [reload])
 
   if (phase === 'done') return null
