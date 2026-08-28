@@ -116,9 +116,10 @@ export default function RootLayout({
                     window.location.reload();
                   });
 
-                  navigator.serviceWorker.register('/sw.js').then(
+                  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(
                     function(registration) {
                       console.log('ServiceWorker registration successful');
+                      registration.update().catch(function() {});
                       if (registration.waiting) {
                         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                       }
