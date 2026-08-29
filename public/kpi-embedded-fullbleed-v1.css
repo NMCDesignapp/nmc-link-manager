@@ -1,7 +1,7 @@
-/* KPI embedded mobile stabilizer v2
- * Replaces the failed viewport-forced full-bleed experiment.
+/* KPI embedded mobile stabilizer v3
  * Scope: Thi dua / Chinh sach / CLB pages opened inside KPI only.
- * Goals: one stable first paint, no 100vw/negative-margin reflow, no duplicate native footer.
+ * Goals: stable first paint, native-container width, no viewport forcing,
+ *        exactly 4px content edge on mobile and no duplicate legacy footer.
  */
 
 /* The fixed 3-metric summary is the only footer in embedded KPI mode. */
@@ -10,28 +10,44 @@ html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper tfoot,
 html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper tfoot,
 html[data-kpi-embed='1'] body .contest-result-table-wrapper tfoot,
 html[data-kpi-embed='1'] body #result-table-container tfoot,
-html[data-kpi-embed='1'] body div:has(> span > #policy-fixed-count):has(> span > #policy-fixed-bonus) {
+html[data-kpi-embed='1'] body div:has(> span > #policy-fixed-count):has(> span > #policy-fixed-amount),
+html[data-kpi-embed='1'] body .nmc-management-content div.flex-shrink-0.flex.items-center.justify-between.px-3.text-white[style*='height: 32px'] {
   display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
 }
 
 @media (max-width: 640px) {
+  /* Use the real management content container as the width owner.
+     Four CSS pixels are the only side gutters: no 100vw, no negative margins,
+     so there is no delayed resize/reflow after hydration. */
+  html[data-kpi-embed='1'] body .nmc-management-content {
+    padding-top: 4px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    padding-bottom: max(50px, calc(env(safe-area-inset-bottom) + 48px)) !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
   /* Keep only enough bottom room for the fixed summary. */
-  html[data-kpi-embed='1'] body .embed-mode,
-  html[data-kpi-embed='1'] body main {
+  html[data-kpi-embed='1'] body .embed-mode {
     padding-bottom: max(50px, calc(env(safe-area-inset-bottom) + 48px)) !important;
   }
 
-  /* Establish the poster geometry from first paint, before React adds helper classes.
-     Width remains relative to the existing layout owner; no viewport forcing. */
+  /* Establish poster geometry from first paint, before helper classes are added.
+     Width remains relative to the stable content container. */
   html[data-kpi-embed='1'] body div:has(> img[alt='Poster']),
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster,
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host {
     position: relative !important;
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: none !important;
     aspect-ratio: 16 / 9 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    margin: 0 !important;
     overflow: hidden !important;
     border-radius: 0 !important;
     box-sizing: border-box !important;
@@ -45,7 +61,7 @@ html[data-kpi-embed='1'] body div:has(> span > #policy-fixed-count):has(> span >
     display: block !important;
     width: 100% !important;
     height: 100% !important;
-    max-width: 100% !important;
+    max-width: none !important;
     margin: 0 !important;
     object-fit: fill !important;
     object-position: center !important;
@@ -54,14 +70,15 @@ html[data-kpi-embed='1'] body div:has(> span > #policy-fixed-count):has(> span >
     transition: none !important;
   }
 
-  /* Restore the original stable table ownership. Never use 100vw or negative margins here. */
+  /* Poster, filters and table all inherit the same full available width. */
   html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
   html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
   html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
   html[data-kpi-embed='1'] body .contest-result-table-wrapper,
-  html[data-kpi-embed='1'] body #result-table-container {
+  html[data-kpi-embed='1'] body #result-table-container,
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host {
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     margin-top: 0 !important;
