@@ -231,9 +231,9 @@ export function MainSplashGate() {
                   strokeDasharray={100}
                   strokeDashoffset={100 - displayProgress}
                 />
-                <circle cx="10" cy="32" r="4" fill="#5bc6dc" opacity=".9" />
-                <circle cx="450" cy="32" r="4" fill={isReady ? '#9ff9df' : '#5b6d75'} opacity={isReady ? 1 : .72} />
-                <circle className="nmc-main-splash-head" cx={head.x} cy={head.y} r={isReady ? 4.8 : 4.2} fill="#9bf4df" />
+                <circle cx="10" cy="32" r="4" fill="#176b52" opacity=".9" />
+                <circle cx="450" cy="32" r="4" fill={isReady ? '#2f9974' : '#5b6d75'} opacity={isReady ? 1 : .72} />
+                <circle className="nmc-main-splash-head" cx={head.x} cy={head.y} r={isReady ? 4.8 : 4.2} fill="#2b926f" />
               </svg>
             </div>
             <div className="nmc-main-splash-status">{isReady ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}</div>
