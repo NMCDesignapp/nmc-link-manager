@@ -33,6 +33,24 @@ html[data-kpi-embed='1'] body .nmc-management-content div.flex-shrink-0.flex.ite
     box-sizing: border-box !important;
   }
 
+  /* The policy detail component itself carries p-2 (8px) on mobile.
+     Remove only that embedded-detail padding so the TOTAL outer gutter remains 4px,
+     matching Sao Viet / CLB which do not have this extra p-2 wrapper. */
+  html[data-kpi-embed='1'] body .nmc-management-content .flex.flex-col.h-full.p-2.relative {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-management-content [data-saoviet-table],
+  html[data-kpi-embed='1'] body .nmc-management-content [data-clb-saoviet-table] {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
   /* Keep only enough bottom room for the fixed summary. */
   html[data-kpi-embed='1'] body .embed-mode {
     padding-bottom: max(50px, calc(env(safe-area-inset-bottom) + 48px)) !important;
