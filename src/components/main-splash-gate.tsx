@@ -196,9 +196,9 @@ export function MainSplashGate() {
               <svg viewBox="0 0 460 64">
                 <defs>
                   <linearGradient id="main-ecg-live" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stopColor="#4eb9d6" />
-                    <stop offset=".52" stopColor="#61d9c2" />
-                    <stop offset="1" stopColor="#89f3dc" />
+                    <stop offset="0" stopColor="#0b5d49" />
+                    <stop offset=".52" stopColor="#14785d" />
+                    <stop offset="1" stopColor="#259a74" />
                   </linearGradient>
                 </defs>
                 <path

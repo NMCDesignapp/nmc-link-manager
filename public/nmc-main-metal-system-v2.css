@@ -418,8 +418,8 @@
   padding: 30px 24px 26px;
   background:
     linear-gradient(112deg, rgba(255,255,255,.11), transparent 22%, transparent 66%, rgba(255,255,255,.028)),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,.018) 1px 3px),
-    linear-gradient(145deg, #667985 0%, #425762 45%, #2c414c 100%);
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.007) 1px 6px),
+    linear-gradient(145deg, #849198 0%, #b6bec2 27%, #79858b 57%, #4f5d65 100%);
   box-shadow:
     0 28px 54px rgba(0,0,0,.52),
     10px 13px 24px rgba(1,7,11,.42),
@@ -453,8 +453,8 @@
   border: 1px solid rgba(212,230,238,.25);
   border-radius: 8px;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.018) 1px 3px),
-    linear-gradient(145deg, #526975, #314955 62%, #243943);
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,.006) 1px 6px),
+    linear-gradient(145deg, #63777f, #40555d 62%, #2d424b);
   box-shadow: 6px 8px 16px rgba(2,8,12,.38), inset 0 1px 0 rgba(238,248,251,.18);
 }
 
@@ -499,11 +499,11 @@
 }
 
 .nmc-main-splash-v2 .nmc-main-splash-live {
-  filter: drop-shadow(0 0 3px rgba(91,222,199,.95)) drop-shadow(0 0 9px rgba(100,203,228,.55));
+  filter: drop-shadow(0 0 3px rgba(19,112,83,.90)) drop-shadow(0 0 8px rgba(35,142,104,.46));
 }
 
 .nmc-main-splash-v2 .nmc-main-splash-head {
-  filter: drop-shadow(0 0 4px rgba(116,245,222,.98)) drop-shadow(0 0 10px rgba(92,211,230,.86));
+  filter: drop-shadow(0 0 4px rgba(38,155,113,.92)) drop-shadow(0 0 9px rgba(20,111,83,.68));
 }
 
 .nmc-main-splash-v2 .nmc-main-splash-status {
@@ -519,7 +519,7 @@
 .nmc-main-splash-v2 .nmc-main-splash-percent {
   margin-top: 5px;
   text-align: center;
-  color: #82dfcf;
+  color: #155f49;
   font: 800 10px/1 monospace;
   letter-spacing: .08em;
 }
@@ -554,4 +554,183 @@
   :where(.nmc-home-skin, .nmc-management-skin, .nmc-contest-skin, .nmc-clb-soft-skin) * {
     scroll-behavior: auto !important;
   }
+}
+
+/* 2026-08-29 polish: finer metal, wide identity plate and shared Main loaders.
+ * Deliberately scoped away from every KPI surface. */
+.nmc-home-skin .nmc-home-brandbar {
+  width: min(100%, 768px);
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, .72fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(203, 220, 228, .31);
+  border-radius: 10px;
+  background:
+    linear-gradient(106deg, rgba(255,255,255,.085), transparent 25%, transparent 72%, rgba(255,255,255,.025)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0 1px, rgba(0,0,0,.006) 1px 6px),
+    linear-gradient(145deg, #536a76 0%, #364d59 49%, #223640 100%);
+  box-shadow: 8px 11px 24px rgba(1,7,11,.48), inset 0 1px 0 rgba(240,248,251,.23), inset 0 -9px 18px rgba(3,10,14,.24);
+}
+
+.nmc-home-skin .nmc-home-brandblock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px 7px;
+}
+
+.nmc-home-skin .nmc-home-logo {
+  width: min(100%, 230px) !important;
+  height: 57px !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.nmc-home-skin .nmc-home-logo-mark { width: 100%; height: 100%; }
+.nmc-home-skin .nmc-home-designer { margin-top: -2px; color: #d8e3e7; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-shadow: 0 1px 2px rgba(0,0,0,.72); }
+.nmc-home-skin .nmc-home-bio { max-width: 100%; margin-top: 1px; overflow: hidden; color: #9eb3bd; font-size: 8px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+
+.nmc-home-skin .nmc-home-clock {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid rgba(210,228,236,.18);
+  background: linear-gradient(145deg, rgba(11,26,35,.30), rgba(4,14,20,.50));
+  box-shadow: inset 9px 0 18px rgba(0,0,0,.18), inset 1px 0 0 rgba(255,255,255,.08);
+}
+
+.nmc-home-skin .nmc-home-clock time {
+  color: #c5d2d7;
+  font: 900 clamp(24px, 7vw, 36px)/1 "Outfit", system-ui, sans-serif;
+  letter-spacing: .04em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.24), 0 -2px 2px rgba(0,0,0,.72), 0 3px 6px rgba(0,0,0,.40);
+}
+
+.nmc-home-skin .nmc-home-clock span { margin-top: 7px; padding-inline: 8px; color: #9fb0b7; font-size: 8px; font-weight: 800; line-height: 1.25; text-align: center; text-transform: capitalize; }
+
+/* Calendar material requested by the user: silver date, pale-gold content, green today. */
+.nmc-home-skin [data-day-tone] {
+  border-color: rgba(207,190,130,.38) !important;
+  background: linear-gradient(145deg, #d8c77d, #b99e54) !important;
+}
+.nmc-home-skin [data-day-tone] > div:first-child {
+  border-color: rgba(69,81,87,.28) !important;
+  background:
+    linear-gradient(108deg, rgba(255,255,255,.36), transparent 29%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.008) 1px 6px),
+    linear-gradient(145deg, #e3e8ea, #bac4c9 53%, #929fa6) !important;
+}
+.nmc-home-skin [data-day-tone] > div:first-child div:first-child { color: #37454c !important; }
+.nmc-home-skin [data-day-tone] > div:first-child > div:nth-child(2) { color: #17252c !important; text-shadow: 0 1px 0 rgba(255,255,255,.48) !important; }
+.nmc-home-skin [data-day-tone] > div:last-child {
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.20), transparent 34%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.006) 1px 6px),
+    linear-gradient(145deg, #f1e6b5, #e2cf88 56%, #c8ab5e) !important;
+  color: #263239 !important;
+}
+.nmc-home-skin [data-day-tone] > div:last-child > div:first-child > div { color: #526069 !important; }
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div {
+  border-color: rgba(117,96,41,.25) !important;
+  background: linear-gradient(145deg, rgba(255,250,224,.78), rgba(220,196,119,.78)) !important;
+  color: #283239 !important;
+  box-shadow: 3px 4px 9px rgba(82,63,19,.16), inset 0 1px 0 rgba(255,255,255,.42) !important;
+}
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div :where(div,span) { color: inherit; }
+.nmc-home-skin [data-today='true'],
+.nmc-home-skin [data-today='true'] > div:first-child,
+.nmc-home-skin [data-today='true'] > div:last-child {
+  border-color: rgba(83,174,133,.62) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.008) 1px 6px),
+    linear-gradient(145deg, #4b9470, #327557 54%, #21533f) !important;
+  color: #f1fff8 !important;
+}
+.nmc-home-skin [data-today='true'] > div:first-child div,
+.nmc-home-skin [data-today='true'] > div:last-child > div:first-child > div { color: #effff7 !important; }
+.nmc-home-skin [data-today='true'] > div:last-child > div:last-child > div { border-color: rgba(193,240,214,.24) !important; background: linear-gradient(145deg, #5b9d79, #347057) !important; color: #fff !important; }
+
+/* Shared compact Main App loader: logo and progress on one row. */
+.nmc-compact-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 14, 20, .78);
+  backdrop-filter: blur(6px);
+  opacity: 1;
+  transition: opacity .36s cubic-bezier(.22,.61,.36,1);
+}
+.nmc-compact-loader-overlay[data-phase='zooming'] { opacity: 0; }
+.nmc-iframe-loader { position:absolute; inset:0; z-index:60; display:grid; place-items:center; padding:18px; background:rgba(5,14,20,.76); backdrop-filter:blur(5px); }
+.nmc-compact-loader-plate {
+  position: relative;
+  width: min(420px, calc(100vw - 30px));
+  min-height: 118px;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 17px;
+  padding: 24px 28px;
+  overflow: hidden;
+  border: 1px solid #7d898f;
+  border-radius: 10px;
+  background:
+    linear-gradient(108deg, rgba(255,255,255,.24), transparent 25%, transparent 72%, rgba(255,255,255,.04)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.008) 1px 6px),
+    linear-gradient(100deg, #7f898f, #c7ced1 27%, #aeb8bd 51%, #707c83 78%, #465159);
+  box-shadow: 0 24px 58px rgba(0,0,0,.58), 0 9px 16px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.72), inset 0 -8px 16px rgba(26,34,39,.20);
+}
+.nmc-compact-loader-bolt { position:absolute; width:12px; height:12px; border:1px solid #5d686e; border-radius:50%; background: radial-gradient(circle at 35% 28%, #edf1f2, #aab4b9 40%, #626d73 72%, #c0c8cc); box-shadow: 0 2px 3px rgba(0,0,0,.42), inset 0 1px 1px rgba(255,255,255,.70); }
+.nmc-compact-loader-bolt.b1{left:8px;top:8px}.nmc-compact-loader-bolt.b2{right:8px;top:8px}.nmc-compact-loader-bolt.b3{left:8px;bottom:8px}.nmc-compact-loader-bolt.b4{right:8px;bottom:8px}
+.nmc-compact-loader-logo { color:#edf2f3; font:900 38px/1 "Outfit",system-ui,sans-serif; letter-spacing:.02em; text-align:center; text-shadow:0 2px 1px #3d484e,0 5px 7px rgba(0,0,0,.35); }
+.nmc-compact-loader-progress { min-width:0; }
+.nmc-compact-loader-track { position:relative; height:8px; overflow:hidden; border:1px solid rgba(24,57,47,.55); border-radius:99px; background:#52615e; box-shadow:inset 0 2px 4px rgba(0,0,0,.48),0 1px 0 rgba(255,255,255,.34); }
+.nmc-compact-loader-fill { position:absolute; inset-block:0; left:0; border-radius:inherit; background:linear-gradient(90deg,#0a4c3c,#0d6a51,#1b8665); box-shadow:0 0 7px rgba(20,107,82,.42); transition:width .3s cubic-bezier(.22,.61,.36,1); }
+.nmc-compact-loader-sweep { position:absolute; inset-block:0; width:38%; background:linear-gradient(90deg,transparent,rgba(159,219,193,.72),transparent); animation:nmc-compact-sweep 1.25s ease-in-out infinite; }
+.nmc-compact-loader-indeterminate { width:38% !important; animation:nmc-compact-sweep 1.25s ease-in-out infinite; }
+.nmc-compact-loader-label { display:flex; justify-content:space-between; gap:12px; margin-top:9px; color:#243c35; font-size:10px; font-weight:900; letter-spacing:.05em; }
+.nmc-compact-loader-label strong { color:#0b5c46; }
+.nmc-compact-loader-error { display:flex; align-items:center; gap:7px; color:#5b261f; font-size:10px; font-weight:800; }
+.nmc-compact-loader-error button { display:inline-flex; align-items:center; gap:4px; margin-left:auto; padding:6px 8px; border:1px solid rgba(25,82,63,.45); color:#154f3e; background:rgba(232,241,237,.44); }
+@keyframes nmc-compact-sweep { from{transform:translateX(-110%)} to{transform:translateX(300%)} }
+
+/* Existing program detail loader receives the same compact material without touching KPI entry gates. */
+.nmc-kpi-linked-page .nmc-program-loader-overlay { background:rgba(5,14,20,.72) !important; backdrop-filter:blur(5px); }
+.nmc-kpi-linked-page .nmc-program-loader-simple { min-width:min(330px,calc(100vw - 34px)); display:flex !important; align-items:center; justify-content:center; gap:14px; padding:18px 22px !important; border:1px solid #7d898f !important; border-radius:9px !important; color:#173f33 !important; background:linear-gradient(105deg,#d4dadd,#aeb8bd 52%,#737f86) !important; box-shadow:0 20px 45px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.72) !important; }
+.nmc-kpi-linked-page .nmc-program-loader-spinner { border-color:rgba(17,91,70,.22) !important; border-top-color:#0f6d53 !important; }
+.nmc-kpi-linked-page .nmc-program-loader-text { color:#174d3d !important; font-weight:900 !important; }
+
+/* Smoother route controls, filters and dialogs on Main management/contest only. */
+:where(.nmc-management-skin,.nmc-contest-skin) :where(button,input,textarea,[role='combobox'],[role='tab']) { transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease; }
+:where(.nmc-management-skin,.nmc-contest-skin) :where(button,[role='tab']):active { transform:translateY(1px); }
+:where(.nmc-management-skin,.nmc-contest-skin) :where([role='dialog'],[data-radix-popper-content-wrapper] > div) { border-color:rgba(190,216,228,.28) !important; background:linear-gradient(145deg,#3b505b,#263a45 60%,#192b35) !important; box-shadow:0 24px 58px rgba(0,0,0,.52),inset 0 1px 0 rgba(231,244,249,.14) !important; }
+
+@media (max-width: 520px) {
+  .nmc-home-skin { overflow-x: hidden; }
+  .nmc-home-skin .nmc-home-brandbar { width:100% !important; min-height:82px; grid-template-columns:minmax(0,1fr) 108px; }
+  .nmc-home-skin .nmc-home-brandblock { padding-inline:6px; }
+  .nmc-home-skin .nmc-home-logo { height:49px !important; }
+  .nmc-home-skin .nmc-home-designer { font-size:9px; }
+  .nmc-home-skin .nmc-home-bio { display:none; }
+  .nmc-home-skin .nmc-home-clock time { font-size:26px; }
+  .nmc-home-skin .nmc-home-clock span { font-size:7px; }
+  .nmc-compact-loader-plate { grid-template-columns:94px minmax(0,1fr); gap:12px; min-height:100px; padding:20px 22px; }
+  .nmc-compact-loader-logo { font-size:31px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nmc-compact-loader-sweep { animation-duration:2.4s; }
+  :where(.nmc-management-skin,.nmc-contest-skin) :where(button,input,textarea,[role='combobox'],[role='tab']) { transition:none; }
 }

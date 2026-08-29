@@ -69,7 +69,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
-        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260828-1" />
+        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-4" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

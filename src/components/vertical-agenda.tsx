@@ -149,11 +149,6 @@ export function VerticalAgenda() {
               data-day-tone={day % 2 === 0 ? 'silver' : 'gold'}
               data-today={isToday ? 'true' : undefined}
               className="mb-2 grid grid-cols-[54px_minmax(0,1fr)] overflow-hidden rounded-2xl border shadow-[0_7px_18px_rgba(0,0,0,.2)] sm:grid-cols-[68px_minmax(0,1fr)]"
-              style={{
-                background: isToday ? '#244a58' : '#1a3545',
-                borderColor: isToday ? '#5fb8c2' : '#315365',
-                boxShadow: isToday ? '0 9px 24px rgba(30,132,145,.22), inset 0 0 0 1px rgba(126,224,230,.08)' : undefined,
-              }}
             >
               <div className="flex flex-col items-center justify-center border-r border-[#35586a] px-1 py-3 text-center">
                 <div className={`text-[9px] font-black uppercase tracking-wide ${isSunday ? 'text-[#f0a1a1]' : 'text-[#8fb4c7]'}`}>
