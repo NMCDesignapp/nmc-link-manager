@@ -1,14 +1,17 @@
-/* KPI embedded detail tables v2
- * Scope: pages opened inside KPI only.
- * Keep each page's original header/column colors and business-state colors.
- * Only normalize unreadable dark/light row backgrounds and keep mobile tables compact.
+/* KPI embedded detail tables v3
+ * Scope: pages opened inside KPI only (Thi dua / Chinh sach / CLB Sao Viet).
+ * Preserve every page's original header / semantic column colors.
+ * Add gentle row surfaces, faint horizontal + vertical guides, viewport floor,
+ * and support classes for sticky header / bottom summary overlays.
  */
 
 html[data-kpi-embed='1'] {
-  --kpi-table-surface: #e7edf0;
-  --kpi-table-surface-hover: #dce9e8;
-  --kpi-table-unmet: #f3e5e1;
-  --kpi-table-line: rgba(108, 132, 144, .46);
+  --kpi-table-surface-a: #e8eef1;
+  --kpi-table-surface-b: #e2eaee;
+  --kpi-table-surface-hover: #dbe8e8;
+  --kpi-table-unmet: #f4e6e2;
+  --kpi-table-line-h: rgba(78, 103, 116, .22);
+  --kpi-table-line-v: rgba(78, 103, 116, .16);
 }
 
 /* The install-app controls belong to Main App and must not cover KPI detail tables. */
@@ -18,13 +21,13 @@ html[data-kpi-embed='1'] body [class~='fixed'][class~='inset-0'][class~='z-[95]'
   display: none !important;
 }
 
-/* Leave room below the last row when a KPI summary/footer is fixed at the bottom. */
+/* Keep enough breathing room for the fixed summary bar and phone safe area. */
 html[data-kpi-embed='1'] body .embed-mode,
 html[data-kpi-embed='1'] body main {
-  padding-bottom: max(68px, calc(env(safe-area-inset-bottom) + 52px)) !important;
+  padding-bottom: max(58px, calc(env(safe-area-inset-bottom) + 46px)) !important;
 }
 
-/* Keep the page's original table geometry/colors; only make horizontal panning reliable. */
+/* Horizontal panning stays exactly as before: compact, inertial and touch friendly. */
 html[data-kpi-embed='1'] body [data-slot='table-container'],
 html[data-kpi-embed='1'] body #result-table-container {
   width: 100% !important;
@@ -51,13 +54,17 @@ html[data-kpi-embed='1'] body #result-table-container::-webkit-scrollbar-thumb {
 }
 
 /*
- * The old embedded styles can create very dark alternating rows.
- * Normalize ONLY cells without their own semantic background class.
- * This preserves original emerald/amber/violet/etc. column colors.
+ * Gentle zebra background ONLY for cells without their own business color.
+ * Original emerald / amber / violet / orange / red column colors remain untouched.
  */
-html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-cell']:not([class*='bg-']),
-html[data-kpi-embed='1'] body table tbody td:not([class*='bg-']) {
-  background: var(--kpi-table-surface) !important;
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row']:nth-child(odd) > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr:nth-child(odd) > td:not([class*='bg-']) {
+  background: var(--kpi-table-surface-a) !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row']:nth-child(even) > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr:nth-child(even) > td:not([class*='bg-']) {
+  background: var(--kpi-table-surface-b) !important;
 }
 
 html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row'].bg-red-50 > [data-slot='table-cell']:not([class*='bg-']),
@@ -70,13 +77,75 @@ html[data-kpi-embed='1'] body table tbody tr:hover > td:not([class*='bg-']) {
   background: var(--kpi-table-surface-hover) !important;
 }
 
-/* Thin separators improve scanning without changing the original color system. */
+/* Faint scan guides: solid horizontal line + dotted vertical line. */
 html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-cell'],
 html[data-kpi-embed='1'] body table tbody td {
-  border-bottom-color: var(--kpi-table-line) !important;
+  border-bottom: 1px solid var(--kpi-table-line-h) !important;
+  border-right: 1px dotted var(--kpi-table-line-v) !important;
 }
 
-/* Restore compact mobile density: no forced oversized columns, no artificial min widths. */
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-cell']:last-child,
+html[data-kpi-embed='1'] body table tbody td:last-child {
+  border-right: 0 !important;
+}
+
+/* The table frame is allowed to reach the viewport bottom even when it has few rows. */
+html[data-kpi-embed='1'] body .nmc-kpi-viewport-table {
+  min-height: var(--nmc-kpi-table-floor, auto) !important;
+  position: relative !important;
+  scroll-margin-top: 0 !important;
+  padding-bottom: var(--nmc-kpi-footer-space, 0px) !important;
+}
+
+/* Quarterly policy: JS marks only empty warm separator rows between head and data. */
+html[data-kpi-embed='1'] body .nmc-policy-quarter-empty-separator {
+  display: none !important;
+}
+
+/* Fixed overlays are visual mirrors only; original data/logic stays in place. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay {
+  position: fixed !important;
+  left: 0;
+  display: none;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  contain: layout paint;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
+  top: 0;
+  z-index: 2147482400 !important;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.30));
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay {
+  bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 2147482401 !important;
+  box-shadow: 0 -5px 13px rgba(0,0,0,.26);
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay[data-visible='1'],
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay[data-visible='1'] {
+  display: block !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay table,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay table {
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  transform-origin: top left !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay thead,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay th,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay tr,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay td {
+  position: static !important;
+}
+
+/* Restore compact mobile density: no artificial oversized columns. */
 @media (max-width: 640px) {
   html[data-kpi-embed='1'] body [data-slot='table-container'],
   html[data-kpi-embed='1'] body #result-table-container {
@@ -105,7 +174,6 @@ html[data-kpi-embed='1'] body table tbody td {
     line-height: 1.15 !important;
   }
 
-  /* Let the page's existing min-width classes decide column widths. */
   html[data-kpi-embed='1'] body [data-slot='table-cell'] *,
   html[data-kpi-embed='1'] body [data-slot='table-head'] * {
     line-height: inherit !important;
