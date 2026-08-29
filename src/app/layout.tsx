@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
+import { ProgramTableSemanticStyle } from '@/components/program-table-semantic-style'
 import { KpiEmbeddedFilterBar } from '@/components/kpi-embedded-filter-bar'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { MaintenanceGate } from '@/components/maintenance-gate'
@@ -70,8 +71,9 @@ export default function RootLayout({
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260828-1" />
-        <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-4" />
+        <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
         <link rel="stylesheet" href="/kpi-embedded-fullbleed-v1.css?v=20260829-1" />
+        <link rel="stylesheet" href="/kpi-table-visual-standard-v1.css?v=20260829-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -95,6 +97,7 @@ export default function RootLayout({
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
         <ProgramTableStickyHeaders />
+        <ProgramTableSemanticStyle />
         <KpiEmbeddedFilterBar />
         <SpaceBackground />
         <ErrorBoundary>
