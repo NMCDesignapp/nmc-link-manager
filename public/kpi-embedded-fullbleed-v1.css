@@ -1,90 +1,78 @@
-/* KPI embedded full-bleed detail layout v1
- * Scope: Thi dua / Chinh sach / CLB pages opened inside KPI.
- * Keeps business data untouched; this file only removes duplicate native footer
- * and expands poster/table presentation to the iframe viewport edges.
+/* KPI embedded mobile stabilizer v2
+ * Replaces the failed viewport-forced full-bleed experiment.
+ * Scope: Thi dua / Chinh sach / CLB pages opened inside KPI only.
+ * Goals: one stable first paint, no 100vw/negative-margin reflow, no duplicate native footer.
  */
 
+/* The fixed 3-metric summary is the only footer in embedded KPI mode. */
 html[data-kpi-embed='1'] body .policy-detail-table-wrapper tfoot,
 html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper tfoot,
 html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper tfoot,
 html[data-kpi-embed='1'] body .contest-result-table-wrapper tfoot,
-html[data-kpi-embed='1'] body #result-table-container tfoot {
+html[data-kpi-embed='1'] body #result-table-container tfoot,
+html[data-kpi-embed='1'] body div:has(> span > #policy-fixed-count):has(> span > #policy-fixed-bonus) {
   display: none !important;
 }
 
 @media (max-width: 640px) {
+  /* Keep only enough bottom room for the fixed summary. */
   html[data-kpi-embed='1'] body .embed-mode,
   html[data-kpi-embed='1'] body main {
     padding-bottom: max(50px, calc(env(safe-area-inset-bottom) + 48px)) !important;
   }
 
+  /* Establish the poster geometry from first paint, before React adds helper classes.
+     Width remains relative to the existing layout owner; no viewport forcing. */
+  html[data-kpi-embed='1'] body div:has(> img[alt='Poster']),
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster,
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
-    padding: 0 !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
+    overflow: hidden !important;
     border-radius: 0 !important;
     box-sizing: border-box !important;
+    animation: none !important;
+    transition: none !important;
   }
 
+  html[data-kpi-embed='1'] body div:has(> img[alt='Poster']) > img[alt='Poster'],
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'],
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > img[alt='Poster'] {
     display: block !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
+    object-fit: fill !important;
+    object-position: center !important;
     border-radius: 0 !important;
+    animation: none !important;
+    transition: none !important;
   }
 
+  /* Restore the original stable table ownership. Never use 100vw or negative margins here. */
   html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
   html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
   html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
   html[data-kpi-embed='1'] body .contest-result-table-wrapper,
   html[data-kpi-embed='1'] body #result-table-container {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
-    margin-right: calc(50% - 50vw) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
-    border-radius: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
   }
 
-  html[data-kpi-embed='1'] body .policy-detail-table-wrapper [data-slot='table-container'],
-  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper [data-slot='table-container'],
-  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper [data-slot='table-container'],
-  html[data-kpi-embed='1'] body .contest-result-table-wrapper [data-slot='table-container'],
-  html[data-kpi-embed='1'] body #result-table-container [data-slot='table-container'] {
-    margin: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    border-radius: 0 !important;
-  }
-
-  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster + *,
-  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host + *,
-  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
-  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
-  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper {
-    margin-top: 0 !important;
-  }
-
-  html[data-kpi-embed='1'] body .nmc-kpi-viewport-table,
-  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
-  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
-  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper {
-    padding-bottom: 0 !important;
+  html[data-kpi-embed='1'] body .nmc-kpi-viewport-table {
     min-height: 0 !important;
+    padding-bottom: 0 !important;
   }
 }
