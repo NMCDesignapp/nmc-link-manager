@@ -10,6 +10,8 @@ const WRAPPER_SELECTOR = [
   '#result-table-container',
 ].join(',');
 
+const SUMMARY_ROW_RE = /^(?:TONG CONG|TONG THUONG|TONG TIEN|TONG BONUS)\b/;
+
 const normalizeText = (value: string | null | undefined) =>
   String(value || '')
     .normalize('NFD')
@@ -20,7 +22,7 @@ const normalizeText = (value: string | null | undefined) =>
     .trim()
     .toUpperCase();
 
-const SUMMARY_RE = /(?:^|\s)TONG(?:\s|:)|TONG THUONG|TONG FYP|TONG DONG|TONG CONG/;
+const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
 
 const isWarmSeparatorColor = (color: string) => {
   const m = color.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
@@ -31,44 +33,19 @@ const isWarmSeparatorColor = (color: string) => {
   return r >= 95 && r > g * 1.18 && r > b * 1.35 && g < 155;
 };
 
-const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
-
 const isQuarterlyPolicyPage = () => {
   if (!isEmbeddedKpiPage()) return false;
-  const text = normalizeText(document.body?.innerText?.slice(0, 50000));
+  const text = normalizeText(document.body?.textContent?.slice(0, 18000));
   return /CHINH SACH 2026|THUONG QUY|NANG SUAT QUY/.test(text);
 };
 
 const findHorizontalScroller = (root: HTMLElement) => {
-  if (root.scrollWidth > root.clientWidth + 2) return root;
-  const inner = root.querySelector<HTMLElement>('[data-slot="table-container"]');
-  if (inner && inner.scrollWidth > inner.clientWidth + 2) return inner;
-  return root;
-};
+  const candidates = [
+    root,
+    root.querySelector<HTMLElement>('[data-slot="table-container"]'),
+  ].filter(Boolean) as HTMLElement[];
 
-const findSummarySource = (root: HTMLElement, table: HTMLTableElement): HTMLElement | null => {
-  const tfoot = table.querySelector<HTMLElement>('tfoot');
-  if (tfoot && SUMMARY_RE.test(normalizeText(tfoot.textContent))) return tfoot;
-
-  const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody tr'));
-  for (const row of rows.slice(-8).reverse()) {
-    const text = normalizeText(row.textContent);
-    if (text.length > 0 && text.length <= 280 && SUMMARY_RE.test(text)) return row;
-  }
-
-  const scope = root.parentElement;
-  if (!scope) return null;
-  const following = Array.from(scope.querySelectorAll<HTMLElement>('div, footer, section'))
-    .filter((el) => el !== root && !root.contains(el))
-    .filter((el) => Boolean(root.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))
-    .filter((el) => {
-      const text = normalizeText(el.textContent);
-      if (!text || text.length > 260 || !SUMMARY_RE.test(text)) return false;
-      const rect = el.getBoundingClientRect();
-      return rect.width >= Math.min(120, root.getBoundingClientRect().width * 0.55);
-    });
-
-  return following[0] || null;
+  return candidates.find((el) => el.scrollWidth > el.clientWidth + 2) || root;
 };
 
 const markQuarterlyPolicySeparators = (root: HTMLElement) => {
@@ -84,316 +61,425 @@ const markQuarterlyPolicySeparators = (root: HTMLElement) => {
   });
 };
 
-const makeTableMirror = (
-  sourceTable: HTMLTableElement,
-  section: HTMLElement,
-  kind: 'header' | 'footer',
-) => {
+const markOriginalSummaryRows = (table: HTMLTableElement) => {
+  table.querySelectorAll<HTMLElement>('.nmc-kpi-original-summary-row').forEach((el) => {
+    el.classList.remove('nmc-kpi-original-summary-row');
+  });
+
+  const footer = table.querySelector<HTMLElement>('tfoot');
+  if (footer && SUMMARY_ROW_RE.test(normalizeText(footer.textContent))) {
+    footer.classList.add('nmc-kpi-original-summary-row');
+  }
+
+  const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+  rows.slice(-10).forEach((row) => {
+    const text = normalizeText(row.textContent);
+    if (text && SUMMARY_ROW_RE.test(text)) row.classList.add('nmc-kpi-original-summary-row');
+  });
+};
+
+const markHeaderDensity = (table: HTMLTableElement, thead: HTMLTableSectionElement) => {
+  const tiers = Math.max(1, thead.rows.length);
+  table.classList.toggle('nmc-kpi-multi-tier-head', tiers >= 2);
+  table.classList.toggle('nmc-kpi-three-tier-head', tiers >= 3);
+};
+
+const markMobilePoster = () => {
+  document.querySelectorAll<HTMLImageElement>('img[alt="Poster"]').forEach((img) => {
+    img.parentElement?.classList.add('nmc-kpi-mobile-poster');
+  });
+};
+
+type ColumnRange = {
+  left: number;
+  right: number;
+  text: string;
+  score: number;
+};
+
+const getHeaderRange = (
+  table: HTMLTableElement,
+  scorer: (text: string) => number,
+): ColumnRange | null => {
+  const thead = table.tHead;
+  if (!thead) return null;
+
+  let best: ColumnRange | null = null;
+  Array.from(thead.querySelectorAll<HTMLTableCellElement>('th')).forEach((cell) => {
+    const text = normalizeText(cell.textContent);
+    const score = scorer(text);
+    if (score < 0) return;
+    const rect = cell.getBoundingClientRect();
+    if (rect.width <= 1) return;
+    const candidate = { left: rect.left, right: rect.right, text, score };
+    if (!best || candidate.score > best.score || (candidate.score === best.score && candidate.left > best.left)) {
+      best = candidate;
+    }
+  });
+
+  return best;
+};
+
+const rewardHeaderScore = (text: string) => {
+  if (!text.includes('THUONG') && !text.includes('TONG TIEN')) return -1;
+  if (text.includes('TONG THUONG') || text.includes('TONG TIEN THUONG')) return 120;
+  if (/^THUONG(?:\s|$)/.test(text)) return 100;
+  if (text.includes('THUONG GD')) return 82;
+  if (text.includes('MUC THUONG')) return 74;
+  if (text.includes('TONG TIEN')) return 112;
+  return 70;
+};
+
+const codeHeaderScore = (text: string) => {
+  if (/MA (?:SO|DL|TVV|TTN|TN|NTD)/.test(text)) return 100;
+  if (text === 'MA SO' || text === 'MA DL') return 110;
+  return -1;
+};
+
+const nameHeaderScore = (text: string) => {
+  if (text.includes('HO TEN TVV')) return 120;
+  if (text === 'HO TEN' || text.includes('TEN TVV')) return 110;
+  if (text.includes('TEN TTN') || text.includes('TEN TRUONG NHOM') || text.includes('TEN NTD')) return 90;
+  return -1;
+};
+
+const findCellByRange = (row: HTMLTableRowElement, range: ColumnRange | null) => {
+  if (!range) return null;
+  let best: HTMLTableCellElement | null = null;
+  let bestOverlap = 0;
+
+  Array.from(row.cells).forEach((cell) => {
+    const rect = cell.getBoundingClientRect();
+    if (rect.width <= 1) return;
+    const overlap = Math.min(rect.right, range.right) - Math.max(rect.left, range.left);
+    if (overlap > bestOverlap) {
+      best = cell;
+      bestOverlap = overlap;
+    }
+  });
+
+  return bestOverlap > 1 ? best : null;
+};
+
+const parseMoney = (raw: string | null | undefined) => {
+  const text = String(raw || '');
+  const re = /\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|\d+(?:,\d+)?/g;
+  let match: RegExpExecArray | null;
+  let best = 0;
+
+  while ((match = re.exec(text)) !== null) {
+    const token = match[0];
+    let value = Number(token.replace(/[.\s]/g, '').replace(',', '.'));
+    if (!Number.isFinite(value)) continue;
+
+    const tail = text.slice(match.index + token.length, match.index + token.length + 12).toLowerCase();
+    if (/^\s*(?:tr|tri[eệ]u)\b/.test(tail) && value < 100000) value *= 1_000_000;
+    else if (/^\s*(?:k|ngh[iì]n)\b/.test(tail) && value < 100000) value *= 1_000;
+
+    if (value > best) best = value;
+  }
+
+  return Math.round(best);
+};
+
+const hasReward = (raw: string | null | undefined) => {
+  const text = normalizeText(raw);
+  if (!text || /^[-–—]+$/.test(text) || text === '0' || text === '0D') return false;
+  if (/CHUA DAT|KHONG DAT|KHONG DU|KHONG THUONG|LOAI/.test(text)) return false;
+  if (parseMoney(raw) > 0) return true;
+  if (/\bDAT\b/.test(text)) return true;
+  return /[A-Z]/.test(text);
+};
+
+type SummaryMetrics = {
+  totalTvv: number;
+  achieved: number;
+  totalMoney: number;
+};
+
+const extractSummaryMetrics = (table: HTMLTableElement): SummaryMetrics => {
+  const rewardRange = getHeaderRange(table, rewardHeaderScore);
+  const codeRange = getHeaderRange(table, codeHeaderScore);
+  const nameRange = getHeaderRange(table, nameHeaderScore);
+  const hasIdentityColumn = Boolean(codeRange || nameRange);
+
+  const identities = new Set<string>();
+  const achievedIdentities = new Set<string>();
+  const seenRewardCells = new Set<HTMLTableCellElement>();
+  let totalMoney = 0;
+  let lastIdentity = '';
+  let fallbackIndex = 0;
+
+  const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody tr')).filter((row) => {
+    if (row.classList.contains('nmc-kpi-original-summary-row')) return false;
+    if (row.classList.contains('nmc-policy-quarter-empty-separator')) return false;
+    if (!normalizeText(row.textContent)) return false;
+    return getComputedStyle(row).display !== 'none';
+  });
+
+  rows.forEach((row) => {
+    const code = normalizeText(findCellByRange(row, codeRange)?.textContent);
+    const name = normalizeText(findCellByRange(row, nameRange)?.textContent);
+    let identity = code || name;
+
+    if (identity) lastIdentity = identity;
+    else if (hasIdentityColumn && lastIdentity) identity = lastIdentity;
+    else if (!hasIdentityColumn) identity = `ROW-${++fallbackIndex}`;
+    else return;
+
+    identities.add(identity);
+
+    const rewardCell = findCellByRange(row, rewardRange);
+    const rewardText = rewardCell?.textContent || '';
+    const rowText = normalizeText(row.textContent);
+    const achieved = rewardRange ? hasReward(rewardText) : /DAT THUONG|\bDAT\b/.test(rowText) && !/CHUA DAT|KHONG DAT/.test(rowText);
+    if (achieved) achievedIdentities.add(identity);
+
+    if (rewardCell && !seenRewardCells.has(rewardCell)) {
+      seenRewardCells.add(rewardCell);
+      totalMoney += parseMoney(rewardText);
+    }
+  });
+
+  return {
+    totalTvv: identities.size,
+    achieved: achievedIdentities.size,
+    totalMoney,
+  };
+};
+
+const makeHeaderMirror = (sourceTable: HTMLTableElement, thead: HTMLTableSectionElement) => {
   const table = document.createElement('table');
   table.className = sourceTable.className;
   table.style.cssText = sourceTable.style.cssText;
   table.setAttribute('aria-hidden', 'true');
-  table.setAttribute('data-nmc-kpi-mirror-table', kind);
+  table.setAttribute('data-nmc-kpi-mirror-table', 'header');
 
   const colgroup = sourceTable.querySelector(':scope > colgroup');
   if (colgroup) table.appendChild(colgroup.cloneNode(true));
-
-  if (kind === 'header') {
-    table.appendChild(section.cloneNode(true));
-  } else if (section.tagName === 'TR') {
-    const body = document.createElement('tbody');
-    body.appendChild(section.cloneNode(true));
-    table.appendChild(body);
-  } else {
-    table.appendChild(section.cloneNode(true));
-  }
-
+  table.appendChild(thead.cloneNode(true));
   return table;
+};
+
+type StickyEntry = {
+  root: HTMLElement;
+  table: HTMLTableElement;
+  thead: HTMLTableSectionElement;
+  scroller: HTMLElement;
+  header: HTMLDivElement;
+  signature: string;
 };
 
 export function ProgramTableStickyHeaders() {
   useEffect(() => {
-    const overlays = new Map<HTMLElement, {
-      header: HTMLDivElement;
-      footer: HTMLDivElement;
-      summary: HTMLElement | null;
-      table: HTMLTableElement;
-      scroller: HTMLElement;
-      headerSignature: string;
-      footerSignature: string;
-    }>();
+    const entries = new Map<HTMLTableElement, StickyEntry>();
     const listened = new Set<HTMLElement>();
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => scheduleGeometry()) : null;
     let raf = 0;
+    let discoverTimer = 0;
+    let summaryBar: HTMLDivElement | null = null;
 
-    const buildHeader = (entry: NonNullable<ReturnType<typeof overlays.get>>, thead: HTMLElement) => {
-      const signature = thead.innerHTML;
-      if (entry.headerSignature === signature && entry.header.firstElementChild) return;
-      entry.header.replaceChildren(makeTableMirror(entry.table, thead, 'header'));
-      entry.headerSignature = signature;
+    const ensureSummaryBar = () => {
+      if (summaryBar?.isConnected) return summaryBar;
+      summaryBar = document.createElement('div');
+      summaryBar.className = 'nmc-kpi-fixed-summary-bar';
+      summaryBar.setAttribute('aria-live', 'polite');
+      summaryBar.innerHTML = `
+        <div class="nmc-kpi-summary-item"><span>Tổng TVV</span><strong data-nmc-summary="total">0</strong></div>
+        <div class="nmc-kpi-summary-item"><span>Đạt thưởng</span><strong data-nmc-summary="achieved">0</strong></div>
+        <div class="nmc-kpi-summary-item"><span>Tổng tiền</span><strong data-nmc-summary="money">0đ</strong></div>
+      `;
+      document.body.appendChild(summaryBar);
+      return summaryBar;
     };
 
-    const buildFooter = (entry: NonNullable<ReturnType<typeof overlays.get>>, summary: HTMLElement | null) => {
-      if (entry.summary && entry.summary !== summary) entry.summary.style.removeProperty('visibility');
-      entry.summary = summary;
-      if (!summary) {
-        entry.footer.replaceChildren();
-        entry.footerSignature = '';
+    const setSummaryText = (key: string, value: string) => {
+      const node = summaryBar?.querySelector<HTMLElement>(`[data-nmc-summary="${key}"]`);
+      if (node && node.textContent !== value) node.textContent = value;
+    };
+
+    const updateSummaryBar = (table: HTMLTableElement | null) => {
+      const bar = ensureSummaryBar();
+      if (!table) {
+        bar.dataset.visible = '0';
         return;
       }
 
-      const signature = `${summary.tagName}:${summary.innerHTML}`;
-      if (entry.footerSignature === signature && entry.footer.firstElementChild) return;
-
-      if (summary.tagName === 'TR' || summary.tagName === 'TFOOT') {
-        entry.footer.replaceChildren(makeTableMirror(entry.table, summary, 'footer'));
-      } else {
-        const clone = summary.cloneNode(true) as HTMLElement;
-        clone.removeAttribute('id');
-        clone.setAttribute('aria-hidden', 'true');
-        entry.footer.replaceChildren(clone);
-      }
-      entry.footerSignature = signature;
+      const metrics = extractSummaryMetrics(table);
+      setSummaryText('total', new Intl.NumberFormat('vi-VN').format(metrics.totalTvv));
+      setSummaryText('achieved', new Intl.NumberFormat('vi-VN').format(metrics.achieved));
+      setSummaryText('money', `${new Intl.NumberFormat('vi-VN').format(metrics.totalMoney)}đ`);
+      bar.dataset.visible = '1';
     };
 
-    const ensureEntry = (root: HTMLElement, table: HTMLTableElement, thead: HTMLElement) => {
-      let entry = overlays.get(root);
-      const scroller = findHorizontalScroller(root);
-      if (!entry) {
-        const header = document.createElement('div');
-        header.className = 'nmc-kpi-sticky-header-overlay';
-        header.setAttribute('aria-hidden', 'true');
-
-        const footer = document.createElement('div');
-        footer.className = 'nmc-kpi-sticky-footer-overlay';
-        footer.setAttribute('aria-hidden', 'true');
-
-        document.body.append(header, footer);
-        entry = {
-          header,
-          footer,
-          summary: null,
-          table,
-          scroller,
-          headerSignature: '',
-          footerSignature: '',
-        };
-        overlays.set(root, entry);
-      } else {
-        entry.table = table;
-        entry.scroller = scroller;
+    const buildHeader = (entry: StickyEntry) => {
+      const signature = entry.thead.innerHTML;
+      if (entry.signature !== signature || !entry.header.firstElementChild) {
+        entry.header.replaceChildren(makeHeaderMirror(entry.table, entry.thead));
+        entry.signature = signature;
       }
 
-      buildHeader(entry, thead);
-      buildFooter(entry, findSummarySource(root, table));
+      const mirrorTable = entry.header.querySelector<HTMLTableElement>('table');
+      if (!mirrorTable) return;
+      const tableWidth = Math.max(entry.table.scrollWidth, entry.table.getBoundingClientRect().width);
+      mirrorTable.style.width = `${tableWidth}px`;
+      mirrorTable.style.minWidth = `${tableWidth}px`;
 
-      if (!listened.has(scroller)) {
-        scroller.addEventListener('scroll', schedule, { passive: true });
-        listened.add(scroller);
-      }
-      if (!listened.has(root)) {
-        root.addEventListener('scroll', schedule, { passive: true });
-        listened.add(root);
-      }
-      return entry;
-    };
-
-    const syncRoot = (root: HTMLElement) => {
-      if (!isEmbeddedKpiPage()) return;
-      const table = root.querySelector<HTMLTableElement>('table');
-      const thead = table?.querySelector<HTMLElement>('thead');
-      if (!table || !thead) return;
-
-      root.classList.add('nmc-kpi-viewport-table');
-      markQuarterlyPolicySeparators(root);
-
-      const entry = ensureEntry(root, table, thead);
-      const rootRect = root.getBoundingClientRect();
-      const tableRect = table.getBoundingClientRect();
-      const headerRect = thead.getBoundingClientRect();
-      const viewportH = window.innerHeight || document.documentElement.clientHeight;
-      const viewportW = window.innerWidth || document.documentElement.clientWidth;
-
-      if (rootRect.top < viewportH && rootRect.bottom > 0) {
-        const available = Math.max(250, viewportH - Math.max(0, rootRect.top) - 2);
-        const previous = Number(root.dataset.nmcKpiFloor || 0);
-        if (available > previous + 2) {
-          root.dataset.nmcKpiFloor = String(Math.round(available));
-          root.style.setProperty('--nmc-kpi-table-floor', `${Math.round(available)}px`);
+      const sourceCells = Array.from(entry.thead.querySelectorAll<HTMLTableCellElement>('th'));
+      const mirrorCells = Array.from(mirrorTable.querySelectorAll<HTMLTableCellElement>('th'));
+      sourceCells.forEach((source, index) => {
+        const target = mirrorCells[index];
+        if (!target) return;
+        const width = source.getBoundingClientRect().width;
+        if (width > 1) {
+          target.style.width = `${width}px`;
+          target.style.minWidth = `${width}px`;
+          target.style.maxWidth = `${width}px`;
         }
-      }
+      });
+    };
 
+    const syncEntryGeometry = (entry: StickyEntry) => {
+      if (!entry.root.isConnected || !entry.table.isConnected) return;
+      const rootRect = entry.root.getBoundingClientRect();
+      const headerRect = entry.thead.getBoundingClientRect();
+      const viewportW = window.innerWidth || document.documentElement.clientWidth;
       const left = Math.max(0, rootRect.left);
       const width = Math.max(0, Math.min(rootRect.width, viewportW - left));
-      const scrollLeft = entry.scroller.scrollLeft || root.scrollLeft || 0;
-      const mirrorWidth = Math.max(table.scrollWidth, tableRect.width);
+      const scrollLeft = entry.scroller.scrollLeft || 0;
 
       entry.header.style.left = `${left}px`;
       entry.header.style.width = `${width}px`;
-      const headerTable = entry.header.querySelector<HTMLElement>('table');
-      if (headerTable) {
-        headerTable.style.width = `${mirrorWidth}px`;
-        headerTable.style.minWidth = `${mirrorWidth}px`;
-        headerTable.style.transform = `translate3d(${-scrollLeft}px,0,0)`;
-      }
+      const mirrorTable = entry.header.querySelector<HTMLElement>('table');
+      if (mirrorTable) mirrorTable.style.transform = `translate3d(${-scrollLeft}px,0,0)`;
 
-      const pinHeader = rootRect.top <= 0 && rootRect.bottom > Math.max(80, headerRect.height + 32);
+      const pinHeader = rootRect.top <= 0 && rootRect.bottom > Math.max(60, headerRect.height + 20);
       entry.header.dataset.visible = pinHeader ? '1' : '0';
-
-      const summary = findSummarySource(root, table);
-      buildFooter(entry, summary);
-      const footerVisible = Boolean(summary) && rootRect.top < viewportH - 36 && rootRect.bottom > 36;
-      entry.footer.dataset.visible = footerVisible ? '1' : '0';
-
-      if (summary) {
-        if (footerVisible) summary.style.setProperty('visibility', 'hidden', 'important');
-        else summary.style.removeProperty('visibility');
-      }
-
-      if (footerVisible) {
-        entry.footer.style.left = `${left}px`;
-        entry.footer.style.width = `${width}px`;
-        const footerTable = entry.footer.querySelector<HTMLElement>('table');
-        if (footerTable) {
-          footerTable.style.width = `${mirrorWidth}px`;
-          footerTable.style.minWidth = `${mirrorWidth}px`;
-          footerTable.style.transform = `translate3d(${-scrollLeft}px,0,0)`;
-        }
-        requestAnimationFrame(() => {
-          const footerHeight = Math.ceil(entry.footer.getBoundingClientRect().height || 0);
-          if (footerHeight > 0) root.style.setProperty('--nmc-kpi-footer-space', `${footerHeight}px`);
-        });
-      } else {
-        root.style.setProperty('--nmc-kpi-footer-space', '0px');
-      }
     };
 
-    const patch = () => {
+    function scheduleGeometry() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        entries.forEach(syncEntryGeometry);
+      });
+    }
+
+    const listenTo = (element: HTMLElement) => {
+      if (listened.has(element)) return;
+      element.addEventListener('scroll', scheduleGeometry, { passive: true });
+      listened.add(element);
+    };
+
+    const getVisiblePrimaryTable = (tables: HTMLTableElement[]) => {
+      return tables
+        .filter((table) => table.isConnected && table.getClientRects().length > 0)
+        .sort((a, b) => {
+          const ar = a.getBoundingClientRect();
+          const br = b.getBoundingClientRect();
+          const aScore = Math.max(0, Math.min(ar.bottom, window.innerHeight) - Math.max(ar.top, 0)) * Math.max(0, ar.width);
+          const bScore = Math.max(0, Math.min(br.bottom, window.innerHeight) - Math.max(br.top, 0)) * Math.max(0, br.width);
+          return bScore - aScore;
+        })[0] || null;
+    };
+
+    const discover = () => {
       if (!isEmbeddedKpiPage()) {
-        overlays.forEach((entry) => {
-          entry.header.dataset.visible = '0';
-          entry.footer.dataset.visible = '0';
-          entry.summary?.style.removeProperty('visibility');
-        });
+        entries.forEach((entry) => { entry.header.dataset.visible = '0'; });
+        if (summaryBar) summaryBar.dataset.visible = '0';
         return;
       }
 
-      document.querySelectorAll<HTMLElement>(WRAPPER_SELECTOR).forEach(syncRoot);
-    };
+      markMobilePoster();
+      const seenTables = new Set<HTMLTableElement>();
+      const tables: HTMLTableElement[] = [];
 
-    function schedule() {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(patch);
-    }
+      document.querySelectorAll<HTMLElement>(WRAPPER_SELECTOR).forEach((candidateRoot) => {
+        const table = candidateRoot.querySelector<HTMLTableElement>('table');
+        const thead = table?.tHead;
+        if (!table || !thead || seenTables.has(table)) return;
+        seenTables.add(table);
+        tables.push(table);
 
-    const resetFloors = () => {
-      document.querySelectorAll<HTMLElement>(WRAPPER_SELECTOR).forEach((root) => {
-        delete root.dataset.nmcKpiFloor;
-        root.style.removeProperty('--nmc-kpi-table-floor');
+        const root = table.closest<HTMLElement>(WRAPPER_SELECTOR) || candidateRoot;
+        root.classList.add('nmc-kpi-viewport-table');
+        markQuarterlyPolicySeparators(root);
+        markOriginalSummaryRows(table);
+        markHeaderDensity(table, thead);
+
+        const scroller = findHorizontalScroller(root);
+        let entry = entries.get(table);
+        if (!entry) {
+          const header = document.createElement('div');
+          header.className = 'nmc-kpi-sticky-header-overlay';
+          header.setAttribute('aria-hidden', 'true');
+          document.body.appendChild(header);
+          entry = { root, table, thead, scroller, header, signature: '' };
+          entries.set(table, entry);
+          resizeObserver?.observe(root);
+          resizeObserver?.observe(table);
+        } else {
+          entry.root = root;
+          entry.thead = thead;
+          entry.scroller = scroller;
+        }
+
+        buildHeader(entry);
+        listenTo(scroller);
+        if (root !== scroller) listenTo(root);
       });
-      schedule();
+
+      entries.forEach((entry, table) => {
+        if (seenTables.has(table)) return;
+        entry.header.remove();
+        resizeObserver?.unobserve(entry.root);
+        resizeObserver?.unobserve(entry.table);
+        entries.delete(table);
+      });
+
+      updateSummaryBar(getVisiblePrimaryTable(tables));
+      scheduleGeometry();
     };
 
-    patch();
-    const observer = new MutationObserver(schedule);
-    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', resetFloors, { passive: true });
+    const scheduleDiscover = () => {
+      window.clearTimeout(discoverTimer);
+      discoverTimer = window.setTimeout(discover, 90);
+    };
+
+    const isInternalMutation = (mutation: MutationRecord) => {
+      const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
+      return Boolean(target?.closest('.nmc-kpi-sticky-header-overlay, .nmc-kpi-fixed-summary-bar'));
+    };
+
+    discover();
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.length && mutations.every(isInternalMutation)) return;
+      scheduleDiscover();
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    window.addEventListener('scroll', scheduleGeometry, { passive: true });
+    window.addEventListener('resize', scheduleDiscover, { passive: true });
 
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(discoverTimer);
       observer.disconnect();
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', resetFloors);
-      listened.forEach((el) => el.removeEventListener('scroll', schedule));
-      overlays.forEach((entry, root) => {
-        entry.summary?.style.removeProperty('visibility');
+      resizeObserver?.disconnect();
+      window.removeEventListener('scroll', scheduleGeometry);
+      window.removeEventListener('resize', scheduleDiscover);
+      listened.forEach((el) => el.removeEventListener('scroll', scheduleGeometry));
+      entries.forEach((entry, table) => {
         entry.header.remove();
-        entry.footer.remove();
-        root.classList.remove('nmc-kpi-viewport-table');
-        root.style.removeProperty('--nmc-kpi-table-floor');
-        root.style.removeProperty('--nmc-kpi-footer-space');
+        entry.root.classList.remove('nmc-kpi-viewport-table');
+        table.classList.remove('nmc-kpi-multi-tier-head', 'nmc-kpi-three-tier-head');
+      });
+      summaryBar?.remove();
+      document.querySelectorAll<HTMLElement>('.nmc-kpi-original-summary-row').forEach((el) => {
+        el.classList.remove('nmc-kpi-original-summary-row');
       });
     };
   }, []);
 
-  return (
-    <style>{`
-      /*
-       * The three fixed detail wrappers keep their original geometry and colors.
-       * Header pinning below is the native fallback; the client mirror handles
-       * Android/WebView cases where a horizontal overflow ancestor breaks sticky.
-       */
-      .policy-detail-table-wrapper,
-      .saoviet-detail-table-wrapper,
-      .clbsv-detail-table-wrapper {
-        position: relative !important;
-        overflow: auto !important;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        isolation: isolate;
-      }
-
-      .policy-detail-table-wrapper [data-slot="table-container"],
-      .saoviet-detail-table-wrapper [data-slot="table-container"] {
-        position: static !important;
-        width: max-content !important;
-        min-width: 100% !important;
-        overflow: visible !important;
-      }
-
-      .clbsv-detail-table-wrapper [data-slot="table-container"] {
-        position: static !important;
-        width: max-content !important;
-        overflow: visible !important;
-      }
-
-      .policy-detail-table-wrapper table,
-      .saoviet-detail-table-wrapper table {
-        width: 100% !important;
-        min-width: 100% !important;
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-      }
-
-      .clbsv-detail-table-wrapper table {
-        width: max-content !important;
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-      }
-
-      .policy-detail-table-wrapper thead,
-      .saoviet-detail-table-wrapper thead {
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 80 !important;
-        transform: translateZ(0);
-        box-shadow: 0 2px 5px rgba(15, 23, 42, 0.28);
-      }
-
-      .clbsv-detail-table-wrapper thead {
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 80 !important;
-        transform: translateZ(0);
-        box-shadow: 0 2px 0 #9dbdaf;
-      }
-
-      .policy-detail-table-wrapper thead th,
-      .saoviet-detail-table-wrapper thead th,
-      .clbsv-detail-table-wrapper thead th {
-        position: static !important;
-        z-index: auto !important;
-        background-clip: padding-box;
-      }
-
-      .policy-detail-table-wrapper tbody,
-      .saoviet-detail-table-wrapper tbody,
-      .clbsv-detail-table-wrapper tbody {
-        position: relative;
-        z-index: 1;
-      }
-    `}</style>
-  );
+  return null;
 }
