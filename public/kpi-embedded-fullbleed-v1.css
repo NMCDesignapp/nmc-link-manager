@@ -26,15 +26,19 @@ html[data-kpi-embed='1'] body #result-table-container tfoot {
     margin-right: calc(50% - 50vw) !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
+    padding: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
     border-radius: 0 !important;
+    box-sizing: border-box !important;
   }
 
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'],
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > img[alt='Poster'] {
+    display: block !important;
     width: 100vw !important;
     max-width: 100vw !important;
+    margin: 0 !important;
     border-radius: 0 !important;
   }
 
@@ -49,9 +53,12 @@ html[data-kpi-embed='1'] body #result-table-container tfoot {
     margin-right: calc(50% - 50vw) !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
     border-radius: 0 !important;
+    box-sizing: border-box !important;
   }
 
   html[data-kpi-embed='1'] body .policy-detail-table-wrapper [data-slot='table-container'],
@@ -60,6 +67,8 @@ html[data-kpi-embed='1'] body #result-table-container tfoot {
   html[data-kpi-embed='1'] body .contest-result-table-wrapper [data-slot='table-container'],
   html[data-kpi-embed='1'] body #result-table-container [data-slot='table-container'] {
     margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     border-radius: 0 !important;
   }
 
