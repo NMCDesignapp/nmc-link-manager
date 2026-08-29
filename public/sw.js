@@ -1,65 +1,56 @@
-const CACHE_NAME = 'nmc-links-v26';
+const CACHE_NAME = 'nmc-links-v27-20260828';
 const POSTER_CACHE = 'nmc-posters-v1';
 
-// Pre-cache app shell
-const urlsToCache = [
-  '/',
-];
+// Do not pre-cache HTML/app shell. Caching '/' previously allowed an old UI shell
+// to reappear when the first navigation request was slow or temporarily failed.
+const STATIC_CACHE_DESTINATIONS = new Set(['style', 'script', 'font', 'image']);
 
-// Posters change once a year → cache them aggressively on first access.
-// We don't pre-cache them (too many), but once fetched they stay for a year.
+// Posters/icons are intentionally cache-first because they are versioned/long-lived.
 const POSTER_PATTERNS = [
   /\/posters\/.*\.(webp|png)$/i,
   /\/icon\/.*\.png$/i,
 ];
 
-// Install service worker
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// Listen for messages from page (e.g. SKIP_WAITING to force activate)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// Activate service worker
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Clean up old caches
-          if (cacheName !== CACHE_NAME && cacheName !== POSTER_CACHE) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((cacheNames) => Promise.all(
+      cacheNames.map((cacheName) => {
+        if (cacheName !== CACHE_NAME && cacheName !== POSTER_CACHE) {
+          return caches.delete(cacheName);
+        }
+        return Promise.resolve(false);
+      })
+    ))
   );
   self.clients.claim();
 });
 
-// Fetch strategy:
-//  - Posters/icons: cache-first (yearly change), then network
-//  - API: network only
-//  - Everything else: network first, fallback to cache
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Skip API requests and proxy
+  // API requests must never be served from the service-worker cache.
   if (url.pathname.includes('/api/')) return;
 
-  // Posters / icons → cache-first (immutable, yearly change)
-  const isPoster = POSTER_PATTERNS.some(p => p.test(url.pathname));
+  // Navigation/document requests are always network-only. This guarantees that
+  // an outdated cached HTML shell can never replace the currently deployed UI.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
+  const isPoster = POSTER_PATTERNS.some((pattern) => pattern.test(url.pathname));
   if (isPoster) {
     event.respondWith(
       caches.open(POSTER_CACHE).then(async (cache) => {
@@ -71,7 +62,7 @@ self.addEventListener('fetch', (event) => {
             cache.put(event.request, response.clone());
           }
           return response;
-        } catch (err) {
+        } catch {
           return cached || Response.error();
         }
       })
@@ -79,19 +70,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: network first, fallback to cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const responseClone = response.clone();
-        if (response.status === 200) {
-          caches.open(CACHE_NAME)
-            .then((cache) => cache.put(event.request, responseClone));
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
-  );
+  // Cache only static assets. Network-first keeps CSS/JS current while retaining
+  // a lightweight fallback for transient connectivity loss.
+  if (STATIC_CACHE_DESTINATIONS.has(event.request.destination)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || Response.error()))
+    );
+  }
 });

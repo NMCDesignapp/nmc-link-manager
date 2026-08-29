@@ -1,0 +1,390 @@
+/* KPI embedded detail tables v4
+ * Scope: pages opened inside KPI only (Thi dua / Chinh sach / CLB Sao Viet).
+ * Mobile priorities: stable touch scrolling, compact multi-tier headers,
+ * 16:9 poster presentation and a fixed three-metric result summary.
+ */
+
+html[data-kpi-embed='1'] {
+  --kpi-table-surface-a: #e8eef1;
+  --kpi-table-surface-b: #e2eaee;
+  --kpi-table-surface-hover: #dbe8e8;
+  --kpi-table-unmet: #f4e6e2;
+  --kpi-table-line-h: rgba(78, 103, 116, .22);
+  --kpi-table-line-v: rgba(78, 103, 116, .16);
+  --kpi-summary-bg-a: #082433;
+  --kpi-summary-bg-b: #0b3140;
+  --kpi-summary-border: rgba(223, 186, 72, .72);
+}
+
+/* Main-app install prompts must never cover an embedded KPI detail page. */
+html[data-kpi-embed='1'] body [class~='fixed'][class~='bottom-4'][class~='right-4'][class~='z-[80]'],
+html[data-kpi-embed='1'] body [class~='fixed'][class~='bottom-4'][class~='left-4'][class~='right-4'][class~='z-[90]'],
+html[data-kpi-embed='1'] body [class~='fixed'][class~='inset-0'][class~='z-[95]'] {
+  display: none !important;
+}
+
+/* Reserve only the fixed summary bar height. No synthetic table floor = no dark blank tail. */
+html[data-kpi-embed='1'] body .embed-mode,
+html[data-kpi-embed='1'] body main {
+  padding-bottom: max(62px, calc(env(safe-area-inset-bottom) + 54px)) !important;
+}
+
+html[data-kpi-embed='1'] body,
+html[data-kpi-embed='1'] body .embed-mode,
+html[data-kpi-embed='1'] body main,
+html[data-kpi-embed='1'] body .nmc-kpi-viewport-table {
+  scroll-behavior: auto !important;
+}
+
+/* One horizontal scroll owner, no artificial vertical scroll range. */
+html[data-kpi-embed='1'] body [data-slot='table-container'],
+html[data-kpi-embed='1'] body #result-table-container,
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper {
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-container'],
+html[data-kpi-embed='1'] body #result-table-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(81, 109, 121, .72) rgba(205, 216, 221, .72) !important;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper {
+  position: relative !important;
+  overflow-x: auto !important;
+  isolation: isolate;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper [data-slot='table-container'],
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper [data-slot='table-container'] {
+  position: static !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  overflow: visible !important;
+}
+
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper [data-slot='table-container'] {
+  position: static !important;
+  width: max-content !important;
+  overflow: visible !important;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper table,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper table {
+  width: 100% !important;
+  min-width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper table {
+  width: max-content !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-container']::-webkit-scrollbar,
+html[data-kpi-embed='1'] body #result-table-container::-webkit-scrollbar {
+  height: 5px;
+}
+html[data-kpi-embed='1'] body [data-slot='table-container']::-webkit-scrollbar-track,
+html[data-kpi-embed='1'] body #result-table-container::-webkit-scrollbar-track {
+  background: rgba(205, 216, 221, .72);
+}
+html[data-kpi-embed='1'] body [data-slot='table-container']::-webkit-scrollbar-thumb,
+html[data-kpi-embed='1'] body #result-table-container::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(72, 105, 118, .78);
+}
+
+/* Native sticky remains as fallback; the lightweight mirror handles Android/WebView horizontal overflow. */
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper thead,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper thead {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+  transform: translateZ(0);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, .28);
+}
+
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper thead {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+  transform: translateZ(0);
+  box-shadow: 0 2px 0 #9dbdaf;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper thead th,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper thead th,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper thead th {
+  position: static !important;
+  z-index: auto !important;
+  background-clip: padding-box;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper tbody,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper tbody,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper tbody {
+  position: relative;
+  z-index: 1;
+}
+
+/* Gentle zebra background only for cells that do not already carry a business color. */
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row']:nth-child(odd) > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr:nth-child(odd) > td:not([class*='bg-']) {
+  background: var(--kpi-table-surface-a) !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row']:nth-child(even) > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr:nth-child(even) > td:not([class*='bg-']) {
+  background: var(--kpi-table-surface-b) !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row'].bg-red-50 > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr.bg-red-50 > td:not([class*='bg-']) {
+  background: var(--kpi-table-unmet) !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-row']:hover > [data-slot='table-cell']:not([class*='bg-']),
+html[data-kpi-embed='1'] body table tbody tr:hover > td:not([class*='bg-']) {
+  background: var(--kpi-table-surface-hover) !important;
+}
+
+/* Soft scan guides. */
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-cell'],
+html[data-kpi-embed='1'] body table tbody td {
+  border-bottom: 1px solid var(--kpi-table-line-h) !important;
+  border-right: 1px dotted var(--kpi-table-line-v) !important;
+}
+
+html[data-kpi-embed='1'] body [data-slot='table-body'] [data-slot='table-cell']:last-child,
+html[data-kpi-embed='1'] body table tbody td:last-child {
+  border-right: 0 !important;
+}
+
+/* Remove the previous artificial viewport floor/padding that caused a large dark gap at table end. */
+html[data-kpi-embed='1'] body .nmc-kpi-viewport-table {
+  position: relative !important;
+  min-height: 0 !important;
+  padding-bottom: 0 !important;
+  scroll-margin-top: 0 !important;
+}
+
+/* Quarterly policy: only truly empty warm separator rows are hidden. */
+html[data-kpi-embed='1'] body .nmc-policy-quarter-empty-separator,
+html[data-kpi-embed='1'] body .nmc-kpi-original-summary-row {
+  display: none !important;
+}
+
+/* Old sticky footer mirror is intentionally retired. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-footer-overlay {
+  display: none !important;
+}
+
+/* Sticky header mirror: fixed, paint-contained, pointer-free. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  z-index: 2147482400 !important;
+  display: none;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  contain: paint;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.28));
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay[data-visible='1'] {
+  display: block !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay table {
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  transform-origin: top left !important;
+  will-change: transform;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay thead,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay th {
+  position: static !important;
+}
+
+/* Always-fixed result summary: exactly three indicators. */
+html[data-kpi-embed='1'] body .nmc-kpi-fixed-summary-bar {
+  position: fixed !important;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2147482450 !important;
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  min-height: 50px;
+  padding: 5px 6px max(6px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(11,49,64,.985), rgba(8,36,51,.995));
+  border-top: 1px solid var(--kpi-summary-border);
+  box-shadow: 0 -5px 16px rgba(0,0,0,.30);
+  pointer-events: none;
+  contain: layout paint;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-fixed-summary-bar[data-visible='1'] {
+  display: grid !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 1px 5px;
+  text-align: center;
+  border-right: 1px solid rgba(190, 214, 218, .16);
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item:last-child {
+  border-right: 0;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item span {
+  color: rgba(220, 232, 235, .74);
+  font: 600 9px/1.1 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #f8f4dc;
+  font: 800 13px/1.12 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item:nth-child(2) strong {
+  color: #b9f3c9;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-summary-item:nth-child(3) strong {
+  color: #f2d879;
+}
+
+@media (max-width: 640px) {
+  html[data-kpi-embed='1'] body [data-slot='table-container'],
+  html[data-kpi-embed='1'] body #result-table-container {
+    border-radius: 3px !important;
+  }
+
+  /* Uploaded poster becomes a true mobile 16:9 frame and stretches edge-to-edge. */
+  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster {
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'] {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    object-position: center !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-slot='table'],
+  html[data-kpi-embed='1'] body table {
+    font-size: 10px !important;
+    line-height: 1.12 !important;
+  }
+
+  /* Single-tier header stays compact. */
+  html[data-kpi-embed='1'] body [data-slot='table-head'],
+  html[data-kpi-embed='1'] body table th {
+    height: 29px !important;
+    min-height: 0 !important;
+    padding: 3px 5px !important;
+    font-size: 9.5px !important;
+    line-height: 1.08 !important;
+  }
+
+  /* Two-tier headers: deliberately thinner per tier. */
+  html[data-kpi-embed='1'] body table.nmc-kpi-multi-tier-head th {
+    height: 22px !important;
+    min-height: 0 !important;
+    padding: 2px 4px !important;
+    font-size: 9px !important;
+    line-height: 1.02 !important;
+  }
+
+  /* Three+ tiers: compress each band further so the header block does not dominate the screen. */
+  html[data-kpi-embed='1'] body table.nmc-kpi-three-tier-head th {
+    height: 19px !important;
+    min-height: 0 !important;
+    padding: 1px 3px !important;
+    font-size: 8.5px !important;
+    line-height: 1 !important;
+  }
+
+  html[data-kpi-embed='1'] body table.nmc-kpi-multi-tier-head th > div,
+  html[data-kpi-embed='1'] body table.nmc-kpi-three-tier-head th > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: inherit !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-slot='table-cell'],
+  html[data-kpi-embed='1'] body table td {
+    padding: 5px 5px !important;
+    font-size: 10px !important;
+    line-height: 1.13 !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-slot='table-cell'] *,
+  html[data-kpi-embed='1'] body [data-slot='table-head'] * {
+    line-height: inherit !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-slot='table-cell'] svg,
+  html[data-kpi-embed='1'] body [data-slot='table-head'] svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-fixed-summary-bar {
+    min-height: 48px;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item span {
+    font-size: 8px;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item strong {
+    font-size: 12px;
+  }
+}

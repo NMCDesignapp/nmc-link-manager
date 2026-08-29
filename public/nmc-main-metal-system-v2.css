@@ -1,0 +1,557 @@
+/* NMC unified dark blue-steel UI v2
+ * Visual-only override for Main Home, Thi Dua, Quan Ly and CLB Sao Viet.
+ * KPI routes/loaders are intentionally not selected here.
+ */
+
+:where(.nmc-home-skin, .nmc-management-skin, .nmc-contest-skin, .nmc-clb-soft-skin) {
+  --nmc2-bg-0: #071018;
+  --nmc2-bg-1: #0c1821;
+  --nmc2-bg-2: #12232d;
+  --nmc2-metal-hi: #526875;
+  --nmc2-metal-a: #3b505c;
+  --nmc2-metal-b: #293d48;
+  --nmc2-metal-c: #1b2c36;
+  --nmc2-metal-deep: #14232c;
+  --nmc2-line: rgba(177, 211, 226, .24);
+  --nmc2-line-soft: rgba(177, 211, 226, .12);
+  --nmc2-text: #eef5f7;
+  --nmc2-muted: #a9bec8;
+  --nmc2-cyan: #64cbe4;
+  --nmc2-mint: #58d7be;
+  --nmc2-gold: #dfbe6a;
+  --nmc2-radius-panel: 9px;
+  --nmc2-radius-control: 6px;
+  color: var(--nmc2-text);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(94, 160, 185, .09), transparent 34%),
+    linear-gradient(180deg, #13242e 0%, #0c1921 52%, #081219 100%) !important;
+}
+
+/* Shared brushed blue-steel material. */
+:where(
+  .nmc-home-skin main > section,
+  .nmc-home-skin main > div:last-child > section,
+  .nmc-home-skin nav > button,
+  .nmc-management-skin .nmc-section-header,
+  .nmc-management-skin .nmc-management-sidebar,
+  .nmc-management-skin .nmc-overview-menu-panel,
+  .nmc-management-skin .nmc-overview-kpi-panel,
+  .nmc-management-skin .nmc-overview-plan-panel,
+  .nmc-management-skin .nmc-management-content [data-slot='card'],
+  .nmc-contest-skin .nmc-section-header,
+  .nmc-contest-skin .nmc-contest-content [data-slot='card'],
+  .nmc-clb-soft-skin .nmc-clb-header,
+  .nmc-clb-soft-skin .nmc-clb-folder,
+  .nmc-clb-soft-skin .nmc-clb-item,
+  .nmc-clb-soft-skin .nmc-clb-footer
+) {
+  border-color: var(--nmc2-line) !important;
+  border-radius: var(--nmc2-radius-panel) !important;
+  background:
+    linear-gradient(112deg, rgba(255,255,255,.055), transparent 20%, transparent 67%, rgba(255,255,255,.018)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, var(--nmc2-metal-a) 0%, var(--nmc2-metal-b) 49%, var(--nmc2-metal-c) 100%) !important;
+  box-shadow:
+    8px 10px 22px rgba(1, 7, 11, .45),
+    inset 0 1px 0 rgba(225, 241, 247, .16),
+    inset 0 -7px 15px rgba(2, 10, 15, .28) !important;
+}
+
+/* Less-rounded app language throughout the target routes. */
+:where(.nmc-home-skin, .nmc-management-skin, .nmc-contest-skin, .nmc-clb-soft-skin)
+:where(button, input, textarea, select, [role='combobox']) {
+  border-radius: var(--nmc2-radius-control) !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content, .nmc-clb-item-body)
+:where(.rounded-xl, .rounded-2xl, .rounded-3xl, [data-slot='card']) {
+  border-radius: 7px !important;
+}
+
+/* HOME ---------------------------------------------------- */
+.nmc-home-skin {
+  background:
+    radial-gradient(circle at 50% -8%, rgba(96, 169, 193, .10), transparent 32%),
+    linear-gradient(180deg, #132630 0%, #0d1b24 48%, #08131a 100%) !important;
+}
+
+.nmc-home-skin .nmc-home-logo {
+  border-radius: 8px !important;
+  border-color: rgba(190, 216, 228, .26) !important;
+  background:
+    radial-gradient(circle at 8px 8px, #a8bac3 0 1px, #405765 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #a8bac3 0 1px, #405765 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.02) 1px 3px),
+    linear-gradient(145deg, #526875 0%, #344b57 48%, #21333d 100%) !important;
+  box-shadow:
+    8px 10px 22px rgba(1,7,11,.52),
+    inset 0 1px 0 rgba(236,248,252,.20),
+    inset 0 -8px 17px rgba(3,10,14,.28) !important;
+}
+
+.nmc-home-skin nav > button {
+  min-height: 68px !important;
+  border-radius: 8px !important;
+}
+
+.nmc-home-skin main > section,
+.nmc-home-skin main > div:last-child > section {
+  border-radius: 9px !important;
+}
+
+/* Quick link tiles: slim blue-steel modules, each accent rail remains unique. */
+.nmc-home-skin main > section .grid.grid-cols-2 > button {
+  height: 50px !important;
+  min-height: 50px !important;
+  border: 1px solid rgba(181,211,225,.19) !important;
+  border-radius: 6px !important;
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.045), transparent 26%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #405762 0%, #2d414c 54%, #20313b 100%) !important;
+  box-shadow:
+    5px 7px 14px rgba(1,7,11,.43),
+    inset 0 1px 0 rgba(228,242,247,.14),
+    inset 0 -5px 10px rgba(3,11,15,.24) !important;
+}
+
+.nmc-home-skin main > section .grid.grid-cols-2 > button > div:nth-child(2) > div:first-child {
+  border-radius: 5px !important;
+  border-color: rgba(189,217,229,.18) !important;
+  background: linear-gradient(145deg, #506773, #2b404b) !important;
+}
+
+/* Agenda outer frame and header match the startup metal plate. */
+.nmc-home-skin main > div:last-child > section > div:first-child {
+  border-radius: 8px 8px 0 0 !important;
+  border-color: rgba(177,211,226,.17) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #405662, #263a45 60%, #1b2c35) !important;
+}
+
+/* Ordinary calendar day: dark steel plate; date column is lighter silver-blue steel. */
+.nmc-home-skin [data-day-tone] {
+  border: 1px solid rgba(174,204,219,.22) !important;
+  border-radius: 7px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #334954 0%, #233640 55%, #192932 100%) !important;
+  color: #edf5f7 !important;
+  box-shadow:
+    0 7px 16px rgba(1,7,11,.36),
+    inset 0 1px 0 rgba(220,239,246,.12) !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:first-child {
+  border-color: rgba(207,226,235,.18) !important;
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.10), transparent 28%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.015) 1px 3px),
+    linear-gradient(145deg, #8097a4 0%, #5a707d 52%, #3c5360 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(225,239,245,.16) !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:first-child div:first-child {
+  color: #d3e0e6 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:first-child > div:nth-child(2) {
+  color: #f8fbfc !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.55) !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(223,190,106,.07), transparent 35%),
+    linear-gradient(145deg, #344a55 0%, #263a44 54%, #1d2f38 100%) !important;
+  color: #eef5f7 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:first-child > div {
+  color: #c0d0d7 !important;
+}
+
+.nmc-home-skin [data-day-tone] > div:last-child > div:last-child > div {
+  border: 1px solid rgba(181,209,221,.16) !important;
+  border-radius: 6px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.015) 1px 3px),
+    linear-gradient(145deg, #425964, #2e424c 57%, #23343d) !important;
+  box-shadow: 3px 4px 9px rgba(1,7,11,.28), inset 0 1px 0 rgba(224,240,246,.11) !important;
+}
+
+/* TODAY: deliberately different full-row material — teal/cyan blue steel, not only a glow. */
+.nmc-home-skin [data-today='true'] {
+  border-color: rgba(103, 231, 215, .72) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(145deg, #316b70 0%, #23515a 52%, #183944 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow:
+    0 0 0 1px rgba(102,225,210,.26),
+    0 0 18px rgba(74,205,193,.20),
+    0 10px 22px rgba(1,9,13,.40),
+    inset 0 1px 0 rgba(226,250,247,.18) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:first-child {
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.12), transparent 28%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.014) 1px 3px),
+    linear-gradient(145deg, #3d8b88 0%, #2d6b70 55%, #204d59 100%) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:last-child {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(116,236,220,.10), transparent 34%),
+    linear-gradient(145deg, #2d6267 0%, #214a54 54%, #183742 100%) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:first-child > div:nth-child(2) {
+  color: #d8fff8 !important;
+  text-shadow: 0 0 10px rgba(92,229,211,.38), 0 1px 2px rgba(0,0,0,.55) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:first-child > div:last-child {
+  border: 1px solid rgba(175,255,242,.42) !important;
+  border-radius: 5px !important;
+  background: linear-gradient(145deg, #6de0cc, #3eae9f) !important;
+  color: #062c2a !important;
+  box-shadow: 0 0 12px rgba(91,220,201,.42), inset 0 1px 0 rgba(255,255,255,.38) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:last-child > div:last-child > div {
+  border-color: rgba(124,230,216,.25) !important;
+  background: linear-gradient(145deg, #3b7170, #28565e 58%, #20434d) !important;
+}
+
+/* Agenda edit modal: square-ish dark steel. */
+.nmc-home-skin .fixed.inset-0.z-\[5000\] > div {
+  border-radius: 9px !important;
+  border-color: rgba(179,210,224,.27) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(145deg, #344b56, #223641 62%, #172831) !important;
+}
+
+/* QUAN LY + THI DUA ------------------------------------- */
+.nmc-management-skin,
+.nmc-contest-skin {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(91,164,191,.08), transparent 31%),
+    linear-gradient(180deg, #11222c 0%, #0b1820 52%, #071118 100%) !important;
+}
+
+.nmc-section-header {
+  border-radius: 0 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, #354b57, #213540 75%, #172832) !important;
+}
+
+.nmc-management-sidebar {
+  border-radius: 0 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, #2c424e, #1b2f39 55%, #12232c) !important;
+}
+
+.nmc-management-sidebar button,
+.nmc-overview-menu-panel .grid > div > button,
+.nmc-overview-menu-panel .grid > button {
+  border-radius: 6px !important;
+}
+
+.nmc-overview-menu-panel .grid > div > button,
+.nmc-overview-menu-panel .grid > button {
+  border-color: rgba(181,211,224,.18) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(145deg, #405762, #293e49 58%, #1d3039) !important;
+}
+
+/* Standard cards, forms, tables and sub-panels inside Quan Ly / Thi Dua. */
+:where(.nmc-management-content, .nmc-contest-content) [data-slot='card'] {
+  border: 1px solid rgba(177,208,222,.20) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.045), transparent 24%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(145deg, #394f5b, #273b46 58%, #1c2e38) !important;
+  box-shadow: 7px 9px 18px rgba(1,7,11,.38), inset 0 1px 0 rgba(224,241,247,.12) !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content)
+:where(input, textarea, select, [role='combobox']) {
+  border: 1px solid rgba(168,201,216,.21) !important;
+  border-radius: 6px !important;
+  color: #eef5f7 !important;
+  background: linear-gradient(180deg, #142832, #0e2029) !important;
+  box-shadow: inset 2px 3px 7px rgba(0,0,0,.28) !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content) table {
+  border-color: rgba(169,203,218,.18) !important;
+  background: #152731 !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content) thead {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, #3b515d, #273c47) !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content) tbody tr {
+  border-color: rgba(165,197,211,.10) !important;
+}
+
+:where(.nmc-management-content, .nmc-contest-content) tbody tr:nth-child(even) {
+  background: rgba(53, 76, 87, .18) !important;
+}
+
+/* Bottom mobile nav follows the same squared steel shell. */
+.nmc-main-bottom-nav {
+  border-radius: 9px !important;
+  border-color: rgba(174,207,221,.23) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, rgba(54,75,86,.98), rgba(24,42,52,.99)) !important;
+}
+
+.nmc-main-bottom-nav-item {
+  border-radius: 5px !important;
+}
+
+/* CLB SAO VIET ------------------------------------------ */
+.nmc-clb-soft-skin {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(91,164,191,.08), transparent 31%),
+    linear-gradient(180deg, #11222c 0%, #0b1820 52%, #071118 100%) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-header,
+.nmc-clb-soft-skin .nmc-clb-folder,
+.nmc-clb-soft-skin .nmc-clb-item,
+.nmc-clb-soft-skin .nmc-clb-footer {
+  border-radius: 8px !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-head,
+.nmc-clb-soft-skin .nmc-clb-item-head {
+  border-radius: 0 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, #425864, #2b404b 65%, #21333d) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-folder-body,
+.nmc-clb-soft-skin .nmc-clb-item-body {
+  background: linear-gradient(145deg, rgba(38,57,67,.94), rgba(24,40,49,.96)) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-period-note {
+  border-radius: 7px !important;
+  border-color: rgba(221,190,106,.24) !important;
+  color: #d7e0e4 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,.014) 1px 3px),
+    linear-gradient(145deg, #4b4b3f, #303a3c 60%, #223139) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body [data-slot='card'],
+.nmc-clb-soft-skin .nmc-clb-item-body section > .grid > div,
+.nmc-clb-soft-skin .nmc-clb-item-body section > div[class*='border'] {
+  border-radius: 7px !important;
+  border-color: rgba(174,205,218,.18) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.015) 1px 3px),
+    linear-gradient(145deg, #3b505b, #293d47 58%, #1d3039) !important;
+  box-shadow: 5px 7px 14px rgba(1,7,11,.32), inset 0 1px 0 rgba(223,240,246,.11) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body :where(input, textarea, select, [role='combobox']) {
+  border-radius: 6px !important;
+  border-color: rgba(170,202,216,.20) !important;
+  color: #eef5f7 !important;
+  background: linear-gradient(180deg, #142832, #0e2029) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body table {
+  background: #152731 !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body thead {
+  background: linear-gradient(180deg, #3a515c, #273c47) !important;
+}
+
+.nmc-clb-soft-skin .nmc-clb-item-body .fixed.inset-0 > div {
+  border-radius: 9px !important;
+  border-color: rgba(178,210,223,.23) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(145deg, #3a505b, #263b46 62%, #1a2d36) !important;
+}
+
+/* MAIN SPLASH V2 ---------------------------------------- */
+.nmc-main-splash-v2 {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(87,174,202,.12), transparent 30%),
+    linear-gradient(160deg, #101f29 0%, #0a161e 55%, #061017 100%);
+  opacity: 1;
+  transition: opacity .52s cubic-bezier(.22,.61,.36,1);
+  will-change: opacity;
+}
+
+.nmc-main-splash-v2[data-phase='fading'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-plate {
+  position: relative;
+  width: min(390px, calc(100vw - 34px));
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid rgba(198,220,230,.34);
+  border-radius: 10px;
+  padding: 30px 24px 26px;
+  background:
+    linear-gradient(112deg, rgba(255,255,255,.11), transparent 22%, transparent 66%, rgba(255,255,255,.028)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #667985 0%, #425762 45%, #2c414c 100%);
+  box-shadow:
+    0 28px 54px rgba(0,0,0,.52),
+    10px 13px 24px rgba(1,7,11,.42),
+    inset 0 1px 0 rgba(244,250,252,.34),
+    inset 0 -12px 22px rgba(5,13,17,.28);
+  transform: translateZ(0);
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-screw {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(25,42,51,.58);
+  background:
+    linear-gradient(45deg, transparent 46%, rgba(23,38,46,.70) 47% 53%, transparent 54%),
+    radial-gradient(circle at 35% 28%, #e1e9ed 0 9%, #94a6af 31%, #536873 62%, #293b45 100%);
+  box-shadow: 1px 2px 4px rgba(0,0,0,.44), inset 0 1px 1px rgba(255,255,255,.62);
+}
+.nmc-main-splash-v2 .nmc-main-splash-screw.s1 { left: 12px; top: 12px; }
+.nmc-main-splash-v2 .nmc-main-splash-screw.s2 { right: 12px; top: 12px; }
+.nmc-main-splash-v2 .nmc-main-splash-screw.s3 { left: 12px; bottom: 12px; }
+.nmc-main-splash-v2 .nmc-main-splash-screw.s4 { right: 12px; bottom: 12px; }
+
+.nmc-main-splash-v2 .nmc-main-splash-logo {
+  width: 216px;
+  height: 72px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212,230,238,.25);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #526975, #314955 62%, #243943);
+  box-shadow: 6px 8px 16px rgba(2,8,12,.38), inset 0 1px 0 rgba(238,248,251,.18);
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-logo svg {
+  width: 190px;
+  height: 60px;
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-title {
+  margin-top: 20px;
+  text-align: center;
+  color: #f3f7f8;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-shadow: 0 2px 3px rgba(0,0,0,.48);
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-subtitle {
+  margin-top: 6px;
+  text-align: center;
+  color: #b7c9d1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .19em;
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-ecg {
+  width: min(310px, 82vw);
+  margin: 23px auto 0;
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-ecg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-groove {
+  filter: drop-shadow(0 1px 0 rgba(213,232,239,.28)) drop-shadow(0 -1px 1px rgba(0,0,0,.72));
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-live {
+  filter: drop-shadow(0 0 3px rgba(91,222,199,.95)) drop-shadow(0 0 9px rgba(100,203,228,.55));
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-head {
+  filter: drop-shadow(0 0 4px rgba(116,245,222,.98)) drop-shadow(0 0 10px rgba(92,211,230,.86));
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-status {
+  margin-top: 10px;
+  text-align: center;
+  color: #edf6f7;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 800;
+  text-shadow: 0 2px 3px rgba(0,0,0,.62), 0 0 7px rgba(93,203,218,.15);
+}
+
+.nmc-main-splash-v2 .nmc-main-splash-percent {
+  margin-top: 5px;
+  text-align: center;
+  color: #82dfcf;
+  font: 800 10px/1 monospace;
+  letter-spacing: .08em;
+}
+
+.nmc-main-splash-v2[data-phase='holding'] .nmc-main-splash-head {
+  animation: nmc-main-ready-pulse .38s ease-out 1;
+}
+
+@keyframes nmc-main-ready-pulse {
+  0% { r: 4; opacity: .9; }
+  55% { r: 7; opacity: 1; }
+  100% { r: 4.5; opacity: 1; }
+}
+
+@media (max-width: 720px) {
+  :where(.nmc-management-content, .nmc-contest-content) {
+    padding-inline: 9px !important;
+  }
+
+  .nmc-home-skin main {
+    gap: 12px !important;
+  }
+
+  .nmc-main-bottom-nav {
+    left: 8px !important;
+    right: 8px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nmc-main-splash-v2,
+  :where(.nmc-home-skin, .nmc-management-skin, .nmc-contest-skin, .nmc-clb-soft-skin) * {
+    scroll-behavior: auto !important;
+  }
+}
