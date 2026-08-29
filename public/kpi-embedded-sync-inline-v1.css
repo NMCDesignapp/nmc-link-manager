@@ -1,0 +1,47 @@
+/* Compact sync timestamp shown in KPI embedded header. */
+html[data-kpi-embed='1'] body .nmc-kpi-sync-relocated {
+  display: none !important;
+}
+
+.kpi-embed-title .nmc-kpi-sync-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 7px;
+  border-left: 1px solid rgba(255,255,255,.14);
+  color: rgba(220,232,238,.68);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kpi-embed-title .nmc-kpi-sync-inline i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f0b94e;
+  box-shadow: 0 0 6px rgba(240,185,78,.45);
+  flex: 0 0 auto;
+}
+
+.kpi-embed-title .nmc-kpi-sync-inline[data-ok='1'] i {
+  background: #35d88a;
+  box-shadow: 0 0 7px rgba(53,216,138,.62);
+}
+
+@media (max-width: 480px) {
+  .kpi-embed-title .nmc-kpi-sync-inline {
+    margin-left: 4px;
+    padding-left: 5px;
+    font-size: 8px;
+    gap: 3px;
+  }
+  .kpi-embed-title .nmc-kpi-sync-inline i {
+    width: 5px;
+    height: 5px;
+  }
+}
