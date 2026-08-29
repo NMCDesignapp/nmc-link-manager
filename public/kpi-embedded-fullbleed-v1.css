@@ -1,0 +1,86 @@
+/* KPI embedded full-bleed detail layout v1
+ * Scope: Thi dua / Chinh sach / CLB pages opened inside KPI.
+ * Keeps business data untouched; this file only removes duplicate native footer
+ * and expands poster/table presentation to the iframe viewport edges.
+ */
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper tfoot,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper tfoot,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper tfoot,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper tfoot,
+html[data-kpi-embed='1'] body #result-table-container tfoot {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  /* The fixed 3-metric bar is the only footer in KPI embed mode. */
+  html[data-kpi-embed='1'] body .embed-mode,
+  html[data-kpi-embed='1'] body main {
+    padding-bottom: max(50px, calc(env(safe-area-inset-bottom) + 48px)) !important;
+  }
+
+  /* Poster: use every available pixel between the title/header and the table. */
+  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster,
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'],
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > img[alt='Poster'] {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+  }
+
+  /* Detail table: same full-bleed width as the poster. */
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper,
+  html[data-kpi-embed='1'] body #result-table-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper [data-slot='table-container'],
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper [data-slot='table-container'],
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper [data-slot='table-container'],
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper [data-slot='table-container'],
+  html[data-kpi-embed='1'] body #result-table-container [data-slot='table-container'] {
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Remove spacing utilities around poster/table without touching the title/header itself. */
+  html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster + *,
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host + *,
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper {
+    margin-top: 0 !important;
+  }
+
+  /* No synthetic floor below the last real data row. */
+  html[data-kpi-embed='1'] body .nmc-kpi-viewport-table,
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper {
+    padding-bottom: 0 !important;
+    min-height: 0 !important;
+  }
+}
