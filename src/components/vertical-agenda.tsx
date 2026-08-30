@@ -149,11 +149,6 @@ export function VerticalAgenda() {
               data-day-tone={day % 2 === 0 ? 'silver' : 'gold'}
               data-today={isToday ? 'true' : undefined}
               className="mb-2 grid grid-cols-[54px_minmax(0,1fr)] overflow-hidden rounded-2xl border shadow-[0_7px_18px_rgba(0,0,0,.2)] sm:grid-cols-[68px_minmax(0,1fr)]"
-              style={{
-                background: isToday ? '#244a58' : '#1a3545',
-                borderColor: isToday ? '#5fb8c2' : '#315365',
-                boxShadow: isToday ? '0 9px 24px rgba(30,132,145,.22), inset 0 0 0 1px rgba(126,224,230,.08)' : undefined,
-              }}
             >
               <div className="flex flex-col items-center justify-center border-r border-[#35586a] px-1 py-3 text-center">
                 <div className={`text-[9px] font-black uppercase tracking-wide ${isSunday ? 'text-[#f0a1a1]' : 'text-[#8fb4c7]'}`}>
@@ -182,11 +177,11 @@ export function VerticalAgenda() {
                 ) : (
                   <div className="space-y-1.5">
                     {dayEvents.map((event) => (
-                      <div key={event.id} className="flex items-start gap-2 rounded-xl border border-[#3b5f70] bg-[#234456] px-2.5 py-2">
+                      <div key={event.id} data-agenda-event className="flex items-start gap-2 rounded-xl border border-[#3b5f70] bg-[#234456] px-2.5 py-2">
                         <span className="mt-1.5 h-2 w-2 flex-none rounded-full" style={{ background: event.color || '#35b779', boxShadow: `0 0 8px ${event.color || '#35b779'}` }} />
                         <div className="min-w-0 flex-1">
-                          <div className="whitespace-pre-wrap break-words text-[12px] font-bold leading-5 text-[#f1f7fa]">{event.title}</div>
-                          {event.owner && <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#89aabd]">{event.owner}</div>}
+                          <div data-agenda-title className="whitespace-pre-wrap break-words text-[12px] font-bold leading-5 text-[#f1f7fa]">{event.title}</div>
+                          {event.owner && <div data-agenda-owner className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#89aabd]">{event.owner}</div>}
                         </div>
                         <button onClick={() => removeEvent(event.id)} className="mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-md text-[#89a8b8] hover:bg-[#4a2f35] hover:text-[#ffb1b1]" aria-label="Xóa ghi chú">
                           <Trash2 className="h-3 w-3" />

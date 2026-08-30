@@ -27,6 +27,7 @@ import {
 import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type ContractDetailRow } from './policy-excel-export';
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 import { useAppData } from '@/lib/app-data-context';
+import { AppLoader } from '@/components/app-loader';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -12161,12 +12162,7 @@ export default function QuanLyPage() {
   if (!mounted) {
     // SSR + first client render: chỉ loading spinner, không render header/sidebar/content
     // để tránh hydration mismatch (SSR không biết sheet/isEmbedded → render khác client).
-    return (
-      <div className="nmc-management-skin h-screen flex flex-col fixed inset-0 z-50 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-        <span className="ml-3 text-emerald-300 text-sm mt-3">Đang tải...</span>
-      </div>
-    );
+    return <AppLoader show />;
   }
 
   return (

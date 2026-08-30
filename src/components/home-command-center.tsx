@@ -21,7 +21,6 @@ import {
 import type { Category, Link } from '@/lib/types'
 import { useSettings } from '@/hooks/use-settings'
 import { useAppData } from '@/lib/app-data-context'
-import { AppLoader } from '@/components/app-loader'
 import { IframeModal } from '@/components/iframe-modal'
 import { AddLinkModal } from '@/components/add-link-modal'
 import { SettingsPanel } from '@/components/settings-panel'
@@ -37,13 +36,27 @@ const fetcher = async (url: string) => {
   return response.json()
 }
 
-function NmcSolidLogo() {
+function NmcSolidLogo({ bio }: { bio: string }) {
+  const [now, setNow] = useState<Date | null>(null)
+
+  useEffect(() => {
+    const update = () => setNow(new Date())
+    update()
+    const timer = window.setInterval(update, 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const time = now?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }) || '--:--'
+  const date = now?.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) || 'Đang đồng bộ thời gian'
+
   return (
-    <div className="flex flex-col items-center text-center">
-      <div
-        className="nmc-home-logo"
-        aria-label="Logo NMC"
-      >
+    <div className="nmc-home-brandbar" aria-label="Nhận diện NMC và thời gian hiện tại">
+      <span className="nmc-home-brandbolt b1" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b2" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b3" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b4" aria-hidden="true" />
+      <div className="nmc-home-brandblock">
+        <div className="nmc-home-logo" aria-label="Logo NMC">
         <svg className="nmc-home-logo-mark" viewBox="0 0 220 76" role="img" aria-hidden="true">
           <defs>
             <linearGradient id="nmc-logo-metal" x1="0" y1="0" x2="0" y2="1">
@@ -67,6 +80,13 @@ function NmcSolidLogo() {
           <circle cx="70.5" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
           <circle cx="135" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
         </svg>
+        </div>
+        <p className="nmc-home-designer">Design by Châu</p>
+        {bio && <p className="nmc-home-bio">{bio}</p>}
+      </div>
+      <div className="nmc-home-clock" aria-live="off">
+        <time dateTime={now?.toISOString()}>{time}</time>
+        <span>{date}</span>
       </div>
     </div>
   )
@@ -123,7 +143,7 @@ function LinkTile({ link, onOpen }: { link: Link; onOpen: (link: Link) => void }
 export default function HomeCommandCenter() {
   const router = useRouter()
   const { settings } = useSettings()
-  const { reload: reloadAppData, isReloading, lastSync, isLoading, loadError, reload } = useAppData()
+  const { reload: reloadAppData, isReloading, lastSync } = useAppData()
   const { data: linksData, isLoading: linksLoading, error: linksError } = useSWR<Link[]>('/api/links', fetcher, {
     fallbackData: [],
     revalidateOnFocus: false,
@@ -306,15 +326,12 @@ export default function HomeCommandCenter() {
   )
 
   return (
-    <div className="relative z-[1] min-h-screen bg-transparent px-3 pb-5 pt-[max(18px,env(safe-area-inset-top))] sm:px-5">
-      <AppLoader show={isLoading || (linksLoading && links.length === 0)} error={loadError} onRetry={reload} />
-
+    <div className="relative z-[1] min-h-screen bg-transparent px-3 pb-5 pt-[max(6px,env(safe-area-inset-top))] sm:px-5 sm:pt-[max(10px,env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-[1280px]">
         <header className="flex flex-col items-center">
-          <NmcSolidLogo />
-          <p className="mt-2 text-center text-[11px] font-semibold text-[#8faab8] sm:text-xs">{settings.profile_bio}</p>
+          <NmcSolidLogo bio={settings.profile_bio} />
 
-          <div className="mt-3 flex flex-nowrap items-center justify-center gap-1.5">
+          <div className="mt-2 flex flex-nowrap items-center justify-center gap-1.5">
             {maintenanceSwitch}
             {!adminAuthed ? (
               <button onClick={() => { setPendingMaintenanceToggle(false); setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false) }} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đăng nhập quản trị" title="Đăng nhập quản trị"><Lock className="h-3.5 w-3.5" /></button>
@@ -329,14 +346,14 @@ export default function HomeCommandCenter() {
           </div>
         </header>
 
-        <nav className="mx-auto mt-4 grid max-w-3xl grid-cols-4 gap-2 sm:gap-3">
+        <nav className="mx-auto mt-3 grid max-w-3xl grid-cols-4 gap-2 sm:gap-3">
           <FunctionButton label="Thi Đua" icon={<Trophy className="h-5 w-5" />} background="#c97b22" border="#e4a14f" shadow="#7d4814" onClick={() => router.push('/thi-dua-chau')} />
           <FunctionButton label="Quản Lý" icon={<Database className="h-5 w-5" />} background="#27805f" border="#43a77f" shadow="#15523c" onClick={() => router.push('/quan-ly')} />
           <FunctionButton label="KPI" icon={<BarChart3 className="h-5 w-5" />} background="#2777a7" border="#4b9bc5" shadow="#184b68" onClick={() => router.push('/kpi')} />
           <FunctionButton label="CLB Sao Việt" shortLabel="CLB SV" icon={<Star className="h-5 w-5" />} background="#9b7827" border="#c7a94d" shadow="#5d4818" onClick={() => router.push('/clb-sao-viet')} />
         </nav>
 
-        <main className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,.92fr)_minmax(420px,1.08fr)] lg:items-stretch">
+        <main className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,.92fr)_minmax(420px,1.08fr)] lg:items-stretch">
           <section className="rounded-[22px] border border-[#35566a] bg-[#122a38] p-3 shadow-[0_18px_45px_rgba(0,0,0,.32),inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>

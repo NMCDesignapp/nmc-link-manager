@@ -128,15 +128,20 @@ export function IframeModal({ link, onClose }: IframeModalProps) {
           style={{ cursor: 'pointer' }}
         />
 
-        {/* Loading bar */}
+        {/* Compact silver loader shared by internal Main App popups. */}
         {isLoading && isWebLink && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 z-[60] overflow-hidden" style={{ background: 'transparent' }}>
-            <motion.div
-              className="h-full"
-              style={{ background: 'linear-gradient(90deg, #00ff88, #00cc6a)', width: '30%' }}
-              animate={{ x: ['-100%', '400%'] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
+          <div className="nmc-iframe-loader" role="status" aria-label="Đang mở nội dung">
+            <div className="nmc-compact-loader-plate">
+              <span className="nmc-compact-loader-bolt b1" aria-hidden="true" />
+              <span className="nmc-compact-loader-bolt b2" aria-hidden="true" />
+              <span className="nmc-compact-loader-bolt b3" aria-hidden="true" />
+              <span className="nmc-compact-loader-bolt b4" aria-hidden="true" />
+              <div className="nmc-compact-loader-logo" aria-hidden="true">NMC</div>
+              <div className="nmc-compact-loader-progress">
+                <div className="nmc-compact-loader-track"><span className="nmc-compact-loader-fill nmc-compact-loader-indeterminate" /></div>
+                <div className="nmc-compact-loader-label"><span>Đang mở nội dung...</span></div>
+              </div>
+            </div>
           </div>
         )}
 

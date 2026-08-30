@@ -1,0 +1,264 @@
+/* NMC Main management + contest dark-metal system v2.
+ * Loaded after soft-ui v1 and scoped to the two Main App routes only.
+ * KPI, standalone KPI, CLB and embedded contest views are intentionally excluded.
+ */
+
+.nmc-management-skin,
+.nmc-contest-skin {
+  --metal-bg: #0b1720;
+  --metal-bg-deep: #061018;
+  --metal-panel-hi: #3d525e;
+  --metal-panel: #293c47;
+  --metal-panel-lo: #182832;
+  --metal-inset: #14232d;
+  --metal-border: rgba(177, 211, 228, .17);
+  --metal-border-strong: rgba(177, 211, 228, .29);
+  --metal-text: #eff6f8;
+  --metal-muted: #a8bcc6;
+  --metal-mint: #63dfbd;
+  --metal-cyan: #75c9e6;
+  --metal-gold: #e1c06c;
+  color: var(--metal-text);
+  background:
+    radial-gradient(circle at 50% -12%, rgba(103, 171, 199, .16), transparent 35%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,.012) 1px 3px),
+    linear-gradient(165deg, #142630 0%, var(--metal-bg) 50%, var(--metal-bg-deep) 100%) !important;
+}
+
+.nmc-management-skin::before,
+.nmc-contest-skin::before {
+  background:
+    linear-gradient(rgba(121, 183, 211, .024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(121, 183, 211, .024) 1px, transparent 1px) !important;
+  background-size: 28px 28px !important;
+}
+
+.nmc-management-skin .nmc-section-header,
+.nmc-contest-skin .nmc-section-header {
+  border-bottom-color: var(--metal-border-strong) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(180deg, #354b57, #1d303b 58%, #13232d) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(228,244,250,.17),
+    inset 0 -7px 14px rgba(4,12,17,.20),
+    0 11px 26px rgba(0,0,0,.34) !important;
+}
+
+.nmc-management-skin .nmc-section-header h1,
+.nmc-contest-skin .nmc-section-header h1 {
+  color: var(--metal-text) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.56) !important;
+}
+
+.nmc-management-skin .nmc-section-header button,
+.nmc-contest-skin .nmc-section-header button {
+  border: 1px solid var(--metal-border) !important;
+  border-radius: 6px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.02) 1px 3px),
+    linear-gradient(145deg, #415762, #243640) !important;
+  box-shadow:
+    4px 6px 12px rgba(2,8,12,.42),
+    inset 0 1px 0 rgba(225,242,249,.14) !important;
+}
+
+/* Management shell, sidebar and overview panels. */
+.nmc-management-skin .nmc-management-sidebar {
+  border-right-color: var(--metal-border) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, rgba(0,0,0,.016) 1px 3px),
+    linear-gradient(180deg, #2b404c, #192b36 48%, #0e1c25) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(224,241,248,.08),
+    12px 0 28px rgba(0,0,0,.27) !important;
+}
+
+.nmc-management-skin .nmc-management-sidebar button {
+  border: 1px solid transparent;
+  border-radius: 6px !important;
+  color: #b8cbd4 !important;
+}
+
+.nmc-management-skin .nmc-management-sidebar button:hover,
+.nmc-management-skin .nmc-management-sidebar button[class*='bg-emerald'] {
+  border-color: rgba(99,223,189,.24) !important;
+  color: #f2faf9 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 3px),
+    linear-gradient(145deg, rgba(58,92,91,.88), rgba(28,54,58,.92)) !important;
+  box-shadow: inset 1px 1px 0 rgba(218,244,238,.10), 0 5px 12px rgba(0,0,0,.20) !important;
+}
+
+.nmc-management-skin .nmc-management-content,
+.nmc-contest-skin .nmc-contest-content {
+  scrollbar-color: rgba(99,223,189,.44) rgba(5,15,23,.42) !important;
+}
+
+.nmc-management-skin .nmc-overview-menu-panel,
+.nmc-management-skin .nmc-overview-kpi-panel,
+.nmc-management-skin .nmc-overview-plan-panel,
+.nmc-management-skin .nmc-management-content [data-slot='card'] {
+  border: 1px solid var(--metal-border) !important;
+  border-radius: 9px !important;
+  background:
+    radial-gradient(circle at 8px 8px, #91a6b1 0 1px, #38505d 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #8298a4 0 1px, #304754 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #354b57, #243742 52%, #172731) !important;
+  box-shadow:
+    9px 12px 25px rgba(2,8,12,.48),
+    inset 0 1px 0 rgba(222,241,249,.14),
+    inset 0 -8px 16px rgba(4,12,17,.22) !important;
+}
+
+.nmc-management-skin .nmc-overview-menu-panel .grid > div > button,
+.nmc-management-skin .nmc-overview-menu-panel .grid > button {
+  border: 1px solid var(--metal-border) !important;
+  border-radius: 7px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #415762, #293d48 54%, #1c2c36) !important;
+  box-shadow:
+    6px 8px 15px rgba(2,8,12,.44),
+    inset 0 1px 0 rgba(225,242,249,.14) !important;
+}
+
+.nmc-management-skin .nmc-overview-kpi-card {
+  border-radius: 7px !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.64),
+    inset -2px -2px 5px rgba(61,78,94,.18),
+    0 7px 16px rgba(0,0,0,.26) !important;
+}
+
+/* Shared form, table and control treatment. */
+.nmc-management-skin :where(input, textarea, [role='combobox']),
+.nmc-contest-skin :where(input, textarea, [role='combobox']) {
+  border-color: rgba(177,211,228,.22) !important;
+  border-radius: 6px !important;
+  color: var(--metal-text) !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.01) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #111f29, #1c2e39) !important;
+  box-shadow: inset 0 2px 7px rgba(0,0,0,.32), inset 0 1px 0 rgba(214,237,246,.05) !important;
+}
+
+.nmc-management-skin :where(input, textarea, [role='combobox']):focus,
+.nmc-contest-skin :where(input, textarea, [role='combobox']):focus {
+  border-color: var(--metal-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(117,201,230,.11), inset 0 2px 7px rgba(0,0,0,.28) !important;
+}
+
+.nmc-management-skin :where(button, [role='tab']),
+.nmc-contest-skin :where(button, [role='tab']) {
+  border-radius: 6px !important;
+}
+
+.nmc-management-skin table {
+  overflow: hidden;
+  border: 1px solid var(--metal-border) !important;
+  border-radius: 7px !important;
+  color: #e9f2f5;
+  background: rgba(15,29,38,.78) !important;
+}
+
+.nmc-management-skin thead,
+.nmc-management-skin [data-slot='table-header'] {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #3a505c, #243742) !important;
+}
+
+.nmc-management-skin tbody tr:nth-child(even) {
+  background: rgba(112,153,171,.045) !important;
+}
+
+.nmc-management-skin tbody tr:hover {
+  background: rgba(99,223,189,.075) !important;
+}
+
+/* Contest cards: steel plates with controlled cyan/gold accents. */
+.nmc-contest-skin .nmc-contest-content > [data-slot='card'],
+.nmc-contest-skin .nmc-contest-content > div > [data-slot='card'] {
+  overflow: hidden;
+  border: 1px solid var(--metal-border-strong) !important;
+  border-radius: 9px !important;
+  background:
+    radial-gradient(circle at 8px 8px, #91a6b1 0 1px, #38505d 2px 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 8px) 8px, #8298a4 0 1px, #304754 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #354b57, #243742 52%, #172731) !important;
+  box-shadow:
+    9px 12px 25px rgba(2,8,12,.48),
+    inset 0 1px 0 rgba(222,241,249,.14),
+    inset 0 -8px 16px rgba(4,12,17,.22) !important;
+}
+
+.nmc-contest-skin .nmc-contest-content > [data-slot='card']:nth-of-type(2) {
+  border-color: rgba(225,192,108,.36) !important;
+  background:
+    radial-gradient(circle at 8px 8px, #b6aa86 0 1px, #554f3d 2px 3px, transparent 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, #4a4c47, #30383a 52%, #1c292f) !important;
+}
+
+.nmc-contest-skin .nmc-contest-content [data-slot='card-title'] {
+  color: var(--metal-cyan) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.52) !important;
+}
+
+.nmc-contest-skin .nmc-contest-content .grid > button {
+  border-width: 1px !important;
+  border-color: rgba(177,211,228,.20) !important;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(145deg, rgba(255,255,255,.08), rgba(0,0,0,.16)) !important;
+  background-blend-mode: soft-light, normal;
+  box-shadow: inset 1px 1px 0 rgba(232,247,252,.10), 0 5px 12px rgba(0,0,0,.22) !important;
+}
+
+.nmc-contest-skin .nmc-contest-content .rounded-2xl,
+.nmc-contest-skin .nmc-contest-content .rounded-xl,
+.nmc-management-skin .nmc-management-content .rounded-2xl,
+.nmc-management-skin .nmc-management-content .rounded-xl {
+  border-radius: 8px !important;
+}
+
+.nmc-management-skin .nmc-main-bottom-nav,
+.nmc-contest-skin .nmc-main-bottom-nav {
+  border-color: var(--metal-border-strong) !important;
+  border-radius: 10px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(180deg, #354b57, #192b36) !important;
+  box-shadow: inset 0 1px 0 rgba(226,242,249,.15), 0 15px 34px rgba(0,0,0,.46) !important;
+}
+
+.nmc-management-skin .nmc-main-bottom-nav-item,
+.nmc-contest-skin .nmc-main-bottom-nav-item {
+  border-radius: 6px !important;
+}
+
+@media (max-width: 720px) {
+  .nmc-management-skin .nmc-overview-menu-panel,
+  .nmc-management-skin .nmc-overview-kpi-panel,
+  .nmc-management-skin .nmc-overview-plan-panel,
+  .nmc-management-skin .nmc-management-content [data-slot='card'],
+  .nmc-contest-skin .nmc-contest-content > [data-slot='card'],
+  .nmc-contest-skin .nmc-contest-content > div > [data-slot='card'] {
+    border-radius: 8px !important;
+  }
+
+  .nmc-management-skin .nmc-management-content,
+  .nmc-contest-skin .nmc-contest-content {
+    padding-inline: 10px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nmc-management-skin *,
+  .nmc-contest-skin * {
+    scroll-behavior: auto !important;
+  }
+}

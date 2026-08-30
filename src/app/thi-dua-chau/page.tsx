@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
 import { MainAppBottomNav } from '@/components/main-app-bottom-nav';
+import { AppLoader } from '@/components/app-loader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -4824,7 +4825,7 @@ function ThiDuaPageInner() {
 // Wrapper với Suspense — useSearchParams yêu cầu Suspense boundary trong Next.js App Router
 export default function ThiDuaPage() {
   return (
-    <Suspense fallback={<div className="nmc-contest-skin min-h-screen flex items-center justify-center"><div className="text-cyan-300 text-sm">Đang tải...</div></div>}>
+    <Suspense fallback={<AppLoader show />}>
       <ThiDuaPageInner />
     </Suspense>
   );

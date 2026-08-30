@@ -38,6 +38,18 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');
   const [progress, setProgress] = useState(0);
 
+  // Internal Main App loaders use a restrained visual estimate while the real
+  // mounted/data state remains the only condition that dismisses the overlay.
+  useEffect(() => {
+    if (variant !== 'default' || !show || phase !== 'loading') return;
+    const startedAt = performance.now();
+    const timer = window.setInterval(() => {
+      const elapsed = performance.now() - startedAt;
+      setProgress(Math.min(88, 8 + (1 - Math.exp(-elapsed / 1050)) * 80));
+    }, 80);
+    return () => window.clearInterval(timer);
+  }, [variant, show, phase]);
+
   // ĐÃ BỎ fake progress bar (0→90% easing) — nó chậm hơn data fetch thực tế
   // → user thấy "chậm chậm" dù data đã xong. Giờ progress chỉ nhảy 0 → 100 khi data ready.
 
@@ -149,6 +161,62 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
             </div>
           )}
           <style>{`@keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'default') {
+    return (
+      <div
+        className="nmc-compact-loader-overlay"
+        data-phase={phase}
+        role="status"
+        aria-live="polite"
+        aria-label={error ? 'Tải dữ liệu gặp lỗi' : 'Đang tải dữ liệu'}
+        style={{ pointerEvents: isZooming ? 'none' : 'auto' }}
+      >
+        <div className="nmc-compact-loader-plate">
+          <span className="nmc-compact-loader-bolt b1" aria-hidden="true" />
+          <span className="nmc-compact-loader-bolt b2" aria-hidden="true" />
+          <span className="nmc-compact-loader-bolt b3" aria-hidden="true" />
+          <span className="nmc-compact-loader-bolt b4" aria-hidden="true" />
+          <div className="nmc-compact-loader-logo" aria-label="NMC">
+            <svg viewBox="0 0 220 76" aria-hidden="true">
+              <g fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M24 56V20l35 36V20" />
+                <path d="M82 56V20l22 26 22-26v36" />
+                <path d="M194 28c-6-7-14-10-24-10-19 0-31 12-31 20s12 20 31 20c10 0 18-3 24-10" />
+              </g>
+              <circle cx="70.5" cy="38" r="4.5" />
+              <circle cx="135" cy="38" r="4.5" />
+            </svg>
+            <span>Main App</span>
+          </div>
+          <div className="nmc-compact-loader-progress">
+            {error ? (
+              <div className="nmc-compact-loader-error">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+                {onRetry && (
+                  <button type="button" onClick={() => void onRetry()}>
+                    <RotateCw className="h-3.5 w-3.5" /> Thử lại
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="nmc-compact-loader-track">
+                  <span className="nmc-compact-loader-fill" style={{ width: `${progress}%` }} />
+                  {phase === 'loading' && <span className="nmc-compact-loader-sweep" />}
+                </div>
+                <div className="nmc-compact-loader-label">
+                  <span>{progress >= 100 ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}</span>
+                  <strong>{progress}%</strong>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );

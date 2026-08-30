@@ -100,16 +100,20 @@
   color: #a9bec6 !important;
 }
 
-/* Today: mint/cyan focus ring + left beacon + stronger elevation. */
+/* Today: silver date plate + pale-gold content for instant recognition. */
 .nmc-home-skin [data-today='true'] {
   z-index: 2;
-  border-color: #5bcdbd !important;
+  border-color: rgba(225,195,113,.72) !important;
+  background:
+    repeating-linear-gradient(100deg, rgba(255,255,255,.08) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #eef2f3, #c7d0d4 56%, #aeb9bf) !important;
   transform: translateY(-1px) scale(1.006);
   box-shadow:
-    0 0 0 2px rgba(87,211,189,.26),
-    0 0 22px rgba(87,211,189,.22),
+    0 0 0 2px rgba(225,195,113,.22),
+    0 0 22px rgba(225,195,113,.18),
     0 12px 24px rgba(5,20,28,.34),
-    inset 1px 1px 0 rgba(224,245,247,.20) !important;
+    inset 1px 1px 0 rgba(255,255,255,.82),
+    inset -1px -1px 0 rgba(63,78,87,.20) !important;
 }
 
 .nmc-home-skin [data-today='true']::before {
@@ -118,20 +122,52 @@
   inset: 7px auto 7px 0;
   width: 4px;
   border-radius: 0 999px 999px 0;
-  background: linear-gradient(180deg, #84f1df, #3ebba8);
-  box-shadow: 0 0 12px rgba(87,211,189,.88);
+  background: linear-gradient(180deg, #fff0ae, #d9b958);
+  box-shadow: 0 0 12px rgba(225,195,113,.78);
   z-index: 3;
 }
 
+.nmc-home-skin [data-today='true'] > div:first-child {
+  border-color: rgba(76,93,104,.20) !important;
+  background:
+    repeating-linear-gradient(100deg, rgba(255,255,255,.11) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #f4f6f6, #cbd3d7 58%, #b0bac0) !important;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.66) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:first-child div:first-child {
+  color: #526773 !important;
+}
+
 .nmc-home-skin [data-today='true'] > div:first-child > div:nth-child(2) {
-  color: #c9fff5 !important;
+  color: #173342 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.78) !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:last-child {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255,255,255,.58), transparent 36%),
+    repeating-linear-gradient(100deg, rgba(255,255,255,.035) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #fff6cf, #eadb9e 62%, #d4bd72) !important;
+  color: #463b20 !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:last-child > div:first-child > div,
+.nmc-home-skin [data-today='true'] > div:last-child > div:last-child:not(:has(> div)) {
+  color: #6f6035 !important;
+}
+
+.nmc-home-skin [data-today='true'] > div:last-child > div:first-child > button {
+  border-color: rgba(111,91,39,.22) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.62), rgba(205,176,93,.40)) !important;
+  color: #665323 !important;
 }
 
 .nmc-home-skin [data-today='true'] > div:first-child > div:last-child {
-  border: 1px solid rgba(132,241,223,.28) !important;
-  background: linear-gradient(145deg, #2f8175, #1f615a) !important;
-  color: #eafffb !important;
-  box-shadow: 0 0 11px rgba(76,200,180,.42), inset 1px 1px 0 rgba(255,255,255,.42) !important;
+  border: 1px solid rgba(120,92,27,.25) !important;
+  background: linear-gradient(145deg, #efd783, #caaa4e) !important;
+  color: #493a12 !important;
+  box-shadow: 0 0 11px rgba(213,182,88,.38), inset 1px 1px 0 rgba(255,255,255,.48) !important;
 }
 
 /* =========================================================
