@@ -246,8 +246,8 @@ for (const file of TARGETS) {
   // Remove the translucent decorative page overlay entirely; the page already has a solid base background.
   if (file === 'src/app/clb-sao-viet/page.tsx') {
     source = source.replace(
-      /\n\s*<div\n\s*className="fixed inset-0 pointer-events-none"\n\s*style=\{\{[\s\S]*?\}\}\n\s*\/>\n/,
-      '\n'
+      /[ \t]*<div\s+className="fixed inset-0 pointer-events-none"\s+style=\{\{[\s\S]*?\}\}\s*\/>\s*/,
+      ''
     );
   }
 
