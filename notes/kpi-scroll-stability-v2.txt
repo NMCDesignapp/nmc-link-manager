@@ -1,0 +1,9 @@
+KPI embedded scroll stability v2
+
+Scope: Thi dua / Chinh sach / CLB embedded data tables only.
+- hide native mobile scrollbars while preserving touch scrolling
+- use fixed header mirror only on mobile
+- disable native sticky GPU promotion and filter/contain layers
+- align mirror columns with 2D left offset instead of translate3d
+- keep opaque light table paint surface to prevent black flash gaps
+- no business logic, data, table sizing or filtering changes
