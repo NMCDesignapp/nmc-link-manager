@@ -7,6 +7,7 @@ import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableNativeSticky } from '@/components/program-table-native-sticky'
 import { ProgramTableViewportHeader } from '@/components/program-table-viewport-header'
+import { KpiStickyHeaderActivationGuard } from '@/components/kpi-sticky-header-activation-guard'
 import { KpiTableAxisLock } from '@/components/kpi-table-axis-lock'
 import { KpiEmbeddedFilterBar } from '@/components/kpi-embedded-filter-bar'
 import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
@@ -105,6 +106,7 @@ export default function RootLayout({
       <body className="h-full overflow-auto honeycomb-bg">
         <ProgramTableNativeSticky />
         <ProgramTableViewportHeader />
+        <KpiStickyHeaderActivationGuard />
         <KpiTableAxisLock />
         <KpiEmbeddedFilterBar />
         <KpiEmbeddedSyncBridge />
