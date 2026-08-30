@@ -5,7 +5,10 @@ import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
 import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
-import { ProgramTableStickyHeaders } from '@/components/program-table-sticky-headers'
+import { ProgramTableNativeSticky } from '@/components/program-table-native-sticky'
+import { KpiTableAxisLock } from '@/components/kpi-table-axis-lock'
+import { KpiEmbeddedFilterBar } from '@/components/kpi-embedded-filter-bar'
+import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { MaintenanceGate } from '@/components/maintenance-gate'
 import { AppDataProvider } from '@/lib/app-data-context'
@@ -69,8 +72,13 @@ export default function RootLayout({
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
-        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260829-1" />
-        <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-4" />
+        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260830-1" />
+        <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
+        <link rel="stylesheet" href="/kpi-embedded-fullbleed-v1.css?v=20260830-1" />
+        <link rel="stylesheet" href="/kpi-table-zebra-soft-v1.css?v=20260829-1" />
+        <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
+        <link rel="stylesheet" href="/kpi-native-sticky-v1.css?v=20260830-1" />
+        <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260830-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -93,7 +101,10 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
-        <ProgramTableStickyHeaders />
+        <ProgramTableNativeSticky />
+        <KpiTableAxisLock />
+        <KpiEmbeddedFilterBar />
+        <KpiEmbeddedSyncBridge />
         <SpaceBackground />
         <ErrorBoundary>
           <AppDataProvider>

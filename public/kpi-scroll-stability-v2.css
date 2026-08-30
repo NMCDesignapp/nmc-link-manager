@@ -1,0 +1,87 @@
+/* KPI embedded scroll stability v2
+ * Mobile-only paint/compositing fixes for Thi dua / Chinh sach / CLB tables.
+ * Keep the existing layout and touch scroll model unchanged.
+ */
+
+/* Give the fixed mirror an opaque paint surface and avoid GPU filter layers. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
+  filter: none !important;
+  contain: none !important;
+  background: #fffdf7 !important;
+  box-shadow: 0 3px 7px rgba(15, 23, 42, .24) !important;
+  isolation: auto !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay table {
+  position: relative !important;
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+}
+
+/* Fill any transient paint gap with the table surface instead of the black app background. */
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper,
+html[data-kpi-embed='1'] body #result-table-container,
+html[data-kpi-embed='1'] body [data-slot='table-container'] {
+  background-color: #fffdf7 !important;
+}
+
+@media (max-width: 640px) {
+  /* On Android/WebView use only the fixed mirror. Two simultaneous sticky layers
+     (native thead + fixed clone) cause black tile flashes during fast scroll. */
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper thead,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper thead,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper thead,
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper thead,
+  html[data-kpi-embed='1'] body #result-table-container thead {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    transform: none !important;
+    filter: none !important;
+    will-change: auto !important;
+  }
+
+  /* Touch users do not need an overlaid native scrollbar. Hiding it removes the
+     grey bar that can sit over the table header while preserving pan-x/pan-y. */
+  html[data-kpi-embed='1'],
+  html[data-kpi-embed='1'] body,
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper,
+  html[data-kpi-embed='1'] body #result-table-container,
+  html[data-kpi-embed='1'] body [data-slot='table-container'] {
+    scrollbar-width: none !important;
+  }
+
+  html[data-kpi-embed='1']::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body #result-table-container::-webkit-scrollbar,
+  html[data-kpi-embed='1'] body [data-slot='table-container']::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  /* Avoid extra compositing boundaries around the horizontal scroller. */
+  html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+  html[data-kpi-embed='1'] body .contest-result-table-wrapper {
+    isolation: auto !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay,
+  html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

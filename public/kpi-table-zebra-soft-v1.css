@@ -1,0 +1,8 @@
+/* KPI embedded table body zebra refinement v1
+ * Presentation only: keep every original header/column business color intact.
+ */
+html[data-kpi-embed='1'] {
+  --kpi-table-surface-a: #fffefa;
+  --kpi-table-surface-b: #fff9e8;
+  --kpi-table-surface-hover: #fff3d2;
+}

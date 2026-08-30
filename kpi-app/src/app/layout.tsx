@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SpaceBackground } from '@/components/space-bg'
 import { MaintenanceGate } from '@/components/maintenance-gate'
+import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 export const metadata: Metadata = {
@@ -49,11 +50,13 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v10.css?v=20260826-6" />
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v11.css?v=20260826-7" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
+        <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="h-full overflow-auto honeycomb-bg">
+        <KpiEmbeddedSyncBridge />
         <SpaceBackground />
         <AppDataProvider>
           {children}
