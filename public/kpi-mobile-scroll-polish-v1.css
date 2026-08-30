@@ -20,16 +20,21 @@
     overflow: visible !important;
   }
 
-  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > .policy-detail-table-wrapper,
-  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > .saoviet-detail-table-wrapper,
-  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > .clbsv-detail-table-wrapper,
-  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > .contest-result-table-wrapper,
-  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > #result-table-container {
+  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > [data-nmc-kpi-vertical-flow='1'] {
     flex: 0 0 auto !important;
     height: auto !important;
     min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-nmc-kpi-horizontal-scroller='1'] {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     overflow-x: auto !important;
-    overflow-y: visible !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
   }
 
   /* Poster is a real 16:9 frame. The image is deliberately stretched to fill

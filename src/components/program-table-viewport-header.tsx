@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { findKpiHorizontalScroller } from '@/lib/kpi-table-scroller';
+
 const WRAPPER_SELECTOR = [
   '.policy-detail-table-wrapper',
   '.saoviet-detail-table-wrapper',
@@ -21,15 +23,6 @@ const normalizeText = (value: string | null | undefined) =>
     .toUpperCase();
 
 const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
-
-const findHorizontalScroller = (root: HTMLElement) => {
-  const candidates = [
-    root,
-    root.querySelector<HTMLElement>('[data-slot="table-container"]'),
-  ].filter(Boolean) as HTMLElement[];
-
-  return candidates.find((el) => el.scrollWidth > el.clientWidth + 2) || root;
-};
 
 const getVerticalScrollAncestors = (node: HTMLElement) => {
   const result: HTMLElement[] = [];
@@ -181,7 +174,7 @@ export function ProgramTableViewportHeader() {
         seen.add(table);
 
         const root = table.closest<HTMLElement>(WRAPPER_SELECTOR) || candidate;
-        const scroller = findHorizontalScroller(root);
+        const scroller = findKpiHorizontalScroller(root, table);
         let entry = entries.get(table);
         if (!entry) {
           const overlay = document.createElement('div');
