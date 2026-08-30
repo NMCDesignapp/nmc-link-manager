@@ -173,10 +173,9 @@ export function MainSplashGate() {
             <circle cx="70.5" cy="38" r="4.5" fill="url(#main-splash-mint)" />
             <circle cx="135" cy="38" r="4.5" fill="url(#main-splash-mint)" />
           </svg>
+          <div className="nmc-main-splash-title">TRUNG TÂM ĐIỀU HÀNH NC-LINK</div>
+          <div className="nmc-main-splash-subtitle">N·M·C&nbsp;&nbsp;•&nbsp;&nbsp;MAIN APP</div>
         </div>
-
-        <div className="nmc-main-splash-title">TRUNG TÂM ĐIỀU HÀNH NC-LINK</div>
-        <div className="nmc-main-splash-subtitle">N·M·C&nbsp;&nbsp;•&nbsp;&nbsp;MAIN APP</div>
 
         {errorMessage ? (
           <div className="mt-6 flex flex-col items-center text-center">
@@ -196,9 +195,9 @@ export function MainSplashGate() {
               <svg viewBox="0 0 460 64">
                 <defs>
                   <linearGradient id="main-ecg-live" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stopColor="#0b5d49" />
-                    <stop offset=".52" stopColor="#14785d" />
-                    <stop offset="1" stopColor="#259a74" />
+                    <stop offset="0" stopColor="#15966d" />
+                    <stop offset=".52" stopColor="#24c48e" />
+                    <stop offset="1" stopColor="#66efba" />
                   </linearGradient>
                 </defs>
                 <path
@@ -231,13 +230,13 @@ export function MainSplashGate() {
                   strokeDasharray={100}
                   strokeDashoffset={100 - displayProgress}
                 />
-                <circle cx="10" cy="32" r="4" fill="#176b52" opacity=".9" />
-                <circle cx="450" cy="32" r="4" fill={isReady ? '#2f9974' : '#5b6d75'} opacity={isReady ? 1 : .72} />
-                <circle className="nmc-main-splash-head" cx={head.x} cy={head.y} r={isReady ? 4.8 : 4.2} fill="#2b926f" />
+                <circle cx="10" cy="32" r="4" fill="#24c48e" opacity=".95" />
+                <circle cx="450" cy="32" r="4" fill={isReady ? '#72f6c1' : '#5b6d75'} opacity={isReady ? 1 : .72} />
+                <circle className="nmc-main-splash-head" cx={head.x} cy={head.y} r={isReady ? 4.8 : 4.2} fill="#72f6c1" />
               </svg>
             </div>
-            <div className="nmc-main-splash-status">{isReady ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}</div>
             <div className="nmc-main-splash-percent">{Math.round(displayProgress)}%</div>
+            <div className="nmc-main-splash-status">{isReady ? 'Sẵn sàng' : 'Đang tải dữ liệu...'}</div>
           </>
         )}
       </div>

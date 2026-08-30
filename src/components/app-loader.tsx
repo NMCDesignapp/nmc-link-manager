@@ -181,7 +181,18 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
           <span className="nmc-compact-loader-bolt b2" aria-hidden="true" />
           <span className="nmc-compact-loader-bolt b3" aria-hidden="true" />
           <span className="nmc-compact-loader-bolt b4" aria-hidden="true" />
-          <div className="nmc-compact-loader-logo" aria-hidden="true">NMC</div>
+          <div className="nmc-compact-loader-logo" aria-label="NMC">
+            <svg viewBox="0 0 220 76" aria-hidden="true">
+              <g fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M24 56V20l35 36V20" />
+                <path d="M82 56V20l22 26 22-26v36" />
+                <path d="M194 28c-6-7-14-10-24-10-19 0-31 12-31 20s12 20 31 20c10 0 18-3 24-10" />
+              </g>
+              <circle cx="70.5" cy="38" r="4.5" />
+              <circle cx="135" cy="38" r="4.5" />
+            </svg>
+            <span>Main App</span>
+          </div>
           <div className="nmc-compact-loader-progress">
             {error ? (
               <div className="nmc-compact-loader-error">

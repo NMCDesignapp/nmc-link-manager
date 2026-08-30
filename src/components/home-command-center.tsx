@@ -51,6 +51,10 @@ function NmcSolidLogo({ bio }: { bio: string }) {
 
   return (
     <div className="nmc-home-brandbar" aria-label="Nhận diện NMC và thời gian hiện tại">
+      <span className="nmc-home-brandbolt b1" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b2" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b3" aria-hidden="true" />
+      <span className="nmc-home-brandbolt b4" aria-hidden="true" />
       <div className="nmc-home-brandblock">
         <div className="nmc-home-logo" aria-label="Logo NMC">
         <svg className="nmc-home-logo-mark" viewBox="0 0 220 76" role="img" aria-hidden="true">
