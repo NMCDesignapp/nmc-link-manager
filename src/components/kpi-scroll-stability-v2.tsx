@@ -18,6 +18,20 @@ const getScroller = (root: HTMLElement) => {
   return root;
 };
 
+const getUniqueRoots = () => {
+  const seenTables = new Set<HTMLTableElement>();
+  const roots: HTMLElement[] = [];
+
+  document.querySelectorAll<HTMLElement>(WRAPPER_SELECTOR).forEach((candidate) => {
+    const table = candidate.querySelector<HTMLTableElement>('table');
+    if (!table || seenTables.has(table) || candidate.getClientRects().length === 0) return;
+    seenTables.add(table);
+    roots.push(table.closest<HTMLElement>(WRAPPER_SELECTOR) || candidate);
+  });
+
+  return roots;
+};
+
 export function KpiScrollStabilityV2() {
   useEffect(() => {
     if (!isEmbedded()) return;
@@ -29,8 +43,7 @@ export function KpiScrollStabilityV2() {
       raf = 0;
       if (!isEmbedded()) return;
 
-      const roots = Array.from(document.querySelectorAll<HTMLElement>(WRAPPER_SELECTOR))
-        .filter((root) => root.querySelector('table') && root.getClientRects().length > 0);
+      const roots = getUniqueRoots();
       const overlays = Array.from(document.querySelectorAll<HTMLElement>('.nmc-kpi-sticky-header-overlay'));
 
       roots.forEach((root, index) => {
