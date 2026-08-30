@@ -1,39 +1,91 @@
-/* KPI embedded mobile polish v1
- * Keeps the stable native sticky architecture; adds poster compaction,
- * STT pinning and single-axis touch handling without viewport forcing.
+/* KPI embedded mobile polish v2
+ * Stable viewport header + 16:9 full poster + compact filter/summary.
+ * Keeps the existing single-axis touch handling and pinned STT column.
  */
 
 @media (max-width: 640px) {
-  /* Poster: reserve the filter bar instead of laying it over the artwork.
-     The whole poster becomes slightly flatter, while object-fit: fill keeps the
-     entire source visible (no crop). */
+  /* Poster is a real 16:9 frame. The image is deliberately stretched to fill
+     the whole frame (object-fit: fill), so no source edge is cropped. */
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster,
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host,
   html[data-kpi-embed='1'] body div:has(> img[alt='Poster']) {
-    aspect-ratio: 2 / 1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    aspect-ratio: 16 / 9 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
-  }
-
-  html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host {
-    padding-bottom: 40px !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
   }
 
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'],
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > img[alt='Poster'],
   html[data-kpi-embed='1'] body div:has(> img[alt='Poster']) > img[alt='Poster'] {
+    display: block !important;
     width: 100% !important;
     height: 100% !important;
+    max-width: none !important;
     object-fit: fill !important;
     object-position: center !important;
+    margin: 0 !important;
   }
 
-  /* The filter remains visually attached to the poster, but lives inside the
-     reserved 40px strip, so it never covers poster content. */
+  /* Filter overlays the bottom of the poster as originally requested, but is
+     thinner so it does not dominate the mobile viewport. */
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > .nmc-kpi-filter-bar {
-    height: 40px !important;
-    min-height: 40px !important;
+    height: 34px !important;
+    min-height: 34px !important;
     bottom: 0 !important;
+    padding: 3px 4px !important;
+    gap: 4px !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-bar .nmc-kpi-filter-group-button,
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-bar .nmc-kpi-filter-search {
+    height: 27px !important;
+    min-height: 27px !important;
+    border-radius: 4px !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-bar .nmc-kpi-filter-search input {
+    height: 25px !important;
+    font-size: 9.5px !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-bar .nmc-kpi-filter-group-copy strong {
+    font-size: 9.5px !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-filter-bar .nmc-kpi-filter-group-copy small {
+    font-size: 6.5px !important;
+  }
+
+  /* Fixed three-metric summary: slightly thinner while keeping all values legible. */
+  html[data-kpi-embed='1'] body .nmc-kpi-fixed-summary-bar {
+    min-height: 42px !important;
+    padding: 3px 4px max(4px, env(safe-area-inset-bottom)) !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item {
+    padding: 0 2px !important;
+    gap: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item span {
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+  }
+
+  html[data-kpi-embed='1'] body .nmc-kpi-summary-item strong {
+    font-size: 11.5px !important;
+    line-height: 1.08 !important;
+  }
+
+  html[data-kpi-embed='1'] body .embed-mode,
+  html[data-kpi-embed='1'] body main,
+  html[data-kpi-embed='1'] body .nmc-management-content {
+    padding-bottom: max(46px, calc(env(safe-area-inset-bottom) + 42px)) !important;
   }
 
   /* Gesture policy: browser owns vertical panning; the lightweight component
@@ -73,6 +125,17 @@
 
   html[data-kpi-embed='1'] body tbody tr.bg-red-50 > td.nmc-kpi-pin-stt:not([class*='bg-']) {
     background: #fff5ef !important;
+  }
+
+  html[data-kpi-embed='1'] body tbody tr.nmc-kpi-row-selected > td.nmc-kpi-pin-stt {
+    background: #e5f7e9 !important;
+  }
+
+  /* The viewport mirror manages its own STT counter-offset. */
+  html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 th.nmc-kpi-mirror-pin-stt {
+    position: relative !important;
+    left: var(--nmc-kpi-mirror-scroll-left, 0px) !important;
+    z-index: 8 !important;
   }
 
   /* Reduce transient black paint tiles on Android: no extra stacking context or

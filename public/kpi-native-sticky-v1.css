@@ -1,18 +1,13 @@
-/* KPI embedded native sticky header v1
- * Removes mirrored/fixed header GPU layers and pins real TH cells instead.
- * Goal: no black flashes, no disappearing header on Android.
+/* KPI embedded viewport header v2
+ * The real THEAD stays in normal flow so it is always visible at table start.
+ * A light fixed mirror appears only after the real header reaches the viewport top.
+ * This avoids Android/WebView sticky failures caused by horizontal overflow ancestors.
  */
 
-html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  transform: none !important;
-  filter: none !important;
-  will-change: auto !important;
-}
-
-html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead {
+/* Retire native sticky positioning: horizontal overflow containers are not the
+   vertical scroll owner, so sticky TH cells can disappear on mobile WebView. */
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead,
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead > tr {
   position: static !important;
   top: auto !important;
   z-index: auto !important;
@@ -22,17 +17,10 @@ html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead {
   will-change: auto !important;
 }
 
-html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead > tr {
-  position: static !important;
-  transform: none !important;
-  will-change: auto !important;
-}
-
 html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead th.nmc-kpi-native-sticky-cell {
-  position: -webkit-sticky !important;
-  position: sticky !important;
-  top: var(--nmc-kpi-sticky-top, 0px) !important;
-  z-index: var(--nmc-kpi-sticky-z, 300) !important;
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
   background-color: var(--nmc-kpi-sticky-bg, #065f46) !important;
   background-clip: padding-box !important;
   transform: none !important;
@@ -40,20 +28,78 @@ html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead th.nmc-kpi-native-stick
   will-change: auto !important;
   backface-visibility: visible !important;
   -webkit-backface-visibility: visible !important;
-  isolation: auto !important;
 }
 
-/* Give the last header tier a subtle separation without a composited shadow layer. */
-html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead > tr:last-child > th.nmc-kpi-native-sticky-cell {
-  box-shadow: inset 0 -1px 0 rgba(40, 62, 68, .28) !important;
+/* Viewport mirror: no filter/translateZ/will-change so it does not create the
+   black compositor flashes seen on Android. Horizontal sync uses relative left. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0;
+  z-index: 2147482400 !important;
+  display: none !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  contain: paint !important;
+  background: transparent !important;
+  box-shadow: 0 2px 5px rgba(7, 20, 27, .26) !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
 }
 
-/* The green legacy policy footer is redundant because the 3-metric summary is fixed below. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2[data-visible='1'] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 table {
+  position: relative !important;
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 thead,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 tr,
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 th {
+  position: static !important;
+  top: auto !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Keep STT visually pinned in the mirrored header while the rest tracks
+   horizontal scrolling. The table itself moves left by scrollLeft; this cell
+   counters that offset without a GPU transform. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 th.nmc-kpi-mirror-pin-stt {
+  position: relative !important;
+  left: var(--nmc-kpi-mirror-scroll-left, 0px) !important;
+  z-index: 8 !important;
+  background-clip: padding-box !important;
+}
+
+/* Tap-to-select row feedback requested for phone use. */
+html[data-kpi-embed='1'] body tbody tr.nmc-kpi-row-selected > td {
+  background: #e5f7e9 !important;
+  box-shadow: inset 0 1px 0 rgba(58, 148, 88, .16), inset 0 -1px 0 rgba(58, 148, 88, .16) !important;
+}
+
+html[data-kpi-embed='1'] body tbody tr.nmc-kpi-row-selected > td:first-child {
+  box-shadow: inset 3px 0 0 #54b978, inset 0 1px 0 rgba(58, 148, 88, .16), inset 0 -1px 0 rgba(58, 148, 88, .16) !important;
+}
+
+/* The green legacy policy footer is redundant because the fixed 3-metric
+   summary is the only bottom summary in embedded KPI mode. */
 html[data-kpi-embed='1'] body .nmc-kpi-legacy-policy-footer {
   display: none !important;
 }
 
-/* Prevent transient compositor layers on the scrolling table surfaces. */
+/* Keep table scroll surfaces in the non-composited stable path. */
 html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
 html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
 html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
