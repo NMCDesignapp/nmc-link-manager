@@ -1,0 +1,65 @@
+/* KPI embedded native sticky header v1
+ * Removes mirrored/fixed header GPU layers and pins real TH cells instead.
+ * Goal: no black flashes, no disappearing header on Android.
+ */
+
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
+
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  will-change: auto !important;
+}
+
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead > tr {
+  position: static !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead th.nmc-kpi-native-sticky-cell {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: var(--nmc-kpi-sticky-top, 0px) !important;
+  z-index: var(--nmc-kpi-sticky-z, 300) !important;
+  background-color: var(--nmc-kpi-sticky-bg, #065f46) !important;
+  background-clip: padding-box !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
+  isolation: auto !important;
+}
+
+/* Give the last header tier a subtle separation without a composited shadow layer. */
+html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead > tr:last-child > th.nmc-kpi-native-sticky-cell {
+  box-shadow: inset 0 -1px 0 rgba(40, 62, 68, .28) !important;
+}
+
+/* The green legacy policy footer is redundant because the 3-metric summary is fixed below. */
+html[data-kpi-embed='1'] body .nmc-kpi-legacy-policy-footer {
+  display: none !important;
+}
+
+/* Prevent transient compositor layers on the scrolling table surfaces. */
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper,
+html[data-kpi-embed='1'] body #result-table-container {
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+}
