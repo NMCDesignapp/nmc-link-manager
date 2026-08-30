@@ -110,7 +110,12 @@ export function ProgramTableViewportHeader() {
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
 
-          const headerHasReachedTop = headRect.top <= 0;
+          // Use the TABLE's natural position as the sticky trigger, not the THEAD rect.
+          // Some legacy CSS can temporarily make THEAD report top: 0 before the real
+          // table has reached the viewport top, which caused the mirrored header to
+          // jump above the poster/filter. The table itself stays in normal document
+          // flow, so this is a stable activation anchor on Android/WebView.
+          const headerHasReachedTop = tableRect.top <= 0;
           const tableStillVisible = tableRect.bottom > Math.max(headRect.height + 6, 30);
           entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
         });
