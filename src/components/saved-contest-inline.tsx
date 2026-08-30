@@ -926,13 +926,13 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   );
 
   return (
-    <div className="flex flex-col h-full gap-2" data-saoviet-table={`saved-${config.id}`}>
+    <div className="flex flex-col h-full gap-2" data-saoviet-table={`saved-${config.id}`} data-nmc-kpi-detail-shell="saved-contest">
       <div
         className="flex-1 min-h-0 flex flex-col relative"
         style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(16, 185, 129, 0.10)' }}
       >
         {/* ====== MOBILE LAYOUT ====== */}
-        <div className="md:hidden flex flex-col flex-1 min-h-0">
+        <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack>
           {renderPosterBlock()}
           <div
             className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b"

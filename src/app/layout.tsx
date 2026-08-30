@@ -79,7 +79,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-table-zebra-soft-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-native-sticky-v1.css?v=20260830-2" />
-        <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260830-2" />
+        <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260831-1" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

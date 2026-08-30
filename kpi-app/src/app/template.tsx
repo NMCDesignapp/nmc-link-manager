@@ -30,6 +30,7 @@ html body .kpi-app.kpi-app {
   background-attachment: fixed !important;
 }
 
+/* nmc-kpi-background-continuity-v1 */
 html body .kpi-app.kpi-app::before,
 html body .kpi-app.kpi-app::after,
 html body [aria-label="Đang tải dữ liệu KPI"]::before,
@@ -177,8 +178,14 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
     pointer-events: none;
   }
 
-  .kpi-app #view-main > header .main-header { margin: 0; }
-  .kpi-app #view-main > header .ctrl-bar { margin-top: 8px !important; margin-bottom: 0; }
+  .kpi-app #view-main > header .main-header {
+    margin: 0;
+  }
+
+  .kpi-app #view-main > header .ctrl-bar {
+    margin-top: 8px !important;
+    margin-bottom: 0;
+  }
 
   html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
   html body .kpi-app.kpi-app #view-calendar.active > .sub-header {
@@ -212,7 +219,12 @@ html body .kpi-app.kpi-app .kpi-embed-loader {
     right: 0;
     bottom: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(47, 183, 255, .48), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(47, 183, 255, .48),
+      transparent
+    );
     pointer-events: none;
   }
 }

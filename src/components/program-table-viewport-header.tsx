@@ -49,6 +49,13 @@ const getVerticalScrollAncestors = (node: HTMLElement) => {
   return result;
 };
 
+const getStickyViewportTop = (root: HTMLElement) => {
+  const scrollOwner = getVerticalScrollAncestors(root)[0];
+  const documentScrollers = [document.body, document.documentElement, document.scrollingElement];
+  if (!scrollOwner || documentScrollers.includes(scrollOwner)) return 0;
+  return Math.max(0, scrollOwner.getBoundingClientRect().top);
+};
+
 const makeHeaderMirror = (sourceTable: HTMLTableElement, sourceHead: HTMLTableSectionElement) => {
   const table = document.createElement('table');
   table.className = sourceTable.className;
@@ -102,21 +109,21 @@ export function ProgramTableViewportHeader() {
           const right = Math.min(viewportWidth, rootRect.right);
           const width = Math.max(0, right - left);
           const scrollLeft = entry.scroller.scrollLeft || 0;
+          const stickyTop = getStickyViewportTop(entry.root);
 
           entry.overlay.style.left = `${left}px`;
           entry.overlay.style.width = `${width}px`;
+          entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
           entry.overlay.style.setProperty('--nmc-kpi-mirror-scroll-left', `${scrollLeft}px`);
 
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
 
-          // Use the TABLE's natural position as the sticky trigger, not the THEAD rect.
-          // Some legacy CSS can temporarily make THEAD report top: 0 before the real
-          // table has reached the viewport top, which caused the mirrored header to
-          // jump above the poster/filter. The table itself stays in normal document
-          // flow, so this is a stable activation anchor on Android/WebView.
-          const headerHasReachedTop = tableRect.top <= 0;
-          const tableStillVisible = tableRect.bottom > Math.max(headRect.height + 6, 30);
+          // Anchor the mirror to the active vertical scrollport. The normal mobile
+          // path uses the management viewport (top: 0). A legacy nested scroller
+          // falls back to its own top edge, so the mirror never covers the poster.
+          const headerHasReachedTop = tableRect.top <= stickyTop;
+          const tableStillVisible = tableRect.bottom > stickyTop + Math.max(headRect.height + 6, 30);
           entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
         });
       });
