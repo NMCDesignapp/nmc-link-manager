@@ -4048,7 +4048,26 @@ export default function QuanLyPage() {
                         setSortField('');
                         setMobileMenuPopup(null);
                       } else if (sheet.hasSub) {
-                        setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
+                        // Mobile cards should open their default/current table immediately,
+                        // matching the desktop sidebar. The small chevron below remains the
+                        // explicit control for choosing a month or a structure sub-sheet.
+                        if (sheet.key === 'revenue') {
+                          navigateTo({ sheet: 'revenue', revenueSub });
+                        } else if (sheet.key === 'structure') {
+                          navigateTo({ sheet: 'structure', structureSub });
+                          if (structureSub === 'tvv') fetchTvvStruct();
+                          else if (structureSub === 'leaders') fetchLeaders();
+                          else if (structureSub === 'recruiters') fetchRecruiters();
+                          else if (structureSub === 'tuyen-ngang') fetchTuyenNgang();
+                          else if (structureSub === 'clb-members') {
+                            fetchTvvStruct();
+                            fetchBanNhom();
+                            fetchAD();
+                          }
+                        }
+                        setSearchTerm('');
+                        setSortField('');
+                        setMobileMenuPopup(null);
                       } else {
                         navigateTo({ sheet: sheet.key });
                         setSearchTerm('');
@@ -4061,16 +4080,31 @@ export default function QuanLyPage() {
                       backgroundColor: color,
                       borderRadius: 0,
                       boxShadow: isActive ? `0 0 0 2px #fff, 0 3px 6px rgba(0,0,0,0.4)` : '0 3px 6px rgba(0,0,0,0.4)',
-                      opacity: isActive && (sheet.key === 'report' || !sheet.hasSub) ? 1 : 0.95,
+                      opacity: isActive ? 1 : 0.95,
                       minHeight: '52px',
                     }}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate w-full text-center leading-tight text-[11px]">{sheet.label}</span>
-                    {sheet.hasSub && sheet.key !== 'report' && (
-                      <ChevronDown className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
-                    )}
                   </button>
+                  {sheet.hasSub && sheet.key !== 'report' && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Chọn ${sheet.label}`}
+                      title={`Chọn ${sheet.label}`}
+                      onClick={() => setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setMobileMenuPopup(mobileMenuPopup === sheet.key ? null : sheet.key);
+                        }
+                      }}
+                      className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center border border-white/30 bg-black/20 text-white transition-all active:scale-90 active:bg-black/40"
+                    >
+                      <ChevronDown className={`w-3 h-3 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
+                    </span>
+                  )}
                   {/* Popup sub-items (for revenue/report) — FIXED overlay centered, narrow on mobile, no rounded corners, divider lines between items */}
                   {sheet.hasSub && mobileMenuPopup === sheet.key && (
                     <>
