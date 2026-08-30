@@ -73,7 +73,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
-        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260830-1" />
+        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260830-2" />
         <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
         <link rel="stylesheet" href="/kpi-embedded-fullbleed-v1.css?v=20260830-1" />
         <link rel="stylesheet" href="/kpi-table-zebra-soft-v1.css?v=20260829-1" />
