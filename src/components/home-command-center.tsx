@@ -57,7 +57,7 @@ function NmcSolidLogo({ bio }: { bio: string }) {
       <span className="nmc-home-brandbolt b4" aria-hidden="true" />
       <div className="nmc-home-brandblock">
         <div className="nmc-home-logo" aria-label="Logo NMC">
-        <svg className="nmc-home-logo-mark" viewBox="0 0 220 76" role="img" aria-hidden="true">
+          <svg className="nmc-home-logo-mark" viewBox="0 0 220 76" role="img" aria-hidden="true">
           <defs>
             <linearGradient id="nmc-logo-metal" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#ffffff" />
@@ -79,9 +79,9 @@ function NmcSolidLogo({ bio }: { bio: string }) {
           </g>
           <circle cx="70.5" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
           <circle cx="135" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
-        </svg>
+          </svg>
+          <p className="nmc-home-designer">Design by Châu</p>
         </div>
-        <p className="nmc-home-designer">Design by Châu</p>
         {bio && <p className="nmc-home-bio">{bio}</p>}
       </div>
       <div className="nmc-home-clock" aria-live="off">
@@ -106,9 +106,13 @@ function FunctionButton({ label, shortLabel, icon, background, border, shadow, o
   return (
     <button
       onClick={onClick}
-      className="group flex min-h-[66px] min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] border px-2 py-2 text-white transition-transform active:translate-y-[2px] sm:min-h-[74px]"
+      className="nmc-home-function group relative flex min-h-[66px] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-[16px] border px-2 py-2 text-white transition-transform active:translate-y-[2px] sm:min-h-[74px]"
       style={{ background, borderColor: border, boxShadow: `0 8px 0 ${shadow}, 0 13px 22px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.18)` }}
     >
+      <span className="nmc-home-tilebolt b1" aria-hidden="true" />
+      <span className="nmc-home-tilebolt b2" aria-hidden="true" />
+      <span className="nmc-home-tilebolt b3" aria-hidden="true" />
+      <span className="nmc-home-tilebolt b4" aria-hidden="true" />
       <span className="drop-shadow-[0_2px_1px_rgba(0,0,0,.35)]">{icon}</span>
       <span className="max-w-full truncate text-[10px] font-black uppercase tracking-wide sm:text-xs">
         <span className="sm:hidden">{shortLabel || label}</span>
@@ -123,7 +127,7 @@ function LinkTile({ link, onOpen }: { link: Link; onOpen: (link: Link) => void }
   return (
     <button
       onClick={() => onOpen(link)}
-      className="relative min-h-[88px] overflow-hidden rounded-[18px] border border-[#426174] bg-[#1b394a] p-3 text-left shadow-[0_10px_24px_rgba(0,0,0,.25),inset_0_1px_0_rgba(255,255,255,.06)] transition-transform active:scale-[.985]"
+      className="nmc-home-linktile relative min-h-[88px] overflow-hidden rounded-[18px] border border-[#426174] bg-[#1b394a] p-3 text-left shadow-[0_10px_24px_rgba(0,0,0,.25),inset_0_1px_0_rgba(255,255,255,.06)] transition-transform active:scale-[.985]"
     >
       <div className="absolute inset-x-0 top-0 h-1" style={{ background: accent }} />
       <div className="flex items-start gap-2.5">
@@ -326,27 +330,31 @@ export default function HomeCommandCenter() {
   )
 
   return (
-    <div className="relative z-[1] min-h-screen bg-transparent px-3 pb-5 pt-[max(6px,env(safe-area-inset-top))] sm:px-5 sm:pt-[max(10px,env(safe-area-inset-top))]">
+    <div className="nmc-home-shell relative z-[1] min-h-screen bg-transparent px-3 pb-5 pt-[max(6px,env(safe-area-inset-top))] sm:px-5 sm:pt-[max(10px,env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-[1280px]">
         <header className="flex flex-col items-center">
           <NmcSolidLogo bio={settings.profile_bio} />
 
-          <div className="mt-2 flex flex-nowrap items-center justify-center gap-1.5">
-            {maintenanceSwitch}
-            {!adminAuthed ? (
-              <button onClick={() => { setPendingMaintenanceToggle(false); setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false) }} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đăng nhập quản trị" title="Đăng nhập quản trị"><Lock className="h-3.5 w-3.5" /></button>
-            ) : (
-              <>
-                <button onClick={() => setIsSettingsOpen(true)} className="grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Cài đặt" title="Cài đặt"><Settings className="h-3.5 w-3.5" /></button>
-                <button onClick={toggleTargetRegistration} className="grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Khóa hoặc mở đăng ký mục tiêu" title={targetRegistrationOpen ? 'Đăng ký mục tiêu đang mở' : 'Đăng ký mục tiêu đang khóa'}>{targetRegistrationOpen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}</button>
-                <button onClick={() => setNoticeOpen(true)} className="relative grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Thông báo KPI" title="Thông báo KPI"><Bell className="h-3.5 w-3.5" />{noticeEnabled && noticeContent && <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[#e0a52f]" />}</button>
-              </>
-            )}
-            <button onClick={handleReloadAll} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đồng bộ dữ liệu" title={lastSync ? `Đồng bộ lần cuối ${lastSync.toLocaleTimeString('vi-VN')}` : 'Đồng bộ dữ liệu'}><RefreshCw className={`h-3.5 w-3.5 ${isReloading ? 'animate-spin' : ''}`} /></button>
+          <div className="nmc-home-control-rail mt-2">
+            <span className="nmc-home-control-cut" aria-hidden="true" />
+            <div className="nmc-home-control-cluster flex flex-nowrap items-center justify-center gap-1.5">
+              {maintenanceSwitch}
+              {!adminAuthed ? (
+                <button onClick={() => { setPendingMaintenanceToggle(false); setAdminPwdOpen(true); setAdminPwdInput(''); setAdminPwdError(false) }} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đăng nhập quản trị" title="Đăng nhập quản trị"><Lock className="h-3.5 w-3.5" /></button>
+              ) : (
+                <>
+                  <button onClick={() => setIsSettingsOpen(true)} className="grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Cài đặt" title="Cài đặt"><Settings className="h-3.5 w-3.5" /></button>
+                  <button onClick={toggleTargetRegistration} className="grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Khóa hoặc mở đăng ký mục tiêu" title={targetRegistrationOpen ? 'Đăng ký mục tiêu đang mở' : 'Đăng ký mục tiêu đang khóa'}>{targetRegistrationOpen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}</button>
+                  <button onClick={() => setNoticeOpen(true)} className="relative grid h-8 w-8 place-items-center rounded-full border border-[#4b6e82] bg-[#214355] text-[#d2e6ee]" aria-label="Thông báo KPI" title="Thông báo KPI"><Bell className="h-3.5 w-3.5" />{noticeEnabled && noticeContent && <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[#e0a52f]" />}</button>
+                </>
+              )}
+              <button onClick={handleReloadAll} className="grid h-8 w-8 place-items-center rounded-full border border-[#44677a] bg-[#1c3a4b] text-[#b9d1dc]" aria-label="Đồng bộ dữ liệu" title={lastSync ? `Đồng bộ lần cuối ${lastSync.toLocaleTimeString('vi-VN')}` : 'Đồng bộ dữ liệu'}><RefreshCw className={`h-3.5 w-3.5 ${isReloading ? 'animate-spin' : ''}`} /></button>
+            </div>
+            <span className="nmc-home-control-cut" aria-hidden="true" />
           </div>
         </header>
 
-        <nav className="mx-auto mt-3 grid max-w-3xl grid-cols-4 gap-2 sm:gap-3">
+        <nav className="nmc-home-functions mx-auto mt-3 grid max-w-3xl grid-cols-4 gap-2 sm:gap-3">
           <FunctionButton label="Thi Đua" icon={<Trophy className="h-5 w-5" />} background="#c97b22" border="#e4a14f" shadow="#7d4814" onClick={() => router.push('/thi-dua-chau')} />
           <FunctionButton label="Quản Lý" icon={<Database className="h-5 w-5" />} background="#27805f" border="#43a77f" shadow="#15523c" onClick={() => router.push('/quan-ly')} />
           <FunctionButton label="KPI" icon={<BarChart3 className="h-5 w-5" />} background="#2777a7" border="#4b9bc5" shadow="#184b68" onClick={() => router.push('/kpi')} />
@@ -354,7 +362,7 @@ export default function HomeCommandCenter() {
         </nav>
 
         <main className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,.92fr)_minmax(420px,1.08fr)] lg:items-stretch">
-          <section className="rounded-[22px] border border-[#35566a] bg-[#122a38] p-3 shadow-[0_18px_45px_rgba(0,0,0,.32),inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
+          <section className="nmc-home-links-panel rounded-[22px] border border-[#35566a] bg-[#122a38] p-3 shadow-[0_18px_45px_rgba(0,0,0,.32),inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.2em] text-[#79a8bf]">Liên kết nhanh</div>
