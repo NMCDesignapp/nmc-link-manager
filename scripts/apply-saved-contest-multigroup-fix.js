@@ -15,7 +15,9 @@ const BASE_MARKER = '// nmc-multi-group-filter-v1';
 const FIX_MARKER = '// nmc-saved-contest-multigroup-filter-fix-v1';
 
 if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
-let source = fs.readFileSync(filePath, 'utf8');
+const originalSource = fs.readFileSync(filePath, 'utf8');
+const eol = originalSource.includes('\r\n') ? '\r\n' : '\n';
+let source = originalSource.replace(/\r\n/g, '\n');
 
 if (!source.includes(BASE_MARKER)) {
   throw new Error('Base multi-group patch chưa chạy trước SavedContest fix');
@@ -55,5 +57,5 @@ if (!source.includes("nhomFilter.length > 0 && !nhomFilter.includes(")) {
   throw new Error('Không tạo được điều kiện multi-group an toàn cho SavedContestInline');
 }
 
-fs.writeFileSync(filePath, source, 'utf8');
+fs.writeFileSync(filePath, source.replace(/\n/g, eol), 'utf8');
 console.log(`✓ SavedContest data restored: converted ${replaced} remaining scalar group filter(s) to multi-select semantics.`);

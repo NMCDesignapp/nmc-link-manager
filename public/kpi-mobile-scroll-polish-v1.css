@@ -4,6 +4,39 @@
  */
 
 @media (max-width: 640px) {
+  /* Detail programs use one vertical scroll owner: the management content.
+     Poster and filters leave the viewport first; only then can the table header
+     reach the top edge and activate its fixed mirror. Horizontal table panning
+     remains owned by the existing wrappers. */
+  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-shell] {
+    height: auto !important;
+    min-height: 100% !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-stack] > [data-nmc-kpi-vertical-flow='1'] {
+    flex: 0 0 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  html[data-kpi-embed='1'] body [data-nmc-kpi-horizontal-scroller='1'] {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+  }
+
   /* Poster is a real 16:9 frame. The image is deliberately stretched to fill
      the whole frame (object-fit: fill), so no source edge is cropped. */
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster,

@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { findKpiHorizontalScroller } from '@/lib/kpi-table-scroller';
+
 const WRAPPER_SELECTOR = [
   '.policy-detail-table-wrapper',
   '.saoviet-detail-table-wrapper',
@@ -22,15 +24,6 @@ const normalizeText = (value: string | null | undefined) =>
 
 const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
 
-const findHorizontalScroller = (root: HTMLElement) => {
-  const candidates = [
-    root,
-    root.querySelector<HTMLElement>('[data-slot="table-container"]'),
-  ].filter(Boolean) as HTMLElement[];
-
-  return candidates.find((el) => el.scrollWidth > el.clientWidth + 2) || root;
-};
-
 const getVerticalScrollAncestors = (node: HTMLElement) => {
   const result: HTMLElement[] = [];
   let parent = node.parentElement;
@@ -47,6 +40,13 @@ const getVerticalScrollAncestors = (node: HTMLElement) => {
   if (!result.includes(document.body)) result.push(document.body);
   if (!result.includes(document.documentElement)) result.push(document.documentElement);
   return result;
+};
+
+const getStickyViewportTop = (root: HTMLElement) => {
+  const scrollOwner = getVerticalScrollAncestors(root)[0];
+  const documentScrollers = [document.body, document.documentElement, document.scrollingElement];
+  if (!scrollOwner || documentScrollers.includes(scrollOwner)) return 0;
+  return Math.max(0, scrollOwner.getBoundingClientRect().top);
 };
 
 const makeHeaderMirror = (sourceTable: HTMLTableElement, sourceHead: HTMLTableSectionElement) => {
@@ -102,21 +102,21 @@ export function ProgramTableViewportHeader() {
           const right = Math.min(viewportWidth, rootRect.right);
           const width = Math.max(0, right - left);
           const scrollLeft = entry.scroller.scrollLeft || 0;
+          const stickyTop = getStickyViewportTop(entry.root);
 
           entry.overlay.style.left = `${left}px`;
           entry.overlay.style.width = `${width}px`;
+          entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
           entry.overlay.style.setProperty('--nmc-kpi-mirror-scroll-left', `${scrollLeft}px`);
 
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
 
-          // Use the TABLE's natural position as the sticky trigger, not the THEAD rect.
-          // Some legacy CSS can temporarily make THEAD report top: 0 before the real
-          // table has reached the viewport top, which caused the mirrored header to
-          // jump above the poster/filter. The table itself stays in normal document
-          // flow, so this is a stable activation anchor on Android/WebView.
-          const headerHasReachedTop = tableRect.top <= 0;
-          const tableStillVisible = tableRect.bottom > Math.max(headRect.height + 6, 30);
+          // Anchor the mirror to the active vertical scrollport. The normal mobile
+          // path uses the management viewport (top: 0). A legacy nested scroller
+          // falls back to its own top edge, so the mirror never covers the poster.
+          const headerHasReachedTop = tableRect.top <= stickyTop;
+          const tableStillVisible = tableRect.bottom > stickyTop + Math.max(headRect.height + 6, 30);
           entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
         });
       });
@@ -174,7 +174,7 @@ export function ProgramTableViewportHeader() {
         seen.add(table);
 
         const root = table.closest<HTMLElement>(WRAPPER_SELECTOR) || candidate;
-        const scroller = findHorizontalScroller(root);
+        const scroller = findKpiHorizontalScroller(root, table);
         let entry = entries.get(table);
         if (!entry) {
           const overlay = document.createElement('div');

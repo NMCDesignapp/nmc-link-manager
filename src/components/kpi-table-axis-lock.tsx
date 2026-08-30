@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { findKpiHorizontalScroller } from '@/lib/kpi-table-scroller';
+
 const ROOT_SELECTOR = [
   '.policy-detail-table-wrapper',
   '.saoviet-detail-table-wrapper',
@@ -21,15 +23,6 @@ const normalizeText = (value: string | null | undefined) =>
     .toUpperCase();
 
 const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
-
-const findHorizontalScroller = (root: HTMLElement) => {
-  const candidates = [
-    root,
-    root.querySelector<HTMLElement>('[data-slot="table-container"]'),
-  ].filter(Boolean) as HTMLElement[];
-
-  return candidates.find((el) => el.scrollWidth > el.clientWidth + 2) || null;
-};
 
 const markPinnedStt = (table: HTMLTableElement) => {
   table.querySelectorAll<HTMLElement>('.nmc-kpi-pin-stt').forEach((el) => el.classList.remove('nmc-kpi-pin-stt'));
@@ -169,7 +162,7 @@ export function KpiTableAxisLock() {
         const table = root.querySelector<HTMLTableElement>('table:not([data-nmc-kpi-mirror-table])');
         if (!table || !table.tHead) return;
         markPinnedStt(table);
-        const scroller = findHorizontalScroller(root);
+        const scroller = findKpiHorizontalScroller(root, table);
         if (!scroller) return;
         alive.add(scroller);
         bindScroller(scroller);

@@ -54,7 +54,9 @@ const NEW_BLOCK = `          ${MARKER}
 
 let changed = 0;
 for (const file of TARGETS) {
-  let source = fs.readFileSync(file, 'utf8');
+  const originalSource = fs.readFileSync(file, 'utf8');
+  const eol = originalSource.includes('\r\n') ? '\r\n' : '\n';
+  let source = originalSource.replace(/\r\n/g, '\n');
   if (source.includes(MARKER)) {
     console.log(`✓ TVVm stage reward already one-time: ${file}`);
     continue;
@@ -63,7 +65,7 @@ for (const file of TARGETS) {
     throw new Error(`[TVVm stage reward] Không tìm thấy đoạn cần sửa trong ${file}`);
   }
   source = source.replace(OLD_BLOCK, NEW_BLOCK);
-  fs.writeFileSync(file, source, 'utf8');
+  fs.writeFileSync(file, source.replace(/\n/g, eol), 'utf8');
   changed += 1;
   console.log(`✓ TVVm stage reward one-time applied: ${file}`);
 }
@@ -74,7 +76,9 @@ for (const file of TARGETS) {
 // Chỉ thay các block có `tongThuongTVVm += thuongThang + thuongChang`, vì đây là
 // hai nơi dùng thưởng TVVm làm nền cho chính sách quản lý; không đụng bảng thưởng TVVm cá nhân.
 const policyFile = 'src/app/quan-ly/page.tsx';
-let policySource = fs.readFileSync(policyFile, 'utf8');
+const originalPolicySource = fs.readFileSync(policyFile, 'utf8');
+const policyEol = originalPolicySource.includes('\r\n') ? '\r\n' : '\n';
+let policySource = originalPolicySource.replace(/\r\n/g, '\n');
 if (policySource.includes(POLICY_MARKER)) {
   console.log(`✓ TVVm stage reward already one-time: ${policyFile} (Tuyển Luyện + Đồng Hành)`);
 } else {
@@ -90,7 +94,7 @@ if (policySource.includes(POLICY_MARKER)) {
   if (policyReplacementCount !== 2) {
     throw new Error(`[TVVm stage reward] Kỳ vọng sửa đúng 2 block Tuyển Luyện/Đồng Hành, thực tế: ${policyReplacementCount}`);
   }
-  fs.writeFileSync(policyFile, policySource, 'utf8');
+  fs.writeFileSync(policyFile, policySource.replace(/\n/g, policyEol), 'utf8');
   changed += 1;
   console.log(`✓ TVVm stage reward one-time applied: ${policyFile} (2 policy blocks)`);
 }

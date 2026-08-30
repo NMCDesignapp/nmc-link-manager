@@ -25,6 +25,14 @@ const FILTER_VARIABLES = [
   'ptkdNhomFilter',
 ];
 
+function readNormalized(filePath) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  return {
+    source: source.replace(/\r\n/g, '\n'),
+    eol: source.includes('\r\n') ? '\r\n' : '\n',
+  };
+}
+
 function patchDropdownMenus(source) {
   let patchedMenus = 0;
   let checkmarkOptions = 0;
@@ -143,10 +151,12 @@ for (const filePath of [quanLyPath, savedContestPath]) {
   if (!fs.existsSync(filePath)) throw new Error(`Không tìm thấy ${filePath}`);
 }
 
-const quanLy = patchQuanLy(fs.readFileSync(quanLyPath, 'utf8'));
-const savedContest = patchSavedContest(fs.readFileSync(savedContestPath, 'utf8'));
+const quanLyInput = readNormalized(quanLyPath);
+const savedContestInput = readNormalized(savedContestPath);
+const quanLy = patchQuanLy(quanLyInput.source);
+const savedContest = patchSavedContest(savedContestInput.source);
 
-fs.writeFileSync(quanLyPath, quanLy, 'utf8');
-fs.writeFileSync(savedContestPath, savedContest, 'utf8');
+fs.writeFileSync(quanLyPath, quanLy.replace(/\n/g, quanLyInput.eol), 'utf8');
+fs.writeFileSync(savedContestPath, savedContest.replace(/\n/g, savedContestInput.eol), 'utf8');
 
 console.log('✓ KPI linked pages: dropdown đa nhóm tự đóng khi bấm ra ngoài + có dấu ✓ cho nhóm đã chọn.');

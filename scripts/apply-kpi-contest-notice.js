@@ -23,6 +23,8 @@ if (!standaloneLocked) {
 }
 
 let source = fs.readFileSync(mainPage, 'utf8');
+const sourceEol = source.includes('\r\n') ? '\r\n' : '\n';
+source = source.replace(/\r\n/g, '\n');
 if (source.includes(MARKER)) {
   console.log(`✓ KPI contest notice: Main đã có carousel; standalone ${standaloneLocked ? 'giữ component đã khóa' : 'đã đồng bộ từ Main'}.`);
   process.exit(0);
@@ -46,5 +48,5 @@ source = source.replace(
   `                    DS Đã Đăng Ký\n                  </button>\n                </div>\n                <KpiContestNotice />\n                {/* Desktop: only split-right (cards) is collapsible.`,
 );
 
-fs.writeFileSync(mainPage, source, 'utf8');
+fs.writeFileSync(mainPage, source.replace(/\n/g, sourceEol), 'utf8');
 console.log('✓ KPI contest notice: poster trái + thông tin phải + nhấn mạnh ngày kết thúc; tự luân phiên nhẹ ở client.');

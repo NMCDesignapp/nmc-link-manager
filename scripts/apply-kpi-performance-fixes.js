@@ -35,6 +35,13 @@ const newHydrationBlock = `        writeSessionCache(nextData)
           setLoadError(null)
         })`
 
+const blockPattern = (block) => new RegExp(
+  block.split('\n').map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\r?\\n'),
+)
+
+const oldHydrationPattern = blockPattern(oldHydrationBlock)
+const newHydrationPattern = blockPattern(newHydrationBlock)
+
 let changed = 0
 for (const filePath of targets) {
   if (!fs.existsSync(filePath)) {
@@ -44,11 +51,12 @@ for (const filePath of targets) {
   let source = fs.readFileSync(filePath, 'utf8')
   let fileChanged = false
 
-  if (!source.includes(newHydrationBlock)) {
-    if (!source.includes(oldHydrationBlock)) {
+  if (!newHydrationPattern.test(source)) {
+    if (!oldHydrationPattern.test(source)) {
       throw new Error(`[KPI perf] AppData hydration anchor not found in ${filePath}`)
     }
-    source = source.replace(oldHydrationBlock, newHydrationBlock)
+    const eol = source.includes('\r\n') ? '\r\n' : '\n'
+    source = source.replace(oldHydrationPattern, newHydrationBlock.replace(/\n/g, eol))
     fileChanged = true
   }
 

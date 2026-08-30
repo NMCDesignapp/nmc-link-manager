@@ -8904,9 +8904,9 @@ export default function QuanLyPage() {
     // Here we just render the container
 
     return (
-      <div className="flex flex-col h-full p-2 relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
+      <div className="flex flex-col h-full p-2 relative" data-nmc-kpi-detail-shell="policy" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
         {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-        <div className="md:hidden flex flex-col flex-1 min-h-0 relative" style={{ backgroundColor: '#0F172A' }}>
+        <div className="md:hidden flex flex-col flex-1 min-h-0 relative" data-nmc-kpi-detail-stack style={{ backgroundColor: '#0F172A' }}>
           {/* Poster — full width 16:9 + program name overlay + Excel download button */}
           <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
             {imageLink ? (
@@ -10598,10 +10598,10 @@ export default function QuanLyPage() {
     );
 
     return (
-      <div className="flex flex-col h-full gap-2" data-saoviet-table={program}>
+      <div className="flex flex-col h-full gap-2" data-saoviet-table={program} data-nmc-kpi-detail-shell="contest">
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0">
+          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack>
             {/* Poster — full width 16:9 + program name overlay + Excel download button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
@@ -11298,10 +11298,10 @@ export default function QuanLyPage() {
     );
 
     return (
-      <div className="flex flex-col h-full gap-2" data-clb-saoviet-table={program}>
+      <div className="flex flex-col h-full gap-2" data-clb-saoviet-table={program} data-nmc-kpi-detail-shell="club">
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0">
+          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack>
             {/* Poster — full width 16:9, chỉ hiển thị (quản lý trong Cài đặt) + Excel button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (

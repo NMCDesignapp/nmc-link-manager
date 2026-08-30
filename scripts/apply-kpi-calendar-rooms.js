@@ -26,9 +26,15 @@ if (source.includes(MARKER)) {
   process.exit(0);
 }
 
+function blockPattern(block) {
+  return new RegExp(block.split('\n').map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\r?\\n'));
+}
+
 function replaceOnce(from, to, label) {
-  if (!source.includes(from)) throw new Error(`Không tìm thấy anchor: ${label}`);
-  source = source.replace(from, to);
+  const pattern = blockPattern(from);
+  if (!pattern.test(source)) throw new Error(`Không tìm thấy anchor: ${label}`);
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  source = source.replace(pattern, to.replace(/\n/g, eol));
 }
 
 // 1) Scope state — Company is the aggregate/default view.
