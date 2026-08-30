@@ -3,6 +3,11 @@ const path = require('path');
 
 const filePath = path.resolve(__dirname, '../src/components/saved-contest-inline.tsx');
 let source = fs.readFileSync(filePath, 'utf8');
+const sourceEol = source.includes('\r\n') ? '\r\n' : '\n';
+
+// Vercel Git checkouts use LF while Windows/CLI uploads can preserve CRLF.
+// Normalize only while matching, then restore the original convention on write.
+source = source.replace(/\r\n/g, '\n');
 
 function replaceRequired(from, to, label) {
   if (source.includes(to)) return;
@@ -42,5 +47,6 @@ replaceRequired(
   'dependency danh sách nhóm',
 );
 
-fs.writeFileSync(filePath, source, 'utf8');
+const output = sourceEol === '\r\n' ? source.replace(/\n/g, '\r\n') : source;
+fs.writeFileSync(filePath, output, 'utf8');
 console.log('✓ Sao Việt toàn chặng: đã bổ sung nhóm cho TVV và đồng bộ thứ tự với trang Thi đua.');
