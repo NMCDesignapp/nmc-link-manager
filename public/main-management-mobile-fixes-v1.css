@@ -1,10 +1,11 @@
-/* Main App /quan-ly mobile fixes v1
+/* Main App /quan-ly mobile fixes v2
  * Scope: phone management UI only.
  * Goals:
  *  - keep spreadsheet rows readable (light zebra, dark text)
  *  - remove nested vertical table scrollers; the page owns vertical scrolling
  *  - keep the fixed bottom nav from covering the final rows
- *  - suppress the global PWA install bubble/banner while /quan-ly is open
+ *  - suppress global PWA overlays while /quan-ly is open
+ *  - remove the redundant generic mobile popup backdrop
  */
 
 @media (max-width: 720px) {
@@ -78,12 +79,19 @@
     z-index: 190 !important;
   }
 
+  /* Each mobile picker already renders its own z-400 backdrop. The additional
+     transparent z-150 page-wide backdrop duplicates hit-testing/paint work and
+     is unnecessary. */
+  .nmc-management-skin > [class~='fixed'][class~='inset-0'][class~='z-[150]'][class~='md:hidden'] {
+    display: none !important;
+  }
+
   /* PwaInstallPrompt is rendered outside the management stacking context.
-     Its z-80/z-90 floating controls otherwise sit above the whole z-50 app and
-     overlap the bottom navigation (the "Cài đặt app" bubble seen on phones).
-     Installation remains available from normal Main App pages. */
+     Its z-80/z-90/z-95 controls otherwise sit above the whole z-50 app and can
+     overlap the bottom navigation. Installation remains available elsewhere. */
   body:has(.nmc-management-skin) [class~='fixed'][class~='bottom-4'][class~='right-4'][class~='z-[80]'],
-  body:has(.nmc-management-skin) [class~='fixed'][class~='bottom-4'][class~='left-4'][class~='right-4'][class~='z-[90]'] {
+  body:has(.nmc-management-skin) [class~='fixed'][class~='bottom-4'][class~='left-4'][class~='right-4'][class~='z-[90]'],
+  body:has(.nmc-management-skin) [class~='fixed'][class~='inset-0'][class~='z-[95]'] {
     display: none !important;
   }
 }
