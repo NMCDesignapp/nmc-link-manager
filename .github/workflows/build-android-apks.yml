@@ -39,6 +39,12 @@ jobs:
       - name: Install Android SDK 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Restore stable debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nclink-android-debug-keystore-v1
+
       - name: Build both APKs
         working-directory: android
         run: gradle --no-daemon :mainapp:assembleDebug :kpiapp:assembleDebug --stacktrace
