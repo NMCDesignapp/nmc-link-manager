@@ -3,10 +3,10 @@
 /**
  * Prepare the public standalone KPI API surface for deployment.
  *
- * The standalone project keeps the broad API surface read-only, but Kế hoạch
- * Khung is an explicit exception: POST/PUT/DELETE are proxied only for
- * /api/calendar so users can add/edit/delete plans from KPI standalone without
- * giving the standalone project database credentials or exposing other writes.
+ * The standalone project keeps the broad API surface read-only. Explicit user-write
+ * exceptions are proxied to Main App without giving standalone database credentials:
+ * - /api/calendar for Kế hoạch khung
+ * - /api/kpi-target-registrations for KPI monthly target registration
  */
 
 const fs = require('fs')
@@ -69,12 +69,18 @@ async function proxyRead(request: NextRequest, context: { params: Promise<{ path
   }
 }
 
-async function proxyCalendarWrite(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+function isAllowedWritePath(normalizedPath: string) {
+  return normalizedPath === 'calendar' ||
+    normalizedPath === 'kpi-target-registrations' ||
+    normalizedPath.startsWith('kpi-target-registrations/')
+}
+
+async function proxyAllowedWrite(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params
   const normalizedPath = (path || []).join('/')
-  if (normalizedPath !== 'calendar') {
+  if (!isAllowedWritePath(normalizedPath)) {
     return Response.json(
-      { error: 'KPI standalone chỉ cho phép ghi dữ liệu Kế hoạch khung.' },
+      { error: 'KPI standalone không cho phép ghi API này.' },
       { status: 405, headers: { Allow: 'GET, HEAD' } },
     )
   }
@@ -100,8 +106,8 @@ async function proxyCalendarWrite(request: NextRequest, context: { params: Promi
       headers: copyResponseHeaders(response.headers),
     })
   } catch (error) {
-    console.error('[KPI standalone] calendar write proxy error:', error)
-    return Response.json({ error: 'Không thể lưu Kế hoạch khung vào Main App.' }, { status: 502 })
+    console.error('[KPI standalone] allowed write proxy error:', normalizedPath, error)
+    return Response.json({ error: 'Không thể lưu dữ liệu vào Main App.' }, { status: 502 })
   }
 }
 
@@ -114,17 +120,21 @@ export async function HEAD(request: NextRequest, context: { params: Promise<{ pa
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  return proxyCalendarWrite(request, context)
+  return proxyAllowedWrite(request, context)
 }
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  return proxyCalendarWrite(request, context)
+  return proxyAllowedWrite(request, context)
+}
+
+export async function PATCH(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  return proxyAllowedWrite(request, context)
 }
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  return proxyCalendarWrite(request, context)
+  return proxyAllowedWrite(request, context)
 }
 `
 
 fs.writeFileSync(routeFile, route, 'utf8')
-console.log('Standalone KPI API prepared: read proxy + calendar-only POST/PUT/DELETE writes.')
+console.log('Standalone KPI API prepared: read proxy + calendar/target-registration write proxy.')
