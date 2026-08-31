@@ -1,6 +1,6 @@
-/* KPI embedded scroll stability v2
- * Mobile-only paint/compositing fixes for Thi dua / Chinh sach / CLB tables.
- * Keep the existing layout and touch scroll model unchanged.
+/* KPI embedded scroll stability v3
+ * Paint/compositing fixes for Thi dua / Chinh sach / CLB detail tables.
+ * Keep the existing layout and native touch scroll model unchanged.
  */
 
 /* Give the fixed mirror an opaque paint surface and avoid GPU filter layers. */
@@ -10,6 +10,8 @@ html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay {
   background: #fffdf7 !important;
   box-shadow: 0 3px 7px rgba(15, 23, 42, .24) !important;
   isolation: auto !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay table {
@@ -27,6 +29,31 @@ html[data-kpi-embed='1'] body .contest-result-table-wrapper,
 html[data-kpi-embed='1'] body #result-table-container,
 html[data-kpi-embed='1'] body [data-slot='table-container'] {
   background-color: #fffdf7 !important;
+  background-image: none !important;
+  overflow-anchor: none !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+  isolation: auto !important;
+  contain: none !important;
+}
+
+/* The generic metal theme clips every table with overflow:hidden. On very tall
+   results that produces a single huge raster surface. Keep embedded detail
+   tables as ordinary, opaque document content so the browser can paint tiles
+   incrementally without exposing dark/grey gaps. */
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .contest-result-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body #result-table-container table:not([data-nmc-kpi-mirror-table]) {
+  overflow: visible !important;
+  border-radius: 0 !important;
+  background-color: #fffdf7 !important;
+  transform: none !important;
+  filter: none !important;
+  will-change: auto !important;
+  contain: none !important;
 }
 
 @media (max-width: 640px) {
