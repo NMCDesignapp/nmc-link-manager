@@ -12506,14 +12506,6 @@ export default function QuanLyPage() {
         </main>
       </div>
 
-      {/* Mobile: backdrop đóng popup khi click ra ngoài */}
-      {(mobileMenuPopup || mobilePolicyPopupOpen || mobileRevenuePopupOpen) && (
-        <div
-          className="fixed inset-0 z-[150] md:hidden"
-          onClick={() => { setMobileMenuPopup(null); setMobilePolicyPopupOpen(false); setMobileRevenuePopupOpen(false); }}
-        />
-      )}
-
       {/* ========== Sao Việt Settings Modal ========== */}
       {saovietSettingsOpen && (
         <div className="fixed inset-0 z-[700] bg-black/70 flex items-center justify-center p-3 sm:p-6">

@@ -170,11 +170,11 @@
     linear-gradient(180deg, #3a505c, #243742) !important;
 }
 
-.nmc-management-skin tbody tr:nth-child(even) {
+.nmc-management-skin tbody tr:nth-child(even):not(:where(.bg-white, .bg-gray-50, .bg-emerald-50)) {
   background: rgba(112,153,171,.045) !important;
 }
 
-.nmc-management-skin tbody tr:hover {
+.nmc-management-skin tbody tr:hover:not(:where(.bg-white, .bg-gray-50, .bg-emerald-50)) {
   background: rgba(99,223,189,.075) !important;
 }
 
