@@ -1,6 +1,6 @@
-/* KPI embedded mobile polish v3
+/* KPI embedded mobile polish v4
  * Stable viewport header + 16:9 full poster + compact filter/summary.
- * Native browser touch scrolling, reliable horizontal overflow and pinned STT.
+ * Native browser touch scrolling, reliable horizontal overflow and lightweight pinned STT.
  */
 
 @media (max-width: 640px) {
@@ -142,7 +142,9 @@
     overscroll-behavior-y: auto !important;
   }
 
-  /* Pin the true STT column to the left during horizontal movement. */
+  /* Pin the true STT column to the left during horizontal movement. The helper
+     applies this class only to rows in/near the viewport, keeping the layer
+     count bounded even when a result contains hundreds of TVV rows. */
   html[data-kpi-embed='1'] body th.nmc-kpi-pin-stt,
   html[data-kpi-embed='1'] body td.nmc-kpi-pin-stt {
     /* A transform counter-offset is deterministic for the nested KPI table
