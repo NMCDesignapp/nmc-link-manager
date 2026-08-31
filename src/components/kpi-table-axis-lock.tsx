@@ -42,17 +42,6 @@ const markPinnedStt = (table: HTMLTableElement) => {
   });
 };
 
-type TouchState = {
-  startX: number;
-  startY: number;
-  startScrollLeft: number;
-  lastX: number;
-  lastTime: number;
-  velocity: number;
-  axis: 'pending' | 'x' | 'y';
-  momentumRaf: number;
-};
-
 export function KpiTableAxisLock() {
   useEffect(() => {
     const cleanups = new Map<HTMLElement, () => void>();
@@ -66,98 +55,16 @@ export function KpiTableAxisLock() {
         scroller.style.setProperty('--nmc-kpi-axis-scroll-left', `${scroller.scrollLeft || 0}px`);
       };
 
-      const state: TouchState = {
-        startX: 0,
-        startY: 0,
-        startScrollLeft: 0,
-        lastX: 0,
-        lastTime: 0,
-        velocity: 0,
-        axis: 'pending',
-        momentumRaf: 0,
-      };
-
-      const stopMomentum = () => {
-        if (state.momentumRaf) cancelAnimationFrame(state.momentumRaf);
-        state.momentumRaf = 0;
-      };
-
-      const onTouchStart = (event: TouchEvent) => {
-        if (event.touches.length !== 1) return;
-        stopMomentum();
-        const touch = event.touches[0];
-        state.startX = touch.clientX;
-        state.startY = touch.clientY;
-        state.startScrollLeft = scroller.scrollLeft;
-        state.lastX = touch.clientX;
-        state.lastTime = performance.now();
-        state.velocity = 0;
-        state.axis = 'pending';
-      };
-
-      const onTouchMove = (event: TouchEvent) => {
-        if (event.touches.length !== 1) return;
-        const touch = event.touches[0];
-        const dx = touch.clientX - state.startX;
-        const dy = touch.clientY - state.startY;
-
-        if (state.axis === 'pending') {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < 7) return;
-          state.axis = Math.abs(dx) > Math.abs(dy) * 1.12 ? 'x' : 'y';
-        }
-
-        if (state.axis !== 'x') return;
-        if (event.cancelable) event.preventDefault();
-
-        const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-        scroller.scrollLeft = Math.max(0, Math.min(max, state.startScrollLeft - dx));
-
-        const now = performance.now();
-        const dt = Math.max(8, now - state.lastTime);
-        const instant = ((state.lastX - touch.clientX) / dt) * 16;
-        state.velocity = state.velocity * 0.68 + instant * 0.32;
-        state.lastX = touch.clientX;
-        state.lastTime = now;
-      };
-
-      const onTouchEnd = () => {
-        if (state.axis !== 'x' || Math.abs(state.velocity) < 0.35) {
-          state.axis = 'pending';
-          return;
-        }
-
-        let velocity = Math.max(-22, Math.min(22, state.velocity));
-        const tick = () => {
-          const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-          const before = scroller.scrollLeft;
-          scroller.scrollLeft = Math.max(0, Math.min(max, before + velocity));
-          velocity *= 0.91;
-          const hitEdge = scroller.scrollLeft === before && (before <= 0 || before >= max);
-          if (Math.abs(velocity) < 0.28 || hitEdge) {
-            state.momentumRaf = 0;
-            return;
-          }
-          state.momentumRaf = requestAnimationFrame(tick);
-        };
-        state.momentumRaf = requestAnimationFrame(tick);
-        state.axis = 'pending';
-      };
-
-      scroller.addEventListener('touchstart', onTouchStart, { passive: true });
-      scroller.addEventListener('touchmove', onTouchMove, { passive: false });
-      scroller.addEventListener('touchend', onTouchEnd, { passive: true });
-      scroller.addEventListener('touchcancel', onTouchEnd, { passive: true });
+      // Let the browser own touch gestures completely. The previous manual
+      // touchmove + momentum implementation competed with vertical page scroll
+      // on Android/WebView and made diagonal/up-down swipes feel sticky.
+      // We only mirror scrollLeft into a CSS variable for the pinned STT cell.
       scroller.addEventListener('scroll', syncPinnedColumn, { passive: true });
       syncPinnedColumn();
 
       cleanups.set(scroller, () => {
-        stopMomentum();
         scroller.classList.remove('nmc-kpi-axis-lock');
         scroller.style.removeProperty('--nmc-kpi-axis-scroll-left');
-        scroller.removeEventListener('touchstart', onTouchStart);
-        scroller.removeEventListener('touchmove', onTouchMove);
-        scroller.removeEventListener('touchend', onTouchEnd);
-        scroller.removeEventListener('touchcancel', onTouchEnd);
         scroller.removeEventListener('scroll', syncPinnedColumn);
       });
     };
