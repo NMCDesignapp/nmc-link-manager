@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
 
-// A restore can copy explicit Setting IDs but leave PostgreSQL's serial sequence
-// behind. The next new setting then fails with a duplicate primary-key error.
-// Keep this recovery local to Settings and retry the exact write once.
+const ACTIVE_TARGET_REGISTRATION_MONTH = '2026-09'
+
 async function repairSettingIdSequence() {
   await db.$executeRawUnsafe(`
     SELECT setval(
@@ -23,6 +22,9 @@ export async function GET() {
       return acc
     }, {})
 
+    settingsObject['kpi-target-registration-open'] = '1'
+    settingsObject['kpi-target-registration-month'] = ACTIVE_TARGET_REGISTRATION_MONTH
+
     return NextResponse.json(settingsObject, {
       headers: { 'Cache-Control': 'no-store' },
     })
@@ -41,7 +43,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: true })
     }
 
-    // Batch upsert using $transaction for better performance.
     const saveEntries = () => db.$transaction(
       entries.map(([key, value]) =>
         db.setting.upsert({
@@ -55,7 +56,6 @@ export async function PUT(request: Request) {
     try {
       await withRetry(saveEntries)
     } catch (firstError) {
-      // Self-heal the sequence once, then retry the same atomic write.
       await repairSettingIdSequence()
       await withRetry(saveEntries)
     }
