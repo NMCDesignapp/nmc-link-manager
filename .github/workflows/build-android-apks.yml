@@ -1,0 +1,62 @@
+name: Build Android APKs
+
+on:
+  push:
+    branches:
+      - main
+      - feat/android-apk-shell
+    paths:
+      - "android/**"
+      - ".github/workflows/build-android-apks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build both APKs
+        working-directory: android
+        run: gradle --no-daemon :mainapp:assembleDebug :kpiapp:assembleDebug --stacktrace
+
+      - name: Collect installable APKs
+        run: |
+          mkdir -p android/output
+          cp android/mainapp/build/outputs/apk/debug/mainapp-debug.apk android/output/NC-Link-Main-v1.0.0.apk
+          cp android/kpiapp/build/outputs/apk/debug/kpiapp-debug.apk android/output/NC-Link-KPI-v1.0.0.apk
+          sha256sum android/output/*.apk | tee android/output/SHA256SUMS.txt
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NC-Link-Android-APKs
+          path: |
+            android/output/NC-Link-Main-v1.0.0.apk
+            android/output/NC-Link-KPI-v1.0.0.apk
+            android/output/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
