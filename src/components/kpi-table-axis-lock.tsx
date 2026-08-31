@@ -62,6 +62,10 @@ export function KpiTableAxisLock() {
       if (cleanups.has(scroller)) return;
       scroller.classList.add('nmc-kpi-axis-lock');
 
+      const syncPinnedColumn = () => {
+        scroller.style.setProperty('--nmc-kpi-axis-scroll-left', `${scroller.scrollLeft || 0}px`);
+      };
+
       const state: TouchState = {
         startX: 0,
         startY: 0,
@@ -143,14 +147,18 @@ export function KpiTableAxisLock() {
       scroller.addEventListener('touchmove', onTouchMove, { passive: false });
       scroller.addEventListener('touchend', onTouchEnd, { passive: true });
       scroller.addEventListener('touchcancel', onTouchEnd, { passive: true });
+      scroller.addEventListener('scroll', syncPinnedColumn, { passive: true });
+      syncPinnedColumn();
 
       cleanups.set(scroller, () => {
         stopMomentum();
         scroller.classList.remove('nmc-kpi-axis-lock');
+        scroller.style.removeProperty('--nmc-kpi-axis-scroll-left');
         scroller.removeEventListener('touchstart', onTouchStart);
         scroller.removeEventListener('touchmove', onTouchMove);
         scroller.removeEventListener('touchend', onTouchEnd);
         scroller.removeEventListener('touchcancel', onTouchEnd);
+        scroller.removeEventListener('scroll', syncPinnedColumn);
       });
     };
 
