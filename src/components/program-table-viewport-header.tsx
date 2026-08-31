@@ -174,10 +174,10 @@ export function ProgramTableViewportHeader() {
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
 
-          // Anchor the mirror to the active vertical scrollport. The normal mobile
-          // path uses the management viewport (top: 0). A legacy nested scroller
-          // falls back to its own top edge, so the mirror never covers the poster.
-          const headerHasReachedTop = tableRect.top <= stickyTop;
+          // Only pin after the real THEAD reaches the active scrollport top.
+          // Using tableRect.top made the mirror appear while the poster/filter
+          // were still above the real header on several mobile policy layouts.
+          const headerHasReachedTop = headRect.top <= stickyTop + 1;
           const tableStillVisible = tableRect.bottom > stickyTop + Math.max(headRect.height + 6, 30);
           entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
         });
