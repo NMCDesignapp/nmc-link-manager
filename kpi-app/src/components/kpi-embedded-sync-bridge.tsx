@@ -8,8 +8,28 @@ type SyncPayload = {
   ok: boolean;
 };
 
+const TARGET_MONTH_LABEL = '9/2026';
+
+const patchTargetRegistrationCampaign = () => {
+  if (!document.querySelector('.kpi-app')) return;
+  const selectors = [
+    '.target-reg-btn:not(.target-reg-list-btn)',
+    '.desktop-target-inline:not(.desktop-target-list-inline)',
+    '.tgr-modal-title',
+    '.tgr-list-heading-bottom',
+  ].join(',');
+
+  document.querySelectorAll<HTMLElement>(selectors).forEach((node) => {
+    const text = node.textContent || '';
+    if (!/mục tiêu tháng\s+\d{1,2}\/\d{4}/i.test(text)) return;
+    node.textContent = text.replace(/tháng\s+\d{1,2}\/\d{4}/i, `Tháng ${TARGET_MONTH_LABEL}`);
+  });
+};
+
 export function KpiEmbeddedSyncBridge() {
   useEffect(() => {
+    let timer = 0;
+
     const renderInKpiHeader = (payload: SyncPayload) => {
       const title = document.querySelector<HTMLElement>('.kpi-embed-title');
       if (!title) return;
@@ -29,8 +49,21 @@ export function KpiEmbeddedSyncBridge() {
       renderInKpiHeader({ type: 'nmc-kpi-sync-meta', label: data.label, ok: Boolean(data.ok) });
     };
 
+    const schedulePatch = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(patchTargetRegistrationCampaign, 50);
+    };
+
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    patchTargetRegistrationCampaign();
+    const observer = new MutationObserver(schedulePatch);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+      window.removeEventListener('message', onMessage);
+    };
   }, []);
 
   return null;
