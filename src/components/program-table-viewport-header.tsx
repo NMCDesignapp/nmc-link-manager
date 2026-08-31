@@ -151,16 +151,11 @@ export function ProgramTableViewportHeader() {
           const tableRect = entry.table.getBoundingClientRect();
           const headRect = entry.thead.getBoundingClientRect();
           const scrollLeft = entry.scroller.scrollLeft || 0;
-          // Keep the mirror on the table's real content edge. Several KPI tables
-          // have a small inset inside their wrapper; anchoring to the wrapper made
-          // the mirrored STT column drift a few pixels to the left.
+          // Anchor the overlay to the table content edge. The whole mirrored
+          // header then moves left together with horizontal scroll; STT is not
+          // counter-offset or pinned separately.
           const tableContentLeft = tableRect.left + scrollLeft;
-          const firstHeadCell = entry.thead.querySelector<HTMLTableCellElement>('th');
-          const firstHeadText = normalizeText(firstHeadCell?.textContent);
-          const pinnedSttLeft = firstHeadCell && (firstHeadText === 'STT' || firstHeadText === 'TT' || firstHeadText === '#')
-            ? firstHeadCell.getBoundingClientRect().left
-            : tableContentLeft;
-          const left = Math.max(0, rootRect.left, tableContentLeft, pinnedSttLeft);
+          const left = Math.max(0, rootRect.left, tableContentLeft);
           const right = Math.min(viewportWidth, rootRect.right);
           const width = Math.max(0, right - left);
           const stickyTop = getStickyViewportTop(entry.root);
@@ -169,7 +164,6 @@ export function ProgramTableViewportHeader() {
           entry.overlay.style.width = `${width}px`;
           entry.overlay.style.height = `${headRect.height}px`;
           entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
-          entry.overlay.style.setProperty('--nmc-kpi-mirror-scroll-left', `${scrollLeft}px`);
 
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
@@ -214,8 +208,6 @@ export function ProgramTableViewportHeader() {
         const target = mirrorCells[index];
         if (!target) return;
         copyHeaderCellPresentation(source, target);
-        const text = normalizeText(source.textContent);
-        if (text === 'STT' || text === 'TT' || text === '#') target.classList.add('nmc-kpi-mirror-pin-stt');
       });
     };
 
