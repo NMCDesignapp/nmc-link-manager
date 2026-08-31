@@ -1,0 +1,89 @@
+/* Main App /quan-ly mobile fixes v1
+ * Scope: phone management UI only.
+ * Goals:
+ *  - keep spreadsheet rows readable (light zebra, dark text)
+ *  - remove nested vertical table scrollers; the page owns vertical scrolling
+ *  - keep the fixed bottom nav from covering the final rows
+ *  - suppress the global PWA install bubble/banner while /quan-ly is open
+ */
+
+@media (max-width: 720px) {
+  /* The management tables are spreadsheet surfaces. Two older metal themes
+     forced even tbody rows dark with !important while EditableCell uses dark
+     text, producing unreadable black/dark alternating rows. Restore a light,
+     low-contrast zebra for every ordinary management data table. */
+  .nmc-management-skin .nmc-management-content table {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+  }
+
+  .nmc-management-skin .nmc-management-content tbody tr,
+  .nmc-management-skin .nmc-management-content tbody tr:nth-child(odd) {
+    background: #ffffff !important;
+    color: #1f2937 !important;
+    border-color: #d8e2de !important;
+  }
+
+  .nmc-management-skin .nmc-management-content tbody tr:nth-child(even) {
+    background: #f3f7f5 !important;
+    color: #1f2937 !important;
+  }
+
+  .nmc-management-skin .nmc-management-content tbody tr:hover {
+    background: #ecfdf5 !important;
+  }
+
+  .nmc-management-skin .nmc-management-content tbody td {
+    border-color: #dde6e2 !important;
+  }
+
+  /* Preserve deliberate semantic cells/rows such as totals and warning bands. */
+  .nmc-management-skin .nmc-management-content tbody tr.bg-amber-100,
+  .nmc-management-skin .nmc-management-content tbody tr.bg-amber-100:nth-child(even),
+  .nmc-management-skin .nmc-management-content tbody tr.bg-amber-100:nth-child(odd) {
+    background: #fef3c7 !important;
+  }
+
+  .nmc-management-skin .nmc-management-content tbody td.bg-amber-50 {
+    background: #fffbeb !important;
+  }
+
+  /* Several Structure tables had their own max-height + overflow:auto while
+     .nmc-management-content is already the vertical scroller. On phones this
+     creates two competing vertical scroll owners. Let the outer page own Y;
+     the table wrapper remains available for horizontal panning only. */
+  .nmc-management-skin .nmc-management-content .overflow-auto:has([data-slot='table']) {
+    max-height: none !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-x pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .nmc-management-skin .nmc-management-content [data-slot='table-container'] {
+    touch-action: pan-x pan-y !important;
+    overscroll-behavior-x: contain !important;
+  }
+
+  /* Give the bottom fixed navigation a real content exclusion zone so the last
+     table rows/actions can always be scrolled fully above it. */
+  .nmc-management-skin .nmc-management-content {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .nmc-management-skin .nmc-main-bottom-nav {
+    z-index: 190 !important;
+  }
+
+  /* PwaInstallPrompt is rendered outside the management stacking context.
+     Its z-80/z-90 floating controls otherwise sit above the whole z-50 app and
+     overlap the bottom navigation (the "Cài đặt app" bubble seen on phones).
+     Installation remains available from normal Main App pages. */
+  body:has(.nmc-management-skin) [class~='fixed'][class~='bottom-4'][class~='right-4'][class~='z-[80]'],
+  body:has(.nmc-management-skin) [class~='fixed'][class~='bottom-4'][class~='left-4'][class~='right-4'][class~='z-[90]'] {
+    display: none !important;
+  }
+}
