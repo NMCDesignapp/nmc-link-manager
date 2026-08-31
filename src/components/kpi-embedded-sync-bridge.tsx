@@ -8,8 +8,6 @@ type SyncPayload = {
   ok: boolean;
 };
 
-const TARGET_MONTH_LABEL = '9/2026';
-
 const formatCompact = (title: string) => {
   const raw = title.replace(/^Lần đồng bộ gần nhất:\s*/i, '').trim();
   const parsed = new Date(raw);
@@ -29,22 +27,6 @@ const findSyncStatus = () => {
   const title = node.getAttribute('title') || '';
   const ok = /đang kết nối|google sheets/i.test(node.textContent || '') || Boolean(node.querySelector('.bg-emerald-400'));
   return { node, label: formatCompact(title), ok };
-};
-
-const patchTargetRegistrationCampaign = () => {
-  if (!document.querySelector('.kpi-app')) return;
-  const selectors = [
-    '.target-reg-btn:not(.target-reg-list-btn)',
-    '.desktop-target-inline:not(.desktop-target-list-inline)',
-    '.tgr-modal-title',
-    '.tgr-list-heading-bottom',
-  ].join(',');
-
-  document.querySelectorAll<HTMLElement>(selectors).forEach((node) => {
-    const text = node.textContent || '';
-    if (!/mục tiêu tháng\s+\d{1,2}\/\d{4}/i.test(text)) return;
-    node.textContent = text.replace(/tháng\s+\d{1,2}\/\d{4}/i, `Tháng ${TARGET_MONTH_LABEL}`);
-  });
 };
 
 export function KpiEmbeddedSyncBridge() {
@@ -83,18 +65,13 @@ export function KpiEmbeddedSyncBridge() {
 
     const schedulePublish = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        publishFromEmbeddedSheet();
-        patchTargetRegistrationCampaign();
-      }, 60);
+      timer = window.setTimeout(publishFromEmbeddedSheet, 80);
     };
 
     window.addEventListener('message', onMessage);
     publishFromEmbeddedSheet();
-    patchTargetRegistrationCampaign();
-
-    const observer = new MutationObserver(() => schedulePublish());
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'class'] });
+    const observer = new MutationObserver(schedulePublish);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['title', 'class'] });
 
     return () => {
       window.clearTimeout(timer);
