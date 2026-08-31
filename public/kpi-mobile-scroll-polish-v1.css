@@ -1,6 +1,6 @@
-/* KPI embedded mobile polish v2
+/* KPI embedded mobile polish v3
  * Stable viewport header + 16:9 full poster + compact filter/summary.
- * Keeps the existing single-axis touch handling and pinned STT column.
+ * Native browser touch scrolling, reliable horizontal overflow and pinned STT.
  */
 
 @media (max-width: 640px) {
@@ -55,6 +55,18 @@
   html[data-kpi-embed='1'] body .nmc-kpi-mobile-poster > img[alt='Poster'],
   html[data-kpi-embed='1'] body .nmc-kpi-filter-poster-host > img[alt='Poster'],
   html[data-kpi-embed='1'] body div:has(> img[alt='Poster']) > img[alt='Poster'] {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: fill !important;
+    object-position: center !important;
+    margin: 0 !important;
+  }
+
+  /* Saved-contest posters use the program title as alt text rather than
+     alt="Poster". Stretch that image too so the source is never cropped. */
+  html[data-kpi-embed='1'] body [data-nmc-kpi-detail-shell='saved-contest'] [data-nmc-kpi-detail-stack] > div:first-child > img {
     display: block !important;
     width: 100% !important;
     height: 100% !important;
@@ -121,10 +133,11 @@
     padding-bottom: max(46px, calc(env(safe-area-inset-bottom) + 42px)) !important;
   }
 
-  /* Gesture policy: browser owns vertical panning; the lightweight component
-     handles horizontal panning only after direction has been resolved. */
-  html[data-kpi-embed='1'] body .nmc-kpi-axis-lock {
-    touch-action: pan-y !important;
+  /* The browser now owns both touch axes. This avoids the previous touchmove
+     interception that made vertical/diagonal swipes feel jerky on Android. */
+  html[data-kpi-embed='1'] body .nmc-kpi-axis-lock,
+  html[data-kpi-embed='1'] body [data-nmc-kpi-horizontal-scroller='1'] {
+    touch-action: pan-x pan-y !important;
     overscroll-behavior-x: contain !important;
     overscroll-behavior-y: auto !important;
   }
@@ -192,5 +205,78 @@
     transform: none !important;
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
+  }
+}
+
+/* ---- Detail table horizontal-scroll reliability (all viewport sizes) ----
+   Some program tables used width:100%, so their columns were compressed into the
+   viewport and there was no horizontal overflow for the user to pan. Use the
+   table's max-content width while retaining a 100% minimum. */
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper,
+html[data-kpi-embed='1'] body #result-table-container,
+html[data-kpi-embed='1'] body [data-nmc-kpi-horizontal-scroller='1'] {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper [data-slot='table-container'],
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper [data-slot='table-container'],
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper [data-slot='table-container'] {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body .contest-result-table-wrapper table:not([data-nmc-kpi-mirror-table]),
+html[data-kpi-embed='1'] body #result-table-container table:not([data-nmc-kpi-mirror-table]) {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  table-layout: auto !important;
+}
+
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper th,
+html[data-kpi-embed='1'] body .policy-detail-table-wrapper td,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper th,
+html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper td,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper th,
+html[data-kpi-embed='1'] body .clbsv-detail-table-wrapper td,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper th,
+html[data-kpi-embed='1'] body .contest-result-table-wrapper td,
+html[data-kpi-embed='1'] body #result-table-container th,
+html[data-kpi-embed='1'] body #result-table-container td {
+  white-space: nowrap !important;
+}
+
+/* Desktop/tablet: native sticky is reliable and avoids transform bookkeeping. */
+@media (min-width: 641px) {
+  html[data-kpi-embed='1'] body th.nmc-kpi-pin-stt,
+  html[data-kpi-embed='1'] body td.nmc-kpi-pin-stt {
+    position: sticky !important;
+    left: 0 !important;
+    transform: none !important;
+    background-clip: padding-box !important;
+    box-shadow: inset -1px 0 0 rgba(107, 123, 117, .24) !important;
+  }
+
+  html[data-kpi-embed='1'] body thead th.nmc-kpi-pin-stt {
+    z-index: 520 !important;
+    background-color: var(--nmc-kpi-sticky-bg, #065f46) !important;
+  }
+
+  html[data-kpi-embed='1'] body tbody td.nmc-kpi-pin-stt {
+    z-index: 24 !important;
+    background-color: #fffefb !important;
   }
 }
