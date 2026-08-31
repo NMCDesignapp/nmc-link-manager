@@ -1,0 +1,1 @@
+KPI v12 is UI-only. It changes loading/linked-page blackwood surfaces, sticky header chrome, and embedded Back-button styling. It does not modify KPI target-registration API, state, handlers, forms, or data logic.
