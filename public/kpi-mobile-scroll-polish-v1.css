@@ -132,9 +132,11 @@
   /* Pin the true STT column to the left during horizontal movement. */
   html[data-kpi-embed='1'] body th.nmc-kpi-pin-stt,
   html[data-kpi-embed='1'] body td.nmc-kpi-pin-stt {
-    position: -webkit-sticky !important;
-    position: sticky !important;
+    /* A transform counter-offset is deterministic for the nested KPI table
+       scroller, where native table-cell sticky is ignored on some WebViews. */
+    position: relative !important;
     left: 0 !important;
+    transform: translate3d(var(--nmc-kpi-axis-scroll-left, 0px), 0, 0) !important;
     background-clip: padding-box !important;
     box-shadow: inset -1px 0 0 rgba(107, 123, 117, .22) !important;
   }
