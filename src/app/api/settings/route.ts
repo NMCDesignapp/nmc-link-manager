@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
 
+const ACTIVE_TARGET_REGISTRATION_MONTH = '2026-09'
+
 // A restore can copy explicit Setting IDs but leave PostgreSQL's serial sequence
 // behind. The next new setting then fails with a duplicate primary-key error.
 // Keep this recovery local to Settings and retry the exact write once.
@@ -22,6 +24,11 @@ export async function GET() {
       acc[setting.key] = setting.value || ''
       return acc
     }, {})
+
+    // Campaign hotfix: September 2026 registration is open to end users now.
+    // Keep the campaign month explicit so every KPI surface can agree on the same period.
+    settingsObject['kpi-target-registration-open'] = '1'
+    settingsObject['kpi-target-registration-month'] = ACTIVE_TARGET_REGISTRATION_MONTH
 
     return NextResponse.json(settingsObject, {
       headers: { 'Cache-Control': 'no-store' },
