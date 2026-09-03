@@ -1,5 +1,5 @@
-/* Main App /quan-ly mobile fixes v2
- * Scope: phone management UI only.
+/* Main App management / contest mobile fixes v3
+ * Scope: phone Main UI only; embedded KPI surfaces are excluded.
  * Goals:
  *  - keep spreadsheet rows readable (light zebra, dark text)
  *  - remove nested vertical table scrollers; the page owns vertical scrolling
@@ -9,6 +9,26 @@
  */
 
 @media (max-width: 720px) {
+  /* Compact the two Main headers without removing the device's safe area.
+     Contest previously had padding on both the header and its inner row.
+     Keep height automatic so wrapped titles / larger text cannot be clipped. */
+  .nmc-management-skin > .nmc-section-header,
+  .nmc-contest-skin > .nmc-section-header {
+    min-height: 52px;
+    padding-top: max(6px, env(safe-area-inset-top)) !important;
+    padding-bottom: 6px !important;
+  }
+
+  .nmc-contest-skin > .nmc-section-header > .max-w-5xl {
+    min-height: 38px;
+    padding: 0 !important;
+  }
+
+  .nmc-management-skin > .nmc-management-content,
+  .nmc-contest-skin > .nmc-contest-content {
+    padding-top: 8px !important;
+  }
+
   /* The management tables are spreadsheet surfaces. Two older metal themes
      forced even tbody rows dark with !important while EditableCell uses dark
      text, producing unreadable black/dark alternating rows. Restore a light,
