@@ -306,7 +306,7 @@
   border-color: rgba(165,197,211,.10) !important;
 }
 
-:where(.nmc-management-content, .nmc-contest-content) tbody tr:nth-child(even) {
+:where(.nmc-management-content, .nmc-contest-content) tbody tr:nth-child(even):not(:where(.bg-white, .bg-gray-50, .bg-emerald-50)) {
   background: rgba(53, 76, 87, .18) !important;
 }
 

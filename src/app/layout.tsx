@@ -70,12 +70,12 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-1" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v13.css?v=20260831-1" />
         <link rel="stylesheet" href="/main-management-soft-ui-v1.css?v=20260827-2" />
-        <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260828-1" />
+        <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260831-2" />
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
-        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260830-2" />
-        <link rel="stylesheet" href="/main-management-mobile-fixes-v1.css?v=20260831-2" />
+        <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260831-3" />
+        <link rel="stylesheet" href="/main-management-mobile-fixes-v1.css?v=20260903-1" />
         <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
         <link rel="stylesheet" href="/kpi-embedded-fullbleed-v1.css?v=20260830-1" />
         <link rel="stylesheet" href="/kpi-table-zebra-soft-v1.css?v=20260829-1" />
