@@ -253,14 +253,17 @@ function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
   );
 }
 
+const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+const numberFormatter = new Intl.NumberFormat('vi-VN');
+const dateFormatter = new Intl.DateTimeFormat('vi-VN');
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
+  return currencyFormatter.format(amount);
 }
-function formatNumber(amount: number): string { return new Intl.NumberFormat('vi-VN').format(amount); }
+function formatNumber(amount: number): string { return numberFormatter.format(amount); }
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
+  return Number.isNaN(date.getTime()) ? '' : dateFormatter.format(date);
 }
 function nganToVnd(val: number): number { return val * 1_000; }
 function vndToNgan(val: number): number { return val / 1_000; }
@@ -463,6 +466,17 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 });
 
 // Bonus tier editor component
+// Source rows do not depend on the contest draft. Keep their large subtree out
+// of input updates even when the source panel is open.
+const ContestSourceRows = React.memo(function ContestSourceRows({ contracts, onDelete }: {
+  contracts: Contract[];
+  onDelete: (id: string) => Promise<void>;
+}) {
+  return <TableBody>{contracts.map((c, idx) => (
+    <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={() => onDelete(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+  ))}</TableBody>;
+});
+
 const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
   tiers: BonusTier[];
   conditionType: ConditionType;
@@ -688,6 +702,19 @@ function ThiDuaPageInner() {
     // Chi tiết/poster của chương trình được tải riêng khi người dùng mở chương trình đó.
     try { const res = await fetchFresh('/api/contests?summary=1'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
   }, [fetchFresh]);
+
+  const deleteSourceContract = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/contracts?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast({ title: 'Thành công', description: 'Đã xóa' });
+        fetchContracts();
+        setFilteredContracts(prev => prev.filter(fc => fc.id !== id));
+      }
+    } catch {
+      toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' });
+    }
+  }, [fetchContracts]);
 
   // Fetch staff list for group membership reference
   const fetchStaff = useCallback(async () => {
@@ -4013,7 +4040,7 @@ function ThiDuaPageInner() {
           </div>
         )}
 
-        {/* Source Data - collapsible (display toggle thay vì conditional render để tránh giật) */}
+        {/* Do not mount the full source table while its panel is closed. */}
         <Card className={`${neonBorder} bg-[#0e1424]/95`}>
           <CardHeader className="pb-2 pt-3 px-4">
             <button className="flex items-center justify-between w-full" onClick={() => setShowSourceData(!showSourceData)}>
@@ -4021,19 +4048,17 @@ function ThiDuaPageInner() {
               {showSourceData ? <ChevronUp className="w-4 h-4 text-emerald-400/60" /> : <ChevronDown className="w-4 h-4 text-emerald-400/60" />}
             </button>
           </CardHeader>
-          <CardContent className="px-4 pb-3" style={{ display: showSourceData ? 'block' : 'none' }}>
+          {showSourceData && <CardContent className="px-4 pb-3">
               {contracts.length === 0 ? (
                 <div className="text-center py-6 text-emerald-400/50"><Database className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Chưa có dữ liệu</p><p className="text-xs">Nhấn &ldquo;Nhập HD&rdquo; để tải từ Google Sheets</p></div>
               ) : (
                 <div className="rounded-lg border border-emerald-500/30 overflow-x-auto max-h-48 overflow-y-auto">
                   <Table><TableHeader><TableRow className="bg-emerald-500/20 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
-                    <TableBody>{contracts.map((c, idx) => (
-                      <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={async () => { try { const res = await fetch(`/api/contracts?id=${c.id}`, { method: 'DELETE' }); if (res.ok) { toast({ title: 'Thành công', description: 'Đã xóa' }); fetchContracts(); setFilteredContracts((prev) => prev.filter((fc) => fc.id !== c.id)); } } catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); } }} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
-                    ))}</TableBody>
+                    <ContestSourceRows contracts={contracts} onDelete={deleteSourceContract} />
                   </Table>
                 </div>
               )}
-            </CardContent>
+            </CardContent>}
         </Card>
       </main>
       )}
