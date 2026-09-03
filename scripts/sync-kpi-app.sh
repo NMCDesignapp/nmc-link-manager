@@ -165,6 +165,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v10.css?v=20260826-6" />
         <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v11.css?v=20260826-7" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-2" />
+        <link rel="stylesheet" href="/kpi-blackwood-theme-v13.css?v=20260831-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
@@ -194,6 +195,7 @@ fi
 echo "[7/8] Syncing shared KPI assets"
 if [ $CHECK_ONLY -eq 0 ]; then
   mkdir -p "$KPI_APP/public/icon" "$KPI_APP/public/kpi"
+  cp "$ROOT/public/kpi-blackwood-theme-v13.css" "$KPI_APP/public/kpi-blackwood-theme-v13.css"
   cp -r "$ROOT/public/kpi/"* "$KPI_APP/public/kpi/" 2>/dev/null || true
   cp "$ROOT/public/logo.svg" "$KPI_APP/public/" 2>/dev/null || true
 fi

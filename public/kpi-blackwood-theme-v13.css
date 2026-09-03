@@ -1,0 +1,17 @@
+/* NMC KPI black-wood theme v13
+ * The entry gate is the top-most initial loader and owns an inline tech backdrop.
+ * Override only that backdrop so the existing silver plate and real ECG progress
+ * remain unchanged while the full loading scene uses black wood.
+ */
+
+html body #nmc-kpi-entry-gate[aria-label='Đang hoàn tất tải dữ liệu KPI'] {
+  background-color: #08090b !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(0,0,0,.02) 0%, rgba(0,0,0,.38) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.16), rgba(0,0,0,.34)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
