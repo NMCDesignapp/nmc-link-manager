@@ -68,6 +68,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-blackwood-theme-v10.css?v=20260826-6" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v11.css?v=20260826-7" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-1" />
+        <link rel="stylesheet" href="/kpi-blackwood-theme-v13.css?v=20260831-1" />
         <link rel="stylesheet" href="/main-management-soft-ui-v1.css?v=20260827-2" />
         <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260828-1" />
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />

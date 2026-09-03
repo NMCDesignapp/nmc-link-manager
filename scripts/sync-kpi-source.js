@@ -26,6 +26,11 @@ const mainActionWidthsPatchScript = path.join(root, 'scripts', 'apply-kpi-main-a
 
 const sharedCopies = [
   {
+    source: path.join(root, 'public', 'kpi-blackwood-theme-v13.css'),
+    target: path.join(root, 'kpi-app', 'public', 'kpi-blackwood-theme-v13.css'),
+    label: 'kpi-app/public/kpi-blackwood-theme-v13.css',
+  },
+  {
     source: path.join(root, 'src', 'app', 'api', 'contests', 'route.ts'),
     target: path.join(root, 'kpi-app', 'src', 'app', 'api', 'contests', 'route.ts'),
     label: 'kpi-app/src/app/api/contests/route.ts',
