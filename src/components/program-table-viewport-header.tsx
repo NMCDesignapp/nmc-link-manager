@@ -24,6 +24,58 @@ const normalizeText = (value: string | null | undefined) =>
 
 const isEmbeddedKpiPage = () => document.documentElement.getAttribute('data-kpi-embed') === '1';
 
+const MIRRORED_CELL_PROPERTIES = [
+  'background-color',
+  'background-image',
+  'background-position',
+  'background-size',
+  'background-repeat',
+  'color',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'letter-spacing',
+  'line-height',
+  'text-align',
+  'text-shadow',
+  'text-transform',
+  'vertical-align',
+  'white-space',
+  'box-sizing',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'border-top-width',
+  'border-top-style',
+  'border-top-color',
+  'border-right-width',
+  'border-right-style',
+  'border-right-color',
+  'border-bottom-width',
+  'border-bottom-style',
+  'border-bottom-color',
+  'border-left-width',
+  'border-left-style',
+  'border-left-color',
+] as const;
+
+const copyHeaderCellPresentation = (source: HTMLTableCellElement, target: HTMLTableCellElement) => {
+  const computed = getComputedStyle(source);
+  MIRRORED_CELL_PROPERTIES.forEach((property) => {
+    target.style.setProperty(property, computed.getPropertyValue(property), 'important');
+  });
+
+  const rect = source.getBoundingClientRect();
+  if (rect.width > 1) {
+    target.style.setProperty('width', `${rect.width}px`, 'important');
+    target.style.setProperty('min-width', `${rect.width}px`, 'important');
+    target.style.setProperty('max-width', `${rect.width}px`, 'important');
+  }
+  if (rect.height > 1) target.style.setProperty('height', `${rect.height}px`, 'important');
+};
+
 const getVerticalScrollAncestors = (node: HTMLElement) => {
   const result: HTMLElement[] = [];
   let parent = node.parentElement;
@@ -98,16 +150,20 @@ export function ProgramTableViewportHeader() {
           const rootRect = entry.root.getBoundingClientRect();
           const tableRect = entry.table.getBoundingClientRect();
           const headRect = entry.thead.getBoundingClientRect();
-          const left = Math.max(0, rootRect.left);
+          const scrollLeft = entry.scroller.scrollLeft || 0;
+          // Anchor the overlay to the table content edge. The whole mirrored
+          // header then moves left together with horizontal scroll; STT is not
+          // counter-offset or pinned separately.
+          const tableContentLeft = tableRect.left + scrollLeft;
+          const left = Math.max(0, rootRect.left, tableContentLeft);
           const right = Math.min(viewportWidth, rootRect.right);
           const width = Math.max(0, right - left);
-          const scrollLeft = entry.scroller.scrollLeft || 0;
           const stickyTop = getStickyViewportTop(entry.root);
 
           entry.overlay.style.left = `${left}px`;
           entry.overlay.style.width = `${width}px`;
+          entry.overlay.style.height = `${headRect.height}px`;
           entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
-          entry.overlay.style.setProperty('--nmc-kpi-mirror-scroll-left', `${scrollLeft}px`);
 
           const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
           if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
@@ -139,22 +195,19 @@ export function ProgramTableViewportHeader() {
       const mirrorTable = entry.overlay.querySelector<HTMLTableElement>('table');
       if (!mirrorTable) return;
       const tableWidth = Math.max(entry.table.scrollWidth, entry.table.getBoundingClientRect().width);
-      mirrorTable.style.width = `${tableWidth}px`;
-      mirrorTable.style.minWidth = `${tableWidth}px`;
+      const sourceTableStyle = getComputedStyle(entry.table);
+      mirrorTable.style.setProperty('width', `${tableWidth}px`, 'important');
+      mirrorTable.style.setProperty('min-width', `${tableWidth}px`, 'important');
+      mirrorTable.style.setProperty('border-collapse', sourceTableStyle.borderCollapse, 'important');
+      mirrorTable.style.setProperty('border-spacing', sourceTableStyle.borderSpacing, 'important');
+      mirrorTable.style.setProperty('table-layout', sourceTableStyle.tableLayout, 'important');
 
       const sourceCells = Array.from(entry.thead.querySelectorAll<HTMLTableCellElement>('th'));
       const mirrorCells = Array.from(mirrorTable.querySelectorAll<HTMLTableCellElement>('th'));
       sourceCells.forEach((source, index) => {
         const target = mirrorCells[index];
         if (!target) return;
-        const width = source.getBoundingClientRect().width;
-        if (width > 1) {
-          target.style.width = `${width}px`;
-          target.style.minWidth = `${width}px`;
-          target.style.maxWidth = `${width}px`;
-        }
-        const text = normalizeText(source.textContent);
-        if (text === 'STT' || text === 'TT' || text === '#') target.classList.add('nmc-kpi-mirror-pin-stt');
+        copyHeaderCellPresentation(source, target);
       });
     };
 

@@ -1,0 +1,117 @@
+/* NMC KPI black-wood theme v12
+ * Safe UI-only finishing layer based on current main.
+ * - black-wood only for KPI loading / linked loading surfaces
+ * - keep silver loaders and gold ECG from v7-v11
+ * - sticky KPI headers on desktop + mobile
+ * - normalize embedded Back controls without touching data/state logic
+ */
+
+/* The KPI template injects a later tech-background rule with !important.
+   These selectors are intentionally more specific so the requested black wood wins
+   without changing the current template or any target-registration code. */
+html body div[aria-label='Đang tải dữ liệu KPI'],
+html body div[aria-label='Tải dữ liệu gặp lỗi'] {
+  background-color: #08090b !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(0,0,0,.02) 0%, rgba(0,0,0,.38) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.16), rgba(0,0,0,.34)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+
+/* Linked Thi đua / Chính sách / CLB loading scene: black wood behind the existing
+   silver horizontal loader. v10-v11 continue to own the card and ECG geometry. */
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-overlay,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-body,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-iframe,
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader {
+  background-color: #08090b !important;
+  background-image:
+    radial-gradient(ellipse at center, rgba(0,0,0,.02) 0%, rgba(0,0,0,.38) 100%),
+    linear-gradient(180deg, rgba(4,6,9,.16), rgba(0,0,0,.34)),
+    var(--nmc-kpi-wood) !important;
+  background-repeat: no-repeat, no-repeat, repeat !important;
+  background-position: center, center, center top !important;
+  background-size: cover, cover, 194px 384px !important;
+  background-attachment: scroll !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Sticky navigation chrome for the current KPI main + internal destinations.
+   Width/margin details on mobile remain owned by the existing current styles. */
+html body .kpi-app.kpi-app #view-main > header,
+html body .kpi-app.kpi-app #view-detail.active > .detail-shell > .sub-header,
+html body .kpi-app.kpi-app #view-calendar.active > .sub-header,
+html body .kpi-app.kpi-app #view-tamthu-detail.active > .tamthu-detail-shell > .sub-header,
+html body .kpi-app.kpi-app #view-target-reg-list.active .tgr-list-heading {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 120 !important;
+}
+
+/* Linked pages rendered inside KPI iframe use the same pinned header behavior. */
+html[data-kpi-embed='1'] body > main header,
+body.nmc-kpi-linked-page > main header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 120 !important;
+}
+
+/* Standard circular Back control for linked-page headers only. This is CSS-only;
+   handlers, hrefs and target-registration state are untouched. */
+html[data-kpi-embed='1'] body > main header button[aria-label='Quay lại'],
+html[data-kpi-embed='1'] body > main header button[aria-label='Trở về'],
+html[data-kpi-embed='1'] body > main header button[title='Quay lại'],
+html[data-kpi-embed='1'] body > main header button[title='Trở về'],
+body.nmc-kpi-linked-page > main header button[aria-label='Quay lại'],
+body.nmc-kpi-linked-page > main header button[aria-label='Trở về'],
+body.nmc-kpi-linked-page > main header button[title='Quay lại'],
+body.nmc-kpi-linked-page > main header button[title='Trở về'] {
+  box-sizing: border-box !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(78,154,198,.52) !important;
+  background: linear-gradient(180deg, rgba(17,52,82,.94), rgba(10,39,65,.94)) !important;
+  color: #86dda8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 3px 10px rgba(0,0,0,.22),
+    0 0 10px rgba(45,145,191,.12) !important;
+  transform: none !important;
+}
+
+@media (max-width: 720px) {
+  html[data-kpi-embed='1'] body > main header button[aria-label='Quay lại'],
+  html[data-kpi-embed='1'] body > main header button[aria-label='Trở về'],
+  html[data-kpi-embed='1'] body > main header button[title='Quay lại'],
+  html[data-kpi-embed='1'] body > main header button[title='Trở về'],
+  body.nmc-kpi-linked-page > main header button[aria-label='Quay lại'],
+  body.nmc-kpi-linked-page > main header button[aria-label='Trở về'],
+  body.nmc-kpi-linked-page > main header button[title='Quay lại'],
+  body.nmc-kpi-linked-page > main header button[title='Trở về'] {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    flex-basis: 36px !important;
+  }
+}

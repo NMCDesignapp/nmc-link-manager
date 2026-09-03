@@ -18,6 +18,12 @@ import { useAppData } from '@/lib/app-data-context';
 const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || 'https://nc-link.vercel.app';
 const buildMainUrl = (path: string) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
+// Kỳ đăng ký mục tiêu đang mở. Giữ đồng bộ với ACTIVE_TARGET_MONTH trong
+// /api/kpi-target-registrations để tiêu đề, dữ liệu và file Excel cùng một tháng.
+const ACTIVE_TARGET_MONTH = '2026-09';
+const [ACTIVE_TARGET_YEAR, ACTIVE_TARGET_MONTH_NUMBER] = ACTIVE_TARGET_MONTH.split('-');
+const ACTIVE_TARGET_MONTH_LABEL = `${Number(ACTIVE_TARGET_MONTH_NUMBER)}/${ACTIVE_TARGET_YEAR}`;
+
 /* ================= CSS ================= */
 const CSS = `
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
@@ -4332,13 +4338,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     }
     setTargetRegSaving(true);
     try {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const res = await fetch('/api/kpi-target-registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          month,
+          month: ACTIVE_TARGET_MONTH,
           role: targetRegRole,
           nhom: targetRegForm.nhom,
           maNhom: targetRegForm.maNhom,
@@ -4379,9 +4383,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const loadTargetRegList = useCallback(async () => {
     setTargetRegLoading(true);
     try {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const res = await fetch(`/api/kpi-target-registrations?month=${month}&_t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/kpi-target-registrations?month=${ACTIVE_TARGET_MONTH}&_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setTargetRegList(data);
@@ -4462,8 +4464,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     try {
       const XLSXModule = await import('xlsx-js-style');
       const XLSX = XLSXModule.default || XLSXModule;
-      const now = new Date();
-      const monthLabel = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+      const monthLabel = `Tháng ${ACTIVE_TARGET_MONTH_LABEL}`;
 
       // Build sheet data
       const header = [
@@ -4534,7 +4535,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       // Build workbook + download
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'DangKyMucTieu');
-      const filename = `DangKyMucTieu_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.xlsx`;
+      const filename = `DangKyMucTieu_${ACTIVE_TARGET_MONTH}.xlsx`;
       XLSX.writeFile(wb, filename);
     } catch (e: any) {
       alert(`Lỗi export Excel: ${e?.message || e}`);
@@ -6206,7 +6207,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               <div className="target-reg-section mobile-only">
                 <div className="target-reg-actions">
                   <button className="target-reg-btn" onClick={openTargetRegistration}>
-                    ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                    ★ Đăng Ký Mục Tiêu Tháng {ACTIVE_TARGET_MONTH_LABEL}
                   </button>
                   <button className="target-reg-btn target-reg-list-btn" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                     DS Đã Đăng Ký
@@ -6369,7 +6370,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <div className="target-reg-section">
                       <div className="target-reg-actions">
                         <button className="target-reg-btn" onClick={openTargetRegistration}>
-                          ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                          ★ Đăng Ký Mục Tiêu Tháng {ACTIVE_TARGET_MONTH_LABEL}
                         </button>
                         <button className="target-reg-btn target-reg-list-btn" onClick={() => { setView('target-reg-list'); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
                           DS Đã Đăng Ký
@@ -6400,7 +6401,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       openTargetRegistration();
                     }}
                   >
-                    ★ Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}
+                    ★ Đăng Ký Mục Tiêu Tháng {ACTIVE_TARGET_MONTH_LABEL}
                   </button>
                   <button
                     type="button"
@@ -7274,7 +7275,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <div className="tgr-list-heading-copy">
               <div className="tgr-list-heading-top">Danh sách</div>
               <div className="tgr-list-heading-bottom">
-                {`Đăng ký mục tiêu tháng ${NOW.getMonth() + 1}/${NOW.getFullYear()}`}
+                {`Đăng ký mục tiêu tháng ${ACTIVE_TARGET_MONTH_LABEL}`}
               </div>
             </div>
             {/* Export Excel button — admin only */}
@@ -7441,7 +7442,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="tgr-modal-inner" onClick={(e) => e.stopPropagation()}>
             {!targetRegRole ? (
               <>
-                <div className="tgr-modal-title">Đăng Ký Mục Tiêu Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}</div>
+                <div className="tgr-modal-title">Đăng Ký Mục Tiêu Tháng {ACTIVE_TARGET_MONTH_LABEL}</div>
                 <div className="tgr-choice-grid">
                   <button
                     className="tgr-choice-btn"

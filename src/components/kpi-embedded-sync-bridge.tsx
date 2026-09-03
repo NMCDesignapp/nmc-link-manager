@@ -70,9 +70,8 @@ export function KpiEmbeddedSyncBridge() {
 
     window.addEventListener('message', onMessage);
     publishFromEmbeddedSheet();
-
-    const observer = new MutationObserver(() => schedulePublish());
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'class'] });
+    const observer = new MutationObserver(schedulePublish);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['title', 'class'] });
 
     return () => {
       window.clearTimeout(timer);

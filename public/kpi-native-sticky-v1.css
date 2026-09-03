@@ -1,4 +1,4 @@
-/* KPI embedded viewport header v2
+/* KPI embedded viewport header v3
  * The real THEAD stays in normal flow so it is always visible at table start.
  * A light fixed mirror appears only after the real header reaches the viewport top.
  * This avoids Android/WebView sticky failures caused by horizontal overflow ancestors.
@@ -31,7 +31,8 @@ html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead th.nmc-kpi-native-stick
 }
 
 /* Viewport mirror: no filter/translateZ/will-change so it does not create the
-   black compositor flashes seen on Android. Horizontal sync uses relative left. */
+   black compositor flashes seen on Android. Horizontal sync uses relative left.
+   Every header cell, including STT, moves horizontally together. */
 html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 {
   position: fixed !important;
   top: 0 !important;
@@ -71,16 +72,6 @@ html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 th {
   top: auto !important;
   transform: none !important;
   will-change: auto !important;
-}
-
-/* Keep STT visually pinned in the mirrored header while the rest tracks
-   horizontal scrolling. The table itself moves left by scrollLeft; this cell
-   counters that offset without a GPU transform. */
-html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 th.nmc-kpi-mirror-pin-stt {
-  position: relative !important;
-  left: var(--nmc-kpi-mirror-scroll-left, 0px) !important;
-  z-index: 8 !important;
-  background-clip: padding-box !important;
 }
 
 /* Tap-to-select row feedback requested for phone use. */

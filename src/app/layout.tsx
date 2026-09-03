@@ -7,7 +7,6 @@ import { SpaceBackground } from '@/components/space-bg'
 import { EmbeddedProgramDataLoader } from '@/components/embedded-program-data-loader'
 import { ProgramTableNativeSticky } from '@/components/program-table-native-sticky'
 import { ProgramTableViewportHeader } from '@/components/program-table-viewport-header'
-import { KpiTableAxisLock } from '@/components/kpi-table-axis-lock'
 import { KpiEmbeddedFilterBar } from '@/components/kpi-embedded-filter-bar'
 import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
@@ -68,18 +67,21 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-blackwood-theme-v9.css?v=20260826-5" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v10.css?v=20260826-6" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v11.css?v=20260826-7" />
+        <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-1" />
         <link rel="stylesheet" href="/main-management-soft-ui-v1.css?v=20260827-2" />
         <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260831-2" />
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260831-3" />
+        <link rel="stylesheet" href="/main-management-mobile-fixes-v1.css?v=20260831-2" />
         <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
         <link rel="stylesheet" href="/kpi-embedded-fullbleed-v1.css?v=20260830-1" />
         <link rel="stylesheet" href="/kpi-table-zebra-soft-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
-        <link rel="stylesheet" href="/kpi-native-sticky-v1.css?v=20260830-2" />
-        <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260831-2" />
+        <link rel="stylesheet" href="/kpi-native-sticky-v1.css?v=20260831-5" />
+        <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260831-5" />
+        <link rel="stylesheet" href="/kpi-scroll-stability-v2.css?v=20260831-4" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -105,7 +107,6 @@ export default function RootLayout({
       <body className="h-full overflow-auto honeycomb-bg">
         <ProgramTableNativeSticky />
         <ProgramTableViewportHeader />
-        <KpiTableAxisLock />
         <KpiEmbeddedFilterBar />
         <KpiEmbeddedSyncBridge />
         <SpaceBackground />
