@@ -5084,22 +5084,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           bancaPaPhong = { ten: 'Banca - PA', afyp: 0, kh: 0, lhd: 0, td: 0, hdChuan: 0, tyTrong: 0, activeTvv: 0, ads: [], noAds: true, tvvCount: bancaPaTvvTotal };
         }
         // Match contracts by nhom / ban / maNhom / ad containing PA / Banca / DSO / PGB
-        // NOTE: normKey() lowercases + strips accents/punctuation, so the substring
-        // checks below MUST use lowercase literals ('banca', 'dso', 'pgb', 'bancapa').
-        // Earlier code used UPPERCASE literals which never matched → Banca-PA contracts
-        // were dropped from the KPI total, making it ~151M VND lower than quan-ly.
+        // normKey() returns UPPERCASE; keep these markers in the same case.
+        // Otherwise Banca/PGB/DSO contracts disappear from both this card and Company AFYP.
         const paContracts = periodContracts.filter(c => {
           if (isPaOrBanca(c.nhom || '') || isPaOrBanca(c.ban || '') || isPaOrBanca(c.maNhom || '')) return true;
           // Match contracts with ad = 'Banca - PA' or contains 'Banca'
           const adNorm = normKey(c.ad || '');
-          if (adNorm.includes('bancapa') || adNorm.includes('banca')) return true;
+          if (adNorm.includes('BANCAPA') || adNorm.includes('BANCA')) return true;
           // Match contracts with ban field containing PGB (PGB = Phát hành Banca)
           const banNorm = normKey(c.ban || '');
-          if (banNorm.includes('pgb')) return true;
+          if (banNorm.includes('PGB')) return true;
           const nhomNorm = normKey(c.nhom || '');
-          if (nhomNorm.includes('banca') || nhomNorm.includes('dso')) return true;
+          if (nhomNorm.includes('BANCA') || nhomNorm.includes('DSO')) return true;
           const maNhomNorm = normKey(c.maNhom || '');
-          if (maNhomNorm.includes('banca') || maNhomNorm.includes('dso')) return true;
+          if (maNhomNorm.includes('BANCA') || maNhomNorm.includes('DSO')) return true;
           return false;
         });
 
