@@ -21,7 +21,12 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const items = contests.map((contest) => ({
+    // Notice-only exclusion: keep these contests in management and calculations.
+    // NFC also handles Vietnamese titles entered with decomposed accents.
+    const visibleContests = contests.filter((contest) =>
+      !String(contest.title || '').normalize('NFC').trimStart().toLocaleUpperCase('vi-VN').startsWith('CHỐT')
+    );
+    const items = visibleContests.map((contest) => ({
       id: contest.id,
       title: contest.title,
       startDate: contest.startDate,
