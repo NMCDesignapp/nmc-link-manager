@@ -24,8 +24,8 @@
     padding: 0 !important;
   }
 
-  .nmc-management-skin > .nmc-management-content,
-  .nmc-contest-skin > .nmc-contest-content {
+  .nmc-management-skin > .nmc-section-header ~ .nmc-management-content,
+  .nmc-contest-skin > .nmc-section-header ~ .nmc-contest-content {
     padding-top: 8px !important;
   }
 
