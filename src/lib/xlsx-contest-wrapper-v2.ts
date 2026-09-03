@@ -172,6 +172,9 @@ function resultBlockStarts(matrix: Matrix): number[] {
 function sortTVVDetailColumns(matrix: Matrix): Matrix {
   if (matrix.length < 3) return matrix;
   const headers = matrix[0] || [];
+  // The contribution exporter already groups by agent code (not display name).
+  // Keep its subtotal on the first contract, including for duplicate TVV names.
+  if (findHeader(headers, ['Tổng IP TVV trong kỳ']) >= 0) return matrix;
   const tvvIdx = findHeader(headers, ['Họ tên TVV', 'TVV']);
   if (tvvIdx < 0) return matrix;
 

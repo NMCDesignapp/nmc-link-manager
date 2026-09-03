@@ -28,6 +28,7 @@ import {
   RefreshCw, CheckCircle2, CalendarClock, Crown, Medal,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
+import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import {
   calculateNYDPhaseOutcome,
   filterQualifyingActivityContracts,
@@ -2325,6 +2326,7 @@ function ThiDuaPageInner() {
     if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
       const showTVVStartDate = isTVVmMode(conditionType) || includeEligibilityDateColumns;
+      const showTVVmContributions = isTVVmMode(conditionType);
       headers = [
         'STT', 'Nhóm', 'Mã ĐL', 'Họ tên NTD',
         ...(includeEligibilityDateColumns ? ['Ngày hiệu lực chức vụ NTD'] : []),
@@ -2333,6 +2335,7 @@ function ThiDuaPageInner() {
         ...(expSecIP ? ['Tổng IP'] : []),
         'Họ tên TVV',
         ...(showTVVStartDate ? ['Ngày bắt đầu làm việc'] : []),
+        ...(showTVVmContributions ? ['Mã TVV', 'Tổng IP TVV trong kỳ', 'Lượt TVVm'] : []),
         'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP',
         'Tổng cộng',
         ...(usePhase2
@@ -2377,6 +2380,9 @@ function ThiDuaPageInner() {
           || (includeIndividualNTD && c.agentCode === n.nydCode)
         ));
         const contracts = qualifyingActivityContracts(countedContracts);
+        const contributionDetails = showTVVmContributions
+          ? expandActivityExportDetails(countedContracts, contracts)
+          : null;
         if (contracts.length === 0) {
           // NTD không có HĐ, vẫn ghi 1 dòng
           const row: (string | number)[] = [nIdx + 1, n.nhom || '', n.nydCode, n.nydName];
@@ -2387,6 +2393,7 @@ function ThiDuaPageInner() {
           if (expSecIP) row.push(sc.totalIP);
           row.push('');
           if (showTVVStartDate) row.push('');
+          if (showTVVmContributions) row.push('', '', '');
           row.push('', '', '', '', '', value);
           if (usePhase2) {
             row.push(
@@ -2402,7 +2409,9 @@ function ThiDuaPageInner() {
           rows.push(row);
           currentRow++;
         } else {
-          const sortedContracts = [...contracts].sort((a, b) => b.pdt10DT - a.pdt10DT);
+          const sortedContracts = contributionDetails
+            ? contributionDetails.map(detail => detail.contract)
+            : [...contracts].sort((a, b) => b.pdt10DT - a.pdt10DT);
           sortedContracts.forEach((c, cIdx) => {
             const row: (string | number)[] = [
               cIdx === 0 ? nIdx + 1 : '',
@@ -2417,6 +2426,10 @@ function ThiDuaPageInner() {
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             row.push(c.agentName || '');
             if (showTVVStartDate) row.push(tvvStartDateFor(c));
+            if (contributionDetails) {
+              const detail = contributionDetails[cIdx];
+              row.push(c.agentCode, detail.totalIP, detail.rounds);
+            }
             row.push(
               c.contractNumber || '',
               c.effectiveDate ? formatDate(c.effectiveDate) : '',
@@ -2444,6 +2457,7 @@ function ThiDuaPageInner() {
             const endRow = currentRow - 1;
             const detailHeaders = new Set([
               'Họ tên TVV', 'Ngày bắt đầu làm việc', 'Số hợp đồng',
+              'Mã TVV', 'Tổng IP TVV trong kỳ', 'Lượt TVVm',
               'Ngày hiệu lực', 'Ngày phát hành', 'IP', 'AFYP',
             ]);
             for (let col = 0; col < headers.length; col++) {
