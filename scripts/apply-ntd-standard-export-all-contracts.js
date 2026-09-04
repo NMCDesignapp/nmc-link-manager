@@ -24,30 +24,35 @@ const NEW_TVVM_COLUMNS = `            if (showTVVmContributions && contributionD
               row.push(c.agentCode, detail.totalIP, detail.rounds);
             }`;
 
-const originalSource = fs.readFileSync(FILE, 'utf8');
-const eol = originalSource.includes('\r\n') ? '\r\n' : '\n';
-let source = originalSource.replace(/\r\n/g, '\n');
+function applyPatch() {
+  const originalSource = fs.readFileSync(FILE, 'utf8');
+  const eol = originalSource.includes('\r\n') ? '\r\n' : '\n';
+  let source = originalSource.replace(/\r\n/g, '\n');
 
-if (source.includes(MARKER)) {
-  if (!source.includes("const contributionDetails = (showTVVmContributions || conditionType === 'activity_round_standard')")) {
-    throw new Error('[NTD standard export] Có marker nhưng thiếu điều kiện mở rộng HĐ chuẩn.');
+  if (source.includes(MARKER)) {
+    if (!source.includes("const contributionDetails = (showTVVmContributions || conditionType === 'activity_round_standard')")) {
+      throw new Error('[NTD standard export] Có marker nhưng thiếu điều kiện mở rộng HĐ chuẩn.');
+    }
+    if (!source.includes('if (showTVVmContributions && contributionDetails) {')) {
+      throw new Error('[NTD standard export] Có marker nhưng cột TVVm chưa được bảo vệ đúng điều kiện.');
+    }
+    console.log(`✓ NTD standard export already expands all qualifying TVV contracts: ${FILE}`);
+    return false;
   }
-  if (!source.includes('if (showTVVmContributions && contributionDetails) {')) {
-    throw new Error('[NTD standard export] Có marker nhưng cột TVVm chưa được bảo vệ đúng điều kiện.');
+
+  if (!source.includes(OLD_EXPANSION)) {
+    throw new Error(`[NTD standard export] Không tìm thấy block contributionDetails cần sửa trong ${FILE}`);
   }
-  console.log(`✓ NTD standard export already expands all qualifying TVV contracts: ${FILE}`);
-  process.exit(0);
+  if (!source.includes(OLD_TVVM_COLUMNS)) {
+    throw new Error(`[NTD standard export] Không tìm thấy block cột TVVm cần sửa trong ${FILE}`);
+  }
+
+  source = source.replace(OLD_EXPANSION, NEW_EXPANSION);
+  source = source.replace(OLD_TVVM_COLUMNS, NEW_TVVM_COLUMNS);
+  fs.writeFileSync(FILE, source.replace(/\n/g, eol), 'utf8');
+
+  console.log(`✓ NTD standard export now includes all contracts of qualifying TVVs: ${FILE}`);
+  return true;
 }
 
-if (!source.includes(OLD_EXPANSION)) {
-  throw new Error(`[NTD standard export] Không tìm thấy block contributionDetails cần sửa trong ${FILE}`);
-}
-if (!source.includes(OLD_TVVM_COLUMNS)) {
-  throw new Error(`[NTD standard export] Không tìm thấy block cột TVVm cần sửa trong ${FILE}`);
-}
-
-source = source.replace(OLD_EXPANSION, NEW_EXPANSION);
-source = source.replace(OLD_TVVM_COLUMNS, NEW_TVVM_COLUMNS);
-fs.writeFileSync(FILE, source.replace(/\n/g, eol), 'utf8');
-
-console.log(`✓ NTD standard export now includes all contracts of qualifying TVVs: ${FILE}`);
+applyPatch();
