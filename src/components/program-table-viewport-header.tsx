@@ -59,7 +59,117 @@ const MIRRORED_CELL_PROPERTIES = [
   'border-left-width',
   'border-left-style',
   'border-left-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
 ] as const;
+
+const MIRRORED_ELEMENT_PROPERTIES = [
+  'align-items',
+  'background-color',
+  'background-image',
+  'background-position',
+  'background-size',
+  'background-repeat',
+  'border-top-width',
+  'border-top-style',
+  'border-top-color',
+  'border-right-width',
+  'border-right-style',
+  'border-right-color',
+  'border-bottom-width',
+  'border-bottom-style',
+  'border-bottom-color',
+  'border-left-width',
+  'border-left-style',
+  'border-left-color',
+  'box-shadow',
+  'box-sizing',
+  'color',
+  'display',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'gap',
+  'justify-content',
+  'letter-spacing',
+  'line-height',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'opacity',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'text-align',
+  'text-decoration-color',
+  'text-decoration-line',
+  'text-decoration-style',
+  'text-decoration-thickness',
+  'text-shadow',
+  'text-transform',
+  'vertical-align',
+  'white-space',
+  'word-break',
+  'overflow-wrap',
+] as const;
+
+const MIRRORED_TABLE_PROPERTIES = [
+  'background-color',
+  'background-image',
+  'border-top-width',
+  'border-top-style',
+  'border-top-color',
+  'border-right-width',
+  'border-right-style',
+  'border-right-color',
+  'border-bottom-width',
+  'border-bottom-style',
+  'border-bottom-color',
+  'border-left-width',
+  'border-left-style',
+  'border-left-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
+  'box-sizing',
+  'color',
+  'font-family',
+  'font-size',
+  'font-style',
+  'font-weight',
+  'letter-spacing',
+  'line-height',
+  'table-layout',
+] as const;
+
+const copyComputedProperties = (
+  source: Element,
+  target: HTMLElement,
+  properties: readonly string[],
+) => {
+  const computed = getComputedStyle(source);
+  properties.forEach((property) => {
+    target.style.setProperty(property, computed.getPropertyValue(property), 'important');
+  });
+};
+
+const copyHeaderTreePresentation = (
+  sourceHead: HTMLTableSectionElement,
+  mirrorHead: HTMLTableSectionElement,
+) => {
+  const sourceNodes = [sourceHead, ...Array.from(sourceHead.querySelectorAll<HTMLElement>('*'))];
+  const mirrorNodes = [mirrorHead, ...Array.from(mirrorHead.querySelectorAll<HTMLElement>('*'))];
+  sourceNodes.forEach((source, index) => {
+    const target = mirrorNodes[index];
+    if (target) copyComputedProperties(source, target, MIRRORED_ELEMENT_PROPERTIES);
+  });
+};
 
 const copyHeaderCellPresentation = (source: HTMLTableCellElement, target: HTMLTableCellElement) => {
   const computed = getComputedStyle(source);
@@ -94,8 +204,7 @@ const getVerticalScrollAncestors = (node: HTMLElement) => {
   return result;
 };
 
-const getStickyViewportTop = (root: HTMLElement) => {
-  const scrollOwner = getVerticalScrollAncestors(root)[0];
+const getStickyViewportTop = (scrollOwner: HTMLElement | null) => {
   const documentScrollers = [document.body, document.documentElement, document.scrollingElement];
   if (!scrollOwner || documentScrollers.includes(scrollOwner)) return 0;
   return Math.max(0, scrollOwner.getBoundingClientRect().top);
@@ -127,8 +236,10 @@ type Entry = {
   table: HTMLTableElement;
   thead: HTMLTableSectionElement;
   scroller: HTMLElement;
+  verticalScrollOwner: HTMLElement | null;
   overlay: HTMLDivElement;
   signature: string;
+  lastScrollLeft: number;
 };
 
 export function ProgramTableViewportHeader() {
@@ -137,6 +248,41 @@ export function ProgramTableViewportHeader() {
     const listened = new Map<HTMLElement, () => void>();
     let discoverTimer = 0;
     let geometryRaf = 0;
+
+    const syncHorizontal = (entry: Entry, force = false) => {
+      const scrollLeft = entry.scroller.scrollLeft || 0;
+      if (!force && scrollLeft === entry.lastScrollLeft) return;
+      entry.lastScrollLeft = scrollLeft;
+
+      const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
+      if (!mirrorTable) return;
+      // Only move the compact header layer. Updating transform directly avoids
+      // a layout read and keeps it in the same frame as native horizontal pan.
+      mirrorTable.style.setProperty('left', '0px', 'important');
+      mirrorTable.style.setProperty('transform', `translate3d(${-scrollLeft}px, 0, 0)`, 'important');
+    };
+
+    const syncVisibility = (entry: Entry) => {
+      if (!entry.table.isConnected || !entry.root.isConnected) return;
+
+      const tableRect = entry.table.getBoundingClientRect();
+      const headRect = entry.thead.getBoundingClientRect();
+      const stickyTop = getStickyViewportTop(entry.verticalScrollOwner);
+      const headerPaintHeight = Math.max(headRect.height, headRect.bottom - tableRect.top);
+
+      entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
+      entry.overlay.style.height = `${headerPaintHeight}px`;
+
+      // Take over a couple of pixels before the source header leaves the
+      // scrollport, so an Android frame can never show a gap between the two.
+      const headerHasReachedTop = headRect.top <= stickyTop + 2;
+      const tableStillVisible = tableRect.bottom > stickyTop + Math.max(headerPaintHeight + 6, 30);
+      entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
+    };
+
+    const syncAllVisibility = () => {
+      entries.forEach(syncVisibility);
+    };
 
     const scheduleGeometry = () => {
       if (geometryRaf) return;
@@ -149,7 +295,6 @@ export function ProgramTableViewportHeader() {
 
           const rootRect = entry.root.getBoundingClientRect();
           const tableRect = entry.table.getBoundingClientRect();
-          const headRect = entry.thead.getBoundingClientRect();
           const scrollLeft = entry.scroller.scrollLeft || 0;
           // Anchor the overlay to the table content edge. The whole mirrored
           // header then moves left together with horizontal scroll; STT is not
@@ -158,29 +303,35 @@ export function ProgramTableViewportHeader() {
           const left = Math.max(0, rootRect.left, tableContentLeft);
           const right = Math.min(viewportWidth, rootRect.right);
           const width = Math.max(0, right - left);
-          const stickyTop = getStickyViewportTop(entry.root);
 
           entry.overlay.style.left = `${left}px`;
           entry.overlay.style.width = `${width}px`;
-          entry.overlay.style.height = `${headRect.height}px`;
-          entry.overlay.style.setProperty('top', `${stickyTop}px`, 'important');
-
-          const mirrorTable = entry.overlay.querySelector<HTMLElement>('table');
-          if (mirrorTable) mirrorTable.style.left = `${-scrollLeft}px`;
-
-          // Anchor the mirror to the active vertical scrollport. The normal mobile
-          // path uses the management viewport (top: 0). A legacy nested scroller
-          // falls back to its own top edge, so the mirror never covers the poster.
-          const headerHasReachedTop = tableRect.top <= stickyTop;
-          const tableStillVisible = tableRect.bottom > stickyTop + Math.max(headRect.height + 6, 30);
-          entry.overlay.dataset.visible = headerHasReachedTop && tableStillVisible ? '1' : '0';
+          syncHorizontal(entry, true);
+          syncVisibility(entry);
         });
       });
     };
 
     const listen = (element: HTMLElement) => {
       if (listened.has(element)) return;
-      const handler = () => scheduleGeometry();
+      let lastScrollLeft = element.scrollLeft;
+      let lastScrollTop = element.scrollTop;
+      const handler = () => {
+        const nextScrollLeft = element.scrollLeft;
+        const nextScrollTop = element.scrollTop;
+
+        if (nextScrollLeft !== lastScrollLeft) {
+          entries.forEach((entry) => {
+            if (entry.scroller === element) syncHorizontal(entry);
+          });
+          lastScrollLeft = nextScrollLeft;
+        }
+
+        if (nextScrollTop !== lastScrollTop) {
+          syncAllVisibility();
+          lastScrollTop = nextScrollTop;
+        }
+      };
       element.addEventListener('scroll', handler, { passive: true });
       listened.set(element, () => element.removeEventListener('scroll', handler));
     };
@@ -196,11 +347,15 @@ export function ProgramTableViewportHeader() {
       if (!mirrorTable) return;
       const tableWidth = Math.max(entry.table.scrollWidth, entry.table.getBoundingClientRect().width);
       const sourceTableStyle = getComputedStyle(entry.table);
+      copyComputedProperties(entry.table, mirrorTable, MIRRORED_TABLE_PROPERTIES);
       mirrorTable.style.setProperty('width', `${tableWidth}px`, 'important');
       mirrorTable.style.setProperty('min-width', `${tableWidth}px`, 'important');
       mirrorTable.style.setProperty('border-collapse', sourceTableStyle.borderCollapse, 'important');
       mirrorTable.style.setProperty('border-spacing', sourceTableStyle.borderSpacing, 'important');
       mirrorTable.style.setProperty('table-layout', sourceTableStyle.tableLayout, 'important');
+
+      const mirrorHead = mirrorTable.tHead;
+      if (mirrorHead) copyHeaderTreePresentation(entry.thead, mirrorHead);
 
       const sourceCells = Array.from(entry.thead.querySelectorAll<HTMLTableCellElement>('th'));
       const mirrorCells = Array.from(mirrorTable.querySelectorAll<HTMLTableCellElement>('th'));
@@ -228,23 +383,35 @@ export function ProgramTableViewportHeader() {
 
         const root = table.closest<HTMLElement>(WRAPPER_SELECTOR) || candidate;
         const scroller = findKpiHorizontalScroller(root, table);
+        const verticalScrollAncestors = getVerticalScrollAncestors(root);
+        const verticalScrollOwner = verticalScrollAncestors[0] || null;
         let entry = entries.get(table);
         if (!entry) {
           const overlay = document.createElement('div');
           overlay.className = 'nmc-kpi-sticky-header-overlay nmc-kpi-sticky-header-overlay-v2';
           overlay.setAttribute('aria-hidden', 'true');
           document.body.appendChild(overlay);
-          entry = { root, table, thead, scroller, overlay, signature: '' };
+          entry = {
+            root,
+            table,
+            thead,
+            scroller,
+            verticalScrollOwner,
+            overlay,
+            signature: '',
+            lastScrollLeft: Number.NaN,
+          };
           entries.set(table, entry);
         } else {
           entry.root = root;
           entry.thead = thead;
           entry.scroller = scroller;
+          entry.verticalScrollOwner = verticalScrollOwner;
         }
 
         buildMirror(entry);
         listen(scroller);
-        getVerticalScrollAncestors(root).forEach(listen);
+        verticalScrollAncestors.forEach(listen);
       });
 
       entries.forEach((entry, table) => {
@@ -283,7 +450,7 @@ export function ProgramTableViewportHeader() {
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
-    window.addEventListener('scroll', scheduleGeometry, { passive: true });
+    window.addEventListener('scroll', syncAllVisibility, { passive: true });
     window.addEventListener('resize', scheduleDiscover, { passive: true });
     document.body.addEventListener('click', handleRowClick);
 
@@ -291,7 +458,7 @@ export function ProgramTableViewportHeader() {
       cancelAnimationFrame(geometryRaf);
       window.clearTimeout(discoverTimer);
       observer.disconnect();
-      window.removeEventListener('scroll', scheduleGeometry);
+      window.removeEventListener('scroll', syncAllVisibility);
       window.removeEventListener('resize', scheduleDiscover);
       document.body.removeEventListener('click', handleRowClick);
       listened.forEach((cleanup) => cleanup());
