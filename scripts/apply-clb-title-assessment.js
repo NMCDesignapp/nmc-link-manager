@@ -27,7 +27,7 @@ if (!source.includes(stateAnchor)) throw new Error('Không tìm thấy anchor st
 source = source.replace(stateAnchor, stateInsert);
 
 const periodAnchor = `          tất cả mục Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét đều sử dụng Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn phía trên và lấy 3 tháng liền trước.`;
-const periodInsert = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu chốt theo chỉ tiêu của tháng liền trước đợt xét.`;
+const periodInsert = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu dùng đúng bộ chỉ tiêu của Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn.`;
 if (!source.includes(periodAnchor)) throw new Error('Không tìm thấy anchor mô tả kỳ xét');
 source = source.replace(periodAnchor, periodInsert);
 

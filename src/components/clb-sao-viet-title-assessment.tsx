@@ -3,8 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Award, FileSpreadsheet, Loader2, Search, X } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
+import {
+  buildTitleTiers,
+  getTitleTierStatus,
+  type TitleAssessmentProgram,
+} from '@/lib/clb-title-tier-display';
 
-type Program = 'tvv' | 'tnKtm' | 'tnTd';
+type Program = TitleAssessmentProgram;
 
 type Summary = {
   total: number;
@@ -30,7 +35,8 @@ type Row = {
 
 type Data = {
   assessment: { year: number; month: number; label: string };
-  performancePeriod: { year: number; month: number; thresholdIndex: number; label: string };
+  performancePeriod: { year: number; month: number; label: string };
+  thresholdPeriod: { year: number; month: number; thresholdIndex: number; label: string };
   thresholds: any;
   tvv: { summary: Summary; rows: Row[] };
   tnKtm: { summary: Summary; rows: Row[] };
@@ -57,13 +63,6 @@ function formatNumber(value: number | undefined) {
   return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(value || 0));
 }
 
-function rankStyle(rank: string) {
-  if (rank === 'Kim Cương') return { bg: '#0E7490', fg: '#FFFFFF' };
-  if (rank === 'Bạch Kim') return { bg: '#4B5563', fg: '#FFFFFF' };
-  if (rank === 'Vàng') return { bg: '#B7791F', fg: '#FFFFFF' };
-  return { bg: '#991B1B', fg: '#FFFFFF' };
-}
-
 function programMeta(program: Program) {
   if (program === 'tvv') return { title: 'Xét danh hiệu - TVV', key: 'tvv' as const };
   if (program === 'tnKtm') return { title: 'Xét danh hiệu - TN KTM', key: 'tnKtm' as const };
@@ -73,34 +72,38 @@ function programMeta(program: Program) {
 function exportExcel(program: Program, data: Data, rows: Row[]) {
   const meta = programMeta(program);
   const period = data.performancePeriod.label;
-  const aoa: any[][] = [[meta.title.toUpperCase()], [`Đợt xét: ${data.assessment.label} • Chốt chỉ tiêu đến ${period}`], []];
+  const tiers = buildTitleTiers(program, data.thresholds[meta.key]);
+  const tierHeaders = tiers.map((tier) => `${tier.rank.toUpperCase()}\n${tier.requirements.join('\n')}`);
+  const tierValues = (row: Row) => tiers.map((tier) => getTitleTierStatus(program, row, tier).label);
+  const aoa: any[][] = [[meta.title.toUpperCase()], [`Đợt xét: ${data.assessment.label} • Bộ chỉ tiêu ${data.thresholdPeriod.label} • Doanh số chốt ${period}`], []];
 
   if (program === 'tvv') {
-    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TVV', 'CHỨC VỤ', `FYP ${period}`, 'FYP LŨY KẾ', 'DANH HIỆU']);
-    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypThang || 0, r.fypLuyKe || 0, r.rank]));
+    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TVV', 'CHỨC VỤ', `FYP ${period}`, 'FYP LŨY KẾ', ...tierHeaders]);
+    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypThang || 0, r.fypLuyKe || 0, ...tierValues(r)]));
   } else if (program === 'tnKtm') {
-    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TN', 'CHỨC VỤ', 'FYP LŨY KẾ', 'DANH HIỆU']);
-    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypLuyKe || 0, r.rank]));
+    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TN', 'CHỨC VỤ', 'FYP LŨY KẾ', ...tierHeaders]);
+    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypLuyKe || 0, ...tierValues(r)]));
   } else {
-    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TN', 'CHỨC VỤ', 'FYP TVVm', 'SL TVVm HĐC', 'DANH HIỆU']);
-    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypTVVm || 0, r.slTvvmHDC || 0, r.rank]));
+    aoa.push(['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TN', 'CHỨC VỤ', 'FYP TVVm', 'SL TVVm HĐC', ...tierHeaders]);
+    rows.forEach((r, i) => aoa.push([i + 1, r.ad, r.nhom, r.agentCode, r.agentName, r.chucVu, r.fypTVVm || 0, r.slTvvmHDC || 0, ...tierValues(r)]));
   }
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const lastCol = program === 'tnKtm' ? 7 : 8;
+  const lastCol = aoa[3].length - 1;
   ws['!merges'] = [
     { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
   ];
-  ws['!cols'] = [
-    { wch: 6 }, { wch: 14 }, { wch: 20 }, { wch: 15 }, { wch: 28 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 16 },
-  ];
+  ws['!cols'] = aoa[3].map((_: unknown, index: number) => ({
+    wch: index >= aoa[3].length - tiers.length ? 26 : [6, 14, 20, 15, 28, 18, 18, 18][index] || 18,
+  }));
+  ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 8 }, { hpt: 46 }];
   if (ws.A1) ws.A1.s = { font: { bold: true, sz: 16 }, alignment: { horizontal: 'center' } };
   if (ws.A2) ws.A2.s = { font: { italic: true, sz: 10 }, alignment: { horizontal: 'center' } };
   const headerRow = 3;
   for (let c = 0; c <= lastCol; c += 1) {
     const cell = ws[XLSX.utils.encode_cell({ r: headerRow, c })];
-    if (cell) cell.s = { fill: { fgColor: { rgb: '0F766E' } }, font: { bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: { top: { style: 'thin', color: { rgb: '334155' } }, bottom: { style: 'thin', color: { rgb: '334155' } }, left: { style: 'thin', color: { rgb: '334155' } }, right: { style: 'thin', color: { rgb: '334155' } } } };
+    if (cell) cell.s = { fill: { fgColor: { rgb: '0F766E' } }, font: { bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: { top: { style: 'thin', color: { rgb: '334155' } }, bottom: { style: 'thin', color: { rgb: '334155' } }, left: { style: 'thin', color: { rgb: '334155' } }, right: { style: 'thin', color: { rgb: '334155' } } } };
   }
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Xét danh hiệu');
@@ -127,6 +130,7 @@ export function CLBTitleAssessmentSection({ year, month, refreshToken, program }
 
   const meta = programMeta(program);
   const section = data ? data[meta.key] : null;
+  const tiers = data ? buildTitleTiers(program, data.thresholds[meta.key]) : [];
   const rows = useMemo(() => {
     const allRows = section?.rows || [];
     const q = search.trim().toLocaleLowerCase('vi-VN');
@@ -153,14 +157,14 @@ export function CLBTitleAssessmentSection({ year, month, refreshToken, program }
   const thresholdText = (() => {
     if (program === 'tvv') {
       const t = data.thresholds.tvv;
-      return `Chốt ${data.performancePeriod.label}: Vàng ${formatNumber(t.vang)} • Bạch Kim ${formatNumber(t.bachkim)} • Kim Cương ${formatNumber(t.kimcuong)} • FYP tháng ≥ ${formatNumber(t.monthlyFypMin)}`;
+      return `Bộ chỉ tiêu ${data.thresholdPeriod.label}: Vàng ${formatNumber(t.vang)} • Bạch Kim ${formatNumber(t.bachkim)} • Kim Cương ${formatNumber(t.kimcuong)} • FYP tháng ≥ ${formatNumber(t.monthlyFypMin)}`;
     }
     if (program === 'tnKtm') {
       const t = data.thresholds.tnKtm;
-      return `Chốt ${data.performancePeriod.label}: Vàng ${formatNumber(t.vang)} • Bạch Kim ${formatNumber(t.bachkim)} • Kim Cương ${formatNumber(t.kimcuong)}`;
+      return `Bộ chỉ tiêu ${data.thresholdPeriod.label}: Vàng ${formatNumber(t.vang)} • Bạch Kim ${formatNumber(t.bachkim)} • Kim Cương ${formatNumber(t.kimcuong)}`;
     }
     const t = data.thresholds.tnTd;
-    return `Chốt ${data.performancePeriod.label}: Vàng FYP TVVm ${formatNumber(t.vang.fyp)} + ${t.vang.hdc} HĐC • Bạch Kim ${formatNumber(t.bachkim.fyp)} + ${t.bachkim.hdc} HĐC`;
+    return `Bộ chỉ tiêu ${data.thresholdPeriod.label}: Vàng FYP TVVm ${formatNumber(t.vang.fyp)} + ${t.vang.hdc} HĐC • Bạch Kim ${formatNumber(t.bachkim.fyp)} + ${t.bachkim.hdc} HĐC`;
   })();
 
   return (
@@ -189,7 +193,7 @@ export function CLBTitleAssessmentSection({ year, month, refreshToken, program }
             <div className="flex items-center justify-between bg-[#0F766E] px-3 py-2 text-white">
               <div>
                 <div className="text-sm font-black uppercase">{meta.title}</div>
-                <div className="text-[10px] font-semibold text-[#ECFDF5]">Đợt {data.assessment.label} • Chốt đến {data.performancePeriod.label}</div>
+                <div className="text-[10px] font-semibold text-[#ECFDF5]">Đợt {data.assessment.label} • Bộ chỉ tiêu {data.thresholdPeriod.label} • Doanh số {data.performancePeriod.label}</div>
               </div>
               <button type="button" onClick={() => setDetailOpen(false)} className="flex h-8 w-8 items-center justify-center bg-[#134E4A] text-white hover:bg-[#7F1D1D]"><X className="h-4 w-4" /></button>
             </div>
@@ -206,12 +210,16 @@ export function CLBTitleAssessmentSection({ year, month, refreshToken, program }
                     {program === 'tvv' ? <><th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">FYP {data.performancePeriod.label}</th><th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">FYP LŨY KẾ</th></> : null}
                     {program === 'tnKtm' ? <th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">FYP LŨY KẾ</th> : null}
                     {program === 'tnTd' ? <><th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">FYP TVVm</th><th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">SL TVVm HĐC</th></> : null}
-                    <th className="border-[0.5px] border-[#334155] px-1.5 py-1 text-center font-black whitespace-nowrap">DANH HIỆU</th>
+                    {tiers.map((tier) => (
+                      <th key={tier.rank} className="min-w-[132px] border-[0.5px] border-[#334155] px-2 py-1.5 text-center font-black" style={{ backgroundColor: tier.colors.header, color: '#FFFFFF' }}>
+                        <span className="block text-[10px] uppercase">Hạng {tier.rank}</span>
+                        {tier.requirements.map((requirement) => <span key={requirement} className="mt-0.5 block text-[8px] font-bold normal-case leading-3">{requirement}</span>)}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row, index) => {
-                    const rs = rankStyle(row.rank);
                     return (
                       <tr key={`${row.agentCode}-${index}`} className="bg-white hover:bg-[#F1F5F9]">
                         <td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-center">{index + 1}</td>
@@ -223,7 +231,16 @@ export function CLBTitleAssessmentSection({ year, month, refreshToken, program }
                         {program === 'tvv' ? <><td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-right whitespace-nowrap">{formatNumber(row.fypThang)}</td><td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-right font-bold whitespace-nowrap">{formatNumber(row.fypLuyKe)}</td></> : null}
                         {program === 'tnKtm' ? <td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-right font-bold whitespace-nowrap">{formatNumber(row.fypLuyKe)}</td> : null}
                         {program === 'tnTd' ? <><td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-right font-bold whitespace-nowrap">{formatNumber(row.fypTVVm)}</td><td className="border-[0.5px] border-[#475569] px-1.5 py-1 text-center font-bold">{row.slTvvmHDC || 0}</td></> : null}
-                        <td className="border-[0.5px] border-[#475569] px-1 py-0.5 text-center"><span className="inline-block min-w-[74px] px-2 py-1 text-[9px] font-black uppercase text-white" style={{ backgroundColor: rs.bg, color: rs.fg }}>{row.rank}</span></td>
+                        {tiers.map((tier) => {
+                          const status = getTitleTierStatus(program, row, tier);
+                          return (
+                            <td key={tier.rank} className="border-[0.5px] border-[#475569] px-1.5 py-1 text-center font-bold" style={{ backgroundColor: tier.colors.body, color: tier.colors.text }}>
+                              <span className={status.kind === 'achieved' ? 'text-[10px] font-black text-emerald-700' : status.kind === 'surpassed' ? 'text-[9px] font-black text-slate-500' : 'text-[9px] font-bold leading-3 text-rose-700'}>
+                                {status.label}
+                              </span>
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}
