@@ -84,6 +84,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-mobile-scroll-polish-v1.css?v=20260831-5" />
         <link rel="stylesheet" href="/kpi-scroll-stability-v2.css?v=20260904-1" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
+        <link rel="stylesheet" href="/kpi-loader-scope-v14.css?v=20260904-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />

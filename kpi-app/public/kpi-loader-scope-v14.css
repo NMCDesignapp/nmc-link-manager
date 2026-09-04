@@ -1,0 +1,71 @@
+/* KPI loader scope v14
+ * The branded ECG plate belongs only to the first app entry. Loading that is
+ * triggered after the dashboard is visible uses a deliberately small popup.
+ */
+
+@keyframes nmc-kpi-small-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader {
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 210px !important;
+  max-width: calc(100vw - 36px) !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 15px 18px !important;
+  border: 1px solid #6f7a80 !important;
+  border-radius: 9px !important;
+  color: #173f35 !important;
+  font: 850 13px/1.25 'Outfit', system-ui, sans-serif !important;
+  text-align: left !important;
+  background: linear-gradient(112deg, #d7dcdf, #aeb7bc 55%, #7d878d) !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.78) !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::before {
+  content: '' !important;
+  position: static !important;
+  display: block !important;
+  flex: 0 0 27px !important;
+  box-sizing: border-box !important;
+  width: 27px !important;
+  height: 27px !important;
+  min-width: 27px !important;
+  padding: 0 !important;
+  border: 3px solid rgba(17,109,83,.20) !important;
+  border-top-color: #0d8062 !important;
+  border-right-color: #18b58b !important;
+  border-radius: 50% !important;
+  color: transparent !important;
+  background: none !important;
+  box-shadow: 0 0 10px rgba(24,181,139,.20) !important;
+  animation: nmc-kpi-small-loader-spin .82s linear infinite !important;
+}
+
+html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 520px) {
+  html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > span {
+    min-width: 196px !important;
+    padding: 13px 16px !important;
+    font-size: 12px !important;
+  }
+}
