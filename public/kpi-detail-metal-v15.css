@@ -1,0 +1,254 @@
+/* KPI detail v15 — flat brushed-metal treatment for Chi Tiết Ban Nhóm. */
+html body .kpi-app #view-detail .detail-shell {
+  --nmc-metal-ink: #17252b;
+  --nmc-metal-muted: #40525a;
+  --nmc-metal-edge: rgba(232, 244, 246, .72);
+  --nmc-metal-shadow: rgba(0, 0, 0, .34);
+  --nmc-metal-teal: #11b993;
+  padding-bottom: 28px;
+}
+
+html body .kpi-app #view-detail .detail-hero {
+  width: min(760px, calc(100% - 24px));
+  margin: 14px auto 0 !important;
+  padding: 8px 14px 7px;
+  border: 1px solid rgba(214, 227, 230, .62);
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.28), transparent 20%, rgba(255,255,255,.14) 50%, transparent 80%, rgba(255,255,255,.24)),
+    linear-gradient(180deg, #c8d0d2 0%, #99a5a9 48%, #bcc5c7 100%);
+  box-shadow: 0 5px 12px var(--nmc-metal-shadow), inset 0 1px rgba(255,255,255,.68);
+}
+
+html body .kpi-app #view-detail .detail-meta {
+  margin: 0;
+  color: var(--nmc-metal-ink);
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px rgba(255,255,255,.46);
+}
+
+html body .kpi-app #view-detail .month-grid {
+  width: min(820px, calc(100% - 24px));
+  max-width: none;
+  margin: 8px auto 0;
+  padding: 7px;
+  gap: 5px;
+  border: 1px solid rgba(213, 226, 229, .62);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(181,193,196,.96), rgba(113,128,134,.96));
+  box-shadow: 0 6px 14px var(--nmc-metal-shadow), inset 0 1px rgba(255,255,255,.58);
+}
+
+html body .kpi-app #view-detail .month-cell,
+html body .kpi-app #view-detail .month-cell[style] {
+  min-height: 32px;
+  padding: 7px 3px !important;
+  border: 1px solid rgba(54, 70, 76, .55) !important;
+  border-radius: 2px !important;
+  background: linear-gradient(180deg, #e0e5e6 0%, #aeb9bc 52%, #d0d7d9 100%) !important;
+  color: #25363d !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.75), 0 1px 2px rgba(0,0,0,.24) !important;
+  text-shadow: 0 1px rgba(255,255,255,.58);
+}
+
+html body .kpi-app #view-detail .month-cell:hover {
+  border-color: rgba(17,185,147,.9) !important;
+  color: #092f29 !important;
+}
+
+html body .kpi-app #view-detail .month-cell.on,
+html body .kpi-app #view-detail .month-cell.on[style] {
+  background: linear-gradient(180deg, #42d0ae 0%, #119b7e 55%, #2ec4a2 100%) !important;
+  border-color: #76ebd0 !important;
+  color: #062c26 !important;
+  box-shadow: inset 0 1px rgba(222,255,247,.72), 0 0 0 1px rgba(0,60,50,.38) !important;
+}
+
+html body .kpi-app #view-detail .top3-grid {
+  width: min(880px, calc(100% - 24px));
+  max-width: none;
+  gap: 9px;
+}
+
+html body .kpi-app #view-detail .top3-card,
+html body .kpi-app #view-detail .top3-first {
+  transform: none;
+  border-width: 1px;
+  border-radius: 3px;
+  padding: 16px 12px 13px;
+  box-shadow: 0 6px 13px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.56);
+}
+
+html body .kpi-app #view-detail .top3-card::before,
+html body .kpi-app #view-detail .top3-card::after,
+html body .kpi-app #view-detail .grp-item-flat::before,
+html body .kpi-app #view-detail .grp-item-flat::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  z-index: 3;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #f4f7f7 0 16%, #8b989c 48%, #3f4e53 100%);
+  box-shadow: 0 1px 1px rgba(0,0,0,.45);
+}
+
+html body .kpi-app #view-detail .top3-card::before,
+html body .kpi-app #view-detail .grp-item-flat::before { left: 7px; }
+html body .kpi-app #view-detail .top3-card::after,
+html body .kpi-app #view-detail .grp-item-flat::after { right: 7px; }
+
+html body .kpi-app #view-detail .top3-crown {
+  margin-bottom: 3px;
+  filter: saturate(.72);
+}
+
+html body .kpi-app #view-detail .detail-divider {
+  width: min(980px, calc(100% - 24px));
+  height: 2px;
+  margin: 22px auto 14px;
+  background: linear-gradient(90deg, transparent, #9aa7aa 12%, #eef3f4 50%, #9aa7aa 88%, transparent);
+  opacity: .82;
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-btn {
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid rgba(223,235,237,.68);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #d7dfe1, #98a5a9 55%, #c2cbcd);
+  color: var(--nmc-metal-ink);
+  box-shadow: 0 4px 9px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.72);
+  text-shadow: 0 1px rgba(255,255,255,.52);
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-btn:hover {
+  background: linear-gradient(180deg, #e6ebec, #abb7ba 55%, #d0d7d9);
+  border-color: #5de0c2;
+  color: #0b332c;
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-caret { color: #136f60; }
+
+html body .kpi-app #view-detail .detail-ad-filter-popup {
+  border: 1px solid #d8e2e4;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(205,215,217,.98), rgba(137,151,156,.98));
+  box-shadow: 0 12px 26px rgba(0,0,0,.45);
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-opt {
+  border-radius: 2px;
+  color: #17282e;
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-opt:hover {
+  background: rgba(237,244,245,.62);
+  color: #092c26;
+}
+
+html body .kpi-app #view-detail .detail-ad-filter-opt.on {
+  border-color: #69e0c4;
+  background: linear-gradient(180deg, #41cbaa, #159b7e);
+  color: #062d26;
+}
+
+html body .kpi-app #view-detail .detail-list-wrap {
+  width: min(1080px, calc(100% - 24px));
+  gap: 7px;
+}
+
+html body .kpi-app #view-detail .grp-item-flat {
+  min-height: 68px;
+  padding: 12px 18px 10px !important;
+  border: 1px solid var(--nmc-metal-edge) !important;
+  border-radius: 3px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.2), transparent 22%, rgba(255,255,255,.1) 54%, transparent 82%, rgba(255,255,255,.17)),
+    linear-gradient(180deg, #c9d1d3 0%, #929fa4 48%, #bac4c7 100%) !important;
+  box-shadow: 0 5px 11px var(--nmc-metal-shadow), inset 0 1px rgba(255,255,255,.66);
+  color: var(--nmc-metal-ink);
+}
+
+html body .kpi-app #view-detail .grp-item-flat:hover {
+  transform: translateY(-1px);
+  border-color: #58ddbd !important;
+  box-shadow: 0 7px 14px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.72);
+}
+
+html body .kpi-app #view-detail .grp-item-flat .grp-fill {
+  background: linear-gradient(90deg, rgba(17,185,147,.28), rgba(17,185,147,.08));
+  opacity: 1;
+  border-right: 1px solid rgba(18,111,94,.28);
+}
+
+html body .kpi-app #view-detail .grp-head-line .grp-name {
+  color: #10252b;
+  font-weight: 900;
+  text-shadow: 0 1px rgba(255,255,255,.52);
+}
+
+html body .kpi-app #view-detail .grp-tn-inline {
+  color: #314b54;
+  text-shadow: 0 1px rgba(255,255,255,.38);
+}
+
+html body .kpi-app #view-detail .grp-head-line .grp-pct {
+  color: #075d4d !important;
+  text-shadow: 0 1px rgba(255,255,255,.45);
+}
+
+html body .kpi-app #view-detail .grp-stat-main { color: #18383e; font-weight: 850; }
+html body .kpi-app #view-detail .grp-stat-kh { color: #40545b; }
+html body .kpi-app #view-detail .grp-prog {
+  height: 5px;
+  border: 1px solid rgba(47,64,69,.42);
+  border-radius: 1px;
+  background: rgba(38,52,58,.38);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.28);
+}
+html body .kpi-app #view-detail .grp-prog-fill {
+  border-radius: 0;
+  background: linear-gradient(90deg, #087f68, #18c9a4 72%, #73ecd0);
+}
+
+@media (max-width: 720px) {
+  html body .kpi-app #view-detail .detail-hero,
+  html body .kpi-app #view-detail .month-grid,
+  html body .kpi-app #view-detail .top3-grid,
+  html body .kpi-app #view-detail .detail-list-wrap {
+    width: calc(100% - 16px);
+  }
+
+  html body .kpi-app #view-detail .detail-hero { margin-top: 10px !important; }
+  html body .kpi-app #view-detail .month-grid { padding: 5px; gap: 3px; }
+  html body .kpi-app #view-detail .month-cell,
+  html body .kpi-app #view-detail .month-cell[style] {
+    min-height: 27px;
+    padding: 4px 1px !important;
+  }
+
+  html body .kpi-app #view-detail .top3-section { margin-top: 15px; }
+  html body .kpi-app #view-detail .top3-grid { gap: 5px; }
+  html body .kpi-app #view-detail .top3-card,
+  html body .kpi-app #view-detail .top3-first {
+    padding: 12px 5px 10px;
+  }
+
+  html body .kpi-app #view-detail .detail-divider { width: calc(100% - 16px); margin-top: 17px; }
+  html body .kpi-app #view-detail .detail-ad-filter-wrap { margin-bottom: 10px; }
+  html body .kpi-app #view-detail .grp-item-flat {
+    min-height: 61px;
+    padding: 10px 13px 8px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .kpi-app #view-detail .top3-card,
+  html body .kpi-app #view-detail .grp-item-flat,
+  html body .kpi-app #view-detail .grp-fill,
+  html body .kpi-app #view-detail .grp-prog-fill { animation: none !important; transition: none !important; }
+}

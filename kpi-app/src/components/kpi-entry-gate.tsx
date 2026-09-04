@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const ECG_PATH = 'M8 28 H58 L70 28 L82 20 L92 35 L105 9 L118 45 L131 28 H160 L171 23 L182 32 L193 15 L205 40 L217 28 H246 L257 24 L268 31 L280 18 L291 36 L303 28 H352'
+// Three clear beats with calm segments between them, matching the approved
+// reference while keeping the signal usable as the real loading progress.
+const ECG_PATH = 'M8 28 H64 L75 28 L84 21 L94 43 L107 9 L121 49 L135 28 H168 L178 28 L187 18 L197 40 L210 8 L224 47 L238 28 H278 L289 28 L299 18 L313 45 L327 10 L341 41 L350 28 H352'
 
 export function KpiEntryGate() {
   const [gone, setGone] = useState(false)
@@ -10,6 +12,7 @@ export function KpiEntryGate() {
   const brightPathRef = useRef<SVGPathElement | null>(null)
   const headRef = useRef<SVGCircleElement | null>(null)
   const endDotRef = useRef<HTMLSpanElement | null>(null)
+  const progressTextRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (gone) return
@@ -35,6 +38,7 @@ export function KpiEntryGate() {
 
     const paint = (value: number) => {
       progress = Math.max(0, Math.min(100, value))
+      if (progressTextRef.current) progressTextRef.current.textContent = `${Math.round(progress)}%`
       const path = brightPathRef.current
       const head = headRef.current
       const total = syncPathMetrics()
@@ -158,41 +162,45 @@ export function KpiEntryGate() {
           color: #ffcf5d; font: 900 27px/1.08 'Outfit', system-ui, sans-serif; letter-spacing: .07em;
           text-shadow: 0 1px 0 #fff0bd, 0 2px 2px rgba(54,35,8,.82), 0 0 8px rgba(255,193,48,.30);
         }
-        #nmc-kpi-entry-gate .nmc-kpi-ecg-stage { position: relative; width: min(100%, 300px); height: 58px; margin: 13px auto 3px; }
+        #nmc-kpi-entry-gate .nmc-kpi-ecg-stage { position: relative; width: min(100%, 310px); height: 58px; margin: 10px auto 0; }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-groove path:first-child {
-          fill: none; stroke: #191714; stroke-width: 8.4; stroke-linecap: round; stroke-linejoin: round;
+          fill: none; stroke: #1f2f35; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round;
           filter: drop-shadow(0 2px 1px rgba(0,0,0,.58));
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-groove path + path {
-          fill: none; stroke: #655f56; stroke-width: 5.4; stroke-linecap: round; stroke-linejoin: round; opacity: .82;
-          filter: drop-shadow(0 -1px 0 rgba(255,255,255,.36)) drop-shadow(0 1px 0 rgba(0,0,0,.48));
+          fill: none; stroke: #40565c; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; opacity: .86;
+          filter: drop-shadow(0 -1px 0 rgba(255,255,255,.18)) drop-shadow(0 1px 0 rgba(0,0,0,.42));
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-bright { overflow: visible; }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-bright path {
-          fill: none; stroke: #ffd257; stroke-width: 2.9; stroke-linecap: round; stroke-linejoin: round;
+          fill: none; stroke: #16c99c; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round;
           stroke-dasharray: 1000; stroke-dashoffset: 1000; will-change: stroke-dashoffset;
-          filter: drop-shadow(0 0 2px rgba(255,239,170,.96)) drop-shadow(0 0 5px rgba(255,196,45,.92));
+          filter: drop-shadow(0 0 2px rgba(119,255,222,.92)) drop-shadow(0 0 6px rgba(22,201,156,.72));
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-head {
-          fill: #fff1a8; stroke: #ffd35c; stroke-width: 1.1; opacity: 0; will-change: transform, opacity;
-          filter: drop-shadow(0 0 3px rgba(255,244,188,1)) drop-shadow(0 0 8px rgba(255,203,64,.98)) drop-shadow(0 0 15px rgba(255,170,24,.72));
+          fill: #b9ffe9; stroke: #19d8a8; stroke-width: 1.1; opacity: 0; will-change: transform, opacity;
+          filter: drop-shadow(0 0 3px rgba(190,255,238,1)) drop-shadow(0 0 8px rgba(20,215,168,.94));
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-head.is-arrived {
           r: 4.6px;
-          filter: drop-shadow(0 0 4px rgba(255,247,204,1)) drop-shadow(0 0 10px rgba(255,209,84,1)) drop-shadow(0 0 20px rgba(255,171,23,.92));
+          filter: drop-shadow(0 0 4px rgba(190,255,238,1)) drop-shadow(0 0 11px rgba(20,215,168,1)) drop-shadow(0 0 20px rgba(20,215,168,.66));
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-dot {
-          position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #d7b35a;
-          box-shadow: 0 0 0 1px rgba(73,58,29,.44); transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+          position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: #708187;
+          box-shadow: 0 0 0 1px rgba(27,43,48,.38); transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
         }
-        #nmc-kpi-entry-gate .nmc-kpi-ecg-dot.start { left: 0; background: #ffd66f; box-shadow: 0 0 5px rgba(255,214,111,.82), 0 0 11px rgba(255,186,50,.34); }
+        #nmc-kpi-entry-gate .nmc-kpi-ecg-dot.start { left: 0; background: #19c99c; box-shadow: 0 0 5px rgba(25,201,156,.82), 0 0 11px rgba(25,201,156,.32); }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-dot.end { right: 0; }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-dot.end.is-arrived, #nmc-kpi-entry-gate.is-arrived .nmc-kpi-ecg-dot.end {
-          background: #ffe28d; transform: scale(1.18); box-shadow: 0 0 6px rgba(255,226,141,1), 0 0 16px rgba(255,184,43,.78), 0 0 26px rgba(255,174,30,.36);
+          background: #75f4d0; transform: scale(1.18); box-shadow: 0 0 6px rgba(117,244,208,1), 0 0 16px rgba(22,201,156,.76);
+        }
+        #nmc-kpi-entry-gate .nmc-kpi-gate-progress {
+          margin-top: -1px; color: #086d58; font: 900 13px/1.1 'Outfit', system-ui, sans-serif; letter-spacing: .04em;
+          text-shadow: 0 1px 0 rgba(255,255,255,.35);
         }
         #nmc-kpi-entry-gate .nmc-kpi-gate-loading {
-          margin-top: 2px; color: #fff3cf; font: italic 850 15px/1.25 'Outfit', system-ui, sans-serif; letter-spacing: .02em;
+          margin-top: 6px; color: #e7efe9; font: italic 850 15px/1.25 'Outfit', system-ui, sans-serif; letter-spacing: .02em;
           -webkit-text-stroke: .25px rgba(44,34,19,.56);
           text-shadow: 0 2px 2px rgba(17,19,21,.96), 0 0 4px rgba(17,19,21,.70), 0 0 10px rgba(255,211,105,.16);
         }
@@ -218,6 +226,7 @@ export function KpiEntryGate() {
           </svg>
           <span className="nmc-kpi-ecg-dot start" /><span ref={endDotRef} className="nmc-kpi-ecg-dot end" />
         </div>
+        <div ref={progressTextRef} className="nmc-kpi-gate-progress">4%</div>
         <div className="nmc-kpi-gate-loading">Đang tải dữ liệu...</div>
       </div>
     </div>

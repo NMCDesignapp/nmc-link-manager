@@ -169,6 +169,8 @@ export default function RootLayout({
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
+        <link rel="stylesheet" href="/kpi-loader-scope-v14.css?v=20260904-1" />
+        <link rel="stylesheet" href="/kpi-detail-metal-v15.css?v=20260904-1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -196,6 +198,9 @@ echo "[7/8] Syncing shared KPI assets"
 if [ $CHECK_ONLY -eq 0 ]; then
   mkdir -p "$KPI_APP/public/icon" "$KPI_APP/public/kpi"
   cp "$ROOT/public/kpi-blackwood-theme-v13.css" "$KPI_APP/public/kpi-blackwood-theme-v13.css"
+  cp "$ROOT/public/kpi-loader-scope-v14.css" "$KPI_APP/public/kpi-loader-scope-v14.css"
+  cp "$ROOT/public/kpi-detail-metal-v15.css" "$KPI_APP/public/kpi-detail-metal-v15.css"
+  cp "$ROOT/src/components/kpi-entry-gate.tsx" "$KPI_APP/src/components/kpi-entry-gate.tsx"
   cp -r "$ROOT/public/kpi/"* "$KPI_APP/public/kpi/" 2>/dev/null || true
   cp "$ROOT/public/logo.svg" "$KPI_APP/public/" 2>/dev/null || true
 fi
