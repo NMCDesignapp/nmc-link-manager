@@ -6,12 +6,13 @@
     "node": ">=22.6.0"
   },
   "scripts": {
-    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-calendar-rooms.js && node scripts/apply-kpi-main-action-widths.js && node scripts/apply-kpi-contest-notice.js && node scripts/apply-kpi-contest-notice-timing.js && node scripts/apply-kpi-contest-popup-compact.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && node scripts/apply-clb-sao-viet-entry.js && node scripts/apply-tvvm-stage-reward-once.js && node scripts/apply-clb-post-assessment-entry-title.js && node scripts/apply-clb-title-assessment.js && next dev -p 3000 2>&1 | tee dev.log",
-    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-calendar-rooms.js && node scripts/apply-kpi-main-action-widths.js && node scripts/apply-kpi-contest-notice.js && node scripts/apply-kpi-contest-notice-timing.js && node scripts/apply-kpi-contest-popup-compact.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && node scripts/apply-clb-sao-viet-entry.js && node scripts/apply-tvvm-stage-reward-once.js && node scripts/apply-clb-post-assessment-entry-title.js && node scripts/apply-clb-title-assessment.js && next build",
+    "dev": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-calendar-rooms.js && node scripts/apply-kpi-main-action-widths.js && node scripts/apply-kpi-contest-notice.js && node scripts/apply-kpi-contest-notice-timing.js && node scripts/apply-kpi-contest-popup-compact.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && node scripts/apply-clb-sao-viet-entry.js && node scripts/apply-tvvm-stage-reward-once.js && node scripts/apply-clb-post-assessment-entry-title.js && node scripts/apply-clb-title-assessment.js && node scripts/apply-contest-combined-top-ranking.js && next dev -p 3000 2>&1 | tee dev.log",
+    "build": "node scripts/apply-ntd-effective-date-rule.js && node scripts/apply-saved-contest-tvv-group-order.js && node scripts/apply-kpi-popup-ip-period.js && node scripts/apply-kpi-calendar-rooms.js && node scripts/apply-kpi-main-action-widths.js && node scripts/apply-kpi-contest-notice.js && node scripts/apply-kpi-contest-notice-timing.js && node scripts/apply-kpi-contest-popup-compact.js && node scripts/apply-kpi-performance-fixes.js && node scripts/apply-kpi-loader-icon.js && node scripts/apply-clb-sao-viet-entry.js && node scripts/apply-tvvm-stage-reward-once.js && node scripts/apply-clb-post-assessment-entry-title.js && node scripts/apply-clb-title-assessment.js && node scripts/apply-contest-combined-top-ranking.js && next build",
     "start": "next start",
     "lint": "eslint .",
     "test:contest-excel": "node --experimental-strip-types --test tests/contest-excel-matrix.test.ts",
-    "postinstall": "prisma generate"
+    "test:contest-top": "node --experimental-strip-types --test tests/contest-combined-top-ranking.test.ts",
+    "postinstall": "node scripts/apply-contest-combined-top-ranking.js --schema-only && prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -85,7 +86,7 @@
     "sonner": "^2.0.6",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7",
+    "tailwindcss-animate": "^1.0.0",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5",
@@ -104,7 +105,6 @@
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",
-    "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   }
 }
