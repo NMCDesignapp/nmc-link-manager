@@ -79,3 +79,6 @@ applyReplacements('src/app/thi-dua-chau/page.tsx', [
 ]);
 
 console.log('✓ Quy tắc NTD đã được chuẩn hóa: ngày bắt đầu làm việc >= ngày hiệu lực chức vụ gần nhất.');
+
+// Các vá lỗi NTD nhỏ, idempotent, được chạy cùng entrypoint này để dev/build luôn đồng nhất.
+require('./apply-ntd-standard-export-all-contracts.js');
