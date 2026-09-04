@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, withRetry } from '@/lib/db';
 import { GET as getPostAssessmentMembers } from '@/app/api/clb-sao-viet/tong-hop/route';
+import { getTitleThresholdPeriod } from '@/lib/clb-title-tier-display';
 
 const CA_NHAN = {
   vang: [300, 350, 400, 450, 500, 550, 600],
@@ -42,11 +43,9 @@ function performancePeriod(year: number, month: number) {
   const date = new Date(year, month - 2, 1); // tháng liền trước đợt xét
   const performanceYear = date.getFullYear();
   const performanceMonth = date.getMonth() + 1;
-  const thresholdIndex = performanceMonth <= 6 ? 0 : performanceMonth >= 12 ? 6 : performanceMonth - 6;
   return {
     year: performanceYear,
     month: performanceMonth,
-    thresholdIndex,
     label: `T${performanceMonth}/${performanceYear}`,
   };
 }
@@ -89,6 +88,7 @@ export async function GET(request: NextRequest) {
     const tnTdData = await withRetry(() => db.saoVietData.findMany({ where: { program: 'tn-td' } }));
 
     const period = performancePeriod(year, month);
+    const selectedThresholdPeriod = getTitleThresholdPeriod(year, month);
     const start = new Date(period.year, period.month - 1, 1);
     const end = new Date(period.year, period.month, 1);
     // Giống bảng theo dõi hiện tại: issueDate được ưu tiên; chỉ fallback effectiveDate nếu issueDate null.
@@ -112,7 +112,9 @@ export async function GET(request: NextRequest) {
       monthlyFyp.set(code, (monthlyFyp.get(code) || 0) + Number(contract.fyp || 0));
     }
 
-    const idx = period.thresholdIndex;
+    // Chỉ tiêu đi theo đúng đợt xét đã chọn (vd. 1/9 dùng cột Tháng 9).
+    // Doanh số tháng vẫn chốt ở tháng liền trước.
+    const idx = selectedThresholdPeriod.thresholdIndex;
     const caNhanThresholds = {
       vang: CA_NHAN.vang[idx] * 1_000_000,
       bachkim: CA_NHAN.bachkim[idx] * 1_000_000,
@@ -194,6 +196,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       assessment: { year, month, label: `1/${month}/${year}` },
       performancePeriod: period,
+      thresholdPeriod: selectedThresholdPeriod,
       source: 'DS thành viên Mục 3 + dữ liệu đồng bộ hiện tại của 3 bảng theo dõi CLB Sao Việt',
       thresholds: {
         tvv: { ...caNhanThresholds, monthlyFypMin: MONTHLY_FYP_MIN },

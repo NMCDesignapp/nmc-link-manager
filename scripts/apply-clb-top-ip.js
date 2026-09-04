@@ -22,8 +22,8 @@ const stateInsert = `  const [titleFolderOpen, setTitleFolderOpen] = useState(fa
 if (!source.includes(stateAnchor)) throw new Error('Không tìm thấy anchor state titleFolderOpen');
 source = source.replace(stateAnchor, stateInsert);
 
-const periodAnchor = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu chốt theo chỉ tiêu của tháng liền trước đợt xét.`;
-const periodInsert = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu chốt theo chỉ tiêu của tháng liền trước đợt xét. Xét Top IP chỉ lấy doanh số đúng 1 tháng liền trước theo Ngày PH.`;
+const periodAnchor = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu dùng đúng bộ chỉ tiêu của Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn.`;
+const periodInsert = `          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu dùng đúng bộ chỉ tiêu của Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn. Xét Top IP chỉ lấy doanh số đúng 1 tháng liền trước theo Ngày PH.`;
 if (!source.includes(periodAnchor)) throw new Error('Không tìm thấy anchor mô tả kỳ xét sau Mục 4');
 source = source.replace(periodAnchor, periodInsert);
 
