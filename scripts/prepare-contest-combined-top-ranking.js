@@ -33,5 +33,19 @@ if (source.includes(badNtdBlock)) {
   throw new Error('[prepare-combined-top] Expected NTD Excel patch block not found');
 }
 
+// Main page currently passes a title prop into the primary BonusTierEditor.
+// Keep the patch anchor synchronized with that exact production JSX.
+const oldBonusAnchor = [
+  '  const bonusEditorAnchor = `              <BonusTierEditor\\n                tiers={bonusTiers}\\n                conditionType={conditionType}\\n                onUpdate={updateBonusTier}\\n                onAdd={addBonusTier}\\n                onRemove={removeBonusTier}\\n              />`;',
+].join('\n');
+const currentBonusAnchor = [
+  '  const bonusEditorAnchor = `              <BonusTierEditor\\n                tiers={bonusTiers}\\n                conditionType={conditionType}\\n                onUpdate={updateBonusTier}\\n                onAdd={addBonusTier}\\n                onRemove={removeBonusTier}\\n                title={usePhase2 ? \'Bảng mức thưởng - Giai đoạn 1\' : \'Bảng mức thưởng\'}\\n              />`;',
+].join('\n');
+if (source.includes(oldBonusAnchor)) {
+  source = source.replace(oldBonusAnchor, currentBonusAnchor);
+} else if (!source.includes(currentBonusAnchor)) {
+  throw new Error('[prepare-combined-top] Expected BonusTierEditor patch anchor not found');
+}
+
 fs.writeFileSync(file, source, 'utf8');
 console.log('✓ normalized combined TOP patch script');
