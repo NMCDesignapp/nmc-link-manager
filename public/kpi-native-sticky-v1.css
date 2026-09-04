@@ -1,4 +1,4 @@
-/* KPI embedded viewport header v3
+/* KPI embedded viewport header v4
  * The real THEAD stays in normal flow so it is always visible at table start.
  * A light fixed mirror appears only after the real header reaches the viewport top.
  * This avoids Android/WebView sticky failures caused by horizontal overflow ancestors.
@@ -30,15 +30,17 @@ html[data-kpi-embed='1'] body thead.nmc-kpi-native-thead th.nmc-kpi-native-stick
   -webkit-backface-visibility: visible !important;
 }
 
-/* Viewport mirror: no filter/translateZ/will-change so it does not create the
-   black compositor flashes seen on Android. Horizontal sync uses relative left.
-   Every header cell, including STT, moves horizontally together. */
+/* Keep the compact mirror laid out while hidden so it can take over from the
+   source header immediately. Only its small table is translated horizontally;
+   the tall source table stays on the stable non-composited path. */
 html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 {
   position: fixed !important;
   top: 0 !important;
   left: 0;
   z-index: 2147482400 !important;
-  display: none !important;
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
   overflow: hidden !important;
   pointer-events: none !important;
   contain: paint !important;
