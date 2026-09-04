@@ -21,6 +21,14 @@ html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay table {
   backface-visibility: visible !important;
 }
 
+/* The v2 mirror now copies the complete computed header presentation. Do not
+   add a second background or shadow around it; that would differ from the
+   source THEAD and make the hand-off visibly jump. */
+html[data-kpi-embed='1'] body .nmc-kpi-sticky-header-overlay-v2 {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* Fill any transient paint gap with the table surface instead of the black app background. */
 html[data-kpi-embed='1'] body .policy-detail-table-wrapper,
 html[data-kpi-embed='1'] body .saoviet-detail-table-wrapper,
