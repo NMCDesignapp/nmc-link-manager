@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import * as calculator from '../src/lib/contest-calculator.ts';
 import { expandActivityExportDetails } from '../src/lib/contest-export-details.ts';
 import { normalizeContestWorkbook, utils } from '../src/lib/xlsx-contest-wrapper-v2.ts';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+execFileSync(process.execPath, ['scripts/apply-ntd-standard-export-all-contracts.js'], {
+  cwd: repoRoot,
+  stdio: 'pipe',
+});
 
 const start = new Date();
 start.setMonth(start.getMonth() - 1);
@@ -120,15 +129,24 @@ test('actual NTD export includes four contracts, one subtotal per TVVm, unchange
   assert.deepEqual(after, [headers, ...rows]);
 });
 
-test('own-contribution toggle, phases and non-TVVm exports retain existing semantics', () => {
+test('own-contribution toggle, phases and standard NTD export retain calculation semantics', () => {
   const own = exportRows(true);
   assert.equal(own.rows.length, 5);
   assert.equal(own.rows[0][own.headers.indexOf('Tổng cộng')], 4);
   assert.equal(own.rows[0][own.headers.indexOf('Thưởng')], 400_000);
+
   const phase = exportRows(false, true);
   assert.equal(phase.rows.length, 4);
   assert.equal(phase.rows[0][phase.headers.indexOf('Tổng Thưởng')], 300_000);
-  const normal = exportRows(false, false, 'activity_round_standard');
-  assert.equal(normal.rows.length, 3);
-  assert.ok(!normal.headers.includes('Tổng IP TVV trong kỳ'));
+
+  const standard = exportRows(false, false, 'activity_round_standard');
+  const contractCol = standard.headers.indexOf('Số hợp đồng');
+  assert.equal(standard.rows.length, 4);
+  assert.deepEqual(standard.rows.map((r: unknown[]) => r[contractCol]), ['A1', 'B1', 'C1', 'C2']);
+  assert.equal(standard.rows[0][standard.headers.indexOf('Tổng cộng')], 3);
+  assert.equal(standard.rows[0][standard.headers.indexOf('Thưởng')], 300_000);
+  assert.ok(!standard.headers.includes('Mã TVV'));
+  assert.ok(!standard.headers.includes('Tổng IP TVV trong kỳ'));
+  assert.ok(!standard.headers.includes('Lượt TVVm'));
+  assert.ok(standard.rows.every((r: unknown[]) => r.length === standard.headers.length));
 });
