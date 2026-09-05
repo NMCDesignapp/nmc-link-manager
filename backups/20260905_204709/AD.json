@@ -1,0 +1,79 @@
+{
+  "table": "AD",
+  "count": 8,
+  "exported_at": "2026-09-05T20:47:10.292290",
+  "records": [
+    {
+      "id": "26ea650e-8f12-4ccc-a819-e5b9d58aac47",
+      "maAD": "L2404058202",
+      "tenAD": "AD Uy",
+      "maPhong": "P001",
+      "note": "",
+      "createdAt": "2026-06-17 03:06:57.272",
+      "updatedAt": "2026-06-17 03:06:57.436"
+    },
+    {
+      "id": "00bfa5ef-a3a7-4ead-9c64-52c665c6209d",
+      "maAD": "L1006290346",
+      "tenAD": "AD Trí",
+      "maPhong": "P001",
+      "note": "",
+      "createdAt": "2026-06-17 03:19:38.601",
+      "updatedAt": "2026-06-17 03:19:38.601"
+    },
+    {
+      "id": "a1105182-880a-4786-92b3-de410f4223b4",
+      "maAD": "L1404181482",
+      "tenAD": "AD Có",
+      "maPhong": "P002",
+      "note": "",
+      "createdAt": "2026-06-17 03:19:49.769",
+      "updatedAt": "2026-06-17 03:19:49.769"
+    },
+    {
+      "id": "4a56ea7c-38ad-4425-9073-eed4d8f5fd77",
+      "maAD": "L1404181481",
+      "tenAD": "AD Long",
+      "maPhong": "P002",
+      "note": "",
+      "createdAt": "2026-06-17 03:20:02.999",
+      "updatedAt": "2026-06-17 03:20:02.999"
+    },
+    {
+      "id": "07f9e5a6-cdc3-4a14-a966-9cdd8f3e71f1",
+      "maAD": "L1905096997",
+      "tenAD": "AD Trang",
+      "maPhong": "P003",
+      "note": "",
+      "createdAt": "2026-06-17 03:20:16.784",
+      "updatedAt": "2026-06-17 03:20:16.784"
+    },
+    {
+      "id": "79de5e8e-135b-4db0-aa8b-b3e47e4cc172",
+      "maAD": "L2503288327",
+      "tenAD": "AD Danh",
+      "maPhong": "P003",
+      "note": "",
+      "createdAt": "2026-06-17 03:20:25.15",
+      "updatedAt": "2026-06-17 03:20:25.15"
+    },
+    {
+      "id": "4d53552d-f196-4874-97f7-375fc9096324",
+      "maAD": "PA",
+      "tenAD": "PA",
+      "maPhong": "PA",
+      "note": "Auto-created AD for special phong",
+      "createdAt": "2026-06-17 10:02:11.816",
+      "updatedAt": "2026-06-17 10:02:11.816"
+    },
+    {
+      "id": "7cb549d1-a130-4773-93b4-51f36cfeea4f",
+      "maAD": "Banca",
+      "tenAD": "Banca",
+      "maPhong": "Banca",
+      "note": "Auto-created AD for special phong",
+      "createdAt": "2026-06-17 10:02:12.471",
+      "updatedAt": "2026-06-17 10:02:12.471"
+    }
+  ]
+}

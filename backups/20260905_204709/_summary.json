@@ -1,0 +1,26 @@
+{
+  "exported_at": "2026-09-05T20:47:14.972619",
+  "source_host": "ep-broad-heart-aneqyci9-pooler.c-6.us-east-1.aws.neon.tech",
+  "total_records": 4959,
+  "tables": {
+    "AD": 8,
+    "BanNhom": 34,
+    "CalendarEvent": 74,
+    "Category": 0,
+    "ClbMember": 59,
+    "Contest": 5,
+    "Contract": 821,
+    "LeaderInfo": 29,
+    "Link": 6,
+    "MonthlyRevenue": 550,
+    "PendingMember": 49,
+    "Phong": 5,
+    "PosterImage": 6,
+    "Recruiter": 68,
+    "SaoVietData": 947,
+    "Setting": 170,
+    "Staff": 26,
+    "TVVStruct": 2084,
+    "TuyenNgang": 18
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "table": "BanNhom",
+  "count": 34,
+  "exported_at": "2026-09-05T20:47:10.416121",
+  "records": [
+    {
+      "id": "9b8a4258-c242-412f-83e5-0a9d8ad8cb3a",
+      "maBanNhom": "U104102122",
+      "tenBanNhom": "An Phú 2",
+      "maAD": "L2503288327",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "30ce127c-b4f5-4d8f-baec-4739a84af313",
+      "maBanNhom": "U2510345943",
+      "tenBanNhom": "Cát Tường",
+      "maAD": "L2503288327",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "a1edfa22-6cc0-4256-bb44-592d4e903cd2",
+      "maBanNhom": "U104106078",
+      "tenBanNhom": "Chợ Mới 1",
+      "maAD": "L1404181481",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "9c56ca8a-0323-4531-99f8-883d18a6827c",
+      "maBanNhom": "A104103002",
+      "tenBanNhom": "Hiệp Tiến",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "bdde7650-ba94-4833-8001-ea01c0b413f3",
+      "maBanNhom": "U2510175986",
+      "tenBanNhom": "An Kiên Phát",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "0d827513-6e95-48b2-95a4-de3408e3f2f0",
+      "maBanNhom": "U104101167",
+      "tenBanNhom": "Bảo An",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "4993b7af-dd2c-4f30-858e-dabac6eb418c",
+      "maBanNhom": "U1041A3L6E",
+      "tenBanNhom": "Nhiệt An",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "42908c6d-6821-4aad-bf81-c7c12857a82d",
+      "maBanNhom": "U2510175992",
+      "tenBanNhom": "Phú Hòa",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "3666d9e7-7ecd-49d0-94a7-a7901f351381",
+      "maBanNhom": "U1041A1A9N",
+      "tenBanNhom": "Thiên Lộc",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "ba4e043c-1a36-4272-9407-15e8df87d8d5",
+      "maBanNhom": "U257552148",
+      "tenBanNhom": "Thương Phú",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "21f4ba9e-500c-4667-bc9b-5349dfbbae1b",
+      "maBanNhom": "U1041A1ACX",
+      "tenBanNhom": "Hồng Tâm",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "9203c268-02ef-4343-a368-0749c9594dd1",
+      "maBanNhom": "U104101058",
+      "tenBanNhom": "Phụng Hoàng Sơn",
+      "maAD": "L2404058202",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "b4ec8243-365b-4c41-ad63-8390405cab66",
+      "maBanNhom": "U1041A3TYP",
+      "tenBanNhom": "Minh Phú",
+      "maAD": "L1905096997",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "ec3d6936-cc74-4cc0-a350-437ab878a1ff",
+      "maBanNhom": "U1041A3MSY",
+      "tenBanNhom": "Sao Tâm Yên",
+      "maAD": "L1905096997",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "3d90b744-1648-4b07-a8e7-91ddde8d8fc0",
+      "maBanNhom": "A1041A16Z5",
+      "tenBanNhom": "Sao An Phú",
+      "maAD": "L1905096997",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "9bff831c-996b-4385-a276-9a63da6c0a75",
+      "maBanNhom": "U104102192",
+      "tenBanNhom": "An Phú 9",
+      "maAD": "L2503288327",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "f17db7f0-af42-4a51-8baa-0f3420a2f198",
+      "maBanNhom": "U1041A2DTG",
+      "tenBanNhom": "Sao Tâm An",
+      "maAD": "L2503288327",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "923c0a76-0b6c-49f1-89b1-4cf8d2836d1b",
+      "maBanNhom": "U2610208925",
+      "tenBanNhom": "Niềm Tin",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "46aae535-ce7f-44f5-92c3-20b27011be7d",
+      "maBanNhom": "U1041A3JMW",
+      "tenBanNhom": "Sao Châu Phú",
+      "maAD": "L1404181481",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "e2210d62-7791-4afe-86f7-54184356cee0",
+      "maBanNhom": "U1041A3QG6",
+      "tenBanNhom": "Sao Chợ Mới",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "6c225903-2a0d-475c-af65-88d85466805e",
+      "maBanNhom": "U2510076738",
+      "tenBanNhom": "Sao Việt",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "40b41e1f-9a1a-464b-9c2b-0e35d98a106a",
+      "maBanNhom": "U1041A313D",
+      "tenBanNhom": "Tiên Phong",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "bdd92557-5cc9-4fa0-a452-e8b43176fa70",
+      "maBanNhom": "U104101117",
+      "tenBanNhom": "Đồng Tiến",
+      "maAD": "L1404181481",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "17a04980-5b96-4c40-ac5a-47032bb8210d",
+      "maBanNhom": "U1041A3L6F",
+      "tenBanNhom": "An Khang",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "94862d36-e8da-4d1f-b5ec-2d4bf2595f94",
+      "maBanNhom": "U1041A3L6D",
+      "tenBanNhom": "Hoa Sen",
+      "maAD": "L1006290346",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "d34418c4-f91b-41dd-87f3-49d6a37d1590",
+      "maBanNhom": "U2510345907",
+      "tenBanNhom": "Tinh Hoa",
+      "maAD": "L1006290346",
+      "note": "",
+      "createdAt": "2026-06-17 03:18:44.902",
+      "updatedAt": "2026-06-17 03:18:44.902"
+    },
+    {
+      "id": "e48071e6-bbb0-457e-bf30-d70ba0346411",
+      "maBanNhom": "A104101006",
+      "tenBanNhom": "A104101006",
+      "maAD": "",
+      "note": "Auto-created (no contract match)",
+      "createdAt": "2026-06-17 04:14:55.406",
+      "updatedAt": "2026-06-17 04:14:55.406"
+    },
+    {
+      "id": "5201a166-80a7-4f04-91a9-60f5b01f0542",
+      "maBanNhom": "A473DSO000",
+      "tenBanNhom": "A473DSO000",
+      "maAD": "",
+      "note": "Auto-created (no contract match)",
+      "createdAt": "2026-06-17 04:14:56.071",
+      "updatedAt": "2026-06-17 04:14:56.071"
+    },
+    {
+      "id": "6619b96e-2112-49ed-bd07-ea511aac773b",
+      "maBanNhom": "U104101014",
+      "tenBanNhom": "U104101014",
+      "maAD": "",
+      "note": "Auto-created (no contract match)",
+      "createdAt": "2026-06-17 04:14:56.733",
+      "updatedAt": "2026-06-17 04:14:56.733"
+    },
+    {
+      "id": "b4100917-9752-43bc-b934-79e3ff504d43",
+      "maBanNhom": "Banca",
+      "tenBanNhom": "Banca",
+      "maAD": "Banca",
+      "note": "Auto-created per user request",
+      "createdAt": "2026-06-17 09:59:50.729",
+      "updatedAt": "2026-06-17 09:59:50.729"
+    },
+    {
+      "id": "3cb50a1a-cc00-4ba2-aca4-39359d5ada12",
+      "maBanNhom": "PA",
+      "tenBanNhom": "Nhóm PA",
+      "maAD": "PA",
+      "note": "Auto-created per user request",
+      "createdAt": "2026-06-17 09:59:50.071",
+      "updatedAt": "2026-06-17 09:59:50.071"
+    },
+    {
+      "id": "c29dfdf9-dfae-4fbf-bbb3-ee869f271673",
+      "maBanNhom": "U262002807",
+      "tenBanNhom": "Bảo Việt An Giang",
+      "maAD": "L2404058202",
+      "note": "Nhóm bán chéo",
+      "createdAt": "2026-06-23 03:28:04.714",
+      "updatedAt": "2026-06-23 03:28:04.714"
+    },
+    {
+      "id": "4df1c537-2b66-4abb-93f7-292824d8d041",
+      "maBanNhom": "U2610372758",
+      "tenBanNhom": "An Phúc",
+      "maAD": "L2503288327",
+      "note": "",
+      "createdAt": "2026-07-03 03:03:08.509",
+      "updatedAt": "2026-07-03 03:03:08.509"
+    },
+    {
+      "id": "e5842076-0eb2-4a17-af8f-bd47b121a518",
+      "maBanNhom": "U2610372812",
+      "tenBanNhom": "Thành Công",
+      "maAD": "L1404181482",
+      "note": "",
+      "createdAt": "2026-07-03 03:03:47.088",
+      "updatedAt": "2026-07-03 03:03:47.088"
+    }
+  ]
+}
