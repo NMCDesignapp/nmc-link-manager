@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "prisma generate",
+    "postinstall": "node ../scripts/ensure-vercel-prisma-binary-target.js && prisma generate",
     "sync": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-main-action-widths.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/apply-kpi-contest-popup-compact.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js",
     "sync:check": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-main-action-widths.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/apply-kpi-contest-popup-compact.js && node ../scripts/sync-kpi-source.js --check"
   },
