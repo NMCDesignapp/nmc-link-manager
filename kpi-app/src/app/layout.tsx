@@ -5,6 +5,8 @@ import { MaintenanceGate } from '@/components/maintenance-gate'
 import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { AppDataProvider } from '@/lib/app-data-context'
 
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/$/, '')
+
 export const metadata: Metadata = {
   title: 'KPI - N.M.C',
   description: 'KPI Dashboard - Trung tam quan ly lien ket',
@@ -41,14 +43,14 @@ export default function RootLayout({
     <html lang="vi" className="dark h-full">
       <head>
         <link rel="stylesheet" href="/kpi-blackwood-theme-v3.css?v=20260825-1" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v4.css?v=20260825-2" />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v4.css?v=20260825-2"} />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v5.css?v=20260826-1" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v6.css?v=20260826-2" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v7.css?v=20260826-3" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v8.css?v=20260826-4" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v9.css?v=20260826-5" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v10.css?v=20260826-6" />
-        <link rel="stylesheet" href="https://nc-link.vercel.app/kpi-blackwood-theme-v11.css?v=20260826-7" />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v6.css?v=20260826-2"} />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v7.css?v=20260826-3"} />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v8.css?v=20260826-4"} />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v9.css?v=20260826-5"} />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v10.css?v=20260826-6"} />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-blackwood-theme-v11.css?v=20260826-7"} />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-2" />
         <link rel="stylesheet" href="/kpi-blackwood-theme-v13.css?v=20260831-1" />
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
