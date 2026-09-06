@@ -1,0 +1,240 @@
+/* KPI layout polish v18 — shared layout fixes + standalone navigation chrome.
+ * - Re-centers Chi tiet nhom / Ke hoach headers with balanced left/right slots.
+ * - Lets the Ke hoach board use the available desktop width (less empty side space).
+ * - Shows compact P1/P2/P3 labels for PTKD scope buttons without changing stored values.
+ * - Standalone KPI only: replaces oversized round Back/Settings buttons with compact navy rectangles.
+ */
+
+/* ===== Shared: keep internal destination titles geometrically centered ===== */
+html body .kpi-app #view-detail.active > .detail-shell > .sub-header,
+html body .kpi-app #view-calendar.active > .sub-header {
+  display: grid !important;
+  grid-template-columns: minmax(52px, 1fr) auto minmax(52px, 1fr) !important;
+  align-items: center !important;
+  column-gap: 10px !important;
+}
+
+html body .kpi-app #view-detail.active > .detail-shell > .sub-header > .btn-back-u,
+html body .kpi-app #view-calendar.active > .sub-header > .btn-back-u {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  justify-self: start !important;
+}
+
+html body .kpi-app #view-detail.active > .detail-shell > .sub-header > .sub-title,
+html body .kpi-app #view-calendar.active > .sub-header > .sub-title {
+  grid-column: 2 !important;
+  justify-self: center !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  text-align: center !important;
+}
+
+html body .kpi-app #view-calendar.active > .sub-header > button[title='Nhập kế hoạch khung mới'],
+html body .kpi-app #view-calendar.active > .sub-header > .cal-settings-btn {
+  grid-column: 3 !important;
+  justify-self: end !important;
+}
+
+html body .kpi-app #view-detail .detail-shell {
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* ===== Shared: Ke hoach khung — reduce the empty desktop gutters, not the table ===== */
+@media (min-width: 721px) {
+  html body .kpi-app #view-calendar .cal-wrap {
+    width: calc(100% - 40px) !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  html body .kpi-app #view-calendar .cal-filter,
+  html body .kpi-app #view-calendar .cal-scope-filter {
+    width: min(980px, calc(100% - 40px)) !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html body .kpi-app #view-calendar .cal-wrap,
+  html body .kpi-app #view-calendar .cal-filter,
+  html body .kpi-app #view-calendar .cal-scope-filter {
+    width: calc(100% - 16px) !important;
+  }
+}
+
+/* ===== Shared: PTKD scope labels are visual aliases only (data remains unchanged) ===== */
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(2),
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(3),
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(4) {
+  font-size: 0 !important;
+}
+
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(2)::after,
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(3)::after,
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(4)::after {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .04em;
+}
+
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(2)::after { content: 'P1'; }
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(3)::after { content: 'P2'; }
+html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(4)::after { content: 'P3'; }
+
+@media (max-width: 720px) {
+  html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(2)::after,
+  html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(3)::after,
+  html body .kpi-app #view-calendar .cal-scope-filter .cal-scope-btn:nth-child(4)::after {
+    font-size: 9px;
+  }
+}
+
+/* ===== Standalone KPI only: compact rectangular Back buttons ===== */
+html body.kpi-standalone-shell .kpi-app .main-header .btn-back-u,
+html body.kpi-standalone-shell .kpi-app .kpi-embed-back,
+html body.kpi-standalone-shell .kpi-app #view-detail .sub-header > button[aria-label='Quay lại'],
+html body.kpi-standalone-shell .kpi-app #view-detail .sub-header > button[aria-label='Trở về'],
+html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[aria-label='Quay lại'],
+html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[aria-label='Trở về'],
+html body.kpi-standalone-shell .kpi-app #view-tamthu-detail .sub-header > button[aria-label='Quay lại'],
+html body.kpi-standalone-shell .kpi-app #view-tamthu-detail .sub-header > button[aria-label='Trở về'],
+html body.kpi-standalone-shell .kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Quay lại'],
+html body.kpi-standalone-shell .kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Trở về'] {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 10px !important;
+  gap: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(83, 150, 204, .68) !important;
+  background: linear-gradient(180deg, #12385c 0%, #0d2b4a 100%) !important;
+  color: #58dfc1 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 9px rgba(0,0,0,.22) !important;
+  transform: none !important;
+}
+
+html body.kpi-standalone-shell .kpi-app .kpi-embed-back:hover,
+html body.kpi-standalone-shell .kpi-app .sub-header > button[aria-label='Quay lại']:hover,
+html body.kpi-standalone-shell .kpi-app .sub-header > button[aria-label='Trở về']:hover,
+html body.kpi-standalone-shell .kpi-app .tgr-list-heading > button[aria-label='Quay lại']:hover,
+html body.kpi-standalone-shell .kpi-app .tgr-list-heading > button[aria-label='Trở về']:hover {
+  border-color: #63ebd0 !important;
+  background: linear-gradient(180deg, #17466f 0%, #103556 100%) !important;
+  color: #8ff0da !important;
+}
+
+html body.kpi-standalone-shell .kpi-app .kpi-embed-back svg,
+html body.kpi-standalone-shell .kpi-app .main-header .btn-back-u svg,
+html body.kpi-standalone-shell .kpi-app .sub-header > button[aria-label='Quay lại'] svg,
+html body.kpi-standalone-shell .kpi-app .sub-header > button[aria-label='Trở về'] svg,
+html body.kpi-standalone-shell .kpi-app .tgr-list-heading > button[aria-label='Quay lại'] svg,
+html body.kpi-standalone-shell .kpi-app .tgr-list-heading > button[aria-label='Trở về'] svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  flex: 0 0 19px !important;
+  stroke-width: 2.7 !important;
+  filter: none !important;
+}
+
+/* Standalone embedded headers: balance Back / title / open-action slots. */
+html body.kpi-standalone-shell .kpi-app .kpi-embed-header {
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+html body.kpi-standalone-shell .kpi-app .kpi-embed-back { grid-column: 1; justify-self: start; }
+html body.kpi-standalone-shell .kpi-app .kpi-embed-title { grid-column: 2; justify-self: center; text-align: center; }
+html body.kpi-standalone-shell .kpi-app .kpi-embed-open { grid-column: 3; justify-self: end; }
+
+/* Standalone calendar Settings: matching rectangle, slightly narrower than Back. */
+html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'],
+html body.kpi-standalone-shell .kpi-app #view-calendar .cal-settings-btn {
+  box-sizing: border-box !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  flex: 0 0 42px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(83, 150, 204, .68) !important;
+  background: linear-gradient(180deg, #12385c 0%, #0d2b4a 100%) !important;
+  color: #dff1ff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 9px rgba(0,0,0,.22) !important;
+}
+
+html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới']:hover,
+html body.kpi-standalone-shell .kpi-app #view-calendar .cal-settings-btn:hover {
+  border-color: #63ebd0 !important;
+  background: linear-gradient(180deg, #17466f 0%, #103556 100%) !important;
+  color: #ffffff !important;
+}
+
+html body.kpi-standalone-shell .kpi-app #view-target-reg-list.active .tgr-list-heading {
+  grid-template-columns: 54px minmax(0, 1fr) 54px !important;
+  gap: 6px !important;
+}
+html body.kpi-standalone-shell .kpi-app #view-target-reg-list.active .tgr-list-heading-spacer {
+  width: 54px !important;
+}
+
+@media (max-width: 720px) {
+  html body .kpi-app #view-detail.active > .detail-shell > .sub-header,
+  html body .kpi-app #view-calendar.active > .sub-header {
+    grid-template-columns: minmax(46px, 1fr) auto minmax(46px, 1fr) !important;
+    column-gap: 6px !important;
+  }
+
+  html body.kpi-standalone-shell .kpi-app .main-header .btn-back-u,
+  html body.kpi-standalone-shell .kpi-app .kpi-embed-back,
+  html body.kpi-standalone-shell .kpi-app #view-detail .sub-header > button[aria-label='Quay lại'],
+  html body.kpi-standalone-shell .kpi-app #view-detail .sub-header > button[aria-label='Trở về'],
+  html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[aria-label='Quay lại'],
+  html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[aria-label='Trở về'],
+  html body.kpi-standalone-shell .kpi-app #view-tamthu-detail .sub-header > button[aria-label='Quay lại'],
+  html body.kpi-standalone-shell .kpi-app #view-tamthu-detail .sub-header > button[aria-label='Trở về'],
+  html body.kpi-standalone-shell .kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Quay lại'],
+  html body.kpi-standalone-shell .kpi-app #view-target-reg-list .tgr-list-heading > button[aria-label='Trở về'] {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    flex-basis: 44px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 8px !important;
+  }
+
+  html body.kpi-standalone-shell .kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'],
+  html body.kpi-standalone-shell .kpi-app #view-calendar .cal-settings-btn {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    flex-basis: 40px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+  }
+}
