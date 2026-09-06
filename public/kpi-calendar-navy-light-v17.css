@@ -1,0 +1,256 @@
+/* KPI Kế hoạch khung v17 — light calendar surface + flat navy controls.
+ * Visual-only override shared by Main KPI and KPI standalone.
+ * Keeps the planning board light while borrowing the flat navy language from Chi tiết nhóm.
+ */
+
+html body .kpi-app #view-calendar {
+  --cal-navy-950: #061424;
+  --cal-navy-900: #0a1d33;
+  --cal-navy-850: #0d2744;
+  --cal-navy-800: #103252;
+  --cal-edge: rgba(70, 136, 192, .58);
+  --cal-teal: #22c9a6;
+  --cal-paper: #f7fbff;
+  --cal-ink: #163047;
+  padding-bottom: 30px;
+}
+
+html body .kpi-app #view-calendar .cal-filter {
+  width: min(820px, calc(100% - 24px));
+  margin: 12px auto 0;
+  padding: 7px;
+  gap: 5px;
+  border: 1px solid rgba(69, 133, 188, .54);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0e2c4a 0%, #091d33 100%);
+  box-shadow: none;
+}
+
+html body .kpi-app #view-calendar .cal-fbtn {
+  min-height: 32px;
+  padding: 7px 3px;
+  border: 1px solid rgba(89, 151, 201, .48);
+  border-radius: 6px;
+  background: #123454;
+  color: #dcecff;
+  box-shadow: none;
+  text-shadow: none;
+  font-weight: 850;
+}
+
+html body .kpi-app #view-calendar .cal-fbtn:hover {
+  border-color: rgba(77, 218, 191, .88);
+  background: #153d61;
+  color: #f4ffff;
+}
+
+html body .kpi-app #view-calendar .cal-fbtn.on {
+  border-color: #63ebd0;
+  background: linear-gradient(180deg, #1fc6a7 0%, #11977f 100%);
+  color: #031f24;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html body .kpi-app #view-calendar .cal-scope-filter {
+  width: min(820px, calc(100% - 24px));
+  max-width: none;
+  margin: 8px auto 0;
+  padding: 7px;
+  gap: 5px;
+  border: 1px solid rgba(69, 133, 188, .50);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0d2946 0%, #091c31 100%);
+  box-shadow: none;
+}
+
+html body .kpi-app #view-calendar .cal-scope-btn {
+  min-height: 34px;
+  padding: 6px 5px;
+  border: 1px solid rgba(89, 151, 201, .46);
+  border-radius: 6px;
+  background: #103252;
+  color: #d9eaff;
+  box-shadow: none;
+  text-shadow: none;
+  font-weight: 850;
+}
+
+html body .kpi-app #view-calendar .cal-scope-btn:hover {
+  border-color: rgba(77, 218, 191, .86);
+  background: #153d61;
+  color: #ffffff;
+}
+
+html body .kpi-app #view-calendar .cal-scope-btn.on {
+  border-color: #63ebd0;
+  background: linear-gradient(180deg, #1fc6a7 0%, #11977f 100%);
+  color: #032429;
+  box-shadow: none;
+}
+
+/* Main planning board stays light by request. */
+html body .kpi-app #view-calendar .cal-wrap {
+  width: min(1040px, calc(100% - 24px));
+  margin: 12px auto 0;
+  overflow: hidden;
+  border: 1px solid rgba(43, 91, 129, .52);
+  border-bottom: 1px solid rgba(43, 91, 129, .52);
+  border-radius: 10px;
+  background: var(--cal-paper);
+  box-shadow: 0 10px 28px rgba(17, 49, 77, .13);
+}
+
+html body .kpi-app #view-calendar .cal-head {
+  padding: 8px 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(67, 136, 190, .48);
+  background:
+    linear-gradient(110deg, rgba(255,255,255,.045), transparent 30%, rgba(255,255,255,.02) 68%, transparent),
+    linear-gradient(180deg, #12385c 0%, #0d2b4a 52%, #0a223b 100%);
+  color: #edf7ff;
+  letter-spacing: .08em;
+  text-shadow: none;
+}
+
+html body .kpi-app #view-calendar .cal-row {
+  border-bottom: 1px solid #d5e3ee;
+  background: #f9fcff;
+  box-shadow: none;
+  animation: none;
+}
+
+html body .kpi-app #view-calendar .cal-row:nth-child(even) { background: #f3f8fc; }
+html body .kpi-app #view-calendar .cal-row:hover { background: #eaf4fb; }
+html body .kpi-app #view-calendar .cal-row.is-today {
+  background: #e7fbf6;
+  box-shadow: inset 3px 0 0 #21c7a5;
+}
+html body .kpi-app #view-calendar .cal-row.is-weekend { background: #fff8ee; }
+html body .kpi-app #view-calendar .cal-row.is-sunday { background: #fff1f1; }
+
+html body .kpi-app #view-calendar .cal-day {
+  border-right: 1px solid #d3e1ec;
+  background: #eaf3fa;
+  color: #0f5278;
+  text-shadow: none;
+}
+html body .kpi-app #view-calendar .cal-day-num { font-size: 12px; font-weight: 900; }
+html body .kpi-app #view-calendar .cal-day-week { color: #6f879b; font-weight: 750; }
+html body .kpi-app #view-calendar .cal-row.is-today .cal-day { background: #dff7f0; color: #087361; }
+html body .kpi-app #view-calendar .cal-row.is-weekend .cal-day { background: #fff0dd; color: #bd5c12; }
+html body .kpi-app #view-calendar .cal-row.is-sunday .cal-day { background: #fde8e8; color: #c92828; }
+
+html body .kpi-app #view-calendar .cal-text,
+html body .kpi-app #view-calendar .cal-owner {
+  border-left: 0;
+  border-color: #d3e1ec;
+  background: transparent;
+  color: var(--cal-ink);
+  text-shadow: none;
+}
+html body .kpi-app #view-calendar .cal-text {
+  border-right: 1px solid #d3e1ec;
+  padding: 7px 10px;
+  line-height: 1.35;
+}
+html body .kpi-app #view-calendar .cal-owner { color: #365269; padding: 6px 5px; }
+html body .kpi-app #view-calendar .cal-empty { color: #91a4b4; }
+html body .kpi-app #view-calendar .cal-line.editable { border-radius: 5px; transition: background .12s ease, box-shadow .12s ease; }
+html body .kpi-app #view-calendar .cal-line.editable.authed:hover {
+  background: #e6f8f3;
+  box-shadow: inset 0 0 0 1px rgba(31, 181, 150, .52);
+}
+html body .kpi-app #view-calendar .cal-line.editable.locked:hover {
+  background: #eef4f8;
+  box-shadow: inset 0 0 0 1px #b9cbd9;
+}
+html body .kpi-app #view-calendar .cal-owner-tag {
+  padding: 2px 6px;
+  border-radius: 999px;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html body .kpi-app #view-calendar .cal-settings-btn,
+html body .kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới'] {
+  border: 1px solid rgba(83, 150, 204, .68) !important;
+  border-radius: 8px !important;
+  background: #103252 !important;
+  color: #dff1ff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html body .kpi-app #view-calendar .cal-settings-btn:hover,
+html body .kpi-app #view-calendar .sub-header > button[title='Nhập kế hoạch khung mới']:hover {
+  border-color: #58dfc1 !important;
+  background: #153d61 !important;
+  color: #ffffff !important;
+}
+html body .kpi-app #view-calendar .cal-settings-btn.authed {
+  border-color: #63ebd0 !important;
+  background: #159b83 !important;
+  color: #032429 !important;
+  box-shadow: none !important;
+}
+
+html body .kpi-app .cal-modal-overlay {
+  background: rgba(5, 22, 38, .58);
+  backdrop-filter: blur(2px);
+}
+html body .kpi-app .cal-modal {
+  border: 1px solid rgba(61, 111, 151, .44);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f7fb 100%);
+  box-shadow: 0 16px 42px rgba(10, 34, 56, .28);
+}
+html body .kpi-app .cal-modal-head {
+  border-bottom: 1px solid rgba(76, 145, 198, .50);
+  background: linear-gradient(180deg, #12385c 0%, #0d2b4a 100%);
+  color: #edf7ff;
+  text-shadow: none;
+}
+html body .kpi-app .cal-modal-x {
+  border: 1px solid rgba(151, 195, 227, .40);
+  border-radius: 6px;
+  background: rgba(255,255,255,.08);
+  box-shadow: none;
+}
+html body .kpi-app .cal-modal-x:hover { background: rgba(255,255,255,.16); }
+html body .kpi-app .cal-pwd-input,
+html body .kpi-app .cal-field-input,
+html body .kpi-app .cal-field-textarea,
+html body .kpi-app .cal-owner-opt {
+  border-color: #b9cddd;
+  background: #ffffff;
+  color: #163047;
+  box-shadow: none;
+}
+html body .kpi-app .cal-pwd-input:focus,
+html body .kpi-app .cal-field-input:focus,
+html body .kpi-app .cal-field-textarea:focus {
+  border-color: #1bb99a;
+  box-shadow: 0 0 0 3px rgba(27, 185, 154, .12);
+}
+html body .kpi-app .cal-owner-opt:hover { border-color: #5b9fd0; background: #eef6fc; }
+html body .kpi-app .cal-modal-save {
+  border: 1px solid #5de5c7;
+  background: #159b83;
+  color: #f4fffc;
+  box-shadow: none;
+}
+html body .kpi-app .cal-modal-save:hover { background: #11816d; box-shadow: none; }
+
+@media (max-width: 720px) {
+  html body .kpi-app #view-calendar .cal-filter,
+  html body .kpi-app #view-calendar .cal-scope-filter,
+  html body .kpi-app #view-calendar .cal-wrap { width: calc(100% - 16px); }
+  html body .kpi-app #view-calendar .cal-filter { padding: 5px; gap: 3px; }
+  html body .kpi-app #view-calendar .cal-fbtn { min-height: 27px; padding: 4px 1px; font-size: 7px; }
+  html body .kpi-app #view-calendar .cal-scope-filter { padding: 5px; gap: 3px; }
+  html body .kpi-app #view-calendar .cal-scope-btn { min-height: 31px; padding: 4px 2px; font-size: 7px; }
+  html body .kpi-app #view-calendar .cal-wrap { margin-top: 8px; border-radius: 8px; }
+  html body .kpi-app #view-calendar .cal-head { padding: 6px 0; font-size: 8px; }
+  html body .kpi-app #view-calendar .cal-text { padding: 5px 6px; }
+  html body .kpi-app #view-calendar .cal-owner { padding: 4px 3px; }
+}
