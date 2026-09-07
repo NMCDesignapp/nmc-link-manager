@@ -64,6 +64,8 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-layout-polish-v18.css?v=20260907-1" />
         <link rel="stylesheet" href="/kpi-detail-align-v19.css?v=20260907-2" />
         <link rel="stylesheet" href="/kpi-detail-navy-v20.css?v=20260907-1" />
+        <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-detail-column-themes-v21.css?v=20260907-2"} />
+        <script src={MAIN_APP_URL + "/kpi-detail-column-themes-v21.js?v=20260907-2"} defer></script>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
