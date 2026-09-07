@@ -25,7 +25,10 @@ const route = `import { NextRequest } from 'next/server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\\/$/, '')
+// KPI standalone luôn proxy về domain production chuẩn của Main App.
+// Không đọc NEXT_PUBLIC_MAIN_APP_URL ở đây để env migration cũ không thể
+// trỏ API sang deployment đã bị gỡ alias và gây DEPLOYMENT_NOT_FOUND.
+const MAIN_APP_URL = 'https://nc-link.vercel.app'
 
 function copyResponseHeaders(source: Headers) {
   const headers = new Headers()
