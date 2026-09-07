@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
 
-const ACTIVE_TARGET_REGISTRATION_MONTH = '2026-09'
+const DEFAULT_TARGET_REGISTRATION_MONTH = '2026-09'
+const TARGET_REGISTRATION_OPEN_KEY = 'kpi-target-registration-open'
+const TARGET_REGISTRATION_MONTH_KEY = 'kpi-target-registration-month'
 
 // A restore can copy explicit Setting IDs but leave PostgreSQL's serial sequence
 // behind. The next new setting then fails with a duplicate primary-key error.
@@ -25,10 +27,15 @@ export async function GET() {
       return acc
     }, {})
 
-    // Campaign hotfix: September 2026 registration is open to end users now.
-    // Keep the campaign month explicit so every KPI surface can agree on the same period.
-    settingsObject['kpi-target-registration-open'] = '1'
-    settingsObject['kpi-target-registration-month'] = ACTIVE_TARGET_REGISTRATION_MONTH
+    // Backward-compatible defaults only. A persisted admin choice is authoritative:
+    // specifically, an explicit "0" must remain locked instead of being forced open
+    // by the old September campaign hotfix.
+    if (!Object.prototype.hasOwnProperty.call(settingsObject, TARGET_REGISTRATION_OPEN_KEY)) {
+      settingsObject[TARGET_REGISTRATION_OPEN_KEY] = '1'
+    }
+    if (!settingsObject[TARGET_REGISTRATION_MONTH_KEY]) {
+      settingsObject[TARGET_REGISTRATION_MONTH_KEY] = DEFAULT_TARGET_REGISTRATION_MONTH
+    }
 
     return NextResponse.json(settingsObject, {
       headers: { 'Cache-Control': 'no-store' },
