@@ -1,0 +1,110 @@
+/* KPI detail navy v20
+ * Shared visual/scroll hardening for detail tables opened from KPI and Main App.
+ * Scope: Thi dua, Chinh sach, CLB Sao Viet and Sao Viet toan chang detail tables.
+ */
+
+:root {
+  --nmc-detail-navy-950: #07172a;
+  --nmc-detail-navy-900: #0b2341;
+  --nmc-detail-navy-800: #113457;
+  --nmc-detail-navy-line: #315b82;
+  --nmc-detail-navy-text: #f2f7ff;
+}
+
+/*
+ * Detail table header standard.
+ * Use one dark navy language instead of the former pale blue/green/grey headers.
+ * !important deliberately wins over inline per-program light header colors.
+ */
+body .policy-detail-table-wrapper thead th,
+body .saoviet-detail-table-wrapper thead th,
+body .clbsv-detail-table-wrapper thead th,
+body .contest-result-table-wrapper thead th,
+body #result-table-container thead th,
+body .nmc-kpi-sticky-header-overlay thead th {
+  background: linear-gradient(180deg, var(--nmc-detail-navy-800) 0%, var(--nmc-detail-navy-900) 100%) !important;
+  background-color: var(--nmc-detail-navy-900) !important;
+  color: var(--nmc-detail-navy-text) !important;
+  border-color: var(--nmc-detail-navy-line) !important;
+  text-shadow: none !important;
+  background-clip: padding-box !important;
+}
+
+body .policy-detail-table-wrapper thead th *,
+body .saoviet-detail-table-wrapper thead th *,
+body .clbsv-detail-table-wrapper thead th *,
+body .contest-result-table-wrapper thead th *,
+body #result-table-container thead th *,
+body .nmc-kpi-sticky-header-overlay thead th * {
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
+/* Keep grouped/sticky rows opaque while scrolling; no pale strip can bleed through. */
+body .policy-detail-table-wrapper thead,
+body .saoviet-detail-table-wrapper thead,
+body .clbsv-detail-table-wrapper thead,
+body .contest-result-table-wrapper thead,
+body #result-table-container thead,
+body .nmc-kpi-sticky-header-overlay thead {
+  background: var(--nmc-detail-navy-900) !important;
+}
+
+/*
+ * Main App > Quan ly > Sao Viet toan chang (saved contests):
+ * make the outer table wrapper the single two-axis scroll owner.
+ * This removes the nested horizontal container that can swallow wheel/touch
+ * vertical gestures and guarantees a bounded viewport for long result tables.
+ */
+body [data-nmc-kpi-detail-shell='saved-contest'],
+body [data-nmc-kpi-detail-shell='saved-contest'] > div,
+body [data-nmc-kpi-detail-shell='saved-contest'] [data-nmc-kpi-detail-stack] {
+  min-height: 0 !important;
+}
+
+body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper {
+  position: relative !important;
+  min-height: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-x pan-y !important;
+  scrollbar-gutter: stable both-edges;
+}
+
+body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper [data-slot='table-container'] {
+  position: static !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  overflow: visible !important;
+}
+
+body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper table {
+  min-width: 100% !important;
+}
+
+/* Direct Main App needs its own bounded scroll viewport. Embedded KPI mode
+ * already has viewport rules in kpi-embedded-detail-tables-v1.css. */
+html:not([data-kpi-embed='1']) body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper {
+  max-height: calc(100dvh - 255px) !important;
+}
+
+@supports not (height: 100dvh) {
+  html:not([data-kpi-embed='1']) body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper {
+    max-height: calc(100vh - 255px) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html:not([data-kpi-embed='1']) body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper {
+    max-height: 58dvh !important;
+  }
+
+  @supports not (height: 100dvh) {
+    html:not([data-kpi-embed='1']) body [data-nmc-kpi-detail-shell='saved-contest'] .saoviet-detail-table-wrapper {
+      max-height: 58vh !important;
+    }
+  }
+}
