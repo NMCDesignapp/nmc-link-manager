@@ -15,3 +15,6 @@ if (!source.includes(marker)) {
   fs.writeFileSync(file, source.replace(/\n/g, eol), 'utf8');
   console.log('✓ combined TOP note added to expanded NTD Excel rows');
 }
+
+// Apply the optional eligibility threshold only after all combined TOP patches are in place.
+require('./apply-contest-top-eligibility.js');
