@@ -1,0 +1,188 @@
+/* KPI detail column themes v21
+ * Unified per-page color language + tier column tones.
+ * Scope is limited to tables tagged by kpi-detail-column-themes-v21.js.
+ */
+
+body table.nmc-kpi-v21-table {
+  --nmc-page-head-1: #071b33;
+  --nmc-page-head-2: #0b2c4c;
+  --nmc-page-head-3: #16486f;
+  --nmc-page-body-1: #f7fbff;
+  --nmc-page-body-2: #eef6fc;
+  --nmc-page-body-hover: #e6f1fa;
+  --nmc-page-line: rgba(39, 74, 105, .22);
+  --nmc-page-text: #263746;
+  --nmc-page-head-text: #f5f9ff;
+}
+
+/* Thi đua + Chính sách: one navy language across every normal header. */
+body table.nmc-kpi-v21-table[data-nmc-theme='navy'] {
+  --nmc-page-head-1: #071b33;
+  --nmc-page-head-2: #0b2c4c;
+  --nmc-page-head-3: #16486f;
+  --nmc-page-body-1: #f7fbff;
+  --nmc-page-body-2: #eef6fc;
+  --nmc-page-body-hover: #e6f1fa;
+  --nmc-page-line: rgba(39, 74, 105, .22);
+}
+
+/* CLB Sao Việt / Sao Việt: preserve the familiar green language consistently. */
+body table.nmc-kpi-v21-table[data-nmc-theme='green'] {
+  --nmc-page-head-1: #0b3b2d;
+  --nmc-page-head-2: #14533f;
+  --nmc-page-head-3: #1d6b52;
+  --nmc-page-body-1: #f7fcf9;
+  --nmc-page-body-2: #eef8f2;
+  --nmc-page-body-hover: #e4f3e9;
+  --nmc-page-line: rgba(35, 105, 79, .20);
+}
+
+/* Hierarchical headers: top layer strongest, lower layers progressively lighter. */
+body table.nmc-kpi-v21-table thead th {
+  background: var(--nmc-page-head-2) !important;
+  background-color: var(--nmc-page-head-2) !important;
+  color: var(--nmc-page-head-text) !important;
+  border-color: rgba(255,255,255,.15) !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+  background-clip: padding-box !important;
+}
+
+body table.nmc-kpi-v21-table thead tr:first-child > th {
+  background: var(--nmc-page-head-1) !important;
+  background-color: var(--nmc-page-head-1) !important;
+}
+
+body table.nmc-kpi-v21-table thead tr:nth-child(2) > th {
+  background: var(--nmc-page-head-2) !important;
+  background-color: var(--nmc-page-head-2) !important;
+}
+
+body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th {
+  background: var(--nmc-page-head-3) !important;
+  background-color: var(--nmc-page-head-3) !important;
+}
+
+body table.nmc-kpi-v21-table thead th *,
+body .nmc-kpi-sticky-header-overlay table.nmc-kpi-v21-table thead th * {
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
+/* Rank columns: each tier gets one recognizable color family. */
+body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'] {
+  background: #c28b16 !important;
+  background-color: #c28b16 !important;
+  color: #fffaf0 !important;
+}
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='gold'] {
+  background: #9b6800 !important;
+  background-color: #9b6800 !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='gold'] {
+  background: #d8ac43 !important;
+  background-color: #d8ac43 !important;
+  color: #3b2b05 !important;
+}
+
+body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'] {
+  background: #6b7280 !important;
+  background-color: #6b7280 !important;
+  color: #ffffff !important;
+}
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='platinum'] {
+  background: #4b5563 !important;
+  background-color: #4b5563 !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='platinum'] {
+  background: #9aa4b2 !important;
+  background-color: #9aa4b2 !important;
+  color: #17202a !important;
+}
+
+body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'] {
+  background: #0e7490 !important;
+  background-color: #0e7490 !important;
+  color: #f2fdff !important;
+}
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='diamond'] {
+  background: #07536d !important;
+  background-color: #07536d !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='diamond'] {
+  background: #38a8bf !important;
+  background-color: #38a8bf !important;
+  color: #082f3a !important;
+}
+
+/* Content surface: same page tone at its lightest intensity. */
+body table.nmc-kpi-v21-table tbody tr:nth-child(odd) > td {
+  background: var(--nmc-page-body-1) !important;
+  color: var(--nmc-page-text) !important;
+  border-color: var(--nmc-page-line) !important;
+}
+body table.nmc-kpi-v21-table tbody tr:nth-child(even) > td {
+  background: var(--nmc-page-body-2) !important;
+  color: var(--nmc-page-text) !important;
+  border-color: var(--nmc-page-line) !important;
+}
+body table.nmc-kpi-v21-table tbody tr:hover > td {
+  background: var(--nmc-page-body-hover) !important;
+}
+
+/* Tier content is deliberately the palest shade of the same header tone. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier='gold'] {
+  background: #fff9e8 !important;
+  color: #5d4a16 !important;
+}
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier='platinum'] {
+  background: #f4f6f8 !important;
+  color: #3f4854 !important;
+}
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier='diamond'] {
+  background: #edfafd !important;
+  color: #155567 !important;
+}
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='gold'] { background: #fff3cf !important; }
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='platinum'] { background: #e9edf1 !important; }
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='diamond'] { background: #def5fa !important; }
+
+/* Identity / descriptive columns: uniform normal copy, no random bolding. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-identity='1'] {
+  font-weight: 400 !important;
+  font-style: normal !important;
+  color: #2f3d48 !important;
+}
+
+/* Numeric result columns get emphasis for scanability. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-numeric='1']:not([data-nmc-negative='1']) {
+  font-weight: 700 !important;
+  font-style: normal !important;
+}
+
+/* Negative/unmet values in target-related columns: red italic, explicitly NOT bold. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-target='1'][data-nmc-negative='1'] {
+  color: #c62828 !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+}
+body table.nmc-kpi-v21-table tbody td[data-nmc-target='1'][data-nmc-negative='1'] * {
+  color: inherit !important;
+  font-style: inherit !important;
+  font-weight: inherit !important;
+}
+
+/* Keep sticky/mirrored headers visually identical to the source table. */
+body .nmc-kpi-sticky-header-overlay table.nmc-kpi-v21-table thead,
+body .nmc-kpi-sticky-header-overlay table.nmc-kpi-v21-table thead th,
+body table.nmc-kpi-v21-table[data-nmc-kpi-mirror-table='header'] thead,
+body table.nmc-kpi-v21-table[data-nmc-kpi-mirror-table='header'] thead th {
+  background-clip: padding-box !important;
+}
+
+@media (max-width: 640px) {
+  body table.nmc-kpi-v21-table thead th {
+    text-shadow: none !important;
+    letter-spacing: 0 !important;
+  }
+}
