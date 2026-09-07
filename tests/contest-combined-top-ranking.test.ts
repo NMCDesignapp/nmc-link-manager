@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildCombinedTopRanking,
+  getCombinedTopEligibilityValue,
   getCombinedTopMetric,
+  normalizeCombinedTopEligibilityType,
+  passesCombinedTopEligibility,
   supportsCombinedTopRanking,
 } from '../src/lib/contest-combined-top-ranking.ts';
 
@@ -47,4 +50,38 @@ test('combined TOP is available only for IP/AFYP total or per-contract contests'
   assert.equal(supportsCombinedTopRanking('activity_round'), false);
   assert.equal(getCombinedTopMetric('total_afyp'), 'afyp');
   assert.equal(getCombinedTopMetric('per_contract_ip'), 'ip');
+});
+
+test('TOP eligibility supports IP, AFYP, total IP and total AFYP thresholds', () => {
+  const contracts = [
+    { pdt10DT: 40_000_000, afyp: 25_000_000 },
+    { pdt10DT: 70_000_000, afyp: 45_000_000 },
+  ];
+
+  assert.equal(getCombinedTopEligibilityValue('per_contract_ip', contracts), 70_000_000);
+  assert.equal(getCombinedTopEligibilityValue('per_contract_afyp', contracts), 45_000_000);
+  assert.equal(getCombinedTopEligibilityValue('total_ip', contracts), 110_000_000);
+  assert.equal(getCombinedTopEligibilityValue('total_afyp', contracts), 70_000_000);
+
+  assert.equal(passesCombinedTopEligibility('per_contract_ip', 60_000_000, contracts), true);
+  assert.equal(passesCombinedTopEligibility('per_contract_afyp', 50_000_000, contracts), false);
+  assert.equal(passesCombinedTopEligibility('total_ip', 100_000_000, contracts), true);
+  assert.equal(passesCombinedTopEligibility('total_afyp', 80_000_000, contracts), false);
+});
+
+test('per-contract TOP eligibility uses the current contract when one is supplied', () => {
+  const contracts = [
+    { pdt10DT: 40_000_000, afyp: 20_000_000 },
+    { pdt10DT: 90_000_000, afyp: 60_000_000 },
+  ];
+
+  assert.equal(passesCombinedTopEligibility('per_contract_ip', 50_000_000, contracts, contracts[0]), false);
+  assert.equal(passesCombinedTopEligibility('per_contract_ip', 50_000_000, contracts, contracts[1]), true);
+  assert.equal(passesCombinedTopEligibility('none', 999_000_000, contracts, contracts[0]), true);
+});
+
+test('unknown saved eligibility values stay backward compatible', () => {
+  assert.equal(normalizeCombinedTopEligibilityType('total_ip'), 'total_ip');
+  assert.equal(normalizeCombinedTopEligibilityType('legacy'), 'none');
+  assert.equal(normalizeCombinedTopEligibilityType(undefined), 'none');
 });
