@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 const ACTIVE_TARGET_MONTH = '2026-09'
+const TARGET_REGISTRATION_OPEN_KEY = 'kpi-target-registration-open'
+
+async function targetRegistrationIsOpen() {
+  const setting = await db.setting.findUnique({ where: { key: TARGET_REGISTRATION_OPEN_KEY } })
+  // Preserve historical behavior when the setting has never been created.
+  return setting?.value !== '0'
+}
 
 // ---------- GET /api/kpi-target-registrations ----------
 // During the September 2026 registration campaign, any month-filtered KPI request
@@ -39,10 +46,17 @@ export async function GET(req: NextRequest) {
 }
 
 // ---------- POST /api/kpi-target-registrations ----------
-// September 2026 campaign is explicitly open. The server owns the campaign month,
-// so stale clients cannot accidentally save a registration into August.
+// The server owns the campaign month, so stale clients cannot accidentally save a
+// registration into August. The admin lock is enforced server-side as well as in UI.
 export async function POST(req: NextRequest) {
   try {
+    if (!(await targetRegistrationIsOpen())) {
+      return NextResponse.json(
+        { error: 'Chức năng đăng ký mục tiêu KPI đang bị khóa.' },
+        { status: 403 }
+      )
+    }
+
     const body = await req.json()
     const {
       role,
