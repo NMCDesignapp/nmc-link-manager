@@ -4,6 +4,13 @@ export type CombinedTopCondition =
   | 'total_ip'
   | 'total_afyp';
 
+export type CombinedTopEligibilityType = 'none' | CombinedTopCondition;
+
+export interface CombinedTopContractMetric {
+  pdt10DT?: number;
+  afyp?: number;
+}
+
 export interface CombinedTopCandidate {
   /** Stable row/entity key used to attach ranking metadata back to a result row. */
   key: string;
@@ -27,10 +34,46 @@ export function supportsCombinedTopRanking(conditionType: string): conditionType
     || conditionType === 'total_afyp';
 }
 
+export function normalizeCombinedTopEligibilityType(value: unknown): CombinedTopEligibilityType {
+  if (value === 'per_contract_ip'
+    || value === 'per_contract_afyp'
+    || value === 'total_ip'
+    || value === 'total_afyp') return value;
+  return 'none';
+}
+
 export function getCombinedTopMetric(conditionType: string): 'ip' | 'afyp' {
   return conditionType === 'per_contract_afyp' || conditionType === 'total_afyp'
     ? 'afyp'
     : 'ip';
+}
+
+export function getCombinedTopEligibilityValue(
+  eligibilityType: CombinedTopEligibilityType,
+  rows: CombinedTopContractMetric[],
+  focusRow?: CombinedTopContractMetric,
+): number {
+  if (eligibilityType === 'none') return Number.POSITIVE_INFINITY;
+
+  if (eligibilityType === 'per_contract_ip' || eligibilityType === 'per_contract_afyp') {
+    const metric = eligibilityType === 'per_contract_afyp' ? 'afyp' : 'pdt10DT';
+    if (focusRow) return Math.max(0, Number(focusRow[metric]) || 0);
+    return rows.reduce((max, row) => Math.max(max, Math.max(0, Number(row[metric]) || 0)), 0);
+  }
+
+  const metric = eligibilityType === 'total_afyp' ? 'afyp' : 'pdt10DT';
+  return rows.reduce((sum, row) => sum + Math.max(0, Number(row[metric]) || 0), 0);
+}
+
+export function passesCombinedTopEligibility(
+  eligibilityType: CombinedTopEligibilityType,
+  minimum: number,
+  rows: CombinedTopContractMetric[],
+  focusRow?: CombinedTopContractMetric,
+): boolean {
+  const normalizedMinimum = Math.max(0, Number(minimum) || 0);
+  if (eligibilityType === 'none' || normalizedMinimum <= 0) return true;
+  return getCombinedTopEligibilityValue(eligibilityType, rows, focusRow) >= normalizedMinimum;
 }
 
 export function getCombinedTopTitle(rank: number): string {
