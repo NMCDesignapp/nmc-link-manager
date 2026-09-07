@@ -1,0 +1,48 @@
+/* KPI detail alignment v19 — exact horizontal centering for Chi Tiet Ban Nhom.
+ * Loaded after v18 so the visible cards, podium and header share one center axis.
+ */
+
+html body .kpi-app #view-detail .detail-hero,
+html body .kpi-app #view-detail .month-grid,
+html body .kpi-app #view-detail .top3-grid,
+html body .kpi-app #view-detail .detail-list-wrap {
+  box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* The list previously had a reduced width but no auto side margins, so it
+ * hugged the left side while the AFYP/month/podium blocks were centered. */
+html body .kpi-app #view-detail .detail-list-wrap {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Standalone KPI: use equal physical slots around the title so the Back
+ * button cannot pull 'CHI TIET BAN NHOM' off the viewport center. */
+html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header {
+  grid-template-columns: 48px minmax(0, 1fr) 48px !important;
+}
+html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header > .sub-title {
+  grid-column: 2 !important;
+  justify-self: center !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header > div:last-child {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  width: 48px !important;
+  min-width: 48px !important;
+}
+
+@media (max-width: 720px) {
+  html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header {
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    column-gap: 6px !important;
+  }
+  html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header > div:last-child {
+    width: 44px !important;
+    min-width: 44px !important;
+  }
+}
