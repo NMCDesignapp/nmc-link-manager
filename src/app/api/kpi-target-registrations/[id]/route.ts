@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+const TARGET_REGISTRATION_OPEN_KEY = 'kpi-target-registration-open'
+
+async function targetRegistrationIsOpen() {
+  const setting = await db.setting.findUnique({ where: { key: TARGET_REGISTRATION_OPEN_KEY } })
+  // Preserve historical behavior when the setting has never been created.
+  return setting?.value !== '0'
+}
+
 // ---------- PUT /api/kpi-target-registrations/[id] ----------
 // Update an existing registration. Body: any subset of fields.
 export async function PUT(
@@ -8,6 +16,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await targetRegistrationIsOpen())) {
+      return NextResponse.json(
+        { error: 'Chức năng đăng ký mục tiêu KPI đang bị khóa.' },
+        { status: 403 }
+      )
+    }
+
     const { id: rawId } = await params
     const id = decodeURIComponent(rawId)
     if (!id) {
