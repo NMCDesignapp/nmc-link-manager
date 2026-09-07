@@ -88,7 +88,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-detail-metal-v15.css?v=20260906-1" />
         <link rel="stylesheet" href="/kpi-calendar-navy-light-v17.css?v=20260906-1" />
         <link rel="stylesheet" href="/kpi-layout-polish-v18.css?v=20260907-1" />
-        <link rel="stylesheet" href="/kpi-detail-align-v19.css?v=20260907-1" />
+        <link rel="stylesheet" href="/kpi-detail-align-v19.css?v=20260907-2" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
