@@ -36,6 +36,23 @@ html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .s
   min-width: 48px !important;
 }
 
+/* Detail + Calendar titles: use a Vietnamese-safe system font stack and give
+ * diacritics enough vertical room. This prevents uppercase accents such as
+ * Ế/Ế/Ạ from being visually clipped while making both destination titles
+ * slightly larger and easier to read on event/mobile screens. */
+html body .kpi-app #view-detail.active > .detail-shell > .sub-header > .sub-title,
+html body .kpi-app #view-calendar.active > .sub-header > .sub-title {
+  font-family: "Segoe UI", Tahoma, Arial, Helvetica, sans-serif !important;
+  font-size: clamp(1.65rem, 5.25vw, 2.15rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.28 !important;
+  letter-spacing: -0.015em !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
 @media (max-width: 720px) {
   html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header {
     grid-template-columns: 44px minmax(0, 1fr) 44px !important;
@@ -44,5 +61,13 @@ html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .s
   html body.kpi-standalone-shell .kpi-app #view-detail.active > .detail-shell > .sub-header > div:last-child {
     width: 44px !important;
     min-width: 44px !important;
+  }
+
+  html body .kpi-app #view-detail.active > .detail-shell > .sub-header > .sub-title,
+  html body .kpi-app #view-calendar.active > .sub-header > .sub-title {
+    font-size: clamp(1.55rem, 5.5vw, 1.8rem) !important;
+    line-height: 1.3 !important;
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
   }
 }
