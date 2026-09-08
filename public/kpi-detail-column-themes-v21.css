@@ -1,16 +1,17 @@
 /* KPI detail column themes v21
  * Unified per-page color language + tier column tones.
  * Scope is limited to tables tagged by kpi-detail-column-themes-v21.js.
+ * 2026-09-08: grouped rank headers keep one color family from parent → child → body.
  */
 
 body table.nmc-kpi-v21-table {
   --nmc-page-head-1: #071b33;
   --nmc-page-head-2: #0b2c4c;
   --nmc-page-head-3: #16486f;
-  --nmc-page-body-1: #f7fbff;
-  --nmc-page-body-2: #eef6fc;
-  --nmc-page-body-hover: #e6f1fa;
-  --nmc-page-line: rgba(39, 74, 105, .22);
+  --nmc-page-body-1: #ffffff;
+  --nmc-page-body-2: #fafcfe;
+  --nmc-page-body-hover: #f2f7fb;
+  --nmc-page-line: rgba(39, 74, 105, .20);
   --nmc-page-text: #263746;
   --nmc-page-head-text: #f5f9ff;
 }
@@ -20,10 +21,10 @@ body table.nmc-kpi-v21-table[data-nmc-theme='navy'] {
   --nmc-page-head-1: #071b33;
   --nmc-page-head-2: #0b2c4c;
   --nmc-page-head-3: #16486f;
-  --nmc-page-body-1: #f7fbff;
-  --nmc-page-body-2: #eef6fc;
-  --nmc-page-body-hover: #e6f1fa;
-  --nmc-page-line: rgba(39, 74, 105, .22);
+  --nmc-page-body-1: #ffffff;
+  --nmc-page-body-2: #fafcfe;
+  --nmc-page-body-hover: #f2f7fb;
+  --nmc-page-line: rgba(39, 74, 105, .20);
 }
 
 /* CLB Sao Việt / Sao Việt: preserve the familiar green language consistently. */
@@ -31,10 +32,10 @@ body table.nmc-kpi-v21-table[data-nmc-theme='green'] {
   --nmc-page-head-1: #0b3b2d;
   --nmc-page-head-2: #14533f;
   --nmc-page-head-3: #1d6b52;
-  --nmc-page-body-1: #f7fcf9;
-  --nmc-page-body-2: #eef8f2;
-  --nmc-page-body-hover: #e4f3e9;
-  --nmc-page-line: rgba(35, 105, 79, .20);
+  --nmc-page-body-1: #ffffff;
+  --nmc-page-body-2: #fafcfb;
+  --nmc-page-body-hover: #f1f8f4;
+  --nmc-page-line: rgba(35, 105, 79, .18);
 }
 
 /* Hierarchical headers: top layer strongest, lower layers progressively lighter. */
@@ -69,53 +70,71 @@ body .nmc-kpi-sticky-header-overlay table.nmc-kpi-v21-table thead th * {
   text-shadow: none !important;
 }
 
-/* Rank columns: each tier gets one recognizable color family. */
+/* Rank columns: parent title is darkest; criterion rows are lighter but stay in the SAME tone. */
 body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'] {
-  background: #c28b16 !important;
-  background-color: #c28b16 !important;
-  color: #fffaf0 !important;
+  background: #e4bf57 !important;
+  background-color: #e4bf57 !important;
+  color: #493400 !important;
 }
 body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='gold'] {
-  background: #9b6800 !important;
-  background-color: #9b6800 !important;
+  background: #a36a00 !important;
+  background-color: #a36a00 !important;
+  color: #fffaf0 !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(2) > th[data-nmc-tier='gold'] {
+  background: #f2d889 !important;
+  background-color: #f2d889 !important;
+  color: #493400 !important;
 }
 body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='gold'] {
-  background: #d8ac43 !important;
-  background-color: #d8ac43 !important;
-  color: #3b2b05 !important;
+  background: #f8e8b5 !important;
+  background-color: #f8e8b5 !important;
+  color: #493400 !important;
 }
 
 body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'] {
-  background: #6b7280 !important;
-  background-color: #6b7280 !important;
-  color: #ffffff !important;
+  background: #b8c0ca !important;
+  background-color: #b8c0ca !important;
+  color: #27313c !important;
 }
 body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='platinum'] {
   background: #4b5563 !important;
   background-color: #4b5563 !important;
+  color: #ffffff !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(2) > th[data-nmc-tier='platinum'] {
+  background: #d8dde4 !important;
+  background-color: #d8dde4 !important;
+  color: #27313c !important;
 }
 body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='platinum'] {
-  background: #9aa4b2 !important;
-  background-color: #9aa4b2 !important;
-  color: #17202a !important;
+  background: #e9edf1 !important;
+  background-color: #e9edf1 !important;
+  color: #27313c !important;
 }
 
 body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'] {
-  background: #0e7490 !important;
-  background-color: #0e7490 !important;
-  color: #f2fdff !important;
+  background: #72c2d3 !important;
+  background-color: #72c2d3 !important;
+  color: #083d4b !important;
 }
 body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='diamond'] {
   background: #07536d !important;
   background-color: #07536d !important;
+  color: #f2fdff !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(2) > th[data-nmc-tier='diamond'] {
+  background: #bfe8f0 !important;
+  background-color: #bfe8f0 !important;
+  color: #083d4b !important;
 }
 body table.nmc-kpi-v21-table thead tr:nth-child(n+3) > th[data-nmc-tier='diamond'] {
-  background: #38a8bf !important;
-  background-color: #38a8bf !important;
-  color: #082f3a !important;
+  background: #d9f3f7 !important;
+  background-color: #d9f3f7 !important;
+  color: #083d4b !important;
 }
 
-/* Content surface: same page tone at its lightest intensity. */
+/* Content surface: near-white zebra so the old yellow/cream cast no longer dominates. */
 body table.nmc-kpi-v21-table tbody tr:nth-child(odd) > td {
   background: var(--nmc-page-body-1) !important;
   color: var(--nmc-page-text) !important;
@@ -130,22 +149,22 @@ body table.nmc-kpi-v21-table tbody tr:hover > td {
   background: var(--nmc-page-body-hover) !important;
 }
 
-/* Tier content is deliberately the palest shade of the same header tone. */
+/* Tier content is the palest shade of the SAME header tone. */
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier='gold'] {
-  background: #fff9e8 !important;
+  background: #fffef9 !important;
   color: #5d4a16 !important;
 }
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier='platinum'] {
-  background: #f4f6f8 !important;
+  background: #fafbfc !important;
   color: #3f4854 !important;
 }
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier='diamond'] {
-  background: #edfafd !important;
+  background: #f7fdfe !important;
   color: #155567 !important;
 }
-body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='gold'] { background: #fff3cf !important; }
-body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='platinum'] { background: #e9edf1 !important; }
-body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='diamond'] { background: #def5fa !important; }
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='gold'] { background: #fff9ea !important; }
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='platinum'] { background: #f1f3f5 !important; }
+body table.nmc-kpi-v21-table tbody tr:hover > td[data-nmc-tier='diamond'] { background: #edf9fb !important; }
 
 /* Identity / descriptive columns: uniform normal copy, no random bolding. */
 body table.nmc-kpi-v21-table tbody td[data-nmc-identity='1'] {
