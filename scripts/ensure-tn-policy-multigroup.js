@@ -2,16 +2,20 @@ const fs = require('fs');
 const path = require('path');
 
 // NMC 2026-09-09
-// Hard guarantee for the two TN policy tables that still regressed to single-select:
-// - Thưởng Phát triển kinh doanh TN (ptkdNhomFilter)
-// - Thưởng Quý TN (quyTnNhomFilter)
+// Hard guarantee for TN-oriented policy tables that still regress to single-select:
+// - Thưởng Tuyển luyện
+// - Thưởng Đồng hành
+// - Thưởng Phát triển kinh doanh TN
+// - Thưởng Quý TN
 //
-// The general multi-group migration runs through other build patches, but these two
+// The general multi-group migration runs through other build patches, but these
 // legacy chip filters can be regenerated as scalar state by older source transforms.
 // This script runs LAST in dev/build and is deliberately idempotent.
 
 const filePath = path.join(process.cwd(), 'src/app/quan-ly/page.tsx');
 const targets = [
+  { variable: 'tuyenLuyenNhomFilter', setter: 'setTuyenLuyenNhomFilter' },
+  { variable: 'dongHanhNhomFilter', setter: 'setDongHanhNhomFilter' },
   { variable: 'ptkdNhomFilter', setter: 'setPtkdNhomFilter' },
   { variable: 'quyTnNhomFilter', setter: 'setQuyTnNhomFilter' },
 ];
@@ -61,7 +65,7 @@ for (const { variable, setter } of targets) {
   replaceAll(`${variable} === n`, `${variable}.includes(n)`);
   replaceAll(`\${!${variable} ?`, `\${${variable}.length === 0 ?`);
 
-  // Defensive validation: the two TN filters must finish as arrays and predicates
+  // Defensive validation: all TN filters must finish as arrays and predicates
   // must use includes semantics. Fail the build instead of silently shipping a regression.
   const arrayDecl = `const [${variable}, ${setter}] = useState<string[]>([]);`;
   if (!source.includes(arrayDecl)) {
@@ -76,4 +80,4 @@ for (const { variable, setter } of targets) {
 }
 
 fs.writeFileSync(filePath, source.replace(/\n/g, eol), 'utf8');
-console.log(`✓ TN policy multi-group guarantee: PTKD TN + Quý TN (${changes} transform group(s)).`);
+console.log(`✓ TN policy multi-group guarantee: Tuyển luyện + Đồng hành + PTKD TN + Quý TN (${changes} transform group(s)).`);
