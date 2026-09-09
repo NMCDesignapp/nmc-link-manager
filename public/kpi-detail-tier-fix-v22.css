@@ -1,7 +1,7 @@
 /* KPI detail tier fix v22
  * 2026-09-09
  * Không đổi kích thước chuẩn cũ của bảng.
- * JS v22 đo chiều cao tự nhiên của chính bảng rồi chỉ đồng đều các hàng lệch.
+ * JS v22 đo chiều cao/padding tự nhiên của chính bảng rồi chỉ đồng đều các hàng lệch.
  * Hạng nhiều chỉ tiêu được tách 2 tầng thật: tầng hạng gộp + tầng chỉ tiêu.
  */
 
@@ -9,6 +9,11 @@
 body table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody tr,
 body table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody td {
   height: var(--nmc-natural-row-h) !important;
+}
+body table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody td {
+  padding-top: var(--nmc-natural-pad-top) !important;
+  padding-bottom: var(--nmc-natural-pad-bottom) !important;
+  white-space: nowrap !important;
 }
 body table.nmc-kpi-v21-table tbody td {
   vertical-align: middle !important;
@@ -100,13 +105,17 @@ body table.nmc-kpi-v21-table thead th[data-nmc-tier-parent='1'] {
 
 /* Group boundaries: subtle but clear when one rank contains several criteria. */
 body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='left'],
-body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='left'] {
+body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='both'],
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='left'],
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='both'] {
   border-left-width: 1.5px !important;
   border-left-style: solid !important;
   border-left-color: rgba(39, 52, 65, .44) !important;
 }
 body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='right'],
-body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='right'] {
+body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='both'],
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='right'],
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='both'] {
   border-right-width: 1.5px !important;
   border-right-style: solid !important;
   border-right-color: rgba(39, 52, 65, .44) !important;
