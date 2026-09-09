@@ -1,0 +1,138 @@
+/* KPI fixed-program tables v23
+ * 2026-09-09
+ * Architecture rule:
+ * - Fixed annual programs own their visual rules by program key.
+ * - Shared v21/v22 remain only baseline/fallback (scrolling, semantic tagging, natural-row measurement).
+ * - Do NOT use one generic header palette to redesign every fixed program.
+ */
+
+/* --------------------------------------------------------------------------
+ * SAFE BASELINE FOR FIXED POLICY PROGRAMS ONLY
+ * -------------------------------------------------------------------------- */
+body .policy-detail-table-wrapper[data-policy-table] thead {
+  /* Remove the old green strip/shadow under the sticky header. */
+  box-shadow: 0 1px 0 rgba(49, 91, 130, .35) !important;
+}
+
+/* Keep the old compact body size. v22 measures the natural common row height;
+ * here we only make achieved/reward rows obey that same measured height. */
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody tr,
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody td {
+  height: var(--nmc-natural-row-h) !important;
+}
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td {
+  vertical-align: middle !important;
+  line-height: 1.15 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td > span,
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td > div {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: 1.05 !important;
+}
+/* Reward chip is 18px in source and was enough to make achieved rows slightly taller
+ * on mobile. Keep the visual but fit it inside the common row box. */
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td span[style*="width: 18px"][style*="height: 18px"] {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td svg {
+  max-width: 16px !important;
+  max-height: 16px !important;
+}
+
+/* --------------------------------------------------------------------------
+ * CHÍNH SÁCH: THƯỞNG QUÝ TVV (quy-tvv)
+ * Source table has 3 real header rows:
+ *   1) merged TỶ LỆ THƯỞNG
+ *   2) FYP thresholds
+ *   3) reward percentages
+ * -------------------------------------------------------------------------- */
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] table.nmc-kpi-v21-table thead tr:first-child > th[rowspan='3'] {
+  background: #071b33 !important;
+  background-color: #071b33 !important;
+  color: #f7fbff !important;
+  border-color: #315b82 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] table.nmc-kpi-v21-table thead tr:first-child > th[colspan='6'] {
+  background: #8a5600 !important;
+  background-color: #8a5600 !important;
+  color: #fffaf0 !important;
+  border-color: #704600 !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] table.nmc-kpi-v21-table thead tr:nth-child(2) > th {
+  background: #e7ca78 !important;
+  background-color: #e7ca78 !important;
+  color: #493400 !important;
+  border-color: #c5a44e !important;
+  font-weight: 700 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] table.nmc-kpi-v21-table thead tr:nth-child(3) > th {
+  background: #fff6d8 !important;
+  background-color: #fff6d8 !important;
+  color: #a92d22 !important;
+  border-color: #e1cf9a !important;
+  font-weight: 800 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * CHÍNH SÁCH: THƯỞNG QUÝ TN (quy-tn)
+ * Same 3-level hierarchy as above, but 5 reward milestones.
+ * This intentionally replaces the generic blue/green third header row that made
+ * the hierarchy unreadable.
+ * -------------------------------------------------------------------------- */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:first-child > th[rowspan='3'] {
+  background: #071b33 !important;
+  background-color: #071b33 !important;
+  color: #f7fbff !important;
+  border-color: #315b82 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:first-child > th[colspan='5'] {
+  background: #8a5600 !important;
+  background-color: #8a5600 !important;
+  color: #fffaf0 !important;
+  border-color: #704600 !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:nth-child(2) > th {
+  background: #e7ca78 !important;
+  background-color: #e7ca78 !important;
+  color: #493400 !important;
+  border-color: #c5a44e !important;
+  font-weight: 700 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:nth-child(3) > th {
+  background: #fff6d8 !important;
+  background-color: #fff6d8 !important;
+  color: #a92d22 !important;
+  border-color: #e1cf9a !important;
+  font-weight: 800 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * SINGLE-LEVEL FIXED POLICY TABLES
+ * Do not invent a hierarchy. Keep one clear header row only.
+ * -------------------------------------------------------------------------- */
+body .policy-detail-table-wrapper[data-policy-table='tvvm'] table.nmc-kpi-v21-table thead tr:first-child > th,
+body .policy-detail-table-wrapper[data-policy-table='ns-tvv'] table.nmc-kpi-v21-table thead tr:first-child > th,
+body .policy-detail-table-wrapper[data-policy-table='tuyen-luyen'] table.nmc-kpi-v21-table thead tr:first-child > th,
+body .policy-detail-table-wrapper[data-policy-table='dong-hanh'] table.nmc-kpi-v21-table thead tr:first-child > th,
+body .policy-detail-table-wrapper[data-policy-table='ptkd-tn'] table.nmc-kpi-v21-table thead tr:first-child > th {
+  background: #071b33 !important;
+  background-color: #071b33 !important;
+  color: #f7fbff !important;
+  border-color: #315b82 !important;
+}
+
+/* Mobile keeps exactly the compact table feel; no larger achieved rows. */
+@media (max-width: 767px) {
+  body .policy-detail-table-wrapper[data-policy-table] table.nmc-kpi-v21-table tbody td {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+}
