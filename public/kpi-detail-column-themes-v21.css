@@ -199,6 +199,39 @@ body table.nmc-kpi-v21-table[data-nmc-kpi-mirror-table='header'] thead th {
   background-clip: padding-box !important;
 }
 
+/* 2026-09-09: uniform content rows across Thi đua / Chính sách / CLB.
+ * Header stays visibly larger; every tbody row uses one compact height.
+ */
+body table.nmc-kpi-v21-table thead th {
+  min-height: 48px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  line-height: 1.15 !important;
+  vertical-align: middle !important;
+}
+
+body table.nmc-kpi-v21-table tbody tr {
+  height: 42px !important;
+  min-height: 42px !important;
+}
+
+body table.nmc-kpi-v21-table tbody td {
+  height: 42px !important;
+  min-height: 42px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  line-height: 1.15 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+body table.nmc-kpi-v21-table tbody td > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: inherit !important;
+}
+
 @media (max-width: 640px) {
   body table.nmc-kpi-v21-table thead th {
     text-shadow: none !important;
