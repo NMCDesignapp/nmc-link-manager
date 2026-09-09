@@ -1,96 +1,22 @@
 /* KPI detail tier fix v22
  * 2026-09-09
- * Visual contract for Thi đua / Chính sách / CLB detail tables:
- * - tier parent = darkest semantic tone;
- * - tier criteria = lighter shade of the SAME tone;
- * - tier body = almost white shade of the same tone;
- * - content rows are compact and uniform; header is only slightly taller.
+ * Không đổi kích thước chuẩn cũ của bảng.
+ * JS v22 đo chiều cao tự nhiên của chính bảng rồi chỉ đồng đều các hàng lệch.
+ * Hạng nhiều chỉ tiêu được tách 2 tầng thật: tầng hạng gộp + tầng chỉ tiêu.
  */
 
-/* ---------- Generic geometry ---------- */
-body table.nmc-kpi-v21-table tbody tr {
-  height: 34px !important;
-  min-height: 34px !important;
+/* ---------- Preserve the existing row size; only normalize uneven rows ---------- */
+body table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody tr,
+body table.nmc-kpi-v21-table[data-nmc-natural-row-h] tbody td {
+  height: var(--nmc-natural-row-h) !important;
 }
 body table.nmc-kpi-v21-table tbody td {
-  height: 34px !important;
-  min-height: 34px !important;
-  padding-top: 3px !important;
-  padding-bottom: 3px !important;
-  line-height: 1.08 !important;
   vertical-align: middle !important;
   box-sizing: border-box !important;
 }
 body table.nmc-kpi-v21-table tbody td > * {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
-  line-height: inherit !important;
-}
-
-/* One-level headers stay just a little taller than body rows. */
-body table.nmc-kpi-v21-table[data-nmc-header-rows='1']:not([data-nmc-visual-tier-groups='1']) thead tr {
-  height: 39px !important;
-}
-body table.nmc-kpi-v21-table[data-nmc-header-rows='1']:not([data-nmc-visual-tier-groups='1']) thead th {
-  height: 39px !important;
-  min-height: 39px !important;
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
-  line-height: 1.08 !important;
-  vertical-align: middle !important;
-}
-
-/* True multi-row headers: total block remains compact. */
-body table.nmc-kpi-v21-table[data-nmc-header-rows]:not([data-nmc-header-rows='1']) thead tr {
-  height: 22px !important;
-}
-body table.nmc-kpi-v21-table[data-nmc-header-rows]:not([data-nmc-header-rows='1']) thead th {
-  min-height: 22px !important;
-  padding-top: 3px !important;
-  padding-bottom: 3px !important;
-  line-height: 1.06 !important;
-  vertical-align: middle !important;
-}
-
-/* Single-row legacy grouped tiers are visually rebuilt as parent + criteria in 44px. */
-body table.nmc-kpi-v21-table[data-nmc-visual-tier-groups='1'] thead tr {
-  height: 44px !important;
-}
-body table.nmc-kpi-v21-table[data-nmc-visual-tier-groups='1'] thead th[data-nmc-tier-group-child='1'] {
-  position: relative !important;
-  overflow: visible !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  padding-top: 22px !important;
-  padding-bottom: 3px !important;
-  line-height: 1.04 !important;
-  vertical-align: middle !important;
-  z-index: 1;
-}
-body table.nmc-kpi-v21-table [data-nmc-tier-inline-label-v22='1'] {
-  display: none !important;
-}
-body table.nmc-kpi-v21-table thead th[data-nmc-tier-group-start='1']::before {
-  content: attr(data-nmc-tier-parent-label);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: var(--nmc-tier-group-width, 100%);
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 6px;
-  box-sizing: border-box;
-  font-size: 10px;
-  font-weight: 850;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: .01em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  z-index: 4;
-  pointer-events: none;
 }
 
 /* ---------- GOLD / HẠNG VÀNG ---------- */
@@ -100,21 +26,11 @@ body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'] {
   color: #4a3500 !important;
   border-color: rgba(118, 82, 0, .28) !important;
 }
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'][data-nmc-header-level='0']:not([data-nmc-tier-group-child='1']) {
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='gold'] {
   background: #a66c00 !important;
   background-color: #a66c00 !important;
   color: #fffaf0 !important;
   border-color: #7f5300 !important;
-}
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'][data-nmc-header-level]:not([data-nmc-header-level='0']) {
-  background: #f3dfa7 !important;
-  background-color: #f3dfa7 !important;
-  color: #4a3500 !important;
-}
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='gold'][data-nmc-tier-group-start='1']::before {
-  background: #a66c00 !important;
-  color: #fffaf0 !important;
-  border: 1px solid #7f5300 !important;
 }
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier='gold'] {
   background: #fffef9 !important;
@@ -128,21 +44,11 @@ body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'] {
   color: #29333d !important;
   border-color: rgba(55, 65, 77, .27) !important;
 }
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'][data-nmc-header-level='0']:not([data-nmc-tier-group-child='1']) {
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='platinum'] {
   background: #4d5663 !important;
   background-color: #4d5663 !important;
   color: #ffffff !important;
   border-color: #39414c !important;
-}
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'][data-nmc-header-level]:not([data-nmc-header-level='0']) {
-  background: #e0e4e9 !important;
-  background-color: #e0e4e9 !important;
-  color: #29333d !important;
-}
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='platinum'][data-nmc-tier-group-start='1']::before {
-  background: #4d5663 !important;
-  color: #ffffff !important;
-  border: 1px solid #39414c !important;
 }
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier='platinum'] {
   background: #fbfcfd !important;
@@ -156,25 +62,40 @@ body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'] {
   color: #073d4b !important;
   border-color: rgba(5, 91, 111, .27) !important;
 }
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'][data-nmc-header-level='0']:not([data-nmc-tier-group-child='1']) {
+body table.nmc-kpi-v21-table thead tr:first-child > th[data-nmc-tier='diamond'] {
   background: #07566e !important;
   background-color: #07566e !important;
   color: #f3fdff !important;
   border-color: #064356 !important;
 }
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'][data-nmc-header-level]:not([data-nmc-header-level='0']) {
+body table.nmc-kpi-v21-table tbody td[data-nmc-tier='diamond'] {
+  background: #f8fdfe !important;
+  color: #155567 !important;
+}
+
+/* Tầng chỉ tiêu luôn nhạt hơn tầng hạng nhưng cùng tone. */
+body table.nmc-kpi-v21-table thead tr:nth-child(n+2) > th[data-nmc-tier='gold'] {
+  background: #f3dfa7 !important;
+  background-color: #f3dfa7 !important;
+  color: #4a3500 !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(n+2) > th[data-nmc-tier='platinum'] {
+  background: #e0e4e9 !important;
+  background-color: #e0e4e9 !important;
+  color: #29333d !important;
+}
+body table.nmc-kpi-v21-table thead tr:nth-child(n+2) > th[data-nmc-tier='diamond'] {
   background: #ccecf2 !important;
   background-color: #ccecf2 !important;
   color: #073d4b !important;
 }
-body table.nmc-kpi-v21-table thead th[data-nmc-tier='diamond'][data-nmc-tier-group-start='1']::before {
-  background: #07566e !important;
-  color: #f3fdff !important;
-  border: 1px solid #064356 !important;
-}
-body table.nmc-kpi-v21-table tbody td[data-nmc-tier='diamond'] {
-  background: #f8fdfe !important;
-  color: #155567 !important;
+
+/* Merged parent rank cells are centered over all child criteria. */
+body table.nmc-kpi-v21-table thead th[data-nmc-tier-parent='1'] {
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
 }
 
 /* Group boundaries: subtle but clear when one rank contains several criteria. */
@@ -182,13 +103,13 @@ body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='left'],
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='left'] {
   border-left-width: 1.5px !important;
   border-left-style: solid !important;
-  border-left-color: rgba(39, 52, 65, .45) !important;
+  border-left-color: rgba(39, 52, 65, .44) !important;
 }
 body table.nmc-kpi-v21-table thead th[data-nmc-tier-edge='right'],
 body table.nmc-kpi-v21-table tbody td[data-nmc-tier-edge='right'] {
   border-right-width: 1.5px !important;
   border-right-style: solid !important;
-  border-right-color: rgba(39, 52, 65, .45) !important;
+  border-right-color: rgba(39, 52, 65, .44) !important;
 }
 
 /* Keep zebra almost white; do not bring the old yellow cast back. */
@@ -197,16 +118,4 @@ body table.nmc-kpi-v21-table tbody tr:nth-child(odd) > td:not([data-nmc-tier]) {
 }
 body table.nmc-kpi-v21-table tbody tr:nth-child(even) > td:not([data-nmc-tier]) {
   background: #fbfcfd !important;
-}
-
-@media (max-width: 640px) {
-  body table.nmc-kpi-v21-table tbody tr,
-  body table.nmc-kpi-v21-table tbody td {
-    height: 33px !important;
-    min-height: 33px !important;
-  }
-  body table.nmc-kpi-v21-table tbody td {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-  }
 }
