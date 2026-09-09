@@ -114,3 +114,76 @@ body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-
   border-color: #bdd3de !important;
   font-weight: 850 !important;
 }
+
+/* --------------------------------------------------------------------------
+ * GLOBAL RANK CONTRAST
+ * The page/header may keep its own tone (for example green in Sao Viet), but rank
+ * groups must be visually distinct. Parent is strongest, child is lighter, body
+ * is palest. No geometry is changed.
+ * -------------------------------------------------------------------------- */
+body table thead th[data-nmc-rank-group='gold'][data-nmc-rank-level='parent'] {
+  background: #9a6700 !important;
+  background-color: #9a6700 !important;
+  color: #fffaf0 !important;
+  border-color: #7d5400 !important;
+}
+body table thead th[data-nmc-rank-group='gold'][data-nmc-rank-level='child'] {
+  background: #f1d782 !important;
+  background-color: #f1d782 !important;
+  color: #4b3600 !important;
+  border-color: #d3b65d !important;
+}
+body table tbody td[data-nmc-rank-group='gold']:not([data-nmc-achieved='1']) {
+  background: #fffdf7 !important;
+  background-color: #fffdf7 !important;
+}
+
+body table thead th[data-nmc-rank-group='platinum'][data-nmc-rank-level='parent'] {
+  background: #55606d !important;
+  background-color: #55606d !important;
+  color: #ffffff !important;
+  border-color: #414a54 !important;
+}
+body table thead th[data-nmc-rank-group='platinum'][data-nmc-rank-level='child'] {
+  background: #d6dce3 !important;
+  background-color: #d6dce3 !important;
+  color: #26313d !important;
+  border-color: #b8c0c9 !important;
+}
+body table tbody td[data-nmc-rank-group='platinum']:not([data-nmc-achieved='1']) {
+  background: #fbfcfd !important;
+  background-color: #fbfcfd !important;
+}
+
+body table thead th[data-nmc-rank-group='diamond'][data-nmc-rank-level='parent'] {
+  background: #0a6177 !important;
+  background-color: #0a6177 !important;
+  color: #f3fdff !important;
+  border-color: #084c5d !important;
+}
+body table thead th[data-nmc-rank-group='diamond'][data-nmc-rank-level='child'] {
+  background: #c9e9ef !important;
+  background-color: #c9e9ef !important;
+  color: #123f4b !important;
+  border-color: #9fcfd8 !important;
+}
+body table tbody td[data-nmc-rank-group='diamond']:not([data-nmc-achieved='1']) {
+  background: #f8fdfe !important;
+  background-color: #f8fdfe !important;
+}
+
+/* Group boundaries: subtle but visible, no width/padding change. */
+body table th[data-nmc-rank-edge='left'],
+body table td[data-nmc-rank-edge='left'],
+body table th[data-nmc-rank-edge='both'],
+body table td[data-nmc-rank-edge='both'] {
+  border-left-color: rgba(35, 52, 66, .55) !important;
+  border-left-width: 2px !important;
+}
+body table th[data-nmc-rank-edge='right'],
+body table td[data-nmc-rank-edge='right'],
+body table th[data-nmc-rank-edge='both'],
+body table td[data-nmc-rank-edge='both'] {
+  border-right-color: rgba(35, 52, 66, .55) !important;
+  border-right-width: 2px !important;
+}
