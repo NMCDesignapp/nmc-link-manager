@@ -1,0 +1,82 @@
+/* KPI rank column contrast v25
+ * Goal: base program headers may keep their own page tone (green/navy/etc.),
+ * while rank groups are visually distinct by rank and preserve parent > child > body hierarchy.
+ * This file changes color/edges only; it does NOT alter row height, padding or column width.
+ */
+
+/* GOLD / HẠNG VÀNG */
+body table thead th[data-nmc-rank-group='gold'][data-nmc-rank-level='parent'] {
+  background: #9a6700 !important;
+  background-color: #9a6700 !important;
+  color: #fffaf0 !important;
+  border-color: #7d5400 !important;
+}
+body table thead th[data-nmc-rank-group='gold'][data-nmc-rank-level='child'] {
+  background: #f1d782 !important;
+  background-color: #f1d782 !important;
+  color: #4b3600 !important;
+  border-color: #d3b65d !important;
+}
+body table tbody td[data-nmc-rank-group='gold'] {
+  background: #fffdf7 !important;
+  background-color: #fffdf7 !important;
+}
+
+/* PLATINUM / HẠNG BẠCH KIM */
+body table thead th[data-nmc-rank-group='platinum'][data-nmc-rank-level='parent'] {
+  background: #55606d !important;
+  background-color: #55606d !important;
+  color: #ffffff !important;
+  border-color: #414a54 !important;
+}
+body table thead th[data-nmc-rank-group='platinum'][data-nmc-rank-level='child'] {
+  background: #d6dce3 !important;
+  background-color: #d6dce3 !important;
+  color: #26313d !important;
+  border-color: #b8c0c9 !important;
+}
+body table tbody td[data-nmc-rank-group='platinum'] {
+  background: #fbfcfd !important;
+  background-color: #fbfcfd !important;
+}
+
+/* DIAMOND / HẠNG KIM CƯƠNG */
+body table thead th[data-nmc-rank-group='diamond'][data-nmc-rank-level='parent'] {
+  background: #0a6177 !important;
+  background-color: #0a6177 !important;
+  color: #f3fdff !important;
+  border-color: #084c5d !important;
+}
+body table thead th[data-nmc-rank-group='diamond'][data-nmc-rank-level='child'] {
+  background: #c9e9ef !important;
+  background-color: #c9e9ef !important;
+  color: #123f4b !important;
+  border-color: #9fcfd8 !important;
+}
+body table tbody td[data-nmc-rank-group='diamond'] {
+  background: #f8fdfe !important;
+  background-color: #f8fdfe !important;
+}
+
+/* Make the group boundary visible without adding size. */
+body table th[data-nmc-rank-edge='left'],
+body table td[data-nmc-rank-edge='left'],
+body table th[data-nmc-rank-edge='both'],
+body table td[data-nmc-rank-edge='both'] {
+  box-shadow: inset 2px 0 0 rgba(35, 52, 66, .28) !important;
+}
+body table th[data-nmc-rank-edge='right'],
+body table td[data-nmc-rank-edge='right'] {
+  box-shadow: inset -2px 0 0 rgba(35, 52, 66, .28) !important;
+}
+body table th[data-nmc-rank-edge='both'],
+body table td[data-nmc-rank-edge='both'] {
+  box-shadow: inset 2px 0 0 rgba(35, 52, 66, .28), inset -2px 0 0 rgba(35, 52, 66, .28) !important;
+}
+
+/* Achieved-state emphasis remains higher priority inside rank columns, but geometry is unchanged. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-rank-group][data-nmc-achieved='1'] {
+  background: #e9f8ef !important;
+  background-color: #e9f8ef !important;
+  color: #08724a !important;
+}
