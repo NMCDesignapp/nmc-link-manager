@@ -92,7 +92,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-detail-navy-v20.css?v=20260907-1" />
         <link rel="stylesheet" href="/kpi-detail-column-themes-v21.css?v=20260909-4" />
         <link rel="stylesheet" href="/kpi-detail-tier-fix-v22.css?v=20260909-4" />
-        <link rel="stylesheet" href="/kpi-fixed-program-tables-v23.css?v=20260909-1" />
+        <link rel="stylesheet" href="/kpi-fixed-program-tables-v23.css?v=20260909-2" />
         <script src="/kpi-detail-column-themes-v21.js?v=20260909-4" defer></script>
         <script src="/kpi-detail-tier-fix-v22.js?v=20260909-4" defer></script>
         <meta name="apple-mobile-web-app-capable" content="yes" />
