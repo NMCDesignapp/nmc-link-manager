@@ -1,0 +1,116 @@
+/* KPI table global polish v24
+ * 2026-09-09
+ * Shared rules ONLY for requests that explicitly apply to every KPI detail table:
+ * 1) zebra cream is 50% closer to white;
+ * 2) cells containing a positive "ĐẠT" state are highlighted without changing geometry.
+ * Program-specific header design remains scoped by program key below.
+ */
+
+/* --------------------------------------------------------------------------
+ * GLOBAL: zebra surface 50% closer to white
+ * Old embedded surfaces:
+ *   A #fffefa -> blended 50% with white = #fffffc
+ *   B #fff9e8 -> blended 50% with white = #fffcf4 / use #fffdf3 for cleaner display
+ *   hover #fff3d2 -> blended 50% with white = #fff9e8
+ * -------------------------------------------------------------------------- */
+html[data-kpi-embed='1'] {
+  --kpi-table-surface-a: #fffffc;
+  --kpi-table-surface-b: #fffdf3;
+  --kpi-table-surface-hover: #fff9e8;
+}
+
+body table.nmc-kpi-v21-table {
+  --nmc-page-body-1: #fffffc;
+  --nmc-page-body-2: #fffdf3;
+  --nmc-page-body-hover: #fff9e8;
+}
+
+/* Fallback for normal, non-tier cells when an older per-table rule paints cream directly. */
+body table.nmc-kpi-v21-table tbody tr:nth-child(odd) > td:not([data-nmc-tier]):not([data-nmc-achieved='1']) {
+  background: #fffffc !important;
+  background-color: #fffffc !important;
+}
+body table.nmc-kpi-v21-table tbody tr:nth-child(even) > td:not([data-nmc-tier]):not([data-nmc-achieved='1']) {
+  background: #fffdf3 !important;
+  background-color: #fffdf3 !important;
+}
+body table.nmc-kpi-v21-table tbody tr:hover > td:not([data-nmc-tier]):not([data-nmc-achieved='1']) {
+  background: #fff9e8 !important;
+  background-color: #fff9e8 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * GLOBAL: positive ĐẠT cell emphasis
+ * No padding/height/font-size/transform is changed, so row geometry stays identical.
+ * -------------------------------------------------------------------------- */
+body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] {
+  background: #e9f8ef !important;
+  background-color: #e9f8ef !important;
+  color: #08724a !important;
+  font-weight: 850 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(31, 157, 94, .58),
+    inset 0 0 10px rgba(31, 157, 94, .08) !important;
+}
+body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] * {
+  color: inherit !important;
+  font-weight: inherit !important;
+}
+
+/* --------------------------------------------------------------------------
+ * CHÍNH SÁCH: THƯỞNG QUÝ TN (quy-tn)
+ * This program gets its own header language. Avoid yellow header tones because the
+ * table body already uses a warm zebra surface; use navy/steel-blue hierarchy instead.
+ * -------------------------------------------------------------------------- */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table {
+  border-spacing: 0 !important;
+}
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Remove the verified empty header row that appeared as a solid blue strip. */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr[data-nmc-empty-header='1'],
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:has(> th:only-child:empty),
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:has(> td:only-child:empty) {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
+/* Left/right fixed header blocks stay deep navy. */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:first-child > th[rowspan='3'] {
+  background: #071b33 !important;
+  background-color: #071b33 !important;
+  color: #f7fbff !important;
+  border-color: #315b82 !important;
+}
+
+/* TỶ LỆ THƯỞNG parent: dark steel blue, clearly separated from body. */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:first-child > th[colspan='5'] {
+  background: #0d4a70 !important;
+  background-color: #0d4a70 !important;
+  color: #f6fbff !important;
+  border-color: #0a3654 !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+}
+
+/* Threshold row: light steel blue, not yellow. */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:nth-child(2) > th {
+  background: #cfe2ec !important;
+  background-color: #cfe2ec !important;
+  color: #17384f !important;
+  border-color: #9fbfce !important;
+  font-weight: 750 !important;
+}
+
+/* Percentage row: near-white blue tint; red percentage text stays easy to scan. */
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] table.nmc-kpi-v21-table thead tr:nth-child(3) > th {
+  background: #eef6fa !important;
+  background-color: #eef6fa !important;
+  color: #a32d27 !important;
+  border-color: #bdd3de !important;
+  font-weight: 850 !important;
+}
