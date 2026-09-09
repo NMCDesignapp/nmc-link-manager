@@ -41,10 +41,9 @@
     const descendants = Array.from(cell.querySelectorAll('*'));
     const exact = descendants.filter((node) => normalize(node.textContent || '') === target);
     if (exact.length) {
-      // Prefer the deepest exact node so the criterion wrapper is preserved.
-      exact.sort((a, b) => b.querySelectorAll('*').length - a.querySelectorAll('*').length);
-      const node = exact[exact.length - 1] || exact[0];
-      node.remove();
+      // Remove the deepest exact label node so the criterion wrapper/content stays intact.
+      exact.sort((a, b) => a.querySelectorAll('*').length - b.querySelectorAll('*').length);
+      exact[0].remove();
       return;
     }
 
@@ -124,6 +123,9 @@
       parent.dataset.nmcTierParent = '1';
       parent.dataset.nmcHeaderLevel = '0';
       parent.classList.remove('sv-rank-subcol');
+      parent.style.removeProperty('width');
+      parent.style.removeProperty('min-width');
+      parent.style.removeProperty('max-width');
       topRow.appendChild(parent);
 
       group.cells.forEach((cell) => {
