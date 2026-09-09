@@ -18,3 +18,7 @@ if (!source.includes(marker)) {
 
 // Apply the optional eligibility threshold only after all combined TOP patches are in place.
 require('./apply-contest-top-eligibility.js');
+
+// Run last: legacy TN policy chips can be regenerated as scalar filters by older
+// transforms, so harden PTKD TN + Quý TN multi-select immediately before Next build.
+require('./ensure-tn-policy-multigroup.js');
