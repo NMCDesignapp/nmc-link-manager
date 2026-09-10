@@ -1,0 +1,94 @@
+/* KPI table runtime v27 — final lightweight visual overrides.
+ * Loaded after the existing v21-v26 styles. Geometry is intentionally unchanged.
+ */
+
+/* 1) A positive “ĐẠT” is a full green cell state, not an outline-only state. */
+body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] {
+  background: #bbf7d0 !important;
+  background-color: #bbf7d0 !important;
+  color: #075b35 !important;
+  font-weight: 850 !important;
+  box-shadow: none !important;
+  border-color: #8bd6a6 !important;
+}
+body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] * {
+  color: inherit !important;
+  font-weight: inherit !important;
+}
+
+/* 2) Header second line: parenthesized by v27 runtime, italic and bright red.
+ * This selector is deliberately stronger than the legacy “header children inherit color” rule.
+ */
+body table.nmc-kpi-v21-table thead th .nmc-header-subline-v27,
+body table.nmc-kpi-v21-table thead td .nmc-header-subline-v27 {
+  color: #ff2020 !important;
+  font-style: italic !important;
+  text-shadow: none !important;
+}
+
+/* 3) Thưởng Quý TVV + Thưởng Quý Trưởng Nhóm.
+ * Keep the normal identity headers unchanged; only the reward-rate hierarchy is warm yellow/orange.
+ */
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead,
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead,
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead,
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead {
+  box-shadow: none !important;
+}
+
+/* Remove the old empty 3px separator row between the real header and body. */
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead tr[data-nmc-empty-header='1'],
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead tr[data-nmc-empty-header='1'],
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead tr[data-nmc-empty-header='1'],
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr[data-nmc-empty-header='1'] {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Top reward-rate band: darkest burnt orange. */
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead tr:first-child > th[colspan='6'],
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead tr:first-child > th[colspan='6'],
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead tr:first-child > th[colspan='5'],
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:first-child > th[colspan='5'] {
+  background: #8f4700 !important;
+  background-color: #8f4700 !important;
+  color: #fffaf2 !important;
+  border-color: #743900 !important;
+  font-weight: 850 !important;
+}
+
+/* Threshold band: same family, lighter orange-gold. */
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead tr:nth-child(2) > th,
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead tr:nth-child(2) > th,
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead tr:nth-child(2) > th,
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:nth-child(2) > th {
+  background: #e5a43e !important;
+  background-color: #e5a43e !important;
+  color: #4b2a00 !important;
+  border-color: #c68425 !important;
+  font-weight: 750 !important;
+}
+
+/* Percentage band: palest yellow-orange, bold bright-red numbers. */
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead tr:nth-child(3) > th,
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead tr:nth-child(3) > th,
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead tr:nth-child(3) > th,
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:nth-child(3) > th {
+  background: #fff0c7 !important;
+  background-color: #fff0c7 !important;
+  color: #e02020 !important;
+  border-color: #e3c783 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tvv'] thead tr:nth-child(3) > th *,
+body table.nmc-kpi-v21-table[data-nmc-program='quy-tn'] thead tr:nth-child(3) > th *,
+body .policy-detail-table-wrapper[data-policy-table='quy-tvv'] thead tr:nth-child(3) > th *,
+body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:nth-child(3) > th * {
+  color: #e02020 !important;
+  font-weight: 900 !important;
+}

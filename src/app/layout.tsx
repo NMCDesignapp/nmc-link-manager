@@ -96,11 +96,8 @@ export default function RootLayout({
         <link rel="stylesheet" href="/kpi-table-global-polish-v24.css?v=20260909-2" />
         <link rel="stylesheet" href="/kpi-rank-column-contrast-v25.css?v=20260909-1" />
         <link rel="stylesheet" href="/kpi-rank-header-structure-v26.css?v=20260909-1" />
-        <script src="/kpi-detail-column-themes-v21.js?v=20260909-4" defer></script>
-        <script src="/kpi-detail-tier-fix-v22.js?v=20260909-4" defer></script>
-        <script src="/kpi-table-global-polish-v24.js?v=20260909-2" defer></script>
-        <script src="/kpi-rank-column-contrast-v25.js?v=20260909-1" defer></script>
-        <script src="/kpi-rank-header-structure-v26.js?v=20260909-1" defer></script>
+        <link rel="stylesheet" href="/kpi-table-runtime-v27.css?v=20260910-1" />
+        <script src="/kpi-table-runtime-v27.js?v=20260910-1" defer></script>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
