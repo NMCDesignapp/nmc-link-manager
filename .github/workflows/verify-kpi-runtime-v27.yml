@@ -1,0 +1,32 @@
+name: Verify KPI table runtime v27
+
+on:
+  pull_request:
+    paths:
+      - 'src/app/layout.tsx'
+      - 'kpi-app/src/app/layout.tsx'
+      - 'public/kpi-table-runtime-v27.js'
+      - 'public/kpi-table-runtime-v27.css'
+      - 'scripts/check-kpi-table-runtime-v27.cjs'
+      - '.github/workflows/verify-kpi-runtime-v27.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Check runtime JavaScript syntax
+        run: node --check public/kpi-table-runtime-v27.js
+
+      - name: Check runtime contracts
+        run: node scripts/check-kpi-table-runtime-v27.cjs
