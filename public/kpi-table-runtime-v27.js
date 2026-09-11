@@ -309,15 +309,26 @@
 
   const formatHeaderSublines = (table) => {
     if (!table.tHead) return;
+    const formatSubline = (node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const text = String(node.textContent || '').trim();
+      if (!text) return;
+      node.classList.add('nmc-header-subline-v27');
+      if (!/^\(.*\)$/.test(text)) node.textContent = `(${text})`;
+    };
+
     table.tHead.querySelectorAll('th,td').forEach((cell) => {
       cell.querySelectorAll('br').forEach((br) => {
         let node = br.nextSibling;
         while (node && node.nodeType === Node.TEXT_NODE && !String(node.nodeValue || '').trim()) node = node.nextSibling;
-        if (!(node instanceof HTMLElement) || !/^(SPAN|SMALL|EM)$/i.test(node.tagName)) return;
-        const text = String(node.textContent || '').trim();
-        if (!text) return;
-        node.classList.add('nmc-header-subline-v27');
-        if (!/^\(.*\)$/.test(text)) node.textContent = `(${text})`;
+        if (!(node instanceof HTMLElement) || !/^(SPAN|SMALL|EM|DIV)$/i.test(node.tagName)) return;
+        formatSubline(node);
+      });
+
+      const lines = Array.from(cell.children).filter((node) => String(node.textContent || '').trim());
+      lines.slice(1).forEach((node) => {
+        const className = typeof node.className === 'string' ? node.className : '';
+        if (node.matches('em,small') || /italic/i.test(className) || node.style.fontStyle === 'italic') formatSubline(node);
       });
     });
   };
@@ -515,3 +526,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
+

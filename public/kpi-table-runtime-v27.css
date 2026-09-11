@@ -3,7 +3,7 @@
  */
 
 /* 1) A positive “ĐẠT” is a full green cell state, not an outline-only state. */
-body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] {
+body table.nmc-kpi-v21-table tbody tr > td[data-nmc-achieved='1'][data-nmc-achieved] {
   background: #bbf7d0 !important;
   background-color: #bbf7d0 !important;
   color: #075b35 !important;
@@ -11,7 +11,7 @@ body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] {
   box-shadow: none !important;
   border-color: #8bd6a6 !important;
 }
-body table.nmc-kpi-v21-table tbody td[data-nmc-achieved='1'] * {
+body table.nmc-kpi-v21-table tbody tr > td[data-nmc-achieved='1'][data-nmc-achieved] * {
   color: inherit !important;
   font-weight: inherit !important;
 }
@@ -92,3 +92,4 @@ body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:nth-child
   color: #e02020 !important;
   font-weight: 900 !important;
 }
+
