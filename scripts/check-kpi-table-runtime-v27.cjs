@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 
@@ -31,6 +32,9 @@ if (!runtime.includes('CHUA DAT|KHONG DAT|CHUA DU|KHONG DU')) throw new Error('r
 if (!runtime.includes('nmc-header-subline-v27')) throw new Error('runtime: header subline formatting missing');
 if (!css.includes("data-nmc-program='quy-tvv'")) throw new Error('css: quy-tvv scope missing');
 if (!css.includes("data-nmc-program='quy-tn'")) throw new Error('css: quy-tn scope missing');
+if (!css.includes("td[data-nmc-achieved='1'][data-nmc-achieved]")) throw new Error('css: achieved-cell selector is too weak for legacy zebra layers');
 if (!css.includes('background: #bbf7d0 !important')) throw new Error('css: full achieved-cell fill missing');
+if (!runtime.includes("node.matches('em,small')")) throw new Error('runtime: italic div header sublines are not covered');
 
 console.log('KPI runtime v27 contract checks passed.');
+
