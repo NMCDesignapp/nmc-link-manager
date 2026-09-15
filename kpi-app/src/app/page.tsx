@@ -15,7 +15,7 @@ import { useAppData } from '@/lib/app-data-context';
 // Used by standalone kpi-app (angiang2026-nhom.vercel.app) to open /quan-ly sheets
 // in an iframe overlay (cross-origin to nc-link.vercel.app).
 // In main app (standalone=false), unused — iframe src uses relative '/quan-ly?sheet=xxx&admin=1'.
-const MAIN_APP_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_MAIN_APP_URL) || 'https://nc-link.vercel.app';
+const MAIN_APP_URL = 'https://nc-link.vercel.app';
 const buildMainUrl = (path: string) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
 // Kỳ đăng ký mục tiêu đang mở. Giữ đồng bộ với ACTIVE_TARGET_MONTH trong
@@ -864,8 +864,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .tgr-list-table .tgr-col-nhom { width: 15%; }
 .kpi-app .tgr-list-table .tgr-col-name { width: 18%; }
 .kpi-app .tgr-list-table .tgr-col-cv { width: 6%; text-align: center; }
-.kpi-app .tgr-list-table .tgr-col-afyp { width: 17%; text-align: right; }
-.kpi-app .tgr-list-table .tgr-col-luot { width: 7%; text-align: right; }
+.kpi-app .tgr-list-table .tgr-col-afyp { width: 17%; text-align: center; }
+.kpi-app .tgr-list-table .tgr-col-luot { width: 7%; text-align: center; }
 .kpi-app .tgr-list-table .tgr-col-note { width: 20%; }
 .kpi-app .tgr-list-empty {
   text-align: center; padding: 30px 16px; color: #668274; font-size: 12px; font-style: italic; background: #fff;
@@ -1408,6 +1408,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .cal-fbtn { padding: 4px 2px; border-radius: 6px; border: 1.2px solid #008080; background: #083636; color: #b9ffff; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 8px; text-align: center; transition: all .2s; min-height: 24px; }
 .kpi-app .cal-fbtn:hover { background: #0d4d4d; color: #f3ffff; }
 .kpi-app .cal-fbtn.on { background: #008080; color: #003b3b; border-color: #008080; box-shadow: 0 0 10px #0080804d; font-weight: 900; }
+.kpi-app .cal-scope-filter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin: 8px auto 0; max-width: 820px; }
+.kpi-app .cal-scope-btn { min-height: 30px; padding: 5px 6px; border-radius: 7px; border: 1px solid #31566f; background: #0c2638; color: #b8cfdf; font-size: 9px; font-weight: 800; line-height: 1.15; text-align: center; transition: all .18s ease; }
+.kpi-app .cal-scope-btn:hover { background: #12384f; border-color: #4b7897; color: #effaff; }
+.kpi-app .cal-scope-btn.on { background: linear-gradient(135deg, #0b6d69, #0b8078); border-color: #5ed6c9; color: #f2fffd; box-shadow: 0 4px 14px #0080803d, inset 0 1px 0 #ffffff20; }
 .kpi-app .cal-wrap { background: #f7ffff; border-radius: 8px; overflow: hidden; box-shadow: 0 16px 40px #0000004d; border: 1px solid #00808066; border-bottom: 3px solid #008080; margin-top: 10px; }
 .kpi-app .cal-head { background: #008080; color: #f7fffe; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; padding: 6px 0; display: grid; grid-template-columns: 42px minmax(0,1fr) 60px; text-align: center; border-radius: 8px 8px 0 0; }
 .kpi-app .cal-head span { padding: 0 6px; display: flex; align-items: center; justify-content: center; min-height: 100%; }
@@ -1535,6 +1539,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   white-space: nowrap;
 }
 .kpi-app .cal-owner-opt:hover { background: #f0f7ff; border-color: #5090d8; }
+.kpi-app .cal-owner-custom { display: none !important; }
 .kpi-app .cal-owner-opt.on { color: #fff; }
 .kpi-app .cal-owner-custom { margin-top: 6px; }
 .kpi-app .cal-edit-err { color: #dc2626; font-size: 10.5px; font-weight: 700; }
@@ -1934,6 +1939,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .ad-progress { margin-top: 3px; height: 3px; }
   .kpi-app .cal-filter { grid-template-columns: repeat(6, 1fr); gap: 2px; }
   .kpi-app .cal-fbtn { padding: 3px 1px; border-radius: 5px; min-height: 20px; font-size: 7px; }
+  .kpi-app .cal-scope-filter { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+  .kpi-app .cal-scope-btn { min-height: 32px; padding: 4px 2px; font-size: 7px; border-radius: 5px; }
   .kpi-app .cal-row { grid-template-columns: 38px minmax(0,1fr) 52px; }
   .kpi-app .cal-head { grid-template-columns: 38px minmax(0,1fr) 52px; padding: 5px 0; font-size: 8px; }
   .kpi-app .cal-day { padding: 4px 3px; font-size: 10px; }
@@ -3291,6 +3298,20 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   border-color: #8ae8ff !important;
 }
 .kpi-app .tamthu-detail-shell { max-width: 1380px; margin: 0 auto; }
+/* nmc-kpi-table-surface-v1: giữ nền công nghệ ở dưới, bảng luôn ở lớp nội dung. */
+.kpi-app #view-tamthu-detail,
+.kpi-app #view-target-reg-list { position: relative; z-index: 6; isolation: isolate; }
+.kpi-app .tamthu-detail-shell,
+.kpi-app .tamthu-detail-card,
+.kpi-app .tgr-list-shell,
+.kpi-app .tgr-list-table-wrap { position: relative; z-index: 7; }
+.kpi-app .tamthu-table-wrap,
+.kpi-app .tgr-list-table-wrap { isolation: isolate; background: #fff !important; }
+.kpi-app .tamthu-table,
+.kpi-app .tgr-list-table { position: relative; z-index: 1; background: #fff !important; }
+.kpi-app .tamthu-detail-title { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.kpi-app .tamthu-detail-title > span { display: block; }
+.kpi-app .tamthu-detail-title > em { display: block; color: #8fd9ff; font-size: .56em; font-style: italic; font-weight: 600; line-height: 1.15; letter-spacing: .035em; text-transform: none; }
 .kpi-app .tamthu-detail-card { overflow: visible; background: transparent; border: 0; box-shadow: none; }
 .kpi-app .tamthu-detail-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -4082,7 +4103,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [detailAdFilter, setDetailAdFilter] = useState<string>('all'); // AD filter for detail view
   const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
+  // nmc-kpi-calendar-rooms-v4
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [calScope, setCalScope] = useState<string>('Công ty');
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const calendarEventsCacheRef = useRef<Map<string, CalendarEvent[]>>(new Map());
   const calendarRequestRef = useRef<Map<string, Promise<CalendarEvent[]>>>(new Map());
@@ -4090,6 +4113,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   useEffect(() => { calMonthRef.current = calMonth; }, [calMonth]);
   // Calendar edit popup state (settings button locked with password)
   const [calAuthed, setCalAuthed] = useState(false);
+  const [calAuthScope, setCalAuthScope] = useState<string | null>(null);
   const [calPwdOpen, setCalPwdOpen] = useState(false);
   const [calPwdInput, setCalPwdInput] = useState('');
 
@@ -4797,12 +4821,48 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   }, [view, calMonth, CUR_YEAR, refreshCalendarEvents]);
 
   /* Calendar edit handlers */
-  const CAL_OWNERS = ['Công ty', 'HTKD', 'PTKD', 'DVKH'];
+  const CAL_PLAN_SCOPES = ['Công ty', 'Phòng PTKD 1', 'Phòng PTKD 2', 'Phòng PTKD 3', 'Phòng HTKD'];
+  const CAL_ROOM_SCOPES = CAL_PLAN_SCOPES.filter(scope => scope !== 'Công ty');
+  const CAL_RESPONSIBLE_OPTIONS: Record<string, string[]> = {
+    'Phòng PTKD 1': ['AD Trí', 'AD Uy'],
+    'Phòng PTKD 2': ['AD Có', 'AD Long'],
+    'Phòng PTKD 3': ['AD Trang', 'AD Danh'],
+    'Phòng HTKD': ['A Châu', 'A Kỳ', 'A Hoan', 'C Hoa', 'C Huệ', 'Cả Phòng'],
+  };
+  const CAL_ALL_DETAIL_OWNERS = Object.values(CAL_RESPONSIBLE_OPTIONS).flat();
+  const CAL_DETAIL_TO_ROOM = Object.entries(CAL_RESPONSIBLE_OPTIONS).reduce<Record<string, string>>((acc, [room, people]) => {
+    people.forEach(person => { acc[person] = room; });
+    return acc;
+  }, {});
+  const CAL_MASTER_PASSWORD_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+  const CAL_SCOPE_PASSWORD_HASHES: Record<string, string> = {
+    'Phòng PTKD 1': '987a0457f57001ca36deffb20f5f255712b3e22fce4ea15e38a88d6d354f4530',
+    'Phòng PTKD 2': 'f7ab5e7d49f38c06dba85147a7c74c79700ba4f7e4b4564a457f6f5eaf953ed6',
+    'Phòng PTKD 3': '99b1159f77be8a32029a0463617aa71935b9e02feb43ecefd9c4959431f067ad',
+    'Phòng HTKD': '5236af15d71903ad5bbdc332c7360d565c57605e2a95fe7a0e82b23ebe287111',
+  };
   const CAL_OWNER_COLORS: Record<string, string> = {
-    'Công ty': '#7c3aed', // purple
-    'HTKD':    '#0ea5e9', // sky blue
-    'PTKD':    '#16a34a', // green
-    'DVKH':    '#ea580c', // orange
+    'Công ty': '#7c3aed',
+    'Phòng PTKD 1': '#16a34a',
+    'Phòng PTKD 2': '#15803d',
+    'Phòng PTKD 3': '#166534',
+    'Phòng HTKD': '#0ea5e9',
+    // Compact display aliases used only by the Company aggregate view.
+    'PTKD 1': '#16a34a',
+    'PTKD 2': '#15803d',
+    'PTKD 3': '#166534',
+    'AD Trí': '#16a34a', 'AD Uy': '#16a34a',
+    'AD Có': '#15803d', 'AD Long': '#15803d',
+    'AD Trang': '#166534', 'AD Danh': '#166534',
+    'A Châu': '#0ea5e9', 'A Kỳ': '#0ea5e9', 'A Hoan': '#0ea5e9', 'C Hoa': '#0ea5e9', 'C Huệ': '#0ea5e9', 'Cả Phòng': '#0ea5e9',
+    // Legacy labels — keep old saved plans visually consistent.
+    'HTKD': '#0ea5e9',
+    'PTKD': '#16a34a',
+    'DVKH': '#ea580c',
+    'Phòng 1': '#16a34a',
+    'Phòng 2': '#15803d',
+    'Phòng 3': '#166534',
+    'Chưa phân công': '#64748b',
   };
   const getOwnerColor = (owner: string) => CAL_OWNER_COLORS[owner] || '#475569'; // slate for custom/other
 
@@ -4819,14 +4879,78 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return owner.split(',').map(s => s.trim()).filter(Boolean);
   };
 
-  const submitCalPwd = () => {
-    if (calPwdInput === '123456') {
-      setCalAuthed(true); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
+  const roomAliases: Record<string, string[]> = {
+    'Phòng PTKD 1': ['Phòng PTKD 1', 'Phòng 1'],
+    'Phòng PTKD 2': ['Phòng PTKD 2', 'Phòng 2'],
+    'Phòng PTKD 3': ['Phòng PTKD 3', 'Phòng 3'],
+    'Phòng HTKD': ['Phòng HTKD', 'HTKD'],
+  };
+
+  const eventHasRoomOwner = (ev: CalendarEvent, room: string): boolean => {
+    const owners = parseOwners(ev.owner);
+    const aliases = roomAliases[room] || [room];
+    if (owners.some(owner => aliases.includes(owner))) return true;
+    if (owners.some(owner => CAL_DETAIL_TO_ROOM[owner] === room)) return true;
+    // Legacy generic PTKD predates the three-way room split; keep it visible in all PTKD room views.
+    if (room.startsWith('Phòng PTKD ') && owners.includes('PTKD')) return true;
+    return false;
+  };
+
+  const getEditableOwnersForScope = (ev: CalendarEvent, scope: string): string[] => {
+    const owners = parseOwners(ev.owner);
+    if (scope === 'Công ty') {
+      const explicitRooms = CAL_ROOM_SCOPES.filter(room => eventHasRoomOwner(ev, room));
+      return explicitRooms;
+    }
+    const allowed = CAL_RESPONSIBLE_OPTIONS[scope] || [];
+    return owners.filter(owner => allowed.includes(owner));
+  };
+
+  const getCalOwnerOptions = (scope: string): string[] => {
+    return scope === 'Công ty' ? CAL_ROOM_SCOPES : (CAL_RESPONSIBLE_OPTIONS[scope] || []);
+  };
+
+  const getDisplayOwnersForScope = (ev: CalendarEvent, scope: string): string[] => {
+    const owners = parseOwners(ev.owner);
+    if (scope === 'Công ty') {
+      // Preserve one legacy generic PTKD label rather than falsely assigning it to all three new rooms.
+      const hasSpecificPTKDRoom = ['Phòng PTKD 1', 'Phòng 1', 'Phòng PTKD 2', 'Phòng 2', 'Phòng PTKD 3', 'Phòng 3']
+        .some(alias => owners.includes(alias));
+      const rooms = CAL_ROOM_SCOPES.filter(room => {
+        if (room.startsWith('Phòng PTKD ') && owners.includes('PTKD') && !hasSpecificPTKDRoom) return false;
+        return eventHasRoomOwner(ev, room);
+      });
+      if (owners.includes('PTKD') && !hasSpecificPTKDRoom) rooms.unshift('PTKD');
+      // nmc-kpi-calendar-owner-short-labels-v1
+      return (rooms.length > 0 ? Array.from(new Set(rooms)) : ['Công ty'])
+        .map(owner => owner.replace(/^Phòng\s+/, ''));
+    }
+    const details = (CAL_RESPONSIBLE_OPTIONS[scope] || []).filter(person => owners.includes(person));
+    return details.length > 0 ? details : ['Chưa phân công'];
+  };
+
+  const eventMatchesCalScope = (ev: CalendarEvent, scope: string): boolean => {
+    if (scope === 'Công ty') return true;
+    return eventHasRoomOwner(ev, scope);
+  };
+
+  const sha256Hex = async (value: string): Promise<string> => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const submitCalPwd = async () => {
+    const enteredHash = await sha256Hex(calPwdInput);
+    const isMaster = enteredHash === CAL_MASTER_PASSWORD_HASH;
+    const expectedRoomHash = CAL_SCOPE_PASSWORD_HASHES[calScope];
+    const isSelectedRoomPassword = Boolean(expectedRoomHash && enteredHash === expectedRoomHash);
+    if (isMaster || isSelectedRoomPassword) {
+      setCalAuthed(true); setCalAuthScope(isMaster ? '*' : calScope); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
       // If user clicked an existing entry to edit, open edit form for THAT event.
       // Otherwise, open blank new-entry form.
       if (calPendingEdit) {
         const ev = calPendingEdit;
-        const owners = parseOwners(ev.owner);
+        const owners = getEditableOwnersForScope(ev, calScope);
         setCalEditForm({
           id: ev.id,
           date: ev.date,
@@ -4847,7 +4971,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
   const openCalEditFor = (ev: CalendarEvent) => {
     if (calAuthed) {
-      const owners = parseOwners(ev.owner);
+      const owners = getEditableOwnersForScope(ev, calScope);
       setCalEditForm({
         id: ev.id,
         date: ev.date,
@@ -4878,14 +5002,39 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       setCalEditError('Vui lòng nhập ngày và nội dung.');
       return;
     }
-    // Gộp owners chọn sẵn + custom text (nếu có nhập)
     const finalOwners = [...calEditForm.owners];
-    const customText = calEditForm.ownerCustom.trim();
-    if (customText && !finalOwners.includes(customText)) {
-      finalOwners.push(customText);
+    const originalEvent = calEditForm.id ? calendarEvents.find(e => e.id === calEditForm.id) : undefined;
+    const originalOwners = parseOwners(originalEvent?.owner);
+    let owner: string;
+
+    if (calScope === 'Công ty') {
+      const selectedRooms = finalOwners.filter(o => CAL_ROOM_SCOPES.includes(o));
+      if (selectedRooms.length === 0) {
+        owner = 'Công ty';
+      } else {
+        // Preserve existing staff detail only for rooms that remain selected.
+        const preservedDetails = originalOwners.filter(detail => {
+          const detailRoom = CAL_DETAIL_TO_ROOM[detail];
+          return Boolean(detailRoom && selectedRooms.includes(detailRoom));
+        });
+        owner = Array.from(new Set([...selectedRooms, ...preservedDetails])).join(', ');
+      }
+    } else {
+      const allowedDetails = CAL_RESPONSIBLE_OPTIONS[calScope] || [];
+      const selectedDetails = finalOwners.filter(o => allowedDetails.includes(o));
+      if (selectedDetails.length === 0) {
+        setCalEditError('Vui lòng chọn đối tượng phụ trách của phòng.');
+        return;
+      }
+
+      const currentAliases = new Set([...(roomAliases[calScope] || [calScope]), ...allowedDetails]);
+      const preservedOtherOwners = originalOwners.filter(o => {
+        if (currentAliases.has(o)) return false;
+        if (calScope.startsWith('Phòng PTKD ') && o === 'PTKD') return false;
+        return true;
+      });
+      owner = Array.from(new Set([...preservedOtherOwners, calScope, ...selectedDetails])).join(', ');
     }
-    // Join bằng ", " để hiển thị dạng "Công ty, HTKD"
-    const owner = finalOwners.join(', ');
     setCalEditSaving(true);
     setCalEditError(null);
     try {
@@ -5314,7 +5463,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
     // IMPORTANT: Use ALL year contracts (NOT dashboard.periodContracts which is
     // filtered by the user's selected overviewPeriod on the dashboard). The popup
-    // must show IP for all months 3-9 regardless of what period is selected.
+    // must show IP for all months 6-12 regardless of what period is selected.
     const popupYearContracts = rawData.contracts.filter(c => {
       const d = getDoanhSoMonth(c);
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
@@ -5375,12 +5524,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 3-9) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
+    // IP per month per TVV (months 6-12) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
     // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
     // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
     // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
     // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
-    const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const months37 = [6, 7, 8, 9, 10, 11, 12];
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
@@ -5472,13 +5621,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // Use ALL year contracts (months 3-9) — same approach as AD popup
+    // Use ALL year contracts (months 6-12) — same approach as AD popup
     const popupYearContracts = rawData.contracts.filter(c => {
       const d = getDoanhSoMonth(c);
       return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
     });
 
-    const months37 = [3, 4, 5, 6, 7, 8, 9];
+    const months37 = [6, 7, 8, 9, 10, 11, 12];
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
@@ -5570,7 +5719,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       const dateObj = new Date(CUR_YEAR, monthNum - 1, day);
       const weekday = dateObj.getDay();
       const dateStr = `${CUR_YEAR}-${calMonth}-${String(day).padStart(2, '0')}`;
-      const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+      const dayEvents = calendarEvents.filter(e => e.date === dateStr && eventMatchesCalScope(e, calScope));
       rows.push({
         day, weekday, events: dayEvents,
         isToday: day === NOW.getDate() && calMonth === CUR_MONTH,
@@ -5579,7 +5728,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       });
     }
     return rows;
-  }, [calMonth, CUR_YEAR, calendarEvents, NOW, CUR_MONTH]);
+  }, [calMonth, calScope, CUR_YEAR, calendarEvents, NOW, CUR_MONTH]);
 
   /* Render AFYP Chart SVG — with KH line */
   const renderChart = () => {
@@ -6818,6 +6967,21 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               <button key={m} className={`cal-fbtn ${calMonth === m ? 'on' : ''}`} onClick={() => setCalMonth(m)}>T{parseInt(m)}</button>
             ))}
           </div>
+          <div className="cal-scope-filter" aria-label="Chọn phòng kế hoạch">
+            {CAL_PLAN_SCOPES.map(scope => (
+              <button
+                key={scope}
+                type="button"
+                className={`cal-scope-btn ${calScope === scope ? 'on' : ''}`}
+                onClick={() => {
+                  setCalScope(scope);
+                  setCalAuthed(calAuthScope === '*' || calAuthScope === scope);
+                }}
+              >
+                {scope}
+              </button>
+            ))}
+          </div>
           <div className="cal-wrap">
             <div className="cal-head">
               <span>Ngày</span>
@@ -6852,8 +7016,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </div>
                     <div className="cal-owner">
                       {row.events.map((e, ei) => {
-                        // Multi-select: split owner string by ", " → render each as separate tag on its own line
-                        const ownerList = (e.owner || '').split(',').map(s => s.trim()).filter(Boolean);
+                        // Company aggregate shows room level only; room views show staff detail only.
+                        const ownerList = getDisplayOwnersForScope(e, calScope);
                         if (ownerList.length === 0) {
                           return (
                             <span
@@ -6894,7 +7058,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button className="cal-modal-x" onClick={() => setCalPwdOpen(false)}>×</button>
               </div>
               <div className="cal-modal-body">
-                <p className="cal-modal-hint">Nhập mật khẩu để mở khóa cài đặt lịch:</p>
+                <p className="cal-modal-hint">Nhập mật khẩu của <strong>{calScope}</strong> để nhập/sửa kế hoạch:</p>
                 <input
                   type="password"
                   className={`cal-pwd-input${calPwdError ? ' err' : ''}`}
@@ -6941,7 +7105,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <div className="cal-field">
                   <span className="cal-field-label">Phụ trách (có thể chọn nhiều)</span>
                   <div className="cal-owner-grid">
-                    {CAL_OWNERS.map(o => {
+                    {getCalOwnerOptions(calScope).map(o => {
                       const selected = calEditForm.owners.includes(o);
                       return (
                         <button
@@ -7190,7 +7354,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <div className="tamthu-detail-shell">
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-            <span className="sub-title">Chi Tiết Tạm Thu — {tamthuMonthLabel}</span>
+            <span className="sub-title tamthu-detail-title"><span>Chi Tiết Tạm Thu</span><em>{tamthuMonthLabel}</em></span>
             <button
               type="button"
               onClick={() => { void fetchTamthuDetail(true); }}
@@ -7351,7 +7515,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <td className="tgr-col-afyp">
                             <input
                               className="tgr-field-input"
-                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'right' }}
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 80, textAlign: 'center' }}
                               value={targetRegEditForm.afypTrieu || ''}
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, afypTrieu: e.target.value }))}
                             />
@@ -7359,7 +7523,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                           <td className="tgr-col-luot">
                             <input
                               className="tgr-field-input"
-                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'right' }}
+                              style={{ height: 30, padding: '0 8px', fontSize: 11, width: 60, textAlign: 'center' }}
                               value={targetRegEditForm.luotHD || ''}
                               onChange={(e) => setTargetRegEditForm((p: any) => ({ ...p, luotHD: e.target.value }))}
                             />

@@ -1182,3 +1182,13 @@ Stage Summary:
   → user có thể re-enter thủ công qua UI Thi Đua + Quản Lý
 - ⚠ Neon free tier mới: 0.5 GB storage, 100 compute hours/tháng. Nếu tiếp tục vượt,
   cân nhắc upgrade lên Launch plan ($19/mo, 10 GB storage, không giới hạn compute hours).
+---
+Task ID: sync-kpi-popup-months-2026-09-15
+Agent: Codex
+Task: Đồng bộ giao diện KPI và đổi popup chi tiết từ tháng 3-9 sang tháng 6-12
+
+Work Log:
+- Theo chỉ định cho lần chỉnh này, lấy giao diện KPI tách hiện tại làm chuẩn và đưa KPI trên Main về cùng giao diện trước khi thay đổi dải tháng.
+- Đổi cả popup khi bấm tên nhân viên/AD và bảng “Chi tiết nhóm” sang các cột IP tháng 6, 7, 8, 9, 10, 11, 12.
+- Quy ước lâu dài: từ sau lần này, mọi yêu cầu sửa KPI thực hiện tại nguồn chuẩn `src/app/kpi/page.tsx`; KPI tách phải tự đồng bộ từ nguồn này và chỉ giữ khác biệt hợp lệ về chế độ standalone/điều hướng/quản trị.
+- Sau mọi thay đổi KPI phải chạy `bash scripts/sync-kpi-app.sh`, `bash scripts/sync-kpi-app.sh --check`, build Main App và build `kpi-app` trước khi triển khai cả hai project Vercel.
